@@ -13,7 +13,7 @@ LLVMTypeRef translateType(GlobalState* globalState, IRegion* region, Reference* 
     return LLVMInt1Type();
   } else if (dynamic_cast<Str*>(referenceM->referend) != nullptr) {
     assert(referenceM->ownership == Ownership::SHARE);
-    return LLVMPointerType(LLVMInt8Type(), 0);
+    return region->getStringRefType();
   } else if (dynamic_cast<Never*>(referenceM->referend) != nullptr) {
     return LLVMArrayType(LLVMIntType(NEVER_INT_BITS), 0);
   } else if (auto knownSizeArrayMT =

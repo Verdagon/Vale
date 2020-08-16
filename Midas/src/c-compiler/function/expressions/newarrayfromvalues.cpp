@@ -35,18 +35,16 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structTypeM,
-    LLVMTypeRef structLT,
-    const std::vector<LLVMValueRef>& membersLE,
-    const std::string& typeName) {
+    KnownSizeArrayT* referendM,
+    const std::vector<LLVMValueRef>& membersLE) {
   auto newStructLE =
       functionState->defaultRegion->constructKnownSizeArray(
           globalState,
           functionState,
           builder,
           structTypeM,
-          structLT,
-          membersLE,
-          typeName);
+          referendM,
+          membersLE);
   fillKnownSizeArray(
       builder,
       functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, newStructLE),
@@ -87,18 +85,14 @@ LLVMValueRef translateNewArrayFromValues(
         return nullptr;
       } else {
         // If we get here, arrayLT is a pointer to our counted struct.
-        auto knownSizeArrayCountedStructLT =
-            functionState->defaultRegion->getKnownSizeArrayRefType(
-                globalState, newArrayFromValues->arrayRefType, knownSizeArrayMT);
         auto resultLE =
             constructKnownSizeArrayCountedStruct(
                 globalState,
                 functionState,
                 builder,
                 newArrayFromValues->arrayRefType,
-                knownSizeArrayCountedStructLT,
-                elementsLE,
-                knownSizeArrayMT->name->name);
+                knownSizeArrayMT,
+                elementsLE);
         functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder,
             newArrayFromValues->arrayRefType, resultLE);
         return resultLE;

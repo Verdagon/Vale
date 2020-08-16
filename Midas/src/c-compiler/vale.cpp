@@ -63,9 +63,6 @@ void initInternalExterns(GlobalState* globalState) {
   globalState->getch = addFunction(globalState->mod, "getchar", int64LT, {});
   globalState->printInt = addFunction(globalState->mod, "__vprintI64", voidLT, {int64LT});
   globalState->printBool = addFunction(globalState->mod, "__vprintBool", voidLT, {int1LT});
-  globalState->initStr =
-      addFunction(globalState->mod, "__vinitStr", voidLT,
-          { int8PtrLT, int8PtrLT, });
   globalState->addStr =
       addFunction(globalState->mod, "__vaddStr", voidLT,
           { int8PtrLT, int8PtrLT, int8PtrLT });
@@ -106,7 +103,7 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   std::ifstream instream(filename);
   std::string str(std::istreambuf_iterator<char>{instream}, {});
 
-  assert(str.size() > 0);
+  assert(str.size() > 0); // If this fails, theres nothing in that file.
   auto programJ = json::parse(str.c_str());
   auto program = readProgram(&globalState->metalCache, programJ);
 

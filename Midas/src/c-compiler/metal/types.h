@@ -78,9 +78,10 @@ public:
 //    , debugStr(debugStr_)
     {
 
-    if (ownership == Ownership::BORROW || ownership == Ownership::WEAK) {
-      assert(location == Location::YONDER);
-    }
+    // we can have inline boxes now apparently
+//    if (ownership == Ownership::BORROW || ownership == Ownership::WEAK) {
+//      assert(location == Location::YONDER);
+//    }
   }
 
   // Someday, have a nice way to print out this Reference...

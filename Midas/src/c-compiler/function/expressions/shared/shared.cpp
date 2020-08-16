@@ -207,9 +207,15 @@ void foreachArrayElementCallInterface(
       functionState, builder, lengthLE, arrayPtrLE,
       [globalState, functionState, blockState, interfaceType, elementType, arrayPtrLE, interfaceLE, virtualParamIndex, indexInEdge](
           LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
+
+        Reference* targetType =
+            globalState->metalCache.getReference(
+                interfaceType->referend,
+                interfaceType->location,
+                Ownership::BORROW);
         functionState->defaultRegion->alias(
             AFL("DestroyKSAIntoF consume iteration"),
-            globalState, functionState, bodyBuilder, interfaceType, Ownership::BORROW, interfaceLE);
+            globalState, functionState, bodyBuilder, interfaceType, targetType, interfaceLE);
 
         std::vector<LLVMValueRef> indices = { constI64LE(0), indexLE };
         auto elementPtrLE = LLVMBuildGEP(bodyBuilder, arrayPtrLE, indices.data(), indices.size(), "elementPtr");

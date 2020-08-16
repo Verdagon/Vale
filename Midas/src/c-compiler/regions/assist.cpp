@@ -26,7 +26,7 @@ LLVMTypeRef AssistRegion::translateKnownSizeArrayToWrapperStruct(
   if (iter == globalState->knownSizeArrayCountedStructs.end()) {
     auto countedStruct = LLVMStructCreateNamed(LLVMGetGlobalContext(), knownSizeArrayMT->name->name.c_str());
     std::vector<LLVMTypeRef> elementsL;
-    elementsL.push_back(getControlBlockStructForKnownSizeArray(knownSizeArrayMT));
+    elementsL.push_back(nonWeakableControlBlockStructL);
     elementsL.push_back(innerArrayLT);
     LLVMStructSetBody(countedStruct, elementsL.data(), elementsL.size(), false);
 
@@ -39,6 +39,21 @@ LLVMTypeRef AssistRegion::translateKnownSizeArrayToWrapperStruct(
 LLVMTypeRef AssistRegion::makeInnerUnknownSizeArrayLT(GlobalState* globalState, UnknownSizeArrayT* unknownSizeArrayMT) {
   auto elementLT = translateType(globalState, this, unknownSizeArrayMT->rawArray->elementType);
   return LLVMArrayType(elementLT, 0);
+}
+
+LLVMTypeRef AssistRegion::getKnownSizeArrayType(
+    GlobalState* globalState,
+    KnownSizeArrayT* knownSizeArrayMT) {
+  if (knownSizeArrayMT->rawArray->mutability == Mutability::MUTABLE) {
+    assert(false);
+    return nullptr;
+  } else {
+    auto innerArrayLT = makeInnerKnownSizeArrayLT(globalState, knownSizeArrayMT);
+    auto knownSizeArrayCountedStructLT =
+        translateKnownSizeArrayToWrapperStruct(
+            globalState, knownSizeArrayMT);
+    return knownSizeArrayCountedStructLT;
+  }
 }
 
 LLVMTypeRef AssistRegion::getKnownSizeArrayRefType(
@@ -98,8 +113,9 @@ LLVMValueRef AssistRegion::getControlBlockPtr(
   } else if (dynamic_cast<UnknownSizeArrayT*>(refM->referend)) {
     return getConcreteControlBlockPtr(builder, referenceLE);
   } else if (dynamic_cast<Str*>(refM->referend)) {
-    return getConcreteControlBlockPtr(builder, referenceLE);
+    return getStringControlBlockPtr(builder, referenceLE);
   } else {
+    std::cerr << "Unknown: " << typeid(*refM->referend).name() << std::endl;
     assert(false);
     return nullptr;
   }
@@ -276,7 +292,13 @@ LLVMValueRef AssistRegion::getConstraintRefFromWeakRef(
     Reference* constraintRefM) {
   auto refLE = LLVMBuildExtractValue(builder, weakRefLE, WEAK_REF_OBJPTR_MEMBER_INDEX, "");
   checkValidReference(FL(), globalState, functionState, builder, constraintRefM, refLE);
-  alias(FL(), globalState, functionState, builder, constraintRefM, Ownership::BORROW, refLE);
+
+  Reference* targetType =
+      globalState->metalCache.getReference(
+          constraintRefM->referend,
+          constraintRefM->location,
+          Ownership::BORROW);
+  alias(FL(), globalState, functionState, builder, constraintRefM, targetType, refLE);
   return refLE;
 }
 
@@ -449,27 +471,27 @@ AssistRegion::AssistRegion() {
     nonWeakableControlBlockStructL = controlBlockStructL;
   }
 
-//  {
-//    stringInnerStructL =
-//        LLVMStructCreateNamed(
-//            LLVMGetGlobalContext(), "__Str");
-//    std::vector<LLVMTypeRef> memberTypesL;
-//    memberTypesL.push_back(LLVMInt64Type());
-//    memberTypesL.push_back(LLVMArrayType(int8LT, 0));
-//    LLVMStructSetBody(
-//        stringInnerStructL, memberTypesL.data(), memberTypesL.size(), false);
-//  }
-//
-//  {
-//    stringWrapperStructL =
-//        LLVMStructCreateNamed(
-//            LLVMGetGlobalContext(), "__Str_rc");
-//    std::vector<LLVMTypeRef> memberTypesL;
-//    memberTypesL.push_back(nonWeakableControlBlockStructL);
-//    memberTypesL.push_back(stringInnerStructL);
-//    LLVMStructSetBody(
-//        stringWrapperStructL, memberTypesL.data(), memberTypesL.size(), false);
-//  }
+  {
+    stringHeapStructL =
+        LLVMStructCreateNamed(
+            LLVMGetGlobalContext(), "__Str");
+    std::vector<LLVMTypeRef> memberTypesL;
+    memberTypesL.push_back(nonWeakableControlBlockStructL);
+    memberTypesL.push_back(LLVMArrayType(int8LT, 0));
+    LLVMStructSetBody(
+        stringHeapStructL, memberTypesL.data(), memberTypesL.size(), false);
+  }
+
+  {
+    stringRefStructL =
+        LLVMStructCreateNamed(
+            LLVMGetGlobalContext(), "__Str_ref");
+    std::vector<LLVMTypeRef> memberTypesL;
+    memberTypesL.push_back(int64LT);
+    memberTypesL.push_back(LLVMPointerType(stringHeapStructL, 0));
+    LLVMStructSetBody(
+        stringRefStructL, memberTypesL.data(), memberTypesL.size(), false);
+  }
 }
 
 LLVMValueRef AssistRegion::allocate(
@@ -596,6 +618,7 @@ LLVMValueRef AssistRegion::castOwnership(
   } else {
     assert(false);
   }
+  assert(false);
 }
 
 LLVMValueRef AssistRegion::alias(
@@ -604,23 +627,28 @@ LLVMValueRef AssistRegion::alias(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRef,
-    Ownership targetOwnership,
+    Reference* targetRef,
     LLVMValueRef sourceLE) {
+  // The only difference between sourceRef and targetRef is the ownership.
+  // Otherwise, we'd have to upgrade this function a bit.
+  assert(sourceRef->referend == targetRef->referend);
+  assert(sourceRef->location == targetRef->location);
+
   auto sourceRnd = sourceRef->referend;
 
-  auto expr = castOwnership(globalState, builder, sourceRef, targetOwnership, sourceLE);
+  auto expr = castOwnership(globalState, builder, sourceRef, targetRef->ownership, sourceLE);
 
-  if (targetOwnership == Ownership::SHARE) {
-    if (sourceRef->location == Location::INLINE) {
+  if (targetRef->ownership == Ownership::SHARE) {
+    if (targetRef->location == Location::INLINE) {
       // Do nothing
-    } else if (sourceRef->location == Location::YONDER) {
-      incrementStrongRc(from, globalState, functionState, builder, sourceRef, expr);
+    } else if (targetRef->location == Location::YONDER) {
+      incrementStrongRc(from, globalState, functionState, builder, targetRef, expr);
     } else assert(false);
-  } else if (targetOwnership == Ownership::BORROW) {
-    adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, 1);
-  } else if (targetOwnership == Ownership::WEAK) {
-    incrementWeakRc(from, globalState, functionState, builder, sourceRef, expr);
-  } else if (targetOwnership == Ownership::OWN) {
+  } else if (targetRef->ownership == Ownership::BORROW) {
+    adjustStrongRc(from, globalState, functionState, builder, expr, targetRef, 1);
+  } else if (targetRef->ownership == Ownership::WEAK) {
+    incrementWeakRc(from, globalState, functionState, builder, targetRef, expr);
+  } else if (targetRef->ownership == Ownership::OWN) {
     if (dynamic_cast<InterfaceReferend*>(sourceRnd)) {
       // We should never acquire an owning reference.
       // If you trip this, perhaps you're trying to borrow, and you handed in
@@ -691,7 +719,13 @@ LLVMValueRef AssistRegion::loadMember(
               builder,
               memberPtrLE,
               memberName.c_str());
-      alias(from, globalState, functionState, builder, memberType, Ownership::BORROW, resultLE);
+      auto targetOwnership = memberType->ownership == Ownership::SHARE ? Ownership::SHARE : Ownership::BORROW;
+      Reference* targetType =
+          globalState->metalCache.getReference(
+              memberType->referend,
+              memberType->location,
+              targetOwnership);
+      alias(from, globalState, functionState, builder, memberType, targetType, resultLE);
       return resultLE;
     }
   } else if (mutability == Mutability::MUTABLE) {
@@ -704,7 +738,13 @@ LLVMValueRef AssistRegion::loadMember(
             builder,
             memberPtrLE,
             memberName.c_str());
-    alias(from, globalState, functionState, builder, memberType, Ownership::BORROW, resultLE);
+    auto targetOwnership = memberType->ownership == Ownership::SHARE ? Ownership::SHARE : Ownership::BORROW;
+    Reference* targetType =
+        globalState->metalCache.getReference(
+            memberType->referend,
+            memberType->location,
+            targetOwnership);
+    alias(from, globalState, functionState, builder, memberType, targetType, resultLE);
     return resultLE;
   } else {
     assert(false);
@@ -782,7 +822,7 @@ LLVMValueRef AssistRegion::storeMember(
   auto oldMemberLE =
       swapMember(
           builder, structExpr, memberIndex, memberName, sourceLE);
-  checkValidReference(from, globalState, functionState, builder, memberType, structExpr);
+  checkValidReference(from, globalState, functionState, builder, memberType, oldMemberLE);
   functionState->defaultRegion->dealias(
       AFL("MemberStore discard struct"), globalState, functionState, blockState, builder,
       structRefM, structExpr);
@@ -827,10 +867,6 @@ LLVMTypeRef AssistRegion::getControlBlockStructForInterface(InterfaceDefinition*
   }
 }
 
-LLVMTypeRef AssistRegion::getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT) {
-  return nonWeakableControlBlockStructL;
-}
-
 LLVMTypeRef AssistRegion::getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT) {
   return nonWeakableControlBlockStructL;
 }
@@ -840,16 +876,16 @@ LLVMValueRef AssistRegion::constructKnownSizeArray(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structTypeM,
-    LLVMTypeRef structLT,
-    const std::vector<LLVMValueRef>& membersLE,
-    const std::string& typeName) {
+    KnownSizeArrayT* referendM,
+    const std::vector<LLVMValueRef>& membersLE) {
+  auto structLT = getKnownSizeArrayType(globalState, referendM);
   auto newStructLE = allocateStruct(globalState, builder, structTypeM, structLT);
   fillControlBlock(
       globalState,
       builder,
       getConcreteControlBlockPtr(builder, newStructLE),
       false,
-      typeName);
+      referendM->name->name);
   return newStructLE;
 }
 
@@ -872,7 +908,7 @@ LLVMValueRef AssistRegion::getUnknownSizeArrayLength(
           1, // Length is after the control block and before contents.
           "usaLenPtr");
   assert(LLVMTypeOf(resultLE) == LLVMPointerType(LLVMInt64Type(), 0));
-  return resultLE;
+  return LLVMBuildLoad(builder, resultLE, "usaLen");
 }
 
 LLVMValueRef AssistRegion::getUnknownSizeArrayElementsPtr(
@@ -1190,6 +1226,10 @@ void AssistRegion::checkValidReference(
     LLVMBuilderRef builder,
     Reference* refM,
     LLVMValueRef refLE) {
+  if (dynamic_cast<Str*>(refM->referend)) {
+    assert(LLVMTypeOf(refLE) == stringRefStructL);
+  }
+
   if (globalState->opt->census) {
     if (refM->ownership == Ownership::OWN) {
       auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
@@ -1225,78 +1265,103 @@ LLVMValueRef AssistRegion::constructString(
   auto sizeBytesLE =
       LLVMBuildAdd(
           builder,
+          makeConstIntExpr(
+              builder,
+              LLVMInt64Type(),
+              LLVMABISizeOfType(globalState->dataLayout, stringHeapStructL) + 1),
           lengthLE,
-          makeConstIntExpr(builder,LLVMInt64Type(),  1 + LLVMABISizeOfType(globalState->dataLayout, LLVMPointerType(LLVMInt8Type(), 0))),
           "strMallocSizeBytes");
 
-  auto destCharPtrLE =
+  auto destVoidPtrLE =
       LLVMBuildCall(builder, globalState->malloc, &sizeBytesLE, 1, "donePtr");
 
   adjustCounter(builder, globalState->liveHeapObjCounter, 1);
 
-  auto newStrWrapperPtrLE =
+  auto newStrHeapPtrLE =
       LLVMBuildBitCast(
           builder,
-          destCharPtrLE,
-          LLVMPointerType(LLVMInt8Type(), 0),
-          "newStrWrapperPtr");
+          destVoidPtrLE,
+          LLVMPointerType(stringHeapStructL, 0),
+          "newStrHeapPtr");
+
+  auto stringRefLE = LLVMGetUndef(stringRefStructL);
+  stringRefLE =
+      LLVMBuildInsertValue(
+          builder,
+          stringRefLE,
+          lengthLE,
+          0,
+          "strRefWithLen");
+  stringRefLE =
+      LLVMBuildInsertValue(
+          builder,
+          stringRefLE,
+          newStrHeapPtrLE,
+          1,
+          "strRef");
+
   fillControlBlock(
-      globalState, builder, getConcreteControlBlockPtr(builder, newStrWrapperPtrLE), false, "Str");
-  LLVMBuildStore(builder, lengthLE, getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
+      globalState, builder, getStringControlBlockPtr(builder, stringRefLE), false, "Str");
 
   if (globalState->opt->census) {
     LLVMValueRef resultAsVoidPtrLE =
         LLVMBuildBitCast(
-            builder, newStrWrapperPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
+            builder, newStrHeapPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
     LLVMBuildCall(builder, globalState->censusAdd, &resultAsVoidPtrLE, 1, "");
   }
 
   // The caller still needs to initialize the actual chars inside!
 
-  return newStrWrapperPtrLE;
+  return stringRefLE;
 }
 
-LLVMValueRef AssistRegion::getInnerStrPtrFromWrapperPtr(
+LLVMTypeRef AssistRegion::getStringRefType() const {
+  return stringRefStructL;
+}
+
+LLVMValueRef AssistRegion::getStringControlBlockPtr(
     LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE) {
-  return LLVMBuildStructGEP(
-      builder, strWrapperPtrLE, 1, "strInnerStructPtr");
+    LLVMValueRef stringRefLE) {
+  // 0th element of ref is the size, 1th element is the pointer to the heap struct.
+  auto heapPtrLE = LLVMBuildExtractValue(builder, stringRefLE, 1, "strHeapPtr");
+  // Control block is 0th element of the heap struct.
+  return LLVMBuildStructGEP(builder, heapPtrLE, 0, "strControlBlockPtr");
 }
 
-LLVMValueRef AssistRegion::getLenPtrFromStrWrapperPtr(
-    LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE) {
-  auto innerStringPtrLE =
-      getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE);
-  auto lenPtrLE =
-      LLVMBuildStructGEP(builder, innerStringPtrLE, 0, "lenPtr");
-  return lenPtrLE;
+LLVMValueRef AssistRegion::getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) {
+  assert(LLVMTypeOf(stringRefLE) == stringRefStructL);
+  auto heapPtrLE = LLVMBuildExtractValue(builder, stringRefLE, 1, "strHeapPtr");
+  assert(LLVMTypeOf(heapPtrLE) == LLVMPointerType(stringHeapStructL, 0));
+  // Bytes array is second element of the heap struct.
+  auto bytesArrayPtrLE = LLVMBuildStructGEP(builder, heapPtrLE, 1, "strBytesArrayPtr");
+  assert(LLVMTypeOf(bytesArrayPtrLE) == LLVMPointerType(LLVMArrayType(LLVMInt8Type(), 0), 0));
+  // LLVMBuildGEP and LLVMBuildInBoundsGEP didn't work to turn the above array pointer into a
+  // pointer to its first element, it kept crashing. So, as per
+  // https://stackoverflow.com/questions/37901866/get-pointer-to-first-element-of-array-in-llvm-ir
+  // we're just bitcasting it.
+  return LLVMBuildPointerCast(builder, bytesArrayPtrLE, LLVMPointerType(LLVMInt8Type(), 0), "strBytesPtr");
 }
 
-LLVMValueRef AssistRegion::getLenFromStrWrapperPtr(
-    LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE) {
-  return LLVMBuildLoad(builder, getLenPtrFromStrWrapperPtr(builder, strWrapperPtrLE), "len");
+LLVMValueRef AssistRegion::getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) {
+  return LLVMBuildExtractValue(builder, stringRefLE, 0, "len");
 }
 
-LLVMValueRef AssistRegion::buildConstantVStr(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    const std::string& contents) {
-
-  auto lengthLE = constI64LE(contents.length());
-
-  auto strWrapperPtrLE = constructString(globalState, functionState, builder, lengthLE);
-
-  std::vector<LLVMValueRef> argsLE = {
-      getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE),
-      globalState->getOrMakeStringConstant(contents)
-  };
-  LLVMBuildCall(builder, globalState->initStr, argsLE.data(), argsLE.size(), "");
-
-  return strWrapperPtrLE;
-}
+//LLVMValueRef AssistRegion::getInnerStrPtrFromWrapperPtr(
+//    LLVMBuilderRef builder,
+//    LLVMValueRef strWrapperPtrLE) {
+//  return LLVMBuildStructGEP(
+//      builder, strWrapperPtrLE, 1, "strInnerStructPtr");
+//}
+//
+//LLVMValueRef AssistRegion::getLenPtrFromStrWrapperPtr(
+//    LLVMBuilderRef builder,
+//    LLVMValueRef strWrapperPtrLE) {
+//  auto innerStringPtrLE =
+//      getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE);
+//  auto lenPtrLE =
+//      LLVMBuildStructGEP(builder, innerStringPtrLE, 0, "lenPtr");
+//  return lenPtrLE;
+//}
 
 LLVMValueRef AssistRegion::getConcreteRefFromInterfaceRef(
     LLVMBuilderRef builder, LLVMValueRef refLE) {
@@ -1464,28 +1529,33 @@ void AssistRegion::freeConcrete(
     FunctionState* functionState,
     BlockState* blockState,
     LLVMBuilderRef builder,
-    LLVMValueRef concretePtrLE,
+    LLVMValueRef refLE,
     Reference* concreteRefM) {
 
   if (globalState->opt->census) {
-    LLVMValueRef resultAsVoidPtrLE =
+    auto controlBlockPtrLE = getConcreteControlBlockPtr(builder, refLE);
+    LLVMValueRef allocationVoidPtrLE =
         LLVMBuildBitCast(
-            builder, concretePtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
-    LLVMBuildCall(builder, globalState->censusRemove, &resultAsVoidPtrLE, 1,
+            builder, controlBlockPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
+    LLVMBuildCall(builder, globalState->censusRemove, &allocationVoidPtrLE, 1,
         "");
   }
 
-  auto rcIsZeroLE = strongRcIsZero(globalState, builder, concretePtrLE, concreteRefM);
+  auto rcIsZeroLE = strongRcIsZero(globalState, builder, refLE, concreteRefM);
   buildAssert(from, globalState, functionState, builder, rcIsZeroLE,
       "Tried to free concrete that had nonzero RC!");
 
   if (concreteRefM->location == Location::INLINE) {
     // Do nothing, it was alloca'd.
   } else if (concreteRefM->location == Location::YONDER) {
+    auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, concreteRefM);
+    LLVMValueRef allocationVoidPtrLE =
+        LLVMBuildBitCast(
+            builder, controlBlockPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
     auto concreteAsCharPtrLE =
         LLVMBuildBitCast(
             builder,
-            concretePtrLE,
+            allocationVoidPtrLE,
             LLVMPointerType(LLVMInt8Type(), 0),
             "concreteCharPtrForFree");
     buildFlare(
@@ -1499,16 +1569,4 @@ void AssistRegion::freeConcrete(
   }
 
   adjustCounter(builder, globalState->liveHeapObjCounter, -1);
-}
-
-LLVMValueRef AssistRegion::getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) {
-  // just return stringRefLE?
-  assert(false);
-  return nullptr;
-}
-
-LLVMValueRef AssistRegion::getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) {
-  // call strlen
-  assert(false);
-  return nullptr;
 }

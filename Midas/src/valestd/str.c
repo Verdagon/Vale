@@ -29,20 +29,9 @@
 //  uint8_t chars[];
 //} __Str;
 
-void __vinitStr(const char * newStr, const char* chars) {
-  for (int i = 0; ; i++) {
-    newStr[i] = chars[i];
-    // This is at the end because we want to copy the null terminating char too.
-    if (chars[i] == 0) {
-      break;
-    }
-  }
-}
-
-void __vaddStr(const char * a, const char * b, const char * dest) {
-  int a_len = a->length;
-  int b_len = b->length;
-  dest->length = a_len + b_len;
+void __vaddStr(const char * a, const char * b, char * dest) {
+  int a_len = strlen(a);
+  int b_len = strlen(b);
   for (int i = 0; i < a_len; i++) {
     dest[i] = a[i];
   }
@@ -51,12 +40,12 @@ void __vaddStr(const char * a, const char * b, const char * dest) {
   }
   // Add a null terminating char for compatibility with C.
   // Midas should allocate an extra byte to accommodate this.
-  dest[dest->length] = 0;
+  dest[a_len + b_len] = 0;
 }
 
 uint8_t __veqStr(const char * a, const char * b) {
-  int a_len = a->length;
-  int b_len = b->length;
+  int a_len = strlen(a);
+  int b_len = strlen(b);
   if (a_len != b_len) {
     return FALSE;
   }

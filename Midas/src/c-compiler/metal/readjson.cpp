@@ -145,10 +145,7 @@ Reference* readReference(MetalCache* cache, const json& reference) {
   auto referend = readReferend(cache, reference["referend"]);
 //  std::string debugStr = reference["debugStr"];
 
-  return makeIfNotPresent(
-      &cache->references[referend][ownership],
-      location,
-      [&](){ return new Reference(ownership, location, referend); });
+  return cache->getReference(referend, location, ownership);
 }
 
 Mutability readMutability(const json& mutability) {

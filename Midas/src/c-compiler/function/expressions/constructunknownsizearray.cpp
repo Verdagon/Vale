@@ -24,7 +24,7 @@ void fillUnknownSizeArray(
       [globalState, functionState, generatorType, usaElementsPtrLE, originalGeneratorLE](LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
         auto aliasedGeneratorLE = functionState->defaultRegion->alias(
             AFL("ConstructUSA generate iteration"),
-            globalState, functionState, bodyBuilder, generatorType, generatorType->ownership, originalGeneratorLE);
+            globalState, functionState, bodyBuilder, generatorType, generatorType, originalGeneratorLE);
 
         std::vector<LLVMValueRef> indices = { constI64LE(0), indexLE };
         auto elementPtrLE =

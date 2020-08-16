@@ -110,9 +110,12 @@ LLVMValueRef translateExpressionInner(
 //        auto resultLE =
 //            assembleStructWeakRef(
 //                globalState, builder, weakAlias->sourceType, structReferendM, objPtrLE, controlBlockWrciMemberIndex);
+        auto resultType =
+            globalState->metalCache.getReference(
+                weakAlias->sourceType->referend, weakAlias->sourceType->location, Ownership::WEAK);
         auto resultLE = functionState->defaultRegion->alias(
             AFL("WeakAlias make weakref"),
-            globalState, functionState, builder, weakAlias->sourceType, Ownership::WEAK, objPtrLE);
+            globalState, functionState, builder, weakAlias->sourceType, resultType, objPtrLE);
         functionState->defaultRegion->dealias(
             AFL("WeakAlias drop constraintref"),
             globalState, functionState, blockState, builder, weakAlias->sourceType, objPtrLE);
@@ -134,9 +137,14 @@ LLVMValueRef translateExpressionInner(
     functionState->defaultRegion->checkValidReference(
         FL(), globalState, functionState, builder, localLoad->local->type, sourceRefLE);
 
+    Reference* targetType =
+        globalState->metalCache.getReference(
+            localLoad->local->type->referend,
+            localLoad->local->type->location,
+            localLoad->targetOwnership);
     LLVMValueRef resultRefLE =
         functionState->defaultRegion->alias(
-            FL(), globalState, functionState, builder, localLoad->local->type, localLoad->targetOwnership, resultRefLE);
+            FL(), globalState, functionState, builder, localLoad->local->type, targetType, sourceRefLE);
     functionState->defaultRegion->checkValidReference(
         FL(), globalState, functionState, builder, localLoad->local->type, resultRefLE);
     return resultRefLE;
@@ -290,8 +298,15 @@ LLVMValueRef translateExpressionInner(
 
     LLVMValueRef arrayPtrLE = functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, arrayWrapperPtrLE);
     auto resultLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
+
+    auto targetOwnership = arrayReferend->rawArray->elementType->ownership == Ownership::SHARE ? Ownership::SHARE : Ownership::BORROW;
+    Reference* targetType =
+        globalState->metalCache.getReference(
+            arrayReferend->rawArray->elementType->referend,
+            arrayReferend->rawArray->elementType->location,
+            targetOwnership);
     functionState->defaultRegion->alias(
-        FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, Ownership::BORROW, resultLE);
+        FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, targetType, resultLE);
     functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, arrayPtrLE);
     return resultLE;
   } else if (auto unknownSizeArrayLoad = dynamic_cast<UnknownSizeArrayLoad*>(expr)) {
@@ -311,9 +326,17 @@ LLVMValueRef translateExpressionInner(
     auto unaliasedResultLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Loading from USA ", arrayPtrLE, " index ", indexLE);
+    auto targetOwnership = unknownSizeArrayLoad->resultType->ownership == Ownership::SHARE ? Ownership::SHARE : Ownership::BORROW;
+
+    Reference* targetType =
+        globalState->metalCache.getReference(
+            unknownSizeArrayLoad->resultType->referend,
+            unknownSizeArrayLoad->resultType->location,
+            targetOwnership);
+
     auto resultLE =
         functionState->defaultRegion->alias(
-            FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, Ownership::BORROW, unaliasedResultLE);
+            FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, targetType, unaliasedResultLE);
     buildFlare(FL(), globalState, functionState, builder, "Loaded from USA ", arrayPtrLE, " index ", indexLE);
 
     functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, resultLE);

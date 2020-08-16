@@ -21,7 +21,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRef,
-      Ownership targetOwnership,
+      Reference* targetRef,
       LLVMValueRef expr) override;
   void dealias(
       AreaAndFileAndLine from,
@@ -84,6 +84,9 @@ public:
       LLVMValueRef lengthLE) override;
   LLVMValueRef getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
   LLVMValueRef getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
+  LLVMValueRef getStringControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef stringRefLE);
 
 
   LLVMValueRef constructKnownSizeArray(
@@ -91,9 +94,8 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* structTypeM,
-      LLVMTypeRef structLT,
-      const std::vector<LLVMValueRef>& membersLE,
-      const std::string& typeName) override;
+      KnownSizeArrayT* referendM,
+      const std::vector<LLVMValueRef>& membersLE) override;
   LLVMValueRef getKnownSizeArrayElementsPtr(
       LLVMBuilderRef builder, LLVMValueRef knownSizeArrayWrapperPtrLE) override;
 
@@ -121,7 +123,6 @@ public:
       LLVMValueRef arrayPtrLE,
       Mutability mutability,
       LLVMValueRef indexLE) override;
-
 
   LLVMTypeRef getKnownSizeArrayRefType(
       GlobalState* globalState,
@@ -187,6 +188,8 @@ public:
       GlobalState* globalState,
       InterfaceDefinition* interfaceM) override;
 
+  LLVMTypeRef getStringRefType() const override;
+
 private:
   LLVMValueRef loadInnerArrayMember(
       GlobalState* globalState,
@@ -234,6 +237,10 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef interfaceRefLE);
 
+
+  LLVMTypeRef getKnownSizeArrayType(
+      GlobalState* globalState,
+      KnownSizeArrayT* knownSizeArrayMT);
 
 
   void freeConcrete(
@@ -386,42 +393,23 @@ private:
       LLVMBuilderRef builder,
       Reference* refM,
       LLVMValueRef expr);
-  LLVMValueRef constructKnownSizeArrayCountedStruct(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      BlockState* blockState,
-      LLVMBuilderRef builder,
-      Reference* generatorType,
-      LLVMValueRef generatorLE,
-      LLVMTypeRef usaWrapperPtrLT,
-      LLVMTypeRef usaElementLT,
-      LLVMValueRef sizeLE,
-      const std::string& typeName);
+//  LLVMValueRef constructKnownSizeArrayCountedStruct(
+//      GlobalState* globalState,
+//      FunctionState* functionState,
+//      BlockState* blockState,
+//      LLVMBuilderRef builder,
+//      Reference* generatorType,
+//      LLVMValueRef generatorLE,
+//      LLVMTypeRef usaWrapperPtrLT,
+//      LLVMTypeRef usaElementLT,
+//      LLVMValueRef sizeLE,
+//      const std::string& typeName);
 
   LLVMTypeRef makeInnerKnownSizeArrayLT(GlobalState* globalState, KnownSizeArrayT* knownSizeArrayMT);
 
   LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM);
   LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM);
-  LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT);
   LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT);
-
-  LLVMValueRef getInnerStrPtrFromWrapperPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef strWrapperPtrLE);
-
-  LLVMValueRef getLenPtrFromStrWrapperPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef strWrapperPtrLE);
-
-  LLVMValueRef getLenFromStrWrapperPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef strWrapperPtrLE);
-
-  LLVMValueRef buildConstantVStr(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      const std::string& contents);
 
   int controlBlockTypeStrIndex;
   int controlBlockObjIdIndex;
@@ -429,6 +417,9 @@ private:
   int controlBlockWrciMemberIndex;
   LLVMTypeRef nonWeakableControlBlockStructL;
   LLVMTypeRef weakableControlBlockStructL;
+
+  LLVMTypeRef stringHeapStructL;
+  LLVMTypeRef stringRefStructL;
 };
 
 #endif

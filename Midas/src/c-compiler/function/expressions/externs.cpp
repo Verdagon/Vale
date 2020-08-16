@@ -17,6 +17,8 @@ LLVMValueRef translateExternCall(
   auto name = call->function->name->name;
   if (name == "F(\"__addIntInt\",[],[R(*,<,i),R(*,<,i)])") {
     assert(call->argExprs.size() == 2);
+    assert(call->argExprs[0] != nullptr);
+    assert(call->argExprs[1] != nullptr);
     auto leftLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[0]);
@@ -242,8 +244,14 @@ LLVMValueRef translateExternCall(
 
     auto strWrapperPtrLE = functionState->defaultRegion->constructString(globalState, functionState, builder, lengthLE);
     auto strBytesPtrLE = functionState->defaultRegion->getStringBytesPtr(builder, strWrapperPtrLE);
-    std::vector<LLVMValueRef> argsLE = { strBytesPtrLE, itoaDestPtrLE };
-    LLVMBuildCall(builder, globalState->initStr, argsLE.data(), argsLE.size(), "");
+    std::vector<LLVMValueRef> argsLE = { strBytesPtrLE, itoaDestPtrLE, lengthLE };
+    LLVMBuildCall(builder, globalState->strncpy, argsLE.data(), argsLE.size(), "");
+
+    std::vector<LLVMValueRef> indicesLE = { lengthLE };
+    LLVMBuildStore(
+        builder,
+        LLVMConstInt(LLVMInt8Type(), 0, 0),//
+        LLVMBuildInBoundsGEP(builder, strBytesPtrLE, indicesLE.data(), indicesLE.size(), ""));
 
     return strWrapperPtrLE;
   } else if (name == "F(\"__and\",[],[R(*,<,b),R(*,<,b)])") {

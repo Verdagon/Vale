@@ -12,12 +12,20 @@ LLVMValueRef translateConstantStr(
     LLVMBuilderRef builder,
     ConstantStr* constantStr) {
   auto globalStringPtrLE = globalState->getOrMakeStringConstant(constantStr->value);
+  auto lengthLE = constI64LE(constantStr->value.length());
   auto stringRefLE =
       functionState->defaultRegion->constructString(
-          globalState, functionState, builder, constI64LE(constantStr->value.length()));
+          globalState, functionState, builder, lengthLE);
   auto stringBytesPtrLE = functionState->defaultRegion->getStringBytesPtr(builder, stringRefLE);
   std::vector<LLVMValueRef> args =
       { stringBytesPtrLE, globalStringPtrLE, constI64LE(constantStr->value.length()) };
   LLVMBuildCall(builder, globalState->strncpy, args.data(), args.size(), "");
+
+  std::vector<LLVMValueRef> indicesLE = { lengthLE };
+  LLVMBuildStore(
+      builder,
+      LLVMConstInt(LLVMInt8Type(), 0, 0),
+      LLVMBuildInBoundsGEP(builder, stringBytesPtrLE, indicesLE.data(), indicesLE.size(), ""));
+
   return stringRefLE;
 }

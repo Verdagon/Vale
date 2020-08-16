@@ -28,7 +28,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRef,
-      Ownership targetOwnership,
+      Reference* targetRef,
       LLVMValueRef expr) = 0;
 
   virtual void dealias(
@@ -130,9 +130,8 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* structTypeM,
-      LLVMTypeRef structLT,
-      const std::vector<LLVMValueRef>& membersLE,
-      const std::string& typeName) = 0;
+      KnownSizeArrayT* referendM,
+      const std::vector<LLVMValueRef>& membersLE) = 0;
 
 
   // Returns a LLVMValueRef for a ref to the string object.
@@ -212,6 +211,8 @@ public:
   virtual void translateInterface(
       GlobalState* globalState,
       InterfaceDefinition* interfaceM) = 0;
+
+  virtual LLVMTypeRef getStringRefType() const = 0;
 
 //  LLVMValueRef initStr, addStr, eqStr, printStr;
 };

@@ -1,7 +1,7 @@
 
 fn main() int {
-  a = "Glory to the ";
-  b = "Lizard People";
+  a = "Glory to ";
+  b = "the Lizard People";
   combined = a + b;
   = if (combined == "Glory to the Lizard People") {
       42
