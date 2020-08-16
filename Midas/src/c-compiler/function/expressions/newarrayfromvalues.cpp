@@ -49,7 +49,7 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
           typeName);
   fillKnownSizeArray(
       builder,
-      functionState->defaultRegion->getKnownSizeArrayContentsPtr(builder, newStructLE),
+      functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, newStructLE),
       membersLE);
   return newStructLE;
 }
@@ -65,7 +65,7 @@ LLVMValueRef translateNewArrayFromValues(
       translateExpressions(
           globalState, functionState, blockState, builder, newArrayFromValues->sourceExprs);
   for (auto elementLE : elementsLE) {
-    checkValidReference(FL(), globalState, functionState, builder,
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder,
         newArrayFromValues->arrayReferend->rawArray->elementType, elementLE);
   }
 
@@ -88,8 +88,8 @@ LLVMValueRef translateNewArrayFromValues(
       } else {
         // If we get here, arrayLT is a pointer to our counted struct.
         auto knownSizeArrayCountedStructLT =
-            translateKnownSizeArrayToWrapperStruct(
-                globalState, knownSizeArrayMT);
+            functionState->defaultRegion->getKnownSizeArrayRefType(
+                globalState, newArrayFromValues->arrayRefType, knownSizeArrayMT);
         auto resultLE =
             constructKnownSizeArrayCountedStruct(
                 globalState,
@@ -99,7 +99,7 @@ LLVMValueRef translateNewArrayFromValues(
                 knownSizeArrayCountedStructLT,
                 elementsLE,
                 knownSizeArrayMT->name->name);
-        checkValidReference(FL(), globalState, functionState, builder,
+        functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder,
             newArrayFromValues->arrayRefType, resultLE);
         return resultLE;
       }

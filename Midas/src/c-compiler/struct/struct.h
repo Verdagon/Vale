@@ -11,10 +11,12 @@
 
 void declareStruct(
     GlobalState* globalState,
+    IRegion* region,
     StructDefinition* structM);
 
 void translateStruct(
     GlobalState* globalState,
+    IRegion* region,
     StructDefinition* structM);
 
 void declareEdge(

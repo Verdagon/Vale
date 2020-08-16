@@ -31,7 +31,7 @@ public:
   LLVMValueRef mutDerefCounter;
   LLVMValueRef mutRcAccessCounter;
   LLVMValueRef malloc, free, assert, exit, assertI64Eq, flareI64, printCStr,
-      getch, printInt, printBool, initStr, addStr, eqStr, printVStr, intToCStr,
+      getch, printInt, printBool, initStr, addStr, eqStr, strncpy, printStr, intToCStr,
       strlen, censusContains, censusAdd, censusRemove, panic;
 
   LLVMValueRef allocWrc, incrementWrc, decrementWrc, wrcIsLive, markWrcDead, getNumWrcs;

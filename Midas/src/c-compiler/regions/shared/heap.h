@@ -20,14 +20,14 @@ LLVMValueRef mallocUnknownSizeArray(
     LLVMTypeRef usaElementLT,
     LLVMValueRef lengthLE);
 
-// A concrete is a struct, known size array, unknown size array, or Str.
-void freeConcrete(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    BlockState* blockState,
-    LLVMBuilderRef builder,
-    LLVMValueRef concreteLE,
-    Reference* concreteRefM);
+//// A concrete is a struct, known size array, unknown size array, or Str.
+//void freeConcrete(
+//    AreaAndFileAndLine from,
+//    GlobalState* globalState,
+//    FunctionState* functionState,
+//    BlockState* blockState,
+//    LLVMBuilderRef builder,
+//    LLVMValueRef concreteLE,
+//    Reference* concreteRefM);
 
 #endif

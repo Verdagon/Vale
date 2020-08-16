@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <functional>
+#include <regions/iregion.h>
 
 #include "metal/ast.h"
 #include "metal/instructions.h"
@@ -102,6 +103,7 @@ inline void buildFlare(
 }
 
 LLVMValueRef buildInterfaceCall(
+    IRegion* region,
     LLVMBuilderRef builder,
     std::vector<LLVMValueRef> argExprsLE,
     int virtualParamIndex,
@@ -124,31 +126,12 @@ void buildAssertCensusContains(
     LLVMBuilderRef builder,
     LLVMValueRef refLE);
 
-void checkValidReference(
-    AreaAndFileAndLine checkerAFL,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef refLE);
-
-
 LLVMValueRef buildCall(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Prototype* prototype,
     std::vector<LLVMValueRef> argsLE);
-
-LLVMValueRef upcast2(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceStructTypeM,
-    StructReferend* sourceStructReferendM,
-    LLVMValueRef sourceStructLE,
-    Reference* targetInterfaceTypeM,
-    InterfaceReferend* targetInterfaceReferendM);
 
 void foreachArrayElementCallInterface(
     GlobalState* globalState,

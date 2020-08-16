@@ -8,12 +8,16 @@
 #include "metal/ast.h"
 #include "globalstate.h"
 
+class IRegion;
+
 void declareInterface(
     GlobalState* globalState,
+    IRegion* region,
     InterfaceDefinition* interfaceM);
 
 void translateInterface(
     GlobalState* globalState,
+    IRegion* region,
     InterfaceDefinition* interfaceM);
 
 #endif

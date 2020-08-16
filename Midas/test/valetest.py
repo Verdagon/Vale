@@ -111,17 +111,17 @@ class ValeTest(unittest.TestCase):
         self.assertEqual(proc.returncode, expected_return_code,
                          f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
 
-        proc = self.compile_and_execute(vale_files, "raw")
-        # print(proc.stdout)
-        # print(proc.stderr)
-        self.assertEqual(proc.returncode, expected_return_code,
-                         f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
-
-        proc = self.compile_and_execute(vale_files, "resilient")
-        # print(proc.stdout)
-        # print(proc.stderr)
-        self.assertEqual(proc.returncode, expected_return_code,
-                         f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
+        # proc = self.compile_and_execute(vale_files, "raw")
+        # # print(proc.stdout)
+        # # print(proc.stderr)
+        # self.assertEqual(proc.returncode, expected_return_code,
+        #                  f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
+        #
+        # proc = self.compile_and_execute(vale_files, "resilient")
+        # # print(proc.stdout)
+        # # print(proc.stderr)
+        # self.assertEqual(proc.returncode, expected_return_code,
+        #                  f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
 
     def test_addret(self) -> None:
         self.compile_and_execute_and_expect_return_code(

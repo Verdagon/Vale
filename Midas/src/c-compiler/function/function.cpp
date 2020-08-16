@@ -11,11 +11,12 @@
 
 LLVMValueRef declareFunction(
     GlobalState* globalState,
+    IRegion* region,
     Function* functionM) {
 
-  auto paramTypesL = translateTypes(globalState, functionM->prototype->params);
+  auto paramTypesL = translateTypes(globalState, region, functionM->prototype->params);
   auto returnTypeL =
-      translateType(globalState, functionM->prototype->returnType);
+      translateType(globalState, region, functionM->prototype->returnType);
   auto nameL = functionM->prototype->name->name;
 
   LLVMTypeRef functionTypeL =
@@ -30,31 +31,13 @@ LLVMValueRef declareFunction(
 
 void translateFunction(
     GlobalState* globalState,
+    IRegion* defaultRegion,
     Function* functionM) {
 
   auto functionL = globalState->getFunction(functionM->prototype->name);
-  auto returnTypeL = translateType(globalState, functionM->prototype->returnType);
+  auto returnTypeL = translateType(globalState, defaultRegion, functionM->prototype->returnType);
 
   auto localAddrByLocalId = std::unordered_map<int, LLVMValueRef>{};
-
-  AssistRegion assistRegion;
-//  ResilientRegion resilientRegion;
-//  RawRegion rawRegion;
-
-  IRegion* defaultRegion = &assistRegion;
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      defaultRegion = &assistRegion;
-      break;
-//    case RegionOverride::RESILIENT:
-//      defaultRegion = &resilientRegion;
-//      break;
-//    case RegionOverride::RAW:
-//      defaultRegion = &rawRegion;
-//      break;
-    default:
-      assert(false);
-  }
 
   FunctionState functionState(functionL, returnTypeL, defaultRegion);
 
@@ -112,7 +95,7 @@ void translateFunction(
   // In .ll we can call a noreturn function and then put an unreachable block,
   // but I can't figure out how to specify noreturn with the LLVM C API.
   if (LLVMTypeOf(resultLE) == makeNeverType()) {
-    LLVMBuildRet(bodyTopLevelBuilder, LLVMGetUndef(translateType(globalState, functionM->prototype->returnType)));
+    LLVMBuildRet(bodyTopLevelBuilder, LLVMGetUndef(translateType(globalState, defaultRegion, functionM->prototype->returnType)));
   }
 
   LLVMDisposeBuilder(bodyTopLevelBuilder);

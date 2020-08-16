@@ -33,7 +33,7 @@ void makeLocal(
   auto localAddr =
       LLVMBuildAlloca(
           builder,
-          translateType(globalState, local->type),
+          translateType(globalState, functionState->defaultRegion, local->type),
           local->id->maybeName.c_str());
   blockState->addLocal(local->id, localAddr);
   LLVMBuildStore(builder, valueToStore, localAddr);
@@ -126,17 +126,14 @@ void buildAssert(
 }
 
 LLVMValueRef buildInterfaceCall(
+    IRegion* region,
     LLVMBuilderRef builder,
     std::vector<LLVMValueRef> argExprsLE,
     int virtualParamIndex,
     int indexInEdge) {
   auto virtualArgLE = argExprsLE[virtualParamIndex];
   auto objPtrLE =
-      LLVMBuildPointerCast(
-          builder,
-          functionState->defaultRegion->getInterfaceControlBlockPtr(builder, virtualArgLE),
-          LLVMPointerType(LLVMVoidType(), 0),
-          "objAsVoidPtr");
+      region->getConcreteRefFromInterfaceRef(builder, argExprsLE[virtualParamIndex]);
   auto itablePtrLE = getTablePtrFromInterfaceRef(builder, virtualArgLE);
   assert(LLVMGetTypeKind(LLVMTypeOf(itablePtrLE)) == LLVMPointerTypeKind);
   auto funcPtrPtrLE =
@@ -185,53 +182,13 @@ LLVMValueRef buildCall(
   auto funcL = funcIter->second;
 
   auto resultLE = LLVMBuildCall(builder, funcL, argsLE.data(), argsLE.size(), "");
-  checkValidReference(FL(), globalState, functionState, builder, prototype->returnType, resultLE);
+  functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, prototype->returnType, resultLE);
 
   if (prototype->returnType->referend == globalState->metalCache.never) {
     return LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
   } else {
     return resultLE;
   }
-}
-
-LLVMValueRef upcast2(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-
-    Reference* sourceStructTypeM,
-    StructReferend* sourceStructReferendM,
-    LLVMValueRef sourceStructLE,
-
-    Reference* targetInterfaceTypeM,
-    InterfaceReferend* targetInterfaceReferendM) {
-  assert(sourceStructTypeM->location != Location::INLINE);
-
-  auto interfaceRefLT =
-      globalState->getInterfaceRefStruct(
-          targetInterfaceReferendM->fullName);
-
-  auto interfaceRefLE = LLVMGetUndef(interfaceRefLT);
-  interfaceRefLE =
-      LLVMBuildInsertValue(
-          builder,
-          interfaceRefLE,
-          getControlBlockPtr(builder, sourceStructLE, sourceStructTypeM),
-          0,
-          "interfaceRefWithOnlyObj");
-  interfaceRefLE =
-      LLVMBuildInsertValue(
-          builder,
-          interfaceRefLE,
-          globalState->getInterfaceTablePtr(
-              globalState->program->getStruct(sourceStructReferendM->fullName)
-                  ->getEdgeForInterface(targetInterfaceReferendM->fullName)),
-          1,
-          "interfaceRef");
-
-  checkValidReference(
-      FL(), globalState, functionState, builder, targetInterfaceTypeM, interfaceRefLE);
-  return interfaceRefLE;
 }
 
 void foreachArrayElementCallInterface(
@@ -257,8 +214,8 @@ void foreachArrayElementCallInterface(
         std::vector<LLVMValueRef> indices = { constI64LE(0), indexLE };
         auto elementPtrLE = LLVMBuildGEP(bodyBuilder, arrayPtrLE, indices.data(), indices.size(), "elementPtr");
         auto elementLE = LLVMBuildLoad(bodyBuilder, elementPtrLE, "element");
-        checkValidReference(FL(), globalState, functionState, bodyBuilder, elementType, elementLE);
+        functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, bodyBuilder, elementType, elementLE);
         std::vector<LLVMValueRef> argExprsLE = { interfaceLE, elementLE };
-        buildInterfaceCall(bodyBuilder, argExprsLE, virtualParamIndex, indexInEdge);
+        buildInterfaceCall(functionState->defaultRegion, bodyBuilder, argExprsLE, virtualParamIndex, indexInEdge);
       });
 }

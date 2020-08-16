@@ -3,6 +3,7 @@
 #include "translatetype.h"
 
 #include "shared.h"
+#include "function/functionstate.h"
 
 LLVMValueRef getStructContentsPtr(
     LLVMBuilderRef builder, LLVMValueRef concretePtrLE) {
@@ -72,7 +73,7 @@ std::vector<LLVMValueRef> getMemberPtrsLE(
             builder,
             memberPtrLE,
             memberName.c_str());
-    checkValidReference(
+    functionState->defaultRegion->checkValidReference(
         FL(), globalState, functionState, builder, structM->members[i]->type, memberLE);
     membersLE.push_back(memberLE);
   }

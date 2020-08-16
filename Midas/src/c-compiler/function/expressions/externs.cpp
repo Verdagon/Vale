@@ -42,17 +42,17 @@ LLVMValueRef translateExternCall(
     auto leftStrWrapperPtrLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[0]);
-    checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], leftStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], leftStrWrapperPtrLE);
 
     auto rightStrTypeM = call->argTypes[1];
     auto rightStrWrapperPtrLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[1]);
-    checkValidReference(FL(), globalState, functionState, builder, call->argTypes[1], rightStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->argTypes[1], rightStrWrapperPtrLE);
 
     std::vector<LLVMValueRef> argsLE = {
-        getInnerStrPtrFromWrapperPtr(builder, leftStrWrapperPtrLE),
-        getInnerStrPtrFromWrapperPtr(builder, rightStrWrapperPtrLE)
+        functionState->defaultRegion->getStringBytesPtr(builder, leftStrWrapperPtrLE),
+        functionState->defaultRegion->getStringBytesPtr(builder, rightStrWrapperPtrLE)
     };
     auto resultInt8LE =
         LLVMBuildCall(
@@ -99,32 +99,34 @@ LLVMValueRef translateExternCall(
     auto leftStrWrapperPtrLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[0]);
-    checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], leftStrWrapperPtrLE);
-    auto leftStrLenLE = getLenFromStrWrapperPtr(builder, leftStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], leftStrWrapperPtrLE);
+    auto leftStrLenLE = functionState->defaultRegion->getStringLength(builder, leftStrWrapperPtrLE);
 
     auto rightStrTypeM = call->argTypes[1];
     auto rightStrWrapperPtrLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[1]);
-    auto rightStrLenLE = getLenFromStrWrapperPtr(builder, rightStrWrapperPtrLE);
-    checkValidReference(FL(), globalState, functionState, builder, call->argTypes[1], rightStrWrapperPtrLE);
+    auto rightStrLenLE = functionState->defaultRegion->getStringLength(builder, rightStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->argTypes[1], rightStrWrapperPtrLE);
 
     auto combinedLenLE =
         LLVMBuildAdd(builder, leftStrLenLE, rightStrLenLE, "lenSum");
 
-    auto destStrWrapperPtrLE = mallocStr(globalState, functionState, builder, combinedLenLE);
+    auto destStrWrapperPtrLE =
+        functionState->defaultRegion->constructString(
+            globalState, functionState, builder, combinedLenLE);
 
     std::vector<LLVMValueRef> argsLE = {
-        getInnerStrPtrFromWrapperPtr(builder, leftStrWrapperPtrLE),
-        getInnerStrPtrFromWrapperPtr(builder, rightStrWrapperPtrLE),
-        getInnerStrPtrFromWrapperPtr(builder, destStrWrapperPtrLE),
+        functionState->defaultRegion->getStringBytesPtr(builder, leftStrWrapperPtrLE),
+        functionState->defaultRegion->getStringBytesPtr(builder, rightStrWrapperPtrLE),
+        functionState->defaultRegion->getStringBytesPtr(builder, destStrWrapperPtrLE),
     };
     LLVMBuildCall(builder, globalState->addStr, argsLE.data(), argsLE.size(), "");
 
     functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, leftStrTypeM, leftStrWrapperPtrLE);
     functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, rightStrTypeM, rightStrWrapperPtrLE);
 
-    checkValidReference(FL(), globalState, functionState, builder, call->function->returnType, destStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->function->returnType, destStrWrapperPtrLE);
 
     return destStrWrapperPtrLE;
   } else if (name == "F(\"__getch\")") {
@@ -199,19 +201,19 @@ LLVMValueRef translateExternCall(
     assert(call->argExprs.size() == 1);
 
     auto argStrTypeM = call->argTypes[0];
-    auto argStrWrapperPtrLE =
+    auto argStrRefLE =
         translateExpression(
             globalState, functionState, blockState, builder, call->argExprs[0]);
-    checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], argStrWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->argTypes[0], argStrRefLE);
 
     std::vector<LLVMValueRef> argsLE = {
-        getInnerStrPtrFromWrapperPtr(builder, argStrWrapperPtrLE),
+        functionState->defaultRegion->getStringBytesPtr(builder, argStrRefLE),
     };
-    LLVMBuildCall(builder, globalState->printVStr, argsLE.data(), argsLE.size(), "");
+    LLVMBuildCall(builder, globalState->printStr, argsLE.data(), argsLE.size(), "");
 
-    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, argStrTypeM, argStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, argStrTypeM, argStrRefLE);
 
-    return LLVMGetUndef(translateType(globalState, call->function->returnType));
+    return LLVMGetUndef(translateType(globalState, functionState->defaultRegion, call->function->returnType));
   } else if (name == "F(\"__not\",[],[R(*,<,b)])") {
     assert(call->argExprs.size() == 1);
     auto result = LLVMBuildNot(
@@ -238,9 +240,9 @@ LLVMValueRef translateExternCall(
     std::vector<LLVMValueRef> strlenArgsLE = { itoaDestPtrLE };
     auto lengthLE = LLVMBuildCall(builder, globalState->strlen, strlenArgsLE.data(), strlenArgsLE.size(), "");
 
-    auto strWrapperPtrLE = mallocStr(globalState, functionState, builder, lengthLE);
-    auto innerStrWrapperLE = getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE);
-    std::vector<LLVMValueRef> argsLE = { innerStrWrapperLE, itoaDestPtrLE };
+    auto strWrapperPtrLE = functionState->defaultRegion->constructString(globalState, functionState, builder, lengthLE);
+    auto strBytesPtrLE = functionState->defaultRegion->getStringBytesPtr(builder, strWrapperPtrLE);
+    std::vector<LLVMValueRef> argsLE = { strBytesPtrLE, itoaDestPtrLE };
     LLVMBuildCall(builder, globalState->initStr, argsLE.data(), argsLE.size(), "");
 
     return strWrapperPtrLE;

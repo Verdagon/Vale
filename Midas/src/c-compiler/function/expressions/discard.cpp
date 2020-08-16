@@ -15,7 +15,7 @@ LLVMValueRef translateDiscard(
   auto innerLE =
       translateExpression(
           globalState, functionState, blockState, builder, discardM->sourceExpr);
-  checkValidReference(FL(), globalState, functionState, builder, discardM->sourceResultType, innerLE);
+  functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, discardM->sourceResultType, innerLE);
   functionState->defaultRegion->dealias(
       AFL(std::string("Discard from ") + typeid(*discardM->sourceExpr).name()),
       globalState,

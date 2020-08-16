@@ -74,19 +74,52 @@ public:
       Reference* structType,
       LLVMValueRef structLE) = 0;
 
-  virtual LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM) = 0;
-  virtual LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM) = 0;
-  virtual LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT) = 0;
-  virtual LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT) = 0;
+
+
+  virtual LLVMValueRef getConcreteRefFromInterfaceRef(LLVMBuilderRef builder, LLVMValueRef refLE) = 0;
+
+
+  virtual LLVMValueRef upcast2(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+
+      Reference* sourceStructTypeM,
+      StructReferend* sourceStructReferendM,
+      LLVMValueRef sourceStructLE,
+
+      Reference* targetInterfaceTypeM,
+      InterfaceReferend* targetInterfaceReferendM) = 0;
+
+  virtual LLVMValueRef lockWeak(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* constraintRefTypeM,
+      bool thenResultIsNever,
+      bool elseResultIsNever,
+      LLVMTypeRef resultOptTypeL,
+      LLVMValueRef sourceWeakRefLE,
+      std::function<LLVMValueRef(LLVMBuilderRef, LLVMValueRef)> buildThen,
+      std::function<LLVMValueRef(LLVMBuilderRef)> buildElse) = 0;
+
+//  virtual LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM) = 0;
+//  virtual LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM) = 0;
+//  virtual LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT) = 0;
+//  virtual LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT) = 0;
 
   // Returns a LLVMValueRef for a ref to the string object.
   // The caller should then use getStringBytesPtr to then fill the string's contents.
-  virtual LLVMValueRef constructString(LLVMValueRef sizeLE) = 0;
+  virtual LLVMValueRef constructString(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE) = 0;
 
   // Returns a LLVMValueRef for a pointer to the strings contents bytes
-  virtual LLVMValueRef getStringBytesPtr(LLVMValueRef stringRefLE) = 0;
+  virtual LLVMValueRef getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) = 0;
 
-  virtual LLVMValueRef getStringLength(LLVMValueRef stringRefLE) = 0;
+  virtual LLVMValueRef getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) = 0;
 
 
 
@@ -99,7 +132,7 @@ public:
       Reference* structTypeM,
       LLVMTypeRef structLT,
       const std::vector<LLVMValueRef>& membersLE,
-      const std::string& typeName);
+      const std::string& typeName) = 0;
 
 
   // Returns a LLVMValueRef for a ref to the string object.
@@ -128,6 +161,15 @@ public:
       Reference* arrayType,
       LLVMValueRef arrayWrapperLE) = 0;
 
+  virtual LLVMTypeRef getKnownSizeArrayRefType(
+      GlobalState* globalState,
+      Reference* referenceM,
+      KnownSizeArrayT* knownSizeArrayMT) = 0;
+
+  virtual LLVMTypeRef getUnknownSizeArrayRefType(
+      GlobalState* globalState,
+      Reference* referenceM,
+      UnknownSizeArrayT* unknownSizeArrayMT) = 0;
 
   virtual void checkValidReference(
       AreaAndFileAndLine checkerAFL,
@@ -162,7 +204,16 @@ public:
       LLVMValueRef indexLE,
       LLVMValueRef sourceLE) = 0;
 
-//  LLVMValueRef initStr, addStr, eqStr, printVStr;
+  virtual void translateStruct(
+      GlobalState* globalState,
+      StructDefinition* structM) = 0;
+
+
+  virtual void translateInterface(
+      GlobalState* globalState,
+      InterfaceDefinition* interfaceM) = 0;
+
+//  LLVMValueRef initStr, addStr, eqStr, printStr;
 };
 
 #endif

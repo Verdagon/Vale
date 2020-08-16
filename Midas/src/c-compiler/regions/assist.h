@@ -74,14 +74,16 @@ public:
       Reference* arrayType,
       LLVMValueRef arrayWrapperLE) override;
 
-  LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM) override;
-  LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM) override;
-  LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT) override;
-  LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT) override;
 
-  LLVMValueRef constructString(LLVMValueRef sizeLE) override;
-  LLVMValueRef getStringBytesPtr(LLVMValueRef stringRefLE) override;
-  LLVMValueRef getStringLength(LLVMValueRef stringRefLE) override;
+  LLVMValueRef getConcreteRefFromInterfaceRef(LLVMBuilderRef builder, LLVMValueRef refLE) override;
+
+  LLVMValueRef constructString(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE) override;
+  LLVMValueRef getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
+  LLVMValueRef getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
 
 
   LLVMValueRef constructKnownSizeArray(
@@ -120,6 +122,17 @@ public:
       Mutability mutability,
       LLVMValueRef indexLE) override;
 
+
+  LLVMTypeRef getKnownSizeArrayRefType(
+      GlobalState* globalState,
+      Reference* referenceM,
+      KnownSizeArrayT* knownSizeArrayMT) override;
+
+  LLVMTypeRef getUnknownSizeArrayRefType(
+      GlobalState* globalState,
+      Reference* referenceM,
+      UnknownSizeArrayT* unknownSizeArrayMT) override;
+
   LLVMValueRef storeElement(
       GlobalState* globalState,
       FunctionState* functionState,
@@ -140,6 +153,39 @@ public:
       LLVMBuilderRef builder,
       Reference* refM,
       LLVMValueRef refLE) override;
+
+  LLVMValueRef upcast2(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+
+      Reference* sourceStructTypeM,
+      StructReferend* sourceStructReferendM,
+      LLVMValueRef sourceStructLE,
+
+      Reference* targetInterfaceTypeM,
+      InterfaceReferend* targetInterfaceReferendM) override;
+
+
+  LLVMValueRef lockWeak(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* constraintRefTypeM,
+      bool thenResultIsNever,
+      bool elseResultIsNever,
+      LLVMTypeRef resultOptTypeL,
+      LLVMValueRef sourceWeakRefLE,
+      std::function<LLVMValueRef(LLVMBuilderRef, LLVMValueRef)> buildThen,
+      std::function<LLVMValueRef(LLVMBuilderRef)> buildElse) override;
+
+  void translateStruct(
+      GlobalState* globalState,
+      StructDefinition* structM) override;
+
+  void translateInterface(
+      GlobalState* globalState,
+      InterfaceDefinition* interfaceM) override;
 
 private:
   LLVMValueRef loadInnerArrayMember(
@@ -179,14 +225,6 @@ private:
       LLVMTypeRef valStructL,
       const std::vector<LLVMValueRef>& membersLE);
 
-  LLVMValueRef fillControlBlock(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      LLVMValueRef controlBlockPtrLE,
-      bool weakable,
-      const std::string& typeName);
-
 // A concrete is a struct, known size array, unknown size array, or Str.
   LLVMValueRef getConcreteControlBlockPtr(
       LLVMBuilderRef builder,
@@ -196,7 +234,18 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef interfaceRefLE);
 
-// See CRCISFAORC for why we don't take in a mutability.
+
+
+  void freeConcrete(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      LLVMValueRef concretePtrLE,
+      Reference* concreteRefM);
+
+  // See CRCISFAORC for why we don't take in a mutability.
 // Strong means owning or borrow or shared; things that control the lifetime.
   LLVMValueRef getStrongRcPtrFromControlBlockPtr(
       LLVMBuilderRef builder,
@@ -217,14 +266,6 @@ private:
       GlobalState* globalState,
       LLVMBuilderRef builder,
       LLVMValueRef controlBlockPtrLE);
-
-// Returns object ID
-  LLVMValueRef fillControlBlock(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      LLVMValueRef controlBlockPtrLE,
-      const std::string& typeName);
 
   LLVMValueRef getControlBlockPtr(
       LLVMBuilderRef builder,
@@ -252,6 +293,14 @@ private:
       Reference* refM,
       int amount);
 
+  LLVMTypeRef makeInnerUnknownSizeArrayLT(GlobalState* globalState, UnknownSizeArrayT* unknownSizeArrayMT);
+
+  LLVMTypeRef translateKnownSizeArrayToWrapperStruct(
+      GlobalState* globalState,
+      KnownSizeArrayT* knownSizeArrayMT);
+  LLVMTypeRef translateInterfaceMethodToFunctionType(
+      GlobalState* globalState,
+      InterfaceMethod* method);
   LLVMValueRef strongRcIsZero(
       GlobalState* globalState,
       LLVMBuilderRef builder,
@@ -272,11 +321,17 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef weakRefLE);
 
+  LLVMValueRef fillControlBlock(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtrLE,
+      bool weakable,
+      const std::string& typeName);
+
   LLVMValueRef getConstraintRefFromWeakRef(
       GlobalState* globalState,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* weakRefM,
       LLVMValueRef weakRefLE,
       Reference* constraintRefM);
 
@@ -343,11 +398,12 @@ private:
       LLVMValueRef sizeLE,
       const std::string& typeName);
 
-  LLVMValueRef mallocStr(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      LLVMValueRef lengthLE);
+  LLVMTypeRef makeInnerKnownSizeArrayLT(GlobalState* globalState, KnownSizeArrayT* knownSizeArrayMT);
+
+  LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM);
+  LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM);
+  LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT);
+  LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT);
 
   LLVMValueRef getInnerStrPtrFromWrapperPtr(
       LLVMBuilderRef builder,

@@ -20,7 +20,7 @@ LLVMValueRef translateDestructure(
   auto structLE =
       translateExpression(
           globalState, functionState, blockState, builder, structExpr);
-  checkValidReference(FL(), globalState, functionState, builder, structType, structLE);
+  functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, structType, structLE);
 
   auto membersLE =
       functionState->defaultRegion->destructure(

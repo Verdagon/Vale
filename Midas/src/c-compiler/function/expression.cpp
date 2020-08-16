@@ -65,7 +65,7 @@ LLVMValueRef translateExpressionInner(
   } else if (auto ret = dynamic_cast<Return*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto sourceLE = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, ret->sourceType, sourceLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, ret->sourceType, sourceLE);
     if (ret->sourceType->referend == globalState->metalCache.never) {
       return sourceLE;
     } else {
@@ -76,7 +76,7 @@ LLVMValueRef translateExpressionInner(
     auto valueToStoreLE =
         translateExpression(
             globalState, functionState, blockState, builder, stackify->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, stackify->local->type, valueToStoreLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, stackify->local->type, valueToStoreLE);
     makeLocal(
         globalState, functionState, blockState, builder, stackify->local, valueToStoreLE);
     return makeConstExpr(builder, makeNever());
@@ -87,11 +87,11 @@ LLVMValueRef translateExpressionInner(
     auto localAddr = blockState->getLocalAddr(localStore->local->id);
     auto oldValueLE =
         LLVMBuildLoad(builder, localAddr, localStore->localName.c_str());
-    checkValidReference(FL(), globalState, functionState, builder, localStore->local->type, oldValueLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, localStore->local->type, oldValueLE);
     auto valueToStoreLE =
         translateExpression(
             globalState, functionState, blockState, builder, localStore->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, localStore->local->type, valueToStoreLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, localStore->local->type, valueToStoreLE);
     LLVMBuildStore(builder, valueToStoreLE, localAddr);
     return oldValueLE;
   } else if (auto weakAlias = dynamic_cast<WeakAlias*>(expr)) {
@@ -131,13 +131,13 @@ LLVMValueRef translateExpressionInner(
     auto localAddr = blockState->getLocalAddr(localLoad->local->id);
 
     LLVMValueRef sourceRefLE = LLVMBuildLoad(builder, localAddr, localLoad->localName.c_str());
-    checkValidReference(
+    functionState->defaultRegion->checkValidReference(
         FL(), globalState, functionState, builder, localLoad->local->type, sourceRefLE);
 
     LLVMValueRef resultRefLE =
         functionState->defaultRegion->alias(
             FL(), globalState, functionState, builder, localLoad->local->type, localLoad->targetOwnership, resultRefLE);
-    checkValidReference(
+    functionState->defaultRegion->checkValidReference(
         FL(), globalState, functionState, builder, localLoad->local->type, resultRefLE);
     return resultRefLE;
   } else if (auto unstackify = dynamic_cast<Unstackify*>(expr)) {
@@ -148,12 +148,12 @@ LLVMValueRef translateExpressionInner(
     auto localAddr = blockState->getLocalAddr(unstackify->local->id);
     blockState->markLocalUnstackified(unstackify->local->id);
     auto resultLE = LLVMBuildLoad(builder, localAddr, "");
-    checkValidReference(FL(), globalState, functionState, builder, unstackify->local->type, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, unstackify->local->type, resultLE);
     return resultLE;
   } else if (auto argument = dynamic_cast<Argument*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", argument->argumentIndex, " type ", argument->resultType->str());
     auto resultLE = LLVMGetParam(functionState->containingFunc, argument->argumentIndex);
-    checkValidReference(FL(), globalState, functionState, builder, argument->resultType, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, argument->resultType, resultLE);
     return resultLE;
   } else if (auto constantStr = dynamic_cast<ConstantStr*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -169,7 +169,7 @@ LLVMValueRef translateExpressionInner(
         functionState->defaultRegion->allocate(
             AFL("NewStruct"), globalState, functionState, builder, newStruct->resultType, memberExprs);
     buildFlare(FL(), globalState, functionState, builder);
-    checkValidReference(FL(), globalState, functionState, builder, newStruct->resultType, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, newStruct->resultType, resultLE);
     buildFlare(FL(), globalState, functionState, builder);
     return resultLE;
   } else if (auto consecutor = dynamic_cast<Consecutor*>(expr)) {
@@ -195,7 +195,7 @@ LLVMValueRef translateExpressionInner(
     auto structLE =
         translateExpression(
             globalState, functionState, blockState, builder, memberLoad->structExpr);
-    checkValidReference(FL(), globalState, functionState, builder, memberLoad->structType, structLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, memberLoad->structType, structLE);
 
     if (memberLoad->structType->ownership == Ownership::BORROW) {
       adjustCounter(builder, globalState->mutDerefCounter, 1);
@@ -216,7 +216,7 @@ LLVMValueRef translateExpressionInner(
             memberLoad->expectedResultType,
             memberIndex,
             memberName);
-    checkValidReference(FL(), globalState, functionState, builder, memberLoad->expectedResultType, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, memberLoad->expectedResultType, resultLE);
     functionState->defaultRegion->dealias(
         AFL("MemberLoad drop struct"),
         globalState, functionState, blockState, builder, memberLoad->structType, structLE);
@@ -230,11 +230,11 @@ LLVMValueRef translateExpressionInner(
     auto arrayType = destroyKnownSizeArrayIntoFunction->arrayType;
 
     auto arrayWrapperLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
     auto arrayPtrLE = functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, arrayWrapperLE);
 
     auto consumerLE = translateExpression(globalState, functionState, blockState, builder, consumerExpr);
-    checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
 
     foreachArrayElementCallInterface(
         globalState, functionState, blockState, builder, arrayPtrLE,
@@ -256,12 +256,12 @@ LLVMValueRef translateExpressionInner(
     auto arrayType = destroyUnknownSizeArrayIntoFunction->arrayType;
 
     auto arrayWrapperLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
     auto arrayPtrLE = functionState->defaultRegion->getUnknownSizeArrayElementsPtr(builder, arrayWrapperLE);
     auto arrayLenLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperLE);
 
     auto consumerLE = translateExpression(globalState, functionState, blockState, builder, consumerExpr);
-    checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
 
     foreachArrayElementCallInterface(
         globalState, functionState, blockState, builder, arrayPtrLE,
@@ -282,7 +282,7 @@ LLVMValueRef translateExpressionInner(
     auto arrayReferend = knownSizeArrayLoad->arrayReferend;
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
     auto sizeLE = constI64LE(dynamic_cast<KnownSizeArrayT*>(knownSizeArrayLoad->arrayType->referend)->size);
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
@@ -292,7 +292,7 @@ LLVMValueRef translateExpressionInner(
     auto resultLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
     functionState->defaultRegion->alias(
         FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, Ownership::BORROW, resultLE);
-    checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, arrayPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, arrayPtrLE);
     return resultLE;
   } else if (auto unknownSizeArrayLoad = dynamic_cast<UnknownSizeArrayLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -302,7 +302,7 @@ LLVMValueRef translateExpressionInner(
     auto arrayReferend = unknownSizeArrayLoad->arrayReferend;
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
     auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
@@ -316,7 +316,7 @@ LLVMValueRef translateExpressionInner(
             FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, Ownership::BORROW, unaliasedResultLE);
     buildFlare(FL(), globalState, functionState, builder, "Loaded from USA ", arrayPtrLE, " index ", indexLE);
 
-    checkValidReference(FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, unknownSizeArrayLoad->resultType, resultLE);
 
     functionState->defaultRegion->dealias(AFL("USALoad"), globalState, functionState, blockState, builder, arrayType, arrayWrapperPtrLE);
 
@@ -331,7 +331,7 @@ LLVMValueRef translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, "Now doing array");
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
     auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Now doing index");
@@ -348,7 +348,7 @@ LLVMValueRef translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, "Now loading oldElement");
 
     auto oldValueLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
-    checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, oldValueLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, oldValueLE);
     // We dont functionState->defaultRegion->alias here because we aren't aliasing the reference, we're moving it out.
 
     buildFlare(FL(), globalState, functionState, builder, "Now doing valueToStore");
@@ -357,7 +357,7 @@ LLVMValueRef translateExpressionInner(
         translateExpression(
             globalState, functionState, blockState, builder, unknownSizeArrayStore->sourceExpr);
 
-    checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, valueToStoreLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, valueToStoreLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Now storing");
 
@@ -375,7 +375,7 @@ LLVMValueRef translateExpressionInner(
 //    auto indexExpr = arrayLength->indexExpr;
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
-    checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
     auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
     functionState->defaultRegion->dealias(AFL("USALen"), globalState, functionState, blockState, builder, arrayType, arrayWrapperPtrLE);
 
@@ -412,12 +412,12 @@ LLVMValueRef translateExpressionInner(
     auto sourceLE =
         translateExpression(
             globalState, functionState, blockState, builder, memberStore->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, memberType, sourceLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, memberType, sourceLE);
 
     auto structExpr =
         translateExpression(
             globalState, functionState, blockState, builder, memberStore->structExpr);
-    checkValidReference(FL(), globalState, functionState, builder, memberStore->structType, structExpr);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, memberStore->structType, structExpr);
 
     return functionState->defaultRegion->storeMember(
         FL(),
@@ -437,7 +437,7 @@ LLVMValueRef translateExpressionInner(
     auto sourceLE =
         translateExpression(
             globalState, functionState, blockState, builder, structToInterfaceUpcast->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, structToInterfaceUpcast->sourceStructType, sourceLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, structToInterfaceUpcast->sourceStructType, sourceLE);
 
     // If it was inline before, upgrade it to a yonder struct.
     // This however also means that small imm virtual params must be pointers,
@@ -466,7 +466,7 @@ LLVMValueRef translateExpressionInner(
     // maybe function params that are inl can take a pointer, and they can
     // just copy it immediately?
 
-    return upcast2(
+    return functionState->defaultRegion->upcast2(
         globalState,
         functionState,
         builder,
@@ -480,31 +480,26 @@ LLVMValueRef translateExpressionInner(
     auto sourceLE =
         translateExpression(
             globalState, functionState, blockState, builder, lockWeak->sourceExpr);
-    checkValidReference(FL(), globalState, functionState, builder, lockWeak->resultOptType, sourceLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, lockWeak->resultOptType, sourceLE);
 
-    auto isAliveLE = getIsAliveFromWeakRef(globalState, builder, sourceLE);
-
-    auto resultOptTypeLE = translateType(globalState, lockWeak->resultOptType);
-
-    adjustCounter(builder, globalState->mutDerefCounter, 1);
+    auto resultOptTypeL = translateType(globalState, functionState->defaultRegion, lockWeak->resultOptType);
 
     auto resultOptLE =
-        buildIfElse(functionState, builder, isAliveLE, resultOptTypeLE, false, false,
-            [globalState, functionState, lockWeak, sourceLE](LLVMBuilderRef thenBuilder) {
-              auto sourceTypeM = lockWeak->sourceType;
+        functionState->defaultRegion->lockWeak(
+            globalState,
+            functionState,
+            builder,
+            lockWeak->someConstructor->params[0],
+            false,
+            false,
+            resultOptTypeL,
+            sourceLE,
+            [globalState, functionState, lockWeak, sourceLE](LLVMBuilderRef thenBuilder, LLVMValueRef constraintRefLE) {
               auto someConstructor = lockWeak->someConstructor;
-              auto objPtrLE =
-                  getConstraintRefFromWeakRef(
-                      globalState,
-                      functionState,
-                      thenBuilder,
-                      sourceTypeM,
-                      sourceLE,
-                      someConstructor->params[0]);
               // If we get here, object is alive, return a Some.
               auto someLE =
-                  buildCall(globalState, functionState, thenBuilder, someConstructor, {objPtrLE});
-              return upcast2(
+                  buildCall(globalState, functionState, thenBuilder, someConstructor, {constraintRefLE});
+              return functionState->defaultRegion->upcast2(
                   globalState,
                   functionState,
                   thenBuilder,
@@ -518,7 +513,7 @@ LLVMValueRef translateExpressionInner(
               auto noneConstructor = lockWeak->noneConstructor;
               // If we get here, object is dead, return a None.
               auto noneLE = buildCall(globalState, functionState, elseBuilder, noneConstructor, {});
-              return upcast2(
+              return functionState->defaultRegion->upcast2(
                   globalState,
                   functionState,
                   elseBuilder,

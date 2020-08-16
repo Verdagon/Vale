@@ -4,6 +4,7 @@
 #include "translatetype.h"
 
 #include "function/expression.h"
+#include "function/functionstate.h"
 
 
 LLVMValueRef translateCall(
@@ -16,7 +17,7 @@ LLVMValueRef translateCall(
   argsLE.reserve(call->argExprs.size());
   for (int i = 0; i < call->argExprs.size(); i++) {
     auto argLE = translateExpression(globalState, functionState, blockState, builder, call->argExprs[i]);
-    checkValidReference(FL(), globalState, functionState, builder, call->function->params[i], argLE);
+    functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, call->function->params[i], argLE);
     argsLE.push_back(argLE);
   }
 

@@ -26,6 +26,7 @@
 #include <llvm-c/Transforms/Scalar.h>
 #include <llvm-c/Transforms/Utils.h>
 #include <llvm-c/Transforms/IPO.h>
+#include <regions/assist.h>
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -71,7 +72,10 @@ void initInternalExterns(GlobalState* globalState) {
   globalState->eqStr =
       addFunction(globalState->mod, "__veqStr", int8LT,
           { int8PtrLT, int8PtrLT });
-  globalState->printVStr =
+  globalState->strncpy =
+      addFunction(globalState->mod, "strncpy", int8LT,
+          { int8PtrLT, int8PtrLT, int64LT });
+  globalState->printStr =
       addFunction(globalState->mod, "__vprintStr", voidLT,
           { int8PtrLT });
   globalState->intToCStr = addFunction(globalState->mod, "__vintToCStr", voidLT, { int64LT, int8PtrLT, int64LT });
@@ -131,7 +135,24 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   LLVMPositionBuilderAtEnd(entryBuilder, blockL);
 
 
+  AssistRegion assistRegion;
+//  ResilientRegion resilientRegion;
+//  RawRegion rawRegion;
 
+  IRegion* defaultRegion = &assistRegion;
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::ASSIST:
+      defaultRegion = &assistRegion;
+      break;
+//    case RegionOverride::RESILIENT:
+//      defaultRegion = &resilientRegion;
+//      break;
+//    case RegionOverride::RAW:
+//      defaultRegion = &rawRegion;
+//      break;
+    default:
+      assert(false);
+  }
 
 
   globalState->program = program;
@@ -160,25 +181,25 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    declareStruct(globalState, structM);
+    declareStruct(globalState, defaultRegion, structM);
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    declareInterface(globalState, interfaceM);
+    declareInterface(globalState, defaultRegion, interfaceM);
   }
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    translateStruct(globalState, structM);
+    translateStruct(globalState, defaultRegion, structM);
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    translateInterface(globalState, interfaceM);
+    translateInterface(globalState, defaultRegion, interfaceM);
   }
 
   for (auto p : program->structs) {
@@ -195,7 +216,7 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   for (auto p : program->functions) {
     auto name = p.first;
     auto function = p.second;
-    LLVMValueRef entryFunctionL = declareFunction(globalState, function);
+    LLVMValueRef entryFunctionL = declareFunction(globalState, defaultRegion, function);
     if (function->prototype->name->name == "F(\"main\")") {
       mainM = function->prototype;
       mainL = entryFunctionL;
@@ -217,7 +238,7 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   for (auto p : program->functions) {
     auto name = p.first;
     auto function = p.second;
-    translateFunction(globalState, function);
+    translateFunction(globalState, defaultRegion, function);
   }
 
 

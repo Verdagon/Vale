@@ -7,10 +7,12 @@
 
 #include "globalstate.h"
 
-LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM);
+class IRegion;
+
+LLVMTypeRef translateType(GlobalState* globalState, IRegion* region, Reference* referenceM);
 
 std::vector<LLVMTypeRef> translateTypes(
-    GlobalState* globalState, std::vector<Reference*> referencesM);
+    GlobalState* globalState, IRegion* region, std::vector<Reference*> referencesM);
 
 
 // We need to pick an arbitrary type to map "Never" to. It shouldn't matter,
@@ -29,12 +31,9 @@ LLVMTypeRef translateKnownSizeArrayToWrapperStruct(
     GlobalState* globalState,
     KnownSizeArrayT* knownSizeArrayMT);
 
-LLVMTypeRef translateUnknownSizeArrayToWrapperStruct(
-    GlobalState* globalState,
-    UnknownSizeArrayT* unknownSizeArrayMT);
-
 LLVMTypeRef translatePrototypeToFunctionType(
     GlobalState* globalState,
+    IRegion* region,
     Prototype* prototype);
 
 #endif
