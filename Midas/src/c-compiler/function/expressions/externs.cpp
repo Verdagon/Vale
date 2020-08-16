@@ -2,7 +2,7 @@
 #include "function/expressions/shared/shared.h"
 #include "function/expressions/shared/string.h"
 #include "function/expressions/shared/controlblock.h"
-#include "function/expressions/shared/heap.h"
+#include "regions/shared/heap.h"
 
 #include "translatetype.h"
 
@@ -63,8 +63,8 @@ LLVMValueRef translateExternCall(
             "eqStrResult");
     auto resultBoolLE = LLVMBuildICmp(builder, LLVMIntNE, resultInt8LE, LLVMConstInt(LLVMInt8Type(), 0, false), "");
 
-    discard(FL(), globalState, functionState, blockState, builder, leftStrTypeM, leftStrWrapperPtrLE);
-    discard(FL(), globalState, functionState, blockState, builder, rightStrTypeM, rightStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, leftStrTypeM, leftStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, rightStrTypeM, rightStrWrapperPtrLE);
 
     return resultBoolLE;
   } else if (name == "F(\"__addFloatFloat\",[],[R(*,<,f),R(*,<,f)])") {
@@ -121,8 +121,8 @@ LLVMValueRef translateExternCall(
     };
     LLVMBuildCall(builder, globalState->addStr, argsLE.data(), argsLE.size(), "");
 
-    discard(FL(), globalState, functionState, blockState, builder, leftStrTypeM, leftStrWrapperPtrLE);
-    discard(FL(), globalState, functionState, blockState, builder, rightStrTypeM, rightStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, leftStrTypeM, leftStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, rightStrTypeM, rightStrWrapperPtrLE);
 
     checkValidReference(FL(), globalState, functionState, builder, call->function->returnType, destStrWrapperPtrLE);
 
@@ -209,7 +209,7 @@ LLVMValueRef translateExternCall(
     };
     LLVMBuildCall(builder, globalState->printVStr, argsLE.data(), argsLE.size(), "");
 
-    discard(FL(), globalState, functionState, blockState, builder, argStrTypeM, argStrWrapperPtrLE);
+    functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, argStrTypeM, argStrWrapperPtrLE);
 
     return LLVMGetUndef(translateType(globalState, call->function->returnType));
   } else if (name == "F(\"__not\",[],[R(*,<,b)])") {

@@ -1,9 +1,12 @@
 #include <iostream>
-#include <function/expressions/shared/shared.h>
+#include <regions/resilient.h>
+#include <regions/raw.h>
 
+#include "function/expressions/shared/shared.h"
+#include "regions/assist.h"
 #include "translatetype.h"
-
 #include "function.h"
+#include "functionstate.h"
 #include "expression.h"
 
 LLVMValueRef declareFunction(
@@ -34,7 +37,26 @@ void translateFunction(
 
   auto localAddrByLocalId = std::unordered_map<int, LLVMValueRef>{};
 
-  FunctionState functionState(functionL, returnTypeL);
+  AssistRegion assistRegion;
+//  ResilientRegion resilientRegion;
+//  RawRegion rawRegion;
+
+  IRegion* defaultRegion = &assistRegion;
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::ASSIST:
+      defaultRegion = &assistRegion;
+      break;
+//    case RegionOverride::RESILIENT:
+//      defaultRegion = &resilientRegion;
+//      break;
+//    case RegionOverride::RAW:
+//      defaultRegion = &rawRegion;
+//      break;
+    default:
+      assert(false);
+  }
+
+  FunctionState functionState(functionL, returnTypeL, defaultRegion);
 
   int blockNumber = functionState.nextBlockNumber++;
   auto blockName = std::string("block") + std::to_string(blockNumber);
@@ -94,4 +116,8 @@ void translateFunction(
   }
 
   LLVMDisposeBuilder(bodyTopLevelBuilder);
+}
+
+int getInstructionDepthInAst(FunctionState* functionState) {
+  return functionState->instructionDepthInAst;
 }

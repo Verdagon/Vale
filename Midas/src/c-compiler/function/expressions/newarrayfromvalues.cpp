@@ -7,7 +7,7 @@
 #include "function/expressions/shared/members.h"
 #include "function/expression.h"
 #include "function/expressions/shared/shared.h"
-#include "function/expressions/shared/heap.h"
+#include "regions/shared/heap.h"
 
 void fillKnownSizeArray(
     LLVMBuilderRef builder,
@@ -38,13 +38,15 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
     LLVMTypeRef structLT,
     const std::vector<LLVMValueRef>& membersLE,
     const std::string& typeName) {
-  auto newStructLE = allocateStruct(globalState, builder, structTypeM, structLT);
-  fillControlBlock(
-      globalState,
-      functionState,
-      builder,
-      getConcreteControlBlockPtr(builder, newStructLE),
-      typeName);
+  auto newStructLE =
+      functionState->defaultRegion->constructKnownSizeArray(
+          globalState,
+          functionState,
+          builder,
+          structTypeM,
+          structLT,
+          membersLE,
+          typeName);
   fillKnownSizeArray(
       builder,
       getKnownSizeArrayContentsPtr(builder, newStructLE),

@@ -52,8 +52,6 @@ void initInternalExterns(GlobalState* globalState) {
   auto int64LT = LLVMInt64Type();
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
-  auto stringInnerStructPtrLT = LLVMPointerType(globalState->stringInnerStructL, 0);
-
   globalState->malloc = addFunction(globalState->mod, "malloc", int8PtrLT, {int64LT});
   globalState->free = addFunction(globalState->mod, "free", voidLT, {int8PtrLT});
   globalState->exit = addFunction(globalState->mod, "exit", voidLT, {int8LT});
@@ -66,16 +64,16 @@ void initInternalExterns(GlobalState* globalState) {
   globalState->printBool = addFunction(globalState->mod, "__vprintBool", voidLT, {int1LT});
   globalState->initStr =
       addFunction(globalState->mod, "__vinitStr", voidLT,
-          { stringInnerStructPtrLT, int8PtrLT, });
+          { int8PtrLT, int8PtrLT, });
   globalState->addStr =
       addFunction(globalState->mod, "__vaddStr", voidLT,
-          { stringInnerStructPtrLT, stringInnerStructPtrLT, stringInnerStructPtrLT });
+          { int8PtrLT, int8PtrLT, int8PtrLT });
   globalState->eqStr =
       addFunction(globalState->mod, "__veqStr", int8LT,
-          { stringInnerStructPtrLT, stringInnerStructPtrLT });
+          { int8PtrLT, int8PtrLT });
   globalState->printVStr =
       addFunction(globalState->mod, "__vprintStr", voidLT,
-          { stringInnerStructPtrLT });
+          { int8PtrLT });
   globalState->intToCStr = addFunction(globalState->mod, "__vintToCStr", voidLT, { int64LT, int8PtrLT, int64LT });
   globalState->strlen = addFunction(globalState->mod, "strlen", int64LT, { int8PtrLT });
   globalState->censusContains = addFunction(globalState->mod, "__vcensusContains", int64LT, {voidPtrLT});
@@ -98,73 +96,6 @@ void initInternalStructs(GlobalState* globalState) {
   auto int64LT = LLVMInt64Type();
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
   auto int64PtrLT = LLVMPointerType(int64LT, 0);
-
-  {
-    auto controlBlockStructL =
-        LLVMStructCreateNamed(
-            LLVMGetGlobalContext(), CONTROL_BLOCK_STRUCT_NAME);
-    std::vector<LLVMTypeRef> memberTypesL;
-
-    globalState->controlBlockTypeStrIndex = memberTypesL.size();
-    memberTypesL.push_back(int8PtrLT);
-
-    globalState->controlBlockObjIdIndex = memberTypesL.size();
-    memberTypesL.push_back(int64LT);
-
-    globalState->controlBlockRcMemberIndex = memberTypesL.size();
-    memberTypesL.push_back(int64LT);
-
-    globalState->controlBlockWrciMemberIndex = memberTypesL.size();
-    memberTypesL.push_back(int64LT);
-
-    LLVMStructSetBody(
-        controlBlockStructL, memberTypesL.data(), memberTypesL.size(), false);
-    globalState->weakableControlBlockStructL = controlBlockStructL;
-  }
-
-  {
-    auto controlBlockStructL =
-        LLVMStructCreateNamed(
-            LLVMGetGlobalContext(), CONTROL_BLOCK_STRUCT_NAME);
-    std::vector<LLVMTypeRef> memberTypesL;
-
-    assert(memberTypesL.size() == globalState->controlBlockTypeStrIndex); // should match weakable
-    memberTypesL.push_back(int8PtrLT);
-
-    assert(memberTypesL.size() == globalState->controlBlockObjIdIndex); // should match weakable
-    memberTypesL.push_back(int64LT);
-
-    assert(memberTypesL.size() == globalState->controlBlockRcMemberIndex); // should match weakable
-    memberTypesL.push_back(int64LT);
-
-    LLVMStructSetBody(
-        controlBlockStructL, memberTypesL.data(), memberTypesL.size(), false);
-    globalState->nonWeakableControlBlockStructL = controlBlockStructL;
-  }
-
-  {
-    auto stringInnerStructL =
-        LLVMStructCreateNamed(
-            LLVMGetGlobalContext(), "__Str");
-    std::vector<LLVMTypeRef> memberTypesL;
-    memberTypesL.push_back(LLVMInt64Type());
-    memberTypesL.push_back(LLVMArrayType(int8LT, 0));
-    LLVMStructSetBody(
-        stringInnerStructL, memberTypesL.data(), memberTypesL.size(), false);
-    globalState->stringInnerStructL = stringInnerStructL;
-  }
-
-  {
-    auto stringWrapperStructL =
-        LLVMStructCreateNamed(
-            LLVMGetGlobalContext(), "__Str_rc");
-    std::vector<LLVMTypeRef> memberTypesL;
-    memberTypesL.push_back(globalState->nonWeakableControlBlockStructL);
-    memberTypesL.push_back(globalState->stringInnerStructL);
-    LLVMStructSetBody(
-        stringWrapperStructL, memberTypesL.data(), memberTypesL.size(), false);
-    globalState->stringWrapperStructL = stringWrapperStructL;
-  }
 }
 
 void compileValeCode(GlobalState* globalState, const char* filename) {
@@ -215,13 +146,13 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
       LLVMAddGlobal(globalState->mod, LLVMInt64Type(), "__objIdCounter");
   LLVMSetInitializer(globalState->objIdCounter, LLVMConstInt(LLVMInt64Type(), 501, false));
 
-  globalState->derefCounter =
-      LLVMAddGlobal(globalState->mod, LLVMInt64Type(), "derefCounter");
-  LLVMSetInitializer(globalState->derefCounter, LLVMConstInt(LLVMInt64Type(), 0, false));
+  globalState->mutDerefCounter =
+      LLVMAddGlobal(globalState->mod, LLVMInt64Type(), "__mutDerefCounter");
+  LLVMSetInitializer(globalState->mutDerefCounter, LLVMConstInt(LLVMInt64Type(), 0, false));
 
-  globalState->mutRcAdjustCounter =
-      LLVMAddGlobal(globalState->mod, LLVMInt64Type(), "__mutRcAdjustCounter");
-  LLVMSetInitializer(globalState->mutRcAdjustCounter, LLVMConstInt(LLVMInt64Type(), 0, false));
+  globalState->mutRcAccessCounter =
+      LLVMAddGlobal(globalState->mod, LLVMInt64Type(), "__mutRcAccessCounter");
+  LLVMSetInitializer(globalState->mutRcAccessCounter, LLVMConstInt(LLVMInt64Type(), 0, false));
 
   initInternalStructs(globalState);
   initInternalExterns(globalState);
@@ -311,6 +242,12 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
     };
     LLVMBuildCall(entryBuilder, globalState->assertI64Eq, args, 2, "");
   }
+
+  buildPrint(globalState, entryBuilder, "Mutable dereferences: ");
+  buildPrint(globalState, entryBuilder, LLVMBuildLoad(entryBuilder, globalState->mutDerefCounter, ""));
+  buildPrint(globalState, entryBuilder, ", mutable RC accesses: ");
+  buildPrint(globalState, entryBuilder, LLVMBuildLoad(entryBuilder, globalState->mutRcAccessCounter, ""));
+  buildPrint(globalState, entryBuilder, "\n");
 
   if (mainM->returnType->referend == globalState->metalCache.vooid) {
     LLVMBuildRet(entryBuilder, LLVMConstInt(LLVMInt64Type(), 0, true));

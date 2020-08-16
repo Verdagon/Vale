@@ -63,6 +63,11 @@ add_executable(valec
 		src/c-compiler/struct/interface.cpp
 		src/c-compiler/metal/readjson.cpp
 		src/c-compiler/metal/types.cpp
+
+		src/c-compiler/regions/assist.cpp
+#		src/c-compiler/regions/resilient.cpp
+#		src/c-compiler/regions/raw.cpp
+
 		src/c-compiler/translatetype.cpp
         src/c-compiler/valeopts.cpp
 
@@ -71,7 +76,7 @@ add_executable(valec
 
 		src/c-compiler/function/expressions/call.cpp
 		src/c-compiler/function/expressions/interfacecall.cpp
-		src/c-compiler/function/expressions/construct.cpp
+        src/c-compiler/regions/shared/construct.cpp
 		src/c-compiler/function/expressions/destructure.cpp
 		src/c-compiler/function/expressions/block.cpp
 		src/c-compiler/function/expressions/discard.cpp
@@ -88,7 +93,7 @@ add_executable(valec
 		src/c-compiler/function/expressions/shared/alias.cpp
 		src/c-compiler/function/expressions/shared/branch.cpp
 		src/c-compiler/function/expressions/shared/string.cpp
-		src/c-compiler/function/expressions/shared/heap.cpp
+		src/c-compiler/regions/shared/heap.cpp
 		src/c-compiler/function/expressions/shared/controlblock.cpp
 
 		src/c-compiler/utils/fileio.cpp

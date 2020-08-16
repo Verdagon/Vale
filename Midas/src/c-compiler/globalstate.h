@@ -5,9 +5,6 @@
 
 #include <unordered_map>
 #include <metal/metalcache.h>
-
-#include "metal/ast.h"
-#include "metal/instructions.h"
 #include "valeopts.h"
 
 #define CONTROL_BLOCK_STRUCT_NAME "__ControlBlock"
@@ -31,22 +28,13 @@ public:
   Program* program;
   LLVMValueRef objIdCounter;
   LLVMValueRef liveHeapObjCounter;
-  LLVMValueRef derefCounter;
-  LLVMValueRef mutRcAdjustCounter;
+  LLVMValueRef mutDerefCounter;
+  LLVMValueRef mutRcAccessCounter;
   LLVMValueRef malloc, free, assert, exit, assertI64Eq, flareI64, printCStr,
       getch, printInt, printBool, initStr, addStr, eqStr, printVStr, intToCStr,
       strlen, censusContains, censusAdd, censusRemove, panic;
 
   LLVMValueRef allocWrc, incrementWrc, decrementWrc, wrcIsLive, markWrcDead, getNumWrcs;
-
-  int controlBlockTypeStrIndex;
-  int controlBlockObjIdIndex;
-  int controlBlockRcMemberIndex;
-  int controlBlockWrciMemberIndex;
-  LLVMTypeRef nonWeakableControlBlockStructL;
-  LLVMTypeRef weakableControlBlockStructL;
-  LLVMTypeRef stringWrapperStructL;
-  LLVMTypeRef stringInnerStructL;
 
   LLVMBuilderRef stringConstantBuilder;
   std::unordered_map<std::string, LLVMValueRef> stringConstants;

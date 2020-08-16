@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regions/iregion.h>
 
 #include "struct.h"
 
@@ -29,6 +30,7 @@ void declareStruct(
 
 void translateStruct(
     GlobalState* globalState,
+    IRegion* region,
     StructDefinition* structM) {
   LLVMTypeRef valStructL = globalState->getInnerStruct(structM->name);
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
@@ -44,11 +46,8 @@ void translateStruct(
   // First member is a ref counts struct. We don't include the int directly
   // because we want fat pointers to point to this struct, so they can reach
   // into it and increment without doing any casting.
-  if (structM->weakable) {
-    countedStructMemberTypesL.push_back(globalState->weakableControlBlockStructL);
-  } else {
-    countedStructMemberTypesL.push_back(globalState->nonWeakableControlBlockStructL);
-  }
+  countedStructMemberTypesL.push_back(region->getControlBlockStructForStruct(structM));
+
   countedStructMemberTypesL.push_back(valStructL);
   LLVMStructSetBody(
       countedStructL, countedStructMemberTypesL.data(), countedStructMemberTypesL.size(), false);

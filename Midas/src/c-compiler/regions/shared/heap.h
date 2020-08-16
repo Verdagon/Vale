@@ -5,7 +5,7 @@
 
 #include "function/function.h"
 #include "globalstate.h"
-#include "shared.h"
+#include "function/expressions/shared/shared.h"
 
 LLVMValueRef allocateStruct(
     GlobalState* globalState,

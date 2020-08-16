@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 // List of option ids
 enum
@@ -40,8 +41,8 @@ enum
     OPT_WIDTH,
     OPT_IMMERR,
     OPT_VERIFY,
-  OPT_FLARES,
-  OPT_FASTMODE,
+    OPT_FLARES,
+    OPT_REGION_OVERRIDE,
     OPT_FILENAMES,
     OPT_CHECKTREE,
     OPT_EXTFUN,
@@ -80,7 +81,7 @@ static opt_arg_t args[] =
 
     { "verbose", 'V', OPT_ARG_REQUIRED, OPT_VERBOSE },
     { "flares", '\0', OPT_ARG_NONE, OPT_FLARES },
-    { "fastmode", '\0', OPT_ARG_NONE, OPT_FASTMODE },
+    { "region-override", '\0', OPT_ARG_REQUIRED, OPT_REGION_OVERRIDE },
     { "ir", '\0', OPT_ARG_NONE, OPT_IR },
     { "asm", '\0', OPT_ARG_NONE, OPT_ASM },
     { "llvmir", '\0', OPT_ARG_NONE, OPT_LLVMIR },
@@ -178,7 +179,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     optInit(args, &s, argc, argv);
     opt->release = 1;
     opt->flares = false;
-    opt->census = true;
+    opt->census = false;
 
     while ((id = optNext(&s)) != -1) {
         switch (id) {
@@ -207,7 +208,17 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
         case OPT_VERIFY: opt->verify = 1; break;
 
         case OPT_FLARES: opt->flares = 1; break;
-        case OPT_FASTMODE: opt->fastmode = 1; break;
+
+        case OPT_REGION_OVERRIDE: {
+          if (strcmp(s.arg_val, "raw") == 0) {
+            opt->regionOverride = RegionOverride::RAW;
+          } else if (strcmp(s.arg_val, "assist") == 0) {
+            opt->regionOverride = RegionOverride::ASSIST;
+          } else if (strcmp(s.arg_val, "resilient") == 0) {
+            opt->regionOverride = RegionOverride::RESILIENT;
+          } else assert(false);
+          break;
+        }
 
         default: usage(); return -1;
         }

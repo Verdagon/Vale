@@ -13,22 +13,6 @@ LLVMValueRef getStructContentsPtr(
       "contentsPtr");
 }
 
-LLVMValueRef loadInnerStructMember(
-    LLVMBuilderRef builder,
-    LLVMValueRef innerStructPtrLE,
-    int memberIndex,
-    const std::string& memberName) {
-  assert(LLVMGetTypeKind(LLVMTypeOf(innerStructPtrLE)) == LLVMPointerTypeKind);
-
-  auto result =
-      LLVMBuildLoad(
-          builder,
-          LLVMBuildStructGEP(
-              builder, innerStructPtrLE, memberIndex, memberName.c_str()),
-          memberName.c_str());
-  return result;
-}
-
 void storeInnerStructMember(
     LLVMBuilderRef builder,
     LLVMValueRef innerStructPtrLE,
@@ -43,59 +27,23 @@ void storeInnerStructMember(
           builder, innerStructPtrLE, memberIndex, memberName.c_str()));
 }
 
-LLVMValueRef loadMember(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* structRefM,
-    LLVMValueRef structExpr,
-    Mutability mutability,
-    Reference* memberType,
-    int memberIndex,
-    const std::string& memberName) {
-
-  if (mutability == Mutability::IMMUTABLE) {
-    if (structRefM->location == Location::INLINE) {
-      return LLVMBuildExtractValue(
-          builder, structExpr, memberIndex, memberName.c_str());
-    } else {
-      LLVMValueRef innerStructPtrLE = getStructContentsPtr(builder,
-          structExpr);
-      auto resultLE =
-          loadInnerStructMember(
-              builder, innerStructPtrLE, memberIndex, memberName);
-      acquireReference(from, globalState, functionState, builder, memberType, resultLE);
-      return resultLE;
-    }
-  } else if (mutability == Mutability::MUTABLE) {
-    LLVMValueRef innerStructPtrLE = getStructContentsPtr(builder,
-        structExpr);
-    auto resultLE =
-        loadInnerStructMember(
-            builder, innerStructPtrLE, memberIndex, memberName);
-    acquireReference(from, globalState, functionState, builder, memberType, resultLE);
-    return resultLE;
-  } else {
-    assert(false);
-    return nullptr;
-  }
-}
-
 LLVMValueRef swapMember(
     LLVMBuilderRef builder,
-    StructDefinition* structDefM,
     LLVMValueRef structExpr,
     int memberIndex,
     const std::string& memberName,
     LLVMValueRef newMemberLE) {
-  assert(structDefM->mutability == Mutability::MUTABLE);
   LLVMValueRef innerStructPtrLE = getStructContentsPtr(builder,
       structExpr);
 
-  LLVMValueRef oldMember =
-      loadInnerStructMember(
-          builder, innerStructPtrLE, memberIndex, memberName);
+  auto memberPtrLE =
+      LLVMBuildStructGEP(
+          builder, innerStructPtrLE, memberIndex, memberName.c_str());
+  auto oldMemberLE =
+      LLVMBuildLoad(
+          builder,
+          memberPtrLE,
+          memberName.c_str());
   // We don't adjust the oldMember's RC here because even though we're acquiring
   // a reference to it, the struct is losing its reference, so it cancels out.
 
@@ -104,5 +52,29 @@ LLVMValueRef swapMember(
   // We don't adjust the newMember's RC here because even though the struct is
   // acquiring a reference to it, we're losing ours, so it cancels out.
 
-  return oldMember;
+  return oldMemberLE;
+}
+
+std::vector<LLVMValueRef> getMemberPtrsLE(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    StructDefinition* structM,
+    LLVMValueRef innerStructPtrLE) {
+  std::vector<LLVMValueRef> membersLE;
+  for (int i = 0; i < structM->members.size(); i++) {
+    auto memberName = structM->members[i]->name;
+    auto memberPtrLE =
+        LLVMBuildStructGEP(
+            builder, innerStructPtrLE, i, memberName.c_str());
+    auto memberLE =
+        LLVMBuildLoad(
+            builder,
+            memberPtrLE,
+            memberName.c_str());
+    checkValidReference(
+        FL(), globalState, functionState, builder, structM->members[i]->type, memberLE);
+    membersLE.push_back(memberLE);
+  }
+  return membersLE;
 }

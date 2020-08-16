@@ -9,7 +9,7 @@
 #include "metal/ast.h"
 #include "metal/instructions.h"
 #include "globalstate.h"
-#include "function/function.h"
+#include "function/functionstate.h"
 
 LLVMValueRef buildIfElse(
     FunctionState* functionState,

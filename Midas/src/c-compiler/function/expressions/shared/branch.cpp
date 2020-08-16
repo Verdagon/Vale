@@ -1,6 +1,7 @@
 #include "shared.h"
 
 #include "translatetype.h"
+#include "function/functionstate.h"
 
 #include <functional>
 

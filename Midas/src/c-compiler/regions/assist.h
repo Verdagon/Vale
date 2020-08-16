@@ -1,0 +1,306 @@
+#ifndef REGION_ASSIST_H_
+#define REGION_ASSIST_H_
+
+#include "iregion.h"
+
+class AssistRegion : public IRegion {
+public:
+  AssistRegion();
+
+  LLVMValueRef allocate(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* desiredReference,
+      const std::vector<LLVMValueRef>& membersLE) override;
+
+  LLVMValueRef alias(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRef,
+      Ownership targetOwnership,
+      LLVMValueRef expr) override;
+  void dealias(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* sourceRef,
+      LLVMValueRef expr) override;
+
+  LLVMValueRef loadMember(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* structRefM,
+      LLVMValueRef structExpr,
+      Mutability mutability,
+      Reference* memberType,
+      int memberIndex,
+      const std::string& memberName) override;
+
+  std::vector<LLVMValueRef> destructure(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* structType,
+      LLVMValueRef structLE) override;
+
+  LLVMValueRef storeMember(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* structRefM,
+      LLVMValueRef structExpr,
+      Mutability mutability,
+      Reference* memberType,
+      int memberIndex,
+      const std::string& memberName,
+      LLVMValueRef sourceLE) override;
+
+  void destroyArray(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* arrayType,
+      LLVMValueRef arrayWrapperLE) override;
+
+  LLVMTypeRef getControlBlockStructForStruct(StructDefinition* structM) override;
+  LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM) override;
+  LLVMTypeRef getControlBlockStructForKnownSizeArray(KnownSizeArrayT* arrMT) override;
+  LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT) override;
+
+  LLVMValueRef constructString(LLVMValueRef sizeLE) override;
+  LLVMValueRef getStringBytesPtr(LLVMValueRef stringRefLE) override;
+  LLVMValueRef getStringLength(LLVMValueRef stringRefLE) override;
+
+
+  LLVMValueRef constructKnownSizeArray(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* structTypeM,
+      LLVMTypeRef structLT,
+      const std::vector<LLVMValueRef>& membersLE,
+      const std::string& typeName) override;
+
+  LLVMValueRef getKnownSizeArrayElementsPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef knownSizeArrayRefLE) override;
+  LLVMValueRef constructUnknownSizeArray(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMTypeRef usaWrapperPtrLT,
+      LLVMTypeRef usaElementLT,
+      LLVMValueRef sizeLE,
+      const std::string& typeName) override;
+  LLVMValueRef getUnknownSizeArrayElementsPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef unknownSizeArrayRefLE) override;
+  LLVMValueRef getUnknownSizeArrayLength(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMTypeRef usaWrapperPtrLT,
+      LLVMTypeRef usaElementLT,
+      LLVMValueRef sizeLE,
+      const std::string& typeName) override;
+
+  LLVMValueRef loadElement(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* structRefM,
+      Reference* elementRefM,
+      LLVMValueRef sizeLE,
+      LLVMValueRef arrayPtrLE,
+      Mutability mutability,
+      LLVMValueRef indexLE);
+
+  LLVMValueRef storeElement(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* arrayRefM,
+      Reference* elementRefM,
+      LLVMValueRef sizeLE,
+      LLVMValueRef arrayPtrLE,
+      Mutability mutability,
+      LLVMValueRef indexLE,
+      LLVMValueRef sourceLE);
+
+
+private:
+  LLVMValueRef loadInnerArrayMember(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef elemsPtrLE,
+      Reference* elementRefM,
+      LLVMValueRef indexLE);
+
+  LLVMValueRef storeInnerArrayMember(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef elemsPtrLE,
+      Reference* elementRefM,
+      LLVMValueRef indexLE,
+      LLVMValueRef sourceLE);
+
+  void fillInnerStruct(
+      LLVMBuilderRef builder,
+      StructDefinition* structM,
+      std::vector<LLVMValueRef> membersLE,
+      LLVMValueRef innerStructPtrLE);
+
+  LLVMValueRef constructCountedStruct(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMTypeRef structL,
+      Reference* structTypeM,
+      StructDefinition* structM,
+      std::vector<LLVMValueRef> membersLE);
+
+  LLVMValueRef constructInnerStruct(
+      LLVMBuilderRef builder,
+      StructDefinition* structM,
+      LLVMTypeRef valStructL,
+      const std::vector<LLVMValueRef>& membersLE);
+
+  LLVMValueRef fillControlBlock(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtrLE,
+      bool weakable,
+      const std::string& typeName);
+
+// A concrete is a struct, known size array, unknown size array, or Str.
+  LLVMValueRef getConcreteControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef concretePtrLE);
+
+  LLVMValueRef getInterfaceControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef interfaceRefLE);
+
+// See CRCISFAORC for why we don't take in a mutability.
+// Strong means owning or borrow or shared; things that control the lifetime.
+  LLVMValueRef getStrongRcPtrFromControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtr);
+// See CRCISFAORC for why we don't take in a mutability.
+  LLVMValueRef getWrciFromControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtr,
+      int controlBlockWrciMemberIndex);
+
+  LLVMValueRef getObjIdFromControlBlockPtr(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtr);
+
+// Strong means owning or borrow or shared; things that control the lifetime.
+  LLVMValueRef getStrongRcFromControlBlockPtr(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtrLE);
+
+// Returns object ID
+  LLVMValueRef fillControlBlock(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtrLE,
+      const std::string& typeName);
+
+  LLVMValueRef getControlBlockPtr(
+      LLVMBuilderRef builder,
+      // This will be a pointer if a mutable struct, or a fat ref if an interface.
+      LLVMValueRef referenceLE,
+      Reference* refM);
+
+  void flareAdjustStrongRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef controlBlockPtr,
+      LLVMValueRef oldAmount,
+      LLVMValueRef newAmount);
+
+// Returns the new RC
+  LLVMValueRef adjustStrongRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef exprLE,
+      Reference* refM,
+      int amount);
+
+  LLVMValueRef strongRcIsZero(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef exprLE,
+      Reference* refM);
+
+  LLVMValueRef getTypeNameStrPtrFromControlBlockPtr(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef controlBlockPtr);
+
+  LLVMValueRef getWrciFromWeakRef(
+      LLVMBuilderRef builder,
+      LLVMValueRef weakRefLE);
+
+  LLVMValueRef getIsAliveFromWeakRef(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      LLVMValueRef weakRefLE);
+
+  LLVMValueRef getConstraintRefFromWeakRef(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* weakRefM,
+      LLVMValueRef weakRefLE,
+      Reference* constraintRefM);
+
+  RcLayoutInfo makeRcLayoutInfo() {
+    return RcLayoutInfo(
+        controlBlockRcMemberIndex,
+        controlBlockObjIdIndex,
+        controlBlockTypeStrIndex);
+  }
+
+  LLVMValueRef castOwnership(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      Reference* sourceType,
+      Ownership targetOwnership,
+      LLVMValueRef sourceRefLE);
+
+  int controlBlockTypeStrIndex;
+  int controlBlockObjIdIndex;
+  int controlBlockRcMemberIndex;
+  int controlBlockWrciMemberIndex;
+  LLVMTypeRef nonWeakableControlBlockStructL;
+  LLVMTypeRef weakableControlBlockStructL;
+};
+
+#endif

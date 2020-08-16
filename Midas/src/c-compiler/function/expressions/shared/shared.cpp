@@ -3,6 +3,7 @@
 #include "translatetype.h"
 #include "controlblock.h"
 #include "branch.h"
+#include "elements.h"
 
 // A "Never" is something that should never be read.
 // This is useful in a lot of situations, for example:
@@ -56,77 +57,6 @@ LLVMValueRef getTablePtrFromInterfaceRef(
     LLVMBuilderRef builder,
     LLVMValueRef interfaceRefLE) {
   return LLVMBuildExtractValue(builder, interfaceRefLE, 1, "itablePtr");
-}
-
-LLVMValueRef getControlBlockPtr(
-    LLVMBuilderRef builder,
-    // This will be a pointer if a mutable struct, or a fat ref if an interface.
-    LLVMValueRef referenceLE,
-    Reference* refM) {
-  if (dynamic_cast<InterfaceReferend*>(refM->referend)) {
-    return getInterfaceControlBlockPtr(builder, referenceLE);
-  } else if (dynamic_cast<StructReferend*>(refM->referend)) {
-    return getConcreteControlBlockPtr(builder, referenceLE);
-  } else if (dynamic_cast<KnownSizeArrayT*>(refM->referend)) {
-    return getConcreteControlBlockPtr(builder, referenceLE);
-  } else if (dynamic_cast<UnknownSizeArrayT*>(refM->referend)) {
-    return getConcreteControlBlockPtr(builder, referenceLE);
-  } else if (dynamic_cast<Str*>(refM->referend)) {
-    return getConcreteControlBlockPtr(builder, referenceLE);
-  } else {
-    assert(false);
-    return nullptr;
-  }
-}
-
-void flareAdjustStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef controlBlockPtr,
-    LLVMValueRef oldAmount,
-    LLVMValueRef newAmount) {
-  buildFlare(
-      from,
-      globalState,
-      functionState,
-      builder,
-      typeid(*refM->referend).name(),
-      " ",
-      getTypeNameStrPtrFromControlBlockPtr(globalState, builder, controlBlockPtr),
-      getObjIdFromControlBlockPtr(globalState, builder, controlBlockPtr),
-      ", ",
-      oldAmount,
-      "->",
-      newAmount);
-}
-
-// Returns the new RC
-LLVMValueRef adjustStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    LLVMValueRef exprLE,
-    Reference* refM,
-    int amount) {
-  auto controlBlockPtrLE = getControlBlockPtr(builder, exprLE, refM);
-  auto rcPtrLE = getStrongRcPtrFromControlBlockPtr(globalState, builder, controlBlockPtrLE);
-  auto oldRc = LLVMBuildLoad(builder, rcPtrLE, "oldRc");
-  auto newRc = adjustCounter(builder, rcPtrLE, amount);
-  flareAdjustStrongRc(from, globalState, functionState, builder, refM, controlBlockPtrLE, oldRc, newRc);
-  return newRc;
-}
-
-LLVMValueRef strongRcIsZero(
-    GlobalState* globalState,
-    LLVMBuilderRef builder,
-    LLVMValueRef exprLE,
-    Reference* refM) {
-  auto controlBlockPtr = getControlBlockPtr(builder, exprLE, refM);
-  return isZeroLE(builder, getStrongRcFromControlBlockPtr(globalState, builder, controlBlockPtr));
 }
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE) {
@@ -251,7 +181,7 @@ void checkValidReference(
     LLVMBuilderRef builder,
     Reference* refM,
     LLVMValueRef refLE) {
-  if (!globalState->opt->census) {
+  if (globalState->opt->census) {
     if (refM->ownership == Ownership::OWN) {
       auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
       buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
@@ -333,4 +263,33 @@ LLVMValueRef upcast2(
   checkValidReference(
       FL(), globalState, functionState, builder, targetInterfaceTypeM, interfaceRefLE);
   return interfaceRefLE;
+}
+
+void foreachArrayElementCallInterface(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    LLVMValueRef arrayPtrLE,
+    LLVMValueRef lengthLE,
+    Reference* elementType,
+    Reference* interfaceType,
+    LLVMValueRef interfaceLE,
+    int virtualParamIndex,
+    int indexInEdge) {
+  foreachArrayElement(
+      functionState, builder, lengthLE, arrayPtrLE,
+      [globalState, functionState, blockState, interfaceType, elementType, arrayPtrLE, interfaceLE, virtualParamIndex, indexInEdge](
+          LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
+        functionState->defaultRegion->alias(
+            AFL("DestroyKSAIntoF consume iteration"),
+            globalState, functionState, bodyBuilder, interfaceType, Ownership::BORROW, interfaceLE);
+
+        std::vector<LLVMValueRef> indices = { constI64LE(0), indexLE };
+        auto elementPtrLE = LLVMBuildGEP(bodyBuilder, arrayPtrLE, indices.data(), indices.size(), "elementPtr");
+        auto elementLE = LLVMBuildLoad(bodyBuilder, elementPtrLE, "element");
+        checkValidReference(FL(), globalState, functionState, bodyBuilder, elementType, elementLE);
+        std::vector<LLVMValueRef> argExprsLE = { interfaceLE, elementLE };
+        buildInterfaceCall(bodyBuilder, argExprsLE, virtualParamIndex, indexInEdge);
+      });
 }

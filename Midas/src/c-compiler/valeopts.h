@@ -6,6 +6,12 @@
 #include <stdint.h>
 #include <stddef.h>
 
+enum RegionOverride {
+  ASSIST,
+  RESILIENT,
+  RAW
+};
+
 // Compiler options
 typedef struct ValeOptions {
     char* srcpath;    // Full path
@@ -32,7 +38,7 @@ typedef struct ValeOptions {
     bool docs;            // Generate code documentation
     bool census;    // Enable census checking
     bool flares;    // Enable flare output
-    bool fastmode;    // Fast mode, no constraint ref counters!
+    RegionOverride regionOverride;    // Fast mode, no constraint ref counters!
 } ValeOptions;
 
 int valeOptSet(ValeOptions *opt, int *argc, char **argv);

@@ -7,7 +7,7 @@
 #include "function/expressions/shared/members.h"
 #include "function/expression.h"
 #include "function/expressions/shared/shared.h"
-#include "function/expressions/shared/heap.h"
+#include "regions/shared/heap.h"
 
 void fillUnknownSizeArray(
     GlobalState* globalState,
@@ -15,22 +15,22 @@ void fillUnknownSizeArray(
     BlockState* blockState,
     LLVMBuilderRef builder,
     Reference* generatorType,
-    LLVMValueRef generatorLE,
+    LLVMValueRef originalGeneratorLE,
     LLVMValueRef sizeLE,
     LLVMValueRef usaElementsPtrLE) {
 
   foreachArrayElement(
       functionState, builder, sizeLE, usaElementsPtrLE,
-      [globalState, functionState, generatorType, usaElementsPtrLE, generatorLE](LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
-        acquireReference(
+      [globalState, functionState, generatorType, usaElementsPtrLE, originalGeneratorLE](LLVMValueRef indexLE, LLVMBuilderRef bodyBuilder) {
+        auto aliasedGeneratorLE = functionState->defaultRegion->alias(
             AFL("ConstructUSA generate iteration"),
-            globalState, functionState, bodyBuilder, generatorType, generatorLE);
+            globalState, functionState, bodyBuilder, generatorType, generatorType->ownership, originalGeneratorLE);
 
         std::vector<LLVMValueRef> indices = { constI64LE(0), indexLE };
         auto elementPtrLE =
             LLVMBuildGEP(
                 bodyBuilder, usaElementsPtrLE, indices.data(), indices.size(), "elementPtr");
-        std::vector<LLVMValueRef> argExprsLE = { generatorLE, indexLE };
+        std::vector<LLVMValueRef> argExprsLE = { aliasedGeneratorLE, indexLE };
         auto elementLE = buildInterfaceCall(bodyBuilder, argExprsLE, 0, 0);
         LLVMBuildStore(bodyBuilder, elementLE, elementPtrLE);
       });
@@ -47,15 +47,7 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
     LLVMTypeRef usaElementLT,
     LLVMValueRef sizeLE,
     const std::string& typeName) {
-  auto usaWrapperPtrLE =
-      mallocUnknownSizeArray(
-          globalState, builder, usaWrapperPtrLT, usaElementLT, sizeLE);
-  fillControlBlock(
-      globalState,
-      functionState,
-      builder,
-      getConcreteControlBlockPtr(builder, usaWrapperPtrLE),
-      typeName);
+  auto usaWrapperPtrLE = functionState->defaultRegion->constructUnknownSizeArray(sizeLE);
   LLVMBuildStore(builder, sizeLE, LLVMBuildStructGEP(builder, usaWrapperPtrLE, 1, "lenPtr"));
   fillUnknownSizeArray(
       globalState,
@@ -112,8 +104,8 @@ LLVMValueRef translateConstructUnknownSizeArray(
   checkValidReference(FL(), globalState, functionState, builder,
       constructUnknownSizeArray->arrayRefType, resultLE);
 
-  discard(AFL("ConstructUSA"), globalState, functionState, blockState, builder, sizeType, sizeLE);
-  discard(AFL("ConstructUSA"), globalState, functionState, blockState, builder, generatorType, generatorLE);
+  functionState->defaultRegion->dealias(AFL("ConstructUSA"), globalState, functionState, blockState, builder, sizeType, sizeLE);
+  functionState->defaultRegion->dealias(AFL("ConstructUSA"), globalState, functionState, blockState, builder, generatorType, generatorLE);
 
   return resultLE;
 }

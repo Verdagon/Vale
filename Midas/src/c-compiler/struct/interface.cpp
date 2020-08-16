@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regions/iregion.h>
 
 #include "interface.h"
 
@@ -38,6 +39,7 @@ LLVMTypeRef translateInterfaceMethodToFunctionType(
 
 void translateInterface(
     GlobalState* globalState,
+    IRegion* region,
     InterfaceDefinition* interfaceM) {
   LLVMTypeRef itableStruct =
       globalState->getInterfaceTableStruct(interfaceM->name);
@@ -58,11 +60,7 @@ void translateInterface(
   // whenever we want to affect its ref count.
   // It points to the any struct, which is a wrapper around a ref count.
   // It makes it easier to increment and decrement ref counts.
-  if (interfaceM->weakable) {
-    refStructMemberTypesL.push_back(LLVMPointerType(globalState->weakableControlBlockStructL, 0));
-  } else {
-    refStructMemberTypesL.push_back(LLVMPointerType(globalState->nonWeakableControlBlockStructL, 0));
-  }
+  refStructMemberTypesL.push_back(LLVMPointerType(region->getControlBlockStructForInterface(interfaceM), 0));
   refStructMemberTypesL.push_back(LLVMPointerType(itableStruct, 0));
   LLVMStructSetBody(
       refStructL,

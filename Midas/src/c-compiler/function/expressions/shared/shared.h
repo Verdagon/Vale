@@ -8,20 +8,16 @@
 
 #include "metal/ast.h"
 #include "metal/instructions.h"
-#include "globalstate.h"
-#include "function/function.h"
 #include "utils/fileio.h"
+#include "afl.h"
+#include "globalstate.h"
+#include "alias.h"
 
-struct AreaAndFileAndLine {
-  std::string area;
-  std::string file;
-  int line;
-};
+class BlockState;
+class FunctionState;
 
-// File and Line
-#define FL() (AreaAndFileAndLine{ "", __FILE__, __LINE__ })
-// Area and File and Line
-#define AFL(area) (AreaAndFileAndLine{ (area), __FILE__, __LINE__ })
+// A separate free function so header file can get at it without including functionstate.h
+int getInstructionDepthInAst(FunctionState* functionState);
 
 LLVMValueRef makeNever();
 LLVMTypeRef makeNeverType();
@@ -34,24 +30,6 @@ void makeLocal(
     Local* local,
     LLVMValueRef valueToStore);
 
-void acquireReference(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRef,
-    LLVMValueRef expr);
-
-void discard(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    BlockState* blockState,
-    LLVMBuilderRef builder,
-    Reference* sourceRef,
-    LLVMValueRef expr);
-
-
 LLVMValueRef getStructContentsPtr(LLVMBuilderRef builder, LLVMValueRef structPtrLE);
 
 LLVMValueRef adjustCounter(
@@ -63,29 +41,6 @@ LLVMValueRef adjustCounter(
 LLVMValueRef getTablePtrFromInterfaceRef(
     LLVMBuilderRef builder,
     LLVMValueRef interfaceRefLE);
-
-LLVMValueRef getControlBlockPtr(
-    LLVMBuilderRef builder,
-    // This will be a pointer if a mutable struct, or a fat ref if an interface.
-    LLVMValueRef referenceLE,
-    Reference* refM);
-
-
-// Returns the new RC
-LLVMValueRef adjustStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    LLVMValueRef exprLE,
-    Reference* refM,
-    int amount);
-
-LLVMValueRef strongRcIsZero(
-    GlobalState* globalState,
-    LLVMBuilderRef builder,
-    LLVMValueRef exprLE,
-    Reference* refM);
 
 LLVMValueRef isZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);
 LLVMValueRef isNonZeroLE(LLVMBuilderRef builder, LLVMValueRef intLE);
@@ -127,7 +82,7 @@ inline void buildFlare(
     T&&... rest) {
   if (globalState->opt->flares) {
     std::string indentStr = "";
-    for (int i = 0; i < functionState->instructionDepthInAst; i++)
+    for (int i = 0; i < getInstructionDepthInAst(functionState); i++)
       indentStr += " ";
 
     buildPrint(globalState, builder, "\033[0;34m");
@@ -194,5 +149,61 @@ LLVMValueRef upcast2(
     LLVMValueRef sourceStructLE,
     Reference* targetInterfaceTypeM,
     InterfaceReferend* targetInterfaceReferendM);
+
+void incrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr,
+    const RcLayoutInfo& rcLayoutInfo);
+
+void nonOwningDecrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr,
+    const RcLayoutInfo& rcLayoutInfo);
+
+void sharingDecrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    Reference* sourceRef,
+    LLVMValueRef expr);
+
+void incrementWeakRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr);
+
+void decrementWeakRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr);
+
+void foreachArrayElementCallInterface(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    LLVMValueRef arrayPtrLE,
+    LLVMValueRef lengthLE,
+    Reference* elementType,
+    Reference* interfaceType,
+    LLVMValueRef interfaceLE,
+    int virtualParamIndex,
+    int indexInEdge);
 
 #endif

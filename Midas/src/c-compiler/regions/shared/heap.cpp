@@ -1,9 +1,9 @@
 #include "utils/fileio.h"
 #include "heap.h"
-#include "members.h"
-#include "shared.h"
-#include "controlblock.h"
-#include "string.h"
+#include "function/expressions/shared/members.h"
+#include "function/expressions/shared/shared.h"
+#include "function/expressions/shared/controlblock.h"
+#include "function/expressions/shared/string.h"
 
 LLVMValueRef allocateStruct(
     GlobalState* globalState,
@@ -86,7 +86,7 @@ LLVMValueRef mallocStr(
       LLVMBuildAdd(
           builder,
           lengthLE,
-          makeConstIntExpr(builder,LLVMInt64Type(),  1 + LLVMABISizeOfType(globalState->dataLayout, globalState->stringWrapperStructL)),
+          makeConstIntExpr(builder,LLVMInt64Type(),  1 + LLVMABISizeOfType(globalState->dataLayout, LLVMPointerType(LLVMInt8Type(), 0))),
           "strMallocSizeBytes");
 
   auto destCharPtrLE =
@@ -98,7 +98,7 @@ LLVMValueRef mallocStr(
       LLVMBuildBitCast(
           builder,
           destCharPtrLE,
-          LLVMPointerType(globalState->stringWrapperStructL, 0),
+          LLVMPointerType(LLVMInt8Type(), 0),
           "newStrWrapperPtr");
   fillControlBlock(
       globalState, functionState, builder, getConcreteControlBlockPtr(builder, newStrWrapperPtrLE), "Str");

@@ -1,5 +1,6 @@
 #include <iostream>
-#include "function/expressions/shared/heap.h"
+#include <regions/iregion.h>
+#include "regions/shared/heap.h"
 
 #include "translatetype.h"
 
@@ -12,6 +13,7 @@ LLVMTypeRef makeInnerKnownSizeArrayLT(GlobalState* globalState, KnownSizeArrayT*
 // might need instead. For that, use translateType.
 LLVMTypeRef translateKnownSizeArrayToWrapperStruct(
     GlobalState* globalState,
+    IRegion* region,
     KnownSizeArrayT* knownSizeArrayMT) {
   auto innerArrayLT = makeInnerKnownSizeArrayLT(globalState, knownSizeArrayMT);
 
@@ -19,7 +21,7 @@ LLVMTypeRef translateKnownSizeArrayToWrapperStruct(
   if (iter == globalState->knownSizeArrayCountedStructs.end()) {
     auto countedStruct = LLVMStructCreateNamed(LLVMGetGlobalContext(), knownSizeArrayMT->name->name.c_str());
     std::vector<LLVMTypeRef> elementsL;
-    elementsL.push_back(globalState->nonWeakableControlBlockStructL);
+    elementsL.push_back(region->getControlBlockStructForKnownSizeArray(knownSizeArrayMT));
     elementsL.push_back(innerArrayLT);
     LLVMStructSetBody(countedStruct, elementsL.data(), elementsL.size(), false);
 
@@ -38,6 +40,7 @@ LLVMTypeRef makeInnerUnknownSizeArrayLT(GlobalState* globalState, UnknownSizeArr
 // might need instead. For that, use translateType.
 LLVMTypeRef translateUnknownSizeArrayToWrapperStruct(
     GlobalState* globalState,
+    IRegion* region,
     UnknownSizeArrayT* unknownSizeArrayMT) {
   auto innerArrayLT = makeInnerUnknownSizeArrayLT(globalState, unknownSizeArrayMT);
 
@@ -45,7 +48,7 @@ LLVMTypeRef translateUnknownSizeArrayToWrapperStruct(
   if (iter == globalState->unknownSizeArrayCountedStructs.end()) {
     auto countedStruct = LLVMStructCreateNamed(LLVMGetGlobalContext(), (unknownSizeArrayMT->name->name + "rc").c_str());
     std::vector<LLVMTypeRef> elementsL;
-    elementsL.push_back(globalState->nonWeakableControlBlockStructL);
+    elementsL.push_back(region->getControlBlockStructForUnknownSizeArray(unknownSizeArrayMT));
     elementsL.push_back(LLVMInt64Type());
     elementsL.push_back(innerArrayLT);
     LLVMStructSetBody(countedStruct, elementsL.data(), elementsL.size(), false);
@@ -56,7 +59,7 @@ LLVMTypeRef translateUnknownSizeArrayToWrapperStruct(
   return iter->second;
 }
 
-LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM) {
+LLVMTypeRef translateType(GlobalState* globalState, IRegion* region, Reference* referenceM) {
   if (dynamic_cast<Int*>(referenceM->referend) != nullptr) {
     assert(referenceM->ownership == Ownership::SHARE);
     return LLVMInt64Type();
@@ -65,7 +68,7 @@ LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM) {
     return LLVMInt1Type();
   } else if (dynamic_cast<Str*>(referenceM->referend) != nullptr) {
     assert(referenceM->ownership == Ownership::SHARE);
-    return LLVMPointerType(globalState->stringWrapperStructL, 0);
+    return LLVMPointerType(LLVMInt8Type(), 0);
   } else if (dynamic_cast<Never*>(referenceM->referend) != nullptr) {
     return LLVMArrayType(LLVMIntType(NEVER_INT_BITS), 0);
   } else if (auto knownSizeArrayMT =

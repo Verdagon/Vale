@@ -1,5 +1,5 @@
 #include "string.h"
-#include "heap.h"
+#include "regions/shared/heap.h"
 
 LLVMValueRef getInnerStrPtrFromWrapperPtr(
     LLVMBuilderRef builder,

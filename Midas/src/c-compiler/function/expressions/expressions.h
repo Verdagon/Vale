@@ -26,14 +26,6 @@ LLVMValueRef translateDestructure(
     LLVMBuilderRef builder,
     Destroy* destructureM);
 
-LLVMValueRef translateConstruct(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* desiredReference,
-    const std::vector<LLVMValueRef>& membersLE);
-
 LLVMValueRef translateCall(
     GlobalState* globalState,
     FunctionState* functionState,
