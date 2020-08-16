@@ -11,5 +11,5 @@ LLVMValueRef translateConstantStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     ConstantStr* constantStr) {
-  return buildConstantVStr(globalState, functionState, builder, constantStr->value);
+  return functionState->defaultRegion->buildConstantVStr(globalState, functionState, builder, constantStr->value);
 }

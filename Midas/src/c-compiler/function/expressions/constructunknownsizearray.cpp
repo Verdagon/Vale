@@ -57,7 +57,7 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
       generatorType,
       generatorLE,
       sizeLE,
-      getUnknownSizeArrayContentsPtr(builder, usaWrapperPtrLE));
+      functionState->defaultRegion->getUnknownSizeArrayElementsPtr(builder, usaWrapperPtrLE));
   return usaWrapperPtrLE;
 }
 

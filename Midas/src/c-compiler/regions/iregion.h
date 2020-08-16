@@ -101,9 +101,6 @@ public:
       const std::vector<LLVMValueRef>& membersLE,
       const std::string& typeName);
 
-  // Returns a LLVMValueRef for a pointer to the strings contents bytes
-  virtual LLVMValueRef getKnownSizeArrayElementsPtr(LLVMValueRef stringRefLE) = 0;
-
 
   // Returns a LLVMValueRef for a ref to the string object.
   // The caller should then use getStringBytesPtr to then fill the string's contents.
@@ -116,12 +113,12 @@ public:
       LLVMValueRef sizeLE,
       const std::string& typeName) = 0;
 
-  // Returns a LLVMValueRef for a pointer to the strings contents bytes
-  virtual LLVMValueRef getUnknownSizeArrayElementsPtr(LLVMValueRef elementsPtrLE) = 0;
-
-  // Returns a LLVMValueRef for a pointer to the strings contents bytes
-  virtual LLVMValueRef getUnknownSizeArrayLength(LLVMValueRef elementsPtrLE) = 0;
-
+  virtual LLVMValueRef getKnownSizeArrayElementsPtr(
+      LLVMBuilderRef builder, LLVMValueRef knownSizeArrayWrapperPtrLE) = 0;
+  virtual LLVMValueRef getUnknownSizeArrayElementsPtr(
+      LLVMBuilderRef builder, LLVMValueRef unknownSizeArrayWrapperPtrLE) = 0;
+  virtual LLVMValueRef getUnknownSizeArrayLength(
+      LLVMBuilderRef builder, LLVMValueRef unknownSizeArrayWrapperPtrLE) = 0;
 
   virtual void destroyArray(
       GlobalState* globalState,
@@ -130,6 +127,40 @@ public:
       LLVMBuilderRef builder,
       Reference* arrayType,
       LLVMValueRef arrayWrapperLE) = 0;
+
+
+  virtual void checkValidReference(
+      AreaAndFileAndLine checkerAFL,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef refLE) = 0;
+
+  virtual LLVMValueRef loadElement(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* structRefM,
+      Reference* elementRefM,
+      LLVMValueRef sizeLE,
+      LLVMValueRef arrayPtrLE,
+      Mutability mutability,
+      LLVMValueRef indexLE) = 0;
+
+  virtual LLVMValueRef storeElement(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* arrayRefM,
+      Reference* elementRefM,
+      LLVMValueRef sizeLE,
+      LLVMValueRef arrayPtrLE,
+      Mutability mutability,
+      LLVMValueRef indexLE,
+      LLVMValueRef sourceLE) = 0;
 
 //  LLVMValueRef initStr, addStr, eqStr, printVStr;
 };

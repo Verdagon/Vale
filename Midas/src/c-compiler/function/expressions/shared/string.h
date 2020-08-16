@@ -3,22 +3,4 @@
 
 #include "shared.h"
 
-LLVMValueRef getInnerStrPtrFromWrapperPtr(
-    LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE);
-
-LLVMValueRef getLenPtrFromStrWrapperPtr(
-    LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE);
-
-LLVMValueRef getLenFromStrWrapperPtr(
-    LLVMBuilderRef builder,
-    LLVMValueRef strWrapperPtrLE);
-
-LLVMValueRef buildConstantVStr(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    const std::string& contents);
-
 #endif

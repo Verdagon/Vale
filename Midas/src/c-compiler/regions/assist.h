@@ -92,10 +92,9 @@ public:
       LLVMTypeRef structLT,
       const std::vector<LLVMValueRef>& membersLE,
       const std::string& typeName) override;
-
   LLVMValueRef getKnownSizeArrayElementsPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef knownSizeArrayRefLE) override;
+      LLVMBuilderRef builder, LLVMValueRef knownSizeArrayWrapperPtrLE) override;
+
   LLVMValueRef constructUnknownSizeArray(
       GlobalState* globalState,
       FunctionState* functionState,
@@ -105,16 +104,9 @@ public:
       LLVMValueRef sizeLE,
       const std::string& typeName) override;
   LLVMValueRef getUnknownSizeArrayElementsPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef unknownSizeArrayRefLE) override;
+      LLVMBuilderRef builder, LLVMValueRef unknownSizeArrayWrapperPtrLE) override;
   LLVMValueRef getUnknownSizeArrayLength(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      LLVMTypeRef usaWrapperPtrLT,
-      LLVMTypeRef usaElementLT,
-      LLVMValueRef sizeLE,
-      const std::string& typeName) override;
+      LLVMBuilderRef builder, LLVMValueRef unknownSizeArrayWrapperPtrLE) override;
 
   LLVMValueRef loadElement(
       GlobalState* globalState,
@@ -126,7 +118,7 @@ public:
       LLVMValueRef sizeLE,
       LLVMValueRef arrayPtrLE,
       Mutability mutability,
-      LLVMValueRef indexLE);
+      LLVMValueRef indexLE) override;
 
   LLVMValueRef storeElement(
       GlobalState* globalState,
@@ -139,8 +131,15 @@ public:
       LLVMValueRef arrayPtrLE,
       Mutability mutability,
       LLVMValueRef indexLE,
-      LLVMValueRef sourceLE);
+      LLVMValueRef sourceLE) override;
 
+  void checkValidReference(
+      AreaAndFileAndLine checkerAFL,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef refLE) override;
 
 private:
   LLVMValueRef loadInnerArrayMember(
@@ -281,12 +280,13 @@ private:
       LLVMValueRef weakRefLE,
       Reference* constraintRefM);
 
-  RcLayoutInfo makeRcLayoutInfo() {
-    return RcLayoutInfo(
-        controlBlockRcMemberIndex,
-        controlBlockObjIdIndex,
-        controlBlockTypeStrIndex);
-  }
+  LLVMValueRef assembleStructWeakRef(
+      GlobalState* globalState,
+      LLVMBuilderRef builder,
+      Reference* structTypeM,
+      StructReferend* structReferendM,
+      LLVMValueRef objPtrLE,
+      int controlBlockWrciMemberIndex);
 
   LLVMValueRef castOwnership(
       GlobalState* globalState,
@@ -294,6 +294,78 @@ private:
       Reference* sourceType,
       Ownership targetOwnership,
       LLVMValueRef sourceRefLE);
+
+  void incrementStrongRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef expr);
+  void nonOwningDecrementStrongRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef expr);
+  void sharingDecrementStrongRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* sourceRef,
+      LLVMValueRef expr);
+  void incrementWeakRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef expr);
+  void decrementWeakRc(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refM,
+      LLVMValueRef expr);
+  LLVMValueRef constructKnownSizeArrayCountedStruct(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      BlockState* blockState,
+      LLVMBuilderRef builder,
+      Reference* generatorType,
+      LLVMValueRef generatorLE,
+      LLVMTypeRef usaWrapperPtrLT,
+      LLVMTypeRef usaElementLT,
+      LLVMValueRef sizeLE,
+      const std::string& typeName);
+
+  LLVMValueRef mallocStr(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE);
+
+  LLVMValueRef getInnerStrPtrFromWrapperPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef strWrapperPtrLE);
+
+  LLVMValueRef getLenPtrFromStrWrapperPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef strWrapperPtrLE);
+
+  LLVMValueRef getLenFromStrWrapperPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef strWrapperPtrLE);
+
+  LLVMValueRef buildConstantVStr(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      const std::string& contents);
 
   int controlBlockTypeStrIndex;
   int controlBlockObjIdIndex;

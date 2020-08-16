@@ -539,10 +539,10 @@ LLVMValueRef AssistRegion::alias(
     if (sourceRef->location == Location::INLINE) {
       // Do nothing
     } else if (sourceRef->location == Location::YONDER) {
-      incrementStrongRc(from, globalState, functionState, builder, sourceRef, expr, makeRcLayoutInfo());
+      incrementStrongRc(from, globalState, functionState, builder, sourceRef, expr);
     } else assert(false);
   } else if (targetOwnership == Ownership::BORROW) {
-    adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, 1, makeRcLayoutInfo());
+    adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, 1);
   } else if (targetOwnership == Ownership::WEAK) {
     incrementWeakRc(from, globalState, functionState, builder, sourceRef, expr);
   } else if (targetOwnership == Ownership::OWN) {
@@ -585,7 +585,7 @@ void AssistRegion::dealias(
       assert(false);
     } else assert(false);
   } else if (sourceRef->ownership == Ownership::BORROW) {
-    nonOwningDecrementStrongRc(from, globalState, functionState, builder, sourceRef, expr, makeRcLayoutInfo());
+    nonOwningDecrementStrongRc(from, globalState, functionState, builder, sourceRef, expr);
   } else if (sourceRef->ownership == Ownership::WEAK) {
     decrementWeakRc(from, globalState, functionState, builder, sourceRef, expr);
   } else assert(false);
@@ -666,7 +666,7 @@ std::vector<LLVMValueRef> AssistRegion::destructure(
   if (structType->ownership == Ownership::OWN) {
     adjustStrongRc(
         AFL("Destroy decrementing the owning ref"),
-        globalState, functionState, builder, structLE, structType, -1, makeRcLayoutInfo());
+        globalState, functionState, builder, structLE, structType, -1);
   } else if (structType->ownership == Ownership::SHARE) {
     // We dont decrement anything here, we're only here because we already hit zero.
   } else {
@@ -725,7 +725,7 @@ void AssistRegion::destroyArray(
   if (arrayType->ownership == Ownership::OWN) {
     adjustStrongRc(
         AFL("Destroy decrementing the owning ref"),
-        globalState, functionState, builder, arrayWrapperLE, arrayType, -1, makeRcLayoutInfo());
+        globalState, functionState, builder, arrayWrapperLE, arrayType, -1);
   } else if (arrayType->ownership == Ownership::SHARE) {
     // We dont decrement anything here, we're only here because we already hit zero.
   } else {
@@ -780,10 +780,10 @@ LLVMValueRef AssistRegion::constructKnownSizeArray(
 
 
 LLVMValueRef AssistRegion::getKnownSizeArrayElementsPtr(
-    LLVMBuilderRef builder, LLVMValueRef knownSizeArrayRefLE) {
+    LLVMBuilderRef builder, LLVMValueRef knownSizeArrayWrapperPtrLE) {
   return LLVMBuildStructGEP(
       builder,
-      knownSizeArrayRefLE,
+      knownSizeArrayWrapperPtrLE,
       1, // Array is after the control block.
       "ksaElemsPtr");
 }
@@ -920,3 +920,304 @@ LLVMValueRef AssistRegion::storeElement(
   }
 }
 
+
+void AssistRegion::incrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr) {
+  auto sourceRnd = refM->referend;
+
+  if (dynamic_cast<Int*>(sourceRnd) ||
+      dynamic_cast<Bool*>(sourceRnd) ||
+      dynamic_cast<Float*>(sourceRnd)) {
+    // Do nothing for these, they're always inlined and copied.
+  } else if (dynamic_cast<InterfaceReferend*>(sourceRnd)) {
+    if (refM->location == Location::INLINE) {
+      assert(false); // impl
+    } else {
+      adjustStrongRc(from, globalState, functionState, builder, expr, refM, 1);
+    }
+  } else if (dynamic_cast<StructReferend*>(sourceRnd) ||
+      dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
+      dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
+    if (refM->location == Location::INLINE) {
+      // Do nothing, we can just let inline structs disappear
+    } else {
+      adjustStrongRc(from, globalState, functionState, builder, expr, refM, 1);
+    }
+  } else if (dynamic_cast<Str*>(sourceRnd)) {
+    assert(refM->location == Location::YONDER);
+    adjustStrongRc(from, globalState, functionState, builder, expr, refM, 1);
+  } else {
+    std::cerr << "Unimplemented type in incrementStrongRc: "
+        << typeid(*refM->referend).name() << std::endl;
+    assert(false);
+  }
+}
+
+void AssistRegion::nonOwningDecrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr) {
+  auto sourceRnd = refM->referend;
+
+  if (dynamic_cast<Int*>(sourceRnd) ||
+      dynamic_cast<Bool*>(sourceRnd) ||
+      dynamic_cast<Float*>(sourceRnd)) {
+    // Do nothing for these, they're always inlined and copied.
+  } else if (dynamic_cast<InterfaceReferend*>(sourceRnd)) {
+    if (refM->location == Location::INLINE) {
+      assert(false); // impl
+    } else {
+      adjustStrongRc(from, globalState, functionState, builder, expr, refM, -1);
+    }
+  } else if (dynamic_cast<StructReferend*>(sourceRnd) ||
+      dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
+      dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
+    if (refM->location == Location::INLINE) {
+      // Do nothing, we can just let inline structs disappear
+    } else {
+      adjustStrongRc(from, globalState, functionState, builder, expr, refM, -1);
+    }
+  } else {
+    std::cerr << "Unimplemented type in incrementStrongRc: "
+        << typeid(*refM->referend).name() << std::endl;
+    assert(false);
+  }
+}
+
+void AssistRegion::sharingDecrementStrongRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    Reference* sourceRef,
+    LLVMValueRef expr) {
+  auto sourceRnd = sourceRef->referend;
+
+  if (dynamic_cast<Int*>(sourceRnd) ||
+      dynamic_cast<Bool*>(sourceRnd) ||
+      dynamic_cast<Float*>(sourceRnd)) {
+    // Do nothing for these, they're always inlined and copied.
+  } else if (auto interfaceRnd = dynamic_cast<InterfaceReferend*>(sourceRnd)) {
+    if (sourceRef->location == Location::INLINE) {
+      assert(false); // impl
+    } else {
+      auto rcLE = adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, -1);
+      buildIf(
+          functionState,
+          builder,
+          isZeroLE(builder, rcLE),
+          [globalState, expr, interfaceRnd, sourceRef](LLVMBuilderRef thenBuilder) {
+            auto immDestructor = globalState->program->getImmDestructor(sourceRef->referend);
+
+            auto interfaceM = globalState->program->getInterface(interfaceRnd->fullName);
+            int indexInEdge = -1;
+            for (int i = 0; i < interfaceM->methods.size(); i++) {
+              if (interfaceM->methods[i]->prototype == immDestructor) {
+                indexInEdge = i;
+              }
+            }
+            assert(indexInEdge >= 0);
+
+            std::vector<LLVMValueRef> argExprsL = { expr };
+            buildInterfaceCall(thenBuilder, argExprsL, 0, indexInEdge);
+          });
+    }
+  } else if (dynamic_cast<StructReferend*>(sourceRnd) ||
+      dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
+      dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
+    if (sourceRef->location == Location::INLINE) {
+      // Do nothing, we can just let inline structs disappear
+    } else {
+      auto rcLE = adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, -1);
+      buildIf(
+          functionState,
+          builder,
+          isZeroLE(builder, rcLE),
+          [from, globalState, functionState, expr, sourceRef](LLVMBuilderRef thenBuilder) {
+            auto immDestructor = globalState->program->getImmDestructor(sourceRef->referend);
+            auto funcL = globalState->getFunction(immDestructor->name);
+            std::vector<LLVMValueRef> argExprsL = { expr };
+            return LLVMBuildCall(thenBuilder, funcL, argExprsL.data(), argExprsL.size(), "");
+          });
+    }
+  } else if (dynamic_cast<Str*>(sourceRnd)) {
+    auto rcLE = adjustStrongRc(from, globalState, functionState, builder, expr, sourceRef, -1);
+    buildIf(
+        functionState,
+        builder,
+        isZeroLE(builder, rcLE),
+        [from, globalState, functionState, blockState, expr, sourceRef](LLVMBuilderRef thenBuilder) {
+          freeConcrete(from, globalState, functionState, blockState, thenBuilder, expr, sourceRef);
+        });
+  } else {
+    std::cerr << "Unimplemented type in discard: "
+        << typeid(*sourceRef->referend).name() << std::endl;
+    assert(false);
+  }
+}
+
+void AssistRegion::incrementWeakRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr) {
+  auto sourceRnd = refM->referend;
+
+  if (dynamic_cast<InterfaceReferend*>(sourceRnd)) {
+    assert(false);
+  } else if (dynamic_cast<StructReferend*>(sourceRnd) ||
+      dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
+      dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
+    auto structReferend = dynamic_cast<StructReferend*>(sourceRnd);
+    assert(structReferend);
+    auto wrciLE = getWrciFromWeakRef(builder, expr);
+    LLVMBuildCall(builder, globalState->incrementWrc, &wrciLE, 1, "");
+  } else assert(false);
+}
+
+
+void AssistRegion::decrementWeakRc(
+    AreaAndFileAndLine from,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef expr) {
+  auto sourceRnd = refM->referend;
+
+  if (auto interfaceRnd = dynamic_cast<InterfaceReferend*>(sourceRnd)) {
+    assert(false);
+  } else if (dynamic_cast<StructReferend*>(sourceRnd) ||
+      dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
+      dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
+    auto structReferend = dynamic_cast<StructReferend*>(sourceRnd);
+    assert(structReferend);
+    auto wrciLE = getWrciFromWeakRef(builder, expr);
+    LLVMBuildCall(builder, globalState->decrementWrc, &wrciLE, 1, "");
+  } else assert(false);
+}
+
+void AssistRegion::checkValidReference(
+    AreaAndFileAndLine checkerAFL,
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* refM,
+    LLVMValueRef refLE) {
+  if (globalState->opt->census) {
+    if (refM->ownership == Ownership::OWN) {
+      auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
+      buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
+    } else if (refM->ownership == Ownership::SHARE) {
+      if (refM->location == Location::INLINE) {
+        // Nothing to do, there's no control block or ref counts or anything.
+      } else if (refM->location == Location::YONDER) {
+        auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
+
+        // We dont check ref count >0 because imm destructors receive with rc=0.
+        //      auto rcLE = getRcFromControlBlockPtr(globalState, builder, controlBlockPtrLE);
+        //      auto rcPositiveLE = LLVMBuildICmp(builder, LLVMIntSGT, rcLE, constI64LE(0), "");
+        //      buildAssert(checkerAFL, globalState, functionState, blockState, builder, rcPositiveLE, "Invalid RC!");
+
+        buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
+      } else assert(false);
+    } else if (refM->ownership == Ownership::BORROW) {
+      auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
+      buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
+    } else assert(false);
+  }
+}
+
+LLVMValueRef AssistRegion::mallocStr(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef lengthLE) {
+
+  // The +1 is for the null terminator at the end, for C compatibility.
+  auto sizeBytesLE =
+      LLVMBuildAdd(
+          builder,
+          lengthLE,
+          makeConstIntExpr(builder,LLVMInt64Type(),  1 + LLVMABISizeOfType(globalState->dataLayout, LLVMPointerType(LLVMInt8Type(), 0))),
+          "strMallocSizeBytes");
+
+  auto destCharPtrLE =
+      LLVMBuildCall(builder, globalState->malloc, &sizeBytesLE, 1, "donePtr");
+
+  adjustCounter(builder, globalState->liveHeapObjCounter, 1);
+
+  auto newStrWrapperPtrLE =
+      LLVMBuildBitCast(
+          builder,
+          destCharPtrLE,
+          LLVMPointerType(LLVMInt8Type(), 0),
+          "newStrWrapperPtr");
+  fillControlBlock(
+      globalState, functionState, builder, getConcreteControlBlockPtr(builder, newStrWrapperPtrLE), "Str");
+  LLVMBuildStore(builder, lengthLE, getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
+
+  if (globalState->opt->census) {
+    LLVMValueRef resultAsVoidPtrLE =
+        LLVMBuildBitCast(
+            builder, newStrWrapperPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
+    LLVMBuildCall(builder, globalState->censusAdd, &resultAsVoidPtrLE, 1, "");
+  }
+
+  // The caller still needs to initialize the actual chars inside!
+
+  return newStrWrapperPtrLE;
+}
+
+LLVMValueRef AssistRegion::getInnerStrPtrFromWrapperPtr(
+    LLVMBuilderRef builder,
+    LLVMValueRef strWrapperPtrLE) {
+  return LLVMBuildStructGEP(
+      builder, strWrapperPtrLE, 1, "strInnerStructPtr");
+}
+
+LLVMValueRef AssistRegion::getLenPtrFromStrWrapperPtr(
+    LLVMBuilderRef builder,
+    LLVMValueRef strWrapperPtrLE) {
+  auto innerStringPtrLE =
+      getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE);
+  auto lenPtrLE =
+      LLVMBuildStructGEP(builder, innerStringPtrLE, 0, "lenPtr");
+  return lenPtrLE;
+}
+
+LLVMValueRef AssistRegion::getLenFromStrWrapperPtr(
+    LLVMBuilderRef builder,
+    LLVMValueRef strWrapperPtrLE) {
+  return LLVMBuildLoad(builder, getLenPtrFromStrWrapperPtr(builder, strWrapperPtrLE), "len");
+}
+
+LLVMValueRef AssistRegion::buildConstantVStr(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    const std::string& contents) {
+
+  auto lengthLE = constI64LE(contents.length());
+
+  auto strWrapperPtrLE = mallocStr(globalState, functionState, builder, lengthLE);
+
+  std::vector<LLVMValueRef> argsLE = {
+      getInnerStrPtrFromWrapperPtr(builder, strWrapperPtrLE),
+      globalState->getOrMakeStringConstant(contents)
+  };
+  LLVMBuildCall(builder, globalState->initStr, argsLE.data(), argsLE.size(), "");
+
+  return strWrapperPtrLE;
+}

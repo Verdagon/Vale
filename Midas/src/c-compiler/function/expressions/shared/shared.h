@@ -150,49 +150,6 @@ LLVMValueRef upcast2(
     Reference* targetInterfaceTypeM,
     InterfaceReferend* targetInterfaceReferendM);
 
-void incrementStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef expr,
-    const RcLayoutInfo& rcLayoutInfo);
-
-void nonOwningDecrementStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef expr,
-    const RcLayoutInfo& rcLayoutInfo);
-
-void sharingDecrementStrongRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    BlockState* blockState,
-    LLVMBuilderRef builder,
-    Reference* sourceRef,
-    LLVMValueRef expr);
-
-void incrementWeakRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef expr);
-
-void decrementWeakRc(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef expr);
-
 void foreachArrayElementCallInterface(
     GlobalState* globalState,
     FunctionState* functionState,

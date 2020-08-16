@@ -231,7 +231,7 @@ LLVMValueRef translateExpressionInner(
 
     auto arrayWrapperLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
-    auto arrayPtrLE = getKnownSizeArrayContentsPtr(builder, arrayWrapperLE);
+    auto arrayPtrLE = functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, arrayWrapperLE);
 
     auto consumerLE = translateExpression(globalState, functionState, blockState, builder, consumerExpr);
     checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
@@ -257,8 +257,8 @@ LLVMValueRef translateExpressionInner(
 
     auto arrayWrapperLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperLE);
-    auto arrayPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperLE);
-    auto arrayLenLE = getUnknownSizeArrayLength(builder, arrayWrapperLE);
+    auto arrayPtrLE = functionState->defaultRegion->getUnknownSizeArrayElementsPtr(builder, arrayWrapperLE);
+    auto arrayLenLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperLE);
 
     auto consumerLE = translateExpression(globalState, functionState, blockState, builder, consumerExpr);
     checkValidReference(FL(), globalState, functionState, builder, consumerType, consumerLE);
@@ -288,8 +288,8 @@ LLVMValueRef translateExpressionInner(
     auto mutability = ownershipToMutability(arrayType->ownership);
     functionState->defaultRegion->dealias(AFL("KSALoad"), globalState, functionState, blockState, builder, arrayType, arrayWrapperPtrLE);
 
-    LLVMValueRef arrayPtrLE = getKnownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
-    auto resultLE = loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
+    LLVMValueRef arrayPtrLE = functionState->defaultRegion->getKnownSizeArrayElementsPtr(builder, arrayWrapperPtrLE);
+    auto resultLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
     functionState->defaultRegion->alias(
         FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, Ownership::BORROW, resultLE);
     checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, arrayPtrLE);
@@ -303,12 +303,12 @@ LLVMValueRef translateExpressionInner(
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
-    auto sizeLE = getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
+    auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
 
-    LLVMValueRef arrayPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
-    auto unaliasedResultLE = loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
+    LLVMValueRef arrayPtrLE = functionState->defaultRegion->getUnknownSizeArrayElementsPtr(builder, arrayWrapperPtrLE);
+    auto unaliasedResultLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Loading from USA ", arrayPtrLE, " index ", indexLE);
     auto resultLE =
@@ -332,7 +332,7 @@ LLVMValueRef translateExpressionInner(
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
-    auto sizeLE = getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
+    auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Now doing index");
 
@@ -343,11 +343,11 @@ LLVMValueRef translateExpressionInner(
 
     // The purpose of UnknownSizeArrayStore is to put a swap value into a spot, and give
     // what was in it.
-    LLVMValueRef arrayPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+    LLVMValueRef arrayPtrLE = functionState->defaultRegion->getUnknownSizeArrayElementsPtr(builder, arrayWrapperPtrLE);
 
     buildFlare(FL(), globalState, functionState, builder, "Now loading oldElement");
 
-    auto oldValueLE = loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
+    auto oldValueLE = functionState->defaultRegion->loadElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE);
     checkValidReference(FL(), globalState, functionState, builder, arrayReferend->rawArray->elementType, oldValueLE);
     // We dont functionState->defaultRegion->alias here because we aren't aliasing the reference, we're moving it out.
 
@@ -361,7 +361,7 @@ LLVMValueRef translateExpressionInner(
 
     buildFlare(FL(), globalState, functionState, builder, "Now storing");
 
-    storeElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE, valueToStoreLE);
+    functionState->defaultRegion->storeElement(globalState, functionState, blockState, builder, arrayType, arrayReferend->rawArray->elementType, sizeLE, arrayPtrLE, mutability, indexLE, valueToStoreLE);
 
     functionState->defaultRegion->dealias(AFL("USAStore"), globalState, functionState, blockState, builder, arrayType, arrayWrapperPtrLE);
 
@@ -376,7 +376,7 @@ LLVMValueRef translateExpressionInner(
 
     auto arrayWrapperPtrLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     checkValidReference(FL(), globalState, functionState, builder, arrayType, arrayWrapperPtrLE);
-    auto sizeLE = getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
+    auto sizeLE = functionState->defaultRegion->getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
     functionState->defaultRegion->dealias(AFL("USALen"), globalState, functionState, blockState, builder, arrayType, arrayWrapperPtrLE);
 
     return sizeLE;

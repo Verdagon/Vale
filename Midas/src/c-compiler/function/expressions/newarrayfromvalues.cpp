@@ -49,7 +49,7 @@ LLVMValueRef constructKnownSizeArrayCountedStruct(
           typeName);
   fillKnownSizeArray(
       builder,
-      getKnownSizeArrayContentsPtr(builder, newStructLE),
+      functionState->defaultRegion->getKnownSizeArrayContentsPtr(builder, newStructLE),
       membersLE);
   return newStructLE;
 }

@@ -134,7 +134,7 @@ LLVMValueRef buildInterfaceCall(
   auto objPtrLE =
       LLVMBuildPointerCast(
           builder,
-          getInterfaceControlBlockPtr(builder, virtualArgLE),
+          functionState->defaultRegion->getInterfaceControlBlockPtr(builder, virtualArgLE),
           LLVMPointerType(LLVMVoidType(), 0),
           "objAsVoidPtr");
   auto itablePtrLE = getTablePtrFromInterfaceRef(builder, virtualArgLE);
@@ -172,37 +172,6 @@ void buildAssertCensusContains(
   auto isRegisteredIntLE = LLVMBuildCall(builder, globalState->censusContains, &resultAsVoidPtrLE, 1, "");
   auto isRegisteredBoolLE = LLVMBuildTruncOrBitCast(builder,  isRegisteredIntLE, LLVMInt1Type(), "");
   buildAssert(checkerAFL, globalState, functionState, builder, isRegisteredBoolLE, "Object not registered with census!");
-}
-
-void checkValidReference(
-    AreaAndFileAndLine checkerAFL,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* refM,
-    LLVMValueRef refLE) {
-  if (globalState->opt->census) {
-    if (refM->ownership == Ownership::OWN) {
-      auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
-      buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
-    } else if (refM->ownership == Ownership::SHARE) {
-      if (refM->location == Location::INLINE) {
-        // Nothing to do, there's no control block or ref counts or anything.
-      } else if (refM->location == Location::YONDER) {
-        auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
-
-        // We dont check ref count >0 because imm destructors receive with rc=0.
-  //      auto rcLE = getRcFromControlBlockPtr(globalState, builder, controlBlockPtrLE);
-  //      auto rcPositiveLE = LLVMBuildICmp(builder, LLVMIntSGT, rcLE, constI64LE(0), "");
-  //      buildAssert(checkerAFL, globalState, functionState, blockState, builder, rcPositiveLE, "Invalid RC!");
-
-        buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
-      } else assert(false);
-    } else if (refM->ownership == Ownership::BORROW) {
-      auto controlBlockPtrLE = getControlBlockPtr(builder, refLE, refM);
-      buildAssertCensusContains(checkerAFL, globalState, functionState, builder, controlBlockPtrLE);
-    } else assert(false);
-  }
 }
 
 LLVMValueRef buildCall(

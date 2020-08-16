@@ -75,47 +75,6 @@ LLVMValueRef mallocUnknownSizeArray(
       "newstruct");
 }
 
-LLVMValueRef mallocStr(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    LLVMValueRef lengthLE) {
-
-  // The +1 is for the null terminator at the end, for C compatibility.
-  auto sizeBytesLE =
-      LLVMBuildAdd(
-          builder,
-          lengthLE,
-          makeConstIntExpr(builder,LLVMInt64Type(),  1 + LLVMABISizeOfType(globalState->dataLayout, LLVMPointerType(LLVMInt8Type(), 0))),
-          "strMallocSizeBytes");
-
-  auto destCharPtrLE =
-      LLVMBuildCall(builder, globalState->malloc, &sizeBytesLE, 1, "donePtr");
-
-  adjustCounter(builder, globalState->liveHeapObjCounter, 1);
-
-  auto newStrWrapperPtrLE =
-      LLVMBuildBitCast(
-          builder,
-          destCharPtrLE,
-          LLVMPointerType(LLVMInt8Type(), 0),
-          "newStrWrapperPtr");
-  fillControlBlock(
-      globalState, functionState, builder, getConcreteControlBlockPtr(builder, newStrWrapperPtrLE), "Str");
-  LLVMBuildStore(builder, lengthLE, getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
-
-  if (globalState->opt->census) {
-    LLVMValueRef resultAsVoidPtrLE =
-        LLVMBuildBitCast(
-            builder, newStrWrapperPtrLE, LLVMPointerType(LLVMVoidType(), 0), "");
-    LLVMBuildCall(builder, globalState->censusAdd, &resultAsVoidPtrLE, 1, "");
-  }
-
-  // The caller still needs to initialize the actual chars inside!
-
-  return newStrWrapperPtrLE;
-}
-
 
 
 
