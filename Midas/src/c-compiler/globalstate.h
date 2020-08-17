@@ -39,30 +39,6 @@ public:
   LLVMBuilderRef stringConstantBuilder;
   std::unordered_map<std::string, LLVMValueRef> stringConstants;
 
-  // These don't have a ref count.
-  // They're used directly for inl imm references, and
-  // also used inside the below countedStructs.
-  std::unordered_map<std::string, LLVMTypeRef> innerStructs;
-  // These contain a ref count and the above val struct. Yon references
-  // point to these.
-  std::unordered_map<std::string, LLVMTypeRef> countedStructs;
-  // These contain a pointer to the interface table struct below and a void*
-  // to the underlying struct.
-  std::unordered_map<std::string, LLVMTypeRef> interfaceRefStructs;
-  // These contain a bunch of function pointer fields.
-  std::unordered_map<std::string, LLVMTypeRef> interfaceTableStructs;
-  // These contain a pointer to the weak ref count int, and a pointer to the underlying struct.
-  std::unordered_map<std::string, LLVMTypeRef> structWeakRefStructs;
-  // These contain a pointer to the weak ref count int, and then a regular interface ref struct.
-  std::unordered_map<std::string, LLVMTypeRef> interfaceWeakRefStructs;
-
-  // These contain a ref count and an array type. Yon references
-  // point to these.
-  std::unordered_map<Name*, LLVMTypeRef> knownSizeArrayCountedStructs;
-  std::unordered_map<Name*, LLVMTypeRef> unknownSizeArrayCountedStructs;
-
-  std::unordered_map<Edge*, LLVMValueRef> interfaceTablePtrs;
-
   std::unordered_map<std::string, LLVMValueRef> functions;
 
   LLVMValueRef getFunction(Name* name) {
@@ -71,41 +47,6 @@ public:
     return functionIter->second;
   }
 
-  LLVMTypeRef getInnerStruct(Name* name) {
-    auto structIter = innerStructs.find(name->name);
-    assert(structIter != innerStructs.end());
-    return structIter->second;
-  }
-  LLVMTypeRef getCountedStruct(Name* name) {
-    auto structIter = countedStructs.find(name->name);
-    assert(structIter != countedStructs.end());
-    return structIter->second;
-  }
-  LLVMTypeRef getStructWeakRefStruct(Name* name) {
-    auto structIter = structWeakRefStructs.find(name->name);
-    assert(structIter != structWeakRefStructs.end());
-    return structIter->second;
-  }
-  LLVMTypeRef getInterfaceRefStruct(Name* name) {
-    auto structIter = interfaceRefStructs.find(name->name);
-    assert(structIter != interfaceRefStructs.end());
-    return structIter->second;
-  }
-  LLVMTypeRef getInterfaceWeakRefStruct(Name* name) {
-    auto interfaceIter = interfaceWeakRefStructs.find(name->name);
-    assert(interfaceIter != interfaceWeakRefStructs.end());
-    return interfaceIter->second;
-  }
-  LLVMTypeRef getInterfaceTableStruct(Name* name) {
-    auto structIter = interfaceTableStructs.find(name->name);
-    assert(structIter != interfaceTableStructs.end());
-    return structIter->second;
-  }
-  LLVMValueRef getInterfaceTablePtr(Edge* edge) {
-    auto iter = interfaceTablePtrs.find(edge);
-    assert(iter != interfaceTablePtrs.end());
-    return iter->second;
-  }
   LLVMValueRef getOrMakeStringConstant(const std::string& str) {
     auto iter = stringConstants.find(str);
     if (iter == stringConstants.end()) {

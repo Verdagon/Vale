@@ -1,6 +1,8 @@
 #ifndef REGION_ASSIST_H_
 #define REGION_ASSIST_H_
 
+#include <regions/shared/stringmixin.h>
+#include <regions/shared/immmixin.h>
 #include "iregion.h"
 
 class AssistRegion : public IRegion {
@@ -76,17 +78,6 @@ public:
 
 
   LLVMValueRef getConcreteRefFromInterfaceRef(LLVMBuilderRef builder, LLVMValueRef refLE) override;
-
-  LLVMValueRef constructString(
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      LLVMValueRef lengthLE) override;
-  LLVMValueRef getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
-  LLVMValueRef getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
-  LLVMValueRef getStringControlBlockPtr(
-      LLVMBuilderRef builder,
-      LLVMValueRef stringRefLE);
 
 
   LLVMValueRef constructKnownSizeArray(
@@ -184,13 +175,50 @@ public:
       GlobalState* globalState,
       StructDefinition* structM) override;
 
+  void declareStruct(
+      GlobalState* globalState,
+      StructDefinition* structM) override;
+
+  LLVMTypeRef getStructRefType(
+      GlobalState* globalState,
+      Reference* refM,
+      StructReferend* structReferendM) override;
+
   void translateInterface(
       GlobalState* globalState,
       InterfaceDefinition* interfaceM) override;
 
+  LLVMValueRef constructString(
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE) override;
+  LLVMValueRef getStringBytesPtr(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
+  LLVMValueRef getStringLength(LLVMBuilderRef builder, LLVMValueRef stringRefLE) override;
+
   LLVMTypeRef getStringRefType() const override;
 
+
+  LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM) override;
+
+  void declareEdge(
+      GlobalState* globalState,
+      Edge* edge) override;
+
+  void translateEdge(
+      GlobalState* globalState,
+      Edge* edge) override;
+
+
+  void declareInterface(
+      GlobalState* globalState,
+      InterfaceDefinition* interfaceM) override;
+
 private:
+  LLVMValueRef getStringControlBlockPtr(
+      LLVMBuilderRef builder,
+      LLVMValueRef stringRefLE);
+
   LLVMValueRef loadInnerArrayMember(
       GlobalState* globalState,
       LLVMBuilderRef builder,
@@ -241,16 +269,6 @@ private:
   LLVMTypeRef getKnownSizeArrayType(
       GlobalState* globalState,
       KnownSizeArrayT* knownSizeArrayMT);
-
-
-  void freeConcrete(
-      AreaAndFileAndLine from,
-      GlobalState* globalState,
-      FunctionState* functionState,
-      BlockState* blockState,
-      LLVMBuilderRef builder,
-      LLVMValueRef concretePtrLE,
-      Reference* concreteRefM);
 
   // See CRCISFAORC for why we don't take in a mutability.
 // Strong means owning or borrow or shared; things that control the lifetime.
@@ -319,10 +337,6 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef controlBlockPtr);
 
-  LLVMValueRef getWrciFromWeakRef(
-      LLVMBuilderRef builder,
-      LLVMValueRef weakRefLE);
-
   LLVMValueRef getIsAliveFromWeakRef(
       GlobalState* globalState,
       LLVMBuilderRef builder,
@@ -342,14 +356,6 @@ private:
       LLVMValueRef weakRefLE,
       Reference* constraintRefM);
 
-  LLVMValueRef assembleStructWeakRef(
-      GlobalState* globalState,
-      LLVMBuilderRef builder,
-      Reference* structTypeM,
-      StructReferend* structReferendM,
-      LLVMValueRef objPtrLE,
-      int controlBlockWrciMemberIndex);
-
   LLVMValueRef castOwnership(
       GlobalState* globalState,
       LLVMBuilderRef builder,
@@ -357,13 +363,6 @@ private:
       Ownership targetOwnership,
       LLVMValueRef sourceRefLE);
 
-  void incrementStrongRc(
-      AreaAndFileAndLine from,
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* refM,
-      LLVMValueRef expr);
   void nonOwningDecrementStrongRc(
       AreaAndFileAndLine from,
       GlobalState* globalState,
@@ -411,15 +410,81 @@ private:
   LLVMTypeRef getControlBlockStructForInterface(InterfaceDefinition* interfaceM);
   LLVMTypeRef getControlBlockStructForUnknownSizeArray(UnknownSizeArrayT* arrMT);
 
-  int controlBlockTypeStrIndex;
-  int controlBlockObjIdIndex;
-  int controlBlockRcMemberIndex;
-  int controlBlockWrciMemberIndex;
+//  int controlBlockTypeStrIndex;
+//  int controlBlockObjIdIndex;
+//  int controlBlockRcMemberIndex;
+//  int controlBlockWrciMemberIndex;
   LLVMTypeRef nonWeakableControlBlockStructL;
   LLVMTypeRef weakableControlBlockStructL;
 
-  LLVMTypeRef stringHeapStructL;
-  LLVMTypeRef stringRefStructL;
+
+
+
+  // These don't have a ref count.
+  // They're used directly for inl imm references, and
+  // also used inside the below countedStructs.
+  std::unordered_map<std::string, LLVMTypeRef> innerStructs;
+  // These contain a ref count and the above val struct. Yon references
+  // point to these.
+  std::unordered_map<std::string, LLVMTypeRef> countedStructs;
+  // These contain a pointer to the interface table struct below and a void*
+  // to the underlying struct.
+  std::unordered_map<std::string, LLVMTypeRef> interfaceRefStructs;
+  // These contain a bunch of function pointer fields.
+  std::unordered_map<std::string, LLVMTypeRef> interfaceTableStructs;
+  // These contain a pointer to the weak ref count int, and a pointer to the underlying struct.
+  std::unordered_map<std::string, LLVMTypeRef> structWeakRefStructs;
+  // These contain a pointer to the weak ref count int, and then a regular interface ref struct.
+  std::unordered_map<std::string, LLVMTypeRef> interfaceWeakRefStructs;
+
+  std::unordered_map<Edge*, LLVMValueRef> interfaceTablePtrs;
+
+  // These contain a ref count and an array type. Yon references
+  // point to these.
+  std::unordered_map<Name*, LLVMTypeRef> knownSizeArrayCountedStructs;
+  std::unordered_map<Name*, LLVMTypeRef> unknownSizeArrayCountedStructs;
+
+  LLVMTypeRef getInnerStruct(Name* name) {
+    auto structIter = innerStructs.find(name->name);
+    assert(structIter != innerStructs.end());
+    return structIter->second;
+  }
+  LLVMTypeRef getCountedStruct(Name* name) {
+    auto structIter = countedStructs.find(name->name);
+    assert(structIter != countedStructs.end());
+    return structIter->second;
+  }
+  LLVMTypeRef getStructWeakRefStruct(Name* name) {
+    auto structIter = structWeakRefStructs.find(name->name);
+    assert(structIter != structWeakRefStructs.end());
+    return structIter->second;
+  }
+  LLVMTypeRef getInterfaceRefStruct(Name* name) {
+    auto structIter = interfaceRefStructs.find(name->name);
+    assert(structIter != interfaceRefStructs.end());
+    return structIter->second;
+  }
+  LLVMTypeRef getInterfaceWeakRefStruct(Name* name) {
+    auto interfaceIter = interfaceWeakRefStructs.find(name->name);
+    assert(interfaceIter != interfaceWeakRefStructs.end());
+    return interfaceIter->second;
+  }
+  LLVMTypeRef getInterfaceTableStruct(Name* name) {
+    auto structIter = interfaceTableStructs.find(name->name);
+    assert(structIter != interfaceTableStructs.end());
+    return structIter->second;
+  }
+
+  LLVMValueRef getInterfaceTablePtr(Edge* edge) {
+    auto iter = interfaceTablePtrs.find(edge);
+    assert(iter != interfaceTablePtrs.end());
+    return iter->second;
+  }
+
+
+
+
+  ImmMixin immMixin;
 };
 
 #endif

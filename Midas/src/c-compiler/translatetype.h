@@ -9,8 +9,6 @@
 
 class IRegion;
 
-LLVMTypeRef translateType(GlobalState* globalState, IRegion* region, Reference* referenceM);
-
 std::vector<LLVMTypeRef> translateTypes(
     GlobalState* globalState, IRegion* region, std::vector<Reference*> referencesM);
 

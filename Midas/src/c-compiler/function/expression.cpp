@@ -505,7 +505,7 @@ LLVMValueRef translateExpressionInner(
             globalState, functionState, blockState, builder, lockWeak->sourceExpr);
     functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, lockWeak->resultOptType, sourceLE);
 
-    auto resultOptTypeL = translateType(globalState, functionState->defaultRegion, lockWeak->resultOptType);
+    auto resultOptTypeL = functionState->defaultRegion->translateType(globalState, lockWeak->resultOptType);
 
     auto resultOptLE =
         functionState->defaultRegion->lockWeak(

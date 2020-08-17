@@ -66,7 +66,7 @@ add_executable(valec
 
 		src/c-compiler/regions/assist.cpp
 #		src/c-compiler/regions/resilient.cpp
-#		src/c-compiler/regions/raw.cpp
+		src/c-compiler/regions/raw.cpp
 
 		src/c-compiler/translatetype.cpp
         src/c-compiler/valeopts.cpp
@@ -76,7 +76,10 @@ add_executable(valec
 
 		src/c-compiler/function/expressions/call.cpp
 		src/c-compiler/function/expressions/interfacecall.cpp
-        src/c-compiler/regions/shared/construct.cpp
+		src/c-compiler/regions/shared/struct.cpp
+		src/c-compiler/regions/shared/census.cpp
+		src/c-compiler/regions/shared/stringmixin.cpp
+		src/c-compiler/regions/shared/immmixin.cpp
 		src/c-compiler/function/expressions/destructure.cpp
 		src/c-compiler/function/expressions/block.cpp
 		src/c-compiler/function/expressions/discard.cpp

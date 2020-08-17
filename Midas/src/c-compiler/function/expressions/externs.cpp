@@ -215,7 +215,7 @@ LLVMValueRef translateExternCall(
 
     functionState->defaultRegion->dealias(FL(), globalState, functionState, blockState, builder, argStrTypeM, argStrRefLE);
 
-    return LLVMGetUndef(translateType(globalState, functionState->defaultRegion, call->function->returnType));
+    return LLVMGetUndef(functionState->defaultRegion->translateType(globalState, call->function->returnType));
   } else if (name == "F(\"__not\",[],[R(*,<,b)])") {
     assert(call->argExprs.size() == 1);
     auto result = LLVMBuildNot(

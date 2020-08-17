@@ -33,7 +33,7 @@ void makeLocal(
   auto localAddr =
       LLVMBuildAlloca(
           builder,
-          translateType(globalState, functionState->defaultRegion, local->type),
+          functionState->defaultRegion->translateType(globalState, local->type),
           local->id->maybeName.c_str());
   blockState->addLocal(local->id, localAddr);
   LLVMBuildStore(builder, valueToStore, localAddr);

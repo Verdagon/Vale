@@ -7,27 +7,4 @@
 #include "globalstate.h"
 #include "function/expressions/shared/shared.h"
 
-LLVMValueRef allocateStruct(
-    GlobalState* globalState,
-    LLVMBuilderRef builder,
-    Reference* structTypeM,
-    LLVMTypeRef structL);
-
-LLVMValueRef mallocUnknownSizeArray(
-    GlobalState* globalState,
-    LLVMBuilderRef builder,
-    LLVMTypeRef usaWrapperLT,
-    LLVMTypeRef usaElementLT,
-    LLVMValueRef lengthLE);
-
-//// A concrete is a struct, known size array, unknown size array, or Str.
-//void freeConcrete(
-//    AreaAndFileAndLine from,
-//    GlobalState* globalState,
-//    FunctionState* functionState,
-//    BlockState* blockState,
-//    LLVMBuilderRef builder,
-//    LLVMValueRef concreteLE,
-//    Reference* concreteRefM);
-
 #endif

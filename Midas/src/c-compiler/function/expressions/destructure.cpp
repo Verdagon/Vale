@@ -17,14 +17,14 @@ LLVMValueRef translateDestructure(
   auto structType = destructureM->structType;
   auto structExpr = destructureM->structExpr;
 
-  auto structLE =
+  auto structRefLE =
       translateExpression(
           globalState, functionState, blockState, builder, structExpr);
-  functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, structType, structLE);
+  functionState->defaultRegion->checkValidReference(FL(), globalState, functionState, builder, structType, structRefLE);
 
   auto membersLE =
       functionState->defaultRegion->destructure(
-          globalState, functionState, blockState, builder, structType, structLE);
+          globalState, functionState, blockState, builder, structType, structRefLE);
 
   for (int i = 0; i < membersLE.size(); i++) {
     makeLocal(

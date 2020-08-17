@@ -180,6 +180,7 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
     opt->release = 1;
     opt->flares = false;
     opt->census = false;
+    opt->regionOverride = RegionOverride::ASSIST;
 
     while ((id = optNext(&s)) != -1) {
         switch (id) {

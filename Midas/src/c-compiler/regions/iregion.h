@@ -203,12 +203,38 @@ public:
       LLVMValueRef indexLE,
       LLVMValueRef sourceLE) = 0;
 
+
+
+  virtual LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM) = 0;
+
+
+  virtual void declareEdge(
+      GlobalState* globalState,
+      Edge* edge) = 0;
+
+  virtual void translateEdge(
+      GlobalState* globalState,
+      Edge* edge) = 0;
+
+  virtual LLVMTypeRef getStructRefType(
+      GlobalState* globalState,
+      Reference* refM,
+      StructReferend* structReferendM) = 0;
+
   virtual void translateStruct(
       GlobalState* globalState,
       StructDefinition* structM) = 0;
 
+  virtual void declareStruct(
+      GlobalState* globalState,
+      StructDefinition* structM) = 0;
 
   virtual void translateInterface(
+      GlobalState* globalState,
+      InterfaceDefinition* interfaceM) = 0;
+
+
+  virtual void declareInterface(
       GlobalState* globalState,
       InterfaceDefinition* interfaceM) = 0;
 

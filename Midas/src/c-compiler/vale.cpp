@@ -27,6 +27,7 @@
 #include <llvm-c/Transforms/Utils.h>
 #include <llvm-c/Transforms/IPO.h>
 #include <regions/assist.h>
+#include <regions/raw.h>
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -134,7 +135,7 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
 
   AssistRegion assistRegion;
 //  ResilientRegion resilientRegion;
-//  RawRegion rawRegion;
+  RawRegion rawRegion;
 
   IRegion* defaultRegion = &assistRegion;
   switch (globalState->opt->regionOverride) {
@@ -144,9 +145,9 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
 //    case RegionOverride::RESILIENT:
 //      defaultRegion = &resilientRegion;
 //      break;
-//    case RegionOverride::RAW:
-//      defaultRegion = &rawRegion;
-//      break;
+    case RegionOverride::RAW:
+      defaultRegion = &rawRegion;
+      break;
     default:
       assert(false);
   }
@@ -178,32 +179,32 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    declareStruct(globalState, defaultRegion, structM);
+    defaultRegion->declareStruct(globalState, structM);
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    declareInterface(globalState, defaultRegion, interfaceM);
+    defaultRegion->declareInterface(globalState, interfaceM);
   }
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    translateStruct(globalState, defaultRegion, structM);
+    defaultRegion->translateStruct(globalState, structM);
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    translateInterface(globalState, defaultRegion, interfaceM);
+    defaultRegion->translateInterface(globalState, interfaceM);
   }
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
     for (auto e : structM->edges) {
-      declareEdge(globalState, e);
+      defaultRegion->declareEdge(globalState, e);
     }
   }
 
@@ -228,7 +229,7 @@ void compileValeCode(GlobalState* globalState, const char* filename) {
     auto name = p.first;
     auto structM = p.second;
     for (auto e : structM->edges) {
-      translateEdge(globalState, e);
+      defaultRegion->translateEdge(globalState, e);
     }
   }
 

@@ -6,10 +6,10 @@
 #include "function/functionstate.h"
 
 LLVMValueRef getStructContentsPtr(
-    LLVMBuilderRef builder, LLVMValueRef concretePtrLE) {
+    LLVMBuilderRef builder, LLVMValueRef structRefLE) {
   return LLVMBuildStructGEP(
       builder,
-      concretePtrLE,
+      structRefLE,
       1, // Inner struct is after the control block.
       "contentsPtr");
 }
@@ -61,7 +61,8 @@ std::vector<LLVMValueRef> getMemberPtrsLE(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     StructDefinition* structM,
-    LLVMValueRef innerStructPtrLE) {
+    LLVMValueRef structRefLE) {
+  auto innerStructPtrLE = getStructContentsPtr(builder, structRefLE);
   std::vector<LLVMValueRef> membersLE;
   for (int i = 0; i < structM->members.size(); i++) {
     auto memberName = structM->members[i]->name;
