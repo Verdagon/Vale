@@ -118,9 +118,9 @@ Game {
             // List<Unit>(),
             List<Level>());
             //, None);
-
-  level = make_level(max_width, max_height, &rand); // DIFFERENCE need &!
-  game.levels.add(level);
+  l = List<Level>();
+  level = Level(5, 6);//make_level(max_width, max_height, &rand); // DIFFERENCE need &!
+  l.add(level);
 //     for _ in 0..num_levels {
 //         let level_index = game.levels.len();
 //         game.levels.push(make_level(max_width, max_height, &mut rand));
@@ -268,23 +268,43 @@ fn benchmark_rl(
     should_display bool,
     turn_delay int
 ) {
-  rand = LCGRand(seed);
+  // rand = LCGRand(seed);
 
-    game = setup(&rand, level_width, level_height, num_levels);
+    // game = setup(&rand, level_width, level_height, num_levels);
 
-    maybe_screen =
-        if (should_display) {
-          z Opt<Screen> =
-              Some(
-                newScreen(
-                game.get_current_level().max_width,
-                game.get_current_level().max_height));
-          = z;
-        } else {
-          z Opt<Screen> =
-            None<Screen>();
-          = z;
-        };
+
+  // level = Level(5, 6);//make_level(max_width, max_height, &rand); // DIFFERENCE need &!
+
+  // if (list.size == list.len()) {
+    // newLen = 1;//if (len(list) == 0) { 1 } else { len(list) * 2 };
+    lam = IFunction1<mut, int, MyBoxx>((index){
+          = MyBoxx(11);
+        });
+
+    // newArray =
+    //     ;
+    // mut rray = newArray;
+  // }
+  // mut newArray[0] = MyBoxx(13);
+  println(Array<mut, MyBoxx>(1, &lam)[0].i);
+  // mut list.size = list.size + 1;
+
+
+  // l.add(level);
+
+    // maybe_screen =
+    //     if (should_display) {
+    //       z Opt<Screen> =
+    //           Some(
+    //             newScreen(
+    //             game.get_current_level().max_width,
+    //             game.get_current_level().max_height));
+    //       = z;
+    //     } else {
+    //       z Opt<Screen> =
+    //         None<Screen>();
+    //       = z;
+    //     };
 
 //     loop {
 //         turn(&mut rand, &mut game);
@@ -298,7 +318,7 @@ fn benchmark_rl(
 //             }
 //         }
 
-        display(seed, &maybe_screen, &game);
+        // display(seed, &maybe_screen, &game);
 
 //         if turn_delay > 0 {
 //             sleep(Duration::new(turn_delay as u64 / 1000, turn_delay as u32 % 1000 * 1000000));
@@ -315,4 +335,5 @@ fn benchmark_rl(
   //   println(str(location) + " " + tile.display_class);
   // };
 
+  println("Done");
 }

@@ -22,11 +22,16 @@ LLVMValueRef translateLocalLoad(
   auto targetLocation = targetOwnership == Ownership::SHARE ? localType->location : Location::YONDER;
   auto resultType = globalState->metalCache.getReference(targetOwnership, targetLocation, localType->referend);
 
+  buildFlare(FL(), globalState, functionState, builder);
+
   auto localAddr = blockState->getLocalAddr(localId);
 
   auto sourceRefLE = LLVMBuildLoad(builder, localAddr, localName.c_str());
   checkValidReference(FL(), globalState, functionState, builder, localType, sourceRefLE);
 
+  buildFlare(FL(), globalState, functionState, builder);
+
+  buildFlare(FL(), globalState, functionState, builder, "loading!");
   auto resultRefLE = load(globalState, functionState, builder, localType, resultType, sourceRefLE);
   acquireReference(FL(), globalState, functionState, builder, resultType, resultRefLE);
   return resultRefLE;

@@ -9,7 +9,6 @@
 #include "metal/instructions.h"
 #include "globalstate.h"
 
-
 void declareKnownSizeArray(
     GlobalState* globalState,
     KnownSizeArrayT* knownSizeArrayMT);

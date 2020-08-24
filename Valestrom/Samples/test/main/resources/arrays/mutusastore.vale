@@ -1,0 +1,11 @@
+
+struct MyBoxx { i int; }
+
+fn main() {
+  newArray =
+      Array<mut, MyBoxx>(1, &IFunction1<mut, int, MyBoxx>((index){
+        = MyBoxx(11);
+      }));
+  mut newArray[0] = MyBoxx(13);
+  = 42;
+}

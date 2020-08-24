@@ -37,9 +37,9 @@ LLVMValueRef getStrongRcPtrFromControlBlockPtr(
       // Fine to access the strong RC for mutables in assist mode
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       assert(false); // Mutables in fast mode dont have a strong RC
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // Fine to access the strong RC for mutables in resilient mode
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       assert(false);
     } else assert(false);
     return LLVMBuildStructGEP(
@@ -122,7 +122,7 @@ void fillControlBlock(
   } else {
     bool hasStrongRc =
         globalState->opt->regionOverride == RegionOverride::ASSIST ||
-        globalState->opt->regionOverride == RegionOverride::RESILIENT;
+        globalState->opt->regionOverride == RegionOverride::RESILIENT_V0;
     if (hasStrongRc) {
       newControlBlockLE =
           LLVMBuildInsertValue(

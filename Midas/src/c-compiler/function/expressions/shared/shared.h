@@ -166,6 +166,10 @@ inline LLVMValueRef constI64LE(int n) {
   return LLVMConstInt(LLVMInt64Type(), n, false);
 }
 
+inline LLVMValueRef ptrToVoidPtrLE(LLVMBuilderRef builder, LLVMValueRef ptrLE) {
+  return LLVMBuildPointerCast(builder, ptrLE, LLVMPointerType(LLVMVoidType(), 0), "asVoidP");
+}
+
 inline LLVMValueRef constI32LE(int n) {
   return LLVMConstInt(LLVMInt32Type(), n, false);
 }

@@ -122,6 +122,7 @@ uint32_t __expandLgt() {
   } else {
     newCapacity = 32;
   }
+  printf("Expanding to %d\n", newCapacity);
 
   newEntries = malloc(sizeof(__LGTEntry) * newCapacity);
   // Copy the old entries into the new array, exactly as they were.

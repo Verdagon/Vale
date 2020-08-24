@@ -52,7 +52,7 @@ LLVMValueRef constructUnknownSizeArrayCountedStruct(
 
   auto usaWrapperPtrLE =
       mallocUnknownSizeArray(
-          globalState, builder, usaWrapperPtrLT, usaElementLT, sizeLE);
+          globalState, functionState, builder, usaWrapperPtrLT, usaElementLT, sizeLE);
   fillControlBlock(
       FL(),
       globalState,
@@ -62,7 +62,6 @@ LLVMValueRef constructUnknownSizeArrayCountedStruct(
       getEffectiveWeakability(globalState, unknownSizeArrayT->rawArray),
       getConcreteControlBlockPtr(builder, usaWrapperPtrLE),
       typeName);
-  LLVMBuildStore(builder, sizeLE, LLVMBuildStructGEP(builder, usaWrapperPtrLE, 1, "lenPtr"));
   fillUnknownSizeArray(
       globalState,
       functionState,
@@ -72,6 +71,9 @@ LLVMValueRef constructUnknownSizeArrayCountedStruct(
       generatorLE,
       sizeLE,
       getUnknownSizeArrayContentsPtr(builder, usaWrapperPtrLE));
+  buildFlare(FL(), globalState, functionState, builder, "Setting USA's length! ", sizeLE);
+  LLVMBuildStore(builder, sizeLE, getUnknownSizeArrayLengthPtr(builder, usaWrapperPtrLE));
+  buildFlare(FL(), globalState, functionState, builder, "We just set USA's length: ", getUnknownSizeArrayLength(builder, usaWrapperPtrLE));
   return usaWrapperPtrLE;
 }
 
@@ -120,6 +122,8 @@ LLVMValueRef translateConstructUnknownSizeArray(
 
   discard(AFL("ConstructUSA"), globalState, functionState, blockState, builder, getEffectiveType(globalState, sizeType), sizeLE);
   discard(AFL("ConstructUSA"), globalState, functionState, blockState, builder, getEffectiveType(globalState, generatorType), generatorLE);
+
+  buildFlare(FL(), globalState, functionState, builder, "New array ptr ", ptrToVoidPtrLE(builder, getUnknownSizeArrayContentsPtr(builder, resultLE)), " size ", sizeLE);
 
   return resultLE;
 }

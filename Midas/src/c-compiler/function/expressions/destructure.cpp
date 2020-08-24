@@ -52,10 +52,10 @@ LLVMValueRef translateDestructure(
           globalState, functionState, builder, structLE, getEffectiveType(globalState, destructureM->structType), -1);
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       // Do nothing
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // Do nothing, the owning ref doesnt count towards the WRC.
       //   adjustWeakRc(globalState, builder, structLE, -1);
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // Do nothing, the owning ref doesn't count towards any WRC or anything.
       // freeConcrete will take care of incrementing the generation.
     } else assert(false);

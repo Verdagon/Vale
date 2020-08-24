@@ -50,10 +50,10 @@ void translateKnownSizeArray(
       elementsL.push_back(globalState->mutNonWeakableControlBlockStructL);
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       elementsL.push_back(globalState->mutNonWeakableControlBlockStructL);
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // In resilient mode, we can have weak refs to arrays
       elementsL.push_back(globalState->mutWeakableControlBlockStructL);
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // In resilient mode, we can have weak refs to arrays
       elementsL.push_back(globalState->mutWeakableControlBlockStructL);
     } else assert(false);
@@ -88,8 +88,6 @@ void translateUnknownSizeArray(
 
   auto unknownSizeArrayWrapperStruct = globalState->getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT->name);
 
-  auto innerArrayLT = makeInnerUnknownSizeArrayLT(globalState, unknownSizeArrayMT);
-
   std::vector<LLVMTypeRef> elementsL;
 
   if (unknownSizeArrayMT->rawArray->mutability == Mutability::MUTABLE) {
@@ -97,10 +95,10 @@ void translateUnknownSizeArray(
       elementsL.push_back(globalState->mutNonWeakableControlBlockStructL);
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       elementsL.push_back(globalState->mutNonWeakableControlBlockStructL);
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // In resilient mode, we can have weak refs to arrays
       elementsL.push_back(globalState->mutWeakableControlBlockStructL);
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // In resilient mode, we can have weak refs to arrays
       elementsL.push_back(globalState->mutWeakableControlBlockStructL);
     } else assert(false);
@@ -110,6 +108,7 @@ void translateUnknownSizeArray(
 
   elementsL.push_back(LLVMInt64Type());
 
+  auto innerArrayLT = makeInnerUnknownSizeArrayLT(globalState, unknownSizeArrayMT);
   elementsL.push_back(innerArrayLT);
 
   LLVMStructSetBody(unknownSizeArrayWrapperStruct, elementsL.data(), elementsL.size(), false);

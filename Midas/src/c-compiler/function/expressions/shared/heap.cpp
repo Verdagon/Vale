@@ -44,6 +44,7 @@ LLVMValueRef allocateStruct(
 
 LLVMValueRef mallocUnknownSizeArray(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMTypeRef usaWrapperLT,
     LLVMTypeRef usaElementLT,
@@ -61,6 +62,7 @@ LLVMValueRef mallocUnknownSizeArray(
 
   auto newWrapperPtrLE =
       LLVMBuildCall(builder, globalState->malloc, &sizeBytesLE, 1, "");
+  buildFlare(FL(), globalState, functionState, builder, "Allocated ", ptrToVoidPtrLE(builder, newWrapperPtrLE));
 
   if (globalState->opt->census) {
     adjustCounter(builder, globalState->liveHeapObjCounter, 1);
@@ -189,7 +191,7 @@ void freeConcrete(
         // Do nothing, only structs and interfaces are weakable in assist mode.
       }
     }
-  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
     if (concreteRefM->ownership == Ownership::SHARE) {
       auto rcIsZeroLE = strongRcIsZero(globalState, builder, concretePtrLE, concreteRefM);
       buildAssert(globalState, functionState, builder, rcIsZeroLE,
@@ -200,7 +202,7 @@ void freeConcrete(
       // In resilient mode, every mutable is weakable.
       noteWeakableDestroyed(globalState, functionState, builder, concreteRefM, concretePtrLE);
     }
-  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
     if (concreteRefM->ownership == Ownership::SHARE) {
       auto rcIsZeroLE = strongRcIsZero(globalState, builder, concretePtrLE, concreteRefM);
       buildAssert(globalState, functionState, builder, rcIsZeroLE,
@@ -222,12 +224,12 @@ void freeConcrete(
             concretePtrLE,
             LLVMPointerType(LLVMInt8Type(), 0),
             "concreteCharPtrForFree");
-//    buildFlare(
-//        AFL("Freeing: "),
-//        globalState,
-//        functionState,
-//        builder,
-//        LLVMBuildBitCast(builder, concreteAsCharPtrLE, LLVMPointerType(LLVMInt64Type(), 0), "printthis"));
+    buildFlare(
+        AFL("Freeing: "),
+        globalState,
+        functionState,
+        builder,
+        ptrToVoidPtrLE(builder, concreteAsCharPtrLE));
     LLVMBuildCall(
         builder, globalState->free, &concreteAsCharPtrLE, 1, "");
   }

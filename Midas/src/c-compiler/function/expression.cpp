@@ -69,6 +69,9 @@ LLVMValueRef translateExpressionInner(
     if (ret->sourceType->referend == globalState->metalCache.never) {
       return sourceLE;
     } else {
+      if (ret->sourceType->ownership == UnconvertedOwnership::OWN && dynamic_cast<UnknownSizeArrayT*>(ret->sourceType->referend)) {
+        buildFlare(FL(), globalState, functionState, builder, "returning array! size: ", getUnknownSizeArrayLength(builder, sourceLE));
+      }
       checkValidReference(FL(), globalState, functionState, builder, getEffectiveType(globalState, ret->sourceType), sourceLE);
       return LLVMBuildRet(builder, sourceLE);
     }
@@ -111,7 +114,7 @@ LLVMValueRef translateExpressionInner(
         auto objPtrLE = sourceLE;
         auto weakRefLE =
             assembleStructWeakRef(
-                globalState, builder, getEffectiveType(globalState, weakAlias->sourceType), structReferendM, objPtrLE);
+                globalState, functionState, builder, getEffectiveType(globalState, weakAlias->sourceType), structReferendM, objPtrLE);
         aliasWeakRef(FL(), globalState, functionState, builder, weakRefLE);
         discard(
             AFL("WeakAlias drop constraintref"),
@@ -131,7 +134,7 @@ LLVMValueRef translateExpressionInner(
 
     return translateLocalLoad(globalState, functionState, blockState, builder, localLoad);
   } else if (auto unstackify = dynamic_cast<Unstackify*>(expr)) {
-    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
+    buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());//, " ", unstackify->local->id->maybeName);
     // The purpose of Unstackify is to destroy the local and give what was in
     // it, but in LLVM there's no instruction (or need) for destroying a local.
     // So, we just give what was in it. It's ironically identical to LocalLoad.
@@ -139,6 +142,11 @@ LLVMValueRef translateExpressionInner(
     blockState->markLocalUnstackified(unstackify->local->id);
     auto resultLE = LLVMBuildLoad(builder, localAddr, "");
     checkValidReference(FL(), globalState, functionState, builder, getEffectiveType(globalState, unstackify->local->type), resultLE);
+
+    if (unstackify->local->type->ownership == UnconvertedOwnership::OWN && dynamic_cast<UnknownSizeArrayT*>(unstackify->local->type->referend)) {
+      buildFlare(FL(), globalState, functionState, builder, "unstackifying array! size: ", getUnknownSizeArrayLength(builder, resultLE));
+    }
+
     return resultLE;
   } else if (auto argument = dynamic_cast<Argument*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -242,9 +250,9 @@ LLVMValueRef translateExpressionInner(
             globalState, functionState, builder, arrayWrapperLE, arrayType, -1);
       } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
         // Do nothing
-      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
         assert(false); // impl
-      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
         assert(false); // impl
       } else assert(false);
     } else if (arrayType->ownership == Ownership::SHARE) {
@@ -298,11 +306,12 @@ LLVMValueRef translateExpressionInner(
             globalState, functionState, builder, arrayWrapperLE, arrayType, -1);
       } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
         // Do nothing
-      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
         // Mutables in resilient mode dont have strong RC, and also, they dont adjust
-        // weak RC for owning refs
-      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
-        assert(false);
+        // weak RC for owning refs.
+      } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
+        // Mutables in resilient-v1 dont have strong RC, and also, they dont adjust
+        // weak RC for owning refs.
       } else assert(false);
     } else if (arrayType->ownership == Ownership::SHARE) {
       // We dont decrement anything here, we're only here because we already hit zero.
@@ -397,6 +406,7 @@ LLVMValueRef translateExpressionInner(
         derefMaybeWeakRef(FL(), globalState, functionState, builder, arrayType, arrayRefLE);
 
     auto sizeLE = getUnknownSizeArrayLength(builder, arrayWrapperPtrLE);
+    buildFlare(FL(), globalState, functionState, builder, "usa store len ", sizeLE);
 
 
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
@@ -579,7 +589,8 @@ LLVMValueRef translateExpressionInner(
                   someLE = buildCall(globalState, functionState, thenBuilder, someConstructor, {constraintRefLE});
                   break;
                 }
-                case RegionOverride::RESILIENT: {
+                case RegionOverride::RESILIENT_V0:
+                case RegionOverride::RESILIENT_V1: {
                   // The incoming "constraint" ref is actually already a week ref. All we have to
                   // do now is wrap it in a Some.
 
@@ -594,10 +605,6 @@ LLVMValueRef translateExpressionInner(
                       sourceLE);
                   // If we get here, object is alive, return a Some.
                   someLE = buildCall(globalState, functionState, thenBuilder, someConstructor, {sourceLE});
-                  break;
-                }
-                case RegionOverride::RESILIENT_FAST: {
-                  assert(false);
                   break;
                 }
               }

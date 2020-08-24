@@ -4,6 +4,7 @@
 #include "controlblock.h"
 #include "branch.h"
 #include "weaks.h"
+#include "elements.h"
 
 // A "Never" is something that should never be read.
 // This is useful in a lot of situations, for example:
@@ -30,6 +31,10 @@ void makeLocal(
     LLVMBuilderRef builder,
     Local* local,
     LLVMValueRef valueToStore) {
+  if (local->type->ownership == UnconvertedOwnership::OWN && dynamic_cast<UnknownSizeArrayT*>(local->type->referend)) {
+    buildFlare(FL(), globalState, functionState, builder, "storing array! size: ", getUnknownSizeArrayLength(builder, valueToStore));
+  }
+
   auto localAddr =
       LLVMBuildAlloca(
           builder,
@@ -181,6 +186,9 @@ void buildPrint(
   } else if (LLVMTypeOf(exprLE) == LLVMInt32Type()) {
     auto i64LE = LLVMBuildZExt(builder, exprLE, LLVMInt64Type(), "asI64");
     LLVMBuildCall(builder, globalState->printInt, &i64LE, 1, "");
+  } else if (LLVMTypeOf(exprLE) == LLVMPointerType(LLVMVoidType(), 0)) {
+    auto asIntLE = LLVMBuildPointerCast(builder, exprLE, LLVMInt64Type(), "asI64");
+    LLVMBuildCall(builder, globalState->printInt, &asIntLE, 1, "");
   } else if (LLVMTypeOf(exprLE) == LLVMPointerType(LLVMInt8Type(), 0)) {
     LLVMBuildCall(builder, globalState->printCStr, &exprLE, 1, "");
   } else {
@@ -449,9 +457,9 @@ Ownership getEffectiveOwnership(GlobalState* globalState, UnconvertedOwnership o
       return Ownership::BORROW;
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       return Ownership::BORROW;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       return Ownership::WEAK;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       return Ownership::WEAK;
     } else assert(false);
   } else assert(false);
@@ -483,10 +491,10 @@ Weakability getEffectiveWeakability(GlobalState* globalState, RawArrayT* array) 
       return Weakability::NON_WEAKABLE;
     } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
       return Weakability::NON_WEAKABLE;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // All mutables are weakabile in resilient mode
       return Weakability::WEAKABLE;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // All mutables are weakabile in resilient mode
       return Weakability::WEAKABLE;
     } else assert(false);
@@ -511,10 +519,10 @@ Weakability getEffectiveWeakability(GlobalState* globalState, StructDefinition* 
       } else {
         return Weakability::NON_WEAKABLE;
       }
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // All mutable structs are weakability in resilient mode
       return Weakability::WEAKABLE;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // All mutable structs are weakability in resilient mode
       return Weakability::WEAKABLE;
     } else assert(false);
@@ -539,10 +547,10 @@ Weakability getEffectiveWeakability(GlobalState* globalState, InterfaceDefinitio
       } else {
         return Weakability::NON_WEAKABLE;
       }
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
       // All mutable structs are weakable in resilient mode
       return Weakability::WEAKABLE;
-    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST) {
+    } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
       // All mutable structs are weakable in resilient fast mode
       return Weakability::WEAKABLE;
     } else assert(false);
@@ -565,9 +573,11 @@ LLVMValueRef load(
   auto targetLocation = targetType->location;
 //  assert(sourceLocation == targetLocation); // unimplemented
 
+  buildFlare(FL(), globalState, functionState, builder);
   checkValidReference(FL(), globalState, functionState, builder, sourceType, sourceRefLE);
 
   if (sourceOwnership == Ownership::SHARE) {
+    buildFlare(FL(), globalState, functionState, builder);
     if (sourceLocation == Location::INLINE) {
       return sourceRefLE;
     } else {
@@ -576,6 +586,7 @@ LLVMValueRef load(
       return resultRefLE;
     }
   } else if (sourceOwnership == Ownership::OWN) {
+    buildFlare(FL(), globalState, functionState, builder);
     if (targetOwnership == Ownership::OWN) {
       // Cant load an owning reference from a owning local. That would require an unstackify.
       assert(false);
@@ -593,7 +604,7 @@ LLVMValueRef load(
       if (auto structReferend = dynamic_cast<StructReferend*>(sourceType->referend)) {
         auto weakRefLE =
             assembleStructWeakRef(
-                globalState, builder, sourceType, structReferend, sourceRefLE);
+                globalState, functionState, builder, sourceType, structReferend, sourceRefLE);
         return weakRefLE;
       } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(sourceType->referend)) {
         auto weakRefLE =
@@ -608,14 +619,14 @@ LLVMValueRef load(
       } else if (auto unknownSizeArray = dynamic_cast<UnknownSizeArrayT*>(sourceType->referend)) {
         auto weakRefLE =
             assembleUnknownSizeArrayWeakRef(
-                globalState, builder, sourceType, unknownSizeArray, sourceRefLE);
-        buildFlare(FL(), globalState, functionState, builder);
+                globalState, functionState, builder, sourceType, unknownSizeArray, sourceRefLE);
         return weakRefLE;
       } else assert(false);
     } else {
       assert(false);
     }
   } else if (sourceOwnership == Ownership::BORROW) {
+    buildFlare(FL(), globalState, functionState, builder);
 
     if (targetOwnership == Ownership::OWN) {
       assert(false); // Cant load an owning reference from a constraint ref local.
@@ -633,7 +644,7 @@ LLVMValueRef load(
         // where the memory lives.
         auto weakRefLE =
             assembleStructWeakRef(
-                globalState, builder, sourceType, structReferendM, sourceRefLE);
+                globalState, functionState, builder, sourceType, structReferendM, sourceRefLE);
         return weakRefLE;
       } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(sourceType->referend)) {
         auto weakRefLE =
@@ -645,6 +656,7 @@ LLVMValueRef load(
       assert(false);
     }
   } else if (sourceOwnership == Ownership::WEAK) {
+    buildFlare(FL(), globalState, functionState, builder);
     if (targetOwnership == Ownership::OWN) {
       assert(false); // Cant load an owning reference from a weak ref local.
     } else if (targetOwnership == Ownership::BORROW) {
@@ -659,6 +671,7 @@ LLVMValueRef load(
       assert(false);
     }
   } else {
+    buildFlare(FL(), globalState, functionState, builder);
     assert(false);
   }
 }

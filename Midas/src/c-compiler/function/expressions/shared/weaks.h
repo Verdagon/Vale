@@ -101,6 +101,7 @@ LLVMValueRef assembleInterfaceWeakRef(
 
 LLVMValueRef assembleStructWeakRef(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structTypeM,
     StructReferend* structReferendM,
@@ -115,6 +116,7 @@ LLVMValueRef assembleKnownSizeArrayWeakRef(
 
 LLVMValueRef assembleUnknownSizeArrayWeakRef(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structTypeM,
     UnknownSizeArrayT* unknownSizeArrayMT,

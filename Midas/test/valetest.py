@@ -327,6 +327,15 @@ class ValeTest(unittest.TestCase):
     def test_swapmutusadestroy_resilientv1(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "arrays/swapmutusadestroy.vale"], "resilient-v1", 42)
 
+    def test_mutusastore_assist(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "arrays/mutusastore.vale"], "assist", 42)
+    def test_mutusastore_unsafefast(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "arrays/mutusastore.vale"], "unsafe-fast", 42)
+    def test_mutusastore_resilientv0(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "arrays/mutusastore.vale"], "resilient-v0", 42)
+    def test_mutusastore_resilientv1(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "arrays/mutusastore.vale"], "resilient-v1", 42)
+
     def test_unreachablemoot_assist(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "unreachablemoot.vale"], "assist", 42)
     def test_unreachablemoot_unsafefast(self) -> None:

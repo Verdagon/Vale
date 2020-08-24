@@ -15,6 +15,7 @@ LLVMValueRef allocateStruct(
 
 LLVMValueRef mallocUnknownSizeArray(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMTypeRef usaWrapperLT,
     LLVMTypeRef usaElementLT,

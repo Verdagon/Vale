@@ -82,6 +82,8 @@ LLVMValueRef loadMember(
     return nullptr;
   }
 
+  buildFlare(FL(), globalState, functionState, builder, "loading!");
+
   auto resultRefLE = load(globalState, functionState, builder, memberType, resultType, sourceRefLE);
   acquireReference(from, globalState, functionState, builder, resultType, resultRefLE);
   return resultRefLE;

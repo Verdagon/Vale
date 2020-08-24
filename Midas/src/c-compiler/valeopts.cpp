@@ -236,9 +236,9 @@ int valeOptSet(ValeOptions *opt, int *argc, char **argv) {
           } else if (s.arg_val == std::string("assist")) {
             opt->regionOverride = RegionOverride::ASSIST;
           } else if (s.arg_val == std::string("resilient-v0")) {
-            opt->regionOverride = RegionOverride::RESILIENT;
+            opt->regionOverride = RegionOverride::RESILIENT_V0;
           } else if (s.arg_val == std::string("resilient-v1")) {
-            opt->regionOverride = RegionOverride::RESILIENT_FAST;
+            opt->regionOverride = RegionOverride::RESILIENT_V1;
           } else assert(false);
           break;
         }

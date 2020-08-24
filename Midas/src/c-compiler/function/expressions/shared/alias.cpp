@@ -18,15 +18,19 @@ void acquireReference(
     Reference* resultRef,
     LLVMValueRef expr) {
 
+  buildFlare(FL(), globalState, functionState, builder);
   bool proceed =
       globalState->opt->regionOverride == RegionOverride::ASSIST ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST ||
+      globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
+      globalState->opt->regionOverride == RegionOverride::RESILIENT_V1 ||
       (globalState->opt->regionOverride == RegionOverride::FAST &&
           (resultRef->ownership == Ownership::SHARE || resultRef->ownership == Ownership::WEAK));
+  buildFlare(FL(), globalState, functionState, builder);
   if (!proceed) {
     return;
   }
+
+  buildFlare(FL(), globalState, functionState, builder);
 
   auto sourceRnd = resultRef->referend;
 
@@ -55,19 +59,25 @@ void acquireReference(
       dynamic_cast<KnownSizeArrayT*>(sourceRnd) ||
       dynamic_cast<UnknownSizeArrayT*>(sourceRnd)) {
     if (resultRef->ownership == Ownership::OWN) {
+      buildFlare(FL(), globalState, functionState, builder);
       // We might be loading a member as an own if we're destructuring.
       // Don't adjust the RC, since we're only moving it.
     } else if (resultRef->ownership == Ownership::BORROW) {
+      buildFlare(FL(), globalState, functionState, builder);
       adjustStrongRc(from, globalState, functionState, builder, expr, resultRef, 1);
     } else if (resultRef->ownership == Ownership::WEAK) {
+      buildFlare(FL(), globalState, functionState, builder);
       aliasWeakRef(from, globalState, functionState, builder, expr);
     } else if (resultRef->ownership == Ownership::SHARE) {
+      buildFlare(FL(), globalState, functionState, builder);
       if (resultRef->location == Location::INLINE) {
         // Do nothing, we can just let inline structs disappear
       } else {
+        buildFlare(FL(), globalState, functionState, builder);
         adjustStrongRc(from, globalState, functionState, builder, expr, resultRef, 1);
       }
     } else assert(false);
+    buildFlare(FL(), globalState, functionState, builder);
   } else if (dynamic_cast<Str*>(sourceRnd)) {
     assert(resultRef->ownership == Ownership::SHARE);
     assert(resultRef->location == Location::YONDER);
@@ -91,8 +101,8 @@ void discard(
   // TODO: Turn this into true composition after the hackathon
   bool proceed =
       globalState->opt->regionOverride == RegionOverride::ASSIST ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_FAST ||
+      globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
+      globalState->opt->regionOverride == RegionOverride::RESILIENT_V1 ||
       (globalState->opt->regionOverride == RegionOverride::FAST &&
           (sourceRef->ownership == Ownership::SHARE ||
           sourceRef->ownership == Ownership::WEAK));
