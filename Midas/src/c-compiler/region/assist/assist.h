@@ -29,7 +29,6 @@ public:
   void dealias(
       AreaAndFileAndLine from,
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* sourceMT,
       Ref sourceRef) override;
@@ -371,13 +370,29 @@ public:
   LLVMTypeRef getExternalType(
       Reference* refMT) override;
 
-  LLVMValueRef externalify(
+  LLVMValueRef copyToWild(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
-      Ref ref) override;
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
 
-  Ref internalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, LLVMValueRef ref) override;
+  Ref copyFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) override;
+
+  LLVMValueRef sendRefToWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref receiveRefFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) override;
 
 private:
   LLVMTypeRef translateInterfaceMethodToFunctionType(

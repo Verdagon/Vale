@@ -35,7 +35,6 @@ public:
   void dealias(
       AreaAndFileAndLine from,
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* sourceMT,
       Ref sourceRef) override;
@@ -371,15 +370,31 @@ public:
   void generateInterfaceDefsC(
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
 
-  LLVMValueRef externalify(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* refMT,
-      Ref ref) override;
-
   LLVMTypeRef getExternalType(Reference* refMT) override;
 
-  Ref internalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, LLVMValueRef ref) override;
+  LLVMValueRef copyToWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref copyFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) override;
+
+  LLVMValueRef sendRefToWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref receiveRefFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) override;
 
 private:
   LLVMTypeRef translateInterfaceMethodToFunctionType(

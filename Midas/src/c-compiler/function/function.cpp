@@ -53,11 +53,18 @@ LLVMValueRef declareFunction(
     std::vector<Ref> argsToActualFunction;
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
-      auto uncheckedArgLE = LLVMGetParam(exportFunctionL, i);
-      auto argRef = functionState.defaultRegion->internalify(&functionState, builder, functionM->prototype->params[i], uncheckedArgLE);
-      functionState.defaultRegion->alias(FL(), &functionState, builder, functionM->prototype->params[i], argRef);
+      auto paramMT = functionM->prototype->params[i];
+      auto uncheckedArgFromHostLE = LLVMGetParam(exportFunctionL, i);
+      Ref argToValeFunction =
+        (paramMT->ownership == Ownership::SHARE ?
+          functionState.defaultRegion->copyFromWild(&functionState, builder, paramMT, uncheckedArgFromHostLE) :
+          functionState.defaultRegion->receiveRefFromWild(&functionState, builder, paramMT, uncheckedArgFromHostLE));
+
       // Alias when receiving from the outside world, see DEPAR.
-      argsToActualFunction.push_back(argRef);
+      functionState.defaultRegion->alias(
+          FL(), &functionState, builder, paramMT, argToValeFunction);
+
+      argsToActualFunction.push_back(argToValeFunction);
     }
 
     auto returnRef = buildCall(globalState, &functionState, builder, functionM->prototype, argsToActualFunction);
@@ -65,12 +72,14 @@ LLVMValueRef declareFunction(
     if (functionM->prototype->returnType == globalState->metalCache.emptyTupleStructRef) {
       LLVMBuildRetVoid(builder);
     } else {
-      auto returnRefLE =
-          globalState->region->externalify(
-              &functionState, builder, functionM->prototype->returnType, returnRef);
-      // Dealias before sending into the outside world, see DEPAR.
+      // Dealias when sending to the outside world, see DEPAR.
       functionState.defaultRegion->dealias(
-          FL(), &functionState, &initialBlockState, builder, functionM->prototype->returnType, returnRef);
+          FL(), &functionState, builder, functionM->prototype->returnType, returnRef);
+
+      auto returnRefLE =
+          (functionM->prototype->returnType->ownership == Ownership::SHARE ?
+           globalState->region->copyToWild(&functionState, builder, functionM->prototype->returnType, returnRef) :
+          globalState->region->sendRefToWild(&functionState, builder, functionM->prototype->returnType, returnRef));
 
       LLVMBuildRet(builder, returnRefLE);
     }

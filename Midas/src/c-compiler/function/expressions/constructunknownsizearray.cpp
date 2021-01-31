@@ -50,8 +50,8 @@ Ref translateConstructUnknownSizeArray(
   functionState->defaultRegion->checkValidReference(FL(), functionState, builder,
       constructUnknownSizeArray->arrayRefType, usaRef);
 
-  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, blockState, builder, sizeType, sizeLE);
-  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, blockState, builder, generatorType, generatorLE);
+  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeLE);
+  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorLE);
 
   return usaRef;
 }

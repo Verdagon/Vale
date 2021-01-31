@@ -39,7 +39,6 @@ void DefaultImmutables::discard(
     AreaAndFileAndLine from,
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     Reference* sourceMT,
     Ref sourceRef) {
@@ -113,7 +112,7 @@ void DefaultImmutables::discard(
         globalState, functionState,
         builder,
         isZeroLE(builder, rcLE),
-        [this, from, globalState, functionState, blockState, sourceRef, sourceMT](
+        [this, from, globalState, functionState, sourceRef, sourceMT](
             LLVMBuilderRef thenBuilder) {
           buildFlare(from, globalState, functionState, thenBuilder, "Freeing shared str!");
           innerDeallocate(from, globalState, functionState, referendStructs, thenBuilder, sourceMT, sourceRef);
@@ -342,27 +341,32 @@ LLVMTypeRef DefaultImmutables::getExternalType(
   return nullptr;
 }
 
-LLVMValueRef DefaultImmutables::externalify(
-    FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, Ref ref) {
-  assert(refMT->ownership == Ownership::SHARE);
 
-  if (refMT == globalState->metalCache.intRef) {
-    return functionState->defaultRegion->checkValidReference(FL(), functionState, builder, refMT, ref);
-  } else if (refMT == globalState->metalCache.boolRef) {
+LLVMValueRef DefaultImmutables::copyToWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(sourceRefMT->ownership == Ownership::SHARE);
+
+  if (sourceRefMT == globalState->metalCache.intRef) {
+    return functionState->defaultRegion->checkValidReference(
+        FL(), functionState, builder, sourceRefMT, sourceRef);
+  } else if (sourceRefMT == globalState->metalCache.boolRef) {
     return LLVMBuildZExt(
         builder,
-        functionState->defaultRegion->checkValidReference(FL(), functionState, builder, refMT, ref),
+        functionState->defaultRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef),
         LLVMInt8TypeInContext(globalState->context),
         "boolAsI8");
-  } else if (refMT == globalState->metalCache.floatRef) {
-    return functionState->defaultRegion->checkValidReference(FL(), functionState, builder, refMT, ref);
-  } else if (refMT == globalState->metalCache.strRef) {
+  } else if (sourceRefMT == globalState->metalCache.floatRef) {
+    return functionState->defaultRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+  } else if (sourceRefMT == globalState->metalCache.strRef) {
     auto structLIter = externalStructLByReferend.find(globalState->metalCache.str);
     assert(structLIter != externalStructLByReferend.end());
     auto structL = structLIter->second;
 
-    auto sourceStrBytesPtrLE = referendStructs->getStringBytesPtr(functionState, builder, ref);
-    auto sourceStrLenLE = referendStructs->getStringLen(functionState, builder, ref);
+    auto sourceStrBytesPtrLE = referendStructs->getStringBytesPtr(functionState, builder, sourceRef);
+    auto sourceStrLenLE = referendStructs->getStringLen(functionState, builder, sourceRef);
 
     // The +1 is for an extra byte at the end for a null terminating char
     auto sizeLE =
@@ -412,24 +416,24 @@ LLVMValueRef DefaultImmutables::externalify(
     LLVMBuildStore(builder, extStrCharsPtrLE, extStrCharsPtrPtrLE);
 
     return extStrPtrLE;
-  } else if (refMT == globalState->metalCache.neverRef) {
+  } else if (sourceRefMT == globalState->metalCache.neverRef) {
     assert(false); // How can we hand a never into something?
     return nullptr;
-  } else if (refMT == globalState->metalCache.emptyTupleStructRef) {
+  } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
     assert(false); // How can we hand a void into something?
     return nullptr;
-  } else if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+  } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
     return nullptr;
 
-//    if (refMT->location == Location::INLINE) {
-//      functionState->defaultRegion->checkInlineStructType(functionState, builder, refMT, ref);
+//    if (sourceRefMT->location == Location::INLINE) {
+//      functionState->defaultRegion->checkInlineStructType(functionState, builder, sourceRefMT, ref);
 //    } else {
 ////            std::cerr << "Can only pass inline imm structs between C and Vale currently." << std::endl;
 //      assert(false); // impl
 //      return nullptr;
 //    }
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
 
     assert(false); // impl
     return nullptr;
@@ -443,26 +447,30 @@ LLVMValueRef DefaultImmutables::externalify(
   return nullptr;
 }
 
-Ref DefaultImmutables::internalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, LLVMValueRef refLE) {
-  assert(refMT->ownership == Ownership::SHARE);
+Ref DefaultImmutables::copyFromWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    LLVMValueRef sourceRefLE) {
+  assert(sourceRefMT->ownership == Ownership::SHARE);
 
-  if (refMT == globalState->metalCache.intRef) {
-    return wrap(functionState->defaultRegion, refMT, refLE);
-  } else if (refMT == globalState->metalCache.boolRef) {
+  if (sourceRefMT == globalState->metalCache.intRef) {
+    return wrap(functionState->defaultRegion, sourceRefMT, sourceRefLE);
+  } else if (sourceRefMT == globalState->metalCache.boolRef) {
     return wrap(
         functionState->defaultRegion,
-        refMT,
+        sourceRefMT,
         LLVMBuildTrunc(
-            builder, refLE, LLVMInt1TypeInContext(globalState->context), "boolAsI1"));
-  } else if (refMT == globalState->metalCache.floatRef) {
-    return wrap(functionState->defaultRegion, refMT, refLE);
-  } else if (refMT == globalState->metalCache.strRef) {
+            builder, sourceRefLE, LLVMInt1TypeInContext(globalState->context), "boolAsI1"));
+  } else if (sourceRefMT == globalState->metalCache.floatRef) {
+    return wrap(functionState->defaultRegion, sourceRefMT, sourceRefLE);
+  } else if (sourceRefMT == globalState->metalCache.strRef) {
     auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
     assert(externalStructLIter != externalStructLByReferend.end());
     auto externalStructL = externalStructLIter->second;
 
-    assert(LLVMTypeOf(refLE) == LLVMPointerType(externalStructL, 0));
-    auto extStrPtrLE = refLE;
+    assert(LLVMTypeOf(sourceRefLE) == LLVMPointerType(externalStructL, 0));
+    auto extStrPtrLE = sourceRefLE;
 
     auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
     auto extStrLenLE = LLVMBuildLoad(builder, extStrLenPtrLE, "extStrLen");
@@ -486,7 +494,7 @@ Ref DefaultImmutables::internalify(FunctionState *functionState, LLVMBuilderRef 
     LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
 
     return wrap(functionState->defaultRegion, globalState->metalCache.strRef, vstrPtrLE);
-  } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(refMT->referend)) {
+  } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(sourceRefMT->referend)) {
     assert(false);
 //    start here, perhaps make an external struct for all USAs.
 //        itll be like the string one except with the number of elements rather than the total
@@ -520,21 +528,21 @@ Ref DefaultImmutables::internalify(FunctionState *functionState, LLVMBuilderRef 
 //    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
 //
 //    return wrap(functionState->defaultRegion, globalState->metalCache.strRef, vstrPtrLE);
-  } else if (refMT == globalState->metalCache.neverRef) {
+  } else if (sourceRefMT == globalState->metalCache.neverRef) {
     assert(false); // How can we hand a never into something?
-  } else if (refMT == globalState->metalCache.emptyTupleStructRef) {
-    return wrap(functionState->defaultRegion, refMT, makeEmptyTuple(globalState, functionState, builder));
-  } else if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+  } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
+    return wrap(functionState->defaultRegion, sourceRefMT, makeEmptyTuple(globalState, functionState, builder));
+  } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
 
-//    if (refMT->location == Location::INLINE) {
-//      functionState->defaultRegion->checkInlineStructType(functionState, builder, refMT, ref);
+//    if (sourceRefMT->location == Location::INLINE) {
+//      functionState->defaultRegion->checkInlineStructType(functionState, builder, sourceRefMT, ref);
 //    } else {
 ////            std::cerr << "Can only pass inline imm structs between C and Vale currently." << std::endl;
 //      assert(false); // impl
 //      return nullptr;
 //    }
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
 
     assert(false); // impl
   } else {

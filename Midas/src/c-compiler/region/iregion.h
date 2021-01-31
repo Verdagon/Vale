@@ -39,7 +39,6 @@ public:
   virtual void dealias(
       AreaAndFileAndLine from,
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* sourceMT,
       Ref sourceRef) = 0;
@@ -291,16 +290,30 @@ public:
 
   virtual LLVMTypeRef getExternalType(
       Reference* refMT) = 0;
-  virtual LLVMValueRef externalify(
+
+  virtual LLVMValueRef copyToWild(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
-      Ref ref) = 0;
-  virtual Ref internalify(
+      Reference* sourceRefMT,
+      Ref sourceRef) = 0;
+
+  virtual Ref copyFromWild(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
-      LLVMValueRef ref) = 0;
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) = 0;
+
+  virtual LLVMValueRef sendRefToWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) = 0;
+
+  virtual Ref receiveRefFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef) = 0;
 
 
   // Get rid of these

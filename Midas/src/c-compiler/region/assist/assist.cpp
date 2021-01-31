@@ -92,12 +92,11 @@ void Assist::alias(
 void Assist::dealias(
     AreaAndFileAndLine from,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     Reference* sourceMT,
     Ref sourceRef) {
   if (sourceMT->ownership == Ownership::SHARE) {
-    defaultImmutables.discard(from, globalState, functionState, blockState, builder, sourceMT, sourceRef);
+    defaultImmutables.discard(from, globalState, functionState, builder, sourceMT, sourceRef);
   } else if (sourceMT->ownership == Ownership::OWN) {
     // This can happen if we're sending an owning reference to the outside world, see DEPAR.
     adjustStrongRc(from, globalState, functionState, &referendStructs, builder, sourceRef, sourceMT, -1);
@@ -887,39 +886,70 @@ LLVMTypeRef Assist::getExternalType(
   assert(false);
 }
 
-LLVMValueRef Assist::externalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, Ref ref) {
-  if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.externalify(functionState, builder, refMT, ref);
-  } else {
-    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-      assert(refMT->location != Location::INLINE);
 
-      return checkValidReference(FL(), functionState, builder, refMT, ref);
-    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-      return checkValidReference(FL(), functionState, builder, refMT, ref);
-    } else {
-      std::cerr << "Invalid type for extern!" << std::endl;
-      assert(false);
-    }
+LLVMValueRef Assist::copyToWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  if (sourceRefMT->ownership == Ownership::SHARE) {
+    return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
+  } else {
+    assert(false);
+  }
+}
+
+Ref Assist::copyFromWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    LLVMValueRef sourceRef) {
+
+  if (sourceRefMT->ownership == Ownership::SHARE) {
+    return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
+  } else {
+    assert(false);
   }
 
   assert(false);
 }
 
-Ref Assist::internalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, LLVMValueRef ref) {
-  if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.internalify(functionState, builder, refMT, ref);
-  } else {
-    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-      assert(refMT->location != Location::INLINE);
+LLVMValueRef Assist::sendRefToWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(sourceRefMT->ownership != Ownership::SHARE);
 
-      return wrap(functionState->defaultRegion, refMT, ref);
-    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-      return wrap(functionState->defaultRegion, refMT, ref);
-    } else {
-      std::cerr << "Invalid type for extern!" << std::endl;
-      assert(false);
-    }
+  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
+    assert(sourceRefMT->location != Location::INLINE);
+
+    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
+    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+  } else {
+    std::cerr << "Invalid type for extern!" << std::endl;
+    assert(false);
+  }
+}
+
+Ref Assist::receiveRefFromWild(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    LLVMValueRef sourceRef) {
+
+  assert(sourceRefMT->ownership != Ownership::SHARE);
+
+  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
+    assert(sourceRefMT->location != Location::INLINE);
+
+    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
+    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+  } else {
+    std::cerr << "Invalid type for extern!" << std::endl;
+    assert(false);
   }
 
   assert(false);

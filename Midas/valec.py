@@ -249,13 +249,13 @@ class ValeCompiler:
 
         if args[0] == "help" or args[0] == "--help":
             if len(args) < 2:
-                with open('valec-help.txt', 'r') as f:
-                  print(f.read())
+                with open(str(self.valestrom_path / "valec-help.txt"), 'r') as f:
+                    print(f.read())
             elif args[1] == "build":
-                with open('valec-help-build.txt', 'r') as f:
+                with open(str(self.valestrom_path / "valec-help-build.txt"), 'r') as f:
                     print(f.read())
             elif args[1] == "run":
-                with open('valec-help-run.txt', 'r') as f:
+                with open(str(self.valestrom_path / "valec-help-run.txt"), 'r') as f:
                     print(f.read())
             elif args[1] == "paths":
                 print("Valestrom path: " + str(self.valestrom_path))

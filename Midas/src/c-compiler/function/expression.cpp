@@ -140,7 +140,7 @@ Ref translateExpressionInner(
     functionState->defaultRegion->aliasWeakRef(FL(), functionState, builder, weakAlias->resultType, resultRef);
     functionState->defaultRegion->dealias(
         AFL("WeakAlias drop constraintref"),
-        functionState, blockState, builder, weakAlias->sourceType, sourceRef);
+        functionState, builder, weakAlias->sourceType, sourceRef);
     return resultRef;
   } else if (auto localLoad = dynamic_cast<LocalLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", localLoad->localName);
@@ -225,7 +225,7 @@ Ref translateExpressionInner(
     }
     functionState->defaultRegion->dealias(
         AFL("MemberLoad drop struct"),
-        functionState, blockState, builder, memberLoad->structType, structRef);
+        functionState, builder, memberLoad->structType, structRef);
     return resultRef;
   } else if (auto destroyKnownSizeArrayIntoFunction = dynamic_cast<DestroyKnownSizeArrayIntoFunction*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -279,7 +279,7 @@ Ref translateExpressionInner(
 
 
     functionState->defaultRegion->dealias(
-        AFL("DestroyKSAIntoF"), functionState, blockState, builder, consumerType, consumerRef);
+        AFL("DestroyKSAIntoF"), functionState, builder, consumerType, consumerRef);
 
     return makeEmptyTupleRef(globalState, functionState, builder);
   } else if (auto destroyUnknownSizeArrayIntoFunction = dynamic_cast<DestroyUnknownSizeArray*>(expr)) {
@@ -331,7 +331,7 @@ Ref translateExpressionInner(
     }
 
     functionState->defaultRegion->dealias(
-        AFL("DestroyUSAIntoF"), functionState, blockState, builder, consumerType, consumerRef);
+        AFL("DestroyUSAIntoF"), functionState, builder, consumerType, consumerRef);
 
     return makeEmptyTupleRef(globalState, functionState, builder);
   } else if (auto knownSizeArrayLoad = dynamic_cast<KnownSizeArrayLoad*>(expr)) {
@@ -358,7 +358,7 @@ Ref translateExpressionInner(
             constI64LE(globalState, dynamic_cast<KnownSizeArrayT*>(knownSizeArrayLoad->arrayType->referend)->size));
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
-    functionState->defaultRegion->dealias(AFL("KSALoad"), functionState, blockState, builder, arrayType, arrayRef);
+    functionState->defaultRegion->dealias(AFL("KSALoad"), functionState, builder, arrayType, arrayRef);
 
     auto resultLE =
         functionState->defaultRegion->loadElementFromKSAWithUpgrade(
@@ -394,7 +394,7 @@ Ref translateExpressionInner(
 
     functionState->defaultRegion->checkValidReference(FL(), functionState, builder, resultType, resultLE);
 
-    functionState->defaultRegion->dealias(AFL("USALoad"), functionState, blockState, builder, arrayType, arrayRef);
+    functionState->defaultRegion->dealias(AFL("USALoad"), functionState, builder, arrayType, arrayRef);
 
     return resultLE;
   } else if (auto unknownSizeArrayStore = dynamic_cast<UnknownSizeArrayStore*>(expr)) {
@@ -442,7 +442,7 @@ Ref translateExpressionInner(
         functionState, builder,
         arrayType, arrayReferend, arrayRefLE, arrayKnownLive, indexRef, valueToStoreLE);
 
-    functionState->defaultRegion->dealias(AFL("USAStore"), functionState, blockState, builder, arrayType, arrayRefLE);
+    functionState->defaultRegion->dealias(AFL("USAStore"), functionState, builder, arrayType, arrayRefLE);
 
 
     return oldValueLE;
@@ -459,7 +459,7 @@ Ref translateExpressionInner(
     auto sizeLE =
         functionState->defaultRegion->getUnknownSizeArrayLength(
             functionState, builder, arrayType, arrayRefLE, arrayKnownLive);
-    functionState->defaultRegion->dealias(AFL("USALen"), functionState, blockState, builder, arrayType, arrayRefLE);
+    functionState->defaultRegion->dealias(AFL("USALen"), functionState, builder, arrayType, arrayRefLE);
 
     return sizeLE;
   } else if (auto newArrayFromValues = dynamic_cast<NewArrayFromValues*>(expr)) {
@@ -509,8 +509,8 @@ Ref translateExpressionInner(
             globalState, functionState, builder, structDefM, structType, structExpr, structKnownLive, memberIndex, memberName, sourceExpr);
     functionState->defaultRegion->checkValidReference(FL(), functionState, builder, memberType, oldMemberLE);
     functionState->defaultRegion->dealias(
-        AFL("MemberStore discard struct"), functionState, blockState, builder,
-        structType, structExpr);
+        AFL("MemberStore discard struct"),
+        functionState, builder, structType, structExpr);
     return oldMemberLE;
   } else if (auto structToInterfaceUpcast = dynamic_cast<StructToInterfaceUpcast*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -623,7 +623,7 @@ Ref translateExpressionInner(
 
     functionState->defaultRegion->dealias(
         AFL("LockWeak drop weak ref"),
-        functionState, blockState, builder, sourceType, sourceLE);
+        functionState, builder, sourceType, sourceLE);
 
     return resultOptLE;
   } else {

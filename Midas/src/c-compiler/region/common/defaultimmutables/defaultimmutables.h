@@ -21,7 +21,6 @@ public:
       AreaAndFileAndLine from,
       GlobalState* globalState,
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* sourceMT,
       Ref sourceRef);
@@ -55,8 +54,18 @@ public:
   void generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* refMT);
   void generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT);
 
-  LLVMValueRef externalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, Ref ref);
-  Ref internalify(FunctionState *functionState, LLVMBuilderRef builder, Reference *refMT, LLVMValueRef ref);
+  LLVMValueRef copyToWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef);
+
+  Ref copyFromWild(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      LLVMValueRef sourceRef);
+
 
   LLVMTypeRef getExternalType(
       Reference* refMT);

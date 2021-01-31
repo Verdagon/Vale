@@ -82,7 +82,7 @@ Ref translateExternCall(
     auto resultLenLE = functionState->defaultRegion->getStringLen(functionState, builder, leftStrRef);
 
     functionState->defaultRegion->dealias(
-        FL(), functionState, blockState, builder, globalState->metalCache.strRef, leftStrRef);
+        FL(), functionState, builder, globalState->metalCache.strRef, leftStrRef);
 
     return wrap(functionState->defaultRegion, globalState->metalCache.intRef, resultLenLE);
   } else if (name == "__addFloatFloat") {
@@ -283,9 +283,12 @@ Ref translateExternCall(
     argsLE.reserve(call->argExprs.size());
     for (int i = 0; i < call->argExprs.size(); i++) {
       auto argRefMT = call->function->params[i];
+      auto arg = args[i];
 
-      auto externalArgRefLE = functionState->defaultRegion->externalify(functionState, builder, argRefMT, args[i]);
-
+      auto externalArgRefLE =
+          (argRefMT->ownership == Ownership::SHARE ?
+            functionState->defaultRegion->copyToWild(functionState, builder, argRefMT, arg) :
+           functionState->defaultRegion->sendRefToWild(functionState, builder, argRefMT, arg));
       argsLE.push_back(externalArgRefLE);
     }
 
@@ -299,7 +302,7 @@ Ref translateExternCall(
     for (int i = 0; i < call->argExprs.size(); i++) {
       auto argRefMT = call->function->params[i];
       // Dealias any object heading into the outside world, see DEPAR.
-      functionState->defaultRegion->dealias(FL(), functionState, blockState, builder, argRefMT, args[i]);
+      functionState->defaultRegion->dealias(FL(), functionState, builder, argRefMT, args[i]);
     }
 
     auto resultLE = LLVMBuildCall(builder, externFuncL, argsLE.data(), argsLE.size(), "");
@@ -315,10 +318,14 @@ Ref translateExternCall(
       buildFlare(FL(), globalState, functionState, builder, "Done calling function ", call->function->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
 
-      auto internalArgRef = functionState->defaultRegion->internalify(functionState, builder, call->function->returnType, resultLE);
+      auto internalArgRef =
+          (call->function->returnType->ownership == Ownership::SHARE ?
+          functionState->defaultRegion->copyFromWild(functionState, builder, call->function->returnType, resultLE) :
+           functionState->defaultRegion->receiveRefFromWild(functionState, builder, call->function->returnType, resultLE));
 
       // Alias any object coming from the outside world, see DEPAR.
-      functionState->defaultRegion->alias(FL(), functionState, builder, call->function->returnType, internalArgRef);
+      functionState->defaultRegion->alias(
+          FL(), functionState, builder, call->function->returnType, internalArgRef);
 
       return internalArgRef;
     }
