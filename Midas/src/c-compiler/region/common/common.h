@@ -36,7 +36,7 @@ LLVMTypeRef translateWeakReference(GlobalState* globalState, IWeakRefStructsSour
 
 
 
-Ref loadInnerInnerStructMember(
+LoadResult loadInnerInnerStructMember(
     GlobalState* globalState,
     LLVMBuilderRef builder, LLVMValueRef innerStructPtrLE, int memberIndex, Reference* expectedType, std::string memberName);
 void storeInnerInnerStructMember(
@@ -75,7 +75,7 @@ void buildCheckGen(
     LLVMValueRef targetGenLE,
     LLVMValueRef actualGenLE);
 
-Ref loadElementFromKSAWithoutUpgradeInner(
+LoadResult loadElementFromKSAInner(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -260,7 +260,7 @@ void regularCheckValidReference(
     Reference* refM,
     LLVMValueRef refLE);
 
-Ref regularLoadElementFromUSAWithoutUpgrade(
+LoadResult regularLoadElementFromUSAWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -271,7 +271,7 @@ Ref regularLoadElementFromUSAWithoutUpgrade(
     bool arrayKnownLive,
     Ref indexRef);
 
-Ref resilientLoadElementFromUSAWithoutUpgrade(
+LoadResult resilientLoadElementFromUSAWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -324,7 +324,7 @@ Ref constructUnknownSizeArrayCountedStruct(
     const std::string& typeName,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 
-Ref regularLoadStrongMember(
+LoadResult regularLoadStrongMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -336,7 +336,7 @@ Ref regularLoadStrongMember(
     Reference* targetType,
     const std::string& memberName);
 
-Ref regularLoadMember(
+LoadResult regularLoadMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -349,7 +349,7 @@ Ref regularLoadMember(
     const std::string& memberName);
 
 
-Ref resilientLoadWeakMember(
+LoadResult resilientLoadWeakMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -384,7 +384,7 @@ Ref upcastWeak(
     Reference* targetInterfaceTypeM,
     InterfaceReferend* targetInterfaceReferendM);
 
-Ref regularLoadElementFromKSAWithoutUpgrade(
+LoadResult regularloadElementFromKSA(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -395,7 +395,7 @@ Ref regularLoadElementFromKSAWithoutUpgrade(
     Ref indexRef,
     IReferendStructsSource* referendStructs);
 
-Ref resilientLoadElementFromKSAWithoutUpgrade(
+LoadResult resilientloadElementFromKSA(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,

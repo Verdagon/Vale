@@ -208,7 +208,7 @@ ControlBlock* DefaultImmutables::getControlBlock(Referend* referend) {
 }
 
 
-Ref DefaultImmutables::loadMember(
+LoadResult DefaultImmutables::loadMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structRefMT,
@@ -223,7 +223,7 @@ Ref DefaultImmutables::loadMember(
             FL(), functionState, builder, structRefMT, structRef);
     auto memberLE =
         LLVMBuildExtractValue(builder, innerStructLE, memberIndex, memberName.c_str());
-    return wrap(functionState->defaultRegion, expectedMemberType, memberLE);
+    return LoadResult{wrap(functionState->defaultRegion, expectedMemberType, memberLE)};
   } else {
     return regularLoadStrongMember(globalState, functionState, builder, referendStructs, structRefMT, structRef, memberIndex, expectedMemberType, targetType, memberName);
   }

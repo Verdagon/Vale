@@ -212,7 +212,7 @@ public:
       LLVMBuilderRef builder,
       Reference* sourceType,
       Reference* targetType,
-      Ref sourceRef) override;
+      LoadResult sourceRef) override;
 
   void checkInlineStructType(
       FunctionState* functionState,
@@ -241,16 +241,7 @@ public:
       Ref weakRef,
       bool knownLive) override;
 
-  Ref loadElementFromKSAWithUpgrade(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* ksaRefMT,
-      KnownSizeArrayT* ksaMT,
-      Ref arrayRef,
-      bool arrayKnownLive,
-      Ref indexRef,
-      Reference* targetType) override;
-  Ref loadElementFromKSAWithoutUpgrade(
+  LoadResult loadElementFromKSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* ksaRefMT,
@@ -258,16 +249,7 @@ public:
       Ref arrayRef,
       bool arrayKnownLive,
       Ref indexRef) override;
-  Ref loadElementFromUSAWithUpgrade(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* usaRefMT,
-      UnknownSizeArrayT* usaMT,
-      Ref arrayRef,
-      bool arrayKnownLive,
-      Ref indexRef,
-      Reference* targetType) override;
-  Ref loadElementFromUSAWithoutUpgrade(
+  LoadResult loadElementFromUSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* usaRefMT,

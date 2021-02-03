@@ -32,7 +32,7 @@ public:
   ControlBlock* getControlBlock(Referend* referend);
 
 
-  Ref loadMember(
+  LoadResult loadMember(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* structRefMT,

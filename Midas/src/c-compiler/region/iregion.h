@@ -10,6 +10,25 @@
 class FunctionState;
 class BlockState;
 
+// When we load something from an array, for example an owning reference,
+// we still need to alias it to a constraint reference. This wrapper serves
+// as a reminder that we need to do that.
+struct LoadResult {
+public:
+  explicit LoadResult(Ref ref) : ref(ref) {}
+
+  // This method is used when we intended to move the result, so no transformation
+  // or aliasing is needed.
+  Ref move() { return ref; }
+
+  // This is just a getter for the ref for the methods that actually implement the
+  // aliasing. It should ONLY be used by them.
+  Ref extractForAliasingInternals() { return ref; }
+
+private:
+  Ref ref;
+};
+
 class IRegion {
 public:
   virtual ~IRegion() = default;
@@ -210,28 +229,28 @@ public:
       Reference* weakRefM,
       Ref weakRef,
       bool knownLive) = 0;
+//
+//  virtual Ref loadElementFromKSAWithUpgrade(
+//      FunctionState* functionState,
+//      LLVMBuilderRef builder,
+//      Reference* ksaRefMT,
+//      KnownSizeArrayT* ksaMT,
+//      Ref arrayRef,
+//      bool arrayRefKnownLive,
+//      Ref indexRef,
+//      Reference* targetType) = 0;
+//
+//  virtual Ref loadElementFromUSAWithUpgrade(
+//      FunctionState* functionState,
+//      LLVMBuilderRef builder,
+//      Reference* usaRefMT,
+//      UnknownSizeArrayT* usaMT,
+//      Ref arrayRef,
+//      bool arrayRefKnownLive,
+//      Ref indexRef,
+//      Reference* targetType) = 0;
 
-  virtual Ref loadElementFromKSAWithUpgrade(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* ksaRefMT,
-      KnownSizeArrayT* ksaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
-      Ref indexRef,
-      Reference* targetType) = 0;
-
-  virtual Ref loadElementFromUSAWithUpgrade(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* usaRefMT,
-      UnknownSizeArrayT* usaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
-      Ref indexRef,
-      Reference* targetType) = 0;
-
-  virtual Ref loadElementFromUSAWithoutUpgrade(
+  virtual LoadResult loadElementFromUSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* usaRefMT,
@@ -272,9 +291,6 @@ public:
       Ref sizeRef,
       const std::string& typeName) = 0;
 
-  virtual LLVMValueRef getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;
-  virtual LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;
-
   virtual void checkInlineStructType(
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -286,10 +302,19 @@ public:
       LLVMBuilderRef builder,
       Reference* sourceType,
       Reference* targetType,
-      Ref sourceRef) = 0;
+      LoadResult sourceRef) = 0;
 
   virtual LLVMTypeRef getExternalType(
       Reference* refMT) = 0;
+
+  virtual LoadResult loadElementFromKSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* ksaRefMT,
+      KnownSizeArrayT* ksaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef) = 0;
 
   virtual LLVMValueRef copyToWild(
       FunctionState* functionState,
@@ -315,21 +340,17 @@ public:
       Reference* sourceRefMT,
       LLVMValueRef sourceRef) = 0;
 
-
-  // Get rid of these
+  virtual LLVMValueRef getStringBytesPtr(
+      FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;
+  virtual LLVMValueRef getStringLen(
+      FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;
+  // TODO:
+  // One use is for makeNewStrFunc, make that private to the unsafe region.
+  // Change this to also take in the bytes pointer.
   virtual WrapperPtrLE mallocStr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) = 0;
-  // and the other withoutupgrade things maybe
-  virtual Ref loadElementFromKSAWithoutUpgrade(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* ksaRefMT,
-      KnownSizeArrayT* ksaMT,
-      Ref arrayRef,
-      bool arrayRefKnownLive,
-      Ref indexRef) = 0;
 };
 
 #endif

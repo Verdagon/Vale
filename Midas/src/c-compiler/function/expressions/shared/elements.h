@@ -11,7 +11,7 @@
 #include "globalstate.h"
 #include "function/function.h"
 
-Ref loadElementWithoutUpgrade(
+LoadResult loadElementWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,

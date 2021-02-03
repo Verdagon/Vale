@@ -89,7 +89,7 @@ LLVMTypeRef translateWeakReference(GlobalState* globalState, IWeakRefStructsSour
   }
 }
 
-Ref loadInnerInnerStructMember(
+LoadResult loadInnerInnerStructMember(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     LLVMValueRef innerStructPtrLE,
@@ -104,7 +104,7 @@ Ref loadInnerInnerStructMember(
           LLVMBuildStructGEP(
               builder, innerStructPtrLE, memberIndex, memberName.c_str()),
           memberName.c_str());
-  return wrap(globalState->region, expectedType, result);
+  return LoadResult{wrap(globalState->region, expectedType, result)};
 }
 
 void storeInnerInnerStructMember(
@@ -174,7 +174,7 @@ LLVMValueRef insertStrongRc(
       "controlBlockWithRc");
 }
 
-Ref loadElementFromKSAWithoutUpgradeInner(
+LoadResult loadElementFromKSAInner(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -977,7 +977,7 @@ void regularCheckValidReference(
     assert(false);
 }
 
-Ref regularLoadElementFromUSAWithoutUpgrade(
+LoadResult regularLoadElementFromUSAWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1003,7 +1003,7 @@ Ref regularLoadElementFromUSAWithoutUpgrade(
       sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef);
 }
 
-Ref resilientLoadElementFromUSAWithoutUpgrade(
+LoadResult resilientLoadElementFromUSAWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1186,7 +1186,7 @@ Ref constructUnknownSizeArrayCountedStruct(
   return refLE;
 }
 
-Ref regularLoadMember(
+LoadResult regularLoadMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1201,9 +1201,10 @@ Ref regularLoadMember(
   if (structRefMT->location == Location::INLINE) {
     auto structRefLE = globalState->region->checkValidReference(FL(), functionState, builder,
         structRefMT, structRef);
-    return wrap(globalState->region, expectedMemberType,
+    return LoadResult{
+      wrap(globalState->region, expectedMemberType,
         LLVMBuildExtractValue(
-            builder, structRefLE, memberIndex, memberName.c_str()));
+            builder, structRefLE, memberIndex, memberName.c_str()))};
   } else {
     switch (structRefMT->ownership) {
       case Ownership::OWN:
@@ -1220,7 +1221,7 @@ Ref regularLoadMember(
   }
 }
 
-Ref resilientLoadWeakMember(
+LoadResult resilientLoadWeakMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1288,7 +1289,7 @@ Ref upcastWeak(
       targetInterfaceTypeM);
 }
 
-Ref regularLoadElementFromKSAWithoutUpgrade(
+LoadResult regularloadElementFromKSA(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1304,10 +1305,10 @@ Ref regularLoadElementFromKSAWithoutUpgrade(
           referendStructs->makeWrapperPtr(
               FL(), functionState, builder, ksaRefMT,
               globalState->region->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
-  return loadElementFromKSAWithoutUpgradeInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+  return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
 }
 
-Ref resilientLoadElementFromKSAWithoutUpgrade(
+LoadResult resilientloadElementFromKSA(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1326,13 +1327,13 @@ Ref resilientLoadElementFromKSAWithoutUpgrade(
               referendStructs->makeWrapperPtr(
                   FL(), functionState, builder, ksaRefMT,
                   globalState->region->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
-      return loadElementFromKSAWithoutUpgradeInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
     }
     case Ownership::BORROW: {
       LLVMValueRef arrayElementsPtrLE =
           getKnownSizeArrayContentsPtr(
               builder, globalState->region->lockWeakRef(FL(), functionState, builder, ksaRefMT, arrayRef, arrayKnownLive));
-      return loadElementFromKSAWithoutUpgradeInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1421,7 +1422,7 @@ Ref getUnknownSizeArrayLengthStrong(
   return ::getUnknownSizeArrayLength(globalState, functionState, builder, wrapperPtrLE);
 }
 
-Ref regularLoadStrongMember(
+LoadResult regularLoadStrongMember(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,

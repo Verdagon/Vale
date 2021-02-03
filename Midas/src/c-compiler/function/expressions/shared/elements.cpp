@@ -81,7 +81,7 @@ void storeInnerArrayMember(
           builder, elemsPtrLE, indices, 2, "indexPtr"));
 }
 
-Ref loadElementWithoutUpgrade(
+LoadResult loadElementWithoutUpgrade(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -122,7 +122,7 @@ Ref loadElementWithoutUpgrade(
     // it away.
     auto sourceRef = wrap(functionState->defaultRegion, elementRefM, fromArrayLE);
     functionState->defaultRegion->checkValidReference(FL(), functionState, builder, elementRefM, sourceRef);
-    return sourceRef;
+    return LoadResult{sourceRef};
   }
 }
 
@@ -177,10 +177,13 @@ Ref storeElement(
 //      auto arrayWrapperPtrLE = getUnknownSizeArrayWrapperPtr(globalState, functionState, builder, arrayRefM, arrayRef);
 //      LLVMValueRef arrayPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
 
-      auto resultLE = loadElementWithoutUpgrade(globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, mutability, indexRef);
+      auto loadResult =
+          loadElementWithoutUpgrade(
+              globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, mutability, indexRef);
+      auto resultRef = loadResult.move();
 
       storeInnerArrayMember(globalState, builder, arrayPtrLE, indexLE, sourceLE);
-      return resultLE;
+      return resultRef;
     }
   } else if (mutability == Mutability::MUTABLE) {
     auto resultLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);

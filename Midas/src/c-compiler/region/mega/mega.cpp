@@ -1192,7 +1192,8 @@ Ref Mega::upgradeLoadResultToRefWithTargetOwnership(
     LLVMBuilderRef builder,
     Reference* sourceType,
     Reference* targetType,
-    Ref sourceRef) {
+    LoadResult sourceLoadResult) {
+  auto sourceRef = sourceLoadResult.extractForAliasingInternals();
   auto sourceOwnership = sourceType->ownership;
   auto sourceLocation = sourceType->location;
   auto targetOwnership = targetType->ownership;
@@ -1533,23 +1534,7 @@ void Mega::fillControlBlock(
   }
 }
 
-Ref Mega::loadElementFromKSAWithUpgrade(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ksaRefMT,
-    KnownSizeArrayT* ksaMT,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Reference* targetType) {
-  Ref memberRef =
-      loadElementFromKSAWithoutUpgrade(
-          functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef);
-  return upgradeLoadResultToRefWithTargetOwnership(
-      functionState, builder, ksaMT->rawArray->elementType, targetType, memberRef);
-}
-
-Ref Mega::loadElementFromKSAWithoutUpgrade(
+LoadResult Mega::loadElementFromKSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
@@ -1561,7 +1546,7 @@ Ref Mega::loadElementFromKSAWithoutUpgrade(
     case RegionOverride::ASSIST:
     case RegionOverride::NAIVE_RC:
     case RegionOverride::FAST: {
-      return regularLoadElementFromKSAWithoutUpgrade(
+      return regularloadElementFromKSA(
           globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
     }
     case RegionOverride::RESILIENT_V0:
@@ -1569,7 +1554,7 @@ Ref Mega::loadElementFromKSAWithoutUpgrade(
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
-      return resilientLoadElementFromKSAWithoutUpgrade(
+      return resilientloadElementFromKSA(
           globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
     }
     default:
@@ -1577,22 +1562,7 @@ Ref Mega::loadElementFromKSAWithoutUpgrade(
   }
 }
 
-Ref Mega::loadElementFromUSAWithUpgrade(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Reference* targetType) {
-  Ref memberRef = loadElementFromUSAWithoutUpgrade(functionState, builder, usaRefMT,
-      usaMT, arrayRef, arrayKnownLive, indexRef);
-  return upgradeLoadResultToRefWithTargetOwnership(
-      functionState, builder, usaMT->rawArray->elementType, targetType, memberRef);
-}
-
-Ref Mega::loadElementFromUSAWithoutUpgrade(
+LoadResult Mega::loadElementFromUSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaRefMT,

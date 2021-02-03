@@ -256,9 +256,11 @@ Ref translateExpressionInner(
               AFL("DestroyKSAIntoF consume iteration"),
               functionState, bodyBuilder, consumerType, consumerRef);
 
-          auto elementRef =
-              functionState->defaultRegion->loadElementFromKSAWithoutUpgrade(
+          auto elementLoadResult =
+              functionState->defaultRegion->loadElementFromKSA(
                   functionState, bodyBuilder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexRef);
+          auto elementRef = elementLoadResult.move();
+
           functionState->defaultRegion->checkValidReference(
               FL(), functionState, bodyBuilder, arrayReferend->rawArray->elementType, elementRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
@@ -311,9 +313,10 @@ Ref translateExpressionInner(
               AFL("DestroyUSAIntoF consume iteration"),
               functionState, bodyBuilder, consumerType, consumerRef);
 
-          auto elementRef =
-              functionState->defaultRegion->loadElementFromUSAWithoutUpgrade(
+          auto loadResult =
+              functionState->defaultRegion->loadElementFromUSA(
                   functionState, bodyBuilder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexRef);
+          auto elementRef = loadResult.move();
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
           buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0, 0);
         });
@@ -360,12 +363,15 @@ Ref translateExpressionInner(
     auto mutability = ownershipToMutability(arrayType->ownership);
     functionState->defaultRegion->dealias(AFL("KSALoad"), functionState, builder, arrayType, arrayRef);
 
-    auto resultLE =
-        functionState->defaultRegion->loadElementFromKSAWithUpgrade(
-            functionState, builder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexLE, knownSizeArrayLoad->resultType);
-    functionState->defaultRegion->alias(FL(), functionState, builder, arrayReferend->rawArray->elementType, resultLE);
-    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, arrayReferend->rawArray->elementType, resultLE);
-    return resultLE;
+    auto loadResult =
+        functionState->defaultRegion->loadElementFromKSA(
+            functionState, builder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexLE);
+    auto resultRef =
+        functionState->defaultRegion->upgradeLoadResultToRefWithTargetOwnership(
+            functionState, builder, knownSizeArrayLoad->arrayReferend->rawArray->elementType, knownSizeArrayLoad->resultType, loadResult);
+    functionState->defaultRegion->alias(FL(), functionState, builder, arrayReferend->rawArray->elementType, resultRef);
+    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, arrayReferend->rawArray->elementType, resultRef);
+    return resultRef;
   } else if (auto unknownSizeArrayLoad = dynamic_cast<UnknownSizeArrayLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = unknownSizeArrayLoad->arrayType;
@@ -386,17 +392,20 @@ Ref translateExpressionInner(
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
 
-    auto resultLE =
-        functionState->defaultRegion->loadElementFromUSAWithUpgrade(
-            functionState, builder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexLE, resultType);
+    auto loadResult =
+        functionState->defaultRegion->loadElementFromUSA(
+            functionState, builder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexLE);
+    auto resultRef =
+        functionState->defaultRegion->upgradeLoadResultToRefWithTargetOwnership(
+            functionState, builder, unknownSizeArrayLoad->arrayReferend->rawArray->elementType, resultType, loadResult);
 
-    functionState->defaultRegion->alias(FL(), functionState, builder, resultType, resultLE);
+    functionState->defaultRegion->alias(FL(), functionState, builder, resultType, resultRef);
 
-    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, resultType, resultLE);
+    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, resultType, resultRef);
 
     functionState->defaultRegion->dealias(AFL("USALoad"), functionState, builder, arrayType, arrayRef);
 
-    return resultLE;
+    return resultRef;
   } else if (auto unknownSizeArrayStore = dynamic_cast<UnknownSizeArrayStore*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = unknownSizeArrayStore->arrayType;
@@ -431,10 +440,11 @@ Ref translateExpressionInner(
 
     functionState->defaultRegion->checkValidReference(FL(), functionState, builder, arrayReferend->rawArray->elementType, valueToStoreLE);
 
-    auto oldValueLE =
-        functionState->defaultRegion->loadElementFromUSAWithoutUpgrade(
+    auto loadResult =
+        functionState->defaultRegion->loadElementFromUSA(
             functionState, builder, arrayType, arrayReferend,
             arrayRefLE, arrayKnownLive, indexRef);
+    auto oldValueLE = loadResult.move();
     functionState->defaultRegion->checkValidReference(FL(), functionState, builder, arrayReferend->rawArray->elementType, oldValueLE);
     // We dont acquireReference here because we aren't aliasing the reference, we're moving it out.
 

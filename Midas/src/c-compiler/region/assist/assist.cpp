@@ -600,7 +600,8 @@ Ref Assist::upgradeLoadResultToRefWithTargetOwnership(
     LLVMBuilderRef builder,
     Reference* sourceType,
     Reference* targetType,
-    Ref sourceRef) {
+    LoadResult sourceLoad) {
+  auto sourceRef = sourceLoad.extractForAliasingInternals();
   auto sourceOwnership = sourceType->ownership;
   auto sourceLocation = sourceType->location;
   auto targetOwnership = targetType->ownership;
@@ -671,23 +672,7 @@ void Assist::fillControlBlock(
       typeName, &wrcWeaks);
 }
 
-Ref Assist::loadElementFromKSAWithUpgrade(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* ksaRefMT,
-    KnownSizeArrayT* ksaMT,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Reference* targetType) {
-  Ref memberRef =
-      loadElementFromKSAWithoutUpgrade(
-          functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef);
-  return upgradeLoadResultToRefWithTargetOwnership(
-      functionState, builder, ksaMT->rawArray->elementType, targetType, memberRef);
-}
-
-Ref Assist::loadElementFromKSAWithoutUpgrade(
+LoadResult Assist::loadElementFromKSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
@@ -695,26 +680,11 @@ Ref Assist::loadElementFromKSAWithoutUpgrade(
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef) {
-  return regularLoadElementFromKSAWithoutUpgrade(
+  return regularloadElementFromKSA(
       globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
 }
 
-Ref Assist::loadElementFromUSAWithUpgrade(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Reference* targetType) {
-  Ref memberRef = loadElementFromUSAWithoutUpgrade(functionState, builder, usaRefMT,
-      usaMT, arrayRef, arrayKnownLive, indexRef);
-  return upgradeLoadResultToRefWithTargetOwnership(
-      functionState, builder, usaMT->rawArray->elementType, targetType, memberRef);
-}
-
-Ref Assist::loadElementFromUSAWithoutUpgrade(
+LoadResult Assist::loadElementFromUSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaRefMT,
