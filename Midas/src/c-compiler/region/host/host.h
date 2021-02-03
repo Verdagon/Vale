@@ -1,5 +1,5 @@
-#ifndef REGION_MEGA_MEGA_H_
-#define REGION_MEGA_MEGA_H_
+#ifndef REGION_HOST_HOST_H_
+#define REGION_HOST_HOST_H_
 
 #include <llvm-c/Core.h>
 #include <function/expressions/shared/afl.h>
@@ -13,10 +13,10 @@
 #include "../iregion.h"
 #include <region/common/referendptrmaker.h>
 
-class Mega : public IRegion {
+class Host : public IRegion {
 public:
-  Mega(GlobalState* globalState);
-  ~Mega() override = default;
+  Host(GlobalState* globalState);
+  ~Host() override = default;
 
   Ref allocate(
       AreaAndFileAndLine from,
@@ -398,8 +398,6 @@ protected:
 
   FatWeaks fatWeaks;
   WrcWeaks wrcWeaks;
-  LgtWeaks lgtWeaks;
-  HybridGenerationalMemory hgmWeaks;
 
   // TODO see if we can just use referendStructs/weakRefStructs instead of having these?
 //  WeakFatPtrLEMaker weakFatPtrMaker;

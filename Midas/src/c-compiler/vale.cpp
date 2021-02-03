@@ -28,6 +28,7 @@
 #include <llvm-c/Transforms/IPO.h>
 #include <region/assist/assist.h>
 #include <region/mega/mega.h>
+#include <region/host/host.h>
 #include <function/expressions/shared/string.h>
 #include <sstream>
 
@@ -413,8 +414,10 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     case RegionOverride::ASSIST:
       defaultRegion = new Assist(globalState);
       break;
-    case RegionOverride::NAIVE_RC:
     case RegionOverride::FAST:
+      defaultRegion = new Host(globalState);
+      break;
+    case RegionOverride::NAIVE_RC:
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_V1:
     case RegionOverride::RESILIENT_V2:

@@ -21,9 +21,7 @@ LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState) {
       globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
       globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT) {
     return HybridGenerationalMemory::makeWeakRefHeaderStruct(globalState);
-  } else if (globalState->opt->regionOverride == RegionOverride::ASSIST ||
-      globalState->opt->regionOverride == RegionOverride::FAST ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
+  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
       globalState->opt->regionOverride == RegionOverride::NAIVE_RC) {
     return WrcWeaks::makeWeakRefHeaderStruct(globalState);
   } else {
@@ -33,11 +31,8 @@ LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState) {
 
 ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
     case RegionOverride::NAIVE_RC:
       return makeAssistAndNaiveRCNonWeakableControlBlock(globalState);
-    case RegionOverride::FAST:
-      return makeFastNonWeakableControlBlock(globalState);
     case RegionOverride::RESILIENT_V0:
       return makeResilientV0WeakableControlBlock(globalState);
     case RegionOverride::RESILIENT_V1:
@@ -53,11 +48,8 @@ ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState) {
 
 ControlBlock makeMutWeakableControlBlock(GlobalState* globalState) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
     case RegionOverride::NAIVE_RC:
       return makeAssistAndNaiveRCWeakableControlBlock(globalState);
-    case RegionOverride::FAST:
-      return makeFastWeakableControlBlock(globalState);
     case RegionOverride::RESILIENT_V0:
       return makeResilientV0WeakableControlBlock(globalState);
     case RegionOverride::RESILIENT_V1:
@@ -84,9 +76,7 @@ Mega::Mega(GlobalState* globalState_) :
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
           switch (globalState->opt->regionOverride) {
-            case RegionOverride::ASSIST:
             case RegionOverride::NAIVE_RC:
-            case RegionOverride::FAST:
               if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 return &immStructs;
               } else {
@@ -113,9 +103,7 @@ Mega::Mega(GlobalState* globalState_) :
     weakRefStructs(
         [this](Referend* referend) -> IWeakRefStructsSource* {
           switch (globalState->opt->regionOverride) {
-            case RegionOverride::ASSIST:
             case RegionOverride::NAIVE_RC:
-            case RegionOverride::FAST:
               if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 assert(false);
               } else {
@@ -210,9 +198,6 @@ void Mega::alias(
   auto sourceRnd = sourceRef->referend;
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
-      break;
     case RegionOverride::NAIVE_RC: {
       if (dynamic_cast<Int *>(sourceRnd) ||
           dynamic_cast<Bool *>(sourceRnd) ||
@@ -229,38 +214,6 @@ void Mega::alias(
           adjustStrongRc(from, globalState, functionState, &referendStructs, builder, expr, sourceRef, 1);
         } else if (sourceRef->ownership == Ownership::BORROW) {
           adjustStrongRc(from, globalState, functionState, &referendStructs, builder, expr, sourceRef, 1);
-        } else if (sourceRef->ownership == Ownership::WEAK) {
-          aliasWeakRef(from, functionState, builder, sourceRef, expr);
-        } else if (sourceRef->ownership == Ownership::SHARE) {
-          if (sourceRef->location == Location::INLINE) {
-            // Do nothing, we can just let inline structs disappear
-          } else {
-            adjustStrongRc(from, globalState, functionState, &referendStructs, builder, expr, sourceRef, 1);
-          }
-        } else
-          assert(false);
-      } else {
-        std::cerr << "Unimplemented type in acquireReference: "
-            << typeid(*sourceRef->referend).name() << std::endl;
-        assert(false);
-      }
-      break;
-    }
-    case RegionOverride::FAST: {
-      if (dynamic_cast<Int *>(sourceRnd) ||
-          dynamic_cast<Bool *>(sourceRnd) ||
-          dynamic_cast<Float *>(sourceRnd)) {
-        // Do nothing for these, they're always inlined and copied.
-      } else if (dynamic_cast<InterfaceReferend *>(sourceRnd) ||
-          dynamic_cast<StructReferend *>(sourceRnd) ||
-          dynamic_cast<KnownSizeArrayT *>(sourceRnd) ||
-          dynamic_cast<UnknownSizeArrayT *>(sourceRnd) ||
-          dynamic_cast<Str *>(sourceRnd)) {
-        if (sourceRef->ownership == Ownership::OWN) {
-          // We might be loading a member as an own if we're destructuring.
-          // Don't adjust the RC, since we're only moving it.
-        } else if (sourceRef->ownership == Ownership::BORROW) {
-          // Do nothing, fast mode doesn't do stuff for borrow refs.
         } else if (sourceRef->ownership == Ownership::WEAK) {
           aliasWeakRef(from, functionState, builder, sourceRef, expr);
         } else if (sourceRef->ownership == Ownership::SHARE) {
@@ -346,16 +299,6 @@ void Mega::dealias(
         } else assert(false);
         break;
       }
-      case RegionOverride::FAST: {
-        if (sourceMT->ownership == Ownership::OWN) {
-          // This can happen if we're sending an owning reference to the outside world, see DEPAR.
-        } else if (sourceMT->ownership == Ownership::BORROW) {
-          // Do nothing!
-        } else if (sourceMT->ownership == Ownership::WEAK) {
-          discardWeakRef(from, functionState, builder, sourceMT, sourceRef);
-        } else assert(false);
-        break;
-      }
       case RegionOverride::RESILIENT_V0:
       case RegionOverride::RESILIENT_V1:
       case RegionOverride::RESILIENT_V2:
@@ -379,8 +322,7 @@ void Mega::dealias(
 Ref Mega::weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) {
   assert(sourceRefMT->ownership == Ownership::BORROW);
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       return regularWeakAlias(globalState, functionState, &referendStructs, &wrcWeaks, builder, sourceRefMT, targetRefMT, sourceRef);
     }
     case RegionOverride::RESILIENT_V0:
@@ -404,8 +346,6 @@ WrapperPtrLE Mega::lockWeakRef(
     Ref weakRefLE,
     bool weakRefKnownLive) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::FAST:
-    case RegionOverride::ASSIST:
     case RegionOverride::NAIVE_RC: {
       switch (refM->ownership) {
         case Ownership::OWN:
@@ -522,8 +462,7 @@ Ref Mega::lockWeak(
     std::function<Ref(LLVMBuilderRef)> buildElse) {
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       assert(sourceWeakRefMT->ownership == Ownership::WEAK);
       auto isAliveLE =
           getIsAliveFromWeakRef(
@@ -556,8 +495,7 @@ Ref Mega::lockWeak(
 
 LLVMTypeRef Mega::translateType(Reference* referenceM) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       switch (referenceM->ownership) {
         case Ownership::SHARE:
           return defaultImmutables.translateType(globalState, referenceM);
@@ -622,7 +560,6 @@ Ref Mega::upcastWeak(
               sourceStructTypeM, targetInterfaceReferendM, targetInterfaceTypeM);
       return wrap(this, targetInterfaceTypeM, resultWeakInterfaceFatPtr);
     }
-    case RegionOverride::FAST:
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::NAIVE_RC: {
       auto resultWeakInterfaceFatPtr =
@@ -732,8 +669,7 @@ LLVMTypeRef Mega::translateInterfaceMethodToFunctionType(
   auto paramsLT = translateTypes(globalState, this, paramsMT);
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       switch (paramsMT[method->virtualParamIndex]->ownership) {
         case Ownership::BORROW:
         case Ownership::OWN:
@@ -791,13 +727,6 @@ void Mega::discardOwningRef(
           });
       break;
     }
-    case RegionOverride::FAST: {
-      // Do nothing
-
-      // Free it!
-      deallocate(AFL("discardOwningRef"), functionState, builder, sourceMT, sourceRef);
-      break;
-    }
     case RegionOverride::RESILIENT_V0: {
       // Mutables in resilient mode dont have strong RC, and also, they dont adjust
       // weak RC for owning refs
@@ -845,30 +774,6 @@ void Mega::noteWeakableDestroyed(
       }
     } else {
       // Do nothing, only structs and interfaces are weakable in naive-rc mode.
-    }
-  } else if (globalState->opt->regionOverride == RegionOverride::FAST) {
-    // In fast mode, only shared things are strong RC'd
-    if (refM->ownership == Ownership::SHARE) {
-      // Only shared stuff is RC'd in fast mode
-      auto rcIsZeroLE = strongRcIsZero(globalState, &referendStructs, builder, refM, controlBlockPtrLE);
-      buildAssert(globalState, functionState, builder, rcIsZeroLE,
-          "Tried to free concrete that had nonzero RC!");
-    } else {
-      // It's a mutable, so mark WRCs dead
-
-      if (auto structReferendM = dynamic_cast<StructReferend *>(refM->referend)) {
-        auto structM = globalState->program->getStruct(structReferendM->fullName);
-        if (structM->weakability == Weakability::WEAKABLE) {
-          wrcWeaks.innerNoteWeakableDestroyed(functionState, builder, refM, controlBlockPtrLE);
-        }
-      } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend *>(refM->referend)) {
-        auto interfaceM = globalState->program->getStruct(interfaceReferendM->fullName);
-        if (interfaceM->weakability == Weakability::WEAKABLE) {
-          wrcWeaks.innerNoteWeakableDestroyed(functionState, builder, refM, controlBlockPtrLE);
-        }
-      } else {
-        // Do nothing, only structs and interfaces are weakable in assist mode.
-      }
     }
   } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0) {
     if (refM->ownership == Ownership::SHARE) {
@@ -919,8 +824,7 @@ void Mega::storeMember(
     LLVMValueRef newValueLE) {
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       switch (structRefMT->ownership) {
         case Ownership::OWN:
         case Ownership::SHARE:
@@ -978,8 +882,7 @@ std::tuple<LLVMValueRef, LLVMValueRef> Mega::explodeInterfaceRef(
     Reference* virtualParamMT,
     Ref virtualArgRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       switch (virtualParamMT->ownership) {
         case Ownership::OWN:
         case Ownership::BORROW:
@@ -1077,9 +980,7 @@ Ref Mega::getUnknownSizeArrayLength(
     Ref arrayRef,
     bool arrayKnownLive) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       return getUnknownSizeArrayLengthStrong(globalState, functionState, builder, &referendStructs, usaRefMT, arrayRef);
     }
     case RegionOverride::RESILIENT_V0:
@@ -1124,9 +1025,7 @@ LLVMValueRef Mega::checkValidReference(
 
   if (globalState->opt->census) {
     switch (globalState->opt->regionOverride) {
-      case RegionOverride::ASSIST:
-      case RegionOverride::NAIVE_RC:
-      case RegionOverride::FAST: {
+      case RegionOverride::NAIVE_RC: {
         if (refM->ownership == Ownership::OWN) {
           regularCheckValidReference(checkerAFL, globalState, functionState, builder, &referendStructs, refM, refLE);
         } else if (refM->ownership == Ownership::SHARE) {
@@ -1201,9 +1100,7 @@ Ref Mega::upgradeLoadResultToRefWithTargetOwnership(
 //  assert(sourceLocation == targetLocation); // unimplemented
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       if (sourceOwnership == Ownership::SHARE) {
         if (sourceLocation == Location::INLINE) {
           return sourceRef;
@@ -1370,7 +1267,6 @@ void Mega::aliasWeakRef(
     Ref weakRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
     case RegionOverride::RESILIENT_V0:
       return wrcWeaks.aliasWeakRef(from, functionState, builder, weakRefMT, weakRef);
     case RegionOverride::RESILIENT_V1:
@@ -1392,7 +1288,6 @@ void Mega::discardWeakRef(
     Ref weakRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
     case RegionOverride::RESILIENT_V0:
       return wrcWeaks.discardWeakRef(from, functionState, builder, weakRefMT, weakRef);
     case RegionOverride::RESILIENT_V1:
@@ -1425,7 +1320,6 @@ Ref Mega::getIsAliveFromWeakRef(
     bool knownLive) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
     case RegionOverride::RESILIENT_V0:
       return wrcWeaks.getIsAliveFromWeakRef(functionState, builder, weakRefM, weakRef);
     case RegionOverride::RESILIENT_V1:
@@ -1450,35 +1344,10 @@ void Mega::fillControlBlock(
     const std::string& typeName) {
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
-      break;
     case RegionOverride::NAIVE_RC: {
       regularFillControlBlock(
           from, globalState, functionState, &referendStructs, builder, referendM, mutability, controlBlockPtrLE,
           typeName, &wrcWeaks);
-      break;
-    }
-    case RegionOverride::FAST: {
-      LLVMValueRef newControlBlockLE = LLVMGetUndef(referendStructs.getControlBlock(referendM)->getStruct());
-
-      newControlBlockLE =
-          fillControlBlockCensusFields(
-              from, globalState, functionState, &referendStructs, builder, referendM, newControlBlockLE, typeName);
-
-      if (mutability == Mutability::IMMUTABLE) {
-        newControlBlockLE =
-            insertStrongRc(globalState, builder, &referendStructs, referendM, newControlBlockLE);
-      } else {
-        if (globalState->program->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
-          newControlBlockLE = wrcWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
-              newControlBlockLE);
-        }
-      }
-      LLVMBuildStore(
-          builder,
-          newControlBlockLE,
-          controlBlockPtrLE.refLE);
       break;
     }
     case RegionOverride::RESILIENT_V0: {
@@ -1543,9 +1412,7 @@ LoadResult Mega::loadElementFromKSA(
     bool arrayKnownLive,
     Ref indexRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       return regularloadElementFromKSA(
           globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
     }
@@ -1571,9 +1438,7 @@ LoadResult Mega::loadElementFromUSA(
     bool arrayKnownLive,
     Ref indexRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       return regularLoadElementFromUSAWithoutUpgrade(globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef, arrayKnownLive, indexRef);
     }
     case RegionOverride::RESILIENT_V0:
@@ -1598,9 +1463,7 @@ Ref Mega::storeElementInUSA(
     Ref indexRef,
     Ref elementRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       return regularStoreElementInUSA(globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef, indexRef, elementRef);
     }
     case RegionOverride::RESILIENT_V0:
@@ -1633,9 +1496,7 @@ Ref Mega::upcast(
     InterfaceReferend* targetInterfaceReferendM) {
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       switch (sourceStructMT->ownership) {
         case Ownership::SHARE:
         case Ownership::OWN:
@@ -1730,8 +1591,7 @@ Ref Mega::loadMember(
     const std::string& memberName) {
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST: {
+    case RegionOverride::NAIVE_RC: {
       if (structRefMT->ownership == Ownership::SHARE) {
         auto memberLE =
             defaultImmutables.loadMember(
@@ -1843,10 +1703,7 @@ std::string Mega::getRefNameC(Reference* refMT) {
 void Mega::generateStructDefsC(
     std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
       if (structDefM->mutability == Mutability::IMMUTABLE) {
         return defaultImmutables.generateStructDefsC(cByExportedName, structDefM);
       } else {
@@ -1889,16 +1746,15 @@ void Mega::generateStructDefsC(
         cByExportedName->insert(std::make_pair(baseName, s.str()));
       }
       break;
+    default:
+      assert(false);
   }
 }
 
 void Mega::generateInterfaceDefsC(
     std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
 //      return "void* unused; void* unused;";
       assert(false); // impl
     case RegionOverride::RESILIENT_V0:
@@ -1917,15 +1773,14 @@ void Mega::generateInterfaceDefsC(
         cByExportedName->insert(std::make_pair(name, s.str()));
       }
       break;
+    default:
+      assert(false);
   }
 }
 
 LLVMTypeRef Mega::getExternalType(Reference* refMT) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
       if (refMT->ownership == Ownership::SHARE) {
         return defaultImmutables.getExternalType(refMT);
       } else {
@@ -1986,22 +1841,12 @@ LLVMValueRef Mega::copyToWild(
     Reference* sourceRefMT,
     Ref sourceRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
       if (sourceRefMT->ownership == Ownership::SHARE) {
         return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
       } else {
         assert(false);
       }
-      break;
-    case RegionOverride::FAST:
-      if (sourceRefMT->ownership == Ownership::SHARE) {
-        return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
-      } else {
-        assert(false);
-      }
-      assert(false);
       break;
     case RegionOverride::RESILIENT_V0:
       if (sourceRefMT->ownership == Ownership::SHARE) {
@@ -2042,10 +1887,7 @@ Ref Mega::copyFromWild(
     Reference* sourceRefMT,
     LLVMValueRef sourceRef) {
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::FAST:
       if (sourceRefMT->ownership == Ownership::SHARE) {
         return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
       } else {
@@ -2101,15 +1943,10 @@ LLVMValueRef Mega::sendRefToWild(
   assert(sourceRefMT->ownership != Ownership::SHARE);
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC:
       std::cerr << "Naive-rc cant send mutables across the boundary." << std::endl;
       assert(false);
       break;
-    case RegionOverride::FAST:
-      // In unsafe, everything is the same representation as it is in C, no conversion needed.
-      return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
     case RegionOverride::RESILIENT_V0:
       std::cerr << "Resilient V0 cant send mutables across the boundary" << std::endl;
       assert(false);
@@ -2224,8 +2061,6 @@ Ref Mega::receiveRefFromWild(
   assert(sourceRefMT->ownership != Ownership::SHARE);
 
   switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      assert(false);
     case RegionOverride::NAIVE_RC: {
       assert(sourceRefMT->location != Location::INLINE);
       auto result = wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
@@ -2233,12 +2068,6 @@ Ref Mega::receiveRefFromWild(
       // Alias any object coming from the outside world, see DEPAR.
       alias(FL(), functionState, builder, sourceRefMT, result);
 
-      return result;
-    }
-    case RegionOverride::FAST: {
-      assert(sourceRefMT->location != Location::INLINE);
-      auto result = wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
-      // No need to alias in unsafe mode for instances
       return result;
     }
     case RegionOverride::RESILIENT_V0:
