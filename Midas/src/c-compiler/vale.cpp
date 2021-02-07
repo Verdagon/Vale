@@ -200,6 +200,7 @@ void initInternalExterns(GlobalState* globalState) {
   auto int1LT = LLVMInt1TypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   auto int32LT = LLVMInt32TypeInContext(globalState->context);
+  auto int32PtrLT = LLVMPointerType(int32LT, 0);
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
   auto voidPtrLT = LLVMPointerType(int8LT, 0);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
@@ -227,6 +228,39 @@ void initInternalExterns(GlobalState* globalState) {
 //  globalState->intToCStr = addExtern(globalState->mod, "__vintToCStr", LLVMVoidTypeInContext(globalState->context),
 //      {int64LT, int8PtrLT, int64LT});
   globalState->strlen = addExtern(globalState->mod, "strlen", int64LT, {int8PtrLT});
+
+  {
+    globalState->wrcTableStructLT = LLVMStructCreateNamed(globalState->context, "__WRCTable");
+    std::vector<LLVMTypeRef> memberTypesL;
+    memberTypesL.push_back(int32LT);
+    memberTypesL.push_back(int32LT);
+    memberTypesL.push_back(int32PtrLT);
+    LLVMStructSetBody(
+        globalState->wrcTableStructLT, memberTypesL.data(), memberTypesL.size(), false);
+  }
+
+  globalState->expandWrcTable =
+      addExtern(
+          globalState->mod, "__expandWrcTable",
+          LLVMVoidTypeInContext(globalState->context),
+          {
+              LLVMPointerType(globalState->wrcTableStructLT, 0)
+          });
+  globalState->checkWrci =
+      addExtern(
+          globalState->mod, "__checkWrc",
+          LLVMVoidTypeInContext(globalState->context),
+          {
+              LLVMPointerType(globalState->wrcTableStructLT, 0),
+              int32LT
+          });
+  globalState->getNumWrcs =
+      addExtern(
+          globalState->mod, "__getNumWrcs",
+          int32LT,
+          {
+              LLVMPointerType(globalState->wrcTableStructLT, 0),
+          });
 }
 
 
@@ -413,12 +447,12 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   Unsafe hostRegion(globalState);
   globalState->hostRegion = &hostRegion;
 
-//  Assist assistRegion(globalState);
+  Assist assistRegion(globalState);
 //  Mega megaRegion(globalState);
   IRegion* defaultRegion = nullptr;
   switch (globalState->opt->regionOverride) {
     case RegionOverride::ASSIST:
-      defaultRegion = new Assist(globalState);
+      defaultRegion = &assistRegion;
       break;
     case RegionOverride::FAST:
       defaultRegion = new Unsafe(globalState);
@@ -439,6 +473,8 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 //  auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
+  auto int32LT = LLVMInt32TypeInContext(globalState->context);
+  auto int32PtrLT = LLVMPointerType(int32LT, 0);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
   globalState->strncpy =
       addExtern(globalState->mod, "strncpy", LLVMVoidTypeInContext(globalState->context),

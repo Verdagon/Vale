@@ -43,7 +43,11 @@ void WrcWeaks::buildCheckWrc(
       assert(false);
       break;
   }
-  LLVMBuildCall(builder, checkWrci, &wrciLE, 1, "");
+  std::vector<LLVMValueRef> checkWrcsArgs = {
+      wrcTablePtrLE,
+      wrciLE,
+  };
+  LLVMBuildCall(builder, globalState->checkWrci, checkWrcsArgs.data(), checkWrcsArgs.size(), "");
 }
 
 LLVMValueRef WrcWeaks::getWrciFromWeakRef(
@@ -69,10 +73,10 @@ void WrcWeaks::maybeReleaseWrc(
         LLVMBuildStore(
             thenBuilder,
             LLVMBuildLoad(
-                thenBuilder, wrcFirstFreeWrciPtr, "firstFreeWrci"),
+                thenBuilder, getWrcFirstFreeWrciPtr(thenBuilder), "firstFreeWrci"),
             ptrToWrcLE);
         // __wrc_firstFree = wrcIndex;
-        LLVMBuildStore(thenBuilder, wrciLE, wrcFirstFreeWrciPtr);
+        LLVMBuildStore(thenBuilder, wrciLE, getWrcFirstFreeWrciPtr(thenBuilder));
       });
 }
 
@@ -103,7 +107,7 @@ LLVMValueRef WrcWeaks::getWrcPtr(
     LLVMBuilderRef builder,
     LLVMValueRef wrciLE) {
   auto wrcEntriesPtrLE =
-      LLVMBuildLoad(builder, wrcEntriesArrayPtr, "wrcEntriesArrayPtr");
+      LLVMBuildLoad(builder, getWrcEntriesArrayPtr(builder), "wrcEntriesArrayPtr");
   auto ptrToWrcLE =
       LLVMBuildGEP(builder, wrcEntriesPtrLE, &wrciLE, 1, "ptrToWrc");
   return ptrToWrcLE;
@@ -119,22 +123,21 @@ WrcWeaks::WrcWeaks(GlobalState *globalState_, IReferendStructsSource* referendSt
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   auto voidPtrLT = LLVMPointerType(int8LT, 0);
   auto int32LT = LLVMInt32TypeInContext(globalState->context);
+  auto int32PtrLT = LLVMPointerType(int32LT, 0);
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
-
-  expandWrcTable = addExtern(globalState->mod, "__expandWrcTable", LLVMVoidTypeInContext(globalState->context), {});
-  checkWrci = addExtern(globalState->mod, "__checkWrc", LLVMVoidTypeInContext(globalState->context), {int32LT});
-  getNumWrcs = addExtern(globalState->mod, "__getNumWrcs", int32LT, {});
-
-  wrcCapacityPtr = LLVMAddGlobal(globalState->mod, LLVMInt32TypeInContext(globalState->context), "__wrc_capacity");
-  LLVMSetLinkage(wrcCapacityPtr, LLVMExternalLinkage);
-
-  wrcFirstFreeWrciPtr = LLVMAddGlobal(globalState->mod, LLVMInt32TypeInContext(globalState->context), "__wrc_firstFree");
-  LLVMSetLinkage(wrcFirstFreeWrciPtr, LLVMExternalLinkage);
-
-  wrcEntriesArrayPtr = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt32TypeInContext(globalState->context), 0), "__wrc_entries");
-  LLVMSetLinkage(wrcEntriesArrayPtr, LLVMExternalLinkage);
+  wrcTablePtrLE = LLVMAddGlobal(globalState->mod, globalState->wrcTableStructLT, "__wrc_table");
+  LLVMSetLinkage(wrcTablePtrLE, LLVMExternalLinkage);
+  std::vector<LLVMValueRef> wrcTableMembers = {
+      constI32LE(globalState, 0),
+      constI32LE(globalState, 0),
+      LLVMConstNull(int32PtrLT)
+  };
+  LLVMSetInitializer(
+      wrcTablePtrLE,
+      LLVMConstNamedStruct(
+          globalState->wrcTableStructLT, wrcTableMembers.data(), wrcTableMembers.size()));
 
   if (globalState->opt->census) {
     LLVMValueRef args[3] = {
@@ -142,13 +145,23 @@ WrcWeaks::WrcWeaks(GlobalState *globalState_, IReferendStructsSource* referendSt
         LLVMBuildZExt(
             globalState->valeMainBuilder,
             LLVMBuildCall(
-                globalState->valeMainBuilder, getNumWrcs, nullptr, 0, "numWrcs"),
+                globalState->valeMainBuilder, globalState->getNumWrcs, &wrcTablePtrLE, 1, "numWrcs"),
             LLVMInt64TypeInContext(globalState->context),
             ""),
         globalState->getOrMakeStringConstant("WRC leaks!"),
     };
     LLVMBuildCall(globalState->valeMainBuilder, globalState->assertI64Eq, args, 3, "");
   }
+}
+
+LLVMValueRef WrcWeaks::getWrcCapacityPtr(LLVMBuilderRef builder) {
+  return LLVMBuildStructGEP(builder, wrcTablePtrLE, 0, "wrcCapacityPtr");
+}
+LLVMValueRef WrcWeaks::getWrcFirstFreeWrciPtr(LLVMBuilderRef builder) {
+  return LLVMBuildStructGEP(builder, wrcTablePtrLE, 1, "wrcFirstFree");
+}
+LLVMValueRef WrcWeaks::getWrcEntriesArrayPtr(LLVMBuilderRef builder) {
+  return LLVMBuildStructGEP(builder, wrcTablePtrLE, 2, "entries");
 }
 
 WeakFatPtrLE WrcWeaks::weakStructPtrToWrciWeakInterfacePtr(
@@ -333,7 +346,7 @@ LLVMValueRef WrcWeaks::getNewWrci(
           globalState->opt->regionOverride == RegionOverride::RESILIENT_V0);
 
   // uint64_t resultWrci = __wrc_firstFree;
-  auto resultWrciLE = LLVMBuildLoad(builder, wrcFirstFreeWrciPtr, "resultWrci");
+  auto resultWrciLE = LLVMBuildLoad(builder, getWrcFirstFreeWrciPtr(builder), "resultWrci");
 
   // if (resultWrci == __wrc_capacity) {
   //   __expandWrcTable();
@@ -343,14 +356,14 @@ LLVMValueRef WrcWeaks::getNewWrci(
           builder,
           LLVMIntEQ,
           resultWrciLE,
-          LLVMBuildLoad(builder, wrcCapacityPtr, "wrcCapacity"),
+          LLVMBuildLoad(builder, getWrcCapacityPtr(builder), "wrcCapacity"),
           "atCapacity");
   buildIf(
       globalState, functionState,
       builder,
       atCapacityLE,
       [this](LLVMBuilderRef thenBuilder) {
-        LLVMBuildCall(thenBuilder, expandWrcTable, nullptr, 0, "");
+        LLVMBuildCall(thenBuilder, globalState->expandWrcTable, &wrcTablePtrLE, 1, "");
       });
 
   // u64* wrcPtr = &__wrc_entries[resultWrci];
@@ -362,7 +375,7 @@ LLVMValueRef WrcWeaks::getNewWrci(
       // *wrcPtr
       LLVMBuildLoad(builder, wrcPtrLE, ""),
       // __wrc_firstFree
-      wrcFirstFreeWrciPtr);
+      getWrcFirstFreeWrciPtr(builder));
 
   // *wrcPtr = WRC_INITIAL_VALUE;
   LLVMBuildStore(
