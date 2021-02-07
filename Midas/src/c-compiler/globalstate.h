@@ -60,6 +60,10 @@ public:
       getStrNumBytesFunc = nullptr;
 
 
+  LLVMTypeRef wrcTableStructLT = nullptr;
+  LLVMValueRef expandWrcTable = nullptr, checkWrci = nullptr, getNumWrcs = nullptr;
+
+
   LLVMValueRef strncpy = nullptr;
 
   LLVMValueRef genMalloc = nullptr, genFree = nullptr;
