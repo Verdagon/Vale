@@ -285,11 +285,12 @@ Ref translateExternCall(
       auto argRefMT = call->function->params[i];
       auto arg = args[i];
 
-      auto externalArgRefLE =
+      auto argHostRef =
           (argRefMT->ownership == Ownership::SHARE ?
-            functionState->defaultRegion->copyToWild(functionState, builder, argRefMT, arg) :
-           functionState->defaultRegion->sendRefToWild(functionState, builder, argRefMT, arg));
-      argsLE.push_back(externalArgRefLE);
+            globalState->hostRegion->copyAlien(functionState, builder, functionState->defaultRegion, argRefMT, arg) :
+           globalState->hostRegion->welcomeAlienRef(functionState, builder, functionState->defaultRegion, argRefMT, arg));
+      auto argHostLE = globalState->hostRegion->checkValidReference(FL(), functionState, builder, argRefMT, argHostRef);
+      argsLE.push_back(argHostLE);
     }
 
     auto externFuncIter = globalState->externFunctions.find(call->function->name->name);
@@ -305,8 +306,8 @@ Ref translateExternCall(
       functionState->defaultRegion->dealias(FL(), functionState, builder, argRefMT, args[i]);
     }
 
-    auto resultLE = LLVMBuildCall(builder, externFuncL, argsLE.data(), argsLE.size(), "");
-//    auto resultRef = wrap(functionState->defaultRegion, call->function->returnType, resultLE);
+    auto resultHostLE = LLVMBuildCall(builder, externFuncL, argsLE.data(), argsLE.size(), "");
+    auto resultHostRef = wrap(globalState->hostRegion, call->function->returnType, resultHostLE);
 //    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, call->function->returnType, resultRef);
 
     if (call->function->returnType->referend == globalState->metalCache.never) {
@@ -320,8 +321,8 @@ Ref translateExternCall(
 
       auto internalArgRef =
           (call->function->returnType->ownership == Ownership::SHARE ?
-          functionState->defaultRegion->copyFromWild(functionState, builder, call->function->returnType, resultLE) :
-           functionState->defaultRegion->receiveRefFromWild(functionState, builder, call->function->returnType, resultLE));
+          functionState->defaultRegion->copyAlien(functionState, builder, globalState->hostRegion, call->function->returnType, resultHostRef) :
+           functionState->defaultRegion->welcomeAlienRef(functionState, builder, globalState->hostRegion, call->function->returnType, resultHostRef));
 
       // Alias any object coming from the outside world, see DEPAR.
       functionState->defaultRegion->alias(

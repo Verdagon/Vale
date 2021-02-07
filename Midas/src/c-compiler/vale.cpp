@@ -28,9 +28,9 @@
 #include <llvm-c/Transforms/IPO.h>
 #include <region/assist/assist.h>
 #include <region/mega/mega.h>
-#include <region/host/host.h>
 #include <function/expressions/shared/string.h>
 #include <sstream>
+#include <region/unsafe/unsafe.h>
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -49,6 +49,8 @@ std::string genMallocName(int bytes) {
 std::string genFreeName(int bytes) {
   return std::string("__genMalloc") + std::to_string(bytes) + std::string("B");
 }
+
+static void addExtraFunctions(GlobalState* globalState);
 
 LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
 //  auto voidLT = LLVMVoidTypeInContext(globalState->context);
@@ -342,7 +344,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
 
 
-
   globalState->ram64Struct =
       LLVMStructCreateNamed(globalState->context, "__Ram64Struct");
   LLVMTypeRef memberI64 = LLVMInt64TypeInContext(globalState->context);
@@ -350,6 +351,8 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
 
   globalState->program = program;
+
+  addExtraFunctions(globalState);
 
   globalState->stringConstantBuilder = entryBuilder;
 
@@ -407,6 +410,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   initInternalExterns(globalState);
 
+  Unsafe hostRegion(globalState);
+  globalState->hostRegion = &hostRegion;
+
 //  Assist assistRegion(globalState);
 //  Mega megaRegion(globalState);
   IRegion* defaultRegion = nullptr;
@@ -415,7 +421,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       defaultRegion = new Assist(globalState);
       break;
     case RegionOverride::FAST:
-      defaultRegion = new Host(globalState);
+      defaultRegion = new Unsafe(globalState);
       break;
     case RegionOverride::NAIVE_RC:
     case RegionOverride::RESILIENT_V0:
@@ -944,4 +950,89 @@ int main(int argc, char **argv) {
 
   closeGlobalState(&globalState);
 //    errorSummary();
+}
+
+std::vector<Prototype*> declareExtraInterfaceMethod(
+    GlobalState* globalState,
+    InterfaceReferend* referend,
+    InterfaceMethod* newMethod) {
+  auto program = globalState->program;
+
+  std::vector<Prototype*> substructPrototypes;
+
+  auto interfaceExtraMethodsI = globalState->interfaceExtraMethods.find(referend);
+  assert(interfaceExtraMethodsI != globalState->interfaceExtraMethods.end());
+  auto interfaceExtraMethods = interfaceExtraMethodsI->second;
+  interfaceExtraMethods.push_back(newMethod);
+
+  for (auto edgeAndAdditionsEdge : globalState->extraAdditionsEdges) {
+    auto additionsEdge = edgeAndAdditionsEdge.second;
+    Reference* substructReference = nullptr; assert(false); // TODO
+    Prototype* substructPrototype = nullptr; assert(false); // TODO
+    LLVMTypeRef functionLT = nullptr; assert(false); // TODO
+    // globalState->region->translateType(substructReference).c_str()
+
+    additionsEdge->structPrototypesByInterfaceMethod.emplace_back(
+        std::make_pair(newMethod, substructPrototype));
+
+    auto functionL =
+        LLVMAddFunction(
+            globalState->mod,
+            (std::string("__serialize_") + std::to_string(globalState->extraFunctions.size())).c_str(),
+            functionLT);
+    globalState->extraFunctions.insert(std::make_pair(substructPrototype, functionL));
+
+    substructPrototypes.push_back(substructPrototype);
+  }
+
+  return substructPrototypes;
+}
+
+void defineSerializeFunc(
+    Prototype* substructPrototype,
+    LLVMValueRef extraFunctionLT) {
+  assert(false); // add body here
+}
+
+void defineDeserializeFunc(
+    Prototype* substructPrototype,
+    LLVMValueRef extraFunctionLT) {
+  assert(false); // add body here
+}
+
+void addExtraFunctions(GlobalState* globalState) {
+  auto program = globalState->program;
+
+  for (auto nameAndInterface : program->interfaces) {
+    auto interfaceDefinition = nameAndInterface.second;
+    globalState->interfaceExtraMethods.insert(
+        std::make_pair(interfaceDefinition->referend, std::vector<InterfaceMethod *>{}));
+  }
+
+  for (auto nameAndStruct : program->structs) {
+    auto struuct = nameAndStruct.second;
+    for (auto edge : struuct->edges) {
+      auto newExtraEdge = new Edge(edge->structName, edge->interfaceName, {});
+      globalState->extraAdditionsEdges.insert(std::make_pair(edge, newExtraEdge));
+    }
+  }
+
+  for (auto nameAndInterface : program->interfaces) {
+    auto interfaceDefinition = nameAndInterface.second;
+    if (interfaceDefinition->mutability == Mutability::IMMUTABLE) {
+      InterfaceMethod* newMethod = nullptr;
+      auto substructPrototypes =
+          declareExtraInterfaceMethod(
+              globalState,
+              interfaceDefinition->referend,
+              newMethod);
+      for (auto substructPrototype : substructPrototypes) {
+        auto extraFunctionLTI = globalState->extraFunctions.find(substructPrototype);
+        assert(extraFunctionLTI != globalState->extraFunctions.end());
+        auto extraFunctionLT = extraFunctionLTI->second;
+        defineSerializeFunc(substructPrototype, extraFunctionLT);
+        defineDeserializeFunc(substructPrototype, extraFunctionLT);
+      }
+    }
+  }
 }

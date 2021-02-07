@@ -77,10 +77,10 @@ public:
   LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Ref ref) override;
+      WrapperPtrLE strLE) override;
 
   LLVMValueRef getStringLen(
-      FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
+      FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE strLE) override;
 
 
   ControlBlockPtrLE getControlBlockPtr(

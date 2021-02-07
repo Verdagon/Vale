@@ -33,6 +33,11 @@ class IRegion {
 public:
   virtual ~IRegion() = default;
 
+//  // All regions return isSafe of true, except for unsafe (and maybe host,
+//  // if it becomes a thing).
+//  // By comparing these, we can know when to encrypt references.
+//  virtual bool isSafe() = 0;
+
   virtual Ref allocate(
       AreaAndFileAndLine from,
       FunctionState* functionState,
@@ -135,7 +140,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) = 0;
+      Ref ref) = 0;
 
   virtual LLVMValueRef getCensusObjectId(
       AreaAndFileAndLine checkerAFL,
@@ -145,6 +150,8 @@ public:
       Ref refLE) = 0;
 
   virtual LLVMTypeRef translateType(Reference* referenceM) = 0;
+
+  virtual LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) = 0;
 
   virtual void translateKnownSizeArray(
       KnownSizeArrayT* knownSizeArrayMT) = 0;
@@ -316,29 +323,19 @@ public:
       bool arrayRefKnownLive,
       Ref indexRef) = 0;
 
-  virtual LLVMValueRef copyToWild(
+  virtual Ref welcomeAlienRef(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      IRegion* sourceRegion,
       Reference* sourceRefMT,
       Ref sourceRef) = 0;
 
-  virtual Ref copyFromWild(
+  virtual Ref copyAlien(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) = 0;
-
-  virtual LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
+      IRegion* sourceRegion,
       Reference* sourceRefMT,
       Ref sourceRef) = 0;
-
-  virtual Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) = 0;
 
   virtual LLVMValueRef getStringBytesPtr(
       FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;

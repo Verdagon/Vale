@@ -396,61 +396,6 @@ LLVMValueRef callMalloc(
   }
 }
 
-WrapperPtrLE mallocStr(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    LLVMValueRef lengthLE,
-    IReferendStructsSource* referendStructs,
-    std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
-  // The +1 is for the null terminator at the end, for C compatibility.
-  auto sizeBytesLE =
-      LLVMBuildAdd(
-          builder,
-          lengthLE,
-          LLVMBuildAdd(
-              builder,
-              constI64LE(globalState, 1),
-              constI64LE(globalState, LLVMABISizeOfType(globalState->dataLayout, referendStructs->getStringWrapperStruct())),
-              "lenPlus1"),
-          "strMallocSizeBytes");
-
-  auto destCharPtrLE = callMalloc(globalState, builder, LLVMBuildZExt(builder, sizeBytesLE, LLVMInt64TypeInContext(globalState->context), "lenPlus1As64"));
-
-  if (globalState->opt->census) {
-    adjustCounter(globalState, builder, globalState->liveHeapObjCounter, 1);
-
-    LLVMValueRef resultAsVoidPtrLE =
-        LLVMBuildBitCast(
-            builder, destCharPtrLE, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "");
-    LLVMBuildCall(builder, globalState->censusAdd, &resultAsVoidPtrLE, 1, "");
-  }
-
-  auto newStrWrapperPtrLE =
-      referendStructs->makeWrapperPtr(
-          FL(), functionState, builder, globalState->metalCache.strRef,
-          LLVMBuildBitCast(
-              builder,
-              destCharPtrLE,
-              LLVMPointerType(referendStructs->getStringWrapperStruct(), 0),
-              "newStrWrapperPtr"));
-
-  fillControlBlock(
-      builder,
-      referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, globalState->metalCache.strRef, newStrWrapperPtrLE));
-  LLVMBuildStore(builder, LLVMBuildZExt(builder, lengthLE, LLVMInt64TypeInContext(globalState->context), ""), getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
-
-  // Set the null terminating character to the 0th spot and the end spot, just to guard against bugs
-  auto charsBeginPtr = getCharsPtrFromWrapperPtr(globalState, builder, newStrWrapperPtrLE);
-  LLVMBuildStore(builder, constI8LE(globalState, 0), charsBeginPtr);
-  auto charsEndPtr = LLVMBuildGEP(builder, charsBeginPtr, &lengthLE, 1, "charsEndPtr");
-  LLVMBuildStore(builder, constI8LE(globalState, 0), charsEndPtr);
-
-  // The caller still needs to initialize the actual chars inside!
-
-  return newStrWrapperPtrLE;
-}
-
 LLVMValueRef mallocKnownSize(
     GlobalState* globalState,
     FunctionState* functionState,

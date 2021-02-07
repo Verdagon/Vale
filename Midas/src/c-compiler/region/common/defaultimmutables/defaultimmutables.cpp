@@ -170,24 +170,24 @@ LLVMTypeRef DefaultImmutables::translateType(GlobalState* globalState, Reference
   }
 }
 
-
-LLVMTypeRef DefaultImmutables::getControlBlockStruct(Referend* referend) {
-  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
-    auto structM = globalState->program->getStruct(structReferend->fullName);
-    assert(structM->mutability == Mutability::IMMUTABLE);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
-    auto interfaceM = globalState->program->getInterface(interfaceReferend->fullName);
-    assert(interfaceM->mutability == Mutability::IMMUTABLE);
-  } else if (auto ksaMT = dynamic_cast<KnownSizeArrayT*>(referend)) {
-    assert(ksaMT->rawArray->mutability == Mutability::IMMUTABLE);
-  } else if (auto usaMT = dynamic_cast<UnknownSizeArrayT*>(referend)) {
-    assert(usaMT->rawArray->mutability == Mutability::IMMUTABLE);
-  } else if (auto strMT = dynamic_cast<Str*>(referend)) {
-  } else {
-    assert(false);
-  }
-  return referendStructs->controlBlock.getStruct();
-}
+//
+//LLVMTypeRef DefaultImmutables::getControlBlockStruct(Referend* referend) {
+//  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+//    auto structM = globalState->program->getStruct(structReferend->fullName);
+//    assert(structM->mutability == Mutability::IMMUTABLE);
+//  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+//    auto interfaceM = globalState->program->getInterface(interfaceReferend->fullName);
+//    assert(interfaceM->mutability == Mutability::IMMUTABLE);
+//  } else if (auto ksaMT = dynamic_cast<KnownSizeArrayT*>(referend)) {
+//    assert(ksaMT->rawArray->mutability == Mutability::IMMUTABLE);
+//  } else if (auto usaMT = dynamic_cast<UnknownSizeArrayT*>(referend)) {
+//    assert(usaMT->rawArray->mutability == Mutability::IMMUTABLE);
+//  } else if (auto strMT = dynamic_cast<Str*>(referend)) {
+//  } else {
+//    assert(false);
+//  }
+//  return referendStructs->controlBlock.getStruct();
+//}
 
 ControlBlock* DefaultImmutables::getControlBlock(Referend* referend) {
   if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
@@ -341,90 +341,56 @@ LLVMTypeRef DefaultImmutables::getExternalType(
   return nullptr;
 }
 
-
-LLVMValueRef DefaultImmutables::copyToWild(
+Ref DefaultImmutables::copyAlien(
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    IRegion* sourceRegion,
+    IRegion* targetRegion,
     Reference* sourceRefMT,
-    Ref sourceRef) {
+    Ref sourceReff) {
   assert(sourceRefMT->ownership == Ownership::SHARE);
+  // Someday when we include the region in the coord, this line will change.
+  auto targetRefMT = sourceRefMT;
+
+  auto sourceLE = sourceRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceReff);
 
   if (sourceRefMT == globalState->metalCache.intRef) {
-    return functionState->defaultRegion->checkValidReference(
-        FL(), functionState, builder, sourceRefMT, sourceRef);
+    return wrap(targetRegion, targetRefMT, sourceLE);
   } else if (sourceRefMT == globalState->metalCache.boolRef) {
-    return LLVMBuildZExt(
-        builder,
-        functionState->defaultRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef),
-        LLVMInt8TypeInContext(globalState->context),
-        "boolAsI8");
+    return wrap(targetRegion, targetRefMT, sourceLE);
   } else if (sourceRefMT == globalState->metalCache.floatRef) {
-    return functionState->defaultRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+    return wrap(targetRegion, targetRefMT, sourceLE);
   } else if (sourceRefMT == globalState->metalCache.strRef) {
-    auto structLIter = externalStructLByReferend.find(globalState->metalCache.str);
-    assert(structLIter != externalStructLByReferend.end());
-    auto structL = structLIter->second;
+//    auto structLIter = externalStructLByReferend.find(globalState->metalCache.str);
+//    assert(structLIter != externalStructLByReferend.end());
+//    auto structL = structLIter->second;
 
-    auto sourceStrBytesPtrLE = referendStructs->getStringBytesPtr(functionState, builder, sourceRef);
-    auto sourceStrLenLE = referendStructs->getStringLen(functionState, builder, sourceRef);
+    auto sourceStrBytesPtrLE = sourceRegion->getStringBytesPtr(functionState, builder, sourceReff);
+    auto sourceStrLenLE = sourceRegion->getStringLen(functionState, builder, sourceReff);
 
-    // The +1 is for an extra byte at the end for a null terminating char
-    auto sizeLE =
-        LLVMBuildAdd(
-            builder,
-            constI64LE(globalState, 1 + LLVMABISizeOfType(globalState->dataLayout, structL)),
-            sourceStrLenLE,
-            "extStrSizeBytes");
-
-    auto extStrPtrLE =
-        LLVMBuildPointerCast(
-            builder,
-            LLVMBuildCall(builder, globalState->malloc, &sizeLE, 1, "extStrPtrAsI8"),
-            LLVMPointerType(structL, 0),
-            "extStrPtr");
-
-    std::vector<LLVMValueRef> extStrCharsPtrIndices = { constI64LE(globalState, 1) };
-    auto extStrEndPtrLE =
-        LLVMBuildGEP(
-            builder, extStrPtrLE, extStrCharsPtrIndices.data(), extStrCharsPtrIndices.size(), "extStrBytesBeginPtr");
-    auto extStrCharsPtrLE =
-        LLVMBuildPointerCast(
-            builder,
-            extStrEndPtrLE,
-            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-            "extStrCharsPtr");
+    auto targetStrLE = mallocStr(functionState, builder, sourceStrLenLE);
+    auto targetStrBytesPtrLE = referendStructs->getStringBytesPtr(functionState, builder, targetStrLE);
 
     std::vector<LLVMValueRef> strncpyArgs = {
-        extStrCharsPtrLE,
+        targetStrBytesPtrLE,
         sourceStrBytesPtrLE,
         sourceStrLenLE
     };
     LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
 
-    std::vector<LLVMValueRef> extStrLastBytePtrIndices = {
-        sourceStrLenLE
-    };
-    LLVMBuildStore(
-        builder,
-        constI8LE(globalState, 0),
-        LLVMBuildGEP(builder, extStrCharsPtrLE, extStrLastBytePtrIndices.data(), extStrLastBytePtrIndices.size(), "extStrBytesLastPtr"));
-
-    auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
-    LLVMBuildStore(builder, sourceStrLenLE, extStrLenPtrLE);
-
-    auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtrPtr");
-    LLVMBuildStore(builder, extStrCharsPtrLE, extStrCharsPtrPtrLE);
-
-    return extStrPtrLE;
+    return wrap(targetRegion, targetRefMT, targetStrLE);
   } else if (sourceRefMT == globalState->metalCache.neverRef) {
     assert(false); // How can we hand a never into something?
-    return nullptr;
+    auto targetLE = makeEmptyTuple(globalState, functionState, builder);
+    return wrap(targetRegion, targetRefMT, targetLE);
   } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
     assert(false); // How can we hand a void into something?
-    return nullptr;
+    auto targetLE = makeEmptyTuple(globalState, functionState, builder);
+    return wrap(targetRegion, targetRefMT, targetLE);
   } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
-    return nullptr;
+    auto targetLE = makeEmptyTuple(globalState, functionState, builder);
+    return wrap(targetRegion, targetRefMT, targetLE);
 
 //    if (sourceRefMT->location == Location::INLINE) {
 //      functionState->defaultRegion->checkInlineStructType(functionState, builder, sourceRefMT, ref);
@@ -436,119 +402,89 @@ LLVMValueRef DefaultImmutables::copyToWild(
   } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
 
     assert(false); // impl
-    return nullptr;
+    auto targetLE = makeEmptyTuple(globalState, functionState, builder);
+    return wrap(targetRegion, targetRefMT, targetLE);
   } else {
     std::cerr << "Invalid type for extern!" << std::endl;
     assert(false);
-    return nullptr;
+    auto targetLE = makeEmptyTuple(globalState, functionState, builder);
+    return wrap(targetRegion, targetRefMT, targetLE);
   }
 
   assert(false);
-  return nullptr;
 }
 
-Ref DefaultImmutables::copyFromWild(
+void DefaultImmutables::fillControlBlock(
+    AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRefLE) {
-  assert(sourceRefMT->ownership == Ownership::SHARE);
+    Referend* referendM,
+    ControlBlockPtrLE controlBlockPtrLE,
+    const std::string& typeName) {
+  LLVMValueRef newControlBlockLE = LLVMGetUndef(referendStructs->getControlBlock(referendM)->getStruct());
+  newControlBlockLE =
+      fillControlBlockCensusFields(
+          from, globalState, functionState, referendStructs, builder, referendM, newControlBlockLE, typeName);
+  newControlBlockLE =
+      insertStrongRc(globalState, builder, referendStructs, referendM, newControlBlockLE);
+  LLVMBuildStore(
+      builder,
+      newControlBlockLE,
+      controlBlockPtrLE.refLE);
+}
 
-  if (sourceRefMT == globalState->metalCache.intRef) {
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.boolRef) {
-    return wrap(
-        functionState->defaultRegion,
-        sourceRefMT,
-        LLVMBuildTrunc(
-            builder, sourceRefLE, LLVMInt1TypeInContext(globalState->context), "boolAsI1"));
-  } else if (sourceRefMT == globalState->metalCache.floatRef) {
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.strRef) {
-    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
-    assert(externalStructLIter != externalStructLByReferend.end());
-    auto externalStructL = externalStructLIter->second;
+WrapperPtrLE DefaultImmutables::mallocStr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef lengthLE) {
+  // The +1 is for the null terminator at the end, for C compatibility.
+  auto sizeBytesLE =
+      LLVMBuildAdd(
+          builder,
+          lengthLE,
+          LLVMBuildAdd(
+              builder,
+              constI64LE(globalState, 1),
+              constI64LE(globalState, LLVMABISizeOfType(globalState->dataLayout, referendStructs->getStringWrapperStruct())),
+              "lenPlus1"),
+          "strMallocSizeBytes");
 
-    assert(LLVMTypeOf(sourceRefLE) == LLVMPointerType(externalStructL, 0));
-    auto extStrPtrLE = sourceRefLE;
+  auto destCharPtrLE = callMalloc(globalState, builder, LLVMBuildZExt(builder, sizeBytesLE, LLVMInt64TypeInContext(globalState->context), "lenPlus1As64"));
 
-    auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
-    auto extStrLenLE = LLVMBuildLoad(builder, extStrLenPtrLE, "extStrLen");
+  if (globalState->opt->census) {
+    adjustCounter(globalState, builder, globalState->liveHeapObjCounter, 1);
 
-    auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtr");
-    auto extStrCharsPtrLE = LLVMBuildLoad(builder, extStrCharsPtrPtrLE, "extStrChars");
-
-    auto vstrPtrLE = LLVMBuildCall(builder, globalState->newVStr, &extStrLenLE, 1, "vstrPtr");
-    auto vstrCharsPtrLE = LLVMBuildCall(builder, globalState->getStrCharsFunc, &vstrPtrLE, 1, "vstrCharsPtr");
-
-    std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, extStrCharsPtrLE, extStrLenLE };
-    LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
-
-    // Free the thing C gave us.
-    auto extStrI8PtrLE =
-        LLVMBuildPointerCast(
-            builder,
-            extStrPtrLE,
-            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-            "extStrPtrLE");
-    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
-
-    return wrap(functionState->defaultRegion, globalState->metalCache.strRef, vstrPtrLE);
-  } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(sourceRefMT->referend)) {
-    assert(false);
-//    start here, perhaps make an external struct for all USAs.
-//        itll be like the string one except with the number of elements rather than the total
-//        number of bytes. or maybe it can have both?
-//    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
-//    assert(externalStructLIter != externalStructLByReferend.end());
-//    auto externalStructL = externalStructLIter->second;
-//
-//    assert(LLVMTypeOf(refLE) == LLVMPointerType(externalStructL, 0));
-//    auto extStrPtrLE = refLE;
-//
-//    auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
-//    auto extStrLenLE = LLVMBuildLoad(builder, extStrLenPtrLE, "extStrLen");
-//
-//    auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtr");
-//    auto extStrCharsPtrLE = LLVMBuildLoad(builder, extStrCharsPtrPtrLE, "extStrChars");
-//
-//    auto vstrPtrLE = LLVMBuildCall(builder, globalState->newVStr, &extStrLenLE, 1, "vstrPtr");
-//    auto vstrCharsPtrLE = LLVMBuildCall(builder, globalState->getStrCharsFunc, &vstrPtrLE, 1, "vstrCharsPtr");
-//
-//    std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, extStrCharsPtrLE, extStrLenLE };
-//    LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
-//
-//    // Free the thing C gave us.
-//    auto extStrI8PtrLE =
-//        LLVMBuildPointerCast(
-//            builder,
-//            extStrPtrLE,
-//            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-//            "extStrPtrLE");
-//    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
-//
-//    return wrap(functionState->defaultRegion, globalState->metalCache.strRef, vstrPtrLE);
-  } else if (sourceRefMT == globalState->metalCache.neverRef) {
-    assert(false); // How can we hand a never into something?
-  } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
-    return wrap(functionState->defaultRegion, sourceRefMT, makeEmptyTuple(globalState, functionState, builder));
-  } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(false); // impl
-
-//    if (sourceRefMT->location == Location::INLINE) {
-//      functionState->defaultRegion->checkInlineStructType(functionState, builder, sourceRefMT, ref);
-//    } else {
-////            std::cerr << "Can only pass inline imm structs between C and Vale currently." << std::endl;
-//      assert(false); // impl
-//      return nullptr;
-//    }
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-
-    assert(false); // impl
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
-    assert(false);
+    LLVMValueRef resultAsVoidPtrLE =
+        LLVMBuildBitCast(
+            builder, destCharPtrLE, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "");
+    LLVMBuildCall(builder, globalState->censusAdd, &resultAsVoidPtrLE, 1, "");
   }
 
-  assert(false);
+  auto newStrWrapperPtrLE =
+      referendStructs->makeWrapperPtr(
+          FL(), functionState, builder, globalState->metalCache.strRef,
+          LLVMBuildBitCast(
+              builder,
+              destCharPtrLE,
+              LLVMPointerType(referendStructs->getStringWrapperStruct(), 0),
+              "newStrWrapperPtr"));
+
+  fillControlBlock(
+      FL(),
+      functionState,
+      builder,
+      globalState->metalCache.str,
+      referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, globalState->metalCache.strRef, newStrWrapperPtrLE),
+      "str");
+  LLVMBuildStore(builder, LLVMBuildZExt(builder, lengthLE, LLVMInt64TypeInContext(globalState->context), ""), getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
+
+  // Set the null terminating character to the 0th spot and the end spot, just to guard against bugs
+  auto charsBeginPtr = getCharsPtrFromWrapperPtr(globalState, builder, newStrWrapperPtrLE);
+  LLVMBuildStore(builder, constI8LE(globalState, 0), charsBeginPtr);
+  auto charsEndPtr = LLVMBuildGEP(builder, charsBeginPtr, &lengthLE, 1, "charsEndPtr");
+  LLVMBuildStore(builder, constI8LE(globalState, 0), charsEndPtr);
+
+  // The caller still needs to initialize the actual chars inside!
+
+  return newStrWrapperPtrLE;
 }

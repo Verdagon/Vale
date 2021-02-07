@@ -11,7 +11,7 @@ LLVMValueRef declareFunction(
     IRegion* region,
     Function* functionM) {
 
-  auto valeParamTypesL = translateTypes(globalState, region, functionM->prototype->params);
+  auto valeParamTypesL = translateTypes(region, functionM->prototype->params);
   auto valeReturnTypeL = region->translateType(functionM->prototype->returnType);
   LLVMTypeRef valeFunctionTypeL =
       LLVMFunctionType(valeReturnTypeL, valeParamTypesL.data(), valeParamTypesL.size(), 0);
@@ -54,11 +54,15 @@ LLVMValueRef declareFunction(
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
       auto paramMT = functionM->prototype->params[i];
-      auto uncheckedArgFromHostLE = LLVMGetParam(exportFunctionL, i);
+      auto paramHostLE = LLVMGetParam(exportFunctionL, i);
+      auto paramHostRef = wrap(globalState->hostRegion, paramMT, paramHostLE);
+
       Ref argToValeFunction =
         (paramMT->ownership == Ownership::SHARE ?
-          functionState.defaultRegion->copyFromWild(&functionState, builder, paramMT, uncheckedArgFromHostLE) :
-          functionState.defaultRegion->receiveRefFromWild(&functionState, builder, paramMT, uncheckedArgFromHostLE));
+          functionState.defaultRegion->copyAlien(
+              &functionState, builder, globalState->hostRegion, paramMT, paramHostRef) :
+          functionState.defaultRegion->welcomeAlienRef(
+              &functionState, builder, globalState->hostRegion, paramMT, paramHostRef));
 
       // Alias when receiving from the outside world, see DEPAR.
       functionState.defaultRegion->alias(
@@ -76,12 +80,15 @@ LLVMValueRef declareFunction(
       functionState.defaultRegion->dealias(
           FL(), &functionState, builder, functionM->prototype->returnType, returnRef);
 
-      auto returnRefLE =
+      auto returnHostRef =
           (functionM->prototype->returnType->ownership == Ownership::SHARE ?
-           globalState->region->copyToWild(&functionState, builder, functionM->prototype->returnType, returnRef) :
-          globalState->region->sendRefToWild(&functionState, builder, functionM->prototype->returnType, returnRef));
+           globalState->hostRegion->copyAlien(&functionState, builder, functionState.defaultRegion, functionM->prototype->returnType, returnRef) :
+           globalState->hostRegion->welcomeAlienRef(&functionState, builder, functionState.defaultRegion, functionM->prototype->returnType, returnRef));
+      auto returnHostLE =
+          globalState->hostRegion->checkValidReference(
+              FL(), &functionState, builder, functionM->prototype->returnType, returnHostRef);
 
-      LLVMBuildRet(builder, returnRefLE);
+      LLVMBuildRet(builder, returnHostLE);
     }
 
     LLVMDisposeBuilder(builder);

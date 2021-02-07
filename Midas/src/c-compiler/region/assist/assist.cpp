@@ -211,21 +211,13 @@ void Assist::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
+
 void Assist::translateEdge(
     Edge* edge) {
-  auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
-
   std::vector<LLVMTypeRef> interfaceFunctionsLT;
   std::vector<LLVMValueRef> edgeFunctionsL;
-  for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
-    auto interfaceFunctionLT =
-        translateInterfaceMethodToFunctionType(edge->interfaceName, interfaceM->methods[i]);
-    interfaceFunctionsLT.push_back(interfaceFunctionLT);
-
-    auto funcName = edge->structPrototypesByInterfaceMethod[i].second->name;
-    auto edgeFunctionL = globalState->getFunction(funcName);
-    edgeFunctionsL.push_back(edgeFunctionL);
-  }
+  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
+      globalState->getEdgeFunctionTypesAndFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -241,7 +233,7 @@ void Assist::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(interfaceM->referend, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(this, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
@@ -249,26 +241,17 @@ void Assist::translateInterface(
       interfaceMethodTypesL);
 }
 
-LLVMTypeRef Assist::translateInterfaceMethodToFunctionType(
-    InterfaceReferend* referend,
-    InterfaceMethod* method) {
-  auto returnMT = method->prototype->returnType;
-  auto paramsMT = method->prototype->params;
-  auto returnLT = translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, this, paramsMT);
-
-  switch (paramsMT[method->virtualParamIndex]->ownership) {
+LLVMTypeRef Assist::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
+  switch (reference->ownership) {
     case Ownership::BORROW:
     case Ownership::OWN:
     case Ownership::SHARE:
-      paramsLT[method->virtualParamIndex] = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-      break;
+      return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
     case Ownership::WEAK:
-      paramsLT[method->virtualParamIndex] = mutWeakableStructs.getWeakVoidRefStruct(referend);
-      break;
+      return mutWeakableStructs.getWeakVoidRefStruct(reference->referend);
+    default:
+      assert(false);
   }
-
-  return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
 }
 
 Ref Assist::weakAlias(
@@ -437,7 +420,14 @@ Ref Assist::getIsAliveFromWeakRef(
 }
 
 LLVMValueRef Assist::getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  return referendStructs.getStringBytesPtr(functionState, builder, ref);
+  auto strWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder,
+          globalState->metalCache.strRef,
+          globalState->region->checkValidReference(
+              FL(), functionState, builder,
+              globalState->metalCache.strRef, ref));
+  return referendStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
 }
 
 Ref Assist::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
@@ -462,15 +452,7 @@ WrapperPtrLE Assist::mallocStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
-  auto resultRef =
-      ::mallocStr(
-          globalState, functionState, builder, lengthLE, &referendStructs,
-          [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-            fillControlBlock(
-                FL(), functionState, innerBuilder, globalState->metalCache.str,
-                Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
-          });
-  return resultRef;
+  return defaultImmutables.mallocStr(functionState, builder, lengthLE);
 }
 
 Ref Assist::allocate(
@@ -856,71 +838,96 @@ LLVMTypeRef Assist::getExternalType(
   assert(false);
 }
 
+//
+//LLVMValueRef Assist::copyToWild(
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    Ref sourceRef) {
+//  if (sourceRefMT->ownership == Ownership::SHARE) {
+//    return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
+//  } else {
+//    assert(false);
+//  }
+//}
+//
+//Ref Assist::copyFromWild(
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    LLVMValueRef sourceRef) {
+//
+//  if (sourceRefMT->ownership == Ownership::SHARE) {
+//    return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
+//  } else {
+//    assert(false);
+//  }
+//
+//  assert(false);
+//}
+//
+//LLVMValueRef Assist::sendRefToWild(
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    Ref sourceRef) {
+//  assert(sourceRefMT->ownership != Ownership::SHARE);
+//
+//  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
+//    assert(sourceRefMT->location != Location::INLINE);
+//
+//    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+//  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
+//    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+//  } else {
+//    std::cerr << "Invalid type for extern!" << std::endl;
+//    assert(false);
+//  }
+//}
+//
+//Ref Assist::receiveRefFromWild(
+//    FunctionState* functionState,
+//    LLVMBuilderRef builder,
+//    Reference* sourceRefMT,
+//    LLVMValueRef sourceRef) {
+//
+//  assert(sourceRefMT->ownership != Ownership::SHARE);
+//
+//  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
+//    assert(sourceRefMT->location != Location::INLINE);
+//
+//    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+//  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
+//    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+//  } else {
+//    std::cerr << "Invalid type for extern!" << std::endl;
+//    assert(false);
+//  }
+//
+//  assert(false);
+//}
 
-LLVMValueRef Assist::copyToWild(
-    FunctionState* functionState,
+Ref Assist::copyAlien(
+    FunctionState *functionState,
     LLVMBuilderRef builder,
-    Reference* sourceRefMT,
+    IRegion *sourceRegion,
+    Reference *sourceRefMT,
     Ref sourceRef) {
-  if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
-  } else {
-    assert(false);
-  }
+  return defaultImmutables.copyAlien(
+      functionState, builder, sourceRegion, this, sourceRefMT, sourceRef);
 }
 
-Ref Assist::copyFromWild(
+Ref Assist::welcomeAlienRef(
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRef) {
-
-  if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
-  } else {
-    assert(false);
-  }
-
-  assert(false);
-}
-
-LLVMValueRef Assist::sendRefToWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
+    IRegion* sourceRegion,
     Reference* sourceRefMT,
     Ref sourceRef) {
   assert(sourceRefMT->ownership != Ownership::SHARE);
 
-  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(sourceRefMT->location != Location::INLINE);
+  // Here, we'll eventually have the source region encrypt its references
+  // since we're unsafe and we're welcoming it into our structs and stack
+  // and so on. For now, we do nothing.
 
-    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
-    assert(false);
-  }
-}
-
-Ref Assist::receiveRefFromWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRef) {
-
-  assert(sourceRefMT->ownership != Ownership::SHARE);
-
-  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(sourceRefMT->location != Location::INLINE);
-
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
-    assert(false);
-  }
-
-  assert(false);
+  return sourceRef;
 }

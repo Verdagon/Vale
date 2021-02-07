@@ -9,7 +9,6 @@
 #include "region/iregion.h"
 
 std::vector<LLVMTypeRef> translateTypes(
-    GlobalState* globalState,
     IRegion* region,
     std::vector<Reference*> referencesM);
 
@@ -25,8 +24,11 @@ constexpr int NEVER_INT_BITS = 57;
 Mutability ownershipToMutability(Ownership ownership);
 
 LLVMTypeRef translatePrototypeToFunctionType(
-    GlobalState* globalState,
     IRegion* region,
     Prototype* prototype);
+
+LLVMTypeRef translateInterfaceMethodToFunctionType(
+    IRegion* region,
+    InterfaceMethod* method);
 
 #endif

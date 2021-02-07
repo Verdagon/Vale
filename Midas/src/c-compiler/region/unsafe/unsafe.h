@@ -13,10 +13,10 @@
 #include "../iregion.h"
 #include <region/common/referendptrmaker.h>
 
-class Host : public IRegion {
+class Unsafe : public IRegion {
 public:
-  Host(GlobalState* globalState);
-  ~Host() override = default;
+  Unsafe(GlobalState* globalState);
+  ~Unsafe() override = default;
 
   Ref allocate(
       AreaAndFileAndLine from,
@@ -323,18 +323,43 @@ public:
 //  IWeakRefStructsSource* getWeakRefStructsSource() override {
 //    return &weakRefStructs;
 //  }
-  LLVMValueRef getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override {
-    return referendStructs.getStringBytesPtr(functionState, builder, ref);
-  }
-  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override {
-    return referendStructs.getStringLen(functionState, builder, ref);
-  }
+  LLVMValueRef getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
+  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 //  LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override {
 //    return mutWeakableStructs.getWeakRefHeaderStruct(referend);
 //  }
-//  LLVMTypeRef getWeakVoidRefStruct(Referend* referend) override {
-//    return mutWeakableStructs.getWeakVoidRefStruct(referend);
+//  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Referend* referend) override {
+//    return mutWeakableStructs.getInterfaceMethodVirtualParamAnyType(referend);
 //  }
+
+  std::string getRefNameC(
+      Reference* refMT) override;
+  void generateStructDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName,
+      StructDefinition* refMT) override;
+  void generateInterfaceDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName,
+      InterfaceDefinition* refMT) override;
+
+  LLVMTypeRef getExternalType(Reference* refMT) override;
+
+  Ref welcomeAlienRef(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      IRegion* sourceRegion,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref copyAlien(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      IRegion* sourceRegion,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
+
+private:
   void fillControlBlock(
       AreaAndFileAndLine from,
       FunctionState* functionState,
@@ -343,45 +368,6 @@ public:
       Mutability mutability,
       ControlBlockPtrLE controlBlockPtrLE,
       const std::string& typeName);
-
-
-  std::string getRefNameC(
-      Reference* refMT) override;
-  void generateStructDefsC(
-      std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* refMT) override;
-  void generateInterfaceDefsC(
-      std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
-
-  LLVMTypeRef getExternalType(Reference* refMT) override;
-
-  LLVMValueRef copyToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) override;
-
-  Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-  LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) override;
-
-  Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-private:
-  LLVMTypeRef translateInterfaceMethodToFunctionType(
-      InterfaceReferend* referend,
-      InterfaceMethod* method);
 
 
 protected:

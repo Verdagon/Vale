@@ -115,12 +115,15 @@ InterfaceFatPtrLE ReferendStructsRouter::makeInterfaceFatPtrWithoutChecking(
 LLVMValueRef ReferendStructsRouter::getStringBytesPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Ref ref) {
-  return getReferendStructsSource(globalState->metalCache.str)->getStringBytesPtr(functionState, builder, ref);
+    WrapperPtrLE strLE) {
+  return getReferendStructsSource(globalState->metalCache.str)->getStringBytesPtr(functionState, builder, strLE);
 }
 
-LLVMValueRef ReferendStructsRouter::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  return getReferendStructsSource(globalState->metalCache.str)->getStringLen(functionState, builder, ref);
+LLVMValueRef ReferendStructsRouter::getStringLen(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    WrapperPtrLE strLE) {
+  return getReferendStructsSource(globalState->metalCache.str)->getStringLen(functionState, builder, strLE);
 }
 
 ControlBlockPtrLE ReferendStructsRouter::getControlBlockPtr(

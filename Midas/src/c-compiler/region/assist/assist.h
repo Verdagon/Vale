@@ -324,13 +324,20 @@ public:
 //    return &weakRefStructs;
 //  }
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override {
-    return referendStructs.getStringLen(functionState, builder, ref);
+    auto strWrapperPtrLE =
+        referendStructs.makeWrapperPtr(
+            FL(), functionState, builder,
+            globalState->metalCache.strRef,
+            globalState->region->checkValidReference(
+                FL(), functionState, builder,
+                globalState->metalCache.strRef, ref));
+    return referendStructs.getStringLen(functionState, builder, strWrapperPtrLE);
   }
 //  LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override {
 //    return mutWeakableStructs.getWeakRefHeaderStruct(referend);
 //  }
-//  LLVMTypeRef getWeakVoidRefStruct(Referend* referend) override {
-//    return mutWeakableStructs.getWeakVoidRefStruct(referend);
+//  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Referend* referend) override {
+//    return mutWeakableStructs.getInterfaceMethodVirtualParamAnyType(referend);
 //  }
   void fillControlBlock(
       AreaAndFileAndLine from,
@@ -352,35 +359,23 @@ public:
   LLVMTypeRef getExternalType(
       Reference* refMT) override;
 
-  LLVMValueRef copyToWild(
+  Ref welcomeAlienRef(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      IRegion* sourceRegion,
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
-  Ref copyFromWild(
+  Ref copyAlien(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-  LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
+      IRegion* sourceRegion,
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
-  Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
+  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
 private:
-  LLVMTypeRef translateInterfaceMethodToFunctionType(
-      InterfaceReferend* referend,
-      InterfaceMethod* method);
-
 
   GlobalState* globalState;
 

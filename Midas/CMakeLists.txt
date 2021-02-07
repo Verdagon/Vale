@@ -78,7 +78,7 @@ add_executable(valec
 		src/c-compiler/region/common/fatweaks/fatweaks.cpp
 		src/c-compiler/region/assist/assist.cpp
 		src/c-compiler/region/mega/mega.cpp
-		src/c-compiler/region/host/host.cpp
+		src/c-compiler/region/unsafe/unsafe.cpp
 		src/c-compiler/region/regions.cpp
 
         src/c-compiler/fileio.cpp

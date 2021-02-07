@@ -128,13 +128,6 @@ LLVMValueRef callMalloc(
     LLVMBuilderRef builder,
     LLVMValueRef sizeLE);
 
-WrapperPtrLE mallocStr(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    LLVMValueRef lengthLE,
-    IReferendStructsSource* referendStructs,
-    std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 LLVMValueRef mallocKnownSize(
     GlobalState* globalState,
     FunctionState* functionState,

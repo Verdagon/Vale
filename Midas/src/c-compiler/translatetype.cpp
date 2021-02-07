@@ -4,7 +4,6 @@
 #include "translatetype.h"
 
 std::vector<LLVMTypeRef> translateTypes(
-    GlobalState* globalState,
     IRegion* region,
     std::vector<Reference*> referencesM) {
   std::vector<LLVMTypeRef> result;
@@ -28,10 +27,22 @@ Mutability ownershipToMutability(Ownership ownership) {
 }
 
 LLVMTypeRef translatePrototypeToFunctionType(
-    GlobalState* globalState,
     IRegion* region,
     Prototype* prototype) {
   auto returnLT = region->translateType(prototype->returnType);
-  auto paramsLT = translateTypes(globalState, region, prototype->params);
+  auto paramsLT = translateTypes(region, prototype->params);
+  return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
+}
+
+LLVMTypeRef translateInterfaceMethodToFunctionType(
+    IRegion* region,
+    InterfaceMethod* method) {
+  auto returnMT = method->prototype->returnType;
+  auto paramsMT = method->prototype->params;
+  auto returnLT = region->translateType(returnMT);
+  auto paramsLT = translateTypes(region, paramsMT);
+  paramsLT[method->virtualParamIndex] =
+      region->getInterfaceMethodVirtualParamAnyType(
+          paramsMT[method->virtualParamIndex]);
   return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
 }

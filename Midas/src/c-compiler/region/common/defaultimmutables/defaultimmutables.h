@@ -27,7 +27,7 @@ public:
 
   LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM);
 
-  LLVMTypeRef getControlBlockStruct(Referend* referend);
+//  LLVMTypeRef getControlBlockStruct(Referend* referend);
 
   ControlBlock* getControlBlock(Referend* referend);
 
@@ -54,23 +54,32 @@ public:
   void generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* refMT);
   void generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT);
 
-  LLVMValueRef copyToWild(
+  Ref copyAlien(
       FunctionState* functionState,
       LLVMBuilderRef builder,
+      IRegion* sourceRegion,
+      IRegion* targetRegion,
       Reference* sourceRefMT,
       Ref sourceRef);
-
-  Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef);
-
 
   LLVMTypeRef getExternalType(
       Reference* refMT);
 
+  WrapperPtrLE mallocStr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE);
+
+
 private:
+  void fillControlBlock(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Referend* referendM,
+      ControlBlockPtrLE controlBlockPtrLE,
+      const std::string& typeName);
+
   GlobalState* globalState;
 
   ReferendStructs* referendStructs;

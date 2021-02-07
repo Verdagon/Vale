@@ -77,9 +77,17 @@ public:
   std::unordered_map<std::string, LLVMValueRef> functions;
   std::unordered_map<std::string, LLVMValueRef> externFunctions;
 
+  // These contain the extra interface methods that Midas adds to particular interfaces.
+  // For example, for every immutable, Midas needs to add a serialize() method that
+  // adds it to an outgoing linear buffer.
+  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>> interfaceExtraMethods;
+  std::unordered_map<Edge*, Edge*> extraAdditionsEdges;
+  std::unordered_map<Prototype*, LLVMValueRef> extraFunctions;
+
   LLVMBuilderRef valeMainBuilder = nullptr;
 
   IRegion* region = nullptr;
+  IRegion* hostRegion = nullptr;
 
   LLVMValueRef getFunction(Name* name) {
     auto functionIter = functions.find(name->name);
@@ -107,6 +115,10 @@ public:
     }
     return iter->second;
   }
+
+
+  std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>
+  getEdgeFunctionTypesAndFunctions(Edge* edge);
 };
 
 #endif
