@@ -1,5 +1,5 @@
 
-#include <region/common/defaultimmutables/defaultimmutables.h>
+#include <region/immrc/immrc.h>
 #include "structsrouter.h"
 
 ReferendStructsRouter::ReferendStructsRouter(

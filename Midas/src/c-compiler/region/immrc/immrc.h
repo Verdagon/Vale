@@ -1,22 +1,19 @@
-#ifndef REGION_ASSIST_ASSIST_H_
-#define REGION_ASSIST_ASSIST_H_
+#ifndef REGION_COMMON_IMMRC_IMMRC_H_
+#define REGION_COMMON_IMMRC_IMMRC_H_
 
-#include <llvm-c/Core.h>
-#include <function/expressions/shared/afl.h>
-#include <region/mega/mega.h>
-#include <region/common/fatweaks/fatweaks.h>
+#include <llvm-c/Types.h>
+#include <globalstate.h>
+#include <iostream>
 #include <region/common/primitives.h>
-#include <region/common/wrcweaks/wrcweaks.h>
-#include <region/common/defaultlayout/structsrouter.h>
-#include <region/immrc/immrc.h>
-#include "globalstate.h"
-#include "function/function.h"
-#include "../iregion.h"
+#include <function/expressions/shared/afl.h>
+#include <function/function.h>
+#include <region/common/defaultlayout/structs.h>
 
-class Assist : public IRegion {
+ControlBlock makeImmControlBlock(GlobalState* globalState);
+
+class ImmRC : public IRegion {
 public:
-  Assist(GlobalState* globalState);
-  ~Assist() override = default;
+  ImmRC(GlobalState* globalState_);
 
 
   void alias(
@@ -297,49 +294,7 @@ public:
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
 
-//  LLVMValueRef mallocKnownSize(
-//      FunctionState* functionState,
-//      LLVMBuilderRef builder,
-//      Location location,
-//      LLVMTypeRef referendLT) override;
-
-//  LLVMValueRef mallocUnknownSizeArray(
-//      LLVMBuilderRef builder,
-//      LLVMTypeRef usaWrapperLT,
-//      LLVMTypeRef usaElementLT,
-//      LLVMValueRef lengthLE) override;
-
-  // TODO Make these private once refactor is done
-//  WeakFatPtrLE makeWeakFatPtr(Reference* referenceM_, LLVMValueRef ptrLE) override {
-//    return mutWeakableStructs.makeWeakFatPtr(referenceM_, ptrLE);
-//  }
-  // TODO get rid of these once refactor is done
-//  ControlBlock* getControlBlock(Referend* referend) override {
-//    return referendStructs.getControlBlock(referend);
-//  }
-//  IReferendStructsSource* getReferendStructsSource() override {
-//    return &referendStructs;
-//  }
-//  IWeakRefStructsSource* getWeakRefStructsSource() override {
-//    return &weakRefStructs;
-//  }
-  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override {
-    return referendStructs.getStringLen(functionState, builder, ref);
-  }
-//  LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override {
-//    return mutWeakableStructs.getWeakRefHeaderStruct(referend);
-//  }
-//  LLVMTypeRef getWeakVoidRefStruct(Referend* referend) override {
-//    return mutWeakableStructs.getWeakVoidRefStruct(referend);
-//  }
-  void fillControlBlock(
-      AreaAndFileAndLine from,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Referend* referendM,
-      Mutability mutability,
-      ControlBlockPtrLE controlBlockPtrLE,
-      const std::string& typeName);
+  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
   std::string getRefNameC(
       Reference* refMT) override;
@@ -376,22 +331,58 @@ public:
       Reference* sourceRefMT,
       LLVMValueRef sourceRef) override;
 
+  void discard(
+      AreaAndFileAndLine from,
+      GlobalState* globalState,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceMT,
+      Ref sourceRef);
+
+  LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM);
+
+  LLVMTypeRef getControlBlockStruct(Referend* referend);
+
+  ControlBlock* getControlBlock(Referend* referend);
+
+
+  LoadResult loadMember(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* structRefMT,
+      Ref structRef,
+      int memberIndex,
+      Reference* expectedMemberType,
+      Reference* targetType,
+      const std::string& memberName);
+
+  void checkValidReference(
+      AreaAndFileAndLine checkerAFL,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      IReferendStructsSource* referendStructs,
+      Reference* refM,
+      LLVMValueRef refLE);
+
 private:
   LLVMTypeRef translateInterfaceMethodToFunctionType(
       InterfaceReferend* referend,
       InterfaceMethod* method);
 
-
   GlobalState* globalState;
 
-  ReferendStructs mutNonWeakableStructs;
-  WeakableReferendStructs mutWeakableStructs;
+  ReferendStructs referendStructs;
 
-  ReferendStructsRouter referendStructs;
-  WeakRefStructsRouter weakRefStructs;
+  DefaultPrimitives primitives;
 
-  FatWeaks fatWeaks;
-  WrcWeaks wrcWeaks;
+  // Contains all the structs for immutables that we'll be sending over the C boundary.
+  // For example:
+  // - str would map to struct { uint64_t len; char bytes[0]; }
+  // - ImmArray<Vec2> would map to struct { uint64_t len; Vec2 entries[0]; }
+  // - Vec2 would map to struct { int32_t x; int32_t y; }
+  // We don't need to store a corresponding map for mutables because their representations
+  // are the same in the vale world and C world, we can generate that C code on the fly.
+  std::unordered_map<Referend*, LLVMTypeRef> externalStructLByReferend;
 };
 
 #endif

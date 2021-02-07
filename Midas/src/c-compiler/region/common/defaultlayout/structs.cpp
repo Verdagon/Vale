@@ -447,7 +447,7 @@ LLVMValueRef ReferendStructs::getStringBytesPtr(
       makeWrapperPtr(
           FL(), functionState, builder,
           globalState->metalCache.strRef,
-          globalState->region->checkValidReference(
+          globalState->getRegion(globalState->metalCache.strRef)->checkValidReference(
               FL(), functionState, builder,
               globalState->metalCache.strRef, ref));
   return getCharsPtrFromWrapperPtr(globalState, builder, strWrapperPtrLE);
@@ -458,7 +458,7 @@ LLVMValueRef ReferendStructs::getStringLen(FunctionState* functionState, LLVMBui
       makeWrapperPtr(
           FL(), functionState, builder,
           globalState->metalCache.strRef,
-          globalState->region->checkValidReference(
+          globalState->getRegion(globalState->metalCache.strRef)->checkValidReference(
               FL(), functionState, builder,
               globalState->metalCache.strRef, ref));
   return getLenFromStrWrapperPtr(builder, strWrapperPtrLE);
@@ -534,31 +534,31 @@ ControlBlockPtrLE ReferendStructs::getControlBlockPtr(
     auto referenceLE =
         makeInterfaceFatPtr(
             from, functionState, builder, referenceM,
-            globalState->region->checkValidReference(from, functionState, builder, referenceM, ref));
+            globalState->getRegion(referenceM)->checkValidReference(from, functionState, builder, referenceM, ref));
     return getControlBlockPtr(from, functionState, builder, referendM, referenceLE);
   } else if (dynamic_cast<StructReferend*>(referendM)) {
     auto referenceLE =
         makeWrapperPtr(
             from, functionState, builder, referenceM,
-            globalState->region->checkValidReference(from, functionState, builder, referenceM, ref));
+            globalState->getRegion(referenceM)->checkValidReference(from, functionState, builder, referenceM, ref));
     return getConcreteControlBlockPtr(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<KnownSizeArrayT*>(referendM)) {
     auto referenceLE =
         makeWrapperPtr(
             from, functionState, builder, referenceM,
-            globalState->region->checkValidReference(from, functionState, builder, referenceM, ref));
+            globalState->getRegion(referenceM)->checkValidReference(from, functionState, builder, referenceM, ref));
     return getConcreteControlBlockPtr(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<UnknownSizeArrayT*>(referendM)) {
     auto referenceLE =
         makeWrapperPtr(
             from, functionState, builder, referenceM,
-            globalState->region->checkValidReference(from, functionState, builder, referenceM, ref));
+            globalState->getRegion(referenceM)->checkValidReference(from, functionState, builder, referenceM, ref));
     return getConcreteControlBlockPtr(from, functionState, builder, referenceM, referenceLE);
   } else if (dynamic_cast<Str*>(referendM)) {
     auto referenceLE =
         makeWrapperPtr(
             from, functionState, builder, referenceM,
-            globalState->region->checkValidReference(from, functionState, builder, referenceM, ref));
+            globalState->getRegion(referenceM)->checkValidReference(from, functionState, builder, referenceM, ref));
     return getConcreteControlBlockPtr(from, functionState, builder, referenceM, referenceLE);
   } else {
     assert(false);
@@ -639,7 +639,7 @@ LLVMValueRef ReferendStructs::getVoidPtrFromInterfacePtr(
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
     InterfaceFatPtrLE virtualArgLE) {
-  assert(LLVMTypeOf(virtualArgLE.refLE) == functionState->defaultRegion->translateType(virtualParamMT));
+  assert(LLVMTypeOf(virtualArgLE.refLE) == globalState->getRegion(virtualParamMT)->translateType(virtualParamMT));
   return LLVMBuildPointerCast(
       builder,
       getControlBlockPtr(FL(), functionState, builder, virtualParamMT->referend, virtualArgLE).refLE,

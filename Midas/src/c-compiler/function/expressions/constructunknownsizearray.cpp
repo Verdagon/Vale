@@ -24,18 +24,18 @@ Ref translateConstructUnknownSizeArray(
 
   auto unknownSizeArrayMT = dynamic_cast<UnknownSizeArrayT*>(constructUnknownSizeArray->arrayRefType->referend);
 
-  auto usaWrapperPtrLT = functionState->defaultRegion->translateType(constructUnknownSizeArray->arrayRefType);
-  auto usaElementLT = functionState->defaultRegion->translateType(unknownSizeArrayMT->rawArray->elementType);
+  auto usaWrapperPtrLT = globalState->getRegion(constructUnknownSizeArray->arrayRefType)->translateType(constructUnknownSizeArray->arrayRefType);
+  auto usaElementLT = globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)->translateType(unknownSizeArrayMT->rawArray->elementType);
 
   auto sizeLE = translateExpression(globalState, functionState, blockState, builder, sizeExpr);
 
   auto generatorLE = translateExpression(globalState, functionState, blockState, builder, generatorExpr);
-  functionState->defaultRegion->checkValidReference(FL(), functionState, builder,
+  globalState->getRegion(constructUnknownSizeArray->generatorType)->checkValidReference(FL(), functionState, builder,
       constructUnknownSizeArray->generatorType, generatorLE);
 
   // If we get here, arrayLT is a pointer to our counted struct.
   auto usaRef =
-      functionState->defaultRegion->constructUnknownSizeArrayCountedStruct(
+      globalState->getRegion(constructUnknownSizeArray->arrayRefType)->constructUnknownSizeArrayCountedStruct(
           functionState,
           blockState,
           builder,
@@ -47,11 +47,11 @@ Ref translateConstructUnknownSizeArray(
           usaElementLT,
           sizeLE,
           unknownSizeArrayMT->name->name);
-  functionState->defaultRegion->checkValidReference(FL(), functionState, builder,
+  globalState->getRegion(constructUnknownSizeArray->arrayRefType)->checkValidReference(FL(), functionState, builder,
       constructUnknownSizeArray->arrayRefType, usaRef);
 
-  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeLE);
-  functionState->defaultRegion->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorLE);
+  globalState->getRegion(sizeType)->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeLE);
+  globalState->getRegion(generatorType)->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorLE);
 
   return usaRef;
 }

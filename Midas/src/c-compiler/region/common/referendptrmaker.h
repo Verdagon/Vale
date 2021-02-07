@@ -2,6 +2,6 @@
 #define REGION_COMMON_REFERENDPTRMAKER_
 
 #include <function/expressions/shared/afl.h>
-#include <region/common/defaultimmutables/defaultimmutables.h>
+#include <region/immrc/immrc.h>
 
 #endif

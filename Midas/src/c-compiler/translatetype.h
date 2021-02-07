@@ -10,7 +10,6 @@
 
 std::vector<LLVMTypeRef> translateTypes(
     GlobalState* globalState,
-    IRegion* region,
     std::vector<Reference*> referencesM);
 
 

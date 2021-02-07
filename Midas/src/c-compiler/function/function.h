@@ -125,16 +125,13 @@ public:
   LLVMBuilderRef localsBuilder;
   int nextBlockNumber = 1;
   int instructionDepthInAst = 0;
-  IRegion* defaultRegion;
 
   FunctionState(
       std::string containingFuncName_,
-      IRegion* defaultRegion_,
       LLVMValueRef containingFuncL_,
       LLVMTypeRef returnTypeL_,
       LLVMBuilderRef localsBuilder_) :
     containingFuncName(containingFuncName_),
-    defaultRegion(defaultRegion_),
     containingFuncL(containingFuncL_),
     returnTypeL(returnTypeL_),
     localsBuilder(localsBuilder_) {}

@@ -26,13 +26,13 @@ Ref translateLocalLoad(
 
   auto sourceLE = LLVMBuildLoad(builder, localAddr, localName.c_str());
 
-  auto sourceRef = wrap(functionState->defaultRegion, localType, sourceLE);
-  functionState->defaultRegion->checkValidReference(FL(), functionState, builder, localType, sourceRef);
+  auto sourceRef = wrap(globalState->getRegion(localType), localType, sourceLE);
+  globalState->getRegion(localType)->checkValidReference(FL(), functionState, builder, localType, sourceRef);
 
   auto resultRefLE =
-      functionState->defaultRegion->upgradeLoadResultToRefWithTargetOwnership(
+      globalState->getRegion(localType)->upgradeLoadResultToRefWithTargetOwnership(
           functionState, builder, localType, resultType, LoadResult{sourceRef});
-  functionState->defaultRegion->alias(FL(), functionState, builder, resultType, resultRefLE);
+  globalState->getRegion(resultType)->alias(FL(), functionState, builder, resultType, resultRefLE);
 
   return resultRefLE;
 }

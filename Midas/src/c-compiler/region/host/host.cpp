@@ -22,7 +22,6 @@ Host::Host(GlobalState* globalState_) :
         globalState,
         makeFastWeakableControlBlock(globalState),
         WrcWeaks::makeWeakRefHeaderStruct(globalState)),
-    defaultImmutables(globalState, &immStructs),
     referendStructs(
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
@@ -151,8 +150,7 @@ void Host::dealias(
   auto sourceRnd = sourceMT->referend;
 
   if (sourceMT->ownership == Ownership::SHARE) {
-    defaultImmutables.discard(
-        from, globalState, functionState, builder, sourceMT, sourceRef);
+    assert(false);
   } else {
     if (sourceMT->ownership == Ownership::OWN) {
       // This can happen if we're sending an owning reference to the outside world, see DEPAR.
@@ -214,7 +212,7 @@ Ref Host::lockWeak(
   auto isAliveLE =
       getIsAliveFromWeakRef(
           functionState, builder, sourceWeakRefMT, sourceWeakRefLE, weakRefKnownLive);
-  auto resultOptTypeLE = translateType(resultOptTypeM);
+  auto resultOptTypeLE = globalState->getRegion(resultOptTypeM)->translateType(resultOptTypeM);
   return regularInnerLockWeak(
       globalState, functionState, builder, thenResultIsNever, elseResultIsNever, resultOptTypeM,
       constraintRefM, sourceWeakRefMT, sourceWeakRefLE, buildThen, buildElse,
@@ -224,7 +222,7 @@ Ref Host::lockWeak(
 LLVMTypeRef Host::translateType(Reference* referenceM) {
   switch (referenceM->ownership) {
     case Ownership::SHARE:
-      return defaultImmutables.translateType(globalState, referenceM);
+      assert(false);
     case Ownership::OWN:
     case Ownership::BORROW:
       assert(referenceM->location != Location::INLINE);
@@ -265,16 +263,16 @@ void Host::declareUnknownSizeArray(
 void Host::translateUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT) {
   auto elementLT =
-      translateType(
-          unknownSizeArrayMT->rawArray->elementType);
+      globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
+          ->translateType(unknownSizeArrayMT->rawArray->elementType);
   referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
 void Host::translateKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT) {
   auto elementLT =
-      translateType(
-          knownSizeArrayMT->rawArray->elementType);
+      globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
+          ->translateType(knownSizeArrayMT->rawArray->elementType);
   referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
@@ -288,8 +286,8 @@ void Host::translateStruct(
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
     innerStructMemberTypesL.push_back(
-        translateType(
-            structM->members[i]->type));
+        globalState->getRegion(structM->members[i]->type)
+            ->translateType(structM->members[i]->type));
   }
   referendStructs.translateStruct(
       structM,
@@ -343,8 +341,8 @@ LLVMTypeRef Host::translateInterfaceMethodToFunctionType(
     InterfaceMethod* method) {
   auto returnMT = method->prototype->returnType;
   auto paramsMT = method->prototype->params;
-  auto returnLT = translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, this, paramsMT);
+  auto returnLT = globalState->getRegion(returnMT)->translateType(returnMT);
+  auto paramsLT = translateTypes(globalState, paramsMT);
 
   switch (paramsMT[method->virtualParamIndex]->ownership) {
     case Ownership::BORROW:
@@ -479,12 +477,12 @@ LLVMValueRef Host::checkValidReference(
   std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
   assert(actualRefM == refM);
   assert(refLE != nullptr);
-  assert(LLVMTypeOf(refLE) == functionState->defaultRegion->translateType(refM));
+  assert(LLVMTypeOf(refLE) == globalState->getRegion(refM)->translateType(refM));
 
   if (refM->ownership == Ownership::OWN) {
     regularCheckValidReference(checkerAFL, globalState, functionState, builder, &referendStructs, refM, refLE);
   } else if (refM->ownership == Ownership::SHARE) {
-    defaultImmutables.checkValidReference(checkerAFL, functionState, builder, &referendStructs, refM, refLE);
+    assert(false);
   } else {
     if (refM->ownership == Ownership::BORROW) {
       regularCheckValidReference(checkerAFL, globalState, functionState, builder,
@@ -534,7 +532,7 @@ Ref Host::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from a member
       return sourceRef;
     } else if (targetOwnership == Ownership::BORROW) {
-      auto resultRef = transmutePtr(functionState, builder, sourceType, targetType, sourceRef);
+      auto resultRef = transmutePtr(globalState, functionState, builder, sourceType, targetType, sourceRef);
       checkValidReference(FL(),
                           functionState, builder, targetType, resultRef);
       return resultRef;
@@ -751,14 +749,7 @@ Ref Host::loadMember(
     const std::string& memberName) {
 
   if (structRefMT->ownership == Ownership::SHARE) {
-    auto memberLE =
-        defaultImmutables.loadMember(
-            functionState, builder, structRefMT, structRef, memberIndex, expectedMemberType,
-            targetType, memberName);
-    auto resultRef =
-        upgradeLoadResultToRefWithTargetOwnership(
-            functionState, builder, expectedMemberType, targetType, memberLE);
-    return resultRef;
+    assert(false);
   } else {
     auto unupgradedMemberLE =
         regularLoadMember(
@@ -783,7 +774,7 @@ void Host::checkInlineStructType(
 
 std::string Host::getRefNameC(Reference* refMT) {
   if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.getRefNameC(refMT);
+    assert(false);
   } else if (auto structRefMT = dynamic_cast<StructReferend*>(refMT->referend)) {
     auto structMT = globalState->program->getStruct(structRefMT->fullName);
     auto baseName = globalState->program->getExportedName(structRefMT->fullName);
@@ -807,7 +798,7 @@ std::string Host::getRefNameC(Reference* refMT) {
 void Host::generateStructDefsC(
     std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
   if (structDefM->mutability == Mutability::IMMUTABLE) {
-    return defaultImmutables.generateStructDefsC(cByExportedName, structDefM);
+    assert(false);
   } else {
     auto baseName = globalState->program->getExportedName(structDefM->referend->fullName);
     auto refTypeName = baseName + "Ref";
@@ -825,7 +816,7 @@ void Host::generateInterfaceDefsC(
 
 LLVMTypeRef Host::getExternalType(Reference* refMT) {
   if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.getExternalType(refMT);
+    assert(false);
   } else {
     if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
       return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
@@ -845,7 +836,7 @@ LLVMValueRef Host::copyToWild(
     Reference* sourceRefMT,
     Ref sourceRef) {
   if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
+    assert(false);
   } else {
     assert(false);
   }
@@ -858,7 +849,7 @@ Ref Host::copyFromWild(
     Reference* sourceRefMT,
     LLVMValueRef sourceRef) {
   if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
+    assert(false);
   } else {
     assert(false);
   }
@@ -884,7 +875,7 @@ Ref Host::receiveRefFromWild(
   assert(sourceRefMT->ownership != Ownership::SHARE);
 
   assert(sourceRefMT->location != Location::INLINE);
-  auto result = wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+  auto result = wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRef);
   // No need to alias in unsafe mode for instances
   return result;
 }

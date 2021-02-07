@@ -71,7 +71,7 @@ add_executable(valec
 		src/c-compiler/region/common/common.cpp
 		src/c-compiler/region/common/defaultlayout/structs.cpp
         src/c-compiler/region/common/defaultlayout/structsrouter.cpp
-		src/c-compiler/region/common/defaultimmutables/defaultimmutables.cpp
+		src/c-compiler/region/immrc/immrc.cpp
 		src/c-compiler/region/common/lgtweaks/lgtweaks.cpp
 		src/c-compiler/region/common/wrcweaks/wrcweaks.cpp
 		src/c-compiler/region/common/hgm/hgm.cpp

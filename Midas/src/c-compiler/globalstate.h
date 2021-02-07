@@ -16,6 +16,9 @@ class IReferendStructsSource;
 class IWeakRefStructsSource;
 class ControlBlock;
 
+constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_GEN = 0;
+constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE = 1;
+
 class GlobalState {
 public:
   LLVMTargetMachineRef machine = nullptr;
@@ -63,6 +66,8 @@ public:
   LLVMTypeRef wrcTableStructLT = nullptr;
   LLVMValueRef expandWrcTable = nullptr, checkWrci = nullptr, getNumWrcs = nullptr;
 
+  LLVMTypeRef lgtTableStructLT, lgtEntryStructLT = nullptr; // contains generation and next free
+  LLVMValueRef expandLgt = nullptr, checkLgti = nullptr, getNumLiveLgtEntries = nullptr;
 
   LLVMValueRef strncpy = nullptr;
 
@@ -83,7 +88,23 @@ public:
 
   LLVMBuilderRef valeMainBuilder = nullptr;
 
-  IRegion* region = nullptr;
+  IRegion* immRc = nullptr;
+  IRegion* mutRegion = nullptr;
+
+  IRegion* getRegion(Reference* referenceM) {
+    if (referenceM->ownership == Ownership::SHARE) {
+      return immRc;
+    } else {
+      return mutRegion;
+    }
+  }
+  IRegion* getRegion(Mutability mutability) {
+    if (mutability == Mutability::IMMUTABLE) {
+      return immRc;
+    } else {
+      return mutRegion;
+    }
+  }
 
   LLVMValueRef getFunction(Name* name) {
     auto functionIter = functions.find(name->name);

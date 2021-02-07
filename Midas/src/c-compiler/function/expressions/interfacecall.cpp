@@ -19,7 +19,8 @@ Ref translateInterfaceCall(
   argsLE.reserve(call->argExprs.size());
   for (int i = 0; i < call->argExprs.size(); i++) {
     auto argLE = translateExpression(globalState, functionState, blockState, builder, call->argExprs[i]);
-    functionState->defaultRegion->checkValidReference(FL(), functionState, builder, call->functionType->params[i], argLE);
+    globalState->getRegion(call->functionType->params[i])
+        ->checkValidReference(FL(), functionState, builder, call->functionType->params[i], argLE);
     argsLE.push_back(argLE);
   }
 
@@ -34,11 +35,12 @@ Ref translateInterfaceCall(
           argExprsLE,
           call->virtualParamIndex,
           call->indexInEdge);
-  functionState->defaultRegion->checkValidReference(FL(), functionState, builder, call->functionType->returnType, resultLE);
+  globalState->getRegion(call->functionType->returnType)
+      ->checkValidReference(FL(), functionState, builder, call->functionType->returnType, resultLE);
 
   if (call->functionType->returnType->referend == globalState->metalCache.never) {
     return wrap(
-        functionState->defaultRegion,
+        globalState->getRegion(globalState->metalCache.neverRef),
         globalState->metalCache.neverRef,
         LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL)));
   } else {

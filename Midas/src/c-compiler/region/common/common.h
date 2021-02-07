@@ -194,6 +194,7 @@ LLVMValueRef mallocUnknownSizeArray(
     LLVMValueRef lengthLE);
 // Transmutes a ptr of one ownership (such as own) to another ownership (such as borrow).
 Ref transmutePtr(
+    GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,

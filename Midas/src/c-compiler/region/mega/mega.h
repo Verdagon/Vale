@@ -3,7 +3,7 @@
 
 #include <llvm-c/Core.h>
 #include <function/expressions/shared/afl.h>
-#include <region/common/defaultimmutables/defaultimmutables.h>
+#include <region/immrc/immrc.h>
 #include <region/common/defaultlayout/structsrouter.h>
 #include <region/common/wrcweaks/wrcweaks.h>
 #include <region/common/lgtweaks/lgtweaks.h>
@@ -390,8 +390,6 @@ protected:
   ReferendStructs immStructs;
   ReferendStructs mutNonWeakableStructs;
   WeakableReferendStructs mutWeakableStructs;
-
-  DefaultImmutables defaultImmutables;
 
   ReferendStructsRouter referendStructs;
   WeakRefStructsRouter weakRefStructs;

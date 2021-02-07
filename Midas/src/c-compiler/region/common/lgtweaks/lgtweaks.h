@@ -170,10 +170,12 @@ private:
   IWeakRefStructsSource* weakRefStructsSource;
   bool elideChecksForKnownLive;
 
-  LLVMTypeRef lgtEntryStructL = nullptr; // contains generation and next free
+  LLVMValueRef lgtTablePtrLE = nullptr;
 
-  LLVMValueRef expandLgt = nullptr, checkLgti = nullptr, getNumLiveLgtEntries = nullptr;
-  LLVMValueRef lgtCapacityPtr = nullptr, lgtFirstFreeLgtiPtr = nullptr, lgtEntriesArrayPtr = nullptr;
+  LLVMValueRef getLgtCapacityPtr(LLVMBuilderRef builder);
+  LLVMValueRef getLgtFirstFreeLgtiPtr(LLVMBuilderRef builder);
+  LLVMValueRef getLgtEntriesArrayPtr(LLVMBuilderRef builder);
+
 };
 
 #endif

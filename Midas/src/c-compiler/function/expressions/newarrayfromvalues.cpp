@@ -20,8 +20,9 @@ Ref translateNewArrayFromValues(
       translateExpressions(
           globalState, functionState, blockState, builder, newArrayFromValues->sourceExprs);
   for (auto elementLE : elementsLE) {
-    functionState->defaultRegion->checkValidReference(FL(), functionState, builder,
-        newArrayFromValues->arrayReferend->rawArray->elementType, elementLE);
+    globalState->getRegion(newArrayFromValues->arrayReferend->rawArray->elementType)
+        ->checkValidReference(
+            FL(), functionState, builder, newArrayFromValues->arrayReferend->rawArray->elementType, elementLE);
   }
 
   auto knownSizeArrayMT = dynamic_cast<KnownSizeArrayT*>(newArrayFromValues->arrayRefType->referend);
@@ -42,13 +43,13 @@ Ref translateNewArrayFromValues(
       } else {
         // If we get here, arrayLT is a pointer to our counted struct.
         auto resultLE =
-            functionState->defaultRegion->constructKnownSizeArray(
+            globalState->getRegion(newArrayFromValues->arrayRefType)->constructKnownSizeArray(
                 functionState,
                 builder,
                 newArrayFromValues->arrayRefType,
                 newArrayFromValues->arrayReferend,
                 elementsLE);
-        functionState->defaultRegion->checkValidReference(FL(), functionState, builder,
+        globalState->getRegion(newArrayFromValues->arrayRefType)->checkValidReference(FL(), functionState, builder,
             newArrayFromValues->arrayRefType, resultLE);
         return resultLE;
       }

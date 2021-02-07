@@ -11,18 +11,16 @@
 
 Assist::Assist(GlobalState* globalState_) :
     globalState(globalState_),
-    immStructs(globalState, makeImmControlBlock(globalState)),
     mutNonWeakableStructs(globalState, makeAssistAndNaiveRCNonWeakableControlBlock(globalState)),
     mutWeakableStructs(
         globalState,
         makeAssistAndNaiveRCWeakableControlBlock(globalState),
         WrcWeaks::makeWeakRefHeaderStruct(globalState)),
-    defaultImmutables(globalState, &immStructs),
     referendStructs(
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
           if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
-            return &immStructs;
+            assert(false);
           } else {
             if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
               return &mutNonWeakableStructs;
@@ -96,7 +94,7 @@ void Assist::dealias(
     Reference* sourceMT,
     Ref sourceRef) {
   if (sourceMT->ownership == Ownership::SHARE) {
-    defaultImmutables.discard(from, globalState, functionState, builder, sourceMT, sourceRef);
+    assert(false);
   } else if (sourceMT->ownership == Ownership::OWN) {
     // This can happen if we're sending an owning reference to the outside world, see DEPAR.
     adjustStrongRc(from, globalState, functionState, &referendStructs, builder, sourceRef, sourceMT, -1);
@@ -133,7 +131,7 @@ Ref Assist::lockWeak(
 LLVMTypeRef Assist::translateType(Reference* referenceM) {
   switch (referenceM->ownership) {
     case Ownership::SHARE:
-      return defaultImmutables.translateType(globalState, referenceM);
+      assert(false);
     case Ownership::OWN:
     case Ownership::BORROW:
       assert(referenceM->location != Location::INLINE);
@@ -175,16 +173,16 @@ void Assist::declareUnknownSizeArray(
 void Assist::translateUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT) {
   auto elementLT =
-      translateType(
-          unknownSizeArrayMT->rawArray->elementType);
+      globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
+          ->translateType(unknownSizeArrayMT->rawArray->elementType);
   referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
 void Assist::translateKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT) {
   auto elementLT =
-      translateType(
-          knownSizeArrayMT->rawArray->elementType);
+      globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
+          ->translateType(knownSizeArrayMT->rawArray->elementType);
   referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
@@ -198,8 +196,8 @@ void Assist::translateStruct(
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
     innerStructMemberTypesL.push_back(
-        translateType(
-            structM->members[i]->type));
+        globalState->getRegion(structM->members[i]->type)
+            ->translateType(structM->members[i]->type));
   }
   referendStructs.translateStruct(
       structM,
@@ -254,8 +252,8 @@ LLVMTypeRef Assist::translateInterfaceMethodToFunctionType(
     InterfaceMethod* method) {
   auto returnMT = method->prototype->returnType;
   auto paramsMT = method->prototype->params;
-  auto returnLT = translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, this, paramsMT);
+  auto returnLT = globalState->getRegion(returnMT)->translateType(returnMT);
+  auto paramsLT = translateTypes(globalState, paramsMT);
 
   switch (paramsMT[method->virtualParamIndex]->ownership) {
     case Ownership::BORROW:
@@ -333,14 +331,7 @@ Ref Assist::loadMember(
     Reference* targetType,
     const std::string& memberName) {
   if (structRefMT->ownership == Ownership::SHARE) {
-    auto memberLE =
-        defaultImmutables.loadMember(
-            functionState, builder, structRefMT, structRef, memberIndex, expectedMemberType,
-            targetType, memberName);
-    auto resultRef =
-        upgradeLoadResultToRefWithTargetOwnership(
-            functionState, builder, expectedMemberType, targetType, memberLE);
-    return resultRef;
+    assert(false);
   } else {
     auto unupgradedMemberLE =
         regularLoadMember(
@@ -361,8 +352,9 @@ void Assist::storeMember(
     const std::string& memberName,
     LLVMValueRef newValueLE) {
   switch (structRefMT->ownership) {
-    case Ownership::OWN:
     case Ownership::SHARE:
+      assert(false);
+    case Ownership::OWN:
     case Ownership::BORROW: {
       storeMemberStrong(
           globalState, functionState, builder, &referendStructs, structRefMT, structRef,
@@ -389,9 +381,10 @@ std::tuple<LLVMValueRef, LLVMValueRef> Assist::explodeInterfaceRef(
     Reference* virtualParamMT,
     Ref virtualArgRef) {
   switch (virtualParamMT->ownership) {
+    case Ownership::SHARE:
+      assert(false);
     case Ownership::OWN:
-    case Ownership::BORROW:
-    case Ownership::SHARE: {
+    case Ownership::BORROW: {
       return explodeStrongInterfaceRef(
           globalState, functionState, builder, &referendStructs, virtualParamMT, virtualArgRef);
     }
@@ -462,15 +455,7 @@ WrapperPtrLE Assist::mallocStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
-  auto resultRef =
-      ::mallocStr(
-          globalState, functionState, builder, lengthLE, &referendStructs,
-          [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-            fillControlBlock(
-                FL(), functionState, innerBuilder, globalState->metalCache.str,
-                Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
-          });
-  return resultRef;
+  assert(false);
 }
 
 Ref Assist::allocate(
@@ -568,13 +553,13 @@ LLVMValueRef Assist::checkValidReference(
   std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
   assert(actualRefM == refM);
   assert(refLE != nullptr);
-  assert(LLVMTypeOf(refLE) == functionState->defaultRegion->translateType(refM));
+  assert(LLVMTypeOf(refLE) == globalState->getRegion(refM)->translateType(refM));
 
   if (globalState->opt->census) {
     if (refM->ownership == Ownership::OWN) {
       regularCheckValidReference(checkerAFL, globalState, functionState, builder, &referendStructs, refM, refLE);
     } else if (refM->ownership == Ownership::SHARE) {
-      defaultImmutables.checkValidReference(checkerAFL, functionState, builder, &referendStructs, refM, refLE);
+      assert(false);
     } else {
       if (refM->ownership == Ownership::BORROW) {
         regularCheckValidReference(checkerAFL, globalState, functionState, builder, &referendStructs, refM, refLE);
@@ -626,7 +611,7 @@ Ref Assist::upgradeLoadResultToRefWithTargetOwnership(
       // - Swapping from a member
       return sourceRef;
     } else if (targetOwnership == Ownership::BORROW) {
-      auto resultRef = transmutePtr(functionState, builder, sourceType, targetType, sourceRef);
+      auto resultRef = transmutePtr(globalState, functionState, builder, sourceType, targetType, sourceRef);
       checkValidReference(FL(),
           functionState, builder, targetType, resultRef);
       return resultRef;
@@ -791,7 +776,7 @@ void Assist::checkInlineStructType(
 
 void Assist::generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
   if (structDefM->mutability == Mutability::IMMUTABLE) {
-    return defaultImmutables.generateStructDefsC(cByExportedName, structDefM);
+    assert(false);
   } else {
     auto baseName = globalState->program->getExportedName(structDefM->referend->fullName);
     auto refTypeName = baseName + "Ref";
@@ -803,7 +788,7 @@ void Assist::generateStructDefsC(std::unordered_map<std::string, std::string>* c
 
 void Assist::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
   if (interfaceDefM->mutability == Mutability::IMMUTABLE) {
-    defaultImmutables.generateInterfaceDefsC(cByExportedName, interfaceDefM);
+    assert(false);
   } else {
     auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
     std::stringstream s;
@@ -814,7 +799,7 @@ void Assist::generateInterfaceDefsC(std::unordered_map<std::string, std::string>
 
 std::string Assist::getRefNameC(Reference* refMT) {
   if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.getRefNameC(refMT);
+    assert(false);
   } else if (auto structRefMT = dynamic_cast<StructReferend*>(refMT->referend)) {
     auto structMT = globalState->program->getStruct(structRefMT->fullName);
     auto baseName = globalState->program->getExportedName(structRefMT->fullName);
@@ -838,7 +823,7 @@ std::string Assist::getRefNameC(Reference* refMT) {
 LLVMTypeRef Assist::getExternalType(
     Reference* refMT) {
   if (refMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.getExternalType(refMT);
+    assert(false);
   } else {
     if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
       if (refMT->location == Location::INLINE) {
@@ -863,7 +848,7 @@ LLVMValueRef Assist::copyToWild(
     Reference* sourceRefMT,
     Ref sourceRef) {
   if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyToWild(functionState, builder, sourceRefMT, sourceRef);
+    assert(false);
   } else {
     assert(false);
   }
@@ -876,7 +861,7 @@ Ref Assist::copyFromWild(
     LLVMValueRef sourceRef) {
 
   if (sourceRefMT->ownership == Ownership::SHARE) {
-    return defaultImmutables.copyFromWild(functionState, builder, sourceRefMT, sourceRef);
+    assert(false);
   } else {
     assert(false);
   }
@@ -914,9 +899,9 @@ Ref Assist::receiveRefFromWild(
   if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(sourceRefMT->location != Location::INLINE);
 
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRef);
   } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-    return wrap(functionState->defaultRegion, sourceRefMT, sourceRef);
+    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRef);
   } else {
     std::cerr << "Invalid type for extern!" << std::endl;
     assert(false);
