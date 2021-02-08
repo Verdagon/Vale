@@ -28,9 +28,10 @@
 #include <llvm-c/Transforms/IPO.h>
 #include <region/assist/assist.h>
 #include <region/mega/mega.h>
-#include <region/host/host.h>
+#include <region/unsafe/unsafe.h>
 #include <function/expressions/shared/string.h>
 #include <sstream>
+#include <region/linear/linear.h>
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -60,7 +61,7 @@ LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
   std::vector<LLVMTypeRef> paramTypesL = { int64LT };
-  auto returnTypeL = globalState->immRc->translateType(globalState->metalCache.strRef);
+  auto returnTypeL = globalState->rcImm->translateType(globalState->metalCache.strRef);
 
   LLVMTypeRef functionTypeL =
       LLVMFunctionType(returnTypeL, paramTypesL.data(), paramTypesL.size(), 0);
@@ -492,9 +493,11 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   initInternalExterns(globalState);
 
-  ImmRC immRc(globalState);
-  globalState->immRc = &immRc;
+  RCImm rcImm(globalState);
+  globalState->rcImm = &rcImm;
   Assist assistRegion(globalState);
+  Unsafe unsafeRegion(globalState);
+  Linear linearRegion(globalState);
 //  Mega megaRegion(globalState);
   IRegion* defaultRegion = nullptr;
   switch (globalState->opt->regionOverride) {
@@ -502,7 +505,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       defaultRegion = &assistRegion;
       break;
     case RegionOverride::FAST:
-      defaultRegion = new Host(globalState);
+      defaultRegion = new Unsafe(globalState);
       break;
     case RegionOverride::NAIVE_RC:
     case RegionOverride::RESILIENT_V0:

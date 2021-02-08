@@ -270,26 +270,27 @@ Ref translateExternCall(
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
   } else {
 
-    auto args = std::vector<Ref>{};
-    args.reserve(call->argExprs.size());
+    auto valeArgRefs = std::vector<Ref>{};
+    valeArgRefs.reserve(call->argExprs.size());
     for (int i = 0; i < call->argExprs.size(); i++) {
       auto argExpr = call->argExprs[i];
       auto argRefMT = call->function->params[i];
       auto argRef = translateExpression(globalState, functionState, blockState, builder, argExpr);
-      args.push_back(argRef);
+      valeArgRefs.push_back(argRef);
     }
 
-    auto argsLE = std::vector<LLVMValueRef>{};
-    argsLE.reserve(call->argExprs.size());
+    auto hostArgsLE = std::vector<LLVMValueRef>{};
+    hostArgsLE.reserve(call->argExprs.size());
     for (int i = 0; i < call->argExprs.size(); i++) {
       auto argRefMT = call->function->params[i];
-      auto arg = args[i];
-
-      auto externalArgRefLE =
-          (argRefMT->ownership == Ownership::SHARE ?
-            globalState->getRegion(argRefMT)->copyToWild(functionState, builder, argRefMT, arg) :
-           globalState->getRegion(argRefMT)->sendRefToWild(functionState, builder, argRefMT, arg));
-      argsLE.push_back(externalArgRefLE);
+      auto arg = valeArgRefs[i];
+      auto hostArgRef =
+          globalState->getExternRegion(argRefMT)
+              ->receiveFrom(functionState, builder, argRefMT, arg);
+      auto hostArgLE =
+          globalState->getExternRegion(argRefMT)
+              ->checkValidReference(FL(), functionState, builder, argRefMT, hostArgRef);
+      hostArgsLE.push_back(hostArgLE);
     }
 
     auto externFuncIter = globalState->externFunctions.find(call->function->name->name);
@@ -302,10 +303,10 @@ Ref translateExternCall(
     for (int i = 0; i < call->argExprs.size(); i++) {
       auto argRefMT = call->function->params[i];
       // Dealias any object heading into the outside world, see DEPAR.
-      globalState->getRegion(argRefMT)->dealias(FL(), functionState, builder, argRefMT, args[i]);
+      globalState->getRegion(argRefMT)->dealias(FL(), functionState, builder, argRefMT, valeArgRefs[i]);
     }
 
-    auto resultLE = LLVMBuildCall(builder, externFuncL, argsLE.data(), argsLE.size(), "");
+    auto hostReturnLE = LLVMBuildCall(builder, externFuncL, hostArgsLE.data(), hostArgsLE.size(), "");
 //    auto resultRef = wrap(globalState->getRegion(refHere), call->function->returnType, resultLE);
 //    globalState->getRegion(refHere)->checkValidReference(FL(), functionState, builder, call->function->returnType, resultRef);
 
@@ -318,16 +319,17 @@ Ref translateExternCall(
       buildFlare(FL(), globalState, functionState, builder, "Done calling function ", call->function->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
 
-      auto internalArgRef =
-          (call->function->returnType->ownership == Ownership::SHARE ?
-          globalState->getRegion(call->function->returnType)->copyFromWild(functionState, builder, call->function->returnType, resultLE) :
-           globalState->getRegion(call->function->returnType)->receiveRefFromWild(functionState, builder, call->function->returnType, resultLE));
+      auto hostReturnRef =
+          wrap(globalState->getExternRegion(call->function->returnType), call->function->returnType, hostReturnLE);
+      auto valeReturnRef =
+          globalState->getRegion(call->function->returnType)
+              ->receiveFrom(functionState, builder, call->function->returnType, hostReturnRef);
 
       // Alias any object coming from the outside world, see DEPAR.
       globalState->getRegion(call->function->returnType)->alias(
-          FL(), functionState, builder, call->function->returnType, internalArgRef);
+          FL(), functionState, builder, call->function->returnType, valeReturnRef);
 
-      return internalArgRef;
+      return valeReturnRef;
     }
   }
   assert(false);

@@ -71,14 +71,15 @@ add_executable(valec
 		src/c-compiler/region/common/common.cpp
 		src/c-compiler/region/common/defaultlayout/structs.cpp
         src/c-compiler/region/common/defaultlayout/structsrouter.cpp
-		src/c-compiler/region/immrc/immrc.cpp
+		src/c-compiler/region/rcimm/rcimm.cpp
 		src/c-compiler/region/common/lgtweaks/lgtweaks.cpp
 		src/c-compiler/region/common/wrcweaks/wrcweaks.cpp
 		src/c-compiler/region/common/hgm/hgm.cpp
 		src/c-compiler/region/common/fatweaks/fatweaks.cpp
 		src/c-compiler/region/assist/assist.cpp
 		src/c-compiler/region/mega/mega.cpp
-		src/c-compiler/region/host/host.cpp
+		src/c-compiler/region/unsafe/unsafe.cpp
+		src/c-compiler/region/linear/linear.cpp
 		src/c-compiler/region/regions.cpp
 
         src/c-compiler/fileio.cpp

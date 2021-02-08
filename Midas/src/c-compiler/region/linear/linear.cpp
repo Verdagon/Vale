@@ -6,48 +6,18 @@
 #include <function/expressions/shared/string.h>
 #include <region/common/common.h>
 #include <sstream>
-#include "immrc.h"
+#include "linear.h"
 #include "translatetype.h"
 
-void fillControlBlock(
-    AreaAndFileAndLine from,
-    GlobalState* globalState,
-    FunctionState* functionState,
-    IReferendStructsSource* structs,
-    LLVMBuilderRef builder,
-    Referend* referendM,
-    ControlBlockPtrLE controlBlockPtrLE,
-    const std::string& typeName) {
-  LLVMValueRef newControlBlockLE =
-      LLVMGetUndef(structs->getControlBlock(referendM)->getStruct());
-  newControlBlockLE =
-      fillControlBlockCensusFields(
-          from, globalState, functionState, structs, builder, referendM, newControlBlockLE, typeName);
-  newControlBlockLE =
-      insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-  LLVMBuildStore(
-      builder,
-      newControlBlockLE,
-      controlBlockPtrLE.refLE);
-}
-
-ControlBlock makeImmControlBlock(GlobalState* globalState) {
-  ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "immControlBlock"));
-  controlBlock.addMember(ControlBlockMember::STRONG_RC);
-  // This is where we put the size in the current generational heap, we can use it for something
-  // else until we get rid of that.
-  controlBlock.addMember(ControlBlockMember::UNUSED_32B);
-  if (globalState->opt->census) {
-    controlBlock.addMember(ControlBlockMember::CENSUS_TYPE_STR);
-    controlBlock.addMember(ControlBlockMember::CENSUS_OBJ_ID);
-  }
+ControlBlock makeLinearControlBlock(GlobalState* globalState) {
+  ControlBlock controlBlock(globalState, LLVMStructCreateNamed(globalState->context, "linearControlBlock"));
   controlBlock.build();
   return controlBlock;
 }
 
-ImmRC::ImmRC(GlobalState* globalState_)
+Linear::Linear(GlobalState* globalState_)
   : globalState(globalState_),
-    referendStructs(globalState, makeImmControlBlock(globalState)) {
+    referendStructs(globalState, makeLinearControlBlock(globalState)) {
   LLVMTypeRef structL = LLVMStructCreateNamed(globalState->context, "ValeStr");
   std::vector<LLVMTypeRef> memberTypesL;
   memberTypesL.push_back(LLVMInt64TypeInContext(globalState->context));
@@ -61,7 +31,7 @@ ImmRC::ImmRC(GlobalState* globalState_)
 
 
 
-void ImmRC::alias(
+void Linear::alias(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -90,7 +60,7 @@ void ImmRC::alias(
   }
 }
 
-void ImmRC::dealias(
+void Linear::dealias(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -99,7 +69,7 @@ void ImmRC::dealias(
   discard(from, globalState, functionState, builder, sourceMT, sourceRef);
 }
 
-Ref ImmRC::lockWeak(
+Ref Linear::lockWeak(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     bool thenResultIsNever,
@@ -115,11 +85,11 @@ Ref ImmRC::lockWeak(
   assert(false);
 }
 
-LLVMTypeRef ImmRC::translateType(Reference* referenceM) {
+LLVMTypeRef Linear::translateType(Reference* referenceM) {
   return translateType(globalState, referenceM);
 }
 
-LLVMValueRef ImmRC::getCensusObjectId(
+LLVMValueRef Linear::getCensusObjectId(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -144,7 +114,7 @@ LLVMValueRef ImmRC::getCensusObjectId(
   }
 }
 
-Ref ImmRC::upcastWeak(
+Ref Linear::upcastWeak(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     WeakFatPtrLE sourceRefLE,
@@ -155,17 +125,17 @@ Ref ImmRC::upcastWeak(
   assert(false);
 }
 
-void ImmRC::declareKnownSizeArray(
+void Linear::declareKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT) {
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
-void ImmRC::declareUnknownSizeArray(
+void Linear::declareUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT) {
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
-void ImmRC::translateUnknownSizeArray(
+void Linear::translateUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT) {
   auto elementLT =
       translateType(
@@ -173,7 +143,7 @@ void ImmRC::translateUnknownSizeArray(
   referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
-void ImmRC::translateKnownSizeArray(
+void Linear::translateKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT) {
   auto elementLT =
       translateType(
@@ -181,12 +151,12 @@ void ImmRC::translateKnownSizeArray(
   referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
-void ImmRC::declareStruct(
+void Linear::declareStruct(
     StructDefinition* structM) {
   referendStructs.declareStruct(structM);
 }
 
-void ImmRC::translateStruct(
+void Linear::translateStruct(
     StructDefinition* structM) {
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
@@ -197,12 +167,12 @@ void ImmRC::translateStruct(
   referendStructs.translateStruct(structM, innerStructMemberTypesL);
 }
 
-void ImmRC::declareEdge(
+void Linear::declareEdge(
     Edge* edge) {
   referendStructs.declareEdge(edge);
 }
 
-void ImmRC::translateEdge(
+void Linear::translateEdge(
     Edge* edge) {
   auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
 
@@ -221,12 +191,12 @@ void ImmRC::translateEdge(
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
-void ImmRC::declareInterface(
+void Linear::declareInterface(
     InterfaceDefinition* interfaceM) {
   referendStructs.declareInterface(interfaceM);
 }
 
-void ImmRC::translateInterface(
+void Linear::translateInterface(
     InterfaceDefinition* interfaceM) {
   assert((uint64_t)interfaceM->referend > 0x10000);
   std::vector<LLVMTypeRef> interfaceMethodTypesL;
@@ -241,12 +211,12 @@ void ImmRC::translateInterface(
       interfaceMethodTypesL);
 }
 
-Ref ImmRC::weakAlias(
+Ref Linear::weakAlias(
     FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) {
   assert(false);
 }
 
-void ImmRC::discardOwningRef(
+void Linear::discardOwningRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     BlockState* blockState,
@@ -257,7 +227,7 @@ void ImmRC::discardOwningRef(
 }
 
 
-void ImmRC::noteWeakableDestroyed(
+void Linear::noteWeakableDestroyed(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refM,
@@ -265,7 +235,7 @@ void ImmRC::noteWeakableDestroyed(
   // Do nothing
 }
 
-Ref ImmRC::loadMember(
+Ref Linear::loadMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structRefMT,
@@ -285,7 +255,7 @@ Ref ImmRC::loadMember(
   return resultRef;
 }
 
-void ImmRC::storeMember(
+void Linear::storeMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structRefMT,
@@ -297,7 +267,7 @@ void ImmRC::storeMember(
   assert(false);
 }
 
-std::tuple<LLVMValueRef, LLVMValueRef> ImmRC::explodeInterfaceRef(
+std::tuple<LLVMValueRef, LLVMValueRef> Linear::explodeInterfaceRef(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* virtualParamMT,
@@ -307,7 +277,7 @@ std::tuple<LLVMValueRef, LLVMValueRef> ImmRC::explodeInterfaceRef(
 }
 
 
-void ImmRC::aliasWeakRef(
+void Linear::aliasWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -316,7 +286,7 @@ void ImmRC::aliasWeakRef(
   assert(false);
 }
 
-void ImmRC::discardWeakRef(
+void Linear::discardWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -325,7 +295,7 @@ void ImmRC::discardWeakRef(
   assert(false);
 }
 
-Ref ImmRC::getIsAliveFromWeakRef(
+Ref Linear::getIsAliveFromWeakRef(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* weakRefM,
@@ -334,11 +304,11 @@ Ref ImmRC::getIsAliveFromWeakRef(
   assert(false);
 }
 
-LLVMValueRef ImmRC::getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
+LLVMValueRef Linear::getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
   return referendStructs.getStringBytesPtr(functionState, builder, ref);
 }
 
-Ref ImmRC::allocate(
+Ref Linear::allocate(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -349,16 +319,12 @@ Ref ImmRC::allocate(
   auto resultRef =
       innerAllocate(
           FL(), globalState, functionState, builder, desiredReference, &referendStructs, membersLE, Weakability::WEAKABLE,
-          [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-            fillControlBlock(
-                FL(), globalState, functionState, &referendStructs, innerBuilder, desiredReference->referend,
-                controlBlockPtrLE, structM->name->name);
-          });
+          [](LLVMBuilderRef, ControlBlockPtrLE) {});
   alias(FL(), functionState, builder, desiredReference, resultRef);
   return resultRef;
 }
 
-Ref ImmRC::upcast(
+Ref Linear::upcast(
     FunctionState* functionState,
     LLVMBuilderRef builder,
 
@@ -371,7 +337,7 @@ Ref ImmRC::upcast(
   return upcastStrong(globalState, functionState, builder, &referendStructs, sourceStructMT, sourceStructReferendM, sourceRefLE, targetInterfaceTypeM, targetInterfaceReferendM);
 }
 
-WrapperPtrLE ImmRC::lockWeakRef(
+WrapperPtrLE Linear::lockWeakRef(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -381,7 +347,7 @@ WrapperPtrLE ImmRC::lockWeakRef(
   assert(false);
 }
 
-Ref ImmRC::constructKnownSizeArray(
+Ref Linear::constructKnownSizeArray(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* referenceM,
@@ -390,24 +356,13 @@ Ref ImmRC::constructKnownSizeArray(
   auto resultRef =
       ::constructKnownSizeArray(
           globalState, functionState, builder, referenceM, referendM, membersLE, &referendStructs,
-          [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-//            fillControlBlock(
-//                FL(),
-//                functionState,
-//                innerBuilder,
-//                referenceM->referend,
-//                referendM->rawArray->mutability,
-//                controlBlockPtrLE,
-//                referendM->name->name);
-            fillControlBlock(
-                FL(), globalState, functionState, &referendStructs, innerBuilder, referendM, controlBlockPtrLE,
-                referendM->name->name);
+          [](LLVMBuilderRef, ControlBlockPtrLE) {
           });
   adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, referenceM, 1);
   return resultRef;
 }
 
-Ref ImmRC::getUnknownSizeArrayLength(
+Ref Linear::getUnknownSizeArrayLength(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaRefMT,
@@ -416,7 +371,7 @@ Ref ImmRC::getUnknownSizeArrayLength(
   return getUnknownSizeArrayLengthStrong(globalState, functionState, builder, &referendStructs, usaRefMT, arrayRef);
 }
 
-LLVMValueRef ImmRC::checkValidReference(
+LLVMValueRef Linear::checkValidReference(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -435,7 +390,7 @@ LLVMValueRef ImmRC::checkValidReference(
   return refLE;
 }
 
-Ref ImmRC::upgradeLoadResultToRefWithTargetOwnership(
+Ref Linear::upgradeLoadResultToRefWithTargetOwnership(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceType,
@@ -455,7 +410,7 @@ Ref ImmRC::upgradeLoadResultToRefWithTargetOwnership(
   }
 }
 
-void ImmRC::checkInlineStructType(
+void Linear::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
@@ -466,7 +421,7 @@ void ImmRC::checkInlineStructType(
   assert(LLVMTypeOf(argLE) == referendStructs.getInnerStruct(structReferend));
 }
 
-LoadResult ImmRC::loadElementFromKSA(
+LoadResult Linear::loadElementFromKSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
@@ -478,7 +433,7 @@ LoadResult ImmRC::loadElementFromKSA(
       globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
 }
 
-LoadResult ImmRC::loadElementFromUSA(
+LoadResult Linear::loadElementFromUSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaRefMT,
@@ -492,7 +447,7 @@ LoadResult ImmRC::loadElementFromUSA(
 }
 
 
-Ref ImmRC::storeElementInUSA(
+Ref Linear::storeElementInUSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaRefMT,
@@ -505,7 +460,7 @@ Ref ImmRC::storeElementInUSA(
 }
 
 
-void ImmRC::deallocate(
+void Linear::deallocate(
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -515,7 +470,7 @@ void ImmRC::deallocate(
 }
 
 
-Ref ImmRC::constructUnknownSizeArrayCountedStruct(
+Ref Linear::constructUnknownSizeArrayCountedStruct(
     FunctionState* functionState,
     BlockState* blockState,
     LLVMBuilderRef builder,
@@ -533,66 +488,28 @@ Ref ImmRC::constructUnknownSizeArrayCountedStruct(
       ::constructUnknownSizeArrayCountedStruct(
           globalState, functionState, blockState, builder, &referendStructs, usaMT, unknownSizeArrayT, generatorType, generatorMethod,
           generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
-          [this, functionState, unknownSizeArrayT, usaMT, typeName](
-              LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-//            fillControlBlock(
-//                FL(),
-//                functionState,
-//                innerBuilder,
-//                unknownSizeArrayT,
-//                unknownSizeArrayT->rawArray->mutability,
-//                controlBlockPtrLE,
-//                typeName);
-
-            fillControlBlock(
-                FL(), globalState, functionState, &referendStructs, innerBuilder, unknownSizeArrayT, controlBlockPtrLE,
-                typeName);
-          });
+          [](LLVMBuilderRef, ControlBlockPtrLE) {});
   adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, usaMT, 1);
   return resultRef;
 }
 
 
-WrapperPtrLE ImmRC::mallocStr(
+WrapperPtrLE Linear::mallocStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
   auto resultRef =
       ::mallocStr(
           globalState, functionState, builder, lengthLE, &referendStructs,
-          [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-//            fillControlBlock(
-//                FL(), functionState, innerBuilder, globalState->metalCache.str,
-//                Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
-            fillControlBlock(
-                FL(), globalState, functionState, &referendStructs, innerBuilder, globalState->metalCache.str, controlBlockPtrLE,
-                "str");
-          });
+          [](LLVMBuilderRef, ControlBlockPtrLE) {});
   return resultRef;
 }
 
-LLVMValueRef ImmRC::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
+LLVMValueRef Linear::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
   return referendStructs.getStringLen(functionState, builder, ref);
 }
 
-LLVMValueRef ImmRC::sendRefToWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    Ref sourceRef) {
-  assert(false);
-}
-
-Ref ImmRC::receiveRefFromWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRef) {
-  assert(false);
-}
-
-
-void ImmRC::discard(
+void Linear::discard(
     AreaAndFileAndLine from,
     GlobalState* globalState,
     FunctionState* functionState,
@@ -682,7 +599,7 @@ void ImmRC::discard(
 }
 
 
-LLVMTypeRef ImmRC::translateType(GlobalState* globalState, Reference* referenceM) {
+LLVMTypeRef Linear::translateType(GlobalState* globalState, Reference* referenceM) {
   if (primitives.isPrimitive(referenceM)) {
     return primitives.translatePrimitive(globalState, referenceM);
   } else {
@@ -728,7 +645,7 @@ LLVMTypeRef ImmRC::translateType(GlobalState* globalState, Reference* referenceM
 }
 
 
-LLVMTypeRef ImmRC::getControlBlockStruct(Referend* referend) {
+LLVMTypeRef Linear::getControlBlockStruct(Referend* referend) {
   if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
     auto structM = globalState->program->getStruct(structReferend->fullName);
     assert(structM->mutability == Mutability::IMMUTABLE);
@@ -746,7 +663,7 @@ LLVMTypeRef ImmRC::getControlBlockStruct(Referend* referend) {
   return referendStructs.controlBlock.getStruct();
 }
 
-ControlBlock* ImmRC::getControlBlock(Referend* referend) {
+ControlBlock* Linear::getControlBlock(Referend* referend) {
   if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
     auto structM = globalState->program->getStruct(structReferend->fullName);
     assert(structM->mutability == Mutability::IMMUTABLE);
@@ -765,7 +682,7 @@ ControlBlock* ImmRC::getControlBlock(Referend* referend) {
 }
 
 
-LoadResult ImmRC::loadMember(
+LoadResult Linear::loadMember(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structRefMT,
@@ -786,7 +703,7 @@ LoadResult ImmRC::loadMember(
   }
 }
 
-void ImmRC::checkValidReference(
+void Linear::checkValidReference(
     AreaAndFileAndLine checkerAFL,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -796,7 +713,7 @@ void ImmRC::checkValidReference(
   regularCheckValidReference(checkerAFL, globalState, functionState, builder, referendStructs, refM, refLE);
 }
 
-std::string ImmRC::getRefNameC(Reference* sourceMT) {
+std::string Linear::getRefNameC(Reference* sourceMT) {
   auto sourceRnd = sourceMT->referend;
   if (dynamic_cast<Int *>(sourceRnd)) {
     return "int64_t";
@@ -834,7 +751,7 @@ std::string ImmRC::getRefNameC(Reference* sourceMT) {
   }
 }
 
-void ImmRC::generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
+void Linear::generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
   auto name = globalState->program->getExportedName(structDefM->referend->fullName);
   std::stringstream s;
   s << "typedef struct " << name << "Ref { void* unused; } " << name << ";" << std::endl;
@@ -850,14 +767,14 @@ void ImmRC::generateStructDefsC(std::unordered_map<std::string, std::string>* cB
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
 
-void ImmRC::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
+void Linear::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
   auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
   std::stringstream s;
   s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << ";";
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
 
-LLVMTypeRef ImmRC::getExternalType(
+LLVMTypeRef Linear::getExternalType(
     Reference* refMT) {
   assert(refMT->ownership == Ownership::SHARE);
 
@@ -899,24 +816,30 @@ LLVMTypeRef ImmRC::getExternalType(
 }
 
 
-LLVMValueRef ImmRC::copyToWild(
+Ref Linear::receiveFrom(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
+
   assert(sourceRefMT->ownership == Ownership::SHARE);
 
+  auto sourceRegion = globalState->getExternRegion(sourceRefMT);
+  // Someday when we include the region in the coord, we wont have to assume its linear.
+  // When that happens, change the LLVMBuildZExt below too.
+  assert(sourceRegion == globalState->linearRegion);
+  auto sourceRefLE = sourceRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+  // Someday when we include the region in the coord, this line will change.
+  auto targetRefMT = sourceRefMT;
+
   if (sourceRefMT == globalState->metalCache.intRef) {
-    return globalState->getRegion(sourceRefMT)->checkValidReference(
-        FL(), functionState, builder, sourceRefMT, sourceRef);
+    return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);
   } else if (sourceRefMT == globalState->metalCache.boolRef) {
-    return LLVMBuildZExt(
-        builder,
-        globalState->getRegion(sourceRefMT)->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef),
-        LLVMInt8TypeInContext(globalState->context),
-        "boolAsI8");
+    auto resultLE =
+        LLVMBuildZExt(
+            builder, sourceRefLE, LLVMInt8TypeInContext(globalState->context), "boolAsI8");
   } else if (sourceRefMT == globalState->metalCache.floatRef) {
-    return globalState->getRegion(sourceRefMT)->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
+    return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);
   } else if (sourceRefMT == globalState->metalCache.strRef) {
     auto structLIter = externalStructLByReferend.find(globalState->metalCache.str);
     assert(structLIter != externalStructLByReferend.end());
@@ -972,16 +895,16 @@ LLVMValueRef ImmRC::copyToWild(
     auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtrPtr");
     LLVMBuildStore(builder, extStrCharsPtrLE, extStrCharsPtrPtrLE);
 
-    return extStrPtrLE;
+    return wrap(this, globalState->metalCache.strRef, extStrPtrLE);
   } else if (sourceRefMT == globalState->metalCache.neverRef) {
     assert(false); // How can we hand a never into something?
-    return nullptr;
+    return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
   } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
     assert(false); // How can we hand a void into something?
-    return nullptr;
+    return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
   } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
-    return nullptr;
+    return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
 
 //    if (sourceRefMT->location == Location::INLINE) {
 //      globalState->getRegion(refHere)->checkInlineStructType(functionState, builder, sourceRefMT, ref);
@@ -993,125 +916,19 @@ LLVMValueRef ImmRC::copyToWild(
   } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
 
     assert(false); // impl
-    return nullptr;
+    return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
   } else {
     std::cerr << "Invalid type for extern!" << std::endl;
     assert(false);
-    return nullptr;
+    return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
   }
 
   assert(false);
-  return nullptr;
-}
-
-Ref ImmRC::copyFromWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRefLE) {
-  assert(sourceRefMT->ownership == Ownership::SHARE);
-
-  if (sourceRefMT == globalState->metalCache.intRef) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.boolRef) {
-    return wrap(
-        globalState->getRegion(sourceRefMT),
-        sourceRefMT,
-        LLVMBuildTrunc(
-            builder, sourceRefLE, LLVMInt1TypeInContext(globalState->context), "boolAsI1"));
-  } else if (sourceRefMT == globalState->metalCache.floatRef) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.strRef) {
-    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
-    assert(externalStructLIter != externalStructLByReferend.end());
-    auto externalStructL = externalStructLIter->second;
-
-    assert(LLVMTypeOf(sourceRefLE) == LLVMPointerType(externalStructL, 0));
-    auto extStrPtrLE = sourceRefLE;
-
-    auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
-    auto extStrLenLE = LLVMBuildLoad(builder, extStrLenPtrLE, "extStrLen");
-
-    auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtr");
-    auto extStrCharsPtrLE = LLVMBuildLoad(builder, extStrCharsPtrPtrLE, "extStrChars");
-
-    auto vstrPtrLE = LLVMBuildCall(builder, globalState->newVStr, &extStrLenLE, 1, "vstrPtr");
-    auto vstrCharsPtrLE = LLVMBuildCall(builder, globalState->getStrCharsFunc, &vstrPtrLE, 1, "vstrCharsPtr");
-
-    std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, extStrCharsPtrLE, extStrLenLE };
-    LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
-
-    // Free the thing C gave us.
-    auto extStrI8PtrLE =
-        LLVMBuildPointerCast(
-            builder,
-            extStrPtrLE,
-            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-            "extStrPtrLE");
-    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
-
-    return wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, vstrPtrLE);
-  } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(sourceRefMT->referend)) {
-    assert(false);
-//    start here, perhaps make an external struct for all USAs.
-//        itll be like the string one except with the number of elements rather than the total
-//        number of bytes. or maybe it can have both?
-//    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
-//    assert(externalStructLIter != externalStructLByReferend.end());
-//    auto externalStructL = externalStructLIter->second;
-//
-//    assert(LLVMTypeOf(refLE) == LLVMPointerType(externalStructL, 0));
-//    auto extStrPtrLE = refLE;
-//
-//    auto extStrLenPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 0, "extStrLenPtr");
-//    auto extStrLenLE = LLVMBuildLoad(builder, extStrLenPtrLE, "extStrLen");
-//
-//    auto extStrCharsPtrPtrLE = LLVMBuildStructGEP(builder, extStrPtrLE, 1, "extStrCharsPtr");
-//    auto extStrCharsPtrLE = LLVMBuildLoad(builder, extStrCharsPtrPtrLE, "extStrChars");
-//
-//    auto vstrPtrLE = LLVMBuildCall(builder, globalState->newVStr, &extStrLenLE, 1, "vstrPtr");
-//    auto vstrCharsPtrLE = LLVMBuildCall(builder, globalState->getStrCharsFunc, &vstrPtrLE, 1, "vstrCharsPtr");
-//
-//    std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, extStrCharsPtrLE, extStrLenLE };
-//    LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
-//
-//    // Free the thing C gave us.
-//    auto extStrI8PtrLE =
-//        LLVMBuildPointerCast(
-//            builder,
-//            extStrPtrLE,
-//            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-//            "extStrPtrLE");
-//    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
-//
-//    return wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, vstrPtrLE);
-  } else if (sourceRefMT == globalState->metalCache.neverRef) {
-    assert(false); // How can we hand a never into something?
-  } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState, functionState, builder));
-  } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(false); // impl
-
-//    if (sourceRefMT->location == Location::INLINE) {
-//      globalState->getRegion(refHere)->checkInlineStructType(functionState, builder, sourceRefMT, ref);
-//    } else {
-////            std::cerr << "Can only pass inline imm structs between C and Vale currently." << std::endl;
-//      assert(false); // impl
-//      return nullptr;
-//    }
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-
-    assert(false); // impl
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
-    assert(false);
-  }
-
-  assert(false);
+  return wrap(this, globalState->metalCache.emptyTupleStructRef, makeEmptyTuple(globalState, functionState, builder));
 }
 
 
-LLVMTypeRef ImmRC::translateInterfaceMethodToFunctionType(
+LLVMTypeRef Linear::translateInterfaceMethodToFunctionType(
     InterfaceReferend* referend,
     InterfaceMethod* method) {
   auto returnMT = method->prototype->returnType;

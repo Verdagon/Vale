@@ -6,7 +6,6 @@
 #include <globalstate.h>
 #include <function/function.h>
 #include <region/common/fatweaks/fatweaks.h>
-#include <region/common/referendptrmaker.h>
 
 class LgtWeaks {
 public:

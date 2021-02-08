@@ -11,9 +11,9 @@
 
 ControlBlock makeImmControlBlock(GlobalState* globalState);
 
-class ImmRC : public IRegion {
+class RCImm : public IRegion {
 public:
-  ImmRC(GlobalState* globalState_);
+  RCImm(GlobalState* globalState_);
 
 
   void alias(
@@ -307,29 +307,11 @@ public:
   LLVMTypeRef getExternalType(
       Reference* refMT) override;
 
-  LLVMValueRef copyToWild(
+  Ref receiveFrom(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
       Ref sourceRef) override;
-
-  Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-  LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) override;
-
-  Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
 
   void discard(
       AreaAndFileAndLine from,
@@ -374,15 +356,6 @@ private:
   ReferendStructs referendStructs;
 
   DefaultPrimitives primitives;
-
-  // Contains all the structs for immutables that we'll be sending over the C boundary.
-  // For example:
-  // - str would map to struct { uint64_t len; char bytes[0]; }
-  // - ImmArray<Vec2> would map to struct { uint64_t len; Vec2 entries[0]; }
-  // - Vec2 would map to struct { int32_t x; int32_t y; }
-  // We don't need to store a corresponding map for mutables because their representations
-  // are the same in the vale world and C world, we can generate that C code on the fly.
-  std::unordered_map<Referend*, LLVMTypeRef> externalStructLByReferend;
 };
 
 #endif

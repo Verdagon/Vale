@@ -88,21 +88,37 @@ public:
 
   LLVMBuilderRef valeMainBuilder = nullptr;
 
-  IRegion* immRc = nullptr;
+  IRegion* rcImm = nullptr;
   IRegion* mutRegion = nullptr;
+  IRegion* unsafeRegion = nullptr;
+  IRegion* linearRegion = nullptr;
 
   IRegion* getRegion(Reference* referenceM) {
     if (referenceM->ownership == Ownership::SHARE) {
-      return immRc;
+      return rcImm;
     } else {
       return mutRegion;
     }
   }
   IRegion* getRegion(Mutability mutability) {
     if (mutability == Mutability::IMMUTABLE) {
-      return immRc;
+      return rcImm;
     } else {
       return mutRegion;
+    }
+  }
+  IRegion* getExternRegion(Reference* referenceM) {
+    if (referenceM->ownership == Ownership::SHARE) {
+      return linearRegion;
+    } else {
+      return unsafeRegion;
+    }
+  }
+  IRegion* getExternRegion(Mutability mutability) {
+    if (mutability == Mutability::IMMUTABLE) {
+      return linearRegion;
+    } else {
+      return unsafeRegion;
     }
   }
 

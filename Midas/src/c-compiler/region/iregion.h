@@ -316,29 +316,11 @@ public:
       bool arrayRefKnownLive,
       Ref indexRef) = 0;
 
-  virtual LLVMValueRef copyToWild(
+  virtual Ref receiveFrom(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
       Ref sourceRef) = 0;
-
-  virtual Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) = 0;
-
-  virtual LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) = 0;
-
-  virtual Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) = 0;
 
   virtual LLVMValueRef getStringBytesPtr(
       FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;

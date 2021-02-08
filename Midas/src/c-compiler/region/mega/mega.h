@@ -3,7 +3,7 @@
 
 #include <llvm-c/Core.h>
 #include <function/expressions/shared/afl.h>
-#include <region/immrc/immrc.h>
+#include <region/rcimm/rcimm.h>
 #include <region/common/defaultlayout/structsrouter.h>
 #include <region/common/wrcweaks/wrcweaks.h>
 #include <region/common/lgtweaks/lgtweaks.h>
@@ -11,7 +11,6 @@
 #include "globalstate.h"
 #include "function/function.h"
 #include "../iregion.h"
-#include <region/common/referendptrmaker.h>
 
 class Mega : public IRegion {
 public:
@@ -354,29 +353,11 @@ public:
 
   LLVMTypeRef getExternalType(Reference* refMT) override;
 
-  LLVMValueRef copyToWild(
+  Ref receiveFrom(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
       Ref sourceRef) override;
-
-  Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-  LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) override;
-
-  Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
 
 private:
   LLVMTypeRef translateInterfaceMethodToFunctionType(

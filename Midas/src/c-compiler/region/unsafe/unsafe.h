@@ -1,9 +1,9 @@
-#ifndef REGION_HOST_HOST_H_
-#define REGION_HOST_HOST_H_
+#ifndef REGION_UNSAFE_UNSAFE_H_
+#define REGION_UNSAFE_UNSAFE_H_
 
 #include <llvm-c/Core.h>
 #include <function/expressions/shared/afl.h>
-#include <region/immrc/immrc.h>
+#include <region/rcimm/rcimm.h>
 #include <region/common/defaultlayout/structsrouter.h>
 #include <region/common/wrcweaks/wrcweaks.h>
 #include <region/common/lgtweaks/lgtweaks.h>
@@ -11,12 +11,11 @@
 #include "globalstate.h"
 #include "function/function.h"
 #include "../iregion.h"
-#include <region/common/referendptrmaker.h>
 
-class Host : public IRegion {
+class Unsafe : public IRegion {
 public:
-  Host(GlobalState* globalState);
-  ~Host() override = default;
+  Unsafe(GlobalState* globalState);
+  ~Unsafe() override = default;
 
   Ref allocate(
       AreaAndFileAndLine from,
@@ -354,29 +353,11 @@ public:
 
   LLVMTypeRef getExternalType(Reference* refMT) override;
 
-  LLVMValueRef copyToWild(
+  Ref receiveFrom(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
       Ref sourceRef) override;
-
-  Ref copyFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
-
-  LLVMValueRef sendRefToWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      Ref sourceRef) override;
-
-  Ref receiveRefFromWild(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceRefMT,
-      LLVMValueRef sourceRef) override;
 
 private:
   LLVMTypeRef translateInterfaceMethodToFunctionType(
@@ -387,7 +368,6 @@ private:
 protected:
   GlobalState* globalState;
 
-  ReferendStructs immStructs;
   ReferendStructs mutNonWeakableStructs;
   WeakableReferendStructs mutWeakableStructs;
 

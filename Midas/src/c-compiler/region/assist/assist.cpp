@@ -841,69 +841,15 @@ LLVMTypeRef Assist::getExternalType(
   assert(false);
 }
 
-
-LLVMValueRef Assist::copyToWild(
+Ref Assist::receiveFrom(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
-  if (sourceRefMT->ownership == Ownership::SHARE) {
-    assert(false);
-  } else {
-    assert(false);
-  }
-}
-
-Ref Assist::copyFromWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRef) {
 
   if (sourceRefMT->ownership == Ownership::SHARE) {
     assert(false);
   } else {
-    assert(false);
-  }
-
-  assert(false);
-}
-
-LLVMValueRef Assist::sendRefToWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    Ref sourceRef) {
-  assert(sourceRefMT->ownership != Ownership::SHARE);
-
-  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(sourceRefMT->location != Location::INLINE);
-
-    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-    return checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
-    assert(false);
-  }
-}
-
-Ref Assist::receiveRefFromWild(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* sourceRefMT,
-    LLVMValueRef sourceRef) {
-
-  assert(sourceRefMT->ownership != Ownership::SHARE);
-
-  if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
-    assert(sourceRefMT->location != Location::INLINE);
-
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRef);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(sourceRefMT->referend)) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, sourceRef);
-  } else {
-    std::cerr << "Invalid type for extern!" << std::endl;
     assert(false);
   }
 
