@@ -46,10 +46,7 @@ Name* readName(MetalCache* cache, const json& name) {
   assert(name.is_string());
   auto nameStr = name.get<std::string>();
 
-  return makeIfNotPresent(
-      &cache->names,
-      nameStr,
-      [&](){ return new Name(nameStr); });
+  return cache->getName(nameStr);
 }
 
 StructReferend* readStructReferend(MetalCache* cache, const json& referend) {
@@ -206,10 +203,7 @@ Prototype* readPrototype(MetalCache* cache, const json& prototype) {
   auto params = readArray(cache, prototype["params"], readReference);
   auto retuurn = readReference(cache, prototype["return"]);
 
-  return makeIfNotPresent(
-      &cache->prototypes[name][retuurn],
-      params,
-      [&](){ return new Prototype(name, params, retuurn); });
+  return cache->getPrototype(name, retuurn, params);
 }
 
 VariableId* readVariableId(MetalCache* cache, const json& variable) {

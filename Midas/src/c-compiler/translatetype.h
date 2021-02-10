@@ -28,4 +28,9 @@ LLVMTypeRef translatePrototypeToFunctionType(
     IRegion* region,
     Prototype* prototype);
 
+LLVMTypeRef translateInterfaceMethodToFunctionType(
+    GlobalState* globalState,
+    IRegion* region,
+    InterfaceMethod* method);
+
 #endif

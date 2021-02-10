@@ -21,6 +21,7 @@
 #include "metal/readjson.h"
 #include "error.h"
 #include "translatetype.h"
+#include "midasfunctions.h"
 
 #include <cstring>
 #include <llvm-c/Transforms/Scalar.h>
@@ -32,6 +33,8 @@
 #include <function/expressions/shared/string.h>
 #include <sstream>
 #include <region/linear/linear.h>
+#include <function/expressions/shared/members.h>
+#include <function/expressions/expressions.h>
 
 #ifdef _WIN32
 #define asmext "asm"
@@ -437,6 +440,12 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   globalState->program = program;
 
+
+  globalState->calculateSerializedSizeName = globalState->metalCache.getName("__vale_calculateSerializedSize");
+  globalState->serializeName = globalState->metalCache.getName("__vale_serialize");
+  globalState->unserializeName = globalState->metalCache.getName("__vale_unserialize");
+
+
   globalState->stringConstantBuilder = entryBuilder;
 
   globalState->numMainArgs =
@@ -497,7 +506,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   globalState->rcImm = &rcImm;
   Assist assistRegion(globalState);
   Unsafe unsafeRegion(globalState);
+  globalState->unsafeRegion = &unsafeRegion;
   Linear linearRegion(globalState);
+  globalState->linearRegion = &linearRegion;
 //  Mega megaRegion(globalState);
   IRegion* defaultRegion = nullptr;
   switch (globalState->opt->regionOverride) {
@@ -505,7 +516,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       defaultRegion = &assistRegion;
       break;
     case RegionOverride::FAST:
-      defaultRegion = new Unsafe(globalState);
+      defaultRegion = &unsafeRegion;
       break;
     case RegionOverride::NAIVE_RC:
     case RegionOverride::RESILIENT_V0:
@@ -544,24 +555,28 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto name = p.first;
     auto structM = p.second;
     globalState->getRegion(structM->mutability)->declareStruct(structM);
+    globalState->getExternRegion(structM->mutability)->declareStruct(structM);
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
     globalState->getRegion(interfaceM->mutability)->declareInterface(interfaceM);
+    globalState->getExternRegion(interfaceM->mutability)->declareInterface(interfaceM);
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
     globalState->getRegion(arrayM->rawArray->mutability)->declareKnownSizeArray(arrayM);
+    globalState->getExternRegion(arrayM->rawArray->mutability)->declareKnownSizeArray(arrayM);
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
     globalState->getRegion(arrayM->rawArray->mutability)->declareUnknownSizeArray(arrayM);
+    globalState->getExternRegion(arrayM->rawArray->mutability)->declareUnknownSizeArray(arrayM);
   }
 
   for (auto p : program->structs) {
@@ -569,24 +584,35 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto structM = p.second;
     assert(name == structM->name->name);
     globalState->getRegion(structM->mutability)->translateStruct(structM);
+    globalState->getExternRegion(structM->mutability)->translateStruct(structM);
   }
+
+  // This has to come after we declare all the other structs, because we
+  // add functions for all the known structs and interfaces.
+  // It also has to be after we *define* them, because they want to access members.
+  // But it has to be before we translate interfaces, because thats when we manifest
+  // the itable layouts.
+  addExtraFunctions(globalState);
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
     globalState->getRegion(interfaceM->mutability)->translateInterface(interfaceM);
+    globalState->getExternRegion(interfaceM->mutability)->translateInterface(interfaceM);
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
     globalState->getRegion(arrayM->rawArray->mutability)->translateKnownSizeArray(arrayM);
+    globalState->getExternRegion(arrayM->rawArray->mutability)->translateKnownSizeArray(arrayM);
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
     globalState->getRegion(arrayM->rawArray->mutability)->translateUnknownSizeArray(arrayM);
+    globalState->getExternRegion(arrayM->rawArray->mutability)->translateUnknownSizeArray(arrayM);
   }
 
   for (auto p : program->structs) {
@@ -594,6 +620,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto structM = p.second;
     for (auto e : structM->edges) {
       globalState->getRegion(structM->mutability)->declareEdge(e);
+      globalState->getExternRegion(structM->mutability)->declareEdge(e);
     }
   }
 
@@ -795,11 +822,12 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto c = p.second;
     std::string filepath = "";
     if (!globalState->opt->exportsDir.empty()) {
-      filepath = globalState->opt->exportsDir + "/" + exportedName + ".h";
+      filepath = globalState->opt->exportsDir + "/";
     }
+    filepath += exportedName + ".h";
     std::ofstream out(filepath, std::ofstream::out);
     if (!out) {
-      std::cerr << "Couldn't make file: " << filepath << std::endl;
+      std::cerr << "Couldn't make file '" << filepath << "': " << strerror(errno) << std::endl;
       exit(1);
     }
     std::cout << "Writing " << filepath << std::endl;

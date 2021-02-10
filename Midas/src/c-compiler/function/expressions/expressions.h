@@ -56,6 +56,13 @@ Ref translateExternCall(
     LLVMBuilderRef builder,
     ExternCall* expr);
 
+Ref buildExternCall(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Prototype* prototype,
+    const std::vector<Ref>& args);
+
 Ref translateIf(
     GlobalState* globalState,
     FunctionState* functionState,

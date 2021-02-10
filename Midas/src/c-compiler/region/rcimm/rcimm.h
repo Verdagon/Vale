@@ -313,6 +313,8 @@ public:
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
+  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
+
   void discard(
       AreaAndFileAndLine from,
       GlobalState* globalState,
@@ -347,10 +349,6 @@ public:
       LLVMValueRef refLE);
 
 private:
-  LLVMTypeRef translateInterfaceMethodToFunctionType(
-      InterfaceReferend* referend,
-      InterfaceMethod* method);
-
   GlobalState* globalState;
 
   ReferendStructs referendStructs;

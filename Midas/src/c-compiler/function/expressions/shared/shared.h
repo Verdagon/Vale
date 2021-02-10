@@ -17,10 +17,10 @@
 LLVMTypeRef makeNeverType(GlobalState* globalState);
 
 LLVMValueRef makeEmptyTuple(
-    GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder);
+    GlobalState* globalState, IRegion* region, LLVMBuilderRef builder);
 
 Ref makeEmptyTupleRef(
-    GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder);
+    GlobalState* globalState, IRegion* region, LLVMBuilderRef builder);
 
 LLVMValueRef makeMidasLocal(
     FunctionState* functionState,
@@ -139,8 +139,7 @@ Ref buildInterfaceCall(
     LLVMBuilderRef builder,
     Prototype* prototype,
     std::vector<Ref> argRefs,
-    int virtualParamIndex,
-    int indexInEdge);
+    int virtualParamIndex);
 
 
 LLVMValueRef makeConstIntExpr(FunctionState* functionState, LLVMBuilderRef builder, LLVMTypeRef type, int value);

@@ -39,6 +39,8 @@ add_executable(valec
 		src/c-compiler/metal/types.cpp
 		src/c-compiler/translatetype.cpp
         src/c-compiler/valeopts.cpp
+		src/c-compiler/serialize.cpp
+		src/c-compiler/midasfunctions.cpp
 
 		src/c-compiler/utils/counters.cpp
 
@@ -80,6 +82,7 @@ add_executable(valec
 		src/c-compiler/region/mega/mega.cpp
 		src/c-compiler/region/unsafe/unsafe.cpp
 		src/c-compiler/region/linear/linear.cpp
+		src/c-compiler/region/linear/linearstructs.cpp
 		src/c-compiler/region/regions.cpp
 
         src/c-compiler/fileio.cpp

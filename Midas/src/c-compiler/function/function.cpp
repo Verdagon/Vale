@@ -28,7 +28,7 @@ LLVMValueRef declareFunction(
   if (globalState->program->isExported(functionM->prototype->name)) {
     std::vector<LLVMTypeRef> exportParamTypesL;
     for (auto valeRefMT : functionM->prototype->params) {
-      exportParamTypesL.push_back(globalState->getRegion(valeRefMT)->getExternalType(valeRefMT));
+      exportParamTypesL.push_back(globalState->getExternRegion(valeRefMT)->getExternalType(valeRefMT));
     }
     auto exportReturnTypeL =
         globalState->getRegion(functionM->prototype->returnType)
@@ -71,23 +71,23 @@ LLVMValueRef declareFunction(
       argsToActualFunction.push_back(valeRef);
     }
 
-    auto returnRef = buildCall(globalState, &functionState, builder, functionM->prototype, argsToActualFunction);
+    auto valeReturnRefOrVoid = buildCall(globalState, &functionState, builder, functionM->prototype, argsToActualFunction);
+    auto valeReturnRef =
+        (functionM->prototype->returnType == globalState->metalCache.emptyTupleStructRef ?
+            makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder) :
+            valeReturnRefOrVoid);
 
-    if (functionM->prototype->returnType == globalState->metalCache.emptyTupleStructRef) {
-      LLVMBuildRetVoid(builder);
-    } else {
-      // Dealias when sending to the outside world, see DEPAR.
-      globalState->getRegion(functionM->prototype->returnType)
-          ->dealias(FL(), &functionState, builder, functionM->prototype->returnType, returnRef);
+    // Dealias when sending to the outside world, see DEPAR.
+    globalState->getRegion(functionM->prototype->returnType)
+        ->dealias(FL(), &functionState, builder, functionM->prototype->returnType, valeReturnRef);
 
-      auto returnHostRef =
-          globalState->getExternRegion(functionM->prototype->returnType)
-              ->receiveFrom(&functionState, builder, functionM->prototype->returnType, returnRef);
-      auto returnHostLE =
-          globalState->getExternRegion(functionM->prototype->returnType)
-              ->checkValidReference(FL(), &functionState, builder, functionM->prototype->returnType, returnHostRef);
-      LLVMBuildRet(builder, returnHostLE);
-    }
+    auto hostReturnRef =
+        globalState->getExternRegion(functionM->prototype->returnType)
+            ->receiveFrom(&functionState, builder, functionM->prototype->returnType, valeReturnRef);
+    auto hostReturnLE =
+        globalState->getExternRegion(functionM->prototype->returnType)
+            ->checkValidReference(FL(), &functionState, builder, functionM->prototype->returnType, hostReturnRef);
+    LLVMBuildRet(builder, hostReturnLE);
 
     LLVMDisposeBuilder(builder);
   }

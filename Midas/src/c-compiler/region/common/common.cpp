@@ -376,7 +376,7 @@ void fillUnknownSizeArray(
             LLVMBuildGEP(
                 bodyBuilder, usaElementsPtrLE, indices.data(), indices.size(), "elementPtr");
         std::vector<Ref> argExprsLE = { generatorLE, indexRef };
-        auto elementRef = buildInterfaceCall(globalState, functionState, bodyBuilder, generatorMethod, argExprsLE, 0, 0);
+        auto elementRef = buildInterfaceCall(globalState, functionState, bodyBuilder, generatorMethod, argExprsLE, 0);
         auto elementLE =
             globalState->getRegion(usaMT->rawArray->elementType)
                 ->checkValidReference(FL(), functionState, bodyBuilder, usaMT->rawArray->elementType, elementRef);

@@ -324,7 +324,13 @@ public:
 //    return &weakRefStructs;
 //  }
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override {
-    return referendStructs.getStringLen(functionState, builder, ref);
+    auto strWrapperPtrLE =
+        referendStructs.makeWrapperPtr(
+            FL(), functionState, builder,
+            globalState->metalCache.strRef,
+            checkValidReference(
+                FL(), functionState, builder, globalState->metalCache.strRef, ref));
+    return referendStructs.getStringLen(functionState, builder, strWrapperPtrLE);
   }
 //  LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override {
 //    return mutWeakableStructs.getWeakRefHeaderStruct(referend);
@@ -358,11 +364,9 @@ public:
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
-private:
-  LLVMTypeRef translateInterfaceMethodToFunctionType(
-      InterfaceReferend* referend,
-      InterfaceMethod* method);
+  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
+private:
 
   GlobalState* globalState;
 

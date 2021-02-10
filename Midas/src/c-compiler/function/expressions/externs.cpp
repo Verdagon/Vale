@@ -8,43 +8,26 @@
 
 #include "function/expression.h"
 
-Ref translateExternCall(
+Ref buildExternCall(
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
-    ExternCall* call) {
-  auto name = call->function->name->name;
-  if (name == "__addIntInt") {
-    assert(call->argExprs.size() == 2);
-    auto leftLE =
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0]));
-    auto rightLE =
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1]));
+    Prototype* prototype,
+    const std::vector<Ref>& args) {
+  if (prototype->name->name == "__addIntInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildAdd(builder, leftLE, rightLE,"add");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
-  } else if (name == "__divideIntInt") {
-    assert(call->argExprs.size() == 2);
-    auto leftLE =
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0]));
-    auto rightLE =
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1]));
+  } else if (prototype->name->name == "__divideIntInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildSDiv(builder, leftLE, rightLE,"add");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
-//  } else if (name == "__eqStrStr") {
-//    assert(call->argExprs.size() == 2);
+//  } else if (prototype->name->name == "__eqStrStr") {
+//    assert(args.size() == 2);
 //
 //    auto leftStrTypeM = call->argTypes[0];
 //    auto leftStrRef =
@@ -73,235 +56,124 @@ Ref translateExternCall(
 //    globalState->getRegion(refHere)->dealias(FL(), functionState, blockState, builder, globalState->metalCache.strRef, rightStrRef);
 //
 //    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, resultBoolLE);
-  } else if (name == "__strLength") {
-    assert(call->argExprs.size() == 1);
-
-    auto leftStrRef =
-        translateExpression(
-            globalState, functionState, blockState, builder, call->argExprs[0]);
-    auto resultLenLE = globalState->getRegion(globalState->metalCache.strRef)->getStringLen(functionState, builder, leftStrRef);
-
-    globalState->getRegion(globalState->metalCache.strRef)->dealias(
-        FL(), functionState, builder, globalState->metalCache.strRef, leftStrRef);
-
+  } else if (prototype->name->name == "__strLength") {
+    assert(args.size() == 1);
+    auto resultLenLE = globalState->getRegion(globalState->metalCache.strRef)->getStringLen(functionState, builder, args[0]);
+    globalState->getRegion(globalState->metalCache.strRef)
+        ->dealias(FL(), functionState, builder, globalState->metalCache.strRef, args[0]);
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultLenLE);
-  } else if (name == "__addFloatFloat") {
+  } else if (prototype->name->name == "__addFloatFloat") {
     // VivemExterns.addFloatFloat
     assert(false);
-  } else if (name == "__panic") {
+  } else if (prototype->name->name == "__panic") {
     auto exitCodeLE = makeConstIntExpr(functionState, builder, LLVMInt8TypeInContext(globalState->context), 255);
     LLVMBuildCall(builder, globalState->exit, &exitCodeLE, 1, "");
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
     return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
-  } else if (name == "__multiplyIntInt") {
-    assert(call->argExprs.size() == 2);
-    auto resultIntLE =
-        LLVMBuildMul(
-            builder,
-            globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-                functionState, builder, call->function->params[0],
-                translateExpression(
-                    globalState, functionState, blockState, builder, call->argExprs[0])),
-            globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-                functionState, builder, call->function->params[1],
-                translateExpression(
-                    globalState, functionState, blockState, builder, call->argExprs[1])),
-            "mul");
+  } else if (prototype->name->name == "__multiplyIntInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto resultIntLE = LLVMBuildMul(builder, leftLE, rightLE, "mul");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
-  } else if (name == "__subtractIntInt") {
-    assert(call->argExprs.size() == 2);
-    auto resultIntLE =
-        LLVMBuildSub(
-            builder,
-            globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-                functionState, builder, call->function->params[0],
-                translateExpression(
-                    globalState, functionState, blockState, builder, call->argExprs[0])),
-            globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-                functionState, builder, call->function->params[1],
-                translateExpression(
-                    globalState, functionState, blockState, builder, call->argExprs[1])),
-            "diff");
+  } else if (prototype->name->name == "__subtractIntInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto resultIntLE = LLVMBuildSub(builder, leftLE, rightLE, "diff");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
-  } else if (name == "__getch") {
+  } else if (prototype->name->name == "__getch") {
     auto resultIntLE = LLVMBuildCall(builder, globalState->getch, nullptr, 0, "");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
-  } else if (name == "__lessThanInt") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntSLT,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__lessThanInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntSLT, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__greaterThanInt") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntSGT,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__greaterThanInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntSGT, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__greaterThanOrEqInt") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntSGE,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__greaterThanOrEqInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntSGE, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__lessThanOrEqInt") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntSLE,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__lessThanOrEqInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntSLE, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__eqIntInt") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntEQ,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__eqIntInt") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntEQ, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__eqBoolBool") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildICmp(
-        builder,
-        LLVMIntEQ,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__eqBoolBool") {
+    assert(args.size() == 2);
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    auto result = LLVMBuildICmp(builder, LLVMIntEQ, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__not") {
-    assert(call->argExprs.size() == 1);
+  } else if (prototype->name->name == "__not") {
+    assert(args.size() == 1);
     auto result = LLVMBuildNot(
         builder,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
+        checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]),
         "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__and") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildAnd(
-        builder,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__and") {
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    assert(args.size() == 2);
+    auto result = LLVMBuildAnd( builder, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__or") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildOr(
-        builder,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__or") {
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    assert(args.size() == 2);
+    auto result = LLVMBuildOr( builder, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
-  } else if (name == "__mod") {
-    assert(call->argExprs.size() == 2);
-    auto result = LLVMBuildSRem(
-        builder,
-        globalState->getRegion(call->function->params[0])->checkValidReference(FL(),
-            functionState, builder, call->function->params[0],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[0])),
-        globalState->getRegion(call->function->params[1])->checkValidReference(FL(),
-            functionState, builder, call->function->params[1],
-            translateExpression(
-                globalState, functionState, blockState, builder, call->argExprs[1])),
-        "");
+  } else if (prototype->name->name == "__mod") {
+    auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
+    auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
+    assert(args.size() == 2);
+    auto result = LLVMBuildSRem( builder, leftLE, rightLE, "");
     return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
   } else {
-
     auto valeArgRefs = std::vector<Ref>{};
-    valeArgRefs.reserve(call->argExprs.size());
-    for (int i = 0; i < call->argExprs.size(); i++) {
-      auto argExpr = call->argExprs[i];
-      auto argRefMT = call->function->params[i];
-      auto argRef = translateExpression(globalState, functionState, blockState, builder, argExpr);
-      valeArgRefs.push_back(argRef);
+    valeArgRefs.reserve(args.size());
+    for (int i = 0; i < args.size(); i++) {
+      valeArgRefs.push_back(args[i]);
     }
 
     auto hostArgsLE = std::vector<LLVMValueRef>{};
-    hostArgsLE.reserve(call->argExprs.size());
-    for (int i = 0; i < call->argExprs.size(); i++) {
-      auto argRefMT = call->function->params[i];
+    hostArgsLE.reserve(args.size());
+    for (int i = 0; i < args.size(); i++) {
+      auto argRefMT = prototype->params[i];
       auto arg = valeArgRefs[i];
       auto hostArgRef =
-          globalState->getExternRegion(argRefMT)
-              ->receiveFrom(functionState, builder, argRefMT, arg);
+          globalState->getExternRegion(argRefMT)->receiveFrom(functionState, builder, argRefMT, arg);
       auto hostArgLE =
-          globalState->getExternRegion(argRefMT)
-              ->checkValidReference(FL(), functionState, builder, argRefMT, hostArgRef);
+          globalState->getExternRegion(argRefMT)->checkValidReference(FL(), functionState, builder, argRefMT, hostArgRef);
       hostArgsLE.push_back(hostArgLE);
     }
 
-    auto externFuncIter = globalState->externFunctions.find(call->function->name->name);
+    auto externFuncIter = globalState->externFunctions.find(prototype->name->name);
     assert(externFuncIter != globalState->externFunctions.end());
     auto externFuncL = externFuncIter->second;
 
     buildFlare(FL(), globalState, functionState, builder, "Suspending function ", functionState->containingFuncName);
-    buildFlare(FL(), globalState, functionState, builder, "Calling extern function ", call->function->name->name);
+    buildFlare(FL(), globalState, functionState, builder, "Calling extern function ", prototype->name->name);
 
-    for (int i = 0; i < call->argExprs.size(); i++) {
-      auto argRefMT = call->function->params[i];
+    for (int i = 0; i < args.size(); i++) {
+      auto argRefMT = prototype->params[i];
       // Dealias any object heading into the outside world, see DEPAR.
       globalState->getRegion(argRefMT)->dealias(FL(), functionState, builder, argRefMT, valeArgRefs[i]);
     }
@@ -310,27 +182,48 @@ Ref translateExternCall(
 //    auto resultRef = wrap(globalState->getRegion(refHere), call->function->returnType, resultLE);
 //    globalState->getRegion(refHere)->checkValidReference(FL(), functionState, builder, call->function->returnType, resultRef);
 
-    if (call->function->returnType->referend == globalState->metalCache.never) {
-      buildFlare(FL(), globalState, functionState, builder, "Done calling function ", call->function->name->name);
+    if (prototype->returnType->referend == globalState->metalCache.never) {
+      buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
       LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
       return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
     } else {
-      buildFlare(FL(), globalState, functionState, builder, "Done calling function ", call->function->name->name);
+      buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
 
-      auto hostReturnRef =
-          wrap(globalState->getExternRegion(call->function->returnType), call->function->returnType, hostReturnLE);
-      auto valeReturnRef =
-          globalState->getRegion(call->function->returnType)
-              ->receiveFrom(functionState, builder, call->function->returnType, hostReturnRef);
+      if (prototype->returnType == globalState->metalCache.emptyTupleStructRef) {
+        return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
+      } else {
+        auto hostReturnRef =
+             wrap(globalState->getExternRegion(prototype->returnType), prototype->returnType, hostReturnLE);
+        auto valeReturnRef =
+            globalState->getRegion(prototype->returnType)
+                ->receiveFrom(functionState, builder, prototype->returnType, hostReturnRef);
 
-      // Alias any object coming from the outside world, see DEPAR.
-      globalState->getRegion(call->function->returnType)->alias(
-          FL(), functionState, builder, call->function->returnType, valeReturnRef);
+        // Alias any object coming from the outside world, see DEPAR.
+        globalState->getRegion(prototype->returnType)->alias(
+            FL(), functionState, builder, prototype->returnType, valeReturnRef);
 
-      return valeReturnRef;
+        return valeReturnRef;
+      }
     }
   }
   assert(false);
+}
+
+Ref translateExternCall(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    BlockState* blockState,
+    LLVMBuilderRef builder,
+    ExternCall* call) {
+  auto name = call->function->name->name;
+  auto params = call->function->params;
+  std::vector<Ref> args;
+  assert(call->argExprs.size() == call->argTypes.size());
+  for (int i = 0; i < call->argExprs.size(); i++) {
+    args.emplace_back(
+        translateExpression(globalState, functionState, blockState, builder, call->argExprs[i]));
+  }
+  return buildExternCall(globalState, functionState, builder, call->function, args);
 }

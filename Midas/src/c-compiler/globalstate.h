@@ -15,6 +15,7 @@ class IRegion;
 class IReferendStructsSource;
 class IWeakRefStructsSource;
 class ControlBlock;
+class Linear;
 
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_GEN = 0;
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE = 1;
@@ -86,68 +87,71 @@ public:
   std::unordered_map<std::string, LLVMValueRef> functions;
   std::unordered_map<std::string, LLVMValueRef> externFunctions;
 
+  // These contain the extra interface methods that Midas adds to particular interfaces.
+  // For example, for every immutable, Midas needs to add a serialize() method that
+  // adds it to an outgoing linear buffer.
+  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>> interfaceExtraMethods;
+  std::unordered_map<Edge*, Edge*> extraAdditionsEdges;
+  std::unordered_map<Prototype*, LLVMValueRef> extraFunctions;
+
+  LLVMValueRef lookupFunction(Prototype* prototype) {
+    auto iter = extraFunctions.find(prototype);
+    if (iter != extraFunctions.end()) {
+      return iter->second;
+    }
+    auto funcIter = functions.find(prototype->name->name);
+    assert(funcIter != functions.end());
+    return funcIter->second;
+  }
+
+  int getInterfaceMethodIndex(InterfaceReferend* interfaceReferendM, Prototype* prototype) {
+    auto interfaceDefM = program->getInterface(interfaceReferendM->fullName);
+    for (int i = 0; i < interfaceDefM->methods.size(); i++) {
+      if (interfaceDefM->methods[i]->prototype == prototype) {
+        return i;
+      }
+    }
+    auto iter = interfaceExtraMethods.find(interfaceReferendM);
+    assert(iter != interfaceExtraMethods.end());
+    auto extraMethods = iter->second;
+    for (int i = 0; i < extraMethods.size(); i++) {
+      if (extraMethods[i]->prototype == prototype) {
+        return i;
+      }
+    }
+    assert(false);
+  }
+
+  Ref constI64(int64_t x);
+  Ref buildAdd(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
+  Ref buildMod(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
+  Ref buildMultiply(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
+  Ref buildDivide(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
+
+
+  Name* calculateSerializedSizeName = nullptr;
+  Name* serializeName = nullptr;
+  Name* unserializeName = nullptr;
+
   LLVMBuilderRef valeMainBuilder = nullptr;
 
   IRegion* rcImm = nullptr;
   IRegion* mutRegion = nullptr;
   IRegion* unsafeRegion = nullptr;
-  IRegion* linearRegion = nullptr;
+  Linear* linearRegion = nullptr;
 
-  IRegion* getRegion(Reference* referenceM) {
-    if (referenceM->ownership == Ownership::SHARE) {
-      return rcImm;
-    } else {
-      return mutRegion;
-    }
-  }
-  IRegion* getRegion(Mutability mutability) {
-    if (mutability == Mutability::IMMUTABLE) {
-      return rcImm;
-    } else {
-      return mutRegion;
-    }
-  }
-  IRegion* getExternRegion(Reference* referenceM) {
-    if (referenceM->ownership == Ownership::SHARE) {
-      return linearRegion;
-    } else {
-      return unsafeRegion;
-    }
-  }
-  IRegion* getExternRegion(Mutability mutability) {
-    if (mutability == Mutability::IMMUTABLE) {
-      return linearRegion;
-    } else {
-      return unsafeRegion;
-    }
-  }
 
-  LLVMValueRef getFunction(Name* name) {
-    auto functionIter = functions.find(name->name);
-    assert(functionIter != functions.end());
-    return functionIter->second;
-  }
+  std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>
+  getEdgeFunctionTypesAndFunctions(Edge* edge);
 
-  LLVMValueRef getInterfaceTablePtr(Edge* edge) {
-    auto iter = interfaceTablePtrs.find(edge);
-    assert(iter != interfaceTablePtrs.end());
-    return iter->second;
-  }
-  LLVMValueRef getOrMakeStringConstant(const std::string& str) {
-    auto iter = stringConstants.find(str);
-    if (iter == stringConstants.end()) {
 
-      iter =
-          stringConstants.emplace(
-              str,
-              LLVMBuildGlobalStringPtr(
-                  stringConstantBuilder,
-                  str.c_str(),
-                  (std::string("conststr") + std::to_string(stringConstants.size())).c_str()))
-          .first;
-    }
-    return iter->second;
-  }
+  IRegion* getRegion(Reference* referenceM);
+  IRegion* getRegion(Mutability mutability);
+  IRegion* getExternRegion(Reference* referenceM);
+  IRegion* getExternRegion(Mutability mutability);
+  LLVMValueRef getFunction(Name* name);
+  LLVMValueRef getInterfaceTablePtr(Edge* edge);
+  LLVMValueRef getOrMakeStringConstant(const std::string& str);
 };
 
 #endif

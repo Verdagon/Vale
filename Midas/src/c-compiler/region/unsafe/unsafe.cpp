@@ -301,15 +301,8 @@ void Unsafe::translateEdge(
 
   std::vector<LLVMTypeRef> interfaceFunctionsLT;
   std::vector<LLVMValueRef> edgeFunctionsL;
-  for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
-    auto interfaceFunctionLT =
-        translateInterfaceMethodToFunctionType(edge->interfaceName, interfaceM->methods[i]);
-    interfaceFunctionsLT.push_back(interfaceFunctionLT);
-
-    auto funcName = edge->structPrototypesByInterfaceMethod[i].second->name;
-    auto edgeFunctionL = globalState->getFunction(funcName);
-    edgeFunctionsL.push_back(edgeFunctionL);
-  }
+  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
+      globalState->getEdgeFunctionTypesAndFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -324,36 +317,14 @@ void Unsafe::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(interfaceM->referend, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(
+                globalState, this, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
       interfaceM,
       interfaceMethodTypesL);
 }
-
-LLVMTypeRef Unsafe::translateInterfaceMethodToFunctionType(
-    InterfaceReferend* referend,
-    InterfaceMethod* method) {
-  auto returnMT = method->prototype->returnType;
-  auto paramsMT = method->prototype->params;
-  auto returnLT = globalState->getRegion(returnMT)->translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, paramsMT);
-
-  switch (paramsMT[method->virtualParamIndex]->ownership) {
-    case Ownership::BORROW:
-    case Ownership::OWN:
-    case Ownership::SHARE:
-      paramsLT[method->virtualParamIndex] = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-      break;
-    case Ownership::WEAK:
-      paramsLT[method->virtualParamIndex] = weakRefStructs.getWeakVoidRefStruct(referend);
-      break;
-  }
-
-  return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
-}
-
 
 void Unsafe::discardOwningRef(
     AreaAndFileAndLine from,
@@ -837,4 +808,8 @@ Ref Unsafe::receiveFrom(
     assert(false);
   }
   assert(false);
+}
+
+LLVMTypeRef Unsafe::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
+  return mutWeakableStructs.getWeakVoidRefStruct(reference->referend);
 }

@@ -442,26 +442,12 @@ ControlBlockPtrLE ReferendStructs::makeControlBlockPtrWithoutChecking(
 LLVMValueRef ReferendStructs::getStringBytesPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Ref ref) {
-  auto strWrapperPtrLE =
-      makeWrapperPtr(
-          FL(), functionState, builder,
-          globalState->metalCache.strRef,
-          globalState->getRegion(globalState->metalCache.strRef)->checkValidReference(
-              FL(), functionState, builder,
-              globalState->metalCache.strRef, ref));
-  return getCharsPtrFromWrapperPtr(globalState, builder, strWrapperPtrLE);
+    WrapperPtrLE ptrLE) {
+  return getCharsPtrFromWrapperPtr(globalState, builder, ptrLE);
 }
 
-LLVMValueRef ReferendStructs::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  auto strWrapperPtrLE =
-      makeWrapperPtr(
-          FL(), functionState, builder,
-          globalState->metalCache.strRef,
-          globalState->getRegion(globalState->metalCache.strRef)->checkValidReference(
-              FL(), functionState, builder,
-              globalState->metalCache.strRef, ref));
-  return getLenFromStrWrapperPtr(builder, strWrapperPtrLE);
+LLVMValueRef ReferendStructs::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) {
+  return getLenFromStrWrapperPtr(builder, ptrLE);
 }
 
 ControlBlockPtrLE ReferendStructs::getConcreteControlBlockPtr(
@@ -910,13 +896,13 @@ InterfaceFatPtrLE WeakableReferendStructs::makeInterfaceFatPtrWithoutChecking(
 LLVMValueRef WeakableReferendStructs::getStringBytesPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Ref ref) {
-  return referendStructs.getStringBytesPtr(functionState, builder, ref);
+    WrapperPtrLE ptrLE) {
+  return referendStructs.getStringBytesPtr(functionState, builder, ptrLE);
 }
 
 LLVMValueRef WeakableReferendStructs::getStringLen(
-    FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  return referendStructs.getStringLen(functionState, builder, ref);
+    FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) {
+  return referendStructs.getStringLen(functionState, builder, ptrLE);
 }
 
 

@@ -8,6 +8,7 @@
 #include <sstream>
 #include "rcimm.h"
 #include "translatetype.h"
+#include "region/linear/linear.h"
 
 void fillControlBlock(
     AreaAndFileAndLine from,
@@ -200,16 +201,8 @@ void RCImm::translateEdge(
 
   std::vector<LLVMTypeRef> interfaceFunctionsLT;
   std::vector<LLVMValueRef> edgeFunctionsL;
-  for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
-    auto interfaceFunctionLT =
-        translateInterfaceMethodToFunctionType(
-            edge->interfaceName, interfaceM->methods[i]);
-    interfaceFunctionsLT.push_back(interfaceFunctionLT);
-
-    auto funcName = edge->structPrototypesByInterfaceMethod[i].second->name;
-    auto edgeFunctionL = globalState->getFunction(funcName);
-    edgeFunctionsL.push_back(edgeFunctionL);
-  }
+  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
+      globalState->getEdgeFunctionTypesAndFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -225,7 +218,7 @@ void RCImm::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(interfaceM->referend, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(globalState, this, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
@@ -327,7 +320,13 @@ Ref RCImm::getIsAliveFromWeakRef(
 }
 
 LLVMValueRef RCImm::getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  return referendStructs.getStringBytesPtr(functionState, builder, ref);
+  auto strWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder,
+          globalState->metalCache.strRef,
+          checkValidReference(
+              FL(), functionState, builder, globalState->metalCache.strRef, ref));
+  return referendStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
 }
 
 Ref RCImm::allocate(
@@ -564,7 +563,13 @@ WrapperPtrLE RCImm::mallocStr(
 }
 
 LLVMValueRef RCImm::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) {
-  return referendStructs.getStringLen(functionState, builder, ref);
+  auto strWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder,
+          globalState->metalCache.strRef,
+          checkValidReference(
+              FL(), functionState, builder, globalState->metalCache.strRef, ref));
+  return referendStructs.getStringLen(functionState, builder, strWrapperPtrLE);
 }
 
 void RCImm::discard(
@@ -595,19 +600,8 @@ void RCImm::discard(
           [globalState, functionState, sourceRef, interfaceRnd, sourceMT](
               LLVMBuilderRef thenBuilder) {
             auto immDestructor = globalState->program->getImmDestructor(sourceMT->referend);
-
-            auto interfaceM = globalState->program->getInterface(interfaceRnd->fullName);
-            int indexInEdge = -1;
-            for (int i = 0; i < interfaceM->methods.size(); i++) {
-              if (interfaceM->methods[i]->prototype == immDestructor) {
-                indexInEdge = i;
-              }
-            }
-            assert(indexInEdge >= 0);
-
-            std::vector<Ref> argExprsL = {sourceRef};
             buildInterfaceCall(
-                globalState, functionState, thenBuilder, immDestructor, argExprsL, 0, indexInEdge);
+                globalState, functionState, thenBuilder, immDestructor, {sourceRef}, 0);
           });
     }
   } else if (dynamic_cast<StructReferend *>(sourceRnd) ||
@@ -834,9 +828,9 @@ void RCImm::generateInterfaceDefsC(std::unordered_map<std::string, std::string>*
 
 LLVMTypeRef RCImm::getExternalType(
     Reference* refMT) {
-  // these arent exposed to the outside world, we instead copy to the Linear region
-  assert(false);
-  return nullptr;
+  // Instance regions (unlike this one) return their handle types from this method.
+  // For this region though, we don't give out handles, we give out copies.
+  return globalState->linearRegion->translateType(refMT);
 }
 
 
@@ -928,7 +922,7 @@ Ref RCImm::receiveFrom(
   } else if (sourceRefMT == globalState->metalCache.neverRef) {
     assert(false); // How can we hand a never into something?
   } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState, functionState, builder));
+    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState, this, builder));
   } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
 
@@ -950,16 +944,6 @@ Ref RCImm::receiveFrom(
   assert(false);
 }
 
-
-LLVMTypeRef RCImm::translateInterfaceMethodToFunctionType(
-    InterfaceReferend* referend,
-    InterfaceMethod* method) {
-  auto returnMT = method->prototype->returnType;
-  auto paramsMT = method->prototype->params;
-  auto returnLT = translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, paramsMT);
-
-  paramsLT[method->virtualParamIndex] = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-
-  return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
+LLVMTypeRef RCImm::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
+  return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
 }

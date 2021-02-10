@@ -626,15 +626,8 @@ void Mega::translateEdge(
 
   std::vector<LLVMTypeRef> interfaceFunctionsLT;
   std::vector<LLVMValueRef> edgeFunctionsL;
-  for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
-    auto interfaceFunctionLT =
-        translateInterfaceMethodToFunctionType(edge->interfaceName, interfaceM->methods[i]);
-    interfaceFunctionsLT.push_back(interfaceFunctionLT);
-
-    auto funcName = edge->structPrototypesByInterfaceMethod[i].second->name;
-    auto edgeFunctionL = globalState->getFunction(funcName);
-    edgeFunctionsL.push_back(edgeFunctionL);
-  }
+  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
+      globalState->getEdgeFunctionTypesAndFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -649,60 +642,14 @@ void Mega::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(interfaceM->referend, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(
+                globalState, this, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
       interfaceM,
       interfaceMethodTypesL);
 }
-
-LLVMTypeRef Mega::translateInterfaceMethodToFunctionType(
-    InterfaceReferend* referend,
-    InterfaceMethod* method) {
-  auto returnMT = method->prototype->returnType;
-  auto paramsMT = method->prototype->params;
-  auto returnLT = globalState->getRegion(returnMT)->translateType(returnMT);
-  auto paramsLT = translateTypes(globalState, paramsMT);
-
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC: {
-      switch (paramsMT[method->virtualParamIndex]->ownership) {
-        case Ownership::BORROW:
-        case Ownership::OWN:
-        case Ownership::SHARE:
-          paramsLT[method->virtualParamIndex] = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-          break;
-        case Ownership::WEAK:
-          paramsLT[method->virtualParamIndex] = weakRefStructs.getWeakVoidRefStruct(referend);
-          break;
-      }
-      break;
-    }
-    case RegionOverride::RESILIENT_V0:
-    case RegionOverride::RESILIENT_V1:
-    case RegionOverride::RESILIENT_V2:
-    case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_LIMIT: {
-      switch (paramsMT[method->virtualParamIndex]->ownership) {
-        case Ownership::OWN:
-        case Ownership::SHARE:
-          paramsLT[method->virtualParamIndex] = LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-          break;
-        case Ownership::BORROW:
-        case Ownership::WEAK:
-          paramsLT[method->virtualParamIndex] = weakRefStructs.getWeakVoidRefStruct(referend);
-          break;
-      }
-      break;
-    }
-    default:
-      assert(false);
-  }
-
-  return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
-}
-
 
 void Mega::discardOwningRef(
     AreaAndFileAndLine from,
@@ -2090,3 +2037,39 @@ Ref Mega::receiveFrom(
 //
 //  assert(false);
 //}
+
+LLVMTypeRef Mega::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::NAIVE_RC: {
+      switch (reference->ownership) {
+        case Ownership::BORROW:
+        case Ownership::OWN:
+        case Ownership::SHARE:
+          return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
+        case Ownership::WEAK:
+          return weakRefStructs.getWeakVoidRefStruct(reference->referend);
+        default:
+          assert(false);
+      }
+      break;
+    }
+    case RegionOverride::RESILIENT_V0:
+    case RegionOverride::RESILIENT_V1:
+    case RegionOverride::RESILIENT_V2:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_LIMIT: {
+      switch (reference->ownership) {
+        case Ownership::OWN:
+        case Ownership::SHARE:
+          return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
+        case Ownership::BORROW:
+        case Ownership::WEAK:
+          return weakRefStructs.getWeakVoidRefStruct(reference->referend);
+      }
+      break;
+    }
+    default:
+      assert(false);
+  }
+  assert(false);
+}

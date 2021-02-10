@@ -99,7 +99,7 @@ Ref translateExpressionInner(
     }
     makeHammerLocal(
         globalState, functionState, blockState, builder, stackify->local, refToStore);
-    return makeEmptyTupleRef(globalState, functionState, builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
   } else if (auto localStore = dynamic_cast<LocalStore*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     // The purpose of LocalStore is to put a swap value into a local, and give
@@ -177,7 +177,6 @@ Ref translateExpressionInner(
     auto resultLE =
         translateConstruct(
             AFL("NewStruct"), globalState, functionState, builder, newStruct->resultType, memberExprs);
-
     return resultLE;
   } else if (auto consecutor = dynamic_cast<Consecutor*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -224,9 +223,6 @@ Ref translateExpressionInner(
             memberName);
     globalState->getRegion(memberLoad->expectedResultType)
         ->checkValidReference(FL(), functionState, builder, memberLoad->expectedResultType, resultRef);
-    if (memberLoad->expectedResultType->referend == globalState->metalCache.innt) {
-      buildFlare(FL(), globalState, functionState, builder, "MemberLoad loaded ", memberName, ": ", resultRef);
-    }
     globalState->getRegion(memberLoad->structType)->dealias(
         AFL("MemberLoad drop struct"),
         functionState, builder, memberLoad->structType, structRef);
@@ -271,7 +267,7 @@ Ref translateExpressionInner(
                   FL(), functionState, bodyBuilder, arrayReferend->rawArray->elementType, elementRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
           buildInterfaceCall(
-              globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0, 0);
+              globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {
@@ -292,7 +288,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyKSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, functionState, builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
   } else if (auto destroyUnknownSizeArrayIntoFunction = dynamic_cast<DestroyUnknownSizeArray*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto consumerType = destroyUnknownSizeArrayIntoFunction->consumerType;
@@ -333,7 +329,7 @@ Ref translateExpressionInner(
                       functionState, bodyBuilder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexRef);
           auto elementRef = loadResult.move();
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
-          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0, 0);
+          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {
@@ -354,7 +350,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyUSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, functionState, builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
   } else if (auto knownSizeArrayLoad = dynamic_cast<KnownSizeArrayLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = knownSizeArrayLoad->arrayType;

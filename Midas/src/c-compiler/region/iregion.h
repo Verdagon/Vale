@@ -304,6 +304,8 @@ public:
       Reference* targetType,
       LoadResult sourceRef) = 0;
 
+  // For instance regions, this will return the handle's type.
+  // For value regions, we'll just be returning linear's translateType.
   virtual LLVMTypeRef getExternalType(
       Reference* refMT) = 0;
 
@@ -333,6 +335,9 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) = 0;
+
+  virtual LLVMTypeRef getInterfaceMethodVirtualParamAnyType(
+      Reference* reference) = 0;
 };
 
 #endif

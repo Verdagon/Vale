@@ -57,5 +57,8 @@ Ref translateDestructure(
 
   buildFlare(FL(), globalState, functionState, builder);
 
-  return makeEmptyTupleRef(globalState, functionState, builder);
+  return makeEmptyTupleRef(
+      globalState,
+      globalState->getRegion(globalState->metalCache.emptyTupleStructRef),
+      builder);
 }

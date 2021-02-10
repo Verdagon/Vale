@@ -8,6 +8,7 @@
 #include <function/expressions/shared/afl.h>
 #include <function/function.h>
 #include <region/common/defaultlayout/structs.h>
+#include "linearstructs.h"
 
 class Linear : public IRegion {
 public:
@@ -311,21 +312,6 @@ public:
       Reference* sourceRefMT,
       Ref sourceRef) override;
 
-  void discard(
-      AreaAndFileAndLine from,
-      GlobalState* globalState,
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* sourceMT,
-      Ref sourceRef);
-
-  LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM);
-
-  LLVMTypeRef getControlBlockStruct(Referend* referend);
-
-  ControlBlock* getControlBlock(Referend* referend);
-
-
   LoadResult loadMember(
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -344,25 +330,21 @@ public:
       Reference* refM,
       LLVMValueRef refLE);
 
-private:
-  LLVMTypeRef translateInterfaceMethodToFunctionType(
-      InterfaceReferend* referend,
-      InterfaceMethod* method);
+  LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
+  Ref predictShallowSize(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Referend* referend,
+      // Ignored if referend isn't an array or string.
+      // If it's a string, this will be the length of the string.
+      // If it's an array, this will be the number of elements.
+      Ref lenIntRef);
+
+private:
   GlobalState* globalState;
 
-  ReferendStructs referendStructs;
-
-  DefaultPrimitives primitives;
-
-  // Contains all the structs for immutables that we'll be sending over the C boundary.
-  // For example:
-  // - str would map to struct { uint64_t len; char bytes[0]; }
-  // - ImmArray<Vec2> would map to struct { uint64_t len; Vec2 entries[0]; }
-  // - Vec2 would map to struct { int32_t x; int32_t y; }
-  // We don't need to store a corresponding map for mutables because their representations
-  // are the same in the vale world and C world, we can generate that C code on the fly.
-  std::unordered_map<Referend*, LLVMTypeRef> externalStructLByReferend;
+  LinearStructs structs;
 };
 
 #endif

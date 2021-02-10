@@ -512,4 +512,9 @@ Ref regularInnerLockWeak(
     IWeakRefStructsSource* weakRefStructsSource,
     FatWeaks* fatWeaks);
 
+LLVMValueRef callFree(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    ControlBlockPtrLE controlBlockPtrLE);
+
 #endif

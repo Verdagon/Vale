@@ -18,15 +18,13 @@ LLVMTypeRef makeNeverType(GlobalState* globalState) {
   return LLVMArrayType(LLVMIntTypeInContext(globalState->context, NEVER_INT_BITS), 0);
 }
 
-LLVMValueRef makeEmptyTuple(GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder) {
-  return LLVMGetUndef(
-      globalState->getRegion(globalState->metalCache.emptyTupleStructRef)
-          ->translateType(globalState->metalCache.emptyTupleStructRef));
+LLVMValueRef makeEmptyTuple(GlobalState* globalState, IRegion* region, LLVMBuilderRef builder) {
+  return LLVMGetUndef(region->translateType(globalState->metalCache.emptyTupleStructRef));
 }
 
-Ref makeEmptyTupleRef(GlobalState* globalState, FunctionState* functionState, LLVMBuilderRef builder) {
-  auto emptyTupleLE = makeEmptyTuple(globalState, functionState, builder);
-  return wrap(globalState->getRegion(globalState->metalCache.emptyTupleStructRef), globalState->metalCache.emptyTupleStructRef, emptyTupleLE);
+Ref makeEmptyTupleRef(GlobalState* globalState, IRegion* region, LLVMBuilderRef builder) {
+  auto emptyTupleLE = makeEmptyTuple(globalState, region, builder);
+  return wrap(region, globalState->metalCache.emptyTupleStructRef, emptyTupleLE);
 }
 
 LLVMValueRef makeMidasLocal(
@@ -222,13 +220,14 @@ Ref buildInterfaceCall(
     LLVMBuilderRef builder,
     Prototype* prototype,
     std::vector<Ref> argRefs,
-    int virtualParamIndex,
-    int indexInEdge) {
+    int virtualParamIndex) {
   auto virtualParamMT = prototype->params[virtualParamIndex];
+
+  auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(virtualParamMT->referend);
+  assert(interfaceReferendM);
+  int indexInEdge = globalState->getInterfaceMethodIndex(interfaceReferendM, prototype);
+
   auto virtualArgRef = argRefs[virtualParamIndex];
-  auto virtualArgLE =
-      globalState->getRegion(virtualParamMT)
-          ->checkValidReference(FL(), functionState, builder, virtualParamMT, virtualArgRef);
 
   LLVMValueRef itablePtrLE = nullptr;
   LLVMValueRef newVirtualArgLE = nullptr;
@@ -303,9 +302,7 @@ Ref buildCall(
     LLVMBuilderRef builder,
     Prototype* prototype,
     std::vector<Ref> argRefs) {
-  auto funcIter = globalState->functions.find(prototype->name->name);
-  assert(funcIter != globalState->functions.end());
-  auto funcL = funcIter->second;
+  auto funcL = globalState->lookupFunction(prototype);
 
   buildFlare(FL(), globalState, functionState, builder, "Suspending function ", functionState->containingFuncName);
   buildFlare(FL(), globalState, functionState, builder, "Calling function ", prototype->name->name);

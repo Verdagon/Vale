@@ -1,4 +1,5 @@
 #include <iostream>
+#include <serialize.h>
 #include "region/common/controlblock.h"
 
 #include "translatetype.h"
@@ -29,10 +30,22 @@ Ref translateLocalLoad(
   auto sourceRef = wrap(globalState->getRegion(localType), localType, sourceLE);
   globalState->getRegion(localType)->checkValidReference(FL(), functionState, builder, localType, sourceRef);
 
-  auto resultRefLE =
+  auto resultRef =
       globalState->getRegion(localType)->upgradeLoadResultToRefWithTargetOwnership(
           functionState, builder, localType, resultType, LoadResult{sourceRef});
-  globalState->getRegion(resultType)->alias(FL(), functionState, builder, resultType, resultRefLE);
+  globalState->getRegion(resultType)->alias(FL(), functionState, builder, resultType, resultRef);
 
-  return resultRefLE;
+  if (resultType->ownership == Ownership::SHARE) {
+    auto sizeRef = getCalculatedSerializedSize(globalState, functionState, builder, resultType, resultRef);
+    auto sizeLE =
+        globalState->getRegion(globalState->metalCache.intRef)
+            ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, sizeRef);
+    buildPrint(globalState, builder, "Loading local ");
+    buildPrint(globalState, builder, localName);
+    buildPrint(globalState, builder, " size ");
+    buildPrint(globalState, builder, sizeLE);
+    buildPrint(globalState, builder, "\n");
+  }
+
+  return resultRef;
 }

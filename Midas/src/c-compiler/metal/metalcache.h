@@ -97,11 +97,25 @@ public:
   std::unordered_map<int, std::unordered_map<std::string, VariableId*>> variableIds;
   std::unordered_map<VariableId*, std::unordered_map<Reference*, Local*>> locals;
 
+  Name* getName(std::string nameStr) {
+    return makeIfNotPresent(
+        &names,
+        nameStr,
+        [&](){ return new Name(nameStr); });
+  }
+
   Reference* getReference(Ownership ownership, Location location, Referend* referend) {
     return makeIfNotPresent<Location, Reference*>(
         &unconvertedReferences[referend][ownership],
         location,
         [&](){ return new Reference(ownership, location, referend); });
+  }
+
+  Prototype* getPrototype(Name* name, Reference* returnType, std::vector<Reference*> paramTypes) {
+    return makeIfNotPresent(
+        &prototypes[name][returnType],
+        paramTypes,
+        [&](){ return new Prototype(name, paramTypes, returnType); });
   }
 };
 

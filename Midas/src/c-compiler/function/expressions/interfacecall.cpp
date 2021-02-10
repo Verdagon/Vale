@@ -33,8 +33,7 @@ Ref translateInterfaceCall(
           builder,
           call->functionType,
           argExprsLE,
-          call->virtualParamIndex,
-          call->indexInEdge);
+          call->virtualParamIndex);
   globalState->getRegion(call->functionType->returnType)
       ->checkValidReference(FL(), functionState, builder, call->functionType->returnType, resultLE);
 

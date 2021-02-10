@@ -68,10 +68,10 @@ public:
   virtual LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Ref ref) = 0;
+      WrapperPtrLE ptrLE) = 0;
 
   virtual LLVMValueRef getStringLen(
-      FunctionState* functionState, LLVMBuilderRef builder, Ref ref) = 0;
+      FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) = 0;
 
 
   virtual ControlBlockPtrLE getControlBlockPtr(
@@ -229,7 +229,7 @@ public:
   LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Ref ref) override;
+      WrapperPtrLE ref) override;
 
   ControlBlockPtrLE getConcreteControlBlockPtr(
       AreaAndFileAndLine from,
@@ -291,7 +291,7 @@ public:
       LLVMValueRef ref,
       Reference* referenceM) override;
 
-  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
+  LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) override;
 
 
   LLVMValueRef getStructContentsPtr(
@@ -446,9 +446,9 @@ public:
   LLVMValueRef getStringBytesPtr(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Ref ref) override;
+      WrapperPtrLE ptrLE) override;
   LLVMValueRef getStringLen(
-      FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
+      FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) override;
 
 
   ControlBlockPtrLE getControlBlockPtr(
