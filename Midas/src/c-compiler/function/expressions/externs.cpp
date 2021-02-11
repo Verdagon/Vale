@@ -1,4 +1,5 @@
 #include <iostream>
+#include <function/boundary.h>
 #include "function/expressions/shared/shared.h"
 #include "function/expressions/shared/string.h"
 #include "region/common/controlblock.h"
@@ -157,12 +158,11 @@ Ref buildExternCall(
     hostArgsLE.reserve(args.size());
     for (int i = 0; i < args.size(); i++) {
       auto argRefMT = prototype->params[i];
-      auto arg = valeArgRefs[i];
-      auto hostArgRef =
-          globalState->getExternRegion(argRefMT)->receiveFrom(functionState, builder, argRefMT, arg);
-      auto hostArgLE =
-          globalState->getExternRegion(argRefMT)->checkValidReference(FL(), functionState, builder, argRefMT, hostArgRef);
-      hostArgsLE.push_back(hostArgLE);
+      auto valeArg = valeArgRefs[i];
+      auto hostArgRefLE =
+          sendValeObjectIntoHost(
+              globalState, functionState, builder, argRefMT, valeArg);
+      hostArgsLE.push_back(hostArgRefLE);
     }
 
     auto externFuncIter = globalState->externFunctions.find(prototype->name->name);
@@ -194,15 +194,9 @@ Ref buildExternCall(
       if (prototype->returnType == globalState->metalCache.emptyTupleStructRef) {
         return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
       } else {
-        auto hostReturnRef =
-             wrap(globalState->getExternRegion(prototype->returnType), prototype->returnType, hostReturnLE);
         auto valeReturnRef =
-            globalState->getRegion(prototype->returnType)
-                ->receiveFrom(functionState, builder, prototype->returnType, hostReturnRef);
-
-        // Alias any object coming from the outside world, see DEPAR.
-        globalState->getRegion(prototype->returnType)->alias(
-            FL(), functionState, builder, prototype->returnType, valeReturnRef);
+            sendHostObjectIntoVale(
+                globalState, functionState, builder, prototype->returnType, hostReturnLE);
 
         return valeReturnRef;
       }

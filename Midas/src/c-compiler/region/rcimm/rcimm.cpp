@@ -834,7 +834,7 @@ LLVMTypeRef RCImm::getExternalType(
 }
 
 
-Ref RCImm::receiveFrom(
+Ref RCImm::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -946,4 +946,20 @@ Ref RCImm::receiveFrom(
 
 LLVMTypeRef RCImm::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
   return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
+}
+
+Ref RCImm::receiveAndDecryptFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
+}
+
+Ref RCImm::encryptAndSendFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
 }

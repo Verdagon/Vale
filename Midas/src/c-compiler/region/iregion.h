@@ -318,7 +318,23 @@ public:
       bool arrayRefKnownLive,
       Ref indexRef) = 0;
 
-  virtual Ref receiveFrom(
+  // Receives a regular reference to an object in another region, so we can move
+  // (or copy) it.
+  virtual Ref receiveUnencryptedAlienReference(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) = 0;
+
+  // Receives and decrypts a reference to an object in this region.
+  virtual Ref receiveAndDecryptFamiliarReference(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) = 0;
+
+  // Encrypts and sends a reference to an object in this region.
+  virtual Ref encryptAndSendFamiliarReference(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,

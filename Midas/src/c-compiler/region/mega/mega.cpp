@@ -1765,7 +1765,7 @@ LLVMTypeRef Mega::getExternalType(Reference* refMT) {
   assert(false);
 }
 
-Ref Mega::receiveFrom(
+Ref Mega::receiveAndDecryptFamiliarReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -2071,5 +2071,21 @@ LLVMTypeRef Mega::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
     default:
       assert(false);
   }
+  assert(false);
+}
+
+Ref Mega::receiveUnencryptedAlienReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
+}
+
+Ref Mega::encryptAndSendFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
   assert(false);
 }

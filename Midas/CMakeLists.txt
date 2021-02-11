@@ -45,6 +45,7 @@ add_executable(valec
 		src/c-compiler/utils/counters.cpp
 
 		src/c-compiler/function/function.cpp
+		src/c-compiler/function/boundary.cpp
 		src/c-compiler/function/expression.cpp
 
 		src/c-compiler/function/expressions/call.cpp

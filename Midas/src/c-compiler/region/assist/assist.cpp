@@ -819,19 +819,20 @@ LLVMTypeRef Assist::getExternalType(
   assert(false);
 }
 
-Ref Assist::receiveFrom(
-    FunctionState* functionState,
+Ref Assist::receiveAndDecryptFamiliarReference(
+    FunctionState *functionState,
     LLVMBuilderRef builder,
-    Reference* sourceRefMT,
+    Reference *sourceRefMT,
     Ref sourceRef) {
+  assert(sourceRefMT->ownership != Ownership::SHARE);
+  auto sourceRefLE =
+      globalState->getExternRegion(sourceRefMT)
+          ->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
 
-  if (sourceRefMT->ownership == Ownership::SHARE) {
-    assert(false);
-  } else {
-    assert(false);
-  }
+  // When coords contain the region, this line will change.
+  auto targetRefMT = sourceRefMT;
 
-  assert(false);
+  return wrap(this, targetRefMT, sourceRefLE);
 }
 
 LLVMTypeRef Assist::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
@@ -845,4 +846,20 @@ LLVMTypeRef Assist::getInterfaceMethodVirtualParamAnyType(Reference* reference) 
     default:
       assert(false);
   }
+}
+
+Ref Assist::receiveUnencryptedAlienReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
+}
+
+Ref Assist::encryptAndSendFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
 }

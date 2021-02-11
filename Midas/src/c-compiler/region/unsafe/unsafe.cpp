@@ -444,7 +444,7 @@ LLVMValueRef Unsafe::checkValidReference(
   std::tie(actualRefM, refLE) = megaGetRefInnardsForChecking(ref);
   assert(actualRefM == refM);
   assert(refLE != nullptr);
-  assert(LLVMTypeOf(refLE) == globalState->getRegion(refM)->translateType(refM));
+  assert(LLVMTypeOf(refLE) == translateType(refM));
 
   if (refM->ownership == Ownership::OWN) {
     regularCheckValidReference(checkerAFL, globalState, functionState, builder, &referendStructs, refM, refLE);
@@ -797,7 +797,7 @@ LLVMTypeRef Unsafe::getExternalType(Reference* refMT) {
   assert(false);
 }
 
-Ref Unsafe::receiveFrom(
+Ref Unsafe::receiveAndDecryptFamiliarReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -812,4 +812,20 @@ Ref Unsafe::receiveFrom(
 
 LLVMTypeRef Unsafe::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
   return mutWeakableStructs.getWeakVoidRefStruct(reference->referend);
+}
+
+Ref Unsafe::receiveUnencryptedAlienReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
+}
+
+Ref Unsafe::encryptAndSendFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
 }

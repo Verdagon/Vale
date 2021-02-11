@@ -5,6 +5,7 @@
 
 #include "function.h"
 #include "expression.h"
+#include "boundary.h"
 
 LLVMValueRef declareFunction(
     GlobalState* globalState,
@@ -28,11 +29,12 @@ LLVMValueRef declareFunction(
   if (globalState->program->isExported(functionM->prototype->name)) {
     std::vector<LLVMTypeRef> exportParamTypesL;
     for (auto valeRefMT : functionM->prototype->params) {
-      exportParamTypesL.push_back(globalState->getExternRegion(valeRefMT)->getExternalType(valeRefMT));
+      exportParamTypesL.push_back(globalState->getRegion(valeRefMT)->getExternalType(valeRefMT));
     }
-    auto exportReturnTypeL =
+    LLVMTypeRef exportReturnTypeL =
         globalState->getRegion(functionM->prototype->returnType)
             ->getExternalType(functionM->prototype->returnType);
+
     LLVMTypeRef exportFunctionTypeL =
         LLVMFunctionType(exportReturnTypeL, exportParamTypesL.data(), exportParamTypesL.size(), 0);
 
@@ -58,15 +60,11 @@ LLVMValueRef declareFunction(
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
       auto paramMT = functionM->prototype->params[i];
-      auto hostArgLE = LLVMGetParam(exportFunctionL, i);
-      auto hostRef = wrap(globalState->getExternRegion(paramMT), paramMT, hostArgLE);
-      auto valeRef =
-          globalState->getRegion(paramMT)
-              ->receiveFrom(&functionState, builder, paramMT, hostRef);
+      auto hostArgRefLE = LLVMGetParam(exportFunctionL, i);
 
-      // Alias when receiving from the outside world, see DEPAR.
-      globalState->getRegion(paramMT)->alias(
-          FL(), &functionState, builder, paramMT, valeRef);
+      auto valeRef =
+          sendHostObjectIntoVale(
+              globalState, &functionState, builder, paramMT, hostArgRefLE);
 
       argsToActualFunction.push_back(valeRef);
     }
@@ -81,13 +79,10 @@ LLVMValueRef declareFunction(
     globalState->getRegion(functionM->prototype->returnType)
         ->dealias(FL(), &functionState, builder, functionM->prototype->returnType, valeReturnRef);
 
-    auto hostReturnRef =
-        globalState->getExternRegion(functionM->prototype->returnType)
-            ->receiveFrom(&functionState, builder, functionM->prototype->returnType, valeReturnRef);
-    auto hostReturnLE =
-        globalState->getExternRegion(functionM->prototype->returnType)
-            ->checkValidReference(FL(), &functionState, builder, functionM->prototype->returnType, hostReturnRef);
-    LLVMBuildRet(builder, hostReturnLE);
+    auto hostReturnRefLE =
+        sendValeObjectIntoHost(
+            globalState, &functionState, builder, functionM->prototype->returnType, valeReturnRef);
+    LLVMBuildRet(builder, hostReturnRefLE);
 
     LLVMDisposeBuilder(builder);
   }

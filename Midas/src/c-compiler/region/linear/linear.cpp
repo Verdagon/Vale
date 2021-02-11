@@ -625,7 +625,7 @@ LLVMTypeRef Linear::getExternalType(
 }
 
 
-Ref Linear::receiveFrom(
+Ref Linear::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
@@ -698,4 +698,20 @@ Ref Linear::predictShallowSize(FunctionState* functionState, LLVMBuilderRef buil
   } else if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
     return globalState->constI64(LLVMABISizeOfType(globalState->dataLayout, structs.getStructStruct(structReferend)));
   } else assert(false);
+}
+
+Ref Linear::receiveAndDecryptFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
+}
+
+Ref Linear::encryptAndSendFamiliarReference(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* sourceRefMT,
+    Ref sourceRef) {
+  assert(false);
 }

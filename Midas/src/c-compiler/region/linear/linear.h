@@ -306,7 +306,19 @@ public:
   LLVMTypeRef getExternalType(
       Reference* refMT) override;
 
-  Ref receiveFrom(
+  Ref receiveUnencryptedAlienReference(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref receiveAndDecryptFamiliarReference(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* sourceRefMT,
+      Ref sourceRef) override;
+
+  Ref encryptAndSendFamiliarReference(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
