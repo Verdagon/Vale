@@ -24,8 +24,8 @@ Unsafe::Unsafe(GlobalState* globalState_) :
     referendStructs(
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
-          assert(globalState->program->getReferendMutability(referend) != Mutability::IMMUTABLE);
-          if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+          assert(globalState->getReferendMutability(referend) != Mutability::IMMUTABLE);
+          if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
             return &mutNonWeakableStructs;
           } else {
             return &mutWeakableStructs;
@@ -33,10 +33,10 @@ Unsafe::Unsafe(GlobalState* globalState_) :
         }),
     weakRefStructs(
         [this](Referend* referend) -> IWeakRefStructsSource* {
-              if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 assert(false);
               } else {
-                if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+                if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
                   assert(false);
                 } else {
                   return &mutWeakableStructs;
@@ -45,6 +45,8 @@ Unsafe::Unsafe(GlobalState* globalState_) :
         }),
     fatWeaks(globalState_, &weakRefStructs),
     wrcWeaks(globalState_, &referendStructs, &weakRefStructs) {
+  regionLT = LLVMStructCreateNamed(globalState->context, "__Unsafe_Region");
+  LLVMStructSetBody(regionLT, nullptr, 0, false);
 }
 
 Ref Unsafe::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
@@ -65,30 +67,26 @@ Ref Unsafe::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef
   return resultRef;
 }
 
-WrapperPtrLE Unsafe::mallocStr(
+Ref Unsafe::mallocStr(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
-  return ::mallocStr(
-      globalState, functionState, builder, lengthLE, &referendStructs,
-      [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-        fillControlBlock(
-            FL(), functionState, innerBuilder, globalState->metalCache.str,
-            Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
-      });
+  assert(false);
 }
 
 Ref Unsafe::allocate(
+    Ref regionInstanceRef,
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* desiredReference,
-    const std::vector<Ref>& membersLE) {
+    const std::vector<Ref>& memberRefs) {
   auto structReferend = dynamic_cast<StructReferend*>(desiredReference->referend);
   auto structM = globalState->program->getStruct(structReferend->fullName);
   auto resultRef =
       innerAllocate(
-          FL(), globalState, functionState, builder, desiredReference, &referendStructs, membersLE, Weakability::WEAKABLE,
+          FL(), globalState, functionState, builder, desiredReference, &referendStructs, memberRefs, Weakability::WEAKABLE,
           [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(), functionState, innerBuilder, desiredReference->referend, structM->mutability,
@@ -216,18 +214,22 @@ Ref Unsafe::lockWeak(
 }
 
 LLVMTypeRef Unsafe::translateType(Reference* referenceM) {
-  switch (referenceM->ownership) {
-    case Ownership::SHARE:
-      assert(false);
-    case Ownership::OWN:
-    case Ownership::BORROW:
-      assert(referenceM->location != Location::INLINE);
-      return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
-    case Ownership::WEAK:
-      assert(referenceM->location != Location::INLINE);
-      return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
-    default:
-      assert(false);
+  if (referenceM->referend == globalState->metalCache.regionReferend) {
+    return LLVMPointerType(regionLT, 0);
+  } else {
+    switch (referenceM->ownership) {
+      case Ownership::SHARE:
+        assert(false);
+      case Ownership::OWN:
+      case Ownership::BORROW:
+        assert(referenceM->location != Location::INLINE);
+        return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
+      case Ownership::WEAK:
+        assert(referenceM->location != Location::INLINE);
+        return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
+      default:
+        assert(false);
+    }
   }
 }
 
@@ -375,20 +377,24 @@ void Unsafe::storeMember(
     bool structKnownLive,
     int memberIndex,
     const std::string& memberName,
-    LLVMValueRef newValueLE) {
+    Reference* newMemberRefMT,
+    Ref newMemberRef) {
+  auto newMemberLE =
+      globalState->getRegion(newMemberRefMT)->checkValidReference(
+          FL(), functionState, builder, newMemberRefMT, newMemberRef);
   switch (structRefMT->ownership) {
     case Ownership::OWN:
     case Ownership::SHARE:
     case Ownership::BORROW: {
       storeMemberStrong(
           globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-          structKnownLive, memberIndex, memberName, newValueLE);
+          structKnownLive, memberIndex, memberName, newMemberLE);
       break;
     }
     case Ownership::WEAK: {
       storeMemberWeak(
           globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-          structKnownLive, memberIndex, memberName, newValueLE);
+          structKnownLive, memberIndex, memberName, newMemberLE);
       break;
     }
     default:
@@ -589,7 +595,7 @@ void Unsafe::fillControlBlock(
     newControlBlockLE =
         insertStrongRc(globalState, builder, &referendStructs, referendM, newControlBlockLE);
   } else {
-    if (globalState->program->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
+    if (globalState->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
       newControlBlockLE = wrcWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
           newControlBlockLE);
     }
@@ -667,8 +673,8 @@ void Unsafe::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, refLE);
+    Ref ref) {
+  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, ref);
 }
 
 Ref Unsafe::constructUnknownSizeArrayCountedStruct(
@@ -731,8 +737,8 @@ void Unsafe::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  auto argLE = checkValidReference(FL(), functionState, builder, refMT, refLE);
+    Ref ref) {
+  auto argLE = checkValidReference(FL(), functionState, builder, refMT, ref);
   auto structReferend = dynamic_cast<StructReferend*>(refMT->referend);
   assert(structReferend);
   assert(LLVMTypeOf(argLE) == referendStructs.getInnerStruct(structReferend));

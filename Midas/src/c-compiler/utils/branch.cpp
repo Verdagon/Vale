@@ -144,7 +144,11 @@ Ref buildIfElse(
     Ref conditionRef,
     LLVMTypeRef resultTypeL,
     Reference* thenResultMT,
+    // Remove this when coords have regions
+    IRegion* thenResultRegion,
     Reference* elseResultMT,
+    // Remove this when coords have regions
+    IRegion* elseResultRegion,
     std::function<Ref(LLVMBuilderRef)> buildThen,
     std::function<Ref(LLVMBuilderRef)> buildElse) {
 
@@ -168,7 +172,7 @@ Ref buildIfElse(
   LLVMPositionBuilderAtEnd(thenBlockBuilder, thenStartBlockL);
   // Now, we fill in the "then" block.
   auto thenResultRef = buildThen(thenBlockBuilder);
-  auto thenResultLE = globalState->getRegion(thenResultMT)->checkValidReference(FL(), functionState, thenBlockBuilder, thenResultMT, thenResultRef);
+  auto thenResultLE = thenResultRegion->checkValidReference(FL(), functionState, thenBlockBuilder, thenResultMT, thenResultRef);
   // A builder can point to different blocks, so get the latest one so we can
   // pull from it for the phi.
   auto thenFinalBlockL = LLVMGetInsertBlock(thenBlockBuilder);
@@ -182,7 +186,7 @@ Ref buildIfElse(
   LLVMPositionBuilderAtEnd(elseBlockBuilder, elseStartBlockL);
   // Now, we fill in the "else" block.
   auto elseResultRef = buildElse(elseBlockBuilder);
-  auto elseResultLE = globalState->getRegion(elseResultMT)->checkValidReference(FL(), functionState, elseBlockBuilder, elseResultMT, elseResultRef);
+  auto elseResultLE = elseResultRegion->checkValidReference(FL(), functionState, elseBlockBuilder, elseResultMT, elseResultRef);
   // A builder can point to different blocks, so get the latest one so we can
   // pull from it for the phi.
   auto elseFinalBlockL = LLVMGetInsertBlock(elseBlockBuilder);
@@ -235,7 +239,7 @@ Ref buildIfElse(
     // We re-pointed the `builder` to point at the "afterward" block, and
     // subsequent instructions after the if will keep adding to that.
 
-    return wrap(globalState->getRegion(thenResultMT), thenResultMT, phi);
+    return wrap(thenResultRegion, thenResultMT, phi);
   }
 }
 
@@ -302,7 +306,9 @@ void buildWhile(
             conditionLE,
             LLVMInt1TypeInContext(globalState->context),
             globalState->metalCache.boolRef,
+            globalState->getRegion(globalState->metalCache.boolRef),
             globalState->metalCache.boolRef,
+            globalState->getRegion(globalState->metalCache.boolRef),
             [globalState, functionState, buildBody](LLVMBuilderRef thenBlockBuilder) {
               buildBody(thenBlockBuilder);
               // Return true, so the while loop will keep executing.

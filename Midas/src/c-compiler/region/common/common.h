@@ -108,7 +108,7 @@ void innerDeallocate(
     IReferendStructsSource* referendStrutsSource,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE);
+    Ref ref);
 
 void fillUnknownSizeArray(
     GlobalState* globalState,
@@ -173,7 +173,7 @@ Ref innerAllocate(
     LLVMBuilderRef builder,
     Reference* desiredReference,
     IReferendStructsSource* referendStructs,
-    const std::vector<Ref>& membersLE,
+    const std::vector<Ref>& memberRefs,
     Weakability effectiveWeakability,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 // Transmutes a weak ref of one ownership (such as borrow) to another ownership (such as weak).
@@ -247,7 +247,7 @@ Ref constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* refM,
     KnownSizeArrayT* ksaMT,
-    const std::vector<Ref>& membersLE,
+    const std::vector<Ref>& memberRefs,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 

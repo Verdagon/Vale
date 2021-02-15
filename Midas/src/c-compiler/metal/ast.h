@@ -101,8 +101,6 @@ public:
     }
     return exportedNameI->second;
   }
-  Weakability getReferendWeakability(Referend* referend);
-  Mutability getReferendMutability(Referend* referendM);
 };
 
 class InterfaceMethod {

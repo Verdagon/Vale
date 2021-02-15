@@ -101,6 +101,10 @@ class Int : public Referend {
 public:
 };
 
+class I8 : public Referend {
+public:
+};
+
 class Bool : public Referend {
 public:
 };

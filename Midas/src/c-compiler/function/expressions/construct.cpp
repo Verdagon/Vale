@@ -15,7 +15,9 @@ Ref translateConstruct(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* desiredReference,
-    const std::vector<Ref>& membersLE) {
-  return globalState->getRegion(desiredReference)->allocate(
-      from, functionState, builder, desiredReference, membersLE);
+    const std::vector<Ref>& memberRefs) {
+  return globalState->getRegion(desiredReference)
+      ->allocate(
+          makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder),
+          from, functionState, builder, desiredReference, memberRefs);
 }

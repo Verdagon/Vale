@@ -31,7 +31,9 @@ Ref translateIf(
           conditionExpr,
           globalState->getRegion(iff->commonSupertype)->translateType(iff->commonSupertype),
           iff->thenResultType,
+          globalState->getRegion(iff->thenResultType),
           iff->elseResultType,
+          globalState->getRegion(iff->elseResultType),
           [globalState, functionState, &thenBlockState, iff](LLVMBuilderRef thenBlockBuilder) {
             return translateExpression(
                 globalState, functionState, &thenBlockState, thenBlockBuilder, iff->thenExpr);

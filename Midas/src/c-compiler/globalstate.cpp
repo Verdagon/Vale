@@ -85,6 +85,9 @@ LLVMValueRef GlobalState::getOrMakeStringConstant(const std::string& str) {
 Ref GlobalState::constI64(int64_t x) {
   return wrap(getRegion(Mutability::IMMUTABLE), metalCache.intRef, constI64LE(this, x));
 }
+Ref GlobalState::constI1(bool b) {
+  return wrap(getRegion(Mutability::IMMUTABLE), metalCache.boolRef, constI1LE(this, b));
+}
 Ref GlobalState::buildAdd(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b) {
   auto intMT = metalCache.intRef;
   auto addPrototype = metalCache.getPrototype(metalCache.getName("__addIntInt"), intMT, {intMT, intMT});
@@ -105,4 +108,49 @@ Ref GlobalState::buildMultiply(FunctionState* functionState, LLVMBuilderRef buil
   auto intMT = metalCache.intRef;
   auto addPrototype = metalCache.getPrototype(metalCache.getName("__multiplyIntInt"), intMT, {intMT, intMT});
   return buildExternCall(this, functionState, builder, addPrototype, { a, b });
+}
+
+Name* GlobalState::getReferendName(Referend* referend) {
+  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+    return structReferend->fullName;
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+    return interfaceReferend->fullName;
+  } else assert(false);
+  return nullptr;
+}
+
+Weakability GlobalState::getReferendWeakability(Referend* referend) {
+  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+    return lookupStruct(structReferend->fullName)->weakability;
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+    return lookupInterface(interfaceReferend->fullName)->weakability;
+  } else {
+    return Weakability::NON_WEAKABLE;
+  }
+}
+
+Mutability GlobalState::getReferendMutability(Referend* referendM) {
+  if (dynamic_cast<Int*>(referendM) ||
+      dynamic_cast<Bool*>(referendM) ||
+      dynamic_cast<Float*>(referendM) ||
+      dynamic_cast<Str*>(referendM)) {
+    return Mutability::IMMUTABLE;
+  } else if (auto structRnd = dynamic_cast<StructReferend*>(referendM)) {
+    auto structM = lookupStruct(structRnd->fullName);
+    return structM->mutability;
+  } else if (
+      auto interfaceRnd = dynamic_cast<InterfaceReferend*>(referendM)) {
+    auto interfaceM = lookupInterface(interfaceRnd->fullName);
+    return interfaceM->mutability;
+  } else if (
+      auto knownSizeArrayMT = dynamic_cast<KnownSizeArrayT*>(referendM)) {
+    return knownSizeArrayMT->rawArray->mutability;
+  } else if (
+      auto unknownSizeArrayMT = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
+    return unknownSizeArrayMT->rawArray->mutability;
+  } else {
+    std::cerr << typeid(*referendM).name() << std::endl;
+    assert(false);
+    return Mutability::MUTABLE;
+  }
 }

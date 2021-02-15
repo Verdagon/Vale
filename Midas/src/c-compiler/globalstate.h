@@ -71,6 +71,7 @@ public:
   LLVMValueRef expandLgt = nullptr, checkLgti = nullptr, getNumLiveLgtEntries = nullptr;
 
   LLVMValueRef strncpy = nullptr;
+  LLVMValueRef memcpy = nullptr;
 
   LLVMValueRef genMalloc = nullptr, genFree = nullptr;
 
@@ -93,6 +94,25 @@ public:
   std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>> interfaceExtraMethods;
   std::unordered_map<Edge*, Edge*> extraAdditionsEdges;
   std::unordered_map<Prototype*, LLVMValueRef> extraFunctions;
+
+  std::unordered_map<Name*, StructDefinition*> extraStructs;
+  std::unordered_map<Name*, InterfaceDefinition*> extraInterfaces;
+
+  StructDefinition* lookupStruct(Name* name) {
+    auto structI = extraStructs.find(name);
+    if (structI != extraStructs.end()) {
+      return structI->second;
+    }
+    return program->getStruct(name);
+  }
+
+  InterfaceDefinition* lookupInterface(Name* name) {
+    auto interfaceI = extraInterfaces.find(name);
+    if (interfaceI != extraInterfaces.end()) {
+      return interfaceI->second;
+    }
+    return program->getInterface(name);
+  }
 
   LLVMValueRef lookupFunction(Prototype* prototype) {
     auto iter = extraFunctions.find(prototype);
@@ -122,14 +142,21 @@ public:
     assert(false);
   }
 
+
+  Weakability getReferendWeakability(Referend* referend);
+
+  Mutability getReferendMutability(Referend* referendM);
+
   Ref constI64(int64_t x);
+  Ref constI1(bool b);
   Ref buildAdd(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
   Ref buildMod(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
   Ref buildMultiply(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
   Ref buildDivide(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
 
+  Name* getReferendName(Referend* referend);
 
-  Name* calculateSerializedSizeName = nullptr;
+  Name* measureName = nullptr;
   Name* serializeName = nullptr;
   Name* unserializeName = nullptr;
 

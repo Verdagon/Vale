@@ -40,8 +40,6 @@ ReferendStructs::ReferendStructs(GlobalState* globalState_, ControlBlock control
     LLVMStructSetBody(
         stringWrapperStructL, memberTypesL.data(), memberTypesL.size(), false);
   }
-
-  stringInnerStructPtrLT = LLVMPointerType(stringInnerStructL, 0);
 }
 
 ControlBlock* ReferendStructs::getControlBlock(Referend* referend) {

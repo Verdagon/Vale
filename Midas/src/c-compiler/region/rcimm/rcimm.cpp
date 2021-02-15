@@ -117,7 +117,7 @@ LLVMValueRef RCImm::getCensusObjectId(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refM,
-    Ref refLE) {
+    Ref ref) {
   if (refM == globalState->metalCache.intRef) {
     return constI64LE(globalState, -2);
   } else if (refM == globalState->metalCache.boolRef) {
@@ -130,7 +130,7 @@ LLVMValueRef RCImm::getCensusObjectId(
     return constI64LE(globalState, -1);
   } else {
     auto controlBlockPtrLE =
-        referendStructs.getControlBlockPtr(checkerAFL, functionState, builder, refLE, refM);
+        referendStructs.getControlBlockPtr(checkerAFL, functionState, builder, ref, refM);
     auto exprLE =
         referendStructs.getObjIdFromControlBlockPtr(builder, refM->referend, controlBlockPtrLE);
     return exprLE;
@@ -278,7 +278,8 @@ void RCImm::storeMember(
     bool structKnownLive,
     int memberIndex,
     const std::string& memberName,
-    LLVMValueRef newValueLE) {
+    Reference* newMemberRefMT,
+    Ref newMemberRef) {
   assert(false);
 }
 
@@ -330,16 +331,17 @@ LLVMValueRef RCImm::getStringBytesPtr(FunctionState* functionState, LLVMBuilderR
 }
 
 Ref RCImm::allocate(
+    Ref regionInstanceRef,
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* desiredReference,
-    const std::vector<Ref>& membersLE) {
+    const std::vector<Ref>& memberRefs) {
   auto structReferend = dynamic_cast<StructReferend*>(desiredReference->referend);
   auto structM = globalState->program->getStruct(structReferend->fullName);
   auto resultRef =
       innerAllocate(
-          FL(), globalState, functionState, builder, desiredReference, &referendStructs, membersLE, Weakability::WEAKABLE,
+          FL(), globalState, functionState, builder, desiredReference, &referendStructs, memberRefs, Weakability::WEAKABLE,
           [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, desiredReference->referend,
@@ -377,10 +379,10 @@ Ref RCImm::constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* referenceM,
     KnownSizeArrayT* referendM,
-    const std::vector<Ref>& membersLE) {
+    const std::vector<Ref>& memberRefs) {
   auto resultRef =
       ::constructKnownSizeArray(
-          globalState, functionState, builder, referenceM, referendM, membersLE, &referendStructs,
+          globalState, functionState, builder, referenceM, referendM, memberRefs, &referendStructs,
           [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
 //                FL(),
@@ -450,8 +452,8 @@ void RCImm::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  auto argLE = checkValidReference(FL(), functionState, builder, refMT, refLE);
+    Ref ref) {
+  auto argLE = checkValidReference(FL(), functionState, builder, refMT, ref);
   auto structReferend = dynamic_cast<StructReferend*>(refMT->referend);
   assert(structReferend);
   assert(LLVMTypeOf(argLE) == referendStructs.getInnerStruct(structReferend));
@@ -501,8 +503,8 @@ void RCImm::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, refLE);
+    Ref ref) {
+  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, ref);
 }
 
 
@@ -544,12 +546,13 @@ Ref RCImm::constructUnknownSizeArrayCountedStruct(
 }
 
 
-WrapperPtrLE RCImm::mallocStr(
+Ref RCImm::mallocStr(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
   auto resultRef =
-      ::mallocStr(
+      wrap(this, globalState->metalCache.strRef, ::mallocStr(
           globalState, functionState, builder, lengthLE, &referendStructs,
           [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
@@ -558,7 +561,7 @@ WrapperPtrLE RCImm::mallocStr(
             fillControlBlock(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, globalState->metalCache.str, controlBlockPtrLE,
                 "str");
-          });
+          }));
   return resultRef;
 }
 
@@ -658,7 +661,7 @@ LLVMTypeRef RCImm::translateType(GlobalState* globalState, Reference* referenceM
     if (dynamic_cast<Str *>(referenceM->referend) != nullptr) {
       assert(referenceM->location != Location::INLINE);
       assert(referenceM->ownership == Ownership::SHARE);
-      return LLVMPointerType(referendStructs.stringWrapperStructL, 0);
+      return LLVMPointerType(referendStructs.getStringWrapperStruct(), 0);
     } else if (auto knownSizeArrayMT = dynamic_cast<KnownSizeArrayT *>(referenceM->referend)) {
       assert(referenceM->location != Location::INLINE);
       auto knownSizeArrayCountedStructLT = referendStructs.getKnownSizeArrayWrapperStruct(knownSizeArrayMT);
@@ -712,25 +715,7 @@ LLVMTypeRef RCImm::getControlBlockStruct(Referend* referend) {
   } else {
     assert(false);
   }
-  return referendStructs.controlBlock.getStruct();
-}
-
-ControlBlock* RCImm::getControlBlock(Referend* referend) {
-  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
-    auto structM = globalState->program->getStruct(structReferend->fullName);
-    assert(structM->mutability == Mutability::IMMUTABLE);
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
-    auto interfaceM = globalState->program->getInterface(interfaceReferend->fullName);
-    assert(interfaceM->mutability == Mutability::IMMUTABLE);
-  } else if (auto ksaMT = dynamic_cast<KnownSizeArrayT*>(referend)) {
-    assert(ksaMT->rawArray->mutability == Mutability::IMMUTABLE);
-  } else if (auto usaMT = dynamic_cast<UnknownSizeArrayT*>(referend)) {
-    assert(usaMT->rawArray->mutability == Mutability::IMMUTABLE);
-  } else if (auto strMT = dynamic_cast<Str*>(referend)) {
-  } else {
-    assert(false);
-  }
-  return &referendStructs.controlBlock;
+  return referendStructs.getControlBlockStruct();
 }
 
 

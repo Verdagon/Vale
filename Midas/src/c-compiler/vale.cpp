@@ -88,18 +88,12 @@ LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
       "Can't have negative length string!");
 
   // This will allocate lengthLE + 1
-  auto strWrapperPtrLE = globalState->getRegion(globalState->metalCache.strRef)->mallocStr(&functionState, builder, lengthLE);
+  auto strRef =
+      globalState->getRegion(globalState->metalCache.strRef)
+          ->mallocStr(
+              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder),
+              &functionState, builder, lengthLE);
 
-  // Set the length
-  LLVMBuildStore(builder, lengthLE, getLenPtrFromStrWrapperPtr(builder, strWrapperPtrLE));
-
-  // Set the null terminating character to the 0th spot and the end spot, just to guard against bugs
-  auto charsBeginPtr = getCharsPtrFromWrapperPtr(globalState, builder, strWrapperPtrLE);
-  LLVMBuildStore(builder, constI8LE(globalState, 0), charsBeginPtr);
-  auto charsEndPtr = LLVMBuildGEP(builder, charsBeginPtr, &lengthLE, 1, "charsEndPtr");
-  LLVMBuildStore(builder, constI8LE(globalState, 0), charsEndPtr);
-
-  auto strRef = wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, strWrapperPtrLE);
   auto resultStrPtrLE =
       globalState->getRegion(globalState->metalCache.strRef)
           ->checkValidReference(
@@ -440,8 +434,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   globalState->program = program;
 
-
-  globalState->calculateSerializedSizeName = globalState->metalCache.getName("__vale_calculateSerializedSize");
+  globalState->measureName = globalState->metalCache.getName("__vale_measure");
   globalState->serializeName = globalState->metalCache.getName("__vale_serialize");
   globalState->unserializeName = globalState->metalCache.getName("__vale_unserialize");
 
@@ -531,23 +524,24 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   }
   globalState->mutRegion = defaultRegion;
 
-//  auto voidLT = LLVMVoidTypeInContext(globalState->context);
+  auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
   auto int32LT = LLVMInt32TypeInContext(globalState->context);
   auto int32PtrLT = LLVMPointerType(int32LT, 0);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
   globalState->strncpy =
-      addExtern(globalState->mod, "strncpy", LLVMVoidTypeInContext(globalState->context),
+      addExtern(globalState->mod, "strncpy", voidLT,
           {int8PtrLT, int8PtrLT, int64LT});
+  globalState->memcpy =
+      addExtern(globalState->mod, "memcpy", int8PtrLT,
+                {int8PtrLT, int8PtrLT, int64LT});
 //  globalState->eqStr =
 //      addExtern(globalState->mod, "__veqStr", int8LT,
 //          {int8PtrLT, int8PtrLT});
 //  globalState->printVStr =
 //      addExtern(globalState->mod, "__vprintStr", LLVMVoidTypeInContext(globalState->context),
 //          {int8PtrLT});
-
-  initInternalFuncs(globalState);
 
   assert(LLVMTypeOf(globalState->neverPtr) == globalState->getRegion(globalState->metalCache.neverRef)->translateType(globalState->metalCache.neverRef));
 
@@ -586,6 +580,8 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     globalState->getRegion(structM->mutability)->translateStruct(structM);
     globalState->getExternRegion(structM->mutability)->translateStruct(structM);
   }
+
+  initInternalFuncs(globalState);
 
   // This has to come after we declare all the other structs, because we
   // add functions for all the known structs and interfaces.

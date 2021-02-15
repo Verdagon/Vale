@@ -51,7 +51,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
   Ref upcastWeak(
       FunctionState* functionState,
@@ -129,7 +129,8 @@ public:
       bool structKnownLive,
       int memberIndex,
       const std::string& memberName,
-      LLVMValueRef newValueLE) override;
+      Reference* newMemberRefMT,
+      Ref newMemberRef) override;
 
   std::tuple<LLVMValueRef, LLVMValueRef> explodeInterfaceRef(
       FunctionState* functionState,
@@ -162,11 +163,12 @@ public:
   LLVMValueRef getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
   Ref allocate(
+      Ref regionInstanceRef,
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* desiredReference,
-      const std::vector<Ref>& membersLE) override;
+      Reference* desiredStructMT,
+      const std::vector<Ref>& memberRefs) override;
 
   Ref upcast(
       FunctionState* functionState,
@@ -194,7 +196,7 @@ public:
       LLVMBuilderRef builder,
       Reference* referenceM,
       KnownSizeArrayT* referendM,
-      const std::vector<Ref>& membersLE) override;
+      const std::vector<Ref>& memberRefs) override;
 
   // should expose a dereference thing instead
 //  LLVMValueRef getKnownSizeArrayElementsPtr(
@@ -216,7 +218,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
 
   // TODO maybe combine with alias/acquireReference?
@@ -236,7 +238,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
   LoadResult loadElementFromKSA(
       FunctionState* functionState,
@@ -272,7 +274,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
 
   Ref constructUnknownSizeArrayCountedStruct(
@@ -289,7 +291,8 @@ public:
       const std::string& typeName) override;
 
 
-  WrapperPtrLE mallocStr(
+  Ref mallocStr(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
@@ -338,8 +341,6 @@ public:
   LLVMTypeRef translateType(GlobalState* globalState, Reference* referenceM);
 
   LLVMTypeRef getControlBlockStruct(Referend* referend);
-
-  ControlBlock* getControlBlock(Referend* referend);
 
 
   LoadResult loadMember(

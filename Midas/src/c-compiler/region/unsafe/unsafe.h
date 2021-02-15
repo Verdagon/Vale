@@ -18,11 +18,12 @@ public:
   ~Unsafe() override = default;
 
   Ref allocate(
+      Ref regionInstanceRef,
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* desiredReference,
-      const std::vector<Ref>& membersLE) override;
+      Reference* desiredStructMT,
+      const std::vector<Ref>& memberRefs) override;
 
   void alias(
       AreaAndFileAndLine from,
@@ -100,7 +101,7 @@ public:
       LLVMBuilderRef builder,
       Reference* referenceM,
       KnownSizeArrayT* referendM,
-      const std::vector<Ref>& membersLE) override;
+      const std::vector<Ref>& memberRefs) override;
 
   // should expose a dereference thing instead
 //  LLVMValueRef getKnownSizeArrayElementsPtr(
@@ -115,7 +116,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
   Ref getUnknownSizeArrayLength(
       FunctionState* functionState,
@@ -129,7 +130,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
   LLVMTypeRef translateType(Reference* referenceM) override;
 
@@ -177,7 +178,8 @@ public:
       bool structKnownLive,
       int memberIndex,
       const std::string& memberName,
-      LLVMValueRef newValueLE) override;
+      Reference* newMemberRefMT,
+      Ref newMemberRef) override;
 
   Ref loadMember(
       FunctionState* functionState,
@@ -217,7 +219,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
   void aliasWeakRef(
       AreaAndFileAndLine from,
@@ -274,7 +276,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
 
   Ref constructUnknownSizeArrayCountedStruct(
@@ -291,7 +293,8 @@ public:
       const std::string& typeName) override;
 
 
-  WrapperPtrLE mallocStr(
+  Ref mallocStr(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
@@ -396,6 +399,8 @@ protected:
 
   FatWeaks fatWeaks;
   WrcWeaks wrcWeaks;
+
+  LLVMTypeRef regionLT;
 
   // TODO see if we can just use referendStructs/weakRefStructs instead of having these?
 //  WeakFatPtrLEMaker weakFatPtrMaker;

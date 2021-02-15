@@ -1,7 +1,7 @@
 
 #include "midasfunctions.h"
-#include "serialize.h"
 #include "region/iregion.h"
+#include "region/linear/linear.h"
 
 void declareExtraInterfaceMethod(
     GlobalState* globalState,
@@ -67,7 +67,7 @@ void addExtraFunctions(GlobalState* globalState) {
   auto intMT = globalState->metalCache.intRef;
   auto intLT = globalState->getExternRegion(intMT)->translateType(intMT);
 
-  addCalculateSerializedSizeFunctions(globalState);
+  globalState->linearRegion->addSerializeFunctions();
 
   for (auto nameAndInterface : program->interfaces) {
     auto interfaceDefinition = nameAndInterface.second;

@@ -64,13 +64,18 @@ struct RefVecEquals {
 class MetalCache {
 public:
   MetalCache() {
+//    i8Ref = getReference(Ownership::SHARE, Location::INLINE, i8);
     intRef = getReference(Ownership::SHARE, Location::INLINE, innt);
     floatRef = getReference(Ownership::SHARE, Location::INLINE, flooat);
     boolRef = getReference(Ownership::SHARE, Location::INLINE, boool);
     strRef = getReference(Ownership::SHARE, Location::YONDER, str);
     neverRef = getReference(Ownership::SHARE, Location::INLINE, never);
+    regionReferend = getStructReferend(getName("__Region"));
+    regionRef = getReference(Ownership::SHARE, Location::YONDER, regionReferend);
   }
 
+//  I8* i8 = new I8();
+//  Reference* i8Ref = nullptr;
   Int* innt = new Int();
   Reference* intRef = nullptr;
   Bool* boool = new Bool();
@@ -83,6 +88,14 @@ public:
   Reference* neverRef = nullptr;
   StructReferend* emptyTupleStruct = nullptr;
   Reference* emptyTupleStructRef = nullptr;
+  // This is a central referend that holds a region's data.
+  // These will hold for example the bump pointer for an arena region,
+  // or a free list pointer for HGM.
+  // We hand these in to methods like allocate, deallocate, etc.
+  // Right now we just use it to hold the bump pointer for linear regions.
+  // Otherwise, for now, we're just handing in Nevers.
+  StructReferend* regionReferend = nullptr;
+  Reference* regionRef = nullptr;
 
   std::unordered_map<Name*, StructReferend*> structReferends;
   std::unordered_map<Name*, InterfaceReferend*> interfaceReferends;
@@ -96,6 +109,34 @@ public:
   std::unordered_map<Name*, std::unordered_map<Reference*, std::unordered_map<std::vector<Reference*>, Prototype*, HashRefVec, RefVecEquals>>> prototypes;
   std::unordered_map<int, std::unordered_map<std::string, VariableId*>> variableIds;
   std::unordered_map<VariableId*, std::unordered_map<Reference*, Local*>> locals;
+
+  RawArrayT* getArray(Mutability mutability, Reference* elementType) {
+    return makeIfNotPresent(
+        &rawArrays[elementType],
+        mutability,
+        [&](){ return new RawArrayT(mutability, elementType); });
+  }
+
+  StructReferend* getStructReferend(Name* structName) {
+    return makeIfNotPresent(
+        &structReferends,
+        structName,
+        [&]() { return new StructReferend(structName); });
+  }
+
+  UnknownSizeArrayT* getUnknownSizeArray(Name* name, RawArrayT* rawArray) {
+    return makeIfNotPresent(
+        &unknownSizeArrays,
+        name,
+        [&](){ return new UnknownSizeArrayT(name, rawArray); });
+  }
+
+  KnownSizeArrayT* getKnownSizeArray(Name* name, int size, RawArrayT* rawArray) {
+    return makeIfNotPresent(
+        &knownSizeArrays,
+        name,
+        [&](){ return new KnownSizeArrayT(name, size, rawArray); });
+  }
 
   Name* getName(std::string nameStr) {
     return makeIfNotPresent(

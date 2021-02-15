@@ -289,14 +289,14 @@ void innerDeallocateYonder(
     IReferendStructsSource* referendStrutsSource,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
+    Ref ref) {
   if (globalState->opt->census) {
     auto ptrLE =
         globalState->getRegion(refMT)
-            ->checkValidReference(FL(), functionState, builder, refMT, refLE);
+            ->checkValidReference(FL(), functionState, builder, refMT, ref);
     auto objIdLE =
         globalState->getRegion(refMT)
-            ->getCensusObjectId(FL(), functionState, builder, refMT, refLE);
+            ->getCensusObjectId(FL(), functionState, builder, refMT, ref);
     if (dynamic_cast<InterfaceReferend*>(refMT->referend) == nullptr) {
       buildFlare(FL(), globalState, functionState, builder,
           "Deallocating object &", ptrToIntLE(globalState, builder, ptrLE), " obj id ", objIdLE, "\n");
@@ -304,7 +304,7 @@ void innerDeallocateYonder(
   }
 
   auto controlBlockPtrLE = referendStrutsSource->getControlBlockPtr(from, functionState, builder,
-      refLE, refMT);
+      ref, refMT);
 
   globalState->getRegion(refMT)
       ->noteWeakableDestroyed(functionState, builder, refMT, controlBlockPtrLE);
@@ -331,18 +331,18 @@ void innerDeallocate(
     IReferendStructsSource* referendStrutsSource,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
+    Ref ref) {
   if (refMT->ownership == Ownership::SHARE) {
     if (refMT->location == Location::INLINE) {
       // Do nothing, it's inline!
     } else {
-      return innerDeallocateYonder(from, globalState, functionState, referendStrutsSource, builder, refMT, refLE);
+      return innerDeallocateYonder(from, globalState, functionState, referendStrutsSource, builder, refMT, ref);
     }
   } else {
     if (refMT->location == Location::INLINE) {
       assert(false); // implement
     } else {
-      return innerDeallocateYonder(from, globalState, functionState, referendStrutsSource, builder, refMT, refLE);
+      return innerDeallocateYonder(from, globalState, functionState, referendStrutsSource, builder, refMT, ref);
     }
   }
 }
@@ -502,15 +502,11 @@ void fillInnerStruct(
   for (int i = 0; i < membersLE.size(); i++) {
     auto memberRef = membersLE[i];
     auto memberType = structM->members[i]->type;
-
     auto memberName = structM->members[i]->name;
-    if (structM->members[i]->type->referend == globalState->metalCache.innt) {
-      buildFlare(FL(), globalState, functionState, builder, "Initialized member ", memberName, ": ", memberRef);
-    }
     auto ptrLE =
         LLVMBuildStructGEP(builder, innerStructPtrLE, i, memberName.c_str());
     auto memberLE =
-        globalState->getRegion(structM->members[i]->type)
+        globalState->getRegion(memberType)
             ->checkValidReference(FL(), functionState, builder, structM->members[i]->type, memberRef);
     LLVMBuildStore(builder, memberLE, ptrLE);
   }
@@ -604,7 +600,7 @@ Ref innerAllocate(
     LLVMBuilderRef builder,
     Reference* desiredReference,
     IReferendStructsSource* referendStructs,
-    const std::vector<Ref>& membersLE,
+    const std::vector<Ref>& memberRefs,
     Weakability effectiveWeakability,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
   auto structReferend = dynamic_cast<StructReferend*>(desiredReference->referend);
@@ -615,7 +611,7 @@ Ref innerAllocate(
       auto countedStructL = referendStructs->getWrapperStruct(structReferend);
       return constructWrappedStruct(
           globalState, functionState, referendStructs, builder, countedStructL, desiredReference,
-          structM, effectiveWeakability, membersLE, fillControlBlock);
+          structM, effectiveWeakability, memberRefs, fillControlBlock);
     }
     case Mutability::IMMUTABLE: {
       if (desiredReference->location == Location::INLINE) {
@@ -623,14 +619,14 @@ Ref innerAllocate(
             referendStructs->getInnerStruct(structReferend);
         auto innerStructLE =
             constructInnerStruct(
-                globalState, functionState, builder, structM, valStructL, membersLE);
+                globalState, functionState, builder, structM, valStructL, memberRefs);
         return wrap(globalState->getRegion(desiredReference), desiredReference, innerStructLE);
       } else {
         auto countedStructL =
             referendStructs->getWrapperStruct(structReferend);
         return constructWrappedStruct(
             globalState, functionState, referendStructs, builder, countedStructL, desiredReference,
-            structM, effectiveWeakability, membersLE, fillControlBlock);
+            structM, effectiveWeakability, memberRefs, fillControlBlock);
       }
     }
     default:
@@ -821,7 +817,11 @@ Ref resilientThing(
     IWeakRefStructsSource* weakRefStructs) {
   return buildIfElse(
       globalState, functionState, builder, isAliveLE,
-      resultOptTypeL, resultOptTypeM, resultOptTypeM,
+      resultOptTypeL,
+      resultOptTypeM,
+      globalState->getRegion(resultOptTypeM),
+      resultOptTypeM,
+      globalState->getRegion(resultOptTypeM),
       [globalState, functionState, constraintRefM, weakRefStructs, sourceWeakRefLE, sourceWeakRefMT, buildThen](LLVMBuilderRef thenBuilder) {
         // TODO extract more of this common code out?
         // The incoming "constraint" ref is actually already a week ref, so just return it
@@ -932,7 +932,7 @@ Ref constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* refM,
     KnownSizeArrayT* ksaMT,
-    const std::vector<Ref>& membersLE,
+    const std::vector<Ref>& memberRefs,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
 
@@ -951,7 +951,7 @@ Ref constructKnownSizeArray(
       builder,
       ksaMT->rawArray->elementType,
       getKnownSizeArrayContentsPtr(builder, newStructLE),
-      membersLE);
+      memberRefs);
   return wrap(globalState->getRegion(refM), refM, newStructLE.refLE);
 }
 
@@ -1380,7 +1380,7 @@ void regularFillControlBlock(
   } else {
     newControlBlockLE =
         insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-    if (globalState->program->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
+    if (globalState->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
       newControlBlockLE = wrcWeaks->fillWeakableControlBlock(functionState, builder, structs, referendM,
           newControlBlockLE);
     }
@@ -1570,7 +1570,11 @@ Ref regularInnerLockWeak(
     FatWeaks* fatWeaks) {
   return buildIfElse(
       globalState, functionState, builder, isAliveLE,
-      resultOptTypeL, resultOptTypeM, resultOptTypeM,
+      resultOptTypeL,
+      resultOptTypeM,
+      globalState->getRegion(resultOptTypeM),
+      resultOptTypeM,
+      globalState->getRegion(resultOptTypeM),
       [globalState, functionState, fatWeaks, weakRefStructsSource, constraintRefM, sourceWeakRefLE, sourceWeakRefMT, buildThen](LLVMBuilderRef thenBuilder) {
         auto weakFatPtrLE =
             weakRefStructsSource->makeWeakFatPtr(

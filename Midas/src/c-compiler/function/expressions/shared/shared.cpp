@@ -33,11 +33,7 @@ LLVMValueRef makeMidasLocal(
     LLVMTypeRef typeL,
     const std::string& name,
     LLVMValueRef valueToStore) {
-  auto localAddr =
-      LLVMBuildAlloca(
-          functionState->localsBuilder,
-          typeL,
-          name.c_str());
+  auto localAddr = LLVMBuildAlloca(functionState->localsBuilder, typeL, name.c_str());
   LLVMBuildStore(builder, valueToStore, localAddr);
   return localAddr;
 }

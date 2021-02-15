@@ -49,11 +49,8 @@ Ref swapMember(
   // We don't adjust the oldMember's RC here because even though we're acquiring
   // a reference to it, the struct is losing its reference, so it cancels out.
 
-  auto newMemberLE =
-      globalState->getRegion(memberRefMT)->checkValidReference(
-          FL(), functionState, builder, memberRefMT, newMemberRef);
   globalState->getRegion(structRefMT)->storeMember(
-      functionState, builder, structRefMT, structRef, structKnownLive, memberIndex, memberName, newMemberLE);
+      functionState, builder, structRefMT, structRef, structKnownLive, memberIndex, memberName, memberRefMT, newMemberRef);
   // We don't adjust the newMember's RC here because even though the struct is
   // acquiring a reference to it, we're losing ours, so it cancels out.
 

@@ -50,7 +50,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
   Ref upcastWeak(
       FunctionState* functionState,
@@ -128,7 +128,8 @@ public:
       bool structKnownLive,
       int memberIndex,
       const std::string& memberName,
-      LLVMValueRef newValueLE) override;
+      Reference* newMemberRefMT,
+      Ref newMemberRef) override;
 
   std::tuple<LLVMValueRef, LLVMValueRef> explodeInterfaceRef(
       FunctionState* functionState,
@@ -161,11 +162,12 @@ public:
   LLVMValueRef getStringBytesPtr(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
   Ref allocate(
+      Ref regionInstanceRef,
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* desiredReference,
-      const std::vector<Ref>& membersLE) override;
+      Reference* desiredStructMT,
+      const std::vector<Ref>& memberRefs) override;
 
   Ref upcast(
       FunctionState* functionState,
@@ -193,7 +195,7 @@ public:
       LLVMBuilderRef builder,
       Reference* referenceM,
       KnownSizeArrayT* referendM,
-      const std::vector<Ref>& membersLE) override;
+      const std::vector<Ref>& memberRefs) override;
 
   // should expose a dereference thing instead
 //  LLVMValueRef getKnownSizeArrayElementsPtr(
@@ -215,7 +217,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) override;
+      Ref ref) override;
 
 
   // TODO maybe combine with alias/acquireReference?
@@ -235,7 +237,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
   LoadResult loadElementFromKSA(
       FunctionState* functionState,
@@ -271,7 +273,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) override;
+      Ref ref) override;
 
 
   Ref constructUnknownSizeArrayCountedStruct(
@@ -288,10 +290,18 @@ public:
       const std::string& typeName) override;
 
 
-  WrapperPtrLE mallocStr(
+  Ref mallocStr(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
+
+  Ref innerMallocStr(
+      Ref regionInstanceRef,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef lengthLE,
+      bool dryRun);
 
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
@@ -344,19 +354,83 @@ public:
 
   LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
-  Ref predictShallowSize(
-      FunctionState* functionState,
+  void addSerializeFunctions();
+
+private:
+  LLVMValueRef predictShallowSize(
       LLVMBuilderRef builder,
       Referend* referend,
       // Ignored if referend isn't an array or string.
       // If it's a string, this will be the length of the string.
       // If it's an array, this will be the number of elements.
-      Ref lenIntRef);
+      LLVMValueRef lenIntLE);
 
-private:
+  Ref innerAllocate(
+      Ref regionInstanceRef,
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* desiredStructMT,
+      const std::vector<Ref>& memberRefs,
+      bool dryRun);
+
+  Prototype* getSerializeProtoype(Reference* refMT);
+  Ref callSerialize(
+      FunctionState *functionState,
+      LLVMBuilderRef builder,
+      Reference* refMT,
+      Ref regionInstanceRef,
+      Ref objectRef,
+      Ref dryRunBoolRef);
+
+  // This should NOT be called on anything inline, because it adds padding at the end.
+  Ref serializeInto(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refMT,
+      Ref sourceRef,
+      Ref destinationRawPtrRef);
+
+  // When we have the region in the coord, get rid of this, the regular
+  // fillInnerStruct would work better.
+  void fillInnerStruct(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      StructDefinition* structM,
+      std::vector<Ref> membersLE,
+      LLVMValueRef innerStructPtrLE);
+
+  // Does the entire serialization process: measuring the length, allocating a buffer, and
+  // serializing into it.
+  Ref topLevelSerialize(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refMT,
+      Ref ref);
+
+  void defineSerializeFunc(Prototype* prototype);
+
+  void bumpDestinationOffset(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      LLVMValueRef sizeIntLE);
+
+  Ref getDestinationRef(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef,
+      Reference* desiredRefMT);
+
+  LLVMValueRef getDestinationOffset(
+      LLVMBuilderRef builder,
+      LLVMValueRef regionInstancePtrLE);
+
   GlobalState* globalState;
 
   LinearStructs structs;
+
+  LLVMTypeRef regionLT = nullptr;
 };
 
 #endif

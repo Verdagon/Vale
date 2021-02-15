@@ -151,8 +151,12 @@ inline LLVMValueRef constI8LE(GlobalState* globalState, int n) {
   return LLVMConstInt(LLVMInt8TypeInContext(globalState->context), n, false);
 }
 
-inline LLVMValueRef constI64LE(GlobalState* globalState, int n) {
+inline LLVMValueRef constI64LE(GlobalState* globalState, int64_t n) {
   return LLVMConstInt(LLVMInt64TypeInContext(globalState->context), n, false);
+}
+
+inline LLVMValueRef constI1LE(GlobalState* globalState, bool b) {
+  return LLVMConstInt(LLVMInt1TypeInContext(globalState->context), b, false);
 }
 
 inline LLVMValueRef constI32LE(GlobalState* globalState, int n) {

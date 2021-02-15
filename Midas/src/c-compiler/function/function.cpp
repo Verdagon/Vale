@@ -153,9 +153,6 @@ void translateFunction(
   auto functionL = globalState->getFunction(functionM->prototype->name);
   auto returnTypeL = globalState->getRegion(functionM->prototype->returnType)->translateType(functionM->prototype->returnType);
 
-  auto localAddrByLocalId = std::unordered_map<int, LLVMValueRef>{};
-
-
   auto localsBlockName = std::string("localsBlock");
   auto localsBuilder = LLVMCreateBuilderInContext(globalState->context);
   LLVMBasicBlockRef localsBlockL = LLVMAppendBasicBlockInContext(globalState->context, functionL, localsBlockName.c_str());
@@ -223,4 +220,66 @@ void translateFunction(
 //  }
 
   LLVMDisposeBuilder(bodyTopLevelBuilder);
+}
+
+void declareExtraFunction(
+    GlobalState* globalState,
+    Prototype* prototype,
+    IRegion* returnTypeRegion,
+    std::string llvmName) {
+  auto returnTypeLT = returnTypeRegion->translateType(prototype->returnType);
+
+  std::vector<LLVMTypeRef> paramsLT;
+  for (int i = 0; i < prototype->params.size(); i++) {
+    auto paramMT = prototype->params[i];
+    if (paramMT == globalState->metalCache.regionRef) {
+      paramsLT.push_back(globalState->getExternRegion(paramMT)->translateType(paramMT));
+    } else {
+      paramsLT.push_back(globalState->getRegion(paramMT)->translateType(paramMT));
+    }
+  }
+
+  auto functionLT = LLVMFunctionType(returnTypeLT, paramsLT.data(), paramsLT.size(), false);
+  auto functionL = LLVMAddFunction(globalState->mod, llvmName.c_str(), functionLT);
+  // Don't define it yet, we're just declaring them right now.
+  globalState->extraFunctions.emplace(std::make_pair(prototype, functionL));
+}
+
+void defineFunctionBody(
+    GlobalState* globalState,
+    Prototype* prototype,
+    std::function<void(FunctionState*, LLVMBuilderRef)> definer) {
+  auto functionL = globalState->lookupFunction(prototype);
+
+  auto localsBlockName = std::string("localsBlock");
+  auto localsBuilder = LLVMCreateBuilderInContext(globalState->context);
+  LLVMBasicBlockRef localsBlockL = LLVMAppendBasicBlockInContext(globalState->context, functionL, localsBlockName.c_str());
+  LLVMPositionBuilderAtEnd(localsBuilder, localsBlockL);
+
+  auto firstBlockName = std::string("codeStartBlock");
+  LLVMBasicBlockRef firstBlockL = LLVMAppendBasicBlockInContext(globalState->context, functionL, firstBlockName.c_str());
+  LLVMBuilderRef bodyTopLevelBuilder = LLVMCreateBuilderInContext(globalState->context);
+  LLVMPositionBuilderAtEnd(bodyTopLevelBuilder, firstBlockL);
+
+  FunctionState functionState(
+      prototype->name->name, functionL, LLVMGetReturnType(LLVMTypeOf(functionL)), localsBuilder);
+
+  definer(&functionState, bodyTopLevelBuilder);
+
+  // Now that we've added all the locals we need, lets make the locals block jump to the first
+  // code block.
+  LLVMBuildBr(localsBuilder, firstBlockL);
+
+  LLVMDisposeBuilder(bodyTopLevelBuilder);
+  LLVMDisposeBuilder(localsBuilder);
+}
+
+void declareAndDefineExtraFunction(
+    GlobalState* globalState,
+    Prototype* prototype,
+    IRegion* returnTypeRegion,
+    std::string llvmName,
+    std::function<void(FunctionState*, LLVMBuilderRef)> definer) {
+  declareExtraFunction(globalState, prototype, returnTypeRegion, llvmName);
+  defineFunctionBody(globalState, prototype, definer);
 }

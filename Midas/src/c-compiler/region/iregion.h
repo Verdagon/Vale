@@ -34,11 +34,12 @@ public:
   virtual ~IRegion() = default;
 
   virtual Ref allocate(
+      Ref regionInstanceRef,
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* desiredReference,
-      const std::vector<Ref>& membersLE) = 0;
+      Reference* desiredStructMT,
+      const std::vector<Ref>& memberRefs) = 0;
 
   virtual WrapperPtrLE lockWeakRef(
       AreaAndFileAndLine from,
@@ -70,7 +71,8 @@ public:
       bool structRefKnownLive,
       int memberIndex,
       const std::string& memberName,
-      LLVMValueRef newValueLE) = 0;
+      Reference* newMemberRefMT,
+      Ref newMemberRef) = 0;
 
   virtual Ref loadMember(
       FunctionState* functionState,
@@ -121,7 +123,7 @@ public:
       LLVMBuilderRef builder,
       Reference* referenceM,
       KnownSizeArrayT* referendM,
-      const std::vector<Ref>& membersLE) = 0;
+      const std::vector<Ref>& memberRefs) = 0;
 
   virtual Ref getUnknownSizeArrayLength(
       FunctionState* functionState,
@@ -135,14 +137,14 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) = 0;
+      Ref ref) = 0;
 
   virtual LLVMValueRef getCensusObjectId(
       AreaAndFileAndLine checkerAFL,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refM,
-      Ref refLE) = 0;
+      Ref ref) = 0;
 
   virtual LLVMTypeRef translateType(Reference* referenceM) = 0;
 
@@ -275,7 +277,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) = 0;
+      Ref ref) = 0;
 
 
   virtual Ref constructUnknownSizeArrayCountedStruct(
@@ -295,7 +297,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* refMT,
-      Ref refLE) = 0;
+      Ref ref) = 0;
 
   virtual Ref upgradeLoadResultToRefWithTargetOwnership(
       FunctionState* functionState,
@@ -347,7 +349,8 @@ public:
   // TODO:
   // One use is for makeNewStrFunc, make that private to the unsafe region.
   // Change this to also take in the bytes pointer.
-  virtual WrapperPtrLE mallocStr(
+  virtual Ref mallocStr(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) = 0;

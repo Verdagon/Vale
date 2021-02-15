@@ -19,10 +19,10 @@ Assist::Assist(GlobalState* globalState_) :
     referendStructs(
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
-          if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+          if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
             assert(false);
           } else {
-            if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+            if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
               return &mutNonWeakableStructs;
             } else {
               return &mutWeakableStructs;
@@ -31,10 +31,10 @@ Assist::Assist(GlobalState* globalState_) :
         }),
     weakRefStructs(
         [this](Referend* referend) -> IWeakRefStructsSource* {
-          if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+          if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
             assert(false);
           } else {
-            if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+            if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
               assert(false);
             } else {
               return &mutWeakableStructs;
@@ -43,6 +43,8 @@ Assist::Assist(GlobalState* globalState_) :
         }),
     fatWeaks(globalState_, &weakRefStructs),
     wrcWeaks(globalState_, &referendStructs, &weakRefStructs) {
+  regionLT = LLVMStructCreateNamed(globalState->context, "__Assist_Region");
+  LLVMStructSetBody(regionLT, nullptr, 0, false);
 }
 
 
@@ -135,7 +137,11 @@ LLVMTypeRef Assist::translateType(Reference* referenceM) {
     case Ownership::OWN:
     case Ownership::BORROW:
       assert(referenceM->location != Location::INLINE);
-      return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
+      if (referenceM->referend == globalState->metalCache.regionReferend) {
+        return LLVMPointerType(regionLT, 0);
+      } else {
+        return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
+      }
     case Ownership::WEAK:
       assert(referenceM->location != Location::INLINE);
       return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
@@ -322,7 +328,11 @@ void Assist::storeMember(
     bool structKnownLive,
     int memberIndex,
     const std::string& memberName,
-    LLVMValueRef newValueLE) {
+    Reference* newMemberRefMT,
+    Ref newMemberRef) {
+  auto newMemberLE =
+      globalState->getRegion(newMemberRefMT)->checkValidReference(
+          FL(), functionState, builder, newMemberRefMT, newMemberRef);
   switch (structRefMT->ownership) {
     case Ownership::SHARE:
       assert(false);
@@ -330,13 +340,13 @@ void Assist::storeMember(
     case Ownership::BORROW: {
       storeMemberStrong(
           globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-          structKnownLive, memberIndex, memberName, newValueLE);
+          structKnownLive, memberIndex, memberName, newMemberLE);
       break;
     }
     case Ownership::WEAK: {
       storeMemberWeak(
           globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-          structKnownLive, memberIndex, memberName, newValueLE);
+          structKnownLive, memberIndex, memberName, newMemberLE);
       break;
     }
     default:
@@ -429,7 +439,8 @@ Ref Assist::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef
   return resultRef;
 }
 
-WrapperPtrLE Assist::mallocStr(
+Ref Assist::mallocStr(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
@@ -437,16 +448,17 @@ WrapperPtrLE Assist::mallocStr(
 }
 
 Ref Assist::allocate(
+    Ref regionInstanceRef,
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* desiredReference,
-    const std::vector<Ref>& membersLE) {
+    const std::vector<Ref>& memberRefs) {
   auto structReferend = dynamic_cast<StructReferend*>(desiredReference->referend);
   auto structM = globalState->program->getStruct(structReferend->fullName);
   auto resultRef =
       innerAllocate(
-          FL(), globalState, functionState, builder, desiredReference, &referendStructs, membersLE, Weakability::WEAKABLE,
+          FL(), globalState, functionState, builder, desiredReference, &referendStructs, memberRefs, Weakability::WEAKABLE,
           [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(), functionState, innerBuilder, desiredReference->referend, structM->mutability,
@@ -704,8 +716,8 @@ void Assist::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, refLE);
+    Ref ref) {
+  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, ref);
 }
 
 Ref Assist::constructUnknownSizeArrayCountedStruct(
@@ -745,8 +757,8 @@ void Assist::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  auto argLE = checkValidReference(FL(), functionState, builder, refMT, refLE);
+    Ref ref) {
+  auto argLE = checkValidReference(FL(), functionState, builder, refMT, ref);
   auto structReferend = dynamic_cast<StructReferend*>(refMT->referend);
   assert(structReferend);
   assert(LLVMTypeOf(argLE) == referendStructs.getInnerStruct(structReferend));

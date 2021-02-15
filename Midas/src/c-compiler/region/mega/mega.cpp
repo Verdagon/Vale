@@ -76,10 +76,10 @@ Mega::Mega(GlobalState* globalState_) :
         [this](Referend* referend) -> IReferendStructsSource* {
           switch (globalState->opt->regionOverride) {
             case RegionOverride::NAIVE_RC:
-              if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 return &immStructs;
               } else {
-                if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+                if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
                   return &mutNonWeakableStructs;
                 } else {
                   return &mutWeakableStructs;
@@ -90,7 +90,7 @@ Mega::Mega(GlobalState* globalState_) :
             case RegionOverride::RESILIENT_V2:
             case RegionOverride::RESILIENT_V3:
             case RegionOverride::RESILIENT_LIMIT:
-              if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 return &immStructs;
               } else {
                 return &mutWeakableStructs;
@@ -103,10 +103,10 @@ Mega::Mega(GlobalState* globalState_) :
         [this](Referend* referend) -> IWeakRefStructsSource* {
           switch (globalState->opt->regionOverride) {
             case RegionOverride::NAIVE_RC:
-              if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 assert(false);
               } else {
-                if (globalState->program->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+                if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
                   assert(false);
                 } else {
                   return &mutWeakableStructs;
@@ -117,7 +117,7 @@ Mega::Mega(GlobalState* globalState_) :
             case RegionOverride::RESILIENT_V2:
             case RegionOverride::RESILIENT_V3:
             case RegionOverride::RESILIENT_LIMIT:
-              if (globalState->program->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
                 assert(false);
               } else {
                 return &mutWeakableStructs;
@@ -155,30 +155,26 @@ Ref Mega::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef b
   return resultRef;
 }
 
-WrapperPtrLE Mega::mallocStr(
+Ref Mega::mallocStr(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
-  return ::mallocStr(
-      globalState, functionState, builder, lengthLE, &referendStructs,
-      [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-        fillControlBlock(
-            FL(), functionState, innerBuilder, globalState->metalCache.str,
-            Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
-      });
+  assert(false);
 }
 
 Ref Mega::allocate(
+    Ref regionInstanceRef,
     AreaAndFileAndLine from,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* desiredReference,
-    const std::vector<Ref>& membersLE) {
+    const std::vector<Ref>& memberRefs) {
   auto structReferend = dynamic_cast<StructReferend*>(desiredReference->referend);
   auto structM = globalState->program->getStruct(structReferend->fullName);
   auto resultRef =
       innerAllocate(
-          FL(), globalState, functionState, builder, desiredReference, &referendStructs, membersLE, Weakability::WEAKABLE,
+          FL(), globalState, functionState, builder, desiredReference, &referendStructs, memberRefs, Weakability::WEAKABLE,
           [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(), functionState, innerBuilder, desiredReference->referend, structM->mutability,
@@ -765,7 +761,8 @@ void Mega::storeMember(
     bool structKnownLive,
     int memberIndex,
     const std::string& memberName,
-    LLVMValueRef newValueLE) {
+    Reference* newMemberRefMT,
+    Ref newMemberRef) {
 
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
@@ -773,15 +770,21 @@ void Mega::storeMember(
         case Ownership::OWN:
         case Ownership::SHARE:
         case Ownership::BORROW: {
+          auto newMemberLE =
+              globalState->getRegion(newMemberRefMT)->checkValidReference(
+                  FL(), functionState, builder, newMemberRefMT, newMemberRef);
           storeMemberStrong(
               globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-              structKnownLive, memberIndex, memberName, newValueLE);
+              structKnownLive, memberIndex, memberName, newMemberLE);
           break;
         }
         case Ownership::WEAK: {
+          auto newMemberLE =
+              globalState->getRegion(newMemberRefMT)->checkValidReference(
+                  FL(), functionState, builder, newMemberRefMT, newMemberRef);
           storeMemberWeak(
               globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-              structKnownLive, memberIndex, memberName, newValueLE);
+              structKnownLive, memberIndex, memberName, newMemberLE);
           break;
         }
         default:
@@ -794,18 +797,21 @@ void Mega::storeMember(
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
+      auto newMemberLE =
+          globalState->getRegion(newMemberRefMT)->checkValidReference(
+              FL(), functionState, builder, newMemberRefMT, newMemberRef);
       switch (structRefMT->ownership) {
         case Ownership::OWN:
         case Ownership::SHARE: {
           return storeMemberStrong(
               globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-              structKnownLive, memberIndex, memberName, newValueLE);
+              structKnownLive, memberIndex, memberName, newMemberLE);
         }
         case Ownership::BORROW:
         case Ownership::WEAK: {
           storeMemberWeak(
               globalState, functionState, builder, &referendStructs, structRefMT, structRef,
-              structKnownLive, memberIndex, memberName, newValueLE);
+              structKnownLive, memberIndex, memberName, newMemberLE);
           break;
         }
         default:
@@ -1486,8 +1492,8 @@ void Mega::deallocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, refLE);
+    Ref ref) {
+  innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, ref);
 }
 
 Ref Mega::constructUnknownSizeArrayCountedStruct(
@@ -1599,8 +1605,8 @@ void Mega::checkInlineStructType(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* refMT,
-    Ref refLE) {
-  auto argLE = checkValidReference(FL(), functionState, builder, refMT, refLE);
+    Ref ref) {
+  auto argLE = checkValidReference(FL(), functionState, builder, refMT, ref);
   auto structReferend = dynamic_cast<StructReferend*>(refMT->referend);
   assert(structReferend);
   assert(LLVMTypeOf(argLE) == referendStructs.getInnerStruct(structReferend));

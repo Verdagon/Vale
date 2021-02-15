@@ -157,4 +157,24 @@ LLVMValueRef declareExternFunction(
 
 //LLVMTypeRef translateExternType(GlobalState* globalState, Reference* reference);
 
+
+void declareExtraFunction(
+    GlobalState* globalState,
+    Prototype* prototype,
+    // This should go away once coords have regions in them.
+    IRegion* returnTypeRegion,
+    std::string llvmName);
+
+void defineFunctionBody(
+    GlobalState* globalState,
+    Prototype* prototype,
+    std::function<void(FunctionState*, LLVMBuilderRef)> definer);
+
+void declareAndDefineExtraFunction(
+    GlobalState* globalState,
+    Prototype* prototype,
+    IRegion* returnTypeRegion,
+    std::string llvmName,
+    std::function<void(FunctionState*, LLVMBuilderRef)> definer);
+
 #endif

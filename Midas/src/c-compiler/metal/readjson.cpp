@@ -54,11 +54,7 @@ StructReferend* readStructReferend(MetalCache* cache, const json& referend) {
 
   auto structName = readName(cache, referend["name"]);
 
-  auto result =
-      makeIfNotPresent(
-          &cache->structReferends,
-          structName,
-          [&]() { return new StructReferend(structName); });
+  auto result = cache->getStructReferend(structName);
 
   return result;
 }
@@ -80,20 +76,14 @@ RawArrayT* readRawArray(MetalCache* cache, const json& rawArray) {
   auto mutability = readMutability(rawArray["mutability"]);
   auto elementType = readReference(cache, rawArray["elementType"]);
 
-  return makeIfNotPresent(
-      &cache->rawArrays[elementType],
-      mutability,
-      [&](){ return new RawArrayT(mutability, elementType); });
+  return cache->getArray(mutability, elementType);
 }
 
 UnknownSizeArrayT* readUnknownSizeArray(MetalCache* cache, const json& referend) {
   auto name = readName(cache, referend["name"]);
   auto rawArray = readRawArray(cache, referend["array"]);
 
-  return makeIfNotPresent(
-      &cache->unknownSizeArrays,
-      name,
-      [&](){ return new UnknownSizeArrayT(name, rawArray); });
+  return cache->getUnknownSizeArray(name, rawArray);
 }
 
 KnownSizeArrayT* readKnownSizeArray(MetalCache* cache, const json& referend) {
@@ -495,11 +485,7 @@ StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
 
   auto structName = result->name;
   if (structName->name == std::string("Tup0_0")) {
-    cache->emptyTupleStruct =
-        makeIfNotPresent(
-            &cache->structReferends,
-            structName,
-            [&]() { return new StructReferend(structName); });
+    cache->emptyTupleStruct = cache->getStructReferend(structName);
     cache->emptyTupleStructRef =
         cache->getReference(Ownership::SHARE, Location::INLINE, cache->emptyTupleStruct);
   }
