@@ -20,5 +20,5 @@ Ref translateWhile(
             globalState, functionState, blockState, bodyBuilder, whiile->bodyExpr);
       });
   // Nobody should use a result of a while, so we'll just return a Never.
-  return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
+  return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
 }

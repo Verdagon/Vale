@@ -63,22 +63,32 @@ enum class Variability {
     VARYING
 };
 
+struct RegionId {
+  std::string id;
+
+  RegionId(std::string id_) :
+      id(id_) {}
+};
+
 // Interned
 class Reference {
 public:
   Ownership ownership;
   Location location;
+  RegionId* regionId;
   Referend* referend;
 //  std::string debugStr;
 
   Reference(
       Ownership ownership_,
       Location location_,
+      RegionId* regionId_,
       Referend* referend_
 //      , const std::string& debugStr_
   ) :
       ownership(ownership_),
       location(location_),
+      regionId(regionId_),
       referend(referend_)
 //    , debugStr(debugStr_)
   {

@@ -25,12 +25,10 @@ Mutability ownershipToMutability(Ownership ownership);
 
 LLVMTypeRef translatePrototypeToFunctionType(
     GlobalState* globalState,
-    IRegion* region,
     Prototype* prototype);
 
 LLVMTypeRef translateInterfaceMethodToFunctionType(
     GlobalState* globalState,
-    IRegion* region,
     InterfaceMethod* method);
 
 #endif

@@ -64,15 +64,25 @@ struct RefVecEquals {
 class MetalCache {
 public:
   MetalCache() {
-//    i8Ref = getReference(Ownership::SHARE, Location::INLINE, i8);
-    intRef = getReference(Ownership::SHARE, Location::INLINE, innt);
-    floatRef = getReference(Ownership::SHARE, Location::INLINE, flooat);
-    boolRef = getReference(Ownership::SHARE, Location::INLINE, boool);
-    strRef = getReference(Ownership::SHARE, Location::YONDER, str);
-    neverRef = getReference(Ownership::SHARE, Location::INLINE, never);
+    rcImmRegionId = getRegionId("rcimm");
+    linearRegionId = getRegionId("linear");
+    unsafeRegionId = getRegionId("unsafe");
+    assistRegionId = getRegionId("assist");
+
+    intRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, innt);
+    floatRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, flooat);
+    boolRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, boool);
+    strRef = getReference(Ownership::SHARE, Location::YONDER, rcImmRegionId, str);
+    neverRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, never);
     regionReferend = getStructReferend(getName("__Region"));
-    regionRef = getReference(Ownership::SHARE, Location::YONDER, regionReferend);
   }
+
+  RegionId* rcImmRegionId = nullptr;
+  RegionId* linearRegionId = nullptr;
+  RegionId* unsafeRegionId = nullptr;
+  RegionId* assistRegionId = nullptr;
+  // This is temporary, until we can get valestrom to properly fill in coords' regions
+  RegionId* mutRegionId = nullptr;
 
 //  I8* i8 = new I8();
 //  Reference* i8Ref = nullptr;
@@ -95,8 +105,8 @@ public:
   // Right now we just use it to hold the bump pointer for linear regions.
   // Otherwise, for now, we're just handing in Nevers.
   StructReferend* regionReferend = nullptr;
-  Reference* regionRef = nullptr;
 
+  std::unordered_map<std::string, RegionId*> regionIds;
   std::unordered_map<Name*, StructReferend*> structReferends;
   std::unordered_map<Name*, InterfaceReferend*> interfaceReferends;
   std::unordered_map<std::string, Name*> names;
@@ -105,7 +115,15 @@ public:
   std::unordered_map<Reference*, std::unordered_map<Mutability, RawArrayT*>> rawArrays;
   std::unordered_map<Name*, UnknownSizeArrayT*> unknownSizeArrays;
   std::unordered_map<Name*, KnownSizeArrayT*> knownSizeArrays;
-  std::unordered_map<Referend*, std::unordered_map<Ownership, std::unordered_map<Location, Reference*>>> unconvertedReferences;
+  std::unordered_map<
+      Referend*,
+      std::unordered_map<
+          Ownership,
+          std::unordered_map<
+              RegionId*,
+              std::unordered_map<
+                  Location,
+                  Reference*>>>> unconvertedReferences;
   std::unordered_map<Name*, std::unordered_map<Reference*, std::unordered_map<std::vector<Reference*>, Prototype*, HashRefVec, RefVecEquals>>> prototypes;
   std::unordered_map<int, std::unordered_map<std::string, VariableId*>> variableIds;
   std::unordered_map<VariableId*, std::unordered_map<Reference*, Local*>> locals;
@@ -145,11 +163,18 @@ public:
         [&](){ return new Name(nameStr); });
   }
 
-  Reference* getReference(Ownership ownership, Location location, Referend* referend) {
+  RegionId* getRegionId(std::string nameStr) {
+    return makeIfNotPresent(
+        &regionIds,
+        nameStr,
+        [&](){ return new RegionId(nameStr); });
+  }
+
+  Reference* getReference(Ownership ownership, Location location, RegionId* regionId, Referend* referend) {
     return makeIfNotPresent<Location, Reference*>(
-        &unconvertedReferences[referend][ownership],
+        &unconvertedReferences[referend][ownership][regionId],
         location,
-        [&](){ return new Reference(ownership, location, referend); });
+        [&](){ return new Reference(ownership, location, regionId, referend); });
   }
 
   Prototype* getPrototype(Name* name, Reference* returnType, std::vector<Reference*> paramTypes) {

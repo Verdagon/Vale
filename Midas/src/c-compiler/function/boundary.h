@@ -9,6 +9,7 @@ Ref sendHostObjectIntoVale(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* hostRefMT,
+    Reference* valeRefMT,
     LLVMValueRef hostRef);
 
 LLVMValueRef sendValeObjectIntoHost(
@@ -16,6 +17,7 @@ LLVMValueRef sendValeObjectIntoHost(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* valeRefMT,
+    Reference* hostRefMT,
     Ref valeRef);
 
 #endif

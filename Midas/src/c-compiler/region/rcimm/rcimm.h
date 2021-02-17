@@ -297,6 +297,8 @@ public:
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
 
+  RegionId* getRegionId() override;
+
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
   std::string getRefNameC(

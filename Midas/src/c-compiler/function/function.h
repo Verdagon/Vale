@@ -143,12 +143,10 @@ public:
 
 void translateFunction(
     GlobalState* globalState,
-    IRegion* region,
     Function* functionM);
 
 LLVMValueRef declareFunction(
     GlobalState* globalState,
-    IRegion* region,
     Function* functionM);
 
 LLVMValueRef declareExternFunction(
@@ -161,8 +159,6 @@ LLVMValueRef declareExternFunction(
 void declareExtraFunction(
     GlobalState* globalState,
     Prototype* prototype,
-    // This should go away once coords have regions in them.
-    IRegion* returnTypeRegion,
     std::string llvmName);
 
 void defineFunctionBody(
@@ -173,7 +169,6 @@ void defineFunctionBody(
 void declareAndDefineExtraFunction(
     GlobalState* globalState,
     Prototype* prototype,
-    IRegion* returnTypeRegion,
     std::string llvmName,
     std::function<void(FunctionState*, LLVMBuilderRef)> definer);
 

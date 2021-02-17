@@ -20,13 +20,13 @@ Ref buildExternCall(
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildAdd(builder, leftLE, rightLE,"add");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, result);
   } else if (prototype->name->name == "__divideIntInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildSDiv(builder, leftLE, rightLE,"add");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, result);
 //  } else if (prototype->name->name == "__eqStrStr") {
 //    assert(args.size() == 2);
 //
@@ -53,16 +53,16 @@ Ref buildExternCall(
 //            "eqStrResult");
 //    auto resultBoolLE = LLVMBuildICmp(builder, LLVMIntNE, resultInt8LE, LLVMConstInt(LLVMInt8TypeInContext(globalState->context), 0, false), "");
 //
-//    globalState->getRegion(refHere)->dealias(FL(), functionState, blockState, builder, globalState->metalCache.strRef, leftStrRef);
-//    globalState->getRegion(refHere)->dealias(FL(), functionState, blockState, builder, globalState->metalCache.strRef, rightStrRef);
+//    globalState->getRegion(refHere)->dealias(FL(), functionState, blockState, builder, globalState->metalCache->strRef, leftStrRef);
+//    globalState->getRegion(refHere)->dealias(FL(), functionState, blockState, builder, globalState->metalCache->strRef, rightStrRef);
 //
-//    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, resultBoolLE);
+//    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, resultBoolLE);
   } else if (prototype->name->name == "__strLength") {
     assert(args.size() == 1);
-    auto resultLenLE = globalState->getRegion(globalState->metalCache.strRef)->getStringLen(functionState, builder, args[0]);
-    globalState->getRegion(globalState->metalCache.strRef)
-        ->dealias(FL(), functionState, builder, globalState->metalCache.strRef, args[0]);
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultLenLE);
+    auto resultLenLE = globalState->getRegion(globalState->metalCache->strRef)->getStringLen(functionState, builder, args[0]);
+    globalState->getRegion(globalState->metalCache->strRef)
+        ->dealias(FL(), functionState, builder, globalState->metalCache->strRef, args[0]);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, resultLenLE);
   } else if (prototype->name->name == "__addFloatFloat") {
     // VivemExterns.addFloatFloat
     assert(false);
@@ -70,83 +70,83 @@ Ref buildExternCall(
     auto exitCodeLE = makeConstIntExpr(functionState, builder, LLVMInt8TypeInContext(globalState->context), 255);
     LLVMBuildCall(builder, globalState->exit, &exitCodeLE, 1, "");
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-    return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
+    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
   } else if (prototype->name->name == "__multiplyIntInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto resultIntLE = LLVMBuildMul(builder, leftLE, rightLE, "mul");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, resultIntLE);
   } else if (prototype->name->name == "__subtractIntInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto resultIntLE = LLVMBuildSub(builder, leftLE, rightLE, "diff");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, resultIntLE);
   } else if (prototype->name->name == "__getch") {
     auto resultIntLE = LLVMBuildCall(builder, globalState->getch, nullptr, 0, "");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultIntLE);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, resultIntLE);
   } else if (prototype->name->name == "__lessThanInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntSLT, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__greaterThanInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntSGT, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__greaterThanOrEqInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntSGE, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__lessThanOrEqInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntSLE, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__eqIntInt") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntEQ, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__eqBoolBool") {
     assert(args.size() == 2);
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     auto result = LLVMBuildICmp(builder, LLVMIntEQ, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__not") {
     assert(args.size() == 1);
     auto result = LLVMBuildNot(
         builder,
         checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]),
         "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__and") {
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     assert(args.size() == 2);
     auto result = LLVMBuildAnd( builder, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__or") {
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     assert(args.size() == 2);
     auto result = LLVMBuildOr( builder, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, result);
   } else if (prototype->name->name == "__mod") {
     auto leftLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[0], args[0]);
     auto rightLE = checkValidInternalReference(FL(), globalState, functionState, builder, prototype->params[1], args[1]);
     assert(args.size() == 2);
     auto result = LLVMBuildSRem( builder, leftLE, rightLE, "");
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, result);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, result);
   } else {
     auto valeArgRefs = std::vector<Ref>{};
     valeArgRefs.reserve(args.size());
@@ -157,11 +157,20 @@ Ref buildExternCall(
     auto hostArgsLE = std::vector<LLVMValueRef>{};
     hostArgsLE.reserve(args.size());
     for (int i = 0; i < args.size(); i++) {
-      auto argRefMT = prototype->params[i];
+      auto valeArgRefMT = prototype->params[i];
+      auto hostArgRefMT =
+          globalState->metalCache->getReference(
+              valeArgRefMT->ownership,
+              valeArgRefMT->location,
+              valeArgRefMT->ownership == Ownership::SHARE ?
+                  globalState->metalCache->linearRegionId :
+                  globalState->metalCache->unsafeRegionId,
+              valeArgRefMT->referend);
+
       auto valeArg = valeArgRefs[i];
       auto hostArgRefLE =
           sendValeObjectIntoHost(
-              globalState, functionState, builder, argRefMT, valeArg);
+              globalState, functionState, builder, valeArgRefMT, hostArgRefMT, valeArg);
       hostArgsLE.push_back(hostArgRefLE);
     }
 
@@ -173,30 +182,46 @@ Ref buildExternCall(
     buildFlare(FL(), globalState, functionState, builder, "Calling extern function ", prototype->name->name);
 
     for (int i = 0; i < args.size(); i++) {
+      buildFlare(FL(), globalState, functionState, builder, i);
+
       auto argRefMT = prototype->params[i];
       // Dealias any object heading into the outside world, see DEPAR.
       globalState->getRegion(argRefMT)->dealias(FL(), functionState, builder, argRefMT, valeArgRefs[i]);
     }
 
+    buildFlare(FL(), globalState, functionState, builder);
+
     auto hostReturnLE = LLVMBuildCall(builder, externFuncL, hostArgsLE.data(), hostArgsLE.size(), "");
 //    auto resultRef = wrap(globalState->getRegion(refHere), call->function->returnType, resultLE);
 //    globalState->getRegion(refHere)->checkValidReference(FL(), functionState, builder, call->function->returnType, resultRef);
 
-    if (prototype->returnType->referend == globalState->metalCache.never) {
+    buildFlare(FL(), globalState, functionState, builder);
+
+    if (prototype->returnType->referend == globalState->metalCache->never) {
       buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
       LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-      return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
+      return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
     } else {
       buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
 
-      if (prototype->returnType == globalState->metalCache.emptyTupleStructRef) {
+      if (prototype->returnType == globalState->metalCache->emptyTupleStructRef) {
         return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
       } else {
+        auto valeReturnRefMT = prototype->returnType;
+        auto hostReturnMT =
+            globalState->metalCache->getReference(
+                valeReturnRefMT->ownership,
+                valeReturnRefMT->location,
+                valeReturnRefMT->ownership == Ownership::SHARE ?
+                    globalState->metalCache->linearRegionId :
+                    globalState->metalCache->unsafeRegionId,
+                valeReturnRefMT->referend);
+
         auto valeReturnRef =
             sendHostObjectIntoVale(
-                globalState, functionState, builder, prototype->returnType, hostReturnLE);
+                globalState, functionState, builder, hostReturnMT, valeReturnRefMT, hostReturnLE);
 
         return valeReturnRef;
       }

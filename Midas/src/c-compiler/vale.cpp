@@ -64,7 +64,7 @@ LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
   std::vector<LLVMTypeRef> paramTypesL = { int64LT };
-  auto returnTypeL = globalState->rcImm->translateType(globalState->metalCache.strRef);
+  auto returnTypeL = globalState->rcImm->translateType(globalState->metalCache->strRef);
 
   LLVMTypeRef functionTypeL =
       LLVMFunctionType(returnTypeL, paramTypesL.data(), paramTypesL.size(), 0);
@@ -89,15 +89,15 @@ LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
 
   // This will allocate lengthLE + 1
   auto strRef =
-      globalState->getRegion(globalState->metalCache.strRef)
+      globalState->getRegion(globalState->metalCache->strRef)
           ->mallocStr(
-              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder),
+              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder),
               &functionState, builder, lengthLE);
 
   auto resultStrPtrLE =
-      globalState->getRegion(globalState->metalCache.strRef)
+      globalState->getRegion(globalState->metalCache->strRef)
           ->checkValidReference(
-              FL(), &functionState, builder, globalState->metalCache.strRef, strRef);
+              FL(), &functionState, builder, globalState->metalCache->strRef, strRef);
 
   // Note the lack of an alias() call to increment the string's RC from 0 to 1.
   // This is because the users of this function increment that themselves.
@@ -119,8 +119,8 @@ LLVMValueRef makeGetStrCharsFunc(GlobalState* globalState) {
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
   std::vector<LLVMTypeRef> paramTypesL = {
-      globalState->getRegion(globalState->metalCache.strRef)
-          ->translateType(globalState->metalCache.strRef)
+      globalState->getRegion(globalState->metalCache->strRef)
+          ->translateType(globalState->metalCache->strRef)
   };
   auto returnTypeL = int8PtrLT;
 
@@ -141,9 +141,9 @@ LLVMValueRef makeGetStrCharsFunc(GlobalState* globalState) {
 
   auto strRefLE = LLVMGetParam(functionL, 0);
 
-  auto strRef = wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, strRefLE);
+  auto strRef = wrap(globalState->getRegion(globalState->metalCache->strRef), globalState->metalCache->strRef, strRefLE);
 
-  LLVMBuildRet(builder, globalState->getRegion(globalState->metalCache.strRef)->getStringBytesPtr(&functionState, builder, strRef));
+  LLVMBuildRet(builder, globalState->getRegion(globalState->metalCache->strRef)->getStringBytesPtr(&functionState, builder, strRef));
 
   LLVMDisposeBuilder(builder);
 
@@ -159,7 +159,7 @@ LLVMValueRef makeGetStrNumBytesFunc(GlobalState* globalState) {
   auto int64LT = LLVMInt64TypeInContext(globalState->context);
   auto int8PtrLT = LLVMPointerType(int8LT, 0);
 
-  std::vector<LLVMTypeRef> paramTypesL = { globalState->getRegion(globalState->metalCache.strRef)->translateType(globalState->metalCache.strRef) };
+  std::vector<LLVMTypeRef> paramTypesL = { globalState->getRegion(globalState->metalCache->strRef)->translateType(globalState->metalCache->strRef) };
   auto returnTypeL = int64LT;
 
   LLVMTypeRef functionTypeL =
@@ -179,9 +179,9 @@ LLVMValueRef makeGetStrNumBytesFunc(GlobalState* globalState) {
 
   auto strRefLE = LLVMGetParam(functionL, 0);
 
-  auto strRef = wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, strRefLE);
+  auto strRef = wrap(globalState->getRegion(globalState->metalCache->strRef), globalState->metalCache->strRef, strRefLE);
 
-  LLVMBuildRet(builder, globalState->getRegion(globalState->metalCache.strRef)->getStringLen(&functionState, builder, strRef));
+  LLVMBuildRet(builder, globalState->getRegion(globalState->metalCache->strRef)->getStringLen(&functionState, builder, strRef));
 
   LLVMDisposeBuilder(builder);
 
@@ -387,6 +387,29 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     exit(1);
   }
 
+
+  MetalCache metalCache;
+  globalState->metalCache = &metalCache;
+
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::ASSIST:
+      metalCache.mutRegionId = metalCache.assistRegionId;
+      break;
+    case RegionOverride::FAST:
+      metalCache.mutRegionId = metalCache.unsafeRegionId;
+      break;
+    case RegionOverride::NAIVE_RC:
+    case RegionOverride::RESILIENT_V0:
+    case RegionOverride::RESILIENT_V1:
+    case RegionOverride::RESILIENT_V2:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_LIMIT:
+      assert(false);
+      break;
+    default:
+      assert(false);
+  }
+
   json programJ;
   try {
     programJ = json::parse(str.c_str());
@@ -395,10 +418,10 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     std::cerr << "Error while parsing json: " << error.what() << std::endl;
     exit(1);
   }
-  auto program = readProgram(&globalState->metalCache, programJ);
+  auto program = readProgram(&metalCache, programJ);
 
-  assert(globalState->metalCache.emptyTupleStruct != nullptr);
-  assert(globalState->metalCache.emptyTupleStructRef != nullptr);
+  assert(globalState->metalCache->emptyTupleStruct != nullptr);
+  assert(globalState->metalCache->emptyTupleStructRef != nullptr);
 
 
   // Start making the entry function. We make it up here because we want its
@@ -434,9 +457,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   globalState->program = program;
 
-  globalState->measureName = globalState->metalCache.getName("__vale_measure");
-  globalState->serializeName = globalState->metalCache.getName("__vale_serialize");
-  globalState->unserializeName = globalState->metalCache.getName("__vale_unserialize");
+  globalState->measureName = globalState->metalCache->getName("__vale_measure");
+  globalState->serializeName = globalState->metalCache->getName("__vale_serialize");
+  globalState->unserializeName = globalState->metalCache->getName("__vale_unserialize");
 
 
   globalState->stringConstantBuilder = entryBuilder;
@@ -498,31 +521,13 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   RCImm rcImm(globalState);
   globalState->rcImm = &rcImm;
   Assist assistRegion(globalState);
+  globalState->assistRegion = &assistRegion;
   Unsafe unsafeRegion(globalState);
   globalState->unsafeRegion = &unsafeRegion;
   Linear linearRegion(globalState);
   globalState->linearRegion = &linearRegion;
 //  Mega megaRegion(globalState);
-  IRegion* defaultRegion = nullptr;
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::ASSIST:
-      defaultRegion = &assistRegion;
-      break;
-    case RegionOverride::FAST:
-      defaultRegion = &unsafeRegion;
-      break;
-    case RegionOverride::NAIVE_RC:
-    case RegionOverride::RESILIENT_V0:
-    case RegionOverride::RESILIENT_V1:
-    case RegionOverride::RESILIENT_V2:
-    case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_LIMIT:
-      defaultRegion = new Mega(globalState);
-      break;
-    default:
-      assert(false);
-  }
-  globalState->mutRegion = defaultRegion;
+  globalState->mutRegion = globalState->getRegion(metalCache.mutRegionId);
 
   auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
@@ -543,42 +548,77 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 //      addExtern(globalState->mod, "__vprintStr", LLVMVoidTypeInContext(globalState->context),
 //          {int8PtrLT});
 
-  assert(LLVMTypeOf(globalState->neverPtr) == globalState->getRegion(globalState->metalCache.neverRef)->translateType(globalState->metalCache.neverRef));
+  assert(LLVMTypeOf(globalState->neverPtr) == globalState->getRegion(globalState->metalCache->neverRef)->translateType(globalState->metalCache->neverRef));
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    globalState->getRegion(structM->mutability)->declareStruct(structM);
-    globalState->getExternRegion(structM->mutability)->declareStruct(structM);
+    if (structM->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->declareStruct(structM);
+      globalState->linearRegion->declareStruct(structM);
+    } else {
+      globalState->mutRegion->declareStruct(structM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->declareStruct(structM);
+      }
+    }
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    globalState->getRegion(interfaceM->mutability)->declareInterface(interfaceM);
-    globalState->getExternRegion(interfaceM->mutability)->declareInterface(interfaceM);
+    if (interfaceM->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->declareInterface(interfaceM);
+      globalState->linearRegion->declareInterface(interfaceM);
+    } else {
+      globalState->mutRegion->declareInterface(interfaceM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->declareInterface(interfaceM);
+      }
+    }
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->mutability)->declareKnownSizeArray(arrayM);
-    globalState->getExternRegion(arrayM->rawArray->mutability)->declareKnownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->declareKnownSizeArray(arrayM);
+      globalState->linearRegion->declareKnownSizeArray(arrayM);
+    } else {
+      globalState->mutRegion->declareKnownSizeArray(arrayM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->declareKnownSizeArray(arrayM);
+      }
+    }
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->mutability)->declareUnknownSizeArray(arrayM);
-    globalState->getExternRegion(arrayM->rawArray->mutability)->declareUnknownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->declareUnknownSizeArray(arrayM);
+      globalState->linearRegion->declareUnknownSizeArray(arrayM);
+    } else {
+      globalState->mutRegion->declareUnknownSizeArray(arrayM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->declareUnknownSizeArray(arrayM);
+      }
+    }
   }
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
     assert(name == structM->name->name);
-    globalState->getRegion(structM->mutability)->translateStruct(structM);
-    globalState->getExternRegion(structM->mutability)->translateStruct(structM);
+    if (structM->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->translateStruct(structM);
+      globalState->linearRegion->translateStruct(structM);
+    } else {
+      globalState->mutRegion->translateStruct(structM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->translateStruct(structM);
+      }
+    }
   }
 
   initInternalFuncs(globalState);
@@ -593,30 +633,58 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    globalState->getRegion(interfaceM->mutability)->translateInterface(interfaceM);
-    globalState->getExternRegion(interfaceM->mutability)->translateInterface(interfaceM);
+    if (interfaceM->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->translateInterface(interfaceM);
+      globalState->linearRegion->translateInterface(interfaceM);
+    } else {
+      globalState->mutRegion->translateInterface(interfaceM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->translateInterface(interfaceM);
+      }
+    }
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->mutability)->translateKnownSizeArray(arrayM);
-    globalState->getExternRegion(arrayM->rawArray->mutability)->translateKnownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->translateKnownSizeArray(arrayM);
+      globalState->linearRegion->translateKnownSizeArray(arrayM);
+    } else {
+      globalState->mutRegion->translateKnownSizeArray(arrayM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->translateKnownSizeArray(arrayM);
+      }
+    }
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->mutability)->translateUnknownSizeArray(arrayM);
-    globalState->getExternRegion(arrayM->rawArray->mutability)->translateUnknownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->rcImm->translateUnknownSizeArray(arrayM);
+      globalState->linearRegion->translateUnknownSizeArray(arrayM);
+    } else {
+      globalState->mutRegion->translateUnknownSizeArray(arrayM);
+      if (globalState->mutRegion != globalState->unsafeRegion) {
+        globalState->unsafeRegion->translateUnknownSizeArray(arrayM);
+      }
+    }
   }
 
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
     for (auto e : structM->edges) {
-      globalState->getRegion(structM->mutability)->declareEdge(e);
-      globalState->getExternRegion(structM->mutability)->declareEdge(e);
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        globalState->rcImm->declareEdge(e);
+        globalState->linearRegion->declareEdge(e);
+      } else {
+        globalState->mutRegion->declareEdge(e);
+        if (globalState->mutRegion != globalState->unsafeRegion) {
+          globalState->unsafeRegion->declareEdge(e);
+        }
+      }
     }
   }
 
@@ -633,7 +701,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->functions) {
     auto name = p.first;
     auto function = p.second;
-    LLVMValueRef entryFunctionL = declareFunction(globalState, defaultRegion, function);
+    LLVMValueRef entryFunctionL = declareFunction(globalState, function);
     if (program->isExported(function->prototype->name) && program->getExportedName(function->prototype->name) == "main") {
       mainM = function->prototype;
       mainL = entryFunctionL;
@@ -648,14 +716,22 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto name = p.first;
     auto structM = p.second;
     for (auto e : structM->edges) {
-      globalState->getRegion(structM->mutability)->translateEdge(e);
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        globalState->rcImm->translateEdge(e);
+        globalState->linearRegion->translateEdge(e);
+      } else {
+        globalState->mutRegion->translateEdge(e);
+        if (globalState->mutRegion != globalState->unsafeRegion) {
+          globalState->unsafeRegion->translateEdge(e);
+        }
+      }
     }
   }
 
   for (auto p : program->functions) {
     auto name = p.first;
     auto function = p.second;
-    translateFunction(globalState, defaultRegion, function);
+    translateFunction(globalState, function);
   }
 
   LLVMBuildStore(
@@ -769,11 +845,11 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     LLVMBuildCall(entryBuilder, globalState->assertI64Eq, args, 3, "");
   }
 
-  if (mainM->returnType->referend == globalState->metalCache.emptyTupleStruct) {
+  if (mainM->returnType->referend == globalState->metalCache->emptyTupleStruct) {
     LLVMBuildRet(entryBuilder, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, true));
-  } else if (mainM->returnType->referend == globalState->metalCache.innt) {
+  } else if (mainM->returnType->referend == globalState->metalCache->innt) {
     LLVMBuildRet(entryBuilder, mainResult);
-  } else if (mainM->returnType->referend == globalState->metalCache.never) {
+  } else if (mainM->returnType->referend == globalState->metalCache->never) {
     LLVMBuildRet(entryBuilder, LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, true));
   } else {
     assert(false);
@@ -786,13 +862,28 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     // can we think of this in terms of regions? it's kind of like we're
     // generating some stuff for the outside to point inside.
     if (globalState->program->isExported(structM->name)) {
-      globalState->getRegion(structM->mutability)->generateStructDefsC(&cByExportedName, structM);
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        globalState->rcImm->generateStructDefsC(&cByExportedName, structM);
+      } else {
+        globalState->mutRegion->generateStructDefsC(&cByExportedName, structM);
+        if (globalState->mutRegion != globalState->unsafeRegion) {
+          globalState->unsafeRegion->generateStructDefsC(&cByExportedName, structM);
+        }
+      }
     }
   }
   for (auto p : program->interfaces) {
     auto interfaceM = p.second;
     if (globalState->program->isExported(interfaceM->name)) {
-      globalState->getRegion(interfaceM->mutability)->generateInterfaceDefsC(&cByExportedName, interfaceM);
+
+      if (interfaceM->mutability == Mutability::IMMUTABLE) {
+        globalState->rcImm->generateInterfaceDefsC(&cByExportedName, interfaceM);
+      } else {
+        globalState->mutRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
+        if (globalState->mutRegion != globalState->unsafeRegion) {
+          globalState->unsafeRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
+        }
+      }
     }
   }
   for (auto p : program->functions) {

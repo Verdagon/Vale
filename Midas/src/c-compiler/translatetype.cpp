@@ -28,23 +28,21 @@ Mutability ownershipToMutability(Ownership ownership) {
 
 LLVMTypeRef translatePrototypeToFunctionType(
     GlobalState* globalState,
-    IRegion* region,
     Prototype* prototype) {
-  auto returnLT = region->translateType(prototype->returnType);
+  auto returnLT = globalState->getRegion(prototype->returnType)->translateType(prototype->returnType);
   auto paramsLT = translateTypes(globalState, prototype->params);
   return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
 }
 
 LLVMTypeRef translateInterfaceMethodToFunctionType(
     GlobalState* globalState,
-    IRegion* region,
     InterfaceMethod* method) {
   auto returnMT = method->prototype->returnType;
   auto paramsMT = method->prototype->params;
-  auto returnLT = region->translateType(returnMT);
+  auto returnLT = globalState->getRegion(returnMT)->translateType(returnMT);
   auto paramsLT = translateTypes(globalState, paramsMT);
   paramsLT[method->virtualParamIndex] =
-      region->getInterfaceMethodVirtualParamAnyType(
-          paramsMT[method->virtualParamIndex]);
+      globalState->getRegion(paramsMT[method->virtualParamIndex])
+          ->getInterfaceMethodVirtualParamAnyType(paramsMT[method->virtualParamIndex]);
   return LLVMFunctionType(returnLT, paramsLT.data(), paramsLT.size(), false);
 }

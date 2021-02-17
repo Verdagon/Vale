@@ -92,12 +92,12 @@ LoadResult loadElementWithoutUpgrade(
     Mutability mutability,
     Ref indexRef) {
   auto indexLE =
-      globalState->getRegion(globalState->metalCache.intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, indexRef);
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, indexRef);
   auto sizeLE =
-      globalState->getRegion(globalState->metalCache.intRef)
+      globalState->getRegion(globalState->metalCache->intRef)
           ->checkValidReference(
-              FL(), functionState, builder, globalState->metalCache.intRef, sizeRef);
+              FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
 
   auto isNonNegativeLE = LLVMBuildICmp(builder, LLVMIntSGE, indexLE, constI64LE(globalState, 0), "isNonNegative");
   auto isUnderLength = LLVMBuildICmp(builder, LLVMIntSLT, indexLE, sizeLE, "isUnderLength");
@@ -165,12 +165,12 @@ Ref storeElement(
     Ref indexRef,
     Ref sourceRef) {
   auto sizeLE =
-      globalState->getRegion(globalState->metalCache.intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, sizeRef);
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
 
   auto indexLE =
-      globalState->getRegion(globalState->metalCache.intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, indexRef);
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, indexRef);
   auto isNonNegativeLE = LLVMBuildICmp(builder, LLVMIntSGE, indexLE, constI64LE(globalState, 0), "isNonNegative");
   auto isUnderLength = LLVMBuildICmp(builder, LLVMIntSLT, indexLE, sizeLE, "isUnderLength");
   auto isWithinBounds = LLVMBuildAnd(builder, isNonNegativeLE, isUnderLength, "isWithinBounds");
@@ -222,8 +222,8 @@ void foreachArrayElement(
           LLVMConstInt(LLVMInt64TypeInContext(globalState->context),0, false));
 
   auto sizeLE =
-      globalState->getRegion(globalState->metalCache.intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, sizeRef);
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
 
   buildWhile(
       globalState,
@@ -235,11 +235,11 @@ void foreachArrayElement(
         auto isBeforeEndLE =
             LLVMBuildICmp(
                 conditionBuilder,LLVMIntSLT,iterationIndexLE,sizeLE,"iterationIndexIsBeforeEnd");
-        return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, isBeforeEndLE);
+        return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isBeforeEndLE);
       },
       [globalState, functionState, iterationBuilder, iterationIndexPtrLE](LLVMBuilderRef bodyBuilder) {
         auto iterationIndexLE = LLVMBuildLoad(bodyBuilder, iterationIndexPtrLE, "iterationIndex");
-        auto iterationIndexRef = wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, iterationIndexLE);
+        auto iterationIndexRef = wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, iterationIndexLE);
         iterationBuilder(iterationIndexRef, bodyBuilder);
         adjustCounter(globalState, bodyBuilder, iterationIndexPtrLE, 1);
       });

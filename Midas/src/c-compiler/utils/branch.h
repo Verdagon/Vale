@@ -27,9 +27,7 @@ Ref buildIfElse(
     Ref conditionRef,
     LLVMTypeRef resultTypeL,
     Reference* thenResultMT,
-    IRegion* thenResultRegion,
     Reference* elseResultMT,
-    IRegion* elseResultRegion,
     std::function<Ref(LLVMBuilderRef)> buildThen,
     std::function<Ref(LLVMBuilderRef)> buildElse);
 

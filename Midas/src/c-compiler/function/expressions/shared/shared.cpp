@@ -19,12 +19,15 @@ LLVMTypeRef makeNeverType(GlobalState* globalState) {
 }
 
 LLVMValueRef makeEmptyTuple(GlobalState* globalState, IRegion* region, LLVMBuilderRef builder) {
-  return LLVMGetUndef(region->translateType(globalState->metalCache.emptyTupleStructRef));
+  return LLVMGetUndef(region->translateType(globalState->metalCache->emptyTupleStructRef));
 }
 
 Ref makeEmptyTupleRef(GlobalState* globalState, IRegion* region, LLVMBuilderRef builder) {
   auto emptyTupleLE = makeEmptyTuple(globalState, region, builder);
-  return wrap(region, globalState->metalCache.emptyTupleStructRef, emptyTupleLE);
+  auto refMT =
+      globalState->metalCache->getReference(
+          Ownership::SHARE, Location::INLINE, region->getRegionId(), globalState->metalCache->emptyTupleStruct);
+  return wrap(region, refMT, emptyTupleLE);
 }
 
 LLVMValueRef makeMidasLocal(
@@ -305,21 +308,28 @@ Ref buildCall(
 
   std::vector<LLVMValueRef> argsLE;
   for (int i = 0; i < argRefs.size(); i++) {
+    buildFlare(FL(), globalState, functionState, builder, "Doing arg ", i);
+
     argsLE.push_back(
         globalState->getRegion(prototype->params[i])
             ->checkValidReference(FL(),
                 functionState, builder, prototype->params[i], argRefs[i]));
   }
 
+  buildFlare(FL(), globalState, functionState, builder, "Doing call");
+
   auto resultLE = LLVMBuildCall(builder, funcL, argsLE.data(), argsLE.size(), "");
+
+  buildFlare(FL(), globalState, functionState, builder, "Done with call");
+
   auto resultRef = wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLE);
   globalState->getRegion(prototype->returnType)->checkValidReference(FL(), functionState, builder, prototype->returnType, resultRef);
 
-  if (prototype->returnType->referend == globalState->metalCache.never) {
+  if (prototype->returnType->referend == globalState->metalCache->never) {
     buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
     buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
     LLVMBuildRet(builder, LLVMGetUndef(functionState->returnTypeL));
-    return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
+    return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
   } else {
     buildFlare(FL(), globalState, functionState, builder, "Done calling function ", prototype->name->name);
     buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);

@@ -49,6 +49,10 @@ Unsafe::Unsafe(GlobalState* globalState_) :
   LLVMStructSetBody(regionLT, nullptr, 0, false);
 }
 
+RegionId* Unsafe::getRegionId() {
+  return globalState->metalCache->unsafeRegionId;
+}
+
 Ref Unsafe::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
   auto resultRef =
       ::constructKnownSizeArray(
@@ -214,7 +218,7 @@ Ref Unsafe::lockWeak(
 }
 
 LLVMTypeRef Unsafe::translateType(Reference* referenceM) {
-  if (referenceM->referend == globalState->metalCache.regionReferend) {
+  if (referenceM->referend == globalState->metalCache->regionReferend) {
     return LLVMPointerType(regionLT, 0);
   } else {
     switch (referenceM->ownership) {
@@ -319,8 +323,7 @@ void Unsafe::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(
-                globalState, this, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(

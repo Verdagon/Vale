@@ -13,8 +13,7 @@ GlobalState::getEdgeFunctionTypesAndFunctions(Edge* edge) {
   std::vector<LLVMValueRef> edgeFunctionsL;
   for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
     auto interfaceFunctionLT =
-        translateInterfaceMethodToFunctionType(
-            this, getRegion(interfaceM->mutability), interfaceM->methods[i]);
+        translateInterfaceMethodToFunctionType(this, interfaceM->methods[i]);
     interfaceFunctionsLT.push_back(interfaceFunctionLT);
 
     assert(false); // add in the extra methods from the extra edges
@@ -27,31 +26,19 @@ GlobalState::getEdgeFunctionTypesAndFunctions(Edge* edge) {
 }
 
 IRegion* GlobalState::getRegion(Reference* referenceM) {
-  if (referenceM->ownership == Ownership::SHARE) {
+  return getRegion(referenceM->regionId);
+}
+IRegion* GlobalState::getRegion(RegionId* regionId) {
+  if (regionId == metalCache->rcImmRegionId) {
     return rcImm;
-  } else {
-    return mutRegion;
-  }
-}
-IRegion* GlobalState::getRegion(Mutability mutability) {
-  if (mutability == Mutability::IMMUTABLE) {
-    return rcImm;
-  } else {
-    return mutRegion;
-  }
-}
-IRegion* GlobalState::getExternRegion(Reference* referenceM) {
-  if (referenceM->ownership == Ownership::SHARE) {
+  } else if (regionId == metalCache->linearRegionId) {
     return linearRegion;
-  } else {
+  } else if (regionId == metalCache->unsafeRegionId) {
     return unsafeRegion;
-  }
-}
-IRegion* GlobalState::getExternRegion(Mutability mutability) {
-  if (mutability == Mutability::IMMUTABLE) {
-    return linearRegion;
+  } else if (regionId == metalCache->assistRegionId) {
+    return assistRegion;
   } else {
-    return unsafeRegion;
+    assert(false);
   }
 }
 
@@ -83,30 +70,30 @@ LLVMValueRef GlobalState::getOrMakeStringConstant(const std::string& str) {
 }
 
 Ref GlobalState::constI64(int64_t x) {
-  return wrap(getRegion(Mutability::IMMUTABLE), metalCache.intRef, constI64LE(this, x));
+  return wrap(getRegion(metalCache->intRef), metalCache->intRef, constI64LE(this, x));
 }
 Ref GlobalState::constI1(bool b) {
-  return wrap(getRegion(Mutability::IMMUTABLE), metalCache.boolRef, constI1LE(this, b));
+  return wrap(getRegion(metalCache->boolRef), metalCache->boolRef, constI1LE(this, b));
 }
 Ref GlobalState::buildAdd(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b) {
-  auto intMT = metalCache.intRef;
-  auto addPrototype = metalCache.getPrototype(metalCache.getName("__addIntInt"), intMT, {intMT, intMT});
+  auto intMT = metalCache->intRef;
+  auto addPrototype = metalCache->getPrototype(metalCache->getName("__addIntInt"), intMT, {intMT, intMT});
   return buildExternCall(this, functionState, builder, addPrototype, { a, b });
 }
 Ref GlobalState::buildMod(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b) {
-  auto intMT = metalCache.intRef;
-  auto addPrototype = metalCache.getPrototype(metalCache.getName("__mod"), intMT, {intMT, intMT});
+  auto intMT = metalCache->intRef;
+  auto addPrototype = metalCache->getPrototype(metalCache->getName("__mod"), intMT, {intMT, intMT});
   return buildExternCall(this, functionState, builder, addPrototype, { a, b });
 }
 Ref GlobalState::buildDivide(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b) {
-  auto intMT = metalCache.intRef;
-  auto addPrototype = metalCache.getPrototype(metalCache.getName("__divideIntInt"), intMT, {intMT, intMT});
+  auto intMT = metalCache->intRef;
+  auto addPrototype = metalCache->getPrototype(metalCache->getName("__divideIntInt"), intMT, {intMT, intMT});
   return buildExternCall(this, functionState, builder, addPrototype, { a, b });
 }
 
 Ref GlobalState::buildMultiply(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b) {
-  auto intMT = metalCache.intRef;
-  auto addPrototype = metalCache.getPrototype(metalCache.getName("__multiplyIntInt"), intMT, {intMT, intMT});
+  auto intMT = metalCache->intRef;
+  auto addPrototype = metalCache->getPrototype(metalCache->getName("__multiplyIntInt"), intMT, {intMT, intMT});
   return buildExternCall(this, functionState, builder, addPrototype, { a, b });
 }
 

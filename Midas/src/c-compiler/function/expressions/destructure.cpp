@@ -59,6 +59,6 @@ Ref translateDestructure(
 
   return makeEmptyTupleRef(
       globalState,
-      globalState->getRegion(globalState->metalCache.emptyTupleStructRef),
+      globalState->getRegion(globalState->metalCache->emptyTupleStructRef),
       builder);
 }

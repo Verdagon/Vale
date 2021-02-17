@@ -19,7 +19,7 @@ Ref translateDiscard(
       translateExpression(
           globalState, functionState, blockState, builder, sourceExpr);
 
-  if (sourceResultType == globalState->metalCache.emptyTupleStructRef) {
+  if (sourceResultType == globalState->metalCache->emptyTupleStructRef) {
     return sourceRef;
   }
 
@@ -32,5 +32,5 @@ Ref translateDiscard(
           builder,
           sourceResultType,
           sourceRef);
-  return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
+  return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
 }

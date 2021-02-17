@@ -64,8 +64,8 @@ void addExtraFunctions(GlobalState* globalState) {
     }
   }
 
-  auto intMT = globalState->metalCache.intRef;
-  auto intLT = globalState->getExternRegion(intMT)->translateType(intMT);
+  auto intMT = globalState->metalCache->intRef;
+  auto intLT = globalState->getRegion(intMT)->translateType(intMT);
 
   globalState->linearRegion->addSerializeFunctions();
 
@@ -74,11 +74,11 @@ void addExtraFunctions(GlobalState* globalState) {
 //    if (interfaceDefinition->mutability == Mutability::IMMUTABLE) {
 //      auto serializeMethod =
 //          new InterfaceMethod(
-//              globalState->metalCache.getPrototype(
+//              globalState->metalCache->getPrototype(
 //                  globalState->serializeName,
-//                  globalState->metalCache.emptyTupleStructRef,
+//                  globalState->metalCache->emptyTupleStructRef,
 //                  {
-//                      globalState->metalCache.getReference(
+//                      globalState->metalCache->getReference(
 //                          Ownership::SHARE, Location::YONDER, interfaceDefinition->referend)
 //                  }),
 //              0);
@@ -93,11 +93,11 @@ void addExtraFunctions(GlobalState* globalState) {
 //
 //      auto unserializeMethod =
 //          new InterfaceMethod(
-//              globalState->metalCache.getPrototype(
+//              globalState->metalCache->getPrototype(
 //                  globalState->unserializeName,
-//                  globalState->metalCache.emptyTupleStructRef,
+//                  globalState->metalCache->emptyTupleStructRef,
 //                  {
-//                      globalState->metalCache.getReference(
+//                      globalState->metalCache->getReference(
 //                          Ownership::SHARE, Location::YONDER, interfaceDefinition->referend)
 //                  }),
 //              0);

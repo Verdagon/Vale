@@ -7,6 +7,7 @@ Ref sendHostObjectIntoVale(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* hostRefMT,
+    Reference* valeRefMT,
     LLVMValueRef hostRefLE) {
   // - For example, in:
   //     fn fly(ship 'hgm Spaceship) extern;
@@ -27,7 +28,7 @@ Ref sendHostObjectIntoVale(
   if (hostRefMT->ownership == Ownership::SHARE) {
     auto hostRef =
         wrap(globalState->getRegion(hostRefMT), hostRefMT, hostRefLE);
-    return globalState->getRegion(hostRefMT)
+    return globalState->getRegion(valeRefMT)
         ->receiveUnencryptedAlienReference(
             functionState, builder, hostRefMT, hostRef);
   } else {
@@ -47,6 +48,7 @@ LLVMValueRef sendValeObjectIntoHost(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* valeRefMT,
+    Reference* hostRefMT,
     Ref valeRef) {
   // - For example, in:
   //     fn fly(ship 'hgm Spaceship) extern;
@@ -66,12 +68,12 @@ LLVMValueRef sendValeObjectIntoHost(
   //   moving instances between regions, so this is only for vals for now.
   if (valeRefMT->ownership == Ownership::SHARE) {
     auto hostArgRef =
-        globalState->getExternRegion(valeRefMT)
+        globalState->getRegion(hostRefMT)
             ->receiveUnencryptedAlienReference(
                 functionState, builder, valeRefMT, valeRef);
     auto hostArgLE =
-        globalState->getExternRegion(valeRefMT)
-            ->checkValidReference(FL(), functionState, builder, valeRefMT, hostArgRef);
+        globalState->getRegion(hostRefMT)
+            ->checkValidReference(FL(), functionState, builder, hostRefMT, hostArgRef);
     return hostArgLE;
   } else {
     // When we actually encrypt, this line will change.

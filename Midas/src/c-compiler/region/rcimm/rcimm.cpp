@@ -51,8 +51,9 @@ RCImm::RCImm(GlobalState* globalState_)
     referendStructs(globalState, makeImmControlBlock(globalState)) {
 }
 
-
-
+RegionId* RCImm::getRegionId() {
+  return globalState->metalCache->rcImmRegionId;
+}
 
 void RCImm::alias(
     AreaAndFileAndLine from,
@@ -118,13 +119,13 @@ LLVMValueRef RCImm::getCensusObjectId(
     LLVMBuilderRef builder,
     Reference* refM,
     Ref ref) {
-  if (refM == globalState->metalCache.intRef) {
+  if (refM == globalState->metalCache->intRef) {
     return constI64LE(globalState, -2);
-  } else if (refM == globalState->metalCache.boolRef) {
+  } else if (refM == globalState->metalCache->boolRef) {
     return constI64LE(globalState, -3);
-  } else if (refM == globalState->metalCache.neverRef) {
+  } else if (refM == globalState->metalCache->neverRef) {
     return constI64LE(globalState, -4);
-  } else if (refM == globalState->metalCache.floatRef) {
+  } else if (refM == globalState->metalCache->floatRef) {
     return constI64LE(globalState, -5);
   } else if (refM->location == Location::INLINE) {
     return constI64LE(globalState, -1);
@@ -218,7 +219,7 @@ void RCImm::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, this, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
@@ -324,9 +325,9 @@ LLVMValueRef RCImm::getStringBytesPtr(FunctionState* functionState, LLVMBuilderR
   auto strWrapperPtrLE =
       referendStructs.makeWrapperPtr(
           FL(), functionState, builder,
-          globalState->metalCache.strRef,
+          globalState->metalCache->strRef,
           checkValidReference(
-              FL(), functionState, builder, globalState->metalCache.strRef, ref));
+              FL(), functionState, builder, globalState->metalCache->strRef, ref));
   return referendStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
 }
 
@@ -552,14 +553,14 @@ Ref RCImm::mallocStr(
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE) {
   auto resultRef =
-      wrap(this, globalState->metalCache.strRef, ::mallocStr(
+      wrap(this, globalState->metalCache->strRef, ::mallocStr(
           globalState, functionState, builder, lengthLE, &referendStructs,
           [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
-//                FL(), functionState, innerBuilder, globalState->metalCache.str,
+//                FL(), functionState, innerBuilder, globalState->metalCache->str,
 //                Mutability::IMMUTABLE, controlBlockPtrLE, "Str");
             fillControlBlock(
-                FL(), globalState, functionState, &referendStructs, innerBuilder, globalState->metalCache.str, controlBlockPtrLE,
+                FL(), globalState, functionState, &referendStructs, innerBuilder, globalState->metalCache->str, controlBlockPtrLE,
                 "str");
           }));
   return resultRef;
@@ -569,9 +570,9 @@ LLVMValueRef RCImm::getStringLen(FunctionState* functionState, LLVMBuilderRef bu
   auto strWrapperPtrLE =
       referendStructs.makeWrapperPtr(
           FL(), functionState, builder,
-          globalState->metalCache.strRef,
+          globalState->metalCache->strRef,
           checkValidReference(
-              FL(), functionState, builder, globalState->metalCache.strRef, ref));
+              FL(), functionState, builder, globalState->metalCache->strRef, ref));
   return referendStructs.getStringLen(functionState, builder, strWrapperPtrLE);
 }
 
@@ -768,7 +769,7 @@ std::string RCImm::getRefNameC(Reference* sourceMT) {
     } else {
       return baseName + "Ref";
     }
-  } else if (sourceRnd == globalState->metalCache.emptyTupleStruct) {
+  } else if (sourceRnd == globalState->metalCache->emptyTupleStruct) {
     return "void";
   } else if (auto structRnd = dynamic_cast<StructReferend *>(sourceRnd)) {
     auto baseName = globalState->program->getExportedName(structRnd->fullName);
@@ -826,28 +827,32 @@ Ref RCImm::receiveUnencryptedAlienReference(
     Ref sourceRef) {
   assert(sourceRefMT->ownership == Ownership::SHARE);
 
-  auto sourceRegion = globalState->getExternRegion(sourceRefMT);
+  auto sourceRegion = globalState->getRegion(sourceRefMT);
   // Someday when we include the region in the coord, we wont have to assume its linear.
   // When that happens, change the LLVMBuildTrunc below too.
   assert(sourceRegion == globalState->linearRegion);
   auto sourceRefLE = sourceRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
   // Someday when we include the region in the coord, this line will change.
-  auto targetRefMT = sourceRefMT;
+  auto targetRefMT =
+      globalState->metalCache->getReference(
+          sourceRefMT->ownership, sourceRefMT->location, getRegionId(), sourceRefMT->referend);
 
-  if (sourceRefMT == globalState->metalCache.intRef) {
+  if (dynamic_cast<Int*>(sourceRefMT->referend)) {
     return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.boolRef) {
+  } else if (dynamic_cast<Bool*>(sourceRefMT->referend)) {
     auto asI1LE =
         LLVMBuildTrunc(
             builder, sourceRefLE, LLVMInt1TypeInContext(globalState->context), "boolAsI1");
     return wrap(this, targetRefMT, asI1LE);
-  } else if (sourceRefMT == globalState->metalCache.floatRef) {
+  } else if (dynamic_cast<Float*>(sourceRefMT->referend)) {
     return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);
-  } else if (sourceRefMT == globalState->metalCache.strRef) {
+  } else if (dynamic_cast<Str*>(sourceRefMT->referend)) {
 //    auto structL = referendStructs.getStringWrapperStruct();
 
 //    assert(LLVMTypeOf(sourceRefLE) == LLVMPointerType(structL, 0));
 //    auto extStrPtrLE = sourceRefLE;
+
+    assert(false);
 
     auto strLenLE = sourceRegion->getStringLen(functionState, builder, sourceRef);
     auto strLenBytesPtrLE = sourceRegion->getStringBytesPtr(functionState, builder, sourceRef);
@@ -869,13 +874,13 @@ Ref RCImm::receiveUnencryptedAlienReference(
 //            "extStrPtrLE");
 //    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
 
-    return wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, vstrPtrLE);
+    return wrap(globalState->getRegion(globalState->metalCache->strRef), globalState->metalCache->strRef, vstrPtrLE);
   } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(sourceRefMT->referend)) {
     assert(false);
 //    start here, perhaps make an external struct for all USAs.
 //        itll be like the string one except with the number of elements rather than the total
 //        number of bytes. or maybe it can have both?
-//    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache.str);
+//    auto externalStructLIter = externalStructLByReferend.find(globalState->metalCache->str);
 //    assert(externalStructLIter != externalStructLByReferend.end());
 //    auto externalStructL = externalStructLIter->second;
 //
@@ -903,10 +908,10 @@ Ref RCImm::receiveUnencryptedAlienReference(
 //            "extStrPtrLE");
 //    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
 //
-//    return wrap(globalState->getRegion(globalState->metalCache.strRef), globalState->metalCache.strRef, vstrPtrLE);
-  } else if (sourceRefMT == globalState->metalCache.neverRef) {
+//    return wrap(globalState->getRegion(globalState->metalCache->strRef), globalState->metalCache->strRef, vstrPtrLE);
+  } else if (sourceRefMT == globalState->metalCache->neverRef) {
     assert(false); // How can we hand a never into something?
-  } else if (sourceRefMT == globalState->metalCache.emptyTupleStructRef) {
+  } else if (sourceRefMT == globalState->metalCache->emptyTupleStructRef) {
     return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState, this, builder));
   } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl

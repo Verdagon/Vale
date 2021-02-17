@@ -30,7 +30,7 @@ LLVMTypeRef ReferendStructsRouter::getInterfaceTableStruct(InterfaceReferend* in
   return getReferendStructsSource(interfaceReferend)->getInterfaceTableStruct(interfaceReferend);
 }
 LLVMTypeRef ReferendStructsRouter::getStringWrapperStruct() {
-  return getReferendStructsSource(globalState->metalCache.str)->getStringWrapperStruct();
+  return getReferendStructsSource(globalState->metalCache->str)->getStringWrapperStruct();
 }
 void ReferendStructsRouter::translateStruct(StructDefinition* structM, std::vector<LLVMTypeRef> membersLT) {
   return getReferendStructsSource(structM->referend)->translateStruct(structM, membersLT);
@@ -116,11 +116,11 @@ LLVMValueRef ReferendStructsRouter::getStringBytesPtr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     WrapperPtrLE ptrLE) {
-  return getReferendStructsSource(globalState->metalCache.str)->getStringBytesPtr(functionState, builder, ptrLE);
+  return getReferendStructsSource(globalState->metalCache->str)->getStringBytesPtr(functionState, builder, ptrLE);
 }
 
 LLVMValueRef ReferendStructsRouter::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, WrapperPtrLE ptrLE) {
-  return getReferendStructsSource(globalState->metalCache.str)->getStringLen(functionState, builder, ptrLE);
+  return getReferendStructsSource(globalState->metalCache->str)->getStringLen(functionState, builder, ptrLE);
 }
 
 ControlBlockPtrLE ReferendStructsRouter::getControlBlockPtr(

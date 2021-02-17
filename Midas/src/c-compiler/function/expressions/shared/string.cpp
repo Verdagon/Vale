@@ -50,14 +50,14 @@ Ref buildConstantVStr(
   auto lengthLE = constI64LE(globalState, contents.length());
 
   auto strRef =
-      globalState->getRegion(globalState->metalCache.strRef)
+      globalState->getRegion(globalState->metalCache->strRef)
           ->mallocStr(
-              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder),
+              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder),
               functionState, builder, lengthLE);
 
   // Fill the chars
   std::vector<LLVMValueRef> argsLE = {
-      globalState->getRegion(globalState->metalCache.strRef)->getStringBytesPtr(functionState, builder, strRef),
+      globalState->getRegion(globalState->metalCache->strRef)->getStringBytesPtr(functionState, builder, strRef),
       globalState->getOrMakeStringConstant(contents),
       lengthLE
   };

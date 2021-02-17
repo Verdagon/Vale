@@ -56,7 +56,7 @@ Ref translateExpressionInner(
   if (auto constantI64 = dynamic_cast<ConstantI64*>(expr)) {
     // See ULTMCIE for why we load and store here.
     auto resultLE = makeConstIntExpr(functionState, builder, LLVMInt64TypeInContext(globalState->context), constantI64->value);
-    return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, resultLE);
+    return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, resultLE);
   } else if (auto constantFloat = dynamic_cast<ConstantF64*>(expr)) {
     // See ULTMCIE for why we load and store here.
     auto resultLE =
@@ -67,26 +67,26 @@ Ref translateExpressionInner(
             LLVMDoubleTypeInContext(globalState->context),
             "castedfloat");
     assert(LLVMTypeOf(resultLE) == LLVMDoubleTypeInContext(globalState->context));
-    return wrap(globalState->getRegion(globalState->metalCache.floatRef), globalState->metalCache.floatRef, resultLE);
+    return wrap(globalState->getRegion(globalState->metalCache->floatRef), globalState->metalCache->floatRef, resultLE);
   } else if (auto constantBool = dynamic_cast<ConstantBool*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     // See ULTMCIE for why this is an add.
     auto resultLE = makeConstIntExpr(functionState, builder, LLVMInt1TypeInContext(globalState->context), constantBool->value);
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, resultLE);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, resultLE);
   } else if (auto discardM = dynamic_cast<Discard*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     return translateDiscard(globalState, functionState, blockState, builder, discardM);
   } else if (auto ret = dynamic_cast<Return*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto sourceRef = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);
-    if (ret->sourceType->referend == globalState->metalCache.never) {
+    if (ret->sourceType->referend == globalState->metalCache->never) {
       return sourceRef;
     } else {
       auto toReturnLE =
           globalState->getRegion(ret->sourceType)
               ->checkValidReference(FL(), functionState, builder, ret->sourceType, sourceRef);
       LLVMBuildRet(builder, toReturnLE);
-      return wrap(globalState->getRegion(globalState->metalCache.neverRef), globalState->metalCache.neverRef, globalState->neverPtr);
+      return wrap(globalState->getRegion(globalState->metalCache->neverRef), globalState->metalCache->neverRef, globalState->neverPtr);
     }
   } else if (auto stackify = dynamic_cast<Stackify*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -94,12 +94,12 @@ Ref translateExpressionInner(
         translateExpression(
             globalState, functionState, blockState, builder, stackify->sourceExpr);
     globalState->getRegion(stackify->local->type)->checkValidReference(FL(), functionState, builder, stackify->local->type, refToStore);
-    if (stackify->local->type->referend == globalState->metalCache.innt) {
+    if (stackify->local->type->referend == globalState->metalCache->innt) {
       buildFlare(FL(), globalState, functionState, builder, "Storing ", refToStore);
     }
     makeHammerLocal(
         globalState, functionState, blockState, builder, stackify->local, refToStore);
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
   } else if (auto localStore = dynamic_cast<LocalStore*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     // The purpose of LocalStore is to put a swap value into a local, and give
@@ -109,7 +109,7 @@ Ref translateExpressionInner(
     auto refToStore =
         translateExpression(
             globalState, functionState, blockState, builder, localStore->sourceExpr);
-    if (localStore->local->type->referend == globalState->metalCache.innt) {
+    if (localStore->local->type->referend == globalState->metalCache->innt) {
       buildFlare(FL(), globalState, functionState, builder, "Storing ", refToStore);
     }
 
@@ -239,8 +239,8 @@ Ref translateExpressionInner(
 
     auto sizeRef =
         wrap(
-            globalState->getRegion(globalState->metalCache.intRef),
-            globalState->metalCache.intRef,
+            globalState->getRegion(globalState->metalCache->intRef),
+            globalState->metalCache->intRef,
             LLVMConstInt(LLVMInt64TypeInContext(globalState->context), arrayReferend->size, false));
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -288,7 +288,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyKSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
   } else if (auto destroyUnknownSizeArrayIntoFunction = dynamic_cast<DestroyUnknownSizeArray*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto consumerType = destroyUnknownSizeArrayIntoFunction->consumerType;
@@ -307,9 +307,9 @@ Ref translateExpressionInner(
             ->getUnknownSizeArrayLength(
                 functionState, builder, arrayType, arrayRef, arrayKnownLive);
     auto arrayLenLE =
-        globalState->getRegion(globalState->metalCache.intRef)
+        globalState->getRegion(globalState->metalCache->intRef)
             ->checkValidReference(FL(),
-                functionState, builder, globalState->metalCache.intRef, arrayLenRef);
+                functionState, builder, globalState->metalCache->intRef, arrayLenRef);
 
     auto consumerRef = translateExpression(globalState, functionState, blockState, builder, consumerExpr);
     globalState->getRegion(consumerType)
@@ -350,7 +350,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyUSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
   } else if (auto knownSizeArrayLoad = dynamic_cast<KnownSizeArrayLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = knownSizeArrayLoad->arrayType;
@@ -360,7 +360,9 @@ Ref translateExpressionInner(
     auto elementType = arrayReferend->rawArray->elementType;
     auto targetOwnership = knownSizeArrayLoad->targetOwnership;
     auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
-    auto resultType = globalState->metalCache.getReference(targetOwnership, targetLocation, elementType->referend);
+    auto resultType =
+        globalState->metalCache->getReference(
+            targetOwnership, targetLocation, elementType->regionId, elementType->referend);
     bool arrayKnownLive = knownSizeArrayLoad->arrayKnownLive;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -371,8 +373,8 @@ Ref translateExpressionInner(
         ->checkValidReference(FL(), functionState, builder, arrayType, arrayRef);
     auto sizeLE =
         wrap(
-            globalState->getRegion(globalState->metalCache.intRef),
-            globalState->metalCache.intRef,
+            globalState->getRegion(globalState->metalCache->intRef),
+            globalState->metalCache->intRef,
             constI64LE(globalState, dynamic_cast<KnownSizeArrayT*>(knownSizeArrayLoad->arrayType->referend)->size));
     auto indexLE = translateExpression(globalState, functionState, blockState, builder, indexExpr);
     auto mutability = ownershipToMutability(arrayType->ownership);
@@ -402,7 +404,7 @@ Ref translateExpressionInner(
     auto elementType = arrayReferend->rawArray->elementType;
     auto targetOwnership = unknownSizeArrayLoad->targetOwnership;
     auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
-    auto resultType = globalState->metalCache.getReference(targetOwnership, targetLocation, elementType->referend);
+    auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->regionId, elementType->referend);
     bool arrayKnownLive = unknownSizeArrayLoad->arrayKnownLive;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -449,8 +451,8 @@ Ref translateExpressionInner(
     auto sizeRef =
         globalState->getRegion(arrayType)
             ->getUnknownSizeArrayLength(functionState, builder, arrayType, arrayRefLE, arrayKnownLive);
-    globalState->getRegion(globalState->metalCache.intRef)
-        ->checkValidReference(FL(), functionState, builder, globalState->metalCache.intRef, sizeRef);
+    globalState->getRegion(globalState->metalCache->intRef)
+        ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
 
 
     auto indexRef =
@@ -526,7 +528,7 @@ Ref translateExpressionInner(
   } else if (auto interfaceCall = dynamic_cast<InterfaceCall*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", interfaceCall->functionType->name->name);
     auto resultLE = translateInterfaceCall(globalState, functionState, blockState, builder, interfaceCall);
-    if (interfaceCall->functionType->returnType->referend != globalState->metalCache.never) {
+    if (interfaceCall->functionType->returnType->referend != globalState->metalCache->never) {
       buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
     }
     return resultLE;
@@ -621,9 +623,10 @@ Ref translateExpressionInner(
         ->checkValidReference(FL(), functionState, builder, sourceType, sourceLE);
 
     auto sourceTypeAsConstraintRefM =
-        globalState->metalCache.getReference(
+        globalState->metalCache->getReference(
             Ownership::BORROW,
             sourceType->location,
+            sourceType->regionId,
             sourceType->referend);
 
     auto resultOptTypeLE =

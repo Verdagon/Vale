@@ -184,8 +184,8 @@ LoadResult loadElementFromKSAInner(
     LLVMValueRef arrayElementsPtrLE) {
   auto sizeRef =
       wrap(
-          globalState->getRegion(globalState->metalCache.intRef),
-          globalState->metalCache.intRef,
+          globalState->getRegion(globalState->metalCache->intRef),
+          globalState->metalCache->intRef,
           LLVMConstInt(LLVMInt64TypeInContext(globalState->context), ksaMT->size, false));
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, ksaRefMT,
@@ -367,9 +367,9 @@ void fillUnknownSizeArray(
             functionState, bodyBuilder, generatorType, generatorLE);
 
         auto indexLE =
-            globalState->getRegion(globalState->metalCache.intRef)
+            globalState->getRegion(globalState->metalCache->intRef)
                 ->checkValidReference(FL(),
-                    functionState, bodyBuilder, globalState->metalCache.intRef, indexRef);
+                    functionState, bodyBuilder, globalState->metalCache->intRef, indexRef);
         std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), indexLE };
 
         auto elementPtrLE =
@@ -433,7 +433,7 @@ WrapperPtrLE mallocStr(
 
   auto newStrWrapperPtrLE =
       referendStructs->makeWrapperPtr(
-          FL(), functionState, builder, globalState->metalCache.strRef,
+          FL(), functionState, builder, globalState->metalCache->strRef,
           LLVMBuildBitCast(
               builder,
               destCharPtrLE,
@@ -442,7 +442,7 @@ WrapperPtrLE mallocStr(
 
   fillControlBlock(
       builder,
-      referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, globalState->metalCache.strRef, newStrWrapperPtrLE));
+      referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, globalState->metalCache->strRef, newStrWrapperPtrLE));
   LLVMBuildStore(builder, LLVMBuildZExt(builder, lengthLE, LLVMInt64TypeInContext(globalState->context), ""), getLenPtrFromStrWrapperPtr(builder, newStrWrapperPtrLE));
 
   // Set the null terminating character to the 0th spot and the end spot, just to guard against bugs
@@ -572,7 +572,7 @@ LLVMValueRef constructInnerStruct(
   // time.
   LLVMValueRef structValueBeingInitialized = LLVMGetUndef(valStructL);
   for (int i = 0; i < memberRefs.size(); i++) {
-    if (structM->members[i]->type->referend == globalState->metalCache.innt) {
+    if (structM->members[i]->type->referend == globalState->metalCache->innt) {
       buildFlare(FL(), globalState, functionState, builder, "Initialized member ", i, ": ", memberRefs[i]);
     }
     auto memberLE =
@@ -717,7 +717,7 @@ Ref getUnknownSizeArrayLength(
     WrapperPtrLE arrayRefLE) {
   auto lengthPtrLE = getUnknownSizeArrayLengthPtr(globalState, builder, arrayRefLE);
   auto intLE = LLVMBuildLoad(builder, lengthPtrLE, "usaLen");
-  return wrap(globalState->getRegion(globalState->metalCache.intRef), globalState->metalCache.intRef, intLE);
+  return wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, intLE);
 }
 
 ControlBlock makeAssistAndNaiveRCNonWeakableControlBlock(GlobalState* globalState) {
@@ -819,9 +819,7 @@ Ref resilientThing(
       globalState, functionState, builder, isAliveLE,
       resultOptTypeL,
       resultOptTypeM,
-      globalState->getRegion(resultOptTypeM),
       resultOptTypeM,
-      globalState->getRegion(resultOptTypeM),
       [globalState, functionState, constraintRefM, weakRefStructs, sourceWeakRefLE, sourceWeakRefMT, buildThen](LLVMBuilderRef thenBuilder) {
         // TODO extract more of this common code out?
         // The incoming "constraint" ref is actually already a week ref, so just return it
@@ -1164,8 +1162,8 @@ Ref constructUnknownSizeArrayCountedStruct(
   buildFlare(FL(), globalState, functionState, builder, "Constructing USA!");
 
   auto sizeLE =
-      globalState->getRegion(globalState->metalCache.intRef)->checkValidReference(FL(),
-          functionState, builder, globalState->metalCache.intRef, sizeRef);
+      globalState->getRegion(globalState->metalCache->intRef)->checkValidReference(FL(),
+          functionState, builder, globalState->metalCache->intRef, sizeRef);
   auto ptrLE = mallocUnknownSizeArray(globalState, builder, usaWrapperPtrLT, usaElementLT, sizeLE);
   auto usaWrapperPtrLE =
       referendStructs->makeWrapperPtr(FL(), functionState, builder, usaMT, ptrLE);
@@ -1572,9 +1570,7 @@ Ref regularInnerLockWeak(
       globalState, functionState, builder, isAliveLE,
       resultOptTypeL,
       resultOptTypeM,
-      globalState->getRegion(resultOptTypeM),
       resultOptTypeM,
-      globalState->getRegion(resultOptTypeM),
       [globalState, functionState, fatWeaks, weakRefStructsSource, constraintRefM, sourceWeakRefLE, sourceWeakRefMT, buildThen](LLVMBuilderRef thenBuilder) {
         auto weakFatPtrLE =
             weakRefStructsSource->makeWeakFatPtr(

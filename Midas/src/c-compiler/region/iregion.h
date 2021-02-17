@@ -357,6 +357,8 @@ public:
 
   virtual LLVMTypeRef getInterfaceMethodVirtualParamAnyType(
       Reference* reference) = 0;
+
+  virtual RegionId* getRegionId() = 0;
 };
 
 #endif

@@ -300,6 +300,8 @@ public:
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE) override;
 
+  RegionId* getRegionId() override;
+
 //  LLVMValueRef mallocKnownSize(
 //      FunctionState* functionState,
 //      LLVMBuilderRef builder,
@@ -330,9 +332,9 @@ public:
     auto strWrapperPtrLE =
         referendStructs.makeWrapperPtr(
             FL(), functionState, builder,
-            globalState->metalCache.strRef,
+            globalState->metalCache->strRef,
             checkValidReference(
-                FL(), functionState, builder, globalState->metalCache.strRef, ref));
+                FL(), functionState, builder, globalState->metalCache->strRef, ref));
     return referendStructs.getStringLen(functionState, builder, strWrapperPtrLE);
   }
 //  LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override {

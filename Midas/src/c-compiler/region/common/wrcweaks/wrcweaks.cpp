@@ -517,7 +517,7 @@ Ref WrcWeaks::getIsAliveFromWeakRef(
           globalState->getRegion(weakRefM)
               ->checkValidReference(FL(), functionState, builder, weakRefM, weakRef));
   auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, weakRefM, weakFatPtrLE);
-  return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, isAliveLE);
+  return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isAliveLE);
 }
 
 LLVMValueRef WrcWeaks::fillWeakableControlBlock(

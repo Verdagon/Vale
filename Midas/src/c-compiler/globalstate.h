@@ -34,7 +34,7 @@ public:
   LLVMModuleRef mod = nullptr;
   int ptrSize = 0;
 
-  MetalCache metalCache;
+  MetalCache* metalCache;
 
   LLVMTypeRef ram64Struct = nullptr;
 
@@ -165,6 +165,7 @@ public:
   IRegion* rcImm = nullptr;
   IRegion* mutRegion = nullptr;
   IRegion* unsafeRegion = nullptr;
+  IRegion* assistRegion = nullptr;
   Linear* linearRegion = nullptr;
 
 
@@ -173,9 +174,7 @@ public:
 
 
   IRegion* getRegion(Reference* referenceM);
-  IRegion* getRegion(Mutability mutability);
-  IRegion* getExternRegion(Reference* referenceM);
-  IRegion* getExternRegion(Mutability mutability);
+  IRegion* getRegion(RegionId* regionId);
   LLVMValueRef getFunction(Name* name);
   LLVMValueRef getInterfaceTablePtr(Edge* edge);
   LLVMValueRef getOrMakeStringConstant(const std::string& str);

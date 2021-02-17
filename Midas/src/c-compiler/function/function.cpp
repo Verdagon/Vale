@@ -9,7 +9,6 @@
 
 LLVMValueRef declareFunction(
     GlobalState* globalState,
-    IRegion* region,
     Function* functionM) {
 
   auto valeParamTypesL = translateTypes(globalState, functionM->prototype->params);
@@ -59,29 +58,47 @@ LLVMValueRef declareFunction(
     std::vector<Ref> argsToActualFunction;
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
-      auto paramMT = functionM->prototype->params[i];
+      auto valeParamMT = functionM->prototype->params[i];
+      auto hostParamMT =
+          globalState->metalCache->getReference(
+              valeParamMT->ownership,
+              valeParamMT->location,
+              valeParamMT->ownership == Ownership::SHARE ?
+                  globalState->metalCache->linearRegionId :
+                  globalState->metalCache->unsafeRegionId,
+              valeParamMT->referend);
       auto hostArgRefLE = LLVMGetParam(exportFunctionL, i);
 
       auto valeRef =
           sendHostObjectIntoVale(
-              globalState, &functionState, builder, paramMT, hostArgRefLE);
+              globalState, &functionState, builder, hostParamMT, valeParamMT, hostArgRefLE);
 
       argsToActualFunction.push_back(valeRef);
     }
 
     auto valeReturnRefOrVoid = buildCall(globalState, &functionState, builder, functionM->prototype, argsToActualFunction);
     auto valeReturnRef =
-        (functionM->prototype->returnType == globalState->metalCache.emptyTupleStructRef ?
-            makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache.emptyTupleStructRef), builder) :
+        (functionM->prototype->returnType == globalState->metalCache->emptyTupleStructRef ?
+            makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder) :
             valeReturnRefOrVoid);
 
     // Dealias when sending to the outside world, see DEPAR.
     globalState->getRegion(functionM->prototype->returnType)
         ->dealias(FL(), &functionState, builder, functionM->prototype->returnType, valeReturnRef);
 
+    auto valeReturnMT = functionM->prototype->returnType;
+    auto hostReturnMT =
+        globalState->metalCache->getReference(
+            valeReturnMT->ownership,
+            valeReturnMT->location,
+            valeReturnMT->ownership == Ownership::SHARE ?
+                globalState->metalCache->linearRegionId :
+                globalState->metalCache->unsafeRegionId,
+            valeReturnMT->referend);
+
     auto hostReturnRefLE =
         sendValeObjectIntoHost(
-            globalState, &functionState, builder, functionM->prototype->returnType, valeReturnRef);
+            globalState, &functionState, builder, valeReturnMT, hostReturnMT, valeReturnRef);
     LLVMBuildRet(builder, hostReturnRefLE);
 
     LLVMDisposeBuilder(builder);
@@ -91,17 +108,17 @@ LLVMValueRef declareFunction(
 }
 
 //LLVMTypeRef translateExternType(GlobalState* globalState, Reference* reference) {
-//  if (reference == globalState->metalCache.intRef) {
+//  if (reference == globalState->metalCache->intRef) {
 //    return LLVMInt64TypeInContext(globalState->context);
-//  } else if (reference == globalState->metalCache.boolRef) {
+//  } else if (reference == globalState->metalCache->boolRef) {
 //    return LLVMInt8TypeInContext(globalState->context);
-//  } else if (reference == globalState->metalCache.floatRef) {
+//  } else if (reference == globalState->metalCache->floatRef) {
 //    return LLVMDoubleTypeInContext(globalState->context);
-//  } else if (reference == globalState->metalCache.strRef) {
+//  } else if (reference == globalState->metalCache->strRef) {
 //    return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
-//  } else if (reference == globalState->metalCache.neverRef) {
+//  } else if (reference == globalState->metalCache->neverRef) {
 //    return LLVMVoidTypeInContext(globalState->context);
-//  } else if (reference == globalState->metalCache.emptyTupleStructRef) {
+//  } else if (reference == globalState->metalCache->emptyTupleStructRef) {
 //    return LLVMVoidTypeInContext(globalState->context);
 //  } else if (auto structReferend = dynamic_cast<StructReferend*>(reference->referend)) {
 //    if (reference->location == Location::INLINE) {
@@ -125,9 +142,9 @@ LLVMValueRef declareExternFunction(
   }
 
   LLVMTypeRef returnTypeL;
-  if (prototypeM->returnType == globalState->metalCache.neverRef) {
+  if (prototypeM->returnType == globalState->metalCache->neverRef) {
     returnTypeL = LLVMVoidTypeInContext(globalState->context);
-  } else if (prototypeM->returnType == globalState->metalCache.emptyTupleStructRef) {
+  } else if (prototypeM->returnType == globalState->metalCache->emptyTupleStructRef) {
     returnTypeL = LLVMVoidTypeInContext(globalState->context);
   } else {
     returnTypeL = globalState->getRegion(prototypeM->returnType)->getExternalType(prototypeM->returnType);
@@ -147,7 +164,6 @@ LLVMValueRef declareExternFunction(
 
 void translateFunction(
     GlobalState* globalState,
-    IRegion* region,
     Function* functionM) {
 
   auto functionL = globalState->getFunction(functionM->prototype->name);
@@ -225,18 +241,14 @@ void translateFunction(
 void declareExtraFunction(
     GlobalState* globalState,
     Prototype* prototype,
-    IRegion* returnTypeRegion,
     std::string llvmName) {
-  auto returnTypeLT = returnTypeRegion->translateType(prototype->returnType);
+  auto returnTypeLT =
+      globalState->getRegion(prototype->returnType)->translateType(prototype->returnType);
 
   std::vector<LLVMTypeRef> paramsLT;
   for (int i = 0; i < prototype->params.size(); i++) {
     auto paramMT = prototype->params[i];
-    if (paramMT == globalState->metalCache.regionRef) {
-      paramsLT.push_back(globalState->getExternRegion(paramMT)->translateType(paramMT));
-    } else {
-      paramsLT.push_back(globalState->getRegion(paramMT)->translateType(paramMT));
-    }
+    paramsLT.push_back(globalState->getRegion(paramMT)->translateType(paramMT));
   }
 
   auto functionLT = LLVMFunctionType(returnTypeLT, paramsLT.data(), paramsLT.size(), false);
@@ -277,9 +289,8 @@ void defineFunctionBody(
 void declareAndDefineExtraFunction(
     GlobalState* globalState,
     Prototype* prototype,
-    IRegion* returnTypeRegion,
     std::string llvmName,
     std::function<void(FunctionState*, LLVMBuilderRef)> definer) {
-  declareExtraFunction(globalState, prototype, returnTypeRegion, llvmName);
+  declareExtraFunction(globalState, prototype, llvmName);
   defineFunctionBody(globalState, prototype, definer);
 }

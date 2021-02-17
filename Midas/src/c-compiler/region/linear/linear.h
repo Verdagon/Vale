@@ -354,6 +354,8 @@ public:
 
   LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
+  RegionId* getRegionId() override;
+
   void addSerializeFunctions();
 
 private:
@@ -374,38 +376,25 @@ private:
       const std::vector<Ref>& memberRefs,
       bool dryRun);
 
-  Prototype* getSerializeProtoype(Reference* refMT);
+  Prototype* getSerializeProtoype(
+      Reference* valeRefMT,
+      Reference* hostRefMT);
   Ref callSerialize(
       FunctionState *functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
+      Reference* valeRefMT,
+      Reference* hostRefMT,
       Ref regionInstanceRef,
       Ref objectRef,
       Ref dryRunBoolRef);
-
-  // This should NOT be called on anything inline, because it adds padding at the end.
-  Ref serializeInto(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      Reference* refMT,
-      Ref sourceRef,
-      Ref destinationRawPtrRef);
-
-  // When we have the region in the coord, get rid of this, the regular
-  // fillInnerStruct would work better.
-  void fillInnerStruct(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      StructDefinition* structM,
-      std::vector<Ref> membersLE,
-      LLVMValueRef innerStructPtrLE);
 
   // Does the entire serialization process: measuring the length, allocating a buffer, and
   // serializing into it.
   Ref topLevelSerialize(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
+      Reference* valeRefMT,
+      Reference* hostRefMT,
       Ref ref);
 
   void defineSerializeFunc(Prototype* prototype);
@@ -431,6 +420,7 @@ private:
   LinearStructs structs;
 
   LLVMTypeRef regionLT = nullptr;
+  Reference* linearStrMT = nullptr;
 };
 
 #endif

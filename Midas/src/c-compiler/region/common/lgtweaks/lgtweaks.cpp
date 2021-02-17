@@ -473,7 +473,7 @@ Ref LgtWeaks::getIsAliveFromWeakRef(
   if (knownLive && elideChecksForKnownLive) {
     // Do nothing, just return a constant true
     auto isAliveLE = LLVMConstInt(LLVMInt1TypeInContext(globalState->context), 1, false);
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, isAliveLE);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isAliveLE);
   } else {
     auto weakFatPtrLE =
         weakRefStructsSource->makeWeakFatPtr(
@@ -481,7 +481,7 @@ Ref LgtWeaks::getIsAliveFromWeakRef(
             globalState->getRegion(weakRefM)
                 ->checkValidReference(FL(), functionState, builder, weakRefM, weakRef));
     auto isAliveLE = getIsAliveFromWeakFatPtr(functionState, builder, weakRefM, weakFatPtrLE, knownLive);
-    return wrap(globalState->getRegion(globalState->metalCache.boolRef), globalState->metalCache.boolRef, isAliveLE);
+    return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isAliveLE);
   }
 }
 

@@ -47,6 +47,9 @@ Assist::Assist(GlobalState* globalState_) :
   LLVMStructSetBody(regionLT, nullptr, 0, false);
 }
 
+RegionId* Assist::getRegionId() {
+  return globalState->metalCache->assistRegionId;
+}
 
 void Assist::alias(
     AreaAndFileAndLine from,
@@ -137,7 +140,7 @@ LLVMTypeRef Assist::translateType(Reference* referenceM) {
     case Ownership::OWN:
     case Ownership::BORROW:
       assert(referenceM->location != Location::INLINE);
-      if (referenceM->referend == globalState->metalCache.regionReferend) {
+      if (referenceM->referend == globalState->metalCache->regionReferend) {
         return LLVMPointerType(regionLT, 0);
       } else {
         return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
@@ -239,7 +242,7 @@ void Assist::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, this, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
@@ -415,9 +418,9 @@ LLVMValueRef Assist::getStringBytesPtr(FunctionState* functionState, LLVMBuilder
   auto strWrapperPtrLE =
       referendStructs.makeWrapperPtr(
           FL(), functionState, builder,
-          globalState->metalCache.strRef,
+          globalState->metalCache->strRef,
           checkValidReference(
-              FL(), functionState, builder, globalState->metalCache.strRef, ref));
+              FL(), functionState, builder, globalState->metalCache->strRef, ref));
   return referendStructs.getStringBytesPtr(functionState, builder, strWrapperPtrLE);
 }
 
@@ -513,13 +516,13 @@ LLVMValueRef Assist::getCensusObjectId(
     LLVMBuilderRef builder,
     Reference* refM,
     Ref ref) {
-  if (refM == globalState->metalCache.intRef) {
+  if (refM == globalState->metalCache->intRef) {
     return constI64LE(globalState, -2);
-  } else if (refM == globalState->metalCache.boolRef) {
+  } else if (refM == globalState->metalCache->boolRef) {
     return constI64LE(globalState, -3);
-  } else if (refM == globalState->metalCache.neverRef) {
+  } else if (refM == globalState->metalCache->neverRef) {
     return constI64LE(globalState, -4);
-  } else if (refM == globalState->metalCache.floatRef) {
+  } else if (refM == globalState->metalCache->floatRef) {
     return constI64LE(globalState, -5);
   } else if (refM->location == Location::INLINE) {
     return constI64LE(globalState, -1);
@@ -838,11 +841,12 @@ Ref Assist::receiveAndDecryptFamiliarReference(
     Ref sourceRef) {
   assert(sourceRefMT->ownership != Ownership::SHARE);
   auto sourceRefLE =
-      globalState->getExternRegion(sourceRefMT)
+      globalState->getRegion(sourceRefMT)
           ->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
 
   // When coords contain the region, this line will change.
   auto targetRefMT = sourceRefMT;
+  assert(false);
 
   return wrap(this, targetRefMT, sourceRefLE);
 }

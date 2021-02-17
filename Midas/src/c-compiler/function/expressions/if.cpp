@@ -31,9 +31,7 @@ Ref translateIf(
           conditionExpr,
           globalState->getRegion(iff->commonSupertype)->translateType(iff->commonSupertype),
           iff->thenResultType,
-          globalState->getRegion(iff->thenResultType),
           iff->elseResultType,
-          globalState->getRegion(iff->elseResultType),
           [globalState, functionState, &thenBlockState, iff](LLVMBuilderRef thenBlockBuilder) {
             return translateExpression(
                 globalState, functionState, &thenBlockState, thenBlockBuilder, iff->thenExpr);
@@ -47,8 +45,8 @@ Ref translateIf(
           FL(), functionState, builder, iff->commonSupertype, resultLE);
 
 
-  bool thenContinues = iff->thenResultType->referend != globalState->metalCache.never;
-  bool elseContinues = iff->elseResultType->referend != globalState->metalCache.never;
+  bool thenContinues = iff->thenResultType->referend != globalState->metalCache->never;
+  bool elseContinues = iff->elseResultType->referend != globalState->metalCache->never;
 
   auto thenUnstackifiedParentLocalIds = thenBlockState.getParentLocalIdsThatSelfUnstackified();
   auto elseUnstackifiedParentLocalIds = elseBlockState.getParentLocalIdsThatSelfUnstackified();

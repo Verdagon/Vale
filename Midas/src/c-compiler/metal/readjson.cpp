@@ -132,7 +132,11 @@ Reference* readReference(MetalCache* cache, const json& reference) {
   auto referend = readReferend(cache, reference["referend"]);
 //  std::string debugStr = reference["debugStr"];
 
-  return cache->getReference(ownership, location, referend);
+  return cache->getReference(
+      ownership,
+      location,
+      ownership == Ownership::SHARE ? cache->rcImmRegionId : cache->mutRegionId,
+      referend);
 }
 
 Mutability readMutability(const json& mutability) {
@@ -487,7 +491,7 @@ StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
   if (structName->name == std::string("Tup0_0")) {
     cache->emptyTupleStruct = cache->getStructReferend(structName);
     cache->emptyTupleStructRef =
-        cache->getReference(Ownership::SHARE, Location::INLINE, cache->emptyTupleStruct);
+        cache->getReference(Ownership::SHARE, Location::INLINE, cache->rcImmRegionId, cache->emptyTupleStruct);
   }
 
   return result;

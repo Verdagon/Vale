@@ -137,6 +137,11 @@ Mega::Mega(GlobalState* globalState_) :
         globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT) {
 }
 
+RegionId* Mega::getRegionId() {
+  assert(false);
+}
+
+
 Ref Mega::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
   auto resultRef =
       ::constructKnownSizeArray(
@@ -638,8 +643,7 @@ void Mega::translateInterface(
   for (int i = 0; i < interfaceM->methods.size(); i++) {
     interfaceMethodTypesL.push_back(
         LLVMPointerType(
-            translateInterfaceMethodToFunctionType(
-                globalState, this, interfaceM->methods[i]),
+            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
             0));
   }
   referendStructs.translateInterface(
@@ -1857,7 +1861,7 @@ Ref Mega::receiveAndDecryptFamiliarReference(
 //            // The outside world gets generational references, even to owning things.
 //            // So, we need to make an owning generational ref.
 //            auto borrowRefMT =
-//                globalState->metalCache.getReference(
+//                globalState->metalCache->getReference(
 //                    Ownership::BORROW, Location::YONDER, structReferend);
 //
 //            auto wrapperPtrLE =
@@ -1905,7 +1909,7 @@ Ref Mega::receiveAndDecryptFamiliarReference(
 //            // The outside world gets generational references, even to owning things.
 //            // So, we need to make an owning generational ref.
 //            auto borrowRefMT =
-//                globalState->metalCache.getReference(
+//                globalState->metalCache->getReference(
 //                    Ownership::BORROW, Location::YONDER, structReferend);
 //
 //            auto wrapperPtrLE =
@@ -1977,7 +1981,7 @@ Ref Mega::receiveAndDecryptFamiliarReference(
 //            // When in the outside world, they're like weak references. We need to turn them back into
 //            // owning references.
 //            auto borrowRefMT =
-//                globalState->metalCache.getReference(
+//                globalState->metalCache->getReference(
 //                    Ownership::BORROW, Location::YONDER, structReferend);
 //            auto weakRefLE = weakRefStructs.makeWeakFatPtr(borrowRefMT, sourceRef);
 //
@@ -2018,7 +2022,7 @@ Ref Mega::receiveAndDecryptFamiliarReference(
 //            // When in the outside world, they're like weak references. We need to turn them back into
 //            // owning references.
 //            auto borrowRefMT =
-//                globalState->metalCache.getReference(
+//                globalState->metalCache->getReference(
 //                    Ownership::BORROW, Location::YONDER, structReferend);
 //            auto weakRefLE = weakRefStructs.makeWeakFatPtr(borrowRefMT, sourceRef);
 //
