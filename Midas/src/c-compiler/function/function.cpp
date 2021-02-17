@@ -65,7 +65,7 @@ LLVMValueRef declareFunction(
               valeParamMT->location,
               valeParamMT->ownership == Ownership::SHARE ?
                   globalState->metalCache->linearRegionId :
-                  globalState->metalCache->unsafeRegionId,
+                  globalState->metalCache->mutRegionId,
               valeParamMT->referend);
       auto hostArgRefLE = LLVMGetParam(exportFunctionL, i);
 
@@ -82,10 +82,6 @@ LLVMValueRef declareFunction(
             makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder) :
             valeReturnRefOrVoid);
 
-    // Dealias when sending to the outside world, see DEPAR.
-    globalState->getRegion(functionM->prototype->returnType)
-        ->dealias(FL(), &functionState, builder, functionM->prototype->returnType, valeReturnRef);
-
     auto valeReturnMT = functionM->prototype->returnType;
     auto hostReturnMT =
         globalState->metalCache->getReference(
@@ -93,7 +89,7 @@ LLVMValueRef declareFunction(
             valeReturnMT->location,
             valeReturnMT->ownership == Ownership::SHARE ?
                 globalState->metalCache->linearRegionId :
-                globalState->metalCache->unsafeRegionId,
+                globalState->metalCache->mutRegionId,
             valeReturnMT->referend);
 
     auto hostReturnRefLE =

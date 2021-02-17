@@ -1709,7 +1709,7 @@ void Mega::generateInterfaceDefsC(
       } else {
         auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
         std::stringstream s;
-        s << "typedef struct " << name << "Ref { uint64_t unused0; void* unused1; void* unused2; } " << name << ";";
+        s << "typedef struct " << name << "Ref { uint64_t unused0; void* unused1; void* unused2; } " << name << "Ref;";
         cByExportedName->insert(std::make_pair(name, s.str()));
       }
       break;
@@ -1782,12 +1782,11 @@ Ref Mega::receiveAndDecryptFamiliarReference(
     Ref sourceRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC:
-      if (sourceRefMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        assert(false);
-      }
-      assert(false);
+      // Alias when receiving from the outside world, see DEPAR.
+      globalState->getRegion(sourceRefMT)
+          ->alias(FL(), functionState, builder, sourceRefMT, sourceRef);
+
+      return sourceRef;
       break;
     case RegionOverride::RESILIENT_V0:
       if (sourceRefMT->ownership == Ownership::SHARE) {
@@ -2097,5 +2096,15 @@ Ref Mega::encryptAndSendFamiliarReference(
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
-  assert(false);
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::NAIVE_RC:
+
+      // Dealias when sending to the outside world, see DEPAR.
+      globalState->getRegion(sourceRefMT)
+          ->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
+
+      return sourceRef;
+    default:
+      assert(false);
+  }
 }

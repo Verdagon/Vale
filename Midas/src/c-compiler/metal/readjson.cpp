@@ -445,6 +445,7 @@ StructMember* readStructMember(MetalCache* cache, const json& struuct) {
   assert(struuct.is_object());
   assert(struuct["__type"] == "StructMember");
   return new StructMember(
+      struuct["fullName"],
       struuct["name"],
       readVariability(struuct["variability"]),
       readReference(cache, struuct["type"]));

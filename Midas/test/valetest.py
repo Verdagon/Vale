@@ -366,6 +366,36 @@ class ValeTest(unittest.TestCase):
     def test_naiverc_immusa(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusa.vale"], "naive-rc", 3)
 
+    def test_assist_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "assist", 42)
+    def test_unsafefast_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "unsafe-fast", 42)
+    def test_resilientv0_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v0", 42)
+    def test_resilientv1_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v1", 42)
+    def test_resilientv2_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v2", 42)
+    def test_resilientv3_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v3", 42)
+    def test_naiverc_extimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "naive-rc", 42)
+
+    def test_assist_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "assist", 42)
+    def test_unsafefast_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "unsafe-fast", 42)
+    def test_resilientv0_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v0", 42)
+    def test_resilientv1_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v1", 42)
+    def test_resilientv2_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v2", 42)
+    def test_resilientv3_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v3", 42)
+    def test_naiverc_extimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "naive-rc", 42)
+
     # def test_assist_externimmusa(self) -> None:
     #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/externimmusa.vale", PATH_TO_SAMPLES + "programs/arrays/externimmusa.c"], "assist", 15)
     # def test_unsafefast_externimmusa(self) -> None:

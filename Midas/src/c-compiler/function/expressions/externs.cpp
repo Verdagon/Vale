@@ -164,7 +164,7 @@ Ref buildExternCall(
               valeArgRefMT->location,
               valeArgRefMT->ownership == Ownership::SHARE ?
                   globalState->metalCache->linearRegionId :
-                  globalState->metalCache->unsafeRegionId,
+                  globalState->metalCache->mutRegionId,
               valeArgRefMT->referend);
 
       auto valeArg = valeArgRefs[i];
@@ -180,16 +180,6 @@ Ref buildExternCall(
 
     buildFlare(FL(), globalState, functionState, builder, "Suspending function ", functionState->containingFuncName);
     buildFlare(FL(), globalState, functionState, builder, "Calling extern function ", prototype->name->name);
-
-    for (int i = 0; i < args.size(); i++) {
-      buildFlare(FL(), globalState, functionState, builder, i);
-
-      auto argRefMT = prototype->params[i];
-      // Dealias any object heading into the outside world, see DEPAR.
-      globalState->getRegion(argRefMT)->dealias(FL(), functionState, builder, argRefMT, valeArgRefs[i]);
-    }
-
-    buildFlare(FL(), globalState, functionState, builder);
 
     auto hostReturnLE = LLVMBuildCall(builder, externFuncL, hostArgsLE.data(), hostArgsLE.size(), "");
 //    auto resultRef = wrap(globalState->getRegion(refHere), call->function->returnType, resultLE);
@@ -216,7 +206,7 @@ Ref buildExternCall(
                 valeReturnRefMT->location,
                 valeReturnRefMT->ownership == Ownership::SHARE ?
                     globalState->metalCache->linearRegionId :
-                    globalState->metalCache->unsafeRegionId,
+                    globalState->metalCache->mutRegionId,
                 valeReturnRefMT->referend);
 
         auto valeReturnRef =

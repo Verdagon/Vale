@@ -785,7 +785,7 @@ void Assist::generateInterfaceDefsC(std::unordered_map<std::string, std::string>
   } else {
     auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
     std::stringstream s;
-    s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << ";";
+    s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << "Ref;";
     cByExportedName->insert(std::make_pair(name, s.str()));
   }
 }
@@ -840,15 +840,12 @@ Ref Assist::receiveAndDecryptFamiliarReference(
     Reference *sourceRefMT,
     Ref sourceRef) {
   assert(sourceRefMT->ownership != Ownership::SHARE);
-  auto sourceRefLE =
-      globalState->getRegion(sourceRefMT)
-          ->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
 
-  // When coords contain the region, this line will change.
-  auto targetRefMT = sourceRefMT;
-  assert(false);
+  // Alias when receiving from the outside world, see DEPAR.
+  globalState->getRegion(sourceRefMT)
+      ->alias(FL(), functionState, builder, sourceRefMT, sourceRef);
 
-  return wrap(this, targetRefMT, sourceRefLE);
+  return sourceRef;
 }
 
 LLVMTypeRef Assist::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
@@ -877,5 +874,9 @@ Ref Assist::encryptAndSendFamiliarReference(
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
-  assert(false);
+  // Dealias when sending to the outside world, see DEPAR.
+  globalState->getRegion(sourceRefMT)
+      ->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
+
+  return sourceRef;
 }

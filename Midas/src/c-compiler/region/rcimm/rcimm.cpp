@@ -765,19 +765,19 @@ std::string RCImm::getRefNameC(Reference* sourceMT) {
     auto baseName = globalState->program->getExportedName(interfaceRnd->fullName);
     assert(sourceMT->ownership == Ownership::SHARE);
     if (sourceMT->location == Location::INLINE) {
-      return baseName + "Inl";
+      return baseName;
     } else {
-      return baseName + "Ref";
-    }
+      return baseName + "*";
+    };
   } else if (sourceRnd == globalState->metalCache->emptyTupleStruct) {
     return "void";
   } else if (auto structRnd = dynamic_cast<StructReferend *>(sourceRnd)) {
     auto baseName = globalState->program->getExportedName(structRnd->fullName);
     assert(sourceMT->ownership == Ownership::SHARE);
     if (sourceMT->location == Location::INLINE) {
-      return baseName + "Inl";
+      return baseName;
     } else {
-      return baseName + "Ref";
+      return baseName + "*";
     }
   } else if (dynamic_cast<KnownSizeArrayT *>(sourceRnd) ||
              dynamic_cast<UnknownSizeArrayT *>(sourceRnd)) {
@@ -789,18 +789,17 @@ std::string RCImm::getRefNameC(Reference* sourceMT) {
   }
 }
 
-void RCImm::generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
+void RCImm::generateStructDefsC(
+    std::unordered_map<std::string, std::string>* cByExportedName,
+    StructDefinition* structDefM) {
   auto name = globalState->program->getExportedName(structDefM->referend->fullName);
   std::stringstream s;
-  s << "typedef struct " << name << "Ref { void* unused; } " << name << ";" << std::endl;
-
-  // For inlines
-  s << "typedef struct " << name << "Inl {";
+  s << "typedef struct " << name << " {" << std::endl;
   for (int i = 0; i < structDefM->members.size(); i++) {
     auto member = structDefM->members[i];
-    s << getRefNameC(member->type) << " unused" << i << ";";
+    s << "  " << getRefNameC(member->type) << " " << member->name << ";" << std::endl;
   }
-  s << " } " + name + ";" << std::endl;
+  s << "} " << name << ";" << std::endl;
 
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
@@ -808,7 +807,7 @@ void RCImm::generateStructDefsC(std::unordered_map<std::string, std::string>* cB
 void RCImm::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
   auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
   std::stringstream s;
-  s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << ";";
+  s << "typedef struct " << name << " { void* unused1; void* unused2; } " << name << ";";
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
 

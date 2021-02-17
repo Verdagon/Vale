@@ -5,7 +5,7 @@
 
 typedef struct ValeStr {
   uint64_t length;
-  char* chars;
+  char chars[0];
 } ValeStr;
 extern ValeStr* ValeStrFrom(char* source);
 

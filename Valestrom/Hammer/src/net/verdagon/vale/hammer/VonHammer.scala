@@ -248,7 +248,8 @@ object VonHammer {
       "StructMember",
       None,
       Vector(
-        VonMember("name", VonStr(name.toReadableString())),
+        VonMember("fullName", VonStr(name.toReadableString())),
+        VonMember("name", VonStr(name.readableName)),
         VonMember("variability", vonifyVariability(variability)),
         VonMember("type", vonifyCoord(tyype))))
   }

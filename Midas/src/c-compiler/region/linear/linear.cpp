@@ -376,7 +376,7 @@ Ref Linear::innerAllocate(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* structRefMT,
-    const std::vector<Ref>& memberRefs,
+    const std::vector<Ref>& memberHostRefs,
     bool dryRun) {
 
   auto intMT = globalState->metalCache->intRef;
@@ -390,7 +390,7 @@ Ref Linear::innerAllocate(
   auto objectPtrLE = checkValidReference(FL(), functionState, builder, structRefMT, objectRef);
 
   if (!dryRun) {
-    fillInnerStruct(globalState, functionState, builder, structDefM, memberRefs, objectPtrLE);
+    fillInnerLinearStruct(functionState, builder, structDefM, memberHostRefs, objectPtrLE);
   }
 
   LLVMValueRef substructSizeIntLE =
@@ -682,7 +682,7 @@ std::string Linear::getRefNameC(Reference* sourceMT) {
 void Linear::generateStructDefsC(std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* structDefM) {
   auto name = globalState->program->getExportedName(structDefM->referend->fullName);
   std::stringstream s;
-  s << "typedef struct " << name << "Ref { void* unused; } " << name << ";" << std::endl;
+  s << "typedef struct " << name << "Ref { void* unused; } " << name << "Ref;" << std::endl;
 
   // For inlines
   s << "typedef struct " << name << "Inl {";
@@ -690,7 +690,7 @@ void Linear::generateStructDefsC(std::unordered_map<std::string, std::string>* c
     auto member = structDefM->members[i];
     s << getRefNameC(member->type) << " unused" << i << ";";
   }
-  s << " } " + name + ";" << std::endl;
+  s << " } " + name + "Inl;" << std::endl;
 
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
@@ -698,7 +698,7 @@ void Linear::generateStructDefsC(std::unordered_map<std::string, std::string>* c
 void Linear::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
   auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
   std::stringstream s;
-  s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << ";";
+  s << "typedef struct " << name << "Ref { void* unused1; void* unused2; } " << name << "Ref;";
   cByExportedName->insert(std::make_pair(name, s.str()));
 }
 
@@ -981,12 +981,12 @@ void Linear::defineSerializeFunc(
                 globalState->getRegion(sourceMemberRefMT)->checkValidReference(
                     FL(), functionState, builder, sourceMemberRefMT, sourceMemberRef);
             if (sourceMemberRefMT == globalState->metalCache->intRef) {
-              memberRefs.push_back(wrap(globalState->getRegion(sourceMemberRefMT), sourceMemberRefMT, sourceMemberLE));
+              memberRefs.push_back(wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE));
             } else if (sourceMemberRefMT == globalState->metalCache->boolRef) {
               auto resultLE = LLVMBuildZExt(builder, sourceMemberLE, LLVMInt8TypeInContext(globalState->context), "boolAsI8");
-              memberRefs.push_back(wrap(globalState->getRegion(sourceMemberRefMT), sourceMemberRefMT, resultLE));
+              memberRefs.push_back(wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, resultLE));
             } else if (sourceMemberRefMT == globalState->metalCache->floatRef) {
-              memberRefs.push_back(wrap(globalState->getRegion(sourceMemberRefMT), sourceMemberRefMT, sourceMemberLE));
+              memberRefs.push_back(wrap(globalState->getRegion(targetMemberRefMT), targetMemberRefMT, sourceMemberLE));
             } else if (
                 sourceMemberRefMT->referend == globalState->metalCache->str ||
                 dynamic_cast<StructReferend*>(sourceMemberRefMT->referend) ||
@@ -1191,5 +1191,28 @@ void Linear::addSerializeFunctions() {
 
   for (auto prototype : serializePrototypes) {
     defineSerializeFunc(prototype);
+  }
+}
+
+
+void Linear::fillInnerLinearStruct(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    StructDefinition* structM,
+    std::vector<Ref> memberHostRefs,
+    LLVMValueRef hostStructPtrLE) {
+  for (int i = 0; i < memberHostRefs.size(); i++) {
+    auto memberName = structM->members[i]->name;
+    auto memberHostRef = memberHostRefs[i];
+    auto memberValeType = structM->members[i]->type;
+    auto memberHostType =
+        globalState->metalCache->getReference(
+            memberValeType->ownership, memberValeType->location, getRegionId(), memberValeType->referend);
+    auto ptrLE =
+        LLVMBuildStructGEP(builder, hostStructPtrLE, i, memberName.c_str());
+    auto memberLE =
+        globalState->getRegion(memberHostType)
+            ->checkValidReference(FL(), functionState, builder, memberHostType, memberHostRef);
+    LLVMBuildStore(builder, memberLE, ptrLE);
   }
 }

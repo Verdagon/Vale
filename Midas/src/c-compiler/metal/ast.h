@@ -167,14 +167,17 @@ public:
 
 class StructMember {
 public:
+    std::string fullName;
     std::string name;
     Variability variability;
     Reference* type;
 
     StructMember(
+        std::string fullName_,
         std::string name_,
         Variability variability_,
         Reference* type_) :
+        fullName(fullName_),
         name(name_),
         variability(variability_),
         type(type_) {}

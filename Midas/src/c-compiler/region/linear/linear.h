@@ -415,6 +415,14 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef regionInstancePtrLE);
 
+
+  void fillInnerLinearStruct(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      StructDefinition* structM,
+      std::vector<Ref> membersLE,
+      LLVMValueRef innerStructPtrLE);
+
   GlobalState* globalState;
 
   LinearStructs structs;

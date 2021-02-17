@@ -35,11 +35,8 @@ Ref sendHostObjectIntoVale(
     auto valeRef =
         wrap(globalState->getRegion(hostRefMT), hostRefMT, hostRefLE);
 
-    // Alias when receiving from the outside world, see DEPAR.
-    globalState->getRegion(hostRefMT)
-        ->alias(FL(), functionState, builder, hostRefMT, valeRef);
-
-    return valeRef;
+    return globalState->getRegion(valeRefMT)
+        ->receiveAndDecryptFamiliarReference(functionState, builder, hostRefMT, valeRef);
   }
 }
 
@@ -71,17 +68,16 @@ LLVMValueRef sendValeObjectIntoHost(
         globalState->getRegion(hostRefMT)
             ->receiveUnencryptedAlienReference(
                 functionState, builder, valeRefMT, valeRef);
+    globalState->getRegion(valeRefMT)
+        ->dealias(FL(), functionState, builder, valeRefMT, valeRef);
     auto hostArgLE =
         globalState->getRegion(hostRefMT)
             ->checkValidReference(FL(), functionState, builder, hostRefMT, hostArgRef);
     return hostArgLE;
   } else {
-    // When we actually encrypt, this line will change.
-    auto encryptedValeRef = valeRef;
-
-    // Dealias when sending to the outside world, see DEPAR.
-    globalState->getRegion(valeRefMT)
-        ->dealias(FL(), functionState, builder, valeRefMT, encryptedValeRef);
+    auto encryptedValeRef =
+        globalState->getRegion(valeRefMT)
+            ->encryptAndSendFamiliarReference(functionState, builder, valeRefMT, valeRef);
 
     auto encryptedValeRefLE =
         globalState->getRegion(valeRefMT)
