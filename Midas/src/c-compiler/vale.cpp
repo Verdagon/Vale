@@ -553,56 +553,36 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
+    globalState->getRegion(structM->regionId)->declareStruct(structM);
     if (structM->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->declareStruct(structM);
       globalState->linearRegion->declareStruct(structM);
-    } else {
-      globalState->mutRegion->declareStruct(structM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->declareStruct(structM);
-      }
     }
   }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
+    globalState->getRegion(interfaceM->regionId)->declareInterface(interfaceM);
     if (interfaceM->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->declareInterface(interfaceM);
       globalState->linearRegion->declareInterface(interfaceM);
-    } else {
-      globalState->mutRegion->declareInterface(interfaceM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->declareInterface(interfaceM);
-      }
     }
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->declareKnownSizeArray(arrayM);
     if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->declareKnownSizeArray(arrayM);
       globalState->linearRegion->declareKnownSizeArray(arrayM);
-    } else {
-      globalState->mutRegion->declareKnownSizeArray(arrayM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->declareKnownSizeArray(arrayM);
-      }
     }
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->declareUnknownSizeArray(arrayM);
     if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->declareUnknownSizeArray(arrayM);
       globalState->linearRegion->declareUnknownSizeArray(arrayM);
-    } else {
-      globalState->mutRegion->declareUnknownSizeArray(arrayM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->declareUnknownSizeArray(arrayM);
-      }
     }
   }
 
@@ -610,14 +590,27 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto name = p.first;
     auto structM = p.second;
     assert(name == structM->name->name);
+    globalState->getRegion(structM->regionId)->translateStruct(structM);
     if (structM->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->translateStruct(structM);
       globalState->linearRegion->translateStruct(structM);
-    } else {
-      globalState->mutRegion->translateStruct(structM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->translateStruct(structM);
-      }
+    }
+  }
+
+  for (auto p : program->knownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->translateKnownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->translateKnownSizeArray(arrayM);
+    }
+  }
+
+  for (auto p : program->unknownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->translateUnknownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->translateUnknownSizeArray(arrayM);
     }
   }
 
@@ -633,42 +626,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
+    globalState->getRegion(interfaceM->regionId)->translateInterface(interfaceM);
     if (interfaceM->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->translateInterface(interfaceM);
       globalState->linearRegion->translateInterface(interfaceM);
-    } else {
-      globalState->mutRegion->translateInterface(interfaceM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->translateInterface(interfaceM);
-      }
-    }
-  }
-
-  for (auto p : program->knownSizeArrays) {
-    auto name = p.first;
-    auto arrayM = p.second;
-    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->translateKnownSizeArray(arrayM);
-      globalState->linearRegion->translateKnownSizeArray(arrayM);
-    } else {
-      globalState->mutRegion->translateKnownSizeArray(arrayM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->translateKnownSizeArray(arrayM);
-      }
-    }
-  }
-
-  for (auto p : program->unknownSizeArrays) {
-    auto name = p.first;
-    auto arrayM = p.second;
-    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->rcImm->translateUnknownSizeArray(arrayM);
-      globalState->linearRegion->translateUnknownSizeArray(arrayM);
-    } else {
-      globalState->mutRegion->translateUnknownSizeArray(arrayM);
-      if (globalState->mutRegion != globalState->unsafeRegion) {
-        globalState->unsafeRegion->translateUnknownSizeArray(arrayM);
-      }
     }
   }
 
@@ -676,14 +636,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto name = p.first;
     auto structM = p.second;
     for (auto e : structM->edges) {
+      globalState->getRegion(structM->regionId)->declareEdge(e);
       if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->rcImm->declareEdge(e);
         globalState->linearRegion->declareEdge(e);
-      } else {
-        globalState->mutRegion->declareEdge(e);
-        if (globalState->mutRegion != globalState->unsafeRegion) {
-          globalState->unsafeRegion->declareEdge(e);
-        }
       }
     }
   }
@@ -721,9 +676,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
         globalState->linearRegion->translateEdge(e);
       } else {
         globalState->mutRegion->translateEdge(e);
-        if (globalState->mutRegion != globalState->unsafeRegion) {
-          globalState->unsafeRegion->translateEdge(e);
-        }
       }
     }
   }
@@ -866,9 +818,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
         globalState->rcImm->generateStructDefsC(&cByExportedName, structM);
       } else {
         globalState->mutRegion->generateStructDefsC(&cByExportedName, structM);
-        if (globalState->mutRegion != globalState->unsafeRegion) {
-          globalState->unsafeRegion->generateStructDefsC(&cByExportedName, structM);
-        }
       }
     }
   }
@@ -880,9 +829,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
         globalState->rcImm->generateInterfaceDefsC(&cByExportedName, interfaceM);
       } else {
         globalState->mutRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
-        if (globalState->mutRegion != globalState->unsafeRegion) {
-          globalState->unsafeRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
-        }
       }
     }
   }

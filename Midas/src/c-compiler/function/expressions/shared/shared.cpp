@@ -5,6 +5,7 @@
 
 #include "translatetype.h"
 #include "region/common/controlblock.h"
+#include "region/linear/linear.h"
 #include "utils/branch.h"
 
 // A "Never" is something that should never be read.
@@ -24,9 +25,7 @@ LLVMValueRef makeEmptyTuple(GlobalState* globalState, IRegion* region, LLVMBuild
 
 Ref makeEmptyTupleRef(GlobalState* globalState, IRegion* region, LLVMBuilderRef builder) {
   auto emptyTupleLE = makeEmptyTuple(globalState, region, builder);
-  auto refMT =
-      globalState->metalCache->getReference(
-          Ownership::SHARE, Location::INLINE, region->getRegionId(), globalState->metalCache->emptyTupleStruct);
+  auto refMT = globalState->metalCache->emptyTupleStructRef;
   return wrap(region, refMT, emptyTupleLE);
 }
 

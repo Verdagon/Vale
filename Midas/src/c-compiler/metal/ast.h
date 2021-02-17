@@ -136,6 +136,7 @@ class StructDefinition {
 public:
     Name* name;
     StructReferend* referend;
+    RegionId* regionId;
     Mutability mutability;
     std::vector<Edge*> edges;
     std::vector<StructMember*> members;
@@ -144,12 +145,14 @@ public:
     StructDefinition(
         Name* name_,
         StructReferend* referend_,
+        RegionId* regionId_,
         Mutability mutability_,
         std::vector<Edge*> edges_,
         std::vector<StructMember*> members_,
         Weakability weakable_) :
         name(name_),
         referend(referend_),
+        regionId(regionId_),
         mutability(mutability_),
         edges(edges_),
         members(members_),
@@ -188,6 +191,7 @@ class InterfaceDefinition {
 public:
     Name* name;
     InterfaceReferend* referend;
+    RegionId* regionId;
     Mutability mutability;
     std::vector<Name*> superInterfaces;
     std::vector<InterfaceMethod*> methods;
@@ -196,12 +200,14 @@ public:
     InterfaceDefinition(
         Name* name_,
         InterfaceReferend* referend_,
+        RegionId* regionId_,
         Mutability mutability_,
         const std::vector<Name*>& superInterfaces_,
         const std::vector<InterfaceMethod*>& methods_,
         Weakability weakable_) :
       name(name_),
       referend(referend_),
+      regionId(regionId_),
       mutability(mutability_),
       superInterfaces(superInterfaces_),
       methods(methods_),

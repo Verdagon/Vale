@@ -4,6 +4,7 @@
 #include "function/expressions/shared/string.h"
 #include "region/common/controlblock.h"
 #include "region/common/heap.h"
+#include "region/linear/linear.h"
 
 #include "translatetype.h"
 
@@ -158,14 +159,7 @@ Ref buildExternCall(
     hostArgsLE.reserve(args.size());
     for (int i = 0; i < args.size(); i++) {
       auto valeArgRefMT = prototype->params[i];
-      auto hostArgRefMT =
-          globalState->metalCache->getReference(
-              valeArgRefMT->ownership,
-              valeArgRefMT->location,
-              valeArgRefMT->ownership == Ownership::SHARE ?
-                  globalState->metalCache->linearRegionId :
-                  globalState->metalCache->mutRegionId,
-              valeArgRefMT->referend);
+      auto hostArgRefMT = globalState->linearRegion->linearizeReference(valeArgRefMT);
 
       auto valeArg = valeArgRefs[i];
       auto hostArgRefLE =
@@ -200,14 +194,7 @@ Ref buildExternCall(
         return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
       } else {
         auto valeReturnRefMT = prototype->returnType;
-        auto hostReturnMT =
-            globalState->metalCache->getReference(
-                valeReturnRefMT->ownership,
-                valeReturnRefMT->location,
-                valeReturnRefMT->ownership == Ownership::SHARE ?
-                    globalState->metalCache->linearRegionId :
-                    globalState->metalCache->mutRegionId,
-                valeReturnRefMT->referend);
+        auto hostReturnMT = globalState->linearRegion->linearizeReference(valeReturnRefMT);
 
         auto valeReturnRef =
             sendHostObjectIntoVale(

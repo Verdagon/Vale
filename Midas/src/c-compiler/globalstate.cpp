@@ -26,8 +26,33 @@ GlobalState::getEdgeFunctionTypesAndFunctions(Edge* edge) {
 }
 
 IRegion* GlobalState::getRegion(Reference* referenceM) {
-  return getRegion(referenceM->regionId);
+  return getRegion(referenceM->referend);
 }
+
+IRegion* GlobalState::getRegion(Referend* referendM) {
+  if (auto intM = dynamic_cast<Int*>(referendM)) {
+    return getRegion(intM->regionId);
+  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
+    return getRegion(boolM->regionId);
+  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
+    return getRegion(floatM->regionId);
+  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
+    return getRegion(strM->regionId);
+  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
+    return getRegion(neverM->regionId);
+  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
+    auto structDefM = lookupStruct(structReferendM->fullName);
+    return getRegion(structDefM->regionId);
+  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
+    auto interfaceDefM = lookupStruct(interfaceReferendM->fullName);
+    return getRegion(interfaceDefM->regionId);
+  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
+    return getRegion(usaM->rawArray->regionId);
+  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
+    return getRegion(ksaM->rawArray->regionId);
+  } else assert(false);
+}
+
 IRegion* GlobalState::getRegion(RegionId* regionId) {
   if (regionId == metalCache->rcImmRegionId) {
     return rcImm;

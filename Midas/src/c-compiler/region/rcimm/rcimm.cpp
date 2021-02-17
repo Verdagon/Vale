@@ -823,18 +823,12 @@ Ref RCImm::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
+    Reference* targetRefMT,
     Ref sourceRef) {
   assert(sourceRefMT->ownership == Ownership::SHARE);
 
   auto sourceRegion = globalState->getRegion(sourceRefMT);
-  // Someday when we include the region in the coord, we wont have to assume its linear.
-  // When that happens, change the LLVMBuildTrunc below too.
-  assert(sourceRegion == globalState->linearRegion);
   auto sourceRefLE = sourceRegion->checkValidReference(FL(), functionState, builder, sourceRefMT, sourceRef);
-  // Someday when we include the region in the coord, this line will change.
-  auto targetRefMT =
-      globalState->metalCache->getReference(
-          sourceRefMT->ownership, sourceRefMT->location, getRegionId(), sourceRefMT->referend);
 
   if (dynamic_cast<Int*>(sourceRefMT->referend)) {
     return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);

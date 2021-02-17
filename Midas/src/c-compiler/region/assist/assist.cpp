@@ -140,11 +140,7 @@ LLVMTypeRef Assist::translateType(Reference* referenceM) {
     case Ownership::OWN:
     case Ownership::BORROW:
       assert(referenceM->location != Location::INLINE);
-      if (referenceM->referend == globalState->metalCache->regionReferend) {
-        return LLVMPointerType(regionLT, 0);
-      } else {
-        return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
-      }
+      return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
     case Ownership::WEAK:
       assert(referenceM->location != Location::INLINE);
       return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
@@ -865,6 +861,7 @@ Ref Assist::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
+    Reference* targetRefMT,
     Ref sourceRef) {
   assert(false);
 }

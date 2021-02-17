@@ -1,5 +1,6 @@
 #include <iostream>
 #include <function/expressions/shared/shared.h>
+#include <region/linear/linear.h>
 
 #include "translatetype.h"
 
@@ -59,14 +60,7 @@ LLVMValueRef declareFunction(
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
       auto valeParamMT = functionM->prototype->params[i];
-      auto hostParamMT =
-          globalState->metalCache->getReference(
-              valeParamMT->ownership,
-              valeParamMT->location,
-              valeParamMT->ownership == Ownership::SHARE ?
-                  globalState->metalCache->linearRegionId :
-                  globalState->metalCache->mutRegionId,
-              valeParamMT->referend);
+      auto hostParamMT = globalState->linearRegion->linearizeReference(valeParamMT);
       auto hostArgRefLE = LLVMGetParam(exportFunctionL, i);
 
       auto valeRef =
@@ -83,14 +77,7 @@ LLVMValueRef declareFunction(
             valeReturnRefOrVoid);
 
     auto valeReturnMT = functionM->prototype->returnType;
-    auto hostReturnMT =
-        globalState->metalCache->getReference(
-            valeReturnMT->ownership,
-            valeReturnMT->location,
-            valeReturnMT->ownership == Ownership::SHARE ?
-                globalState->metalCache->linearRegionId :
-                globalState->metalCache->mutRegionId,
-            valeReturnMT->referend);
+    auto hostReturnMT = globalState->linearRegion->linearizeReference(valeReturnMT);
 
     auto hostReturnRefLE =
         sendValeObjectIntoHost(

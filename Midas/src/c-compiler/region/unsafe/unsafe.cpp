@@ -218,22 +218,18 @@ Ref Unsafe::lockWeak(
 }
 
 LLVMTypeRef Unsafe::translateType(Reference* referenceM) {
-  if (referenceM->referend == globalState->metalCache->regionReferend) {
-    return LLVMPointerType(regionLT, 0);
-  } else {
-    switch (referenceM->ownership) {
-      case Ownership::SHARE:
-        assert(false);
-      case Ownership::OWN:
-      case Ownership::BORROW:
-        assert(referenceM->location != Location::INLINE);
-        return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
-      case Ownership::WEAK:
-        assert(referenceM->location != Location::INLINE);
-        return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
-      default:
-        assert(false);
-    }
+  switch (referenceM->ownership) {
+    case Ownership::SHARE:
+      assert(false);
+    case Ownership::OWN:
+    case Ownership::BORROW:
+      assert(referenceM->location != Location::INLINE);
+      return translateReferenceSimple(globalState, &referendStructs, referenceM->referend);
+    case Ownership::WEAK:
+      assert(referenceM->location != Location::INLINE);
+      return translateWeakReference(globalState, &weakRefStructs, referenceM->referend);
+    default:
+      assert(false);
   }
 }
 
@@ -827,6 +823,7 @@ Ref Unsafe::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
+    Reference* targetRefMT,
     Ref sourceRef) {
   assert(false);
 }

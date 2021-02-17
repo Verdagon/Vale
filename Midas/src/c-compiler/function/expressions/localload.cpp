@@ -22,7 +22,7 @@ Ref translateLocalLoad(
   auto targetLocation = targetOwnership == Ownership::SHARE ? localType->location : Location::YONDER;
   auto resultType =
       globalState->metalCache->getReference(
-          targetOwnership, targetLocation, localType->regionId, localType->referend);
+          targetOwnership, targetLocation, localType->referend);
 
   auto localAddr = blockState->getLocalAddr(localId);
 

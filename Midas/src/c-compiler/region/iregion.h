@@ -326,6 +326,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
+      Reference* targetRefMT,
       Ref sourceRef) = 0;
 
   // Receives and decrypts a reference to an object in this region.

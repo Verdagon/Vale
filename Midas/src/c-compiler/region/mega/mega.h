@@ -374,6 +374,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
+      Reference* targetRefMT,
       Ref sourceRef) override;
 
   Ref receiveAndDecryptFamiliarReference(

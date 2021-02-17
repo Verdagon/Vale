@@ -362,7 +362,7 @@ Ref translateExpressionInner(
     auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
     auto resultType =
         globalState->metalCache->getReference(
-            targetOwnership, targetLocation, elementType->regionId, elementType->referend);
+            targetOwnership, targetLocation, elementType->referend);
     bool arrayKnownLive = knownSizeArrayLoad->arrayKnownLive;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -404,7 +404,7 @@ Ref translateExpressionInner(
     auto elementType = arrayReferend->rawArray->elementType;
     auto targetOwnership = unknownSizeArrayLoad->targetOwnership;
     auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
-    auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->regionId, elementType->referend);
+    auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->referend);
     bool arrayKnownLive = unknownSizeArrayLoad->arrayKnownLive;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -626,7 +626,6 @@ Ref translateExpressionInner(
         globalState->metalCache->getReference(
             Ownership::BORROW,
             sourceType->location,
-            sourceType->regionId,
             sourceType->referend);
 
     auto resultOptTypeLE =

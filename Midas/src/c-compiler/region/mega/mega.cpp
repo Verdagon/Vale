@@ -2087,6 +2087,7 @@ Ref Mega::receiveUnencryptedAlienReference(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
+    Reference* targetRefMT,
     Ref sourceRef) {
   assert(false);
 }

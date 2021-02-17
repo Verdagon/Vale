@@ -174,6 +174,7 @@ public:
 
 
   IRegion* getRegion(Reference* referenceM);
+  IRegion* getRegion(Referend* referendM);
   IRegion* getRegion(RegionId* regionId);
   LLVMValueRef getFunction(Name* name);
   LLVMValueRef getInterfaceTablePtr(Edge* edge);

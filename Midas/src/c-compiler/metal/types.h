@@ -75,20 +75,17 @@ class Reference {
 public:
   Ownership ownership;
   Location location;
-  RegionId* regionId;
   Referend* referend;
 //  std::string debugStr;
 
   Reference(
       Ownership ownership_,
       Location location_,
-      RegionId* regionId_,
       Referend* referend_
 //      , const std::string& debugStr_
   ) :
       ownership(ownership_),
       location(location_),
-      regionId(regionId_),
       referend(referend_)
 //    , debugStr(debugStr_)
   {
@@ -109,30 +106,42 @@ public:
 
 class Int : public Referend {
 public:
-};
+  RegionId* regionId;
 
-class I8 : public Referend {
-public:
+  Int(RegionId* regionId_) :
+      regionId(regionId_) {}
 };
 
 class Bool : public Referend {
 public:
+  RegionId* regionId;
+
+  Bool(RegionId* regionId_) :
+      regionId(regionId_) {}
 };
 
 class Str : public Referend {
 public:
-};
+  RegionId* regionId;
 
-class Void : public Referend {
-public:
+  Str(RegionId* regionId_) :
+      regionId(regionId_) {}
 };
 
 class Float : public Referend {
 public:
+  RegionId* regionId;
+
+  Float(RegionId* regionId_) :
+      regionId(regionId_) {}
 };
 
 class Never : public Referend {
 public:
+  RegionId* regionId;
+
+  Never(RegionId* regionId_) :
+      regionId(regionId_) {}
 };
 
 class InterfaceReferend : public Referend {
@@ -158,12 +167,15 @@ public:
 class RawArrayT {
 public:
   Mutability mutability;
+  RegionId* regionId;
   Reference* elementType;
 
   RawArrayT(
       Mutability mutability_,
+      RegionId* regionId_,
       Reference* elementType_) :
       mutability(mutability_),
+      regionId(regionId_),
       elementType(elementType_) {}
 };
 

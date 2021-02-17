@@ -75,8 +75,9 @@ RawArrayT* readRawArray(MetalCache* cache, const json& rawArray) {
 
   auto mutability = readMutability(rawArray["mutability"]);
   auto elementType = readReference(cache, rawArray["elementType"]);
+  auto regionId = mutability == Mutability::IMMUTABLE ? cache->rcImmRegionId : cache->mutRegionId;
 
-  return cache->getArray(mutability, elementType);
+  return cache->getArray(mutability, regionId, elementType);
 }
 
 UnknownSizeArrayT* readUnknownSizeArray(MetalCache* cache, const json& referend) {
@@ -135,7 +136,6 @@ Reference* readReference(MetalCache* cache, const json& reference) {
   return cache->getReference(
       ownership,
       location,
-      ownership == Ownership::SHARE ? cache->rcImmRegionId : cache->mutRegionId,
       referend);
 }
 
@@ -479,11 +479,13 @@ Edge* readEdge(MetalCache* cache, const json& edge) {
 StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
   assert(struuct.is_object());
   assert(struuct["__type"] == "Struct");
+  auto mutability = readMutability(struuct["mutability"]);
   auto result =
       new StructDefinition(
           readName(cache, struuct["name"]),
           readStructReferend(cache, struuct["referend"]),
-          readMutability(struuct["mutability"]),
+          mutability == Mutability::IMMUTABLE ? cache->rcImmRegionId : cache->mutRegionId,
+          mutability,
           readArray(cache, struuct["edges"], readEdge),
           readArray(cache, struuct["members"], readStructMember),
           struuct["weakable"] ? Weakability::WEAKABLE : Weakability::NON_WEAKABLE);
@@ -492,7 +494,7 @@ StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
   if (structName->name == std::string("Tup0_0")) {
     cache->emptyTupleStruct = cache->getStructReferend(structName);
     cache->emptyTupleStructRef =
-        cache->getReference(Ownership::SHARE, Location::INLINE, cache->rcImmRegionId, cache->emptyTupleStruct);
+        cache->getReference(Ownership::SHARE, Location::INLINE, cache->emptyTupleStruct);
   }
 
   return result;
@@ -501,10 +503,12 @@ StructDefinition* readStruct(MetalCache* cache, const json& struuct) {
 InterfaceDefinition* readInterface(MetalCache* cache, const json& interface) {
   assert(interface.is_object());
   assert(interface["__type"] == "Interface");
+  auto mutability = readMutability(interface["mutability"]);
   return new InterfaceDefinition(
       readName(cache, interface["name"]),
       readInterfaceReferend(cache, interface["referend"]),
-      readMutability(interface["mutability"]),
+      mutability == Mutability::IMMUTABLE ? cache->rcImmRegionId : cache->mutRegionId,
+      mutability,
       {},
       readArray(cache, interface["methods"], readInterfaceMethod),
       interface["weakable"] ? Weakability::WEAKABLE : Weakability::NON_WEAKABLE);

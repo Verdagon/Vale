@@ -30,7 +30,7 @@ Ref sendHostObjectIntoVale(
         wrap(globalState->getRegion(hostRefMT), hostRefMT, hostRefLE);
     return globalState->getRegion(valeRefMT)
         ->receiveUnencryptedAlienReference(
-            functionState, builder, hostRefMT, hostRef);
+            functionState, builder, hostRefMT, valeRefMT, hostRef);
   } else {
     auto valeRef =
         wrap(globalState->getRegion(hostRefMT), hostRefMT, hostRefLE);
@@ -67,7 +67,7 @@ LLVMValueRef sendValeObjectIntoHost(
     auto hostArgRef =
         globalState->getRegion(hostRefMT)
             ->receiveUnencryptedAlienReference(
-                functionState, builder, valeRefMT, valeRef);
+                functionState, builder, valeRefMT, hostRefMT, valeRef);
     globalState->getRegion(valeRefMT)
         ->dealias(FL(), functionState, builder, valeRefMT, valeRef);
     auto hostArgLE =

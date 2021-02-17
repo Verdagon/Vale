@@ -69,12 +69,17 @@ public:
     unsafeRegionId = getRegionId("unsafe");
     assistRegionId = getRegionId("assist");
 
-    intRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, innt);
-    floatRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, flooat);
-    boolRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, boool);
-    strRef = getReference(Ownership::SHARE, Location::YONDER, rcImmRegionId, str);
-    neverRef = getReference(Ownership::SHARE, Location::INLINE, rcImmRegionId, never);
-    regionReferend = getStructReferend(getName("__Region"));
+    innt = getInt(rcImmRegionId);
+    intRef = getReference(Ownership::SHARE, Location::INLINE, innt);
+    boool = getBool(rcImmRegionId);
+    boolRef = getReference(Ownership::SHARE, Location::INLINE, boool);
+    flooat = getFloat(rcImmRegionId);
+    floatRef = getReference(Ownership::SHARE, Location::INLINE, flooat);
+    str = getStr(rcImmRegionId);
+    strRef = getReference(Ownership::SHARE, Location::YONDER, str);
+    never = getNever(rcImmRegionId);
+    neverRef = getReference(Ownership::SHARE, Location::INLINE, never);
+//    regionReferend = getStructReferend(getName("__Region"));
   }
 
   RegionId* rcImmRegionId = nullptr;
@@ -86,15 +91,15 @@ public:
 
 //  I8* i8 = new I8();
 //  Reference* i8Ref = nullptr;
-  Int* innt = new Int();
+  Int* innt = nullptr;
   Reference* intRef = nullptr;
-  Bool* boool = new Bool();
+  Bool* boool = nullptr;
   Reference* boolRef = nullptr;
-  Float* flooat = new Float();
+  Float* flooat = nullptr;
   Reference* floatRef = nullptr;
-  Str* str = new Str();
+  Str* str = nullptr;
   Reference* strRef = nullptr;
-  Never* never = new Never();
+  Never* never = nullptr;
   Reference* neverRef = nullptr;
   StructReferend* emptyTupleStruct = nullptr;
   Reference* emptyTupleStructRef = nullptr;
@@ -104,15 +109,27 @@ public:
   // We hand these in to methods like allocate, deallocate, etc.
   // Right now we just use it to hold the bump pointer for linear regions.
   // Otherwise, for now, we're just handing in Nevers.
-  StructReferend* regionReferend = nullptr;
+//  StructReferend* regionReferend = nullptr;
 
   std::unordered_map<std::string, RegionId*> regionIds;
   std::unordered_map<Name*, StructReferend*> structReferends;
   std::unordered_map<Name*, InterfaceReferend*> interfaceReferends;
   std::unordered_map<std::string, Name*> names;
 
+  std::unordered_map<RegionId*, Int*> ints;
+  std::unordered_map<RegionId*, Bool*> bools;
+  std::unordered_map<RegionId*, Str*> strs;
+  std::unordered_map<RegionId*, Float*> floats;
+  std::unordered_map<RegionId*, Never*> nevers;
+
   // This is conceptually a map<[Reference*, Mutability], RawArrayT*>.
-  std::unordered_map<Reference*, std::unordered_map<Mutability, RawArrayT*>> rawArrays;
+  std::unordered_map<
+      Reference*,
+      std::unordered_map<
+          RegionId*,
+          std::unordered_map<
+              Mutability,
+              RawArrayT*>>> rawArrays;
   std::unordered_map<Name*, UnknownSizeArrayT*> unknownSizeArrays;
   std::unordered_map<Name*, KnownSizeArrayT*> knownSizeArrays;
   std::unordered_map<
@@ -120,19 +137,52 @@ public:
       std::unordered_map<
           Ownership,
           std::unordered_map<
-              RegionId*,
-              std::unordered_map<
-                  Location,
-                  Reference*>>>> unconvertedReferences;
+              Location,
+              Reference*>>> unconvertedReferences;
   std::unordered_map<Name*, std::unordered_map<Reference*, std::unordered_map<std::vector<Reference*>, Prototype*, HashRefVec, RefVecEquals>>> prototypes;
   std::unordered_map<int, std::unordered_map<std::string, VariableId*>> variableIds;
   std::unordered_map<VariableId*, std::unordered_map<Reference*, Local*>> locals;
 
-  RawArrayT* getArray(Mutability mutability, Reference* elementType) {
+  Int* getInt(RegionId* regionId) {
     return makeIfNotPresent(
-        &rawArrays[elementType],
+        &ints,
+        regionId,
+        [&](){ return new Int(regionId); });
+  }
+
+  Bool* getBool(RegionId* regionId) {
+    return makeIfNotPresent(
+        &bools,
+        regionId,
+        [&](){ return new Bool(regionId); });
+  }
+
+  Str* getStr(RegionId* regionId) {
+    return makeIfNotPresent(
+        &strs,
+        regionId,
+        [&](){ return new Str(regionId); });
+  }
+
+  Float* getFloat(RegionId* regionId) {
+    return makeIfNotPresent(
+        &floats,
+        regionId,
+        [&](){ return new Float(regionId); });
+  }
+
+  Never* getNever(RegionId* regionId) {
+    return makeIfNotPresent(
+        &nevers,
+        regionId,
+        [&](){ return new Never(regionId); });
+  }
+
+  RawArrayT* getArray(Mutability mutability, RegionId* regionId, Reference* elementType) {
+    return makeIfNotPresent(
+        &rawArrays[elementType][regionId],
         mutability,
-        [&](){ return new RawArrayT(mutability, elementType); });
+        [&](){ return new RawArrayT(mutability, regionId, elementType); });
   }
 
   StructReferend* getStructReferend(Name* structName) {
@@ -170,11 +220,11 @@ public:
         [&](){ return new RegionId(nameStr); });
   }
 
-  Reference* getReference(Ownership ownership, Location location, RegionId* regionId, Referend* referend) {
+  Reference* getReference(Ownership ownership, Location location, Referend* referend) {
     return makeIfNotPresent<Location, Reference*>(
-        &unconvertedReferences[referend][ownership][regionId],
+        &unconvertedReferences[referend][ownership],
         location,
-        [&](){ return new Reference(ownership, location, regionId, referend); });
+        [&](){ return new Reference(ownership, location, referend); });
   }
 
   Prototype* getPrototype(Name* name, Reference* returnType, std::vector<Reference*> paramTypes) {

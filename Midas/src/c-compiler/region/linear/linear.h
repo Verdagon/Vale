@@ -320,6 +320,7 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* sourceRefMT,
+      Reference* targetRefMT,
       Ref sourceRef) override;
 
   Ref receiveAndDecryptFamiliarReference(
@@ -357,6 +358,9 @@ public:
   RegionId* getRegionId() override;
 
   void addSerializeFunctions();
+
+  // Temporary, gets the corresponding Linear type reference.
+  Reference* linearizeReference(Reference* immRcRefMT);
 
 private:
   LLVMValueRef predictShallowSize(
@@ -415,20 +419,20 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef regionInstancePtrLE);
 
-
-  void fillInnerLinearStruct(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      StructDefinition* structM,
-      std::vector<Ref> membersLE,
-      LLVMValueRef innerStructPtrLE);
-
   GlobalState* globalState;
 
   LinearStructs structs;
 
+  std::unordered_map<Referend*, Referend*> hostReferendByValeReferend;
+
+  std::string namePrefix = "__Linear";
+
+  StructReferend* regionReferend = nullptr;
+  Reference* regionRefMT = nullptr;
+
   LLVMTypeRef regionLT = nullptr;
-  Reference* linearStrMT = nullptr;
+  Str* linearStr = nullptr;
+  Reference* linearStrRefMT = nullptr;
 };
 
 #endif
