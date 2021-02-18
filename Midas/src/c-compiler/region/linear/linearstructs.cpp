@@ -47,12 +47,12 @@ LLVMTypeRef LinearStructs::getStringStruct() {
   return stringStructLT;
 }
 
-void LinearStructs::declareStruct(StructDefinition* structM) {
+void LinearStructs::declareStruct(StructReferend* structM) {
   auto structL =
       LLVMStructCreateNamed(
-          globalState->context, structM->name->name.c_str());
-  assert(structStructsL.count(structM->referend) == 0);
-  structStructsL.emplace(structM->referend, structL);
+          globalState->context, structM->fullName->name.c_str());
+  assert(structStructsL.count(structM) == 0);
+  structStructsL.emplace(structM, structL);
 }
 
 void LinearStructs::declareEdge(
@@ -66,12 +66,12 @@ void LinearStructs::declareEdge(
   os->push_back(edge->structName);
 }
 
-void LinearStructs::declareInterface(InterfaceDefinition* interface) {
+void LinearStructs::declareInterface(InterfaceReferend* interface) {
   auto interfaceRefStructL =
       LLVMStructCreateNamed(
-          globalState->context, interface->name->name.c_str());
-  assert(interfaceRefStructsL.count(interface->referend) == 0);
-  interfaceRefStructsL.emplace(interface->referend, interfaceRefStructL);
+          globalState->context, interface->fullName->name.c_str());
+  assert(interfaceRefStructsL.count(interface) == 0);
+  interfaceRefStructsL.emplace(interface, interfaceRefStructL);
 
   // No need to make interface table structs, there are no itables for Linear.
 }
@@ -89,14 +89,14 @@ void LinearStructs::declareUnknownSizeArray(
 }
 
 void LinearStructs::translateStruct(
-    StructDefinition* struuct,
+    StructReferend* struuct,
     std::vector<LLVMTypeRef> membersLT) {
-  LLVMTypeRef structL = getStructStruct(struuct->referend);
+  LLVMTypeRef structL = getStructStruct(struuct);
   LLVMStructSetBody(structL, membersLT.data(), membersLT.size(), false);
 }
 
-void LinearStructs::translateInterface(InterfaceDefinition* interface) {
-  LLVMTypeRef refStructL = getInterfaceRefStruct(interface->referend);
+void LinearStructs::translateInterface(InterfaceReferend* interface) {
+  LLVMTypeRef refStructL = getInterfaceRefStruct(interface);
 
   std::vector<LLVMTypeRef> memberTypesL = {
       LLVMInt64TypeInContext(globalState->context),
@@ -125,9 +125,10 @@ void LinearStructs::translateUnknownSizeArray(
 
 void LinearStructs::translateKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT,
+    int size,
     LLVMTypeRef elementLT) {
   auto knownSizeArrayStruct = getKnownSizeArrayStruct(knownSizeArrayMT);
-  auto innerArrayLT = LLVMArrayType(elementLT, knownSizeArrayMT->size);
+  auto innerArrayLT = LLVMArrayType(elementLT, size);
 
   std::vector<LLVMTypeRef> elementsL;
   elementsL.push_back(innerArrayLT);

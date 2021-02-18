@@ -149,16 +149,16 @@ public:
   virtual LLVMTypeRef translateType(Reference* referenceM) = 0;
 
   virtual void translateKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) = 0;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
 
   virtual void declareKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) = 0;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
 
   virtual void declareUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) = 0;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
 
   virtual void translateUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) = 0;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
 
 
   virtual void declareEdge(
@@ -360,6 +360,8 @@ public:
       Reference* reference) = 0;
 
   virtual RegionId* getRegionId() = 0;
+
+  virtual bool containsReferend(Referend* referendM) = 0;
 };
 
 #endif

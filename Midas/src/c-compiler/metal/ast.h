@@ -43,8 +43,8 @@ class Program {
 public:
     std::unordered_map<std::string, InterfaceDefinition*> interfaces;
     std::unordered_map<std::string, StructDefinition*> structs;
-    std::unordered_map<std::string, KnownSizeArrayT*> knownSizeArrays;
-    std::unordered_map<std::string, UnknownSizeArrayT*> unknownSizeArrays;
+    std::unordered_map<std::string, KnownSizeArrayDefinitionT*> knownSizeArrays;
+    std::unordered_map<std::string, UnknownSizeArrayDefinitionT*> unknownSizeArrays;
     // Get rid of this; since there's no IDs anymore we can have a stable
     // hardcoded NameH("__Pack", Some(List()), None, None).
     StructReferend* emptyTupleStructRef;
@@ -56,8 +56,8 @@ public:
     Program(
         std::unordered_map<std::string, InterfaceDefinition*> interfaces_,
         std::unordered_map<std::string, StructDefinition*> structs_,
-        std::unordered_map<std::string, KnownSizeArrayT*> knownSizeArrays_,
-        std::unordered_map<std::string, UnknownSizeArrayT*> unknownSizeArrays_,
+        std::unordered_map<std::string, KnownSizeArrayDefinitionT*> knownSizeArrays_,
+        std::unordered_map<std::string, UnknownSizeArrayDefinitionT*> unknownSizeArrays_,
         StructReferend* emptyTupleStructRef_,
         std::unordered_map<std::string, Prototype*> externs_,
         std::unordered_map<std::string, Function*> functions_,
@@ -82,6 +82,16 @@ public:
   InterfaceDefinition* getInterface(Name* name) {
     auto iter = interfaces.find(name->name);
     assert(iter != interfaces.end());
+    return iter->second;
+  }
+  KnownSizeArrayDefinitionT* getKnownSizeArray(Name* name) {
+    auto iter = knownSizeArrays.find(name->name);
+    assert(iter != knownSizeArrays.end());
+    return iter->second;
+  }
+  UnknownSizeArrayDefinitionT* getUnknownSizeArray(Name* name) {
+    auto iter = unknownSizeArrays.find(name->name);
+    assert(iter != unknownSizeArrays.end());
     return iter->second;
   }
   Prototype* getImmDestructor(Referend* referend) {

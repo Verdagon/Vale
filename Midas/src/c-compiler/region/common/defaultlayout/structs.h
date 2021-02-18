@@ -50,10 +50,10 @@ public:
       std::vector<LLVMValueRef> functions) override;
   void declareInterface(InterfaceDefinition* interface) override;
   void translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) override;
-  void declareKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT) override;
-  void declareUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT) override;
-  void translateUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
-  void translateKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) override;
+  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) override;
+  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
 
   LLVMTypeRef getControlBlockStruct() {
     return controlBlock.getStruct();
@@ -263,10 +263,10 @@ public:
       std::vector<LLVMValueRef> functions) override;
   void declareInterface(InterfaceDefinition* interface) override;
   void translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) override;
-  void declareKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT) override;
-  void declareUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT) override;
-  void translateUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
-  void translateKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) override;
+  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) override;
+  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
 
   LLVMTypeRef getStructWeakRefStruct(StructReferend* structReferend) override;
   LLVMTypeRef getKnownSizeArrayWeakRefStruct(KnownSizeArrayT* ksaMT) override;

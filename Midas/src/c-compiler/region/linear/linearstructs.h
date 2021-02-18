@@ -20,17 +20,17 @@ public:
   LLVMTypeRef getStringStruct();
 
   void translateStruct(
-      StructDefinition* struuct,
+      StructReferend* struuct,
       std::vector<LLVMTypeRef> membersLT) ;
-  void declareStruct(StructDefinition* structM);
+  void declareStruct(StructReferend* structM);
   void declareEdge(
       Edge* edge);
   void translateEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
       std::vector<LLVMValueRef> functions);
-  void declareInterface(InterfaceDefinition* interface);
-  void translateInterface(InterfaceDefinition* interface);
+  void declareInterface(InterfaceReferend* interface);
+  void translateInterface(InterfaceReferend* interface);
   void declareKnownSizeArray(
       KnownSizeArrayT* knownSizeArrayMT);
   void declareUnknownSizeArray(
@@ -40,6 +40,7 @@ public:
       LLVMTypeRef elementLT);
   void translateKnownSizeArray(
       KnownSizeArrayT* knownSizeArrayMT,
+      int size,
       LLVMTypeRef elementLT);
   InterfaceFatPtrLE makeInterfaceFatPtr(
       AreaAndFileAndLine checkerAFL,

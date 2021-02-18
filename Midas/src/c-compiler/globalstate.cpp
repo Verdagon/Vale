@@ -30,27 +30,12 @@ IRegion* GlobalState::getRegion(Reference* referenceM) {
 }
 
 IRegion* GlobalState::getRegion(Referend* referendM) {
-  if (auto intM = dynamic_cast<Int*>(referendM)) {
-    return getRegion(intM->regionId);
-  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
-    return getRegion(boolM->regionId);
-  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
-    return getRegion(floatM->regionId);
-  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
-    return getRegion(strM->regionId);
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return getRegion(neverM->regionId);
-  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
-    auto structDefM = lookupStruct(structReferendM->fullName);
-    return getRegion(structDefM->regionId);
-  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceDefM = lookupStruct(interfaceReferendM->fullName);
-    return getRegion(interfaceDefM->regionId);
-  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    return getRegion(usaM->rawArray->regionId);
-  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    return getRegion(ksaM->rawArray->regionId);
-  } else assert(false);
+  for (auto regionIdAndRegion : regions) {
+    if (regionIdAndRegion.second->containsReferend(referendM)) {
+      return regionIdAndRegion.second;
+    }
+  }
+  assert(false);
 }
 
 IRegion* GlobalState::getRegion(RegionId* regionId) {
@@ -127,6 +112,10 @@ Name* GlobalState::getReferendName(Referend* referend) {
     return structReferend->fullName;
   } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
     return interfaceReferend->fullName;
+  } else if (auto ksaMT = dynamic_cast<KnownSizeArrayT*>(referend)) {
+    return ksaMT->name;
+  } else if (auto usaMT = dynamic_cast<UnknownSizeArrayT*>(referend)) {
+    return usaMT->name;
   } else assert(false);
   return nullptr;
 }
@@ -138,31 +127,5 @@ Weakability GlobalState::getReferendWeakability(Referend* referend) {
     return lookupInterface(interfaceReferend->fullName)->weakability;
   } else {
     return Weakability::NON_WEAKABLE;
-  }
-}
-
-Mutability GlobalState::getReferendMutability(Referend* referendM) {
-  if (dynamic_cast<Int*>(referendM) ||
-      dynamic_cast<Bool*>(referendM) ||
-      dynamic_cast<Float*>(referendM) ||
-      dynamic_cast<Str*>(referendM)) {
-    return Mutability::IMMUTABLE;
-  } else if (auto structRnd = dynamic_cast<StructReferend*>(referendM)) {
-    auto structM = lookupStruct(structRnd->fullName);
-    return structM->mutability;
-  } else if (
-      auto interfaceRnd = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceM = lookupInterface(interfaceRnd->fullName);
-    return interfaceM->mutability;
-  } else if (
-      auto knownSizeArrayMT = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    return knownSizeArrayMT->rawArray->mutability;
-  } else if (
-      auto unknownSizeArrayMT = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    return unknownSizeArrayMT->rawArray->mutability;
-  } else {
-    std::cerr << typeid(*referendM).name() << std::endl;
-    assert(false);
-    return Mutability::MUTABLE;
   }
 }

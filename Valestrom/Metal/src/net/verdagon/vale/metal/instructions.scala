@@ -26,14 +26,14 @@ sealed trait ExpressionH[+T <: ReferendH] {
   }
   def expectUnknownSizeArrayAccess(): ExpressionH[UnknownSizeArrayTH] = {
     resultType match {
-      case ReferenceH(_, _, x @ UnknownSizeArrayTH(_, _)) => {
+      case ReferenceH(_, _, x @ UnknownSizeArrayTH(_)) => {
         this.asInstanceOf[ExpressionH[UnknownSizeArrayTH]]
       }
     }
   }
   def expectKnownSizeArrayAccess(): ExpressionH[KnownSizeArrayTH] = {
     resultType match {
-      case ReferenceH(_, _, x @ KnownSizeArrayTH(_, _, _)) => {
+      case ReferenceH(_, _, x @ KnownSizeArrayTH(_)) => {
         this.asInstanceOf[ExpressionH[KnownSizeArrayTH]]
       }
     }
@@ -292,15 +292,14 @@ case class NewArrayFromValuesH(
 // doesn't need to carry around a size. For the corresponding instruction for the
 // unknown-size-at-compile-time array, see UnknownSizeArrayStoreH.
 case class KnownSizeArrayStoreH(
-                                 // Expression containing the array whose element we'll swap out.
-                                 arrayExpression: ExpressionH[KnownSizeArrayTH],
-                                 // Expression containing the index of the element we'll swap out.
-                                 indexExpression: ExpressionH[IntH],
-                                 // Expression containing the value we'll swap into the array.
-                                 sourceExpression: ExpressionH[ReferendH]
-) extends ExpressionH[ReferendH] {
-  override def resultType: ReferenceH[ReferendH] = arrayExpression.resultType.kind.rawArray.elementType
-}
+  // Expression containing the array whose element we'll swap out.
+  arrayExpression: ExpressionH[KnownSizeArrayTH],
+  // Expression containing the index of the element we'll swap out.
+  indexExpression: ExpressionH[IntH],
+  // Expression containing the value we'll swap into the array.
+  sourceExpression: ExpressionH[ReferendH],
+  resultType: ReferenceH[ReferendH],
+) extends ExpressionH[ReferendH]
 
 // Loads from the "source" expressions and swaps it into the array from arrayExpression at
 // the position specified by the integer in indexExpression. The old value from the
@@ -309,15 +308,14 @@ case class KnownSizeArrayStoreH(
 // that needs to carry around a size. For the corresponding instruction for the
 // known-size-at-compile-time array, see KnownSizeArrayStoreH.
 case class UnknownSizeArrayStoreH(
-                                   // Expression containing the array whose element we'll swap out.
-                                   arrayExpression: ExpressionH[UnknownSizeArrayTH],
-                                   // Expression containing the index of the element we'll swap out.
-                                   indexExpression: ExpressionH[IntH],
-                                   // Expression containing the value we'll swap into the array.
-                                   sourceExpression: ExpressionH[ReferendH]
-) extends ExpressionH[ReferendH] {
-  override def resultType: ReferenceH[ReferendH] = arrayExpression.resultType.kind.rawArray.elementType
-}
+  // Expression containing the array whose element we'll swap out.
+  arrayExpression: ExpressionH[UnknownSizeArrayTH],
+  // Expression containing the index of the element we'll swap out.
+  indexExpression: ExpressionH[IntH],
+  // Expression containing the value we'll swap into the array.
+  sourceExpression: ExpressionH[ReferendH],
+  resultType: ReferenceH[ReferendH],
+) extends ExpressionH[ReferendH]
 
 // Loads from the array in arrayExpression at the index in indexExpression, and stores
 // the result in expressionsId. This can never move a reference, only alias it.
@@ -331,18 +329,20 @@ case class UnknownSizeArrayLoadH(
   indexExpression: ExpressionH[IntH],
   // The ownership to load as. For example, we might load a constraint reference from a
   // owning Car reference element.
-  targetOwnership: OwnershipH
+  targetOwnership: OwnershipH,
+  expectedElementType: ReferenceH[ReferendH],
+  resultType: ReferenceH[ReferendH],
 ) extends ExpressionH[ReferendH] {
-
-  override def resultType: ReferenceH[ReferendH] = {
-    val location =
-      (targetOwnership, arrayExpression.resultType.kind.rawArray.elementType.location) match {
-        case (BorrowH, _) => YonderH
-        case (OwnH, location) => location
-        case (ShareH, location) => location
-      }
-    ReferenceH(targetOwnership, location, arrayExpression.resultType.kind.rawArray.elementType.kind)
-  }
+//
+//  override def resultType: ReferenceH[ReferendH] = {
+//    val location =
+//      (targetOwnership, arrayExpression.resultType.kind.rawArray.elementType.location) match {
+//        case (BorrowH, _) => YonderH
+//        case (OwnH, location) => location
+//        case (ShareH, location) => location
+//      }
+//    ReferenceH(targetOwnership, location, arrayExpression.resultType.kind.rawArray.elementType.kind)
+//  }
 }
 
 // Loads from the array in arrayExpression at the index in indexExpression, and stores
@@ -357,18 +357,20 @@ case class KnownSizeArrayLoadH(
   indexExpression: ExpressionH[IntH],
   // The ownership to load as. For example, we might load a constraint reference from a
   // owning Car reference element.
-  targetOwnership: OwnershipH
+  targetOwnership: OwnershipH,
+  expectedElementType: ReferenceH[ReferendH],
+  resultType: ReferenceH[ReferendH],
 ) extends ExpressionH[ReferendH] {
 
-  override def resultType: ReferenceH[ReferendH] = {
-    val location =
-      (targetOwnership, arrayExpression.resultType.kind.rawArray.elementType.location) match {
-        case (BorrowH, _) => YonderH
-        case (OwnH, location) => location
-        case (ShareH, location) => location
-      }
-    ReferenceH(targetOwnership, location, arrayExpression.resultType.kind.rawArray.elementType.kind)
-  }
+//  override def resultType: ReferenceH[ReferendH] = {
+//    val location =
+//      (targetOwnership, arrayExpression.resultType.kind.rawArray.elementType.location) match {
+//        case (BorrowH, _) => YonderH
+//        case (OwnH, location) => location
+//        case (ShareH, location) => location
+//      }
+//    ReferenceH(targetOwnership, location, arrayExpression.resultType.kind.rawArray.elementType.kind)
+//  }
 }
 
 // Calls a function.
@@ -520,6 +522,8 @@ case class DestroyKnownSizeArrayIntoFunctionH(
   consumerExpression: ExpressionH[InterfaceRefH],
   // The prototype for the "__call" function to call on the interface for each element.
   consumerMethod: PrototypeH,
+  arrayElementType: ReferenceH[ReferendH],
+  arraySize: Int
 ) extends ExpressionH[StructRefH] {
   override def resultType: ReferenceH[StructRefH] = ReferenceH(ShareH, InlineH, ProgramH.emptyTupleStructRef)
 }
@@ -536,7 +540,8 @@ case class DestroyUnknownSizeArrayH(
   // This is a constraint reference.
   consumerExpression: ExpressionH[InterfaceRefH],
   // The prototype for the "__call" function to call on the interface for each element.
-  consumerMethod: PrototypeH
+  consumerMethod: PrototypeH,
+  arrayElementType: ReferenceH[ReferendH],
 ) extends ExpressionH[StructRefH] {
   override def resultType: ReferenceH[StructRefH] = ReferenceH(ShareH, InlineH, ProgramH.emptyTupleStructRef)
 }

@@ -271,23 +271,23 @@ void ReferendStructs::translateInterface(
 
 
 void ReferendStructs::declareKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
 
   auto countedStruct = LLVMStructCreateNamed(globalState->context, knownSizeArrayMT->name->name.c_str());
   knownSizeArrayWrapperStructs.emplace(knownSizeArrayMT->name->name, countedStruct);
 }
 
 void ReferendStructs::declareUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto countedStruct = LLVMStructCreateNamed(globalState->context, (unknownSizeArrayMT->name->name + "rc").c_str());
   unknownSizeArrayWrapperStructs.emplace(unknownSizeArrayMT->name->name, countedStruct);
 }
 
 void ReferendStructs::translateUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT,
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
 
-  auto unknownSizeArrayWrapperStruct = getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT);
+  auto unknownSizeArrayWrapperStruct = getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT->referend);
   auto innerArrayLT = LLVMArrayType(elementLT, 0);
 
   std::vector<LLVMTypeRef> elementsL;
@@ -302,9 +302,9 @@ void ReferendStructs::translateUnknownSizeArray(
 }
 
 void ReferendStructs::translateKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT,
+    KnownSizeArrayDefinitionT* knownSizeArrayMT,
     LLVMTypeRef elementLT) {
-  auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT);
+  auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT->referend);
 
   auto innerArrayLT = LLVMArrayType(elementLT, knownSizeArrayMT->size);
 
@@ -772,7 +772,7 @@ void WeakableReferendStructs::translateInterface(
 
 
 void WeakableReferendStructs::declareKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 
   auto weakRefStructL =
@@ -783,7 +783,7 @@ void WeakableReferendStructs::declareKnownSizeArray(
 }
 
 void WeakableReferendStructs::declareUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 
   auto weakRefStructL =
@@ -794,15 +794,15 @@ void WeakableReferendStructs::declareUnknownSizeArray(
 }
 
 void WeakableReferendStructs::translateUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT,
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
   assert(weakRefHeaderStructL);
 
   referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 
-  auto unknownSizeArrayWrapperStruct = getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT);
+  auto unknownSizeArrayWrapperStruct = getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT->referend);
 
-  auto arrayWeakRefStructL = getUnknownSizeArrayWeakRefStruct(unknownSizeArrayMT);
+  auto arrayWeakRefStructL = getUnknownSizeArrayWeakRefStruct(unknownSizeArrayMT->referend);
   std::vector<LLVMTypeRef> arrayWeakRefStructMemberTypesL;
   arrayWeakRefStructMemberTypesL.push_back(weakRefHeaderStructL);
   arrayWeakRefStructMemberTypesL.push_back(LLVMPointerType(unknownSizeArrayWrapperStruct, 0));
@@ -810,15 +810,15 @@ void WeakableReferendStructs::translateUnknownSizeArray(
 }
 
 void WeakableReferendStructs::translateKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT,
+    KnownSizeArrayDefinitionT* knownSizeArrayMT,
     LLVMTypeRef elementLT) {
   assert(weakRefHeaderStructL);
 
   referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
 
-  auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT);
+  auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT->referend);
 
-  auto arrayWeakRefStructL = getKnownSizeArrayWeakRefStruct(knownSizeArrayMT);
+  auto arrayWeakRefStructL = getKnownSizeArrayWeakRefStruct(knownSizeArrayMT->referend);
   std::vector<LLVMTypeRef> arrayWeakRefStructMemberTypesL;
   arrayWeakRefStructMemberTypesL.push_back(weakRefHeaderStructL);
   arrayWeakRefStructMemberTypesL.push_back(LLVMPointerType(knownSizeArrayWrapperStruct, 0));

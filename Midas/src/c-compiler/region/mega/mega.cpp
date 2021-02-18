@@ -76,25 +76,17 @@ Mega::Mega(GlobalState* globalState_) :
         [this](Referend* referend) -> IReferendStructsSource* {
           switch (globalState->opt->regionOverride) {
             case RegionOverride::NAIVE_RC:
-              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
-                return &immStructs;
+              if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
+                return &mutNonWeakableStructs;
               } else {
-                if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
-                  return &mutNonWeakableStructs;
-                } else {
-                  return &mutWeakableStructs;
-                }
+                return &mutWeakableStructs;
               }
             case RegionOverride::RESILIENT_V0:
             case RegionOverride::RESILIENT_V1:
             case RegionOverride::RESILIENT_V2:
             case RegionOverride::RESILIENT_V3:
             case RegionOverride::RESILIENT_LIMIT:
-              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
-                return &immStructs;
-              } else {
-                return &mutWeakableStructs;
-              }
+              return &mutWeakableStructs;
             default:
               assert(false);
           }
@@ -103,25 +95,17 @@ Mega::Mega(GlobalState* globalState_) :
         [this](Referend* referend) -> IWeakRefStructsSource* {
           switch (globalState->opt->regionOverride) {
             case RegionOverride::NAIVE_RC:
-              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
+              if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
                 assert(false);
               } else {
-                if (globalState->getReferendWeakability(referend) == Weakability::NON_WEAKABLE) {
-                  assert(false);
-                } else {
-                  return &mutWeakableStructs;
-                }
+                return &mutWeakableStructs;
               }
             case RegionOverride::RESILIENT_V0:
             case RegionOverride::RESILIENT_V1:
             case RegionOverride::RESILIENT_V2:
             case RegionOverride::RESILIENT_V3:
             case RegionOverride::RESILIENT_LIMIT:
-              if (globalState->getReferendMutability(referend) == Mutability::IMMUTABLE) {
-                assert(false);
-              } else {
-                return &mutWeakableStructs;
-              }
+              return &mutWeakableStructs;
             default:
               assert(false);
           }
@@ -143,16 +127,16 @@ RegionId* Mega::getRegionId() {
 
 
 Ref Mega::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
+  auto ksaDef = globalState->program->getKnownSizeArray(referendM->name);
   auto resultRef =
       ::constructKnownSizeArray(
-          globalState, functionState, builder, referenceM, referendM, membersLE, &referendStructs,
+          globalState, functionState, builder, referenceM, referendM, ksaDef->rawArray->elementType, membersLE, &referendStructs,
           [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(),
                 functionState,
                 innerBuilder,
                 referenceM->referend,
-                referendM->rawArray->mutability,
                 controlBlockPtrLE,
                 referendM->name->name);
           });
@@ -182,7 +166,7 @@ Ref Mega::allocate(
           FL(), globalState, functionState, builder, desiredReference, &referendStructs, memberRefs, Weakability::WEAKABLE,
           [this, functionState, desiredReference, structM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
-                FL(), functionState, innerBuilder, desiredReference->referend, structM->mutability,
+                FL(), functionState, innerBuilder, desiredReference->referend,
                 controlBlockPtrLE, structM->name->name);
           });
   alias(FL(), functionState, builder, desiredReference, resultRef);
@@ -574,17 +558,17 @@ Ref Mega::upcastWeak(
 }
 
 void Mega::declareKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void Mega::declareUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
 void Mega::translateUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
           ->translateType(unknownSizeArrayMT->rawArray->elementType);
@@ -592,7 +576,7 @@ void Mega::translateUnknownSizeArray(
 }
 
 void Mega::translateKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
           ->translateType(knownSizeArrayMT->rawArray->elementType);
@@ -1293,14 +1277,13 @@ void Mega::fillControlBlock(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Referend* referendM,
-    Mutability mutability,
     ControlBlockPtrLE controlBlockPtrLE,
     const std::string& typeName) {
 
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
       regularFillControlBlock(
-          from, globalState, functionState, &referendStructs, builder, referendM, mutability, controlBlockPtrLE,
+          from, globalState, functionState, &referendStructs, builder, referendM, controlBlockPtrLE,
           typeName, &wrcWeaks);
       break;
     }
@@ -1311,13 +1294,8 @@ void Mega::fillControlBlock(
           fillControlBlockCensusFields(
               from, globalState, functionState, &referendStructs, builder, referendM, newControlBlockLE, typeName);
 
-      if (mutability == Mutability::IMMUTABLE) {
-        newControlBlockLE =
-            insertStrongRc(globalState, builder, &referendStructs, referendM, newControlBlockLE);
-      } else {
-        newControlBlockLE = wrcWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
-            newControlBlockLE);
-      }
+      newControlBlockLE = wrcWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
+          newControlBlockLE);
       LLVMBuildStore(
           builder,
           newControlBlockLE,
@@ -1330,14 +1308,9 @@ void Mega::fillControlBlock(
       newControlBlockLE =
           fillControlBlockCensusFields(
               from, globalState, functionState, &referendStructs, builder, referendM, newControlBlockLE, typeName);
+      newControlBlockLE = lgtWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
+          newControlBlockLE);
 
-      if (mutability == Mutability::IMMUTABLE) {
-        newControlBlockLE =
-            insertStrongRc(globalState, builder, &referendStructs, referendM, newControlBlockLE);
-      } else {
-        newControlBlockLE = lgtWeaks.fillWeakableControlBlock(functionState, builder, &referendStructs, referendM,
-            newControlBlockLE);
-      }
       LLVMBuildStore(
           builder,
           newControlBlockLE,
@@ -1348,7 +1321,7 @@ void Mega::fillControlBlock(
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
       gmFillControlBlock(
-          from, globalState, functionState, &referendStructs, builder, referendM, mutability, controlBlockPtrLE,
+          from, globalState, functionState, &referendStructs, builder, referendM, controlBlockPtrLE,
           typeName, &hgmWeaks);
       break;
     }
@@ -1367,16 +1340,18 @@ LoadResult Mega::loadElementFromKSA(
     Ref indexRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
+      auto ksaDef = globalState->program->getKnownSizeArray(ksaMT->name);
       return regularloadElementFromKSA(
-          globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
+          globalState, functionState, builder, ksaRefMT, ksaMT, ksaDef->rawArray->elementType, ksaDef->size, ksaDef->rawArray->mutability, arrayRef, arrayKnownLive, indexRef, &referendStructs);
     }
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_V1:
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
+      auto ksaDef = globalState->program->getKnownSizeArray(ksaMT->name);
       return resilientloadElementFromKSA(
-          globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
+          globalState, functionState, builder, ksaRefMT, ksaMT, ksaDef->size, ksaDef->rawArray->mutability, ksaDef->rawArray->elementType, arrayRef, arrayKnownLive, indexRef, &referendStructs);
     }
     default:
       assert(false);
@@ -1393,14 +1368,18 @@ LoadResult Mega::loadElementFromUSA(
     Ref indexRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
-      return regularLoadElementFromUSAWithoutUpgrade(globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef, arrayKnownLive, indexRef);
+      auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+      return regularLoadElementFromUSAWithoutUpgrade(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, arrayKnownLive, indexRef);
     }
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_V1:
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
-      return resilientLoadElementFromUSAWithoutUpgrade(globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef, arrayKnownLive, indexRef);
+      auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+      return resilientLoadElementFromUSAWithoutUpgrade(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaMT, arrayRef, arrayKnownLive, indexRef);
     }
     default:
       assert(false);
@@ -1418,15 +1397,18 @@ Ref Mega::storeElementInUSA(
     Ref elementRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
-      return regularStoreElementInUSA(globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef, indexRef, elementRef);
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+      return regularStoreElementInUSA(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, indexRef, elementRef);
     }
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_V1:
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
       return resilientStoreElementInUSA(
-          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef,
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef,
           arrayKnownLive, indexRef, elementRef,
           [this, functionState, builder, usaRefMT, arrayRef, arrayKnownLive]() -> WrapperPtrLE {
             return lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive);
@@ -1514,9 +1496,10 @@ Ref Mega::constructUnknownSizeArrayCountedStruct(
     const std::string& typeName) {
   auto usaWrapperPtrLT =
       referendStructs.getUnknownSizeArrayWrapperStruct(unknownSizeArrayT);
+  auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
   auto resultRef =
       ::constructUnknownSizeArrayCountedStruct(
-           globalState, functionState, blockState, builder, &referendStructs, usaMT, unknownSizeArrayT, generatorType, generatorMethod,
+           globalState, functionState, blockState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
            generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
@@ -1525,7 +1508,6 @@ Ref Mega::constructUnknownSizeArrayCountedStruct(
                 functionState,
                 innerBuilder,
                 unknownSizeArrayT,
-                unknownSizeArrayT->rawArray->mutability,
                 controlBlockPtrLE,
                 typeName);
           });
@@ -2108,4 +2090,33 @@ Ref Mega::encryptAndSendFamiliarReference(
     default:
       assert(false);
   }
+}
+
+bool Mega::containsReferend(Referend* referendM) {
+  if (auto intM = dynamic_cast<Int*>(referendM)) {
+    return intM->regionId == getRegionId();
+  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
+    return boolM->regionId == getRegionId();
+  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
+    return floatM->regionId == getRegionId();
+  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
+    return neverM->regionId == getRegionId();
+  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
+    return strM->regionId == getRegionId();
+  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
+    return neverM->regionId == getRegionId();
+  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
+    auto structDef = globalState->program->getStruct(structReferendM->fullName);
+    return structDef->regionId == getRegionId();
+  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
+    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
+    return interfaceDef->regionId == getRegionId();
+  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
+    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
+    return usaDef->rawArray->regionId == getRegionId();
+  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
+    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
+    return ksaDef->rawArray->regionId == getRegionId();
+  } else assert(false);
+  assert(false);
 }

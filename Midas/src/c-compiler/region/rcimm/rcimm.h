@@ -63,16 +63,16 @@ public:
       Reference* targetInterfaceTypeM) override;
 
   void declareKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   void translateUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   void translateKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareStruct(
       StructDefinition* structM) override;
@@ -363,6 +363,8 @@ public:
       IReferendStructsSource* referendStructs,
       Reference* refM,
       LLVMValueRef refLE);
+
+  bool containsReferend(Referend* referendM) override;
 
 private:
   GlobalState* globalState;

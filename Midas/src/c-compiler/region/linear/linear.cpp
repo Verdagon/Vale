@@ -65,6 +65,12 @@ Linear::Linear(GlobalState* globalState_)
       globalState->metalCache->getReference(
           Ownership::SHARE, Location::YONDER, linearStr);
 
+  addMappedReferend(globalState->metalCache->innt, globalState->metalCache->getInt(getRegionId()));
+  addMappedReferend(globalState->metalCache->boool, globalState->metalCache->getBool(getRegionId()));
+  addMappedReferend(globalState->metalCache->flooat, globalState->metalCache->getFloat(getRegionId()));
+  addMappedReferend(globalState->metalCache->str, linearStr);
+  addMappedReferend(globalState->metalCache->never, globalState->metalCache->getNever(getRegionId()));
+
   regionLT = LLVMStructCreateNamed(globalState->context, "__Linear_Region");
   std::vector<LLVMTypeRef> membersLT = {
       LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
@@ -188,59 +194,70 @@ Ref Linear::upcastWeak(
 }
 
 void Linear::declareKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + knownSizeArrayMT->name->name);
-  auto hostReferend = globalState->metalCache->getStructReferend(hostName);
-  hostReferendByValeReferend.emplace(knownSizeArrayMT, hostReferend);
+  auto hostReferend = globalState->metalCache->getKnownSizeArray(hostName);
+  addMappedReferend(knownSizeArrayMT, hostReferend);
 
-  structs.declareKnownSizeArray(knownSizeArrayMT);
+  structs.declareKnownSizeArray(hostReferend);
 }
 
 void Linear::declareUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + unknownSizeArrayMT->name->name);
-  auto hostReferend = globalState->metalCache->getStructReferend(hostName);
-  hostReferendByValeReferend.emplace(unknownSizeArrayMT, hostReferend);
+  auto hostReferend = globalState->metalCache->getUnknownSizeArray(hostName);
+  addMappedReferend(unknownSizeArrayMT, hostReferend);
 
-  structs.declareUnknownSizeArray(unknownSizeArrayMT);
+  structs.declareUnknownSizeArray(hostReferend);
 }
 
 void Linear::translateUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       translateType(
           linearizeReference(
               unknownSizeArrayMT->rawArray->elementType));
-  structs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  auto hostReferend = hostReferendByValeReferend.find(unknownSizeArrayMT->referend)->second;
+  auto hostUsaMT = dynamic_cast<UnknownSizeArrayT*>(hostReferend);
+  assert(hostUsaMT);
+  structs.translateUnknownSizeArray(hostUsaMT, elementLT);
 }
 
 void Linear::translateKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
+  auto ksaDef = globalState->program->getKnownSizeArray(knownSizeArrayMT->name);
   auto elementLT =
       translateType(
           linearizeReference(
               knownSizeArrayMT->rawArray->elementType));
+  auto hostReferend = hostReferendByValeReferend.find(knownSizeArrayMT->referend)->second;
+  auto hostKsaMT = dynamic_cast<KnownSizeArrayT*>(hostReferend);
+  assert(hostKsaMT);
 
-  structs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  structs.translateKnownSizeArray(hostKsaMT, ksaDef->size, elementLT);
 }
 
 void Linear::declareStruct(
     StructDefinition* structM) {
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + structM->name->name);
   auto hostReferend = globalState->metalCache->getStructReferend(hostName);
-  hostReferendByValeReferend.emplace(structM->referend, hostReferend);
+  addMappedReferend(structM->referend, hostReferend);
 
-  structs.declareStruct(structM);
+  structs.declareStruct(hostReferend);
 }
 
 void Linear::translateStruct(
     StructDefinition* structM) {
+  auto hostReferend = hostReferendByValeReferend.find(structM->referend)->second;
+  auto hostStructMT = dynamic_cast<StructReferend*>(hostReferend);
+  assert(hostStructMT);
+
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
     innerStructMemberTypesL.push_back(
         translateType(linearizeReference(structM->members[i]->type)));
   }
-  structs.translateStruct(structM, innerStructMemberTypesL);
+  structs.translateStruct(hostStructMT, innerStructMemberTypesL);
 }
 
 void Linear::declareEdge(
@@ -264,12 +281,19 @@ void Linear::translateEdge(
 
 void Linear::declareInterface(
     InterfaceDefinition* interfaceM) {
-  assert(false);
-  structs.declareInterface(interfaceM);
+  auto hostName = globalState->metalCache->getName(namePrefix + "_" + interfaceM->name->name);
+  auto hostReferend = globalState->metalCache->getInterfaceReferend(hostName);
+  addMappedReferend(interfaceM->referend, hostReferend);
+
+  structs.declareInterface(hostReferend);
 }
 
 void Linear::translateInterface(
     InterfaceDefinition* interfaceM) {
+  auto hostReferend = hostReferendByValeReferend.find(interfaceM->referend)->second;
+  auto hostInterfaceMT = dynamic_cast<InterfaceReferend*>(hostReferend);
+  assert(hostInterfaceMT);
+
   assert((uint64_t)interfaceM->referend > 0x10000);
   std::vector<LLVMTypeRef> interfaceMethodTypesL;
   for (int i = 0; i < interfaceM->methods.size(); i++) {
@@ -278,7 +302,7 @@ void Linear::translateInterface(
             translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
             0));
   }
-  structs.translateInterface(interfaceM);
+  structs.translateInterface(hostInterfaceMT);
 }
 
 Ref Linear::weakAlias(
@@ -526,7 +550,9 @@ LoadResult Linear::loadElementFromKSA(
   auto arrayRefLE = checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef);
   // Array is the only member in the KSA struct.
   auto elementsPtrLE = LLVMBuildStructGEP(builder, arrayRefLE, 0, "ksaElemsPtr");
-  return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, elementsPtrLE);
+  auto ksaDef = globalState->program->getKnownSizeArray(ksaMT->name);
+  return loadElementFromKSAInner(
+      globalState, functionState, builder, ksaRefMT, ksaMT, ksaDef->size, ksaDef->rawArray->mutability, ksaDef->rawArray->elementType, indexRef, elementsPtrLE);
 }
 
 LoadResult Linear::loadElementFromUSA(
@@ -544,10 +570,11 @@ LoadResult Linear::loadElementFromUSA(
   // Elements is the 1th member in the USA struct, after size.
   auto elementsPtrLE = LLVMBuildStructGEP(builder, arrayRefLE, 1, "usaElemsPtr");
 
+  auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, usaRefMT,
-      usaMT->rawArray->elementType,
-      sizeRef, elementsPtrLE, usaMT->rawArray->mutability, indexRef);
+      usaDef->rawArray->elementType,
+      sizeRef, elementsPtrLE, usaDef->rawArray->mutability, indexRef);
 }
 
 
@@ -1158,7 +1185,9 @@ void Linear::addSerializeFunctions() {
 
   for (auto valeReferendAndHostReferend : hostReferendByValeReferend) {
     auto valeReferend = valeReferendAndHostReferend.first;
-    if (dynamic_cast<InterfaceReferend*>(valeReferend) == nullptr) {
+    if (dynamic_cast<StructReferend*>(valeReferend) ||
+        dynamic_cast<UnknownSizeArrayT*>(valeReferend) ||
+        dynamic_cast<KnownSizeArrayT*>(valeReferend)) {
       auto sourceStructRefMT =
           globalState->metalCache->getReference(
               Ownership::SHARE, Location::YONDER, valeReferend);
@@ -1209,4 +1238,11 @@ Reference* Linear::linearizeReference(Reference* immRcRefMT) {
 
   return globalState->metalCache->getReference(
       immRcRefMT->ownership, immRcRefMT->location, hostReferend);
+}
+
+bool Linear::containsReferend(Referend* referendM) {
+  if (referendM == regionReferend) {
+    return true;
+  }
+  return valeReferendByHostReferend.find(referendM) != valeReferendByHostReferend.end();
 }

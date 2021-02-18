@@ -178,13 +178,6 @@ public:
         [&](){ return new Never(regionId); });
   }
 
-  RawArrayT* getArray(Mutability mutability, RegionId* regionId, Reference* elementType) {
-    return makeIfNotPresent(
-        &rawArrays[elementType][regionId],
-        mutability,
-        [&](){ return new RawArrayT(mutability, regionId, elementType); });
-  }
-
   StructReferend* getStructReferend(Name* structName) {
     return makeIfNotPresent(
         &structReferends,
@@ -192,18 +185,25 @@ public:
         [&]() { return new StructReferend(structName); });
   }
 
-  UnknownSizeArrayT* getUnknownSizeArray(Name* name, RawArrayT* rawArray) {
+  InterfaceReferend* getInterfaceReferend(Name* structName) {
+    return makeIfNotPresent(
+        &interfaceReferends,
+        structName,
+        [&]() { return new InterfaceReferend(structName); });
+  }
+
+  UnknownSizeArrayT* getUnknownSizeArray(Name* name) {
     return makeIfNotPresent(
         &unknownSizeArrays,
         name,
-        [&](){ return new UnknownSizeArrayT(name, rawArray); });
+        [&](){ return new UnknownSizeArrayT(name); });
   }
 
-  KnownSizeArrayT* getKnownSizeArray(Name* name, int size, RawArrayT* rawArray) {
+  KnownSizeArrayT* getKnownSizeArray(Name* name) {
     return makeIfNotPresent(
         &knownSizeArrays,
         name,
-        [&](){ return new KnownSizeArrayT(name, size, rawArray); });
+        [&](){ return new KnownSizeArrayT(name); });
   }
 
   Name* getName(std::string nameStr) {

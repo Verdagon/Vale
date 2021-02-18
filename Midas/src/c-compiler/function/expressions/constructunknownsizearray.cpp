@@ -21,11 +21,12 @@ Ref translateConstructUnknownSizeArray(
   auto sizeReferend = constructUnknownSizeArray->sizeReferend;
   auto sizeExpr = constructUnknownSizeArray->sizeExpr;
   auto sizeType = constructUnknownSizeArray->sizeType;
+  auto elementType = constructUnknownSizeArray->elementType;
 
   auto unknownSizeArrayMT = dynamic_cast<UnknownSizeArrayT*>(constructUnknownSizeArray->arrayRefType->referend);
 
   auto usaWrapperPtrLT = globalState->getRegion(constructUnknownSizeArray->arrayRefType)->translateType(constructUnknownSizeArray->arrayRefType);
-  auto usaElementLT = globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)->translateType(unknownSizeArrayMT->rawArray->elementType);
+  auto usaElementLT = globalState->getRegion(elementType)->translateType(elementType);
 
   auto sizeLE = translateExpression(globalState, functionState, blockState, builder, sizeExpr);
 

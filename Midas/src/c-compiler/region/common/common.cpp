@@ -180,17 +180,20 @@ LoadResult loadElementFromKSAInner(
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
     KnownSizeArrayT* ksaMT,
+    int size,
+    Mutability mutability,
+    Reference* elementType,
     Ref indexRef,
     LLVMValueRef arrayElementsPtrLE) {
   auto sizeRef =
       wrap(
           globalState->getRegion(globalState->metalCache->intRef),
           globalState->metalCache->intRef,
-          LLVMConstInt(LLVMInt64TypeInContext(globalState->context), ksaMT->size, false));
+          LLVMConstInt(LLVMInt64TypeInContext(globalState->context), size, false));
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, ksaRefMT,
-      ksaMT->rawArray->elementType,
-      sizeRef, arrayElementsPtrLE, ksaMT->rawArray->mutability, indexRef);
+      elementType,
+      sizeRef, arrayElementsPtrLE, mutability, indexRef);
 }
 
 // Checks that the generation is <= to the actual one.
@@ -353,6 +356,7 @@ void fillUnknownSizeArray(
     BlockState* blockState,
     LLVMBuilderRef builder,
     UnknownSizeArrayT* usaMT,
+    Reference* elementType,
     Reference* generatorType,
     Prototype* generatorMethod,
     Ref generatorLE,
@@ -361,7 +365,7 @@ void fillUnknownSizeArray(
 
   foreachArrayElement(
       globalState, functionState, builder, sizeLE,
-      [globalState, functionState, usaMT, generatorMethod, generatorType, usaElementsPtrLE, generatorLE](Ref indexRef, LLVMBuilderRef bodyBuilder) {
+      [globalState, functionState, elementType, generatorMethod, generatorType, usaElementsPtrLE, generatorLE](Ref indexRef, LLVMBuilderRef bodyBuilder) {
         globalState->getRegion(generatorType)->alias(
             AFL("ConstructUSA generate iteration"),
             functionState, bodyBuilder, generatorType, generatorLE);
@@ -378,8 +382,8 @@ void fillUnknownSizeArray(
         std::vector<Ref> argExprsLE = { generatorLE, indexRef };
         auto elementRef = buildInterfaceCall(globalState, functionState, bodyBuilder, generatorMethod, argExprsLE, 0);
         auto elementLE =
-            globalState->getRegion(usaMT->rawArray->elementType)
-                ->checkValidReference(FL(), functionState, bodyBuilder, usaMT->rawArray->elementType, elementRef);
+            globalState->getRegion(elementType)
+                ->checkValidReference(FL(), functionState, bodyBuilder, elementType, elementRef);
         LLVMBuildStore(bodyBuilder, elementLE, elementPtrLE);
       });
 }
@@ -930,6 +934,7 @@ Ref constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* refM,
     KnownSizeArrayT* ksaMT,
+    Reference* elementType,
     const std::vector<Ref>& memberRefs,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
@@ -947,7 +952,7 @@ Ref constructKnownSizeArray(
       globalState,
       functionState,
       builder,
-      ksaMT->rawArray->elementType,
+      elementType,
       getKnownSizeArrayContentsPtr(builder, newStructLE),
       memberRefs);
   return wrap(globalState->getRegion(refM), refM, newStructLE.refLE);
@@ -993,6 +998,8 @@ LoadResult regularLoadElementFromUSAWithoutUpgrade(
     IReferendStructsSource* referendStructs,
     Reference* usaRefMT,
     UnknownSizeArrayT* usaMT,
+    Mutability mutability,
+    Reference* elementType,
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef) {
@@ -1008,8 +1015,8 @@ LoadResult regularLoadElementFromUSAWithoutUpgrade(
               globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef)));
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, usaRefMT,
-      usaMT->rawArray->elementType,
-      sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef);
+      elementType,
+      sizeRef, arrayElementsPtrLE, mutability, indexRef);
 }
 
 LoadResult resilientLoadElementFromUSAWithoutUpgrade(
@@ -1018,6 +1025,8 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
     LLVMBuilderRef builder,
     IReferendStructsSource* referendStructs,
     Reference* usaRefMT,
+    Mutability mutability,
+    Reference* elementType,
     UnknownSizeArrayT* usaMT,
     Ref arrayRef,
     bool arrayKnownLive,
@@ -1037,8 +1046,8 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
                   arrayRef)));
       return loadElementWithoutUpgrade(
           globalState, functionState, builder, usaRefMT,
-          usaMT->rawArray->elementType,
-          sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef);
+          elementType,
+          sizeRef, arrayElementsPtrLE, mutability, indexRef);
     }
     case Ownership::BORROW: {
       auto wrapperPtrLE =
@@ -1051,8 +1060,8 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
               globalState->getRegion(usaRefMT)->lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive));
       return loadElementWithoutUpgrade(
           globalState, functionState, builder, usaRefMT,
-          usaMT->rawArray->elementType,
-          sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef);
+          elementType,
+          sizeRef, arrayElementsPtrLE, mutability, indexRef);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1068,6 +1077,8 @@ Ref regularStoreElementInUSA(
     IReferendStructsSource* referendStructs,
     Reference* usaRefMT,
     UnknownSizeArrayT* usaMT,
+    Mutability mutability,
+    Reference* elementType,
     Ref arrayRef,
     Ref indexRef,
     Ref elementRef) {
@@ -1083,8 +1094,7 @@ Ref regularStoreElementInUSA(
               globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef)));
   return storeElement(
       globalState, functionState, builder, usaRefMT,
-      usaMT->rawArray->elementType,
-      sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef, elementRef);
+      elementType, sizeRef, arrayElementsPtrLE, mutability, indexRef, elementRef);
 }
 
 Ref resilientStoreElementInUSA(
@@ -1094,6 +1104,8 @@ Ref resilientStoreElementInUSA(
     IReferendStructsSource* referendStructs,
     Reference* usaRefMT,
     UnknownSizeArrayT* usaMT,
+    Mutability mutability,
+    Reference* elementType,
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef,
@@ -1133,8 +1145,7 @@ Ref resilientStoreElementInUSA(
 
       return storeElement(
           globalState, functionState, builder, usaRefMT,
-          usaMT->rawArray->elementType,
-          sizeRef, arrayElementsPtrLE, usaMT->rawArray->mutability, indexRef, elementRef);
+          elementType, sizeRef, arrayElementsPtrLE, mutability, indexRef, elementRef);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1150,6 +1161,7 @@ Ref constructUnknownSizeArrayCountedStruct(
     LLVMBuilderRef builder,
     IReferendStructsSource* referendStructs,
     Reference* usaMT,
+    Reference* elementType,
     UnknownSizeArrayT* unknownSizeArrayT,
     Reference* generatorType,
     Prototype* generatorMethod,
@@ -1177,6 +1189,7 @@ Ref constructUnknownSizeArrayCountedStruct(
       blockState,
       builder,
       unknownSizeArrayT,
+      elementType,
       generatorType,
       generatorMethod,
       generatorRef,
@@ -1306,6 +1319,9 @@ LoadResult regularloadElementFromKSA(
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
     KnownSizeArrayT* ksaMT,
+    Reference* elementType,
+    int arraySize,
+    Mutability mutability,
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef,
@@ -1317,7 +1333,8 @@ LoadResult regularloadElementFromKSA(
               FL(), functionState, builder, ksaRefMT,
               globalState->getRegion(ksaRefMT)
                   ->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
-  return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+  return loadElementFromKSAInner(
+      globalState, functionState, builder, ksaRefMT, ksaMT, arraySize, mutability, elementType, indexRef, arrayElementsPtrLE);
 }
 
 LoadResult resilientloadElementFromKSA(
@@ -1326,6 +1343,9 @@ LoadResult resilientloadElementFromKSA(
     LLVMBuilderRef builder,
     Reference* ksaRefMT,
     KnownSizeArrayT* ksaMT,
+    int size,
+    Mutability mutability,
+    Reference* elementType,
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef,
@@ -1340,13 +1360,14 @@ LoadResult resilientloadElementFromKSA(
                   FL(), functionState, builder, ksaRefMT,
                   globalState->getRegion(ksaRefMT)
                       ->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
-      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+      return loadElementFromKSAInner(
+          globalState, functionState, builder, ksaRefMT, ksaMT, size, mutability, elementType, indexRef, arrayElementsPtrLE);
     }
     case Ownership::BORROW: {
       LLVMValueRef arrayElementsPtrLE =
           getKnownSizeArrayContentsPtr(
               builder, globalState->getRegion(ksaRefMT)->lockWeakRef(FL(), functionState, builder, ksaRefMT, arrayRef, arrayKnownLive));
-      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, indexRef, arrayElementsPtrLE);
+      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, size, mutability, elementType, indexRef, arrayElementsPtrLE);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1362,7 +1383,6 @@ void regularFillControlBlock(
     IReferendStructsSource* structs,
     LLVMBuilderRef builder,
     Referend* referendM,
-    Mutability mutability,
     ControlBlockPtrLE controlBlockPtrLE,
     const std::string& typeName,
     WrcWeaks* wrcWeaks) {
@@ -1372,17 +1392,13 @@ void regularFillControlBlock(
       fillControlBlockCensusFields(
           from, globalState, functionState, structs, builder, referendM, newControlBlockLE, typeName);
 
-  if (mutability == Mutability::IMMUTABLE) {
-    newControlBlockLE =
-        insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-  } else {
-    newControlBlockLE =
-        insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-    if (globalState->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
-      newControlBlockLE = wrcWeaks->fillWeakableControlBlock(functionState, builder, structs, referendM,
-          newControlBlockLE);
-    }
+  newControlBlockLE =
+      insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
+  if (globalState->getReferendWeakability(referendM) == Weakability::WEAKABLE) {
+    newControlBlockLE = wrcWeaks->fillWeakableControlBlock(functionState, builder, structs, referendM,
+        newControlBlockLE);
   }
+
   LLVMBuildStore(
       builder,
       newControlBlockLE,
@@ -1396,7 +1412,6 @@ void gmFillControlBlock(
     IReferendStructsSource* structs,
     LLVMBuilderRef builder,
     Referend* referendM,
-    Mutability mutability,
     ControlBlockPtrLE controlBlockPtrLE,
     const std::string& typeName,
     HybridGenerationalMemory* hgmWeaks) {
@@ -1406,14 +1421,8 @@ void gmFillControlBlock(
   newControlBlockLE =
       fillControlBlockCensusFields(
           from, globalState, functionState, structs, builder, referendM, newControlBlockLE, typeName);
-
-  if (mutability == Mutability::IMMUTABLE) {
-    newControlBlockLE =
-        insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-  } else {
-    newControlBlockLE = hgmWeaks->fillWeakableControlBlock(functionState, builder, referendM,
-        newControlBlockLE);
-  }
+  newControlBlockLE = hgmWeaks->fillWeakableControlBlock(functionState, builder, referendM,
+      newControlBlockLE);
   LLVMBuildStore(
       builder,
       newControlBlockLE,

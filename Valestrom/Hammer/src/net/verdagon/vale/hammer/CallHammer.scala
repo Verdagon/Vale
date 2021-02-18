@@ -133,11 +133,13 @@ object CallHammer {
       ExpressionHammer.translate(
         hinputs, hamuts, currentFunctionHeader, locals, consumerExpr2);
 
+    val knownSizeArrayDef = hamuts.getKnownSizeArray(arrayTypeH)
+
     val consumerInterfaceRef = consumerCallableResultLine.expectInterfaceAccess().resultType.kind;
     val consumerInterfaceDef = vassertSome(hamuts.interfaceDefs.values.find(_.getRef == consumerInterfaceRef))
     vassert(consumerInterfaceDef.methods.head.prototypeH.params.size == 2)
     vassert(consumerInterfaceDef.methods.head.prototypeH.params(0).kind == consumerInterfaceRef)
-    vassert(consumerInterfaceDef.methods.head.prototypeH.params(1) == arrayTypeH.rawArray.elementType)
+    vassert(consumerInterfaceDef.methods.head.prototypeH.params(1) == knownSizeArrayDef.rawArray.elementType)
 
     val consumerMethod =
       FunctionHammer.translatePrototype(hinputs, hamuts, consumerMethod2)
@@ -146,7 +148,9 @@ object CallHammer {
         DestroyKnownSizeArrayIntoFunctionH(
           arrayExprResultLine.expectKnownSizeArrayAccess(),
           consumerCallableResultLine.expectInterfaceAccess(),
-          consumerMethod)
+          consumerMethod,
+          knownSizeArrayDef.rawArray.elementType,
+          knownSizeArrayDef.size)
 
     ExpressionHammer.translateDeferreds(
       hinputs, hamuts, currentFunctionHeader, locals, destroyArraySequenceCallNode, consumerCallableDeferreds ++ arrayExprDeferreds)
@@ -180,11 +184,17 @@ object CallHammer {
     val consumerMethod =
       FunctionHammer.translatePrototype(hinputs, hamuts, consumerMethod2)
 
+    val elementType =
+      hamuts.getUnknownSizeArray(
+          arrayExprResultLine.expectUnknownSizeArrayAccess().resultType.kind)
+        .rawArray.elementType
+
     val destroyArraySequenceCallNode =
         DestroyUnknownSizeArrayH(
           arrayExprResultLine.expectUnknownSizeArrayAccess(),
           consumerCallableResultLine.expectInterfaceAccess(),
-          consumerMethod)
+          consumerMethod,
+          elementType)
 
     ExpressionHammer.translateDeferreds(
       hinputs, hamuts, currentFunctionHeader, locals, destroyArraySequenceCallNode, consumerCallableDeferreds ++ arrayExprDeferreds)

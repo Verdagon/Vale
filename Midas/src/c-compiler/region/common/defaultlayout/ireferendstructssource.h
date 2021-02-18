@@ -21,10 +21,10 @@ public:
       std::vector<LLVMValueRef> functions) = 0;
   virtual void declareInterface(InterfaceDefinition* interface) = 0;
   virtual void translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) = 0;
-  virtual void declareKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT) = 0;
-  virtual void declareUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT) = 0;
-  virtual void translateUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT, LLVMTypeRef elementLT) = 0;
-  virtual void translateKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT, LLVMTypeRef elementLT) = 0;
+  virtual void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) = 0;
+  virtual void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) = 0;
+  virtual void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) = 0;
+  virtual void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) = 0;
 
   virtual ControlBlockPtrLE getConcreteControlBlockPtr(
       AreaAndFileAndLine from,

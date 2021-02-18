@@ -150,17 +150,17 @@ Ref RCImm::upcastWeak(
 }
 
 void RCImm::declareKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void RCImm::declareUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
 void RCImm::translateUnknownSizeArray(
-    UnknownSizeArrayT* unknownSizeArrayMT) {
+    UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       translateType(
           unknownSizeArrayMT->rawArray->elementType);
@@ -168,7 +168,7 @@ void RCImm::translateUnknownSizeArray(
 }
 
 void RCImm::translateKnownSizeArray(
-    KnownSizeArrayT* knownSizeArrayMT) {
+    KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto elementLT =
       translateType(
           knownSizeArrayMT->rawArray->elementType);
@@ -381,9 +381,10 @@ Ref RCImm::constructKnownSizeArray(
     Reference* referenceM,
     KnownSizeArrayT* referendM,
     const std::vector<Ref>& memberRefs) {
+  auto ksaDef = globalState->program->getKnownSizeArray(referendM->name);
   auto resultRef =
       ::constructKnownSizeArray(
-          globalState, functionState, builder, referenceM, referendM, memberRefs, &referendStructs,
+          globalState, functionState, builder, referenceM, referendM, ksaDef->rawArray->elementType, memberRefs, &referendStructs,
           [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
 //                FL(),
@@ -468,8 +469,9 @@ LoadResult RCImm::loadElementFromKSA(
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef) {
+  auto ksaDef = globalState->program->getKnownSizeArray(ksaMT->name);
   return regularloadElementFromKSA(
-      globalState, functionState, builder, ksaRefMT, ksaMT, arrayRef, arrayKnownLive, indexRef, &referendStructs);
+      globalState, functionState, builder, ksaRefMT, ksaMT, ksaDef->rawArray->elementType, ksaDef->size, ksaDef->rawArray->mutability, arrayRef, arrayKnownLive, indexRef, &referendStructs);
 }
 
 LoadResult RCImm::loadElementFromUSA(
@@ -480,8 +482,9 @@ LoadResult RCImm::loadElementFromUSA(
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef) {
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
   return regularLoadElementFromUSAWithoutUpgrade(
-      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, arrayRef,
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef,
       arrayKnownLive, indexRef);
 }
 
@@ -523,9 +526,10 @@ Ref RCImm::constructUnknownSizeArrayCountedStruct(
     const std::string& typeName) {
   auto usaWrapperPtrLT =
       referendStructs.getUnknownSizeArrayWrapperStruct(unknownSizeArrayT);
+  auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
   auto resultRef =
       ::constructUnknownSizeArrayCountedStruct(
-          globalState, functionState, blockState, builder, &referendStructs, usaMT, unknownSizeArrayT, generatorType, generatorMethod,
+          globalState, functionState, blockState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
           generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
@@ -709,9 +713,11 @@ LLVMTypeRef RCImm::getControlBlockStruct(Referend* referend) {
     auto interfaceM = globalState->program->getInterface(interfaceReferend->fullName);
     assert(interfaceM->mutability == Mutability::IMMUTABLE);
   } else if (auto ksaMT = dynamic_cast<KnownSizeArrayT*>(referend)) {
-    assert(ksaMT->rawArray->mutability == Mutability::IMMUTABLE);
+    auto ksaDef = globalState->program->getKnownSizeArray(ksaMT->name);
+    assert(ksaDef->rawArray->mutability == Mutability::IMMUTABLE);
   } else if (auto usaMT = dynamic_cast<UnknownSizeArrayT*>(referend)) {
-    assert(usaMT->rawArray->mutability == Mutability::IMMUTABLE);
+    auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+    assert(usaDef->rawArray->mutability == Mutability::IMMUTABLE);
   } else if (auto strMT = dynamic_cast<Str*>(referend)) {
   } else {
     assert(false);
@@ -944,5 +950,34 @@ Ref RCImm::encryptAndSendFamiliarReference(
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
+  assert(false);
+}
+
+bool RCImm::containsReferend(Referend* referendM) {
+  if (auto intM = dynamic_cast<Int*>(referendM)) {
+    return intM->regionId == getRegionId();
+  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
+    return boolM->regionId == getRegionId();
+  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
+    return floatM->regionId == getRegionId();
+  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
+    return neverM->regionId == getRegionId();
+  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
+    return strM->regionId == getRegionId();
+  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
+    return neverM->regionId == getRegionId();
+  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
+    auto structDef = globalState->program->getStruct(structReferendM->fullName);
+    return structDef->regionId == getRegionId();
+  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
+    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
+    return interfaceDef->regionId == getRegionId();
+  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
+    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
+    return usaDef->rawArray->regionId == getRegionId();
+  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
+    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
+    return ksaDef->rawArray->regionId == getRegionId();
+  } else assert(false);
   assert(false);
 }

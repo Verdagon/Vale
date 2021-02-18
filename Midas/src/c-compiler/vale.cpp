@@ -520,12 +520,16 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   RCImm rcImm(globalState);
   globalState->rcImm = &rcImm;
+  globalState->regions.emplace(globalState->rcImm->getRegionId(), globalState->rcImm);
   Assist assistRegion(globalState);
   globalState->assistRegion = &assistRegion;
+  globalState->regions.emplace(globalState->assistRegion->getRegionId(), globalState->assistRegion);
   Unsafe unsafeRegion(globalState);
   globalState->unsafeRegion = &unsafeRegion;
+  globalState->regions.emplace(globalState->unsafeRegion->getRegionId(), globalState->unsafeRegion);
   Linear linearRegion(globalState);
   globalState->linearRegion = &linearRegion;
+  globalState->regions.emplace(globalState->linearRegion->getRegionId(), globalState->linearRegion);
 //  Mega megaRegion(globalState);
   globalState->mutRegion = globalState->getRegion(metalCache.mutRegionId);
 

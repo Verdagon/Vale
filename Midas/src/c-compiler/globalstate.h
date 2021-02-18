@@ -95,22 +95,22 @@ public:
   std::unordered_map<Edge*, Edge*> extraAdditionsEdges;
   std::unordered_map<Prototype*, LLVMValueRef> extraFunctions;
 
-  std::unordered_map<Name*, StructDefinition*> extraStructs;
-  std::unordered_map<Name*, InterfaceDefinition*> extraInterfaces;
+//  std::unordered_map<Name*, StructDefinition*> extraStructs;
+//  std::unordered_map<Name*, InterfaceDefinition*> extraInterfaces;
 
   StructDefinition* lookupStruct(Name* name) {
-    auto structI = extraStructs.find(name);
-    if (structI != extraStructs.end()) {
-      return structI->second;
-    }
+//    auto structI = extraStructs.find(name);
+//    if (structI != extraStructs.end()) {
+//      return structI->second;
+//    }
     return program->getStruct(name);
   }
 
   InterfaceDefinition* lookupInterface(Name* name) {
-    auto interfaceI = extraInterfaces.find(name);
-    if (interfaceI != extraInterfaces.end()) {
-      return interfaceI->second;
-    }
+//    auto interfaceI = extraInterfaces.find(name);
+//    if (interfaceI != extraInterfaces.end()) {
+//      return interfaceI->second;
+//    }
     return program->getInterface(name);
   }
 
@@ -145,8 +145,6 @@ public:
 
   Weakability getReferendWeakability(Referend* referend);
 
-  Mutability getReferendMutability(Referend* referendM);
-
   Ref constI64(int64_t x);
   Ref constI1(bool b);
   Ref buildAdd(FunctionState* functionState, LLVMBuilderRef builder, Ref a, Ref b);
@@ -167,6 +165,7 @@ public:
   IRegion* unsafeRegion = nullptr;
   IRegion* assistRegion = nullptr;
   Linear* linearRegion = nullptr;
+  std::unordered_map<RegionId*, IRegion*> regions;
 
 
   std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>

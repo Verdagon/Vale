@@ -64,10 +64,7 @@ InterfaceReferend* readInterfaceReferend(MetalCache* cache, const json& referend
 
   auto interfaceName = readName(cache, referend["name"]);
 
-  return makeIfNotPresent(
-      &cache->interfaceReferends,
-      interfaceName,
-      [&](){ return new InterfaceReferend(interfaceName); });
+  return cache->getInterfaceReferend(interfaceName);
 }
 
 RawArrayT* readRawArray(MetalCache* cache, const json& rawArray) {
@@ -77,25 +74,39 @@ RawArrayT* readRawArray(MetalCache* cache, const json& rawArray) {
   auto elementType = readReference(cache, rawArray["elementType"]);
   auto regionId = mutability == Mutability::IMMUTABLE ? cache->rcImmRegionId : cache->mutRegionId;
 
-  return cache->getArray(mutability, regionId, elementType);
+  return new RawArrayT(regionId, mutability, elementType);
 }
 
 UnknownSizeArrayT* readUnknownSizeArray(MetalCache* cache, const json& referend) {
   auto name = readName(cache, referend["name"]);
-  auto rawArray = readRawArray(cache, referend["array"]);
 
-  return cache->getUnknownSizeArray(name, rawArray);
+  return cache->getUnknownSizeArray(name);
+}
+
+UnknownSizeArrayDefinitionT* readUnknownSizeArrayDefinition(MetalCache* cache, const json& usa) {
+  auto name = readName(cache, usa["name"]);
+  auto referend = readUnknownSizeArray(cache, usa["referend"]);
+  auto rawArray = readRawArray(cache, usa["array"]);
+
+  return new UnknownSizeArrayDefinitionT(name, referend, rawArray);
 }
 
 KnownSizeArrayT* readKnownSizeArray(MetalCache* cache, const json& referend) {
   auto name = readName(cache, referend["name"]);
-  auto rawArray = readRawArray(cache, referend["array"]);
-  auto size = referend["size"].get<int>();
 
   return makeIfNotPresent(
       &cache->knownSizeArrays,
       name,
-      [&](){ return new KnownSizeArrayT(name, size, rawArray); });
+      [&](){ return new KnownSizeArrayT(name); });
+}
+
+KnownSizeArrayDefinitionT* readKnownSizeArrayDefinition(MetalCache* cache, const json& ksa) {
+  auto name = readName(cache, ksa["name"]);
+  auto referend = readKnownSizeArray(cache, ksa["referend"]);
+  auto rawArray = readRawArray(cache, ksa["array"]);
+  auto size = ksa["size"].get<int>();
+
+  return new KnownSizeArrayDefinitionT(name, referend, size, rawArray);
 }
 
 Referend* readReferend(MetalCache* cache, const json& referend) {
@@ -344,7 +355,9 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         expression["arrayKnownLive"],
         readExpression(cache, expression["indexExpr"]),
         readReference(cache, expression["resultType"]),
-        readUnconvertedOwnership(cache, expression["targetOwnership"]));
+        readUnconvertedOwnership(cache, expression["targetOwnership"]),
+        readReference(cache, expression["arrayElementType"]),
+        expression["arraySize"]);
   } else if (type == "UnknownSizeArrayLoad") {
     return new UnknownSizeArrayLoad(
         readExpression(cache, expression["arrayExpr"]),
@@ -355,7 +368,8 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readReference(cache, expression["indexType"]),
         readReferend(cache, expression["indexReferend"]),
         readReference(cache, expression["resultType"]),
-        readUnconvertedOwnership(cache, expression["targetOwnership"]));
+        readUnconvertedOwnership(cache, expression["targetOwnership"]),
+        readReference(cache, expression["arrayElementType"]));
   } else if (type == "UnknownSizeArrayStore") {
     return new UnknownSizeArrayStore(
         readExpression(cache, expression["arrayExpr"]),
@@ -367,7 +381,8 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readReferend(cache, expression["indexReferend"]),
         readExpression(cache, expression["sourceExpr"]),
         readReference(cache, expression["sourceType"]),
-        readReferend(cache, expression["sourceReferend"]));
+        readReferend(cache, expression["sourceReferend"]),
+        readReference(cache, expression["arrayElementType"]));
   } else if (type == "ConstructUnknownSizeArray") {
     return new ConstructUnknownSizeArray(
         readExpression(cache, expression["sizeExpr"]),
@@ -378,7 +393,8 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readInterfaceReferend(cache, expression["generatorReferend"]),
         readPrototype(cache, expression["generatorMethod"]),
         expression["generatorKnownLive"],
-        readReference(cache, expression["resultType"]));
+        readReference(cache, expression["resultType"]),
+        readReference(cache, expression["arrayElementType"]));
   } else if (type == "DestroyUnknownSizeArray") {
     return new DestroyUnknownSizeArray(
         readExpression(cache, expression["arrayExpr"]),
@@ -409,7 +425,9 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readExpression(cache, expression["consumerExpr"]),
         readReference(cache, expression["consumerType"]),
         readPrototype(cache, expression["consumerMethod"]),
-        expression["consumerKnownLive"]);
+        expression["consumerKnownLive"],
+        readReference(cache, expression["arrayElementType"]),
+        expression["arraySize"]);
   } else if (type == "InterfaceCall") {
     return new InterfaceCall(
         readArray(cache, expression["argExprs"], readExpression),
@@ -548,18 +566,18 @@ Program* readProgram(MetalCache* cache, const json& program) {
             auto s = readStruct(cache, j);
             return std::make_pair(s->name->name, s);
           }),
-      readArrayIntoMap<std::string, KnownSizeArrayT*>(
+      readArrayIntoMap<std::string, KnownSizeArrayDefinitionT*>(
           cache,
           program["knownSizeArrays"],
           [](MetalCache* cache, json j){
-            auto s = readKnownSizeArray(cache, j);
+            auto s = readKnownSizeArrayDefinition(cache, j);
             return std::make_pair(s->name->name, s);
           }),
-      readArrayIntoMap<std::string, UnknownSizeArrayT*>(
+      readArrayIntoMap<std::string, UnknownSizeArrayDefinitionT*>(
           cache,
           program["unknownSizeArrays"],
           [](MetalCache* cache, json j){
-            auto s = readUnknownSizeArray(cache, j);
+            auto s = readUnknownSizeArrayDefinition(cache, j);
             return std::make_pair(s->name->name, s);
           }),
       readStructReferend(cache, program["emptyTupleStructReferend"]),

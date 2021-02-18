@@ -61,16 +61,16 @@ public:
 
 
   void translateKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   void translateUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   WrapperPtrLE lockWeakRef(
       AreaAndFileAndLine from,
@@ -356,7 +356,6 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Referend* referendM,
-      Mutability mutability,
       ControlBlockPtrLE controlBlockPtrLE,
       const std::string& typeName);
 
@@ -390,6 +389,8 @@ public:
       Ref sourceRef) override;
 
   LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
+
+  bool containsReferend(Referend* referendM) override;
 
 protected:
   GlobalState* globalState;

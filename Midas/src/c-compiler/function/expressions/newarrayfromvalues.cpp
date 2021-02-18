@@ -19,15 +19,16 @@ Ref translateNewArrayFromValues(
   auto elementsLE =
       translateExpressions(
           globalState, functionState, blockState, builder, newArrayFromValues->sourceExprs);
+  auto ksaDefM = globalState->program->getKnownSizeArray(newArrayFromValues->arrayReferend->name);
   for (auto elementLE : elementsLE) {
-    globalState->getRegion(newArrayFromValues->arrayReferend->rawArray->elementType)
+    globalState->getRegion(ksaDefM->rawArray->elementType)
         ->checkValidReference(
-            FL(), functionState, builder, newArrayFromValues->arrayReferend->rawArray->elementType, elementLE);
+            FL(), functionState, builder, ksaDefM->rawArray->elementType, elementLE);
   }
 
   auto knownSizeArrayMT = dynamic_cast<KnownSizeArrayT*>(newArrayFromValues->arrayRefType->referend);
 
-  switch (newArrayFromValues->arrayReferend->rawArray->mutability) {
+  switch (ksaDefM->rawArray->mutability) {
 //    case Mutability::MUTABLE: {
 //      auto countedArrayL = globalState->getWrapperStruct(structReferend->fullName);
 //      return constructWrappedStruct(

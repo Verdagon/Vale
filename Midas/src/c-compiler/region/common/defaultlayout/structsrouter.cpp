@@ -53,16 +53,16 @@ void ReferendStructsRouter::declareInterface(InterfaceDefinition* interfaceM) {
 void ReferendStructsRouter::translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) {
   return getReferendStructsSource(interface->referend)->translateInterface(interface, interfaceMethodTypesL);
 }
-void ReferendStructsRouter::declareKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT) {
+void ReferendStructsRouter::declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   return getReferendStructsSource(knownSizeArrayMT)->declareKnownSizeArray(knownSizeArrayMT);
 }
-void ReferendStructsRouter::declareUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT) {
+void ReferendStructsRouter::declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   return getReferendStructsSource(unknownSizeArrayMT)->declareUnknownSizeArray(unknownSizeArrayMT);
 }
-void ReferendStructsRouter::translateUnknownSizeArray(UnknownSizeArrayT* unknownSizeArrayMT, LLVMTypeRef elementLT) {
+void ReferendStructsRouter::translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) {
   return getReferendStructsSource(unknownSizeArrayMT)->translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
-void ReferendStructsRouter::translateKnownSizeArray(KnownSizeArrayT* knownSizeArrayMT, LLVMTypeRef elementLT) {
+void ReferendStructsRouter::translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) {
   return getReferendStructsSource(knownSizeArrayMT)->translateKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 

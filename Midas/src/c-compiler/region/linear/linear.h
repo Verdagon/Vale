@@ -62,16 +62,16 @@ public:
       Reference* targetInterfaceTypeM) override;
 
   void declareKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   void translateUnknownSizeArray(
-      UnknownSizeArrayT* unknownSizeArrayMT) override;
+      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
   void translateKnownSizeArray(
-      KnownSizeArrayT* knownSizeArrayMT) override;
+      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareStruct(
       StructDefinition* structM) override;
@@ -362,6 +362,8 @@ public:
   // Temporary, gets the corresponding Linear type reference.
   Reference* linearizeReference(Reference* immRcRefMT);
 
+  bool containsReferend(Referend* referendM) override;
+
 private:
   LLVMValueRef predictShallowSize(
       LLVMBuilderRef builder,
@@ -419,11 +421,17 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef regionInstancePtrLE);
 
+  void addMappedReferend(Referend* valeReferend, Referend* hostReferend) {
+    hostReferendByValeReferend.emplace(valeReferend, hostReferend);
+    valeReferendByHostReferend.emplace(hostReferend, valeReferend);
+  }
+
   GlobalState* globalState;
 
   LinearStructs structs;
 
   std::unordered_map<Referend*, Referend*> hostReferendByValeReferend;
+  std::unordered_map<Referend*, Referend*> valeReferendByHostReferend;
 
   std::string namePrefix = "__Linear";
 
