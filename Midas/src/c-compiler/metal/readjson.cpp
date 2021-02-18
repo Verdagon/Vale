@@ -29,10 +29,10 @@ std::vector<T> readArray(MetalCache* cache, const json& j, const F& f) {
   return vec;
 }
 // F should return pair<key, value>
-template<typename K, typename V, typename F>
-std::unordered_map<K, V> readArrayIntoMap(MetalCache* cache, const json& j, const F& f) {
+template<typename K, typename V, typename H, typename F>
+std::unordered_map<K, V, H> readArrayIntoMap(MetalCache* cache, H h, const json& j, const F& f) {
   assert(j.is_array());
-  auto map = std::unordered_map<K, V>{};
+  std::unordered_map<K, V, H> map(0, move(h));
   map.reserve(j.size());
   for (const auto& element : j) {
     std::pair<K, V> p = f(cache, element);
@@ -235,7 +235,10 @@ Local* readLocal(MetalCache* cache, const json& local) {
   auto ref = readReference(cache, local["type"]);
 
   return makeIfNotPresent(
-      &cache->locals[varId],
+      &makeIfNotPresent(
+          &cache->locals,
+          varId,
+          [&](){ return MetalCache::LocalByReferenceMap(0, cache->addressNumberer->makeHasher<Reference*>()); }),
       ref,
       [&](){ return new Local(varId, ref); });
 }
@@ -554,6 +557,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
   return new Program(
       readArrayIntoMap<std::string, InterfaceDefinition*>(
           cache,
+          std::hash<std::string>(),
           program["interfaces"],
           [](MetalCache* cache, json j){
             auto s = readInterface(cache, j);
@@ -561,6 +565,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
           }),
       readArrayIntoMap<std::string, StructDefinition*>(
           cache,
+          std::hash<std::string>(),
           program["structs"],
           [](MetalCache* cache, json j){
             auto s = readStruct(cache, j);
@@ -568,6 +573,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
           }),
       readArrayIntoMap<std::string, KnownSizeArrayDefinitionT*>(
           cache,
+          std::hash<std::string>(),
           program["knownSizeArrays"],
           [](MetalCache* cache, json j){
             auto s = readKnownSizeArrayDefinition(cache, j);
@@ -575,6 +581,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
           }),
       readArrayIntoMap<std::string, UnknownSizeArrayDefinitionT*>(
           cache,
+          std::hash<std::string>(),
           program["unknownSizeArrays"],
           [](MetalCache* cache, json j){
             auto s = readUnknownSizeArrayDefinition(cache, j);
@@ -583,6 +590,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
       readStructReferend(cache, program["emptyTupleStructReferend"]),
       readArrayIntoMap<std::string, Prototype*>(
           cache,
+          std::hash<std::string>(),
           program["externs"],
           [](MetalCache* cache, json j){
             auto f = readPrototype(cache, j);
@@ -590,6 +598,7 @@ Program* readProgram(MetalCache* cache, const json& program) {
           }),
       readArrayIntoMap<std::string, Function*>(
           cache,
+          std::hash<std::string>(),
           program["functions"],
           [](MetalCache* cache, json j){
             auto f = readFunction(cache, j);
@@ -597,10 +606,12 @@ Program* readProgram(MetalCache* cache, const json& program) {
           }),
       readArrayIntoMap<Referend*, Prototype*>(
           cache,
+          AddressHasher<Referend*>(cache->addressNumberer),
           program["immDestructorsByReferend"],
           readReferendAndPrototypeEntry),
       readArrayIntoMap<Name*, std::string>(
           cache,
+          AddressHasher<Name*>(cache->addressNumberer),
           program["exportedNameByFullName"],
           [](MetalCache* cache, json j){
             auto fullName = readName(cache, j["fullName"]);

@@ -159,7 +159,10 @@ Ref buildExternCall(
     hostArgsLE.reserve(args.size());
     for (int i = 0; i < args.size(); i++) {
       auto valeArgRefMT = prototype->params[i];
-      auto hostArgRefMT = globalState->linearRegion->linearizeReference(valeArgRefMT);
+      auto hostArgRefMT =
+          (valeArgRefMT->ownership == Ownership::SHARE ?
+              globalState->linearRegion->linearizeReference(valeArgRefMT) :
+              valeArgRefMT);
 
       auto valeArg = valeArgRefs[i];
       auto hostArgRefLE =
@@ -194,7 +197,10 @@ Ref buildExternCall(
         return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
       } else {
         auto valeReturnRefMT = prototype->returnType;
-        auto hostReturnMT = globalState->linearRegion->linearizeReference(valeReturnRefMT);
+        auto hostReturnMT =
+            (valeReturnRefMT->ownership == Ownership::SHARE ?
+                globalState->linearRegion->linearizeReference(valeReturnRefMT) :
+                valeReturnRefMT);
 
         auto valeReturnRef =
             sendHostObjectIntoVale(

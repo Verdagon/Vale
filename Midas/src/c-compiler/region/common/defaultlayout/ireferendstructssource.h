@@ -138,6 +138,8 @@ public:
       LLVMBuilderRef builder,
       Reference* refM,
       ControlBlockPtrLE controlBlockPtr) = 0;
+
+  virtual bool containsReferend(Referend* referend) = 0;
 };
 
 #endif

@@ -821,7 +821,8 @@ LLVMTypeRef RCImm::getExternalType(
     Reference* refMT) {
   // Instance regions (unlike this one) return their handle types from this method.
   // For this region though, we don't give out handles, we give out copies.
-  return globalState->linearRegion->translateType(refMT);
+  return globalState->linearRegion->translateType(
+      globalState->linearRegion->linearizeReference(refMT));
 }
 
 

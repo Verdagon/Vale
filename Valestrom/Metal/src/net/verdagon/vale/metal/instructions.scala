@@ -137,7 +137,7 @@ case class DestroyH(
   // TODO: If the vcurious below doesn't panic, get rid of this redundant member.
   localTypes: List[ReferenceH[ReferendH]],
   // The locals to put the struct's members into.
-localIndices: Vector[Local],
+  localIndices: Vector[Local],
 ) extends ExpressionH[StructRefH] {
   vassert(localTypes.size == localIndices.size)
   vcurious(localTypes == localIndices.map(_.typeH).toList)

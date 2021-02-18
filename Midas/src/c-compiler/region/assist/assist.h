@@ -387,7 +387,7 @@ public:
 
 private:
 
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   LLVMTypeRef regionLT;
 

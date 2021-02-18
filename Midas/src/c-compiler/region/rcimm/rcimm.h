@@ -367,7 +367,7 @@ public:
   bool containsReferend(Referend* referendM) override;
 
 private:
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   ReferendStructs referendStructs;
 

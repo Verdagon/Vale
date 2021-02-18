@@ -393,7 +393,7 @@ public:
   bool containsReferend(Referend* referendM) override;
 
 protected:
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   ReferendStructs mutNonWeakableStructs;
   WeakableReferendStructs mutWeakableStructs;

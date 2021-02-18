@@ -60,16 +60,16 @@ public:
       Reference* virtualParamMT,
       InterfaceFatPtrLE virtualArgLE);
 private:
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
-  LLVMTypeRef stringStructLT;
-  std::unordered_map<InterfaceReferend*, LLVMTypeRef> interfaceRefStructsL;
-  std::unordered_map<StructReferend*, LLVMTypeRef> structStructsL;
-  std::unordered_map<KnownSizeArrayT*, LLVMTypeRef> knownSizeArrayStructsL;
-  std::unordered_map<UnknownSizeArrayT*, LLVMTypeRef> unknownSizeArrayStructsL;
+  LLVMTypeRef stringStructLT = nullptr;
+  std::unordered_map<InterfaceReferend*, LLVMTypeRef, AddressHasher<InterfaceReferend*>> interfaceRefStructsL;
+  std::unordered_map<StructReferend*, LLVMTypeRef, AddressHasher<StructReferend*>> structStructsL;
+  std::unordered_map<KnownSizeArrayT*, LLVMTypeRef, AddressHasher<KnownSizeArrayT*>> knownSizeArrayStructsL;
+  std::unordered_map<UnknownSizeArrayT*, LLVMTypeRef, AddressHasher<UnknownSizeArrayT*>> unknownSizeArrayStructsL;
 
   // The position in the vector is the integer that will be the tag for which actual substruct
   // is being pointed at by an interface ref.
-  std::unordered_map<InterfaceReferend*, std::vector<StructReferend*>> orderedStructsByInterface;
+  std::unordered_map<InterfaceReferend*, std::vector<StructReferend*>, AddressHasher<InterfaceReferend*>> orderedStructsByInterface;
 };
 #endif

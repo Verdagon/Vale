@@ -20,6 +20,8 @@ public:
   // we have no idea who the receiver is. They'll receive this struct as the correctly
   // typed flavor of it (from structWeakRefStructs).
   virtual LLVMTypeRef getWeakVoidRefStruct(Referend* referend) = 0;
+
+  virtual bool containsReferend(Referend* referendM) = 0;
 };
 
 
@@ -205,10 +207,11 @@ private:
       Reference* reference,
       WrapperPtrLE wrapperPtrLE);
 
+  bool containsReferend(Referend* referend) override;
 
 private:
 
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   ControlBlock controlBlock;
 
@@ -398,8 +401,10 @@ public:
     return weakVoidRefStructL;
   }
 
+  bool containsReferend(Referend* referend) override;
+
 private:
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   ReferendStructs referendStructs;
 

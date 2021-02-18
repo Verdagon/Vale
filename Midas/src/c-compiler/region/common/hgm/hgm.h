@@ -137,7 +137,7 @@ private:
       Referend* referend,
       WeakFatPtrLE weakRefLE);
 
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
   FatWeaks fatWeaks_;
   IReferendStructsSource* referendStructsSource;
   IWeakRefStructsSource* weakRefStructsSource;

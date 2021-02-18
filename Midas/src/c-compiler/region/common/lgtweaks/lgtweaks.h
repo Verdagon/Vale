@@ -163,7 +163,7 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef lgtiLE);
 
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
   FatWeaks fatWeaks_;
   IReferendStructsSource* referendStructsSource;
   IWeakRefStructsSource* weakRefStructsSource;

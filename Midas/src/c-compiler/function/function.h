@@ -15,15 +15,17 @@
 class BlockState {
 private:
   const BlockState* maybeParentBlockState;
-  std::unordered_map<VariableId*, LLVMValueRef> localAddrByLocalId;
-  std::unordered_set<VariableId*> unstackifiedLocalIds;
+  std::unordered_map<VariableId*, LLVMValueRef, AddressHasher<VariableId*>> localAddrByLocalId;
+  std::unordered_set<VariableId*, AddressHasher<VariableId*>> unstackifiedLocalIds;
 
 public:
 //  LLVMBuilderRef builder;
 
   BlockState(const BlockState&) = delete;
 
-  BlockState(BlockState* maybeParentBlockState_) :
+  BlockState(AddressNumberer* addressNumberer, BlockState* maybeParentBlockState_) :
+      localAddrByLocalId(0, addressNumberer->makeHasher<VariableId*>()),
+      unstackifiedLocalIds(0, addressNumberer->makeHasher<VariableId*>()),
       maybeParentBlockState(maybeParentBlockState_) {
   }
 

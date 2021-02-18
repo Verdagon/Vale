@@ -361,6 +361,7 @@ public:
 
   // Temporary, gets the corresponding Linear type reference.
   Reference* linearizeReference(Reference* immRcRefMT);
+  Reference* unlinearizeReference(Reference* hostRefMT);
 
   bool containsReferend(Referend* referendM) override;
 
@@ -421,24 +422,36 @@ private:
       LLVMBuilderRef builder,
       LLVMValueRef regionInstancePtrLE);
 
+  void fillLinearInnerStruct(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      StructDefinition* structM,
+      std::vector<Ref> membersLE,
+      LLVMValueRef innerStructPtrLE);
+
   void addMappedReferend(Referend* valeReferend, Referend* hostReferend) {
     hostReferendByValeReferend.emplace(valeReferend, hostReferend);
     valeReferendByHostReferend.emplace(hostReferend, valeReferend);
   }
 
-  GlobalState* globalState;
+  GlobalState* globalState = nullptr;
 
   LinearStructs structs;
 
-  std::unordered_map<Referend*, Referend*> hostReferendByValeReferend;
-  std::unordered_map<Referend*, Referend*> valeReferendByHostReferend;
+  std::unordered_map<
+      Referend*,
+      Referend*,
+      AddressHasher<Referend*>> hostReferendByValeReferend;
+  std::unordered_map<
+      Referend*,
+      Referend*,
+      AddressHasher<Referend*>> valeReferendByHostReferend;
 
   std::string namePrefix = "__Linear";
 
   StructReferend* regionReferend = nullptr;
   Reference* regionRefMT = nullptr;
 
-  LLVMTypeRef regionLT = nullptr;
   Str* linearStr = nullptr;
   Reference* linearStrRefMT = nullptr;
 };

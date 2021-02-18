@@ -6,7 +6,12 @@
 
 
 LinearStructs::LinearStructs(GlobalState* globalState_)
-  : globalState(globalState_) {
+  : globalState(globalState_),
+    interfaceRefStructsL(0, globalState->addressNumberer->makeHasher<InterfaceReferend*>()),
+    structStructsL(0, globalState->addressNumberer->makeHasher<StructReferend*>()),
+    knownSizeArrayStructsL(0, globalState->addressNumberer->makeHasher<KnownSizeArrayT*>()),
+    unknownSizeArrayStructsL(0, globalState->addressNumberer->makeHasher<UnknownSizeArrayT*>()),
+    orderedStructsByInterface(0, globalState_->addressNumberer->makeHasher<InterfaceReferend*>()) {
 
 //  auto voidLT = LLVMVoidTypeInContext(globalState->context);
   auto int8LT = LLVMInt8TypeInContext(globalState->context);
@@ -21,7 +26,10 @@ LinearStructs::LinearStructs(GlobalState* globalState_)
 
 LLVMTypeRef LinearStructs::getStructStruct(StructReferend* structReferend) {
   auto structIter = structStructsL.find(structReferend);
-  assert(structIter != structStructsL.end());
+  if (structIter == structStructsL.end()) {
+    std::cerr << "Don't have the struct struct for " << structReferend->fullName->name << std::endl;
+    exit(1);
+  }
   return structIter->second;
 }
 

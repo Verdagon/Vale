@@ -54,13 +54,16 @@ LLVMValueRef declareFunction(
     LLVMBuilderRef localsBuilder = builder;
 
     FunctionState functionState(exportName, exportFunctionL, exportReturnTypeL, localsBuilder);
-    BlockState initialBlockState(nullptr);
+    BlockState initialBlockState(globalState->addressNumberer, nullptr);
 
     std::vector<Ref> argsToActualFunction;
 
     for (int i = 0; i < functionM->prototype->params.size(); i++) {
       auto valeParamMT = functionM->prototype->params[i];
-      auto hostParamMT = globalState->linearRegion->linearizeReference(valeParamMT);
+      auto hostParamMT =
+          (valeParamMT->ownership == Ownership::SHARE ?
+              globalState->linearRegion->linearizeReference(valeParamMT) :
+              valeParamMT);
       auto hostArgRefLE = LLVMGetParam(exportFunctionL, i);
 
       auto valeRef =
@@ -77,7 +80,10 @@ LLVMValueRef declareFunction(
             valeReturnRefOrVoid);
 
     auto valeReturnMT = functionM->prototype->returnType;
-    auto hostReturnMT = globalState->linearRegion->linearizeReference(valeReturnMT);
+    auto hostReturnMT =
+        (valeReturnMT->ownership == Ownership::SHARE ?
+            globalState->linearRegion->linearizeReference(valeReturnMT) :
+            valeReturnMT);
 
     auto hostReturnRefLE =
         sendValeObjectIntoHost(
@@ -194,7 +200,7 @@ void translateFunction(
   //
   // All builders work like this, at whatever level theyre on.
 
-  BlockState initialBlockState(nullptr);
+  BlockState initialBlockState(globalState->addressNumberer, nullptr);
 
   buildFlare(FL(), globalState, &functionState, bodyTopLevelBuilder, "Inside function ", functionM->prototype->name->name);
 

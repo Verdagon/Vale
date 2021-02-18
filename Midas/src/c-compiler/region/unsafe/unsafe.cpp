@@ -849,17 +849,13 @@ bool Unsafe::containsReferend(Referend* referendM) {
   } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
     return neverM->regionId == getRegionId();
   } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
-    auto structDef = globalState->program->getStruct(structReferendM->fullName);
-    return structDef->regionId == getRegionId();
+    return referendStructs.containsReferend(referendM);
   } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
-    return interfaceDef->regionId == getRegionId();
+    return referendStructs.containsReferend(referendM);
   } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
-    return usaDef->rawArray->regionId == getRegionId();
+    return referendStructs.containsReferend(referendM);
   } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
-    return ksaDef->rawArray->regionId == getRegionId();
+    return referendStructs.containsReferend(referendM);
   } else assert(false);
   assert(false);
 }

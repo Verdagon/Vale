@@ -79,7 +79,7 @@ LLVMValueRef makeNewStrFunc(GlobalState* globalState) {
   LLVMBuilderRef localsBuilder = builder;
 
   FunctionState functionState("vale_newstr", functionL, returnTypeL, localsBuilder);
-  BlockState childBlockState(nullptr);
+  BlockState childBlockState(globalState->addressNumberer, nullptr);
 
   auto lengthLE = LLVMGetParam(functionL, 0);
   buildAssert(
@@ -388,7 +388,8 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   }
 
 
-  MetalCache metalCache;
+  AddressNumberer addressNumberer;
+  MetalCache metalCache(&addressNumberer);
   globalState->metalCache = &metalCache;
 
   switch (globalState->opt->regionOverride) {
@@ -1092,7 +1093,8 @@ int main(int argc, char **argv) {
   valeOptions.srcDirAndNameNoExt = std::string(valeOptions.srcDir + valeOptions.srcNameNoExt);
 
   // We set up generation early because we need target info, e.g.: pointer size
-  GlobalState globalState;
+  AddressNumberer addressNumberer;
+  GlobalState globalState(&addressNumberer);
   setup(&globalState, &valeOptions);
 
   // Parse source file, do semantic analysis, and generate code

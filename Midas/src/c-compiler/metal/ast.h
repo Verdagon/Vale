@@ -2,6 +2,7 @@
 #define VALE_AST_H_
 
 #include "types.h"
+#include "addresshasher.h"
 
 #include <llvm-c/Core.h>
 #include <llvm-c/DebugInfo.h>
@@ -50,8 +51,8 @@ public:
     StructReferend* emptyTupleStructRef;
     std::unordered_map<std::string, Prototype*> externs;
     std::unordered_map<std::string, Function*> functions;
-    std::unordered_map<Referend*, Prototype*> immDestructorsByKind;
-    std::unordered_map<Name*, std::string> exportedNameByFullName;
+    std::unordered_map<Referend*, Prototype*, AddressHasher<Referend*>> immDestructorsByKind;
+    std::unordered_map<Name*, std::string, AddressHasher<Name*>> exportedNameByFullName;
 
     Program(
         std::unordered_map<std::string, InterfaceDefinition*> interfaces_,
@@ -61,8 +62,8 @@ public:
         StructReferend* emptyTupleStructRef_,
         std::unordered_map<std::string, Prototype*> externs_,
         std::unordered_map<std::string, Function*> functions_,
-        std::unordered_map<Referend*, Prototype*> immDestructorsByKind_,
-        std::unordered_map<Name*, std::string> exportedNameByFullName_) :
+        std::unordered_map<Referend*, Prototype*, AddressHasher<Referend*>> immDestructorsByKind_,
+        std::unordered_map<Name*, std::string, AddressHasher<Name*>> exportedNameByFullName_) :
       interfaces(move(interfaces_)),
       structs(move(structs_)),
       knownSizeArrays(move(knownSizeArrays_)),
@@ -76,7 +77,10 @@ public:
 
   StructDefinition* getStruct(Name* name) {
     auto iter = structs.find(name->name);
-    assert(iter != structs.end());
+    if (iter == structs.end()) {
+      std::cerr << "Couldn't find struct: " << name->name << std::endl;
+      exit(1);
+    }
     return iter->second;
   }
   InterfaceDefinition* getInterface(Name* name) {

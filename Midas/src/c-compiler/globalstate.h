@@ -10,6 +10,7 @@
 #include "metal/ast.h"
 #include "metal/instructions.h"
 #include "valeopts.h"
+#include "addresshasher.h"
 
 class IRegion;
 class IReferendStructsSource;
@@ -22,6 +23,10 @@ constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE = 1;
 
 class GlobalState {
 public:
+  GlobalState(AddressNumberer* addressNumberer);
+
+  AddressNumberer* addressNumberer;
+
   LLVMTargetMachineRef machine = nullptr;
   LLVMContextRef context = nullptr;
   LLVMDIBuilderRef dibuilder = nullptr;
@@ -34,7 +39,7 @@ public:
   LLVMModuleRef mod = nullptr;
   int ptrSize = 0;
 
-  MetalCache* metalCache;
+  MetalCache* metalCache = nullptr;
 
   LLVMTypeRef ram64Struct = nullptr;
 
@@ -83,7 +88,7 @@ public:
   LLVMBuilderRef stringConstantBuilder = nullptr;
   std::unordered_map<std::string, LLVMValueRef> stringConstants;
 
-  std::unordered_map<Edge*, LLVMValueRef> interfaceTablePtrs;
+  std::unordered_map<Edge*, LLVMValueRef, AddressHasher<Edge*>> interfaceTablePtrs;
 
   std::unordered_map<std::string, LLVMValueRef> functions;
   std::unordered_map<std::string, LLVMValueRef> externFunctions;
@@ -91,9 +96,9 @@ public:
   // These contain the extra interface methods that Midas adds to particular interfaces.
   // For example, for every immutable, Midas needs to add a serialize() method that
   // adds it to an outgoing linear buffer.
-  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>> interfaceExtraMethods;
-  std::unordered_map<Edge*, Edge*> extraAdditionsEdges;
-  std::unordered_map<Prototype*, LLVMValueRef> extraFunctions;
+  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>, AddressHasher<InterfaceReferend*>> interfaceExtraMethods;
+  std::unordered_map<Edge*, Edge*, AddressHasher<Edge*>> extraAdditionsEdges;
+  std::unordered_map<Prototype*, LLVMValueRef, AddressHasher<Prototype*>> extraFunctions;
 
 //  std::unordered_map<Name*, StructDefinition*> extraStructs;
 //  std::unordered_map<Name*, InterfaceDefinition*> extraInterfaces;
@@ -154,6 +159,11 @@ public:
 
   Name* getReferendName(Referend* referend);
 
+  template<typename T>
+  AddressHasher<T> makeAddressHasher() {
+    return addressNumberer->makeHasher<T>();
+  }
+
   Name* measureName = nullptr;
   Name* serializeName = nullptr;
   Name* unserializeName = nullptr;
@@ -165,7 +175,7 @@ public:
   IRegion* unsafeRegion = nullptr;
   IRegion* assistRegion = nullptr;
   Linear* linearRegion = nullptr;
-  std::unordered_map<RegionId*, IRegion*> regions;
+  std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 
 
   std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>

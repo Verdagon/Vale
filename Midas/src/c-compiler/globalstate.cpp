@@ -5,6 +5,15 @@
 #include "translatetype.h"
 #include "region/linear/linear.h"
 
+GlobalState::GlobalState(AddressNumberer* addressNumberer_) :
+    addressNumberer(addressNumberer_),
+    interfaceTablePtrs(0, addressNumberer->makeHasher<Edge*>()),
+    interfaceExtraMethods(0, addressNumberer->makeHasher<InterfaceReferend*>()),
+    extraAdditionsEdges(0, addressNumberer->makeHasher<Edge*>()),
+    extraFunctions(0, addressNumberer->makeHasher<Prototype*>()),
+    regions(0, addressNumberer->makeHasher<RegionId*>())
+{}
+
 std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>
 GlobalState::getEdgeFunctionTypesAndFunctions(Edge* edge) {
   auto interfaceM = program->getInterface(edge->interfaceName->fullName);
