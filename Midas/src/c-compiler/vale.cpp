@@ -458,7 +458,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
 
   globalState->program = program;
 
-  globalState->measureName = globalState->metalCache->getName("__vale_measure");
   globalState->serializeName = globalState->metalCache->getName("__vale_serialize");
   globalState->unserializeName = globalState->metalCache->getName("__vale_unserialize");
 
@@ -627,6 +626,9 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   // But it has to be before we translate interfaces, because thats when we manifest
   // the itable layouts.
   addExtraFunctions(globalState);
+  for (auto region : globalState->regions) {
+    region.second->declareExtraFunctions();
+  }
 
   for (auto p : program->interfaces) {
     auto name = p.first;
@@ -636,6 +638,47 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       globalState->linearRegion->translateInterface(interfaceM);
     }
   }
+
+  for (auto region : globalState->regions) {
+    region.second->defineExtraFunctions();
+  }
+
+  for (auto p : program->structs) {
+    auto name = p.first;
+    auto structM = p.second;
+    globalState->getRegion(structM->regionId)->addStructExtraFunctions(structM);
+    if (structM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->addStructExtraFunctions(structM);
+    }
+  }
+
+  for (auto p : program->interfaces) {
+    auto name = p.first;
+    auto interfaceM = p.second;
+    globalState->getRegion(interfaceM->regionId)->addInterfaceExtraFunctions(interfaceM);
+    if (interfaceM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->addInterfaceExtraFunctions(interfaceM);
+    }
+  }
+
+  for (auto p : program->knownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->addKnownSizeArrayExtraFunctions(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->addKnownSizeArrayExtraFunctions(arrayM);
+    }
+  }
+
+  for (auto p : program->unknownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->addUnknownSizeArrayExtraFunctions(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->addUnknownSizeArrayExtraFunctions(arrayM);
+    }
+  }
+
 
   for (auto p : program->structs) {
     auto name = p.first;

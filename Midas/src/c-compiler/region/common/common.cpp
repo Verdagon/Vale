@@ -168,8 +168,8 @@ LLVMValueRef insertStrongRc(
   return LLVMBuildInsertValue(
       builder,
       newControlBlockLE,
-      // Start RC at 0, see SRCAZ.
-      LLVMConstInt(LLVMInt32TypeInContext(globalState->context), 0, false),
+      // Start RC at 1, see SRCAZ.
+      LLVMConstInt(LLVMInt32TypeInContext(globalState->context), 1, false),
       structs->getControlBlock(referendM)->getMemberIndex(ControlBlockMember::STRONG_RC),
       "controlBlockWithRc");
 }

@@ -95,11 +95,11 @@ bool ReferendStructs::containsReferend(Referend* referendM) {
   } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
     return wrapperStructs.find(structReferendM->fullName->name) != wrapperStructs.end();
   } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    return interfaceRefStructs.find(structReferendM->fullName->name) != interfaceRefStructs.end();
+    return interfaceRefStructs.find(interfaceReferendM->fullName->name) != interfaceRefStructs.end();
   } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    return unknownSizeArrayWrapperStructs.find(structReferendM->fullName->name) != unknownSizeArrayWrapperStructs.end();
+    return unknownSizeArrayWrapperStructs.find(usaM->name->name) != unknownSizeArrayWrapperStructs.end();
   } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    return knownSizeArrayWrapperStructs.find(structReferendM->fullName->name) != knownSizeArrayWrapperStructs.end();
+    return knownSizeArrayWrapperStructs.find(ksaM->name->name) != knownSizeArrayWrapperStructs.end();
   } else assert(false);
   assert(false);
 }
@@ -1034,7 +1034,7 @@ bool WeakableReferendStructs::containsReferend(Referend* referendM) {
   } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
     return structWeakRefStructs.find(structReferendM->fullName->name) != structWeakRefStructs.end();
   } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    return interfaceWeakRefStructs.find(structReferendM->fullName->name) != structWeakRefStructs.end();
+    return interfaceWeakRefStructs.find(interfaceReferendM->fullName->name) != structWeakRefStructs.end();
   } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
     return false;
   } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {

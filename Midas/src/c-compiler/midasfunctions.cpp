@@ -67,7 +67,7 @@ void addExtraFunctions(GlobalState* globalState) {
   auto intMT = globalState->metalCache->intRef;
   auto intLT = globalState->getRegion(intMT)->translateType(intMT);
 
-  globalState->linearRegion->addSerializeFunctions();
+//  globalState->linearRegion->declareExtraFunctions();
 
   for (auto nameAndInterface : program->interfaces) {
     auto interfaceDefinition = nameAndInterface.second;

@@ -385,6 +385,14 @@ public:
 
   bool containsReferend(Referend* referendM) override;
 
+  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
+  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
+  void addStructExtraFunctions(StructDefinition* structDefM) override {}
+  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
+
+  void declareExtraFunctions() override {}
+  void defineExtraFunctions() override {}
+
 private:
 
   GlobalState* globalState = nullptr;

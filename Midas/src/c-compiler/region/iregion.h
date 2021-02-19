@@ -148,28 +148,6 @@ public:
 
   virtual LLVMTypeRef translateType(Reference* referenceM) = 0;
 
-  virtual void translateKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
-
-  virtual void declareKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
-
-  virtual void declareUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
-
-  virtual void translateUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
-
-
-  virtual void declareEdge(
-      Edge* edge) = 0;
-
-  virtual void translateEdge(
-      Edge* edge) = 0;
-
-  virtual void translateStruct(
-      StructDefinition* structM) = 0;
-
   virtual std::string getRefNameC(
       Reference* refMT) = 0;
   virtual void generateStructDefsC(
@@ -177,14 +155,28 @@ public:
   virtual void generateInterfaceDefsC(
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) = 0;
 
-  virtual void declareStruct(
-      StructDefinition* structM) = 0;
+  virtual void declareStruct(StructDefinition* structM) = 0;
+  virtual void translateStruct(StructDefinition* structM) = 0;
+  virtual void addStructExtraFunctions(StructDefinition* structM) = 0;
 
-  virtual void translateInterface(
-      InterfaceDefinition* interfaceM) = 0;
+  virtual void declareInterface(InterfaceDefinition* interfaceM) = 0;
+  virtual void translateInterface(InterfaceDefinition* interfaceM) = 0;
+  virtual void addInterfaceExtraFunctions(InterfaceDefinition* structM) = 0;
 
-  virtual void declareInterface(
-      InterfaceDefinition* interfaceM) = 0;
+  virtual void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
+  virtual void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
+  virtual void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* structM) = 0;
+
+  virtual void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
+  virtual void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) = 0;
+  virtual void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* structM) = 0;
+
+  virtual void declareEdge(Edge* edge) = 0;
+  virtual void translateEdge(Edge* edge) = 0;
+
+  virtual void declareExtraFunctions() = 0;
+  virtual void defineExtraFunctions() = 0;
+
 
   virtual Ref weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) = 0;
 

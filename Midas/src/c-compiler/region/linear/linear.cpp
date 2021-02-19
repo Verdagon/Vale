@@ -54,7 +54,6 @@ Linear::Linear(GlobalState* globalState_)
     structs(globalState_),
     hostReferendByValeReferend(0, globalState->addressNumberer->makeHasher<Referend*>()),
     valeReferendByHostReferend(0, globalState->addressNumberer->makeHasher<Referend*>()) {
-
   regionReferend =
       globalState->metalCache->getStructReferend(
           globalState->metalCache->getName("__Linear_Region"));
@@ -81,6 +80,20 @@ Linear::Linear(GlobalState* globalState_)
   structs.translateStruct(regionReferend, membersLT);
 }
 
+void Linear::declareExtraFunctions() {
+  auto boolMT = globalState->metalCache->boolRef;
+  auto valeStrMT = globalState->metalCache->strRef;
+  auto prototype =
+      globalState->metalCache->getPrototype(
+          globalState->serializeName, linearStrRefMT, {regionRefMT, valeStrMT, boolMT});
+  auto nameL = globalState->serializeName->name + "_str";
+  declareExtraFunction(globalState, prototype, nameL);
+}
+
+void Linear::defineExtraFunctions() {
+  defineConcreteSerializeFunction(globalState->metalCache->str);
+}
+
 RegionId* Linear::getRegionId() {
   return globalState->metalCache->linearRegionId;
 }
@@ -100,7 +113,16 @@ void Linear::dealias(
     LLVMBuilderRef builder,
     Reference* sourceMT,
     Ref sourceRef) {
-  assert(false); // impl
+  auto sourceRefLE = checkValidReference(FL(), functionState, builder, sourceMT, sourceRef);
+
+  auto sourceI8PtrLE =
+      LLVMBuildPointerCast(
+          builder,
+          sourceRefLE,
+          LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
+          "extStrPtrLE");
+
+  LLVMBuildCall(builder, globalState->free, &sourceI8PtrLE, 1, "");
 }
 
 Ref Linear::lockWeak(
@@ -198,6 +220,8 @@ void Linear::declareKnownSizeArray(
   addMappedReferend(knownSizeArrayMT, hostReferend);
 
   structs.declareKnownSizeArray(hostReferend);
+
+  declareConcreteSerializeFunction(knownSizeArrayMT->referend);
 }
 
 void Linear::declareUnknownSizeArray(
@@ -207,6 +231,8 @@ void Linear::declareUnknownSizeArray(
   addMappedReferend(unknownSizeArrayMT, hostReferend);
 
   structs.declareUnknownSizeArray(hostReferend);
+
+  declareConcreteSerializeFunction(unknownSizeArrayMT->referend);
 }
 
 void Linear::translateUnknownSizeArray(
@@ -219,6 +245,9 @@ void Linear::translateUnknownSizeArray(
   auto hostUsaMT = dynamic_cast<UnknownSizeArrayT*>(hostReferend);
   assert(hostUsaMT);
   structs.translateUnknownSizeArray(hostUsaMT, elementLT);
+}
+void Linear::addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) {
+  defineConcreteSerializeFunction(usaDefM->referend);
 }
 
 void Linear::translateKnownSizeArray(
@@ -234,6 +263,9 @@ void Linear::translateKnownSizeArray(
 
   structs.translateKnownSizeArray(hostKsaMT, ksaDef->size, elementLT);
 }
+void Linear::addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) {
+  defineConcreteSerializeFunction(ksaDef->referend);
+}
 
 void Linear::declareStruct(
     StructDefinition* structM) {
@@ -242,6 +274,8 @@ void Linear::declareStruct(
   addMappedReferend(structM->referend, hostReferend);
 
   structs.declareStruct(hostReferend);
+
+  declareConcreteSerializeFunction(structM->referend);
 }
 
 void Linear::translateStruct(
@@ -256,6 +290,10 @@ void Linear::translateStruct(
         translateType(linearizeReference(structM->members[i]->type)));
   }
   structs.translateStruct(hostStructMT, innerStructMemberTypesL);
+}
+
+void Linear::addStructExtraFunctions(StructDefinition* structDefM) {
+  defineConcreteSerializeFunction(structDefM->referend);
 }
 
 void Linear::declareEdge(
@@ -301,6 +339,9 @@ void Linear::translateInterface(
             0));
   }
   structs.translateInterface(hostInterfaceMT);
+}
+void Linear::addInterfaceExtraFunctions(InterfaceDefinition* structDefM) {
+
 }
 
 Ref Linear::weakAlias(
@@ -435,7 +476,6 @@ Ref Linear::innerAllocate(
 
   LLVMValueRef substructSizeIntLE =
       predictShallowSize(builder, hostStructRefMT->referend, constI64LE(globalState, 0));
-  buildFlare(FL(), globalState, functionState, builder, "size: ", substructSizeIntLE);
   bumpDestinationOffset(functionState, builder, regionInstanceRef, substructSizeIntLE);
 
   auto objectRef = getDestinationRef(functionState, builder, regionInstanceRef, hostStructRefMT);
@@ -799,8 +839,6 @@ Ref Linear::topLevelSerialize(
     Reference* valeRefMT,
     Reference* hostRefMT,
     Ref ref) {
-  buildFlare(FL(), globalState, functionState, builder, "topLevelSerialize");
-
   auto nullLT = LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0));
   auto dryRunCounterBeginLE = constI64LE(globalState, 0x4000000000000000UL);
 
@@ -977,24 +1015,84 @@ Ref Linear::callSerialize(
     Ref dryRunBoolRef) {
   auto prototype = getSerializeProtoype(valeRefMT, hostRefMT);
   if (dynamic_cast<InterfaceReferend*>(valeRefMT->referend)) {
-    return buildInterfaceCall(globalState, functionState, builder, prototype, {regionInstanceRef, objectRef, dryRunBoolRef}, 0);
+    return buildInterfaceCall(globalState, functionState, builder, prototype, {regionInstanceRef, objectRef, dryRunBoolRef}, 1);
   } else {
     return buildCall(globalState, functionState, builder, prototype, {regionInstanceRef, objectRef, dryRunBoolRef});
   }
 }
 
-void Linear::defineSerializeFunc(
-    Prototype* prototype) {
+void Linear::bumpDestinationOffset(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    LLVMValueRef sizeIntLE) {
+  auto regionInstancePtrLE =
+      checkValidReference(FL(), functionState, builder, regionRefMT, regionInstanceRef);
+  auto destinationOffsetPtrLE =
+      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
+  auto destinationOffsetLE = LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
+  destinationOffsetLE = LLVMBuildSub(builder, destinationOffsetLE, sizeIntLE, "bumpedDestinationOffset");
+  buildFlare(FL(), globalState, functionState, builder, "subtracted: ", destinationOffsetLE);
+  destinationOffsetLE = hexRoundDown(globalState, builder, destinationOffsetLE);
+  buildFlare(FL(), globalState, functionState, builder, "rounded: ", destinationOffsetLE);
+  LLVMBuildStore(builder, destinationOffsetLE, destinationOffsetPtrLE);
+}
+
+LLVMValueRef Linear::getDestinationOffset(
+    LLVMBuilderRef builder,
+    LLVMValueRef regionInstancePtrLE) {
+  auto destinationOffsetPtrLE =
+      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
+  return LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
+}
+
+Ref Linear::getDestinationRef(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref regionInstanceRef,
+    Reference* desiredRefMT) {
+  auto regionInstancePtrLE =
+      checkValidReference(FL(), functionState, builder, regionRefMT, regionInstanceRef);
+  auto bufferBeginPtrPtrLE = LLVMBuildStructGEP(builder, regionInstancePtrLE, 0, "bufferBeginPtrPtr");
+  auto bufferBeginPtrLE = LLVMBuildLoad(builder, bufferBeginPtrPtrLE, "bufferBeginPtr");
+
+  auto destinationOffsetPtrLE =
+      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
+  auto destinationOffsetLE = LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
+
+  auto destinationI8PtrLE = LLVMBuildGEP(builder, bufferBeginPtrLE, &destinationOffsetLE, 1, "destinationI8Ptr");
+
+  auto desiredRefLT = translateType(desiredRefMT);
+  auto destinationPtr = LLVMBuildBitCast(builder, destinationI8PtrLE, desiredRefLT, "destinationPtr");
+
+  return wrap(this, desiredRefMT, destinationPtr);
+}
+
+Prototype* Linear::getSerializePrototype(Referend* valeReferend) {
+  auto boolMT = globalState->metalCache->boolRef;
+  auto sourceStructRefMT =
+      globalState->metalCache->getReference(
+          Ownership::SHARE, Location::YONDER, valeReferend);
+  auto hostStructRefMT = linearizeReference(sourceStructRefMT);
+  return globalState->metalCache->getPrototype(
+      globalState->serializeName, hostStructRefMT, {regionRefMT, sourceStructRefMT, boolMT});
+}
+
+void Linear::declareConcreteSerializeFunction(Referend* valeReferend) {
+  auto prototype = getSerializePrototype(valeReferend);
+  auto nameL = globalState->serializeName->name + "_" + globalState->getReferendName(valeReferend)->name;
+  declareExtraFunction(globalState, prototype, nameL);
+}
+
+void Linear::defineConcreteSerializeFunction(Referend* valeReferend) {
   auto intMT = globalState->metalCache->intRef;
   auto boolMT = globalState->metalCache->boolRef;
-  auto valeStrMT = globalState->metalCache->strRef;
-  auto nameM = globalState->measureName;
+
+  auto prototype = getSerializePrototype(valeReferend);
 
   defineFunctionBody(
       globalState, prototype,
       [&](FunctionState* functionState, LLVMBuilderRef builder) -> void {
-        buildFlare(FL(), globalState, functionState, builder, "In serialize function!");
-
         auto valeObjectRefMT = prototype->params[1];
         auto hostObjectRefMT = prototype->returnType;
 
@@ -1007,8 +1105,6 @@ void Linear::defineSerializeFunc(
           auto hostStructReferend = dynamic_cast<StructReferend*>(hostReferend);
           assert(hostStructReferend);
           auto valeStructDefM = globalState->program->getStruct(valeStructReferend->fullName);
-
-          buildFlare(FL(), globalState, functionState, builder);
 
           std::vector<Ref> memberRefs;
 
@@ -1065,13 +1161,9 @@ void Linear::defineSerializeFunc(
 
           auto resultRefLE = checkValidReference(FL(), functionState, builder, hostObjectRefMT, resultRef);
 
-          buildFlare(FL(), globalState, functionState, builder, "Returning from serialize function!");
-
           LLVMBuildRet(builder, resultRefLE);
         } else if (dynamic_cast<Str*>(valeObjectRefMT->referend)) {
           auto lengthLE = globalState->getRegion(valeObjectRefMT)->getStringLen(functionState, builder, valeObjectRef);
-
-          buildFlare(FL(), globalState, functionState, builder);
 
           auto strRef =
               buildIfElse(
@@ -1083,24 +1175,14 @@ void Linear::defineSerializeFunc(
                   hostObjectRefMT,
                   hostObjectRefMT,
                   [this, regionInstanceRef, functionState, lengthLE](LLVMBuilderRef thenBuilder) {
-                    buildFlare(FL(), globalState, functionState, thenBuilder);
-
                     return innerMallocStr(regionInstanceRef, functionState, thenBuilder, lengthLE, true);
                   },
                   [this, regionInstanceRef, functionState, lengthLE, valeObjectRefMT, valeObjectRef](LLVMBuilderRef elseBuilder) {
-                    buildFlare(FL(), globalState, functionState, elseBuilder);
-
                     auto strRef = mallocStr(regionInstanceRef, functionState, elseBuilder, lengthLE);
-
-                    buildFlare(FL(), globalState, functionState, elseBuilder);
 
                     auto destCharsPtrLE = getStringBytesPtr(functionState, elseBuilder, strRef);
 
-                    buildFlare(FL(), globalState, functionState, elseBuilder);
-
                     auto sourceCharsPtrLE = globalState->getRegion(valeObjectRefMT)->getStringBytesPtr(functionState, elseBuilder, valeObjectRef);
-
-                    buildFlare(FL(), globalState, functionState, elseBuilder);
 
                     std::vector<LLVMValueRef> argsLE = { destCharsPtrLE, sourceCharsPtrLE, lengthLE };
                     LLVMBuildCall(elseBuilder, globalState->strncpy, argsLE.data(), argsLE.size(), "");
@@ -1115,117 +1197,23 @@ void Linear::defineSerializeFunc(
       });
 }
 
-void Linear::bumpDestinationOffset(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Ref regionInstanceRef,
-    LLVMValueRef sizeIntLE) {
-  auto regionInstancePtrLE =
-      checkValidReference(FL(), functionState, builder, regionRefMT, regionInstanceRef);
-  auto destinationOffsetPtrLE =
-      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
-  auto destinationOffsetLE = LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
-  destinationOffsetLE = LLVMBuildSub(builder, destinationOffsetLE, sizeIntLE, "bumpedDestinationOffset");
-  buildFlare(FL(), globalState, functionState, builder, "subtracted: ", destinationOffsetLE);
-  destinationOffsetLE = hexRoundDown(globalState, builder, destinationOffsetLE);
-  buildFlare(FL(), globalState, functionState, builder, "rounded: ", destinationOffsetLE);
-  LLVMBuildStore(builder, destinationOffsetLE, destinationOffsetPtrLE);
-}
-
-LLVMValueRef Linear::getDestinationOffset(
-    LLVMBuilderRef builder,
-    LLVMValueRef regionInstancePtrLE) {
-  auto destinationOffsetPtrLE =
-      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
-  return LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
-}
-
-Ref Linear::getDestinationRef(
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Ref regionInstanceRef,
-    Reference* desiredRefMT) {
-  auto regionInstancePtrLE =
-      checkValidReference(FL(), functionState, builder, regionRefMT, regionInstanceRef);
-  auto bufferBeginPtrPtrLE = LLVMBuildStructGEP(builder, regionInstancePtrLE, 0, "bufferBeginPtrPtr");
-  auto bufferBeginPtrLE = LLVMBuildLoad(builder, bufferBeginPtrPtrLE, "bufferBeginPtr");
-
-  auto destinationOffsetPtrLE =
-      LLVMBuildStructGEP(builder, regionInstancePtrLE, 1, "destinationOffsetPtr");
-  auto destinationOffsetLE = LLVMBuildLoad(builder, destinationOffsetPtrLE, "destinationOffset");
-
-  auto destinationI8PtrLE = LLVMBuildGEP(builder, bufferBeginPtrLE, &destinationOffsetLE, 1, "destinationI8Ptr");
-
-  auto desiredRefLT = translateType(desiredRefMT);
-  auto destinationPtr = LLVMBuildBitCast(builder, destinationI8PtrLE, desiredRefLT, "destinationPtr");
-
-  return wrap(this, desiredRefMT, destinationPtr);
-}
-
-void Linear::addSerializeFunctions() {
-  auto program = globalState->program;
-
+void Linear::declareInterfaceSerializeFunction(InterfaceReferend* valeInterface) {
   auto boolMT = globalState->metalCache->boolRef;
-  auto intMT = globalState->metalCache->intRef;
-  auto intLT = globalState->getRegion(intMT)->translateType(intMT);
-
-  // The actual LLVM name will be different, disambiguated.
-  auto nameM = globalState->serializeName;
-
-  std::vector<Prototype*> serializePrototypes;
-
-  {
-    auto valeStrMT = globalState->metalCache->strRef;
-    auto prototype = globalState->metalCache->getPrototype(nameM, linearStrRefMT, {regionRefMT, valeStrMT, boolMT});
-    auto nameL = globalState->serializeName->name + "_str";
-    declareExtraFunction(globalState, prototype, nameL);
-    serializePrototypes.push_back(prototype);
-  }
-
-  for (auto valeReferendAndHostReferend : hostReferendByValeReferend) {
-    auto valeReferend = valeReferendAndHostReferend.first;
-    if (dynamic_cast<StructReferend*>(valeReferend) ||
-        dynamic_cast<UnknownSizeArrayT*>(valeReferend) ||
-        dynamic_cast<KnownSizeArrayT*>(valeReferend)) {
-      auto sourceStructRefMT =
-          globalState->metalCache->getReference(
-              Ownership::SHARE, Location::YONDER, valeReferend);
-      auto destStructRefMT = linearizeReference(sourceStructRefMT);
-      auto prototype =
-          globalState->metalCache->getPrototype(
-              nameM, destStructRefMT, {regionRefMT, sourceStructRefMT, boolMT});
-      auto nameL = globalState->serializeName->name + "_" + globalState->getReferendName(valeReferend)->name;
-      declareExtraFunction(globalState, prototype, nameL);
-      serializePrototypes.push_back(prototype);
-    }
-  }
-
-  std::vector<Prototype*> thunkPrototypes;
-
-  for (auto valeReferendAndHostReferend : hostReferendByValeReferend) {
-    auto valeReferend = valeReferendAndHostReferend.first;
-    if (auto valeInterface = dynamic_cast<InterfaceReferend*>(valeReferend)) {
-      auto sourceInterfaceRefMT =
-          globalState->metalCache->getReference(
-              Ownership::SHARE, Location::YONDER, valeInterface);
-      auto destInterfaceRefMT = linearizeReference(sourceInterfaceRefMT);
-      auto interfacePrototype =
-          globalState->metalCache->getPrototype(
-              nameM, destInterfaceRefMT, {regionRefMT, sourceInterfaceRefMT, boolMT});
-      declareExtraInterfaceMethod(
-          globalState,
-          valeInterface,
-          new InterfaceMethod(interfacePrototype, 0),
-          [this](Prototype *substructPrototype) {
-            return globalState->lookupFunction(substructPrototype);
-          },
-          [](StructReferend *substruct, Prototype *substructPrototype) {});
-    }
-  }
-
-  for (auto prototype : serializePrototypes) {
-    defineSerializeFunc(prototype);
-  }
+  auto sourceInterfaceRefMT =
+      globalState->metalCache->getReference(
+          Ownership::SHARE, Location::YONDER, valeInterface);
+  auto destInterfaceRefMT = linearizeReference(sourceInterfaceRefMT);
+  auto interfacePrototype =
+      globalState->metalCache->getPrototype(
+          globalState->serializeName, destInterfaceRefMT, {regionRefMT, sourceInterfaceRefMT, boolMT});
+  declareExtraInterfaceMethod(
+      globalState,
+      valeInterface,
+      new InterfaceMethod(interfacePrototype, 0),
+      [this](Prototype *substructPrototype) {
+        return globalState->lookupFunction(substructPrototype);
+      },
+      [](StructReferend *substruct, Prototype *substructPrototype) {});
 }
 
 Reference* Linear::linearizeReference(Reference* immRcRefMT) {

@@ -307,8 +307,6 @@ Ref buildCall(
 
   std::vector<LLVMValueRef> argsLE;
   for (int i = 0; i < argRefs.size(); i++) {
-    buildFlare(FL(), globalState, functionState, builder, "Doing arg ", i);
-
     argsLE.push_back(
         globalState->getRegion(prototype->params[i])
             ->checkValidReference(FL(),

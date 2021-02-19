@@ -8,11 +8,19 @@
 #include "Flamscrankle.h"
 
 int64_t extFunc(Flamscrankle* flam) {
-  printf("flam %p flam->a %ld flam->b %p flam->b->a %ld flam->c %ld\n", flam, flam->a, flam->b, flam->b->a, flam->c);
   int64_t result = flam->a + flam->b->a + flam->c;
-  assert(
-      (((size_t)(void*)flam->b - sizeof(Flamscrankle)) & 0xFFFFFFFFFFFFFFF0) ==
-      (size_t)(void*)flam);
+
+  size_t flamAddr = (size_t)(void*)flam;
+  size_t bogAddr = (size_t)(void*)flam->b;
+  // Make sure that they're both at addresses that are multiples of 16
+  assert(flamAddr == (flamAddr & ~0xF));
+  assert(bogAddr == (bogAddr & ~0xF));
+  // A more efficient but less intuitive way of writing the condition after this one
+  assert(((bogAddr - sizeof(Flamscrankle)) & ~0xF) == flamAddr);
+  // Make sure that the Bogglewoggle is at the next multiple of 16 past the end of the Flamscrankle
+  assert(((flamAddr + sizeof(Flamscrankle)) | 0xF) + 1 == bogAddr);
+
   free(flam);
+
   return result;
 }

@@ -164,7 +164,6 @@ public:
     return addressNumberer->makeHasher<T>();
   }
 
-  Name* measureName = nullptr;
   Name* serializeName = nullptr;
   Name* unserializeName = nullptr;
 

@@ -13,6 +13,6 @@ Ref translateConstantStr(
     ConstantStr* constantStr) {
   auto strRef =
       buildConstantVStr(globalState, functionState, builder, constantStr->value);
-  globalState->getRegion(globalState->metalCache->strRef)->alias(FL(), functionState, builder, globalState->metalCache->strRef, strRef);
+  // Dont need to alias here, see SRCAO
   return strRef;
 }

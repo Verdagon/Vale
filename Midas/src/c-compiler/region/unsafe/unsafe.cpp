@@ -67,7 +67,6 @@ Ref Unsafe::constructKnownSizeArray(
                 controlBlockPtrLE,
                 referendM->name->name);
           });
-  alias(FL(), functionState, builder, referenceM, resultRef);
   return resultRef;
 }
 
@@ -96,7 +95,6 @@ Ref Unsafe::allocate(
                 FL(), functionState, innerBuilder, desiredReference->referend,
                 controlBlockPtrLE, structM->name->name);
           });
-  alias(FL(), functionState, builder, desiredReference, resultRef);
   return resultRef;
 }
 
@@ -704,7 +702,6 @@ Ref Unsafe::constructUnknownSizeArrayCountedStruct(
                 controlBlockPtrLE,
                 typeName);
           });
-  alias(FL(), functionState, builder, usaMT, resultRef);
   return resultRef;
 }
 
@@ -848,13 +845,13 @@ bool Unsafe::containsReferend(Referend* referendM) {
     return strM->regionId == getRegionId();
   } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
     return neverM->regionId == getRegionId();
-  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
+  } else if (dynamic_cast<StructReferend*>(referendM)) {
     return referendStructs.containsReferend(referendM);
-  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
+  } else if (dynamic_cast<InterfaceReferend*>(referendM)) {
     return referendStructs.containsReferend(referendM);
-  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
+  } else if (dynamic_cast<UnknownSizeArrayT*>(referendM)) {
     return referendStructs.containsReferend(referendM);
-  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
+  } else if (dynamic_cast<KnownSizeArrayT*>(referendM)) {
     return referendStructs.containsReferend(referendM);
   } else assert(false);
   assert(false);

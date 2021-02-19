@@ -19,17 +19,12 @@ void fillControlBlock(
     Referend* referendM,
     ControlBlockPtrLE controlBlockPtrLE,
     const std::string& typeName) {
-  LLVMValueRef newControlBlockLE =
-      LLVMGetUndef(structs->getControlBlock(referendM)->getStruct());
+  LLVMValueRef newControlBlockLE = LLVMGetUndef(structs->getControlBlock(referendM)->getStruct());
   newControlBlockLE =
       fillControlBlockCensusFields(
           from, globalState, functionState, structs, builder, referendM, newControlBlockLE, typeName);
-  newControlBlockLE =
-      insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
-  LLVMBuildStore(
-      builder,
-      newControlBlockLE,
-      controlBlockPtrLE.refLE);
+  newControlBlockLE = insertStrongRc(globalState, builder, structs, referendM, newControlBlockLE);
+  LLVMBuildStore(builder, newControlBlockLE, controlBlockPtrLE.refLE);
 }
 
 ControlBlock makeImmControlBlock(GlobalState* globalState) {
@@ -348,7 +343,7 @@ Ref RCImm::allocate(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, desiredReference->referend,
                 controlBlockPtrLE, structM->name->name);
           });
-  alias(FL(), functionState, builder, desiredReference, resultRef);
+  // Dont need to alias here because the RC starts at 1, see SRCAO
   return resultRef;
 }
 
@@ -398,7 +393,7 @@ Ref RCImm::constructKnownSizeArray(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, referendM, controlBlockPtrLE,
                 referendM->name->name);
           });
-  adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, referenceM, 1);
+  // Dont need to alias here because the RC starts at 1, see SRCAO
   return resultRef;
 }
 
@@ -546,7 +541,7 @@ Ref RCImm::constructUnknownSizeArrayCountedStruct(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, unknownSizeArrayT, controlBlockPtrLE,
                 typeName);
           });
-  adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, usaMT, 1);
+  // Dont need to alias here because the RC starts at 1, see SRCAO
   return resultRef;
 }
 
@@ -567,6 +562,7 @@ Ref RCImm::mallocStr(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, globalState->metalCache->str, controlBlockPtrLE,
                 "str");
           }));
+  // Dont need to alias here because the RC starts at 1, see SRCAO
   return resultRef;
 }
 
@@ -847,34 +843,18 @@ Ref RCImm::receiveUnencryptedAlienReference(
   } else if (dynamic_cast<Float*>(sourceRefMT->referend)) {
     return wrap(globalState->getRegion(sourceRefMT), targetRefMT, sourceRefLE);
   } else if (dynamic_cast<Str*>(sourceRefMT->referend)) {
-//    auto structL = referendStructs.getStringWrapperStruct();
-
-//    assert(LLVMTypeOf(sourceRefLE) == LLVMPointerType(structL, 0));
-//    auto extStrPtrLE = sourceRefLE;
-
-    assert(false);
-
     auto strLenLE = sourceRegion->getStringLen(functionState, builder, sourceRef);
     auto strLenBytesPtrLE = sourceRegion->getStringBytesPtr(functionState, builder, sourceRef);
 
-    auto vstrPtrLE = LLVMBuildCall(builder, globalState->newVStr, &strLenLE, 1, "vstrPtr");
-    auto vstrCharsPtrLE = LLVMBuildCall(builder, globalState->getStrCharsFunc, &vstrPtrLE, 1, "vstrCharsPtr");
+    auto vstrRef = mallocStr(makeEmptyTupleRef(globalState, this, builder), functionState, builder, strLenLE);
+    auto vstrCharsPtrLE = getStringBytesPtr(functionState, builder, vstrRef);
 
     std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, strLenBytesPtrLE, strLenLE };
     LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
 
     sourceRegion->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
 
-//    // Free the thing C gave us.
-//    auto extStrI8PtrLE =
-//        LLVMBuildPointerCast(
-//            builder,
-//            extStrPtrLE,
-//            LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-//            "extStrPtrLE");
-//    LLVMBuildCall(builder, globalState->free, &extStrI8PtrLE, 1, "");
-
-    return wrap(globalState->getRegion(globalState->metalCache->strRef), globalState->metalCache->strRef, vstrPtrLE);
+    return vstrRef;
   } else if (auto usa = dynamic_cast<UnknownSizeArrayT*>(sourceRefMT->referend)) {
     assert(false);
 //    start here, perhaps make an external struct for all USAs.

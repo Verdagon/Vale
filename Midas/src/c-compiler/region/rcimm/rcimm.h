@@ -62,35 +62,22 @@ public:
       InterfaceReferend* targetInterfaceReferendM,
       Reference* targetInterfaceTypeM) override;
 
-  void declareKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
-
-  void declareUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
-
-  void translateUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
-
-  void translateKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
-
-  void declareStruct(
-      StructDefinition* structM) override;
-
-  void translateStruct(
-      StructDefinition* structM) override;
-
-  void declareEdge(
-      Edge* edge) override;
-
-  void translateEdge(
-      Edge* edge) override;
-
-  void declareInterface(
-      InterfaceDefinition* interfaceM) override;
-
-  void translateInterface(
-      InterfaceDefinition* interfaceM) override;
+  void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void declareStruct(StructDefinition* structM) override;
+  void translateStruct(StructDefinition* structM) override;
+  void declareEdge(Edge* edge) override;
+  void translateEdge(Edge* edge) override;
+  void declareInterface(InterfaceDefinition* interfaceM) override;
+  void translateInterface(InterfaceDefinition* interfaceM) override;
+  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
+  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
+  void addStructExtraFunctions(StructDefinition* structDefM) override {}
+  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
+  void declareExtraFunctions() override {}
+  void defineExtraFunctions() override {}
 
   Ref weakAlias(
       FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) override;

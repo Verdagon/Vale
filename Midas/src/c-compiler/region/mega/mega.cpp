@@ -140,7 +140,6 @@ Ref Mega::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef b
                 controlBlockPtrLE,
                 referendM->name->name);
           });
-  alias(FL(), functionState, builder, referenceM, resultRef);
   return resultRef;
 }
 
@@ -169,7 +168,6 @@ Ref Mega::allocate(
                 FL(), functionState, innerBuilder, desiredReference->referend,
                 controlBlockPtrLE, structM->name->name);
           });
-  alias(FL(), functionState, builder, desiredReference, resultRef);
   return resultRef;
 }
 
@@ -1511,7 +1509,6 @@ Ref Mega::constructUnknownSizeArrayCountedStruct(
                 controlBlockPtrLE,
                 typeName);
           });
-  alias(FL(), functionState, builder, usaMT, resultRef);
   return resultRef;
 }
 

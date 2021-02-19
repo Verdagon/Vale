@@ -455,7 +455,6 @@ Ref Assist::allocate(
                 FL(), functionState, innerBuilder, desiredReference->referend,
                 controlBlockPtrLE, structM->name->name);
           });
-  alias(FL(), functionState, builder, desiredReference, resultRef);
   return resultRef;
 }
 

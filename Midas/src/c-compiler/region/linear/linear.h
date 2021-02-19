@@ -61,35 +61,24 @@ public:
       InterfaceReferend* targetInterfaceReferendM,
       Reference* targetInterfaceTypeM) override;
 
-  void declareKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void declareKnownSizeArray(KnownSizeArrayDefinitionT* ksaDefM) override;
+  void translateKnownSizeArray(KnownSizeArrayDefinitionT* ksaDefM) override;
+  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
 
-  void declareUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
 
-  void translateUnknownSizeArray(
-      UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void declareStruct(StructDefinition* structDefM) override;
+  void translateStruct(StructDefinition* structDefM) override;
+  void addStructExtraFunctions(StructDefinition* structDefM) override;
 
-  void translateKnownSizeArray(
-      KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void declareInterface(InterfaceDefinition* interfaceDefM) override;
+  void translateInterface(InterfaceDefinition* interfaceDefM) override;
+  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
 
-  void declareStruct(
-      StructDefinition* structM) override;
-
-  void translateStruct(
-      StructDefinition* structM) override;
-
-  void declareEdge(
-      Edge* edge) override;
-
-  void translateEdge(
-      Edge* edge) override;
-
-  void declareInterface(
-      InterfaceDefinition* interfaceM) override;
-
-  void translateInterface(
-      InterfaceDefinition* interfaceM) override;
+  void declareEdge(Edge* edge) override;
+  void translateEdge(Edge* edge) override;
 
   Ref weakAlias(
       FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) override;
@@ -357,7 +346,8 @@ public:
 
   RegionId* getRegionId() override;
 
-  void addSerializeFunctions();
+  void declareExtraFunctions() override;
+  void defineExtraFunctions() override;
 
   // Temporary, gets the corresponding Linear type reference.
   Reference* linearizeReference(Reference* immRcRefMT);
@@ -366,6 +356,13 @@ public:
   bool containsReferend(Referend* referendM) override;
 
 private:
+  void declareConcreteSerializeFunction(Referend* valeReferendM);
+  void defineConcreteSerializeFunction(Referend* valeReferendM);
+  void declareInterfaceSerializeFunction(InterfaceReferend* valeReferend);
+  void defineInterfaceSerializeFunction(InterfaceReferend* valeReferend);
+
+  Prototype* getSerializePrototype(Referend* valeReferend);
+
   LLVMValueRef predictShallowSize(
       LLVMBuilderRef builder,
       Referend* referend,
@@ -403,8 +400,6 @@ private:
       Reference* valeRefMT,
       Reference* hostRefMT,
       Ref ref);
-
-  void defineSerializeFunc(Prototype* prototype);
 
   void bumpDestinationOffset(
       FunctionState* functionState,
