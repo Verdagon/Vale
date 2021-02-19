@@ -367,7 +367,7 @@ public:
   void generateInterfaceDefsC(
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
 
-  LLVMTypeRef getExternalType(Reference* refMT) override;
+  Reference* getExternalType(Reference* refMT) override;
 
   Ref receiveUnencryptedAlienReference(
       FunctionState* functionState,

@@ -46,9 +46,9 @@ LLVMTypeRef LinearStructs::getUnknownSizeArrayStruct(UnknownSizeArrayT* usaMT) {
 }
 
 LLVMTypeRef LinearStructs::getInterfaceRefStruct(InterfaceReferend* interfaceReferend) {
-  auto structIter = interfaceRefStructsL.find(interfaceReferend);
-  assert(structIter != interfaceRefStructsL.end());
-  return structIter->second;
+  auto iter = interfaceRefStructsL.find(interfaceReferend);
+  assert(iter != interfaceRefStructsL.end());
+  return iter->second;
 }
 
 LLVMTypeRef LinearStructs::getStringStruct() {
@@ -63,15 +63,14 @@ void LinearStructs::declareStruct(StructReferend* structM) {
   structStructsL.emplace(structM, structL);
 }
 
-void LinearStructs::declareEdge(
-    Edge* edge) {
+void LinearStructs::declareEdge(StructReferend* structReferend, InterfaceReferend* interfaceReferend) {
   // There aren't edges per se, just tag numbers. That's all we have to do here.
 
   // Creates one if it doesnt already exist.
-  auto* os = &orderedStructsByInterface[edge->interfaceName];
+  auto* os = &orderedStructsByInterface[interfaceReferend];
 
-  assert(std::count(os->begin(), os->end(), edge->structName) == 0);
-  os->push_back(edge->structName);
+  assert(std::count(os->begin(), os->end(), structReferend) == 0);
+  os->push_back(structReferend);
 }
 
 void LinearStructs::declareInterface(InterfaceReferend* interface) {
@@ -103,14 +102,17 @@ void LinearStructs::translateStruct(
   LLVMStructSetBody(structL, membersLT.data(), membersLT.size(), false);
 }
 
-void LinearStructs::translateInterface(InterfaceReferend* interface) {
+void LinearStructs::translateInterface(InterfaceReferend *interface) {
   LLVMTypeRef refStructL = getInterfaceRefStruct(interface);
-
   std::vector<LLVMTypeRef> memberTypesL = {
-      LLVMInt64TypeInContext(globalState->context),
       LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
+      LLVMInt64TypeInContext(globalState->context),
   };
   LLVMStructSetBody(refStructL, memberTypesL.data(), memberTypesL.size(), false);
+
+//  LLVMTypeRef itableStruct = getInterfaceTableStruct(interface);
+//  LLVMStructSetBody(
+//      itableStruct, functionsLT.data(), functionsLT.size(), false);
 }
 
 void LinearStructs::translateEdge(

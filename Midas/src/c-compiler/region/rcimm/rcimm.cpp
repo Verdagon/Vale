@@ -191,14 +191,11 @@ void RCImm::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void RCImm::translateEdge(
-    Edge* edge) {
+void RCImm::translateEdge(Edge* edge) {
   auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
 
-  std::vector<LLVMTypeRef> interfaceFunctionsLT;
-  std::vector<LLVMValueRef> edgeFunctionsL;
-  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
-      globalState->getEdgeFunctionTypesAndFunctions(edge);
+  auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
+  auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -209,17 +206,8 @@ void RCImm::declareInterface(
 
 void RCImm::translateInterface(
     InterfaceDefinition* interfaceM) {
-  assert((uint64_t)interfaceM->referend > 0x10000);
-  std::vector<LLVMTypeRef> interfaceMethodTypesL;
-  for (int i = 0; i < interfaceM->methods.size(); i++) {
-    interfaceMethodTypesL.push_back(
-        LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
-            0));
-  }
-  referendStructs.translateInterface(
-      interfaceM,
-      interfaceMethodTypesL);
+  auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
+  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
 }
 
 Ref RCImm::weakAlias(
@@ -754,71 +742,23 @@ void RCImm::checkValidReference(
 }
 
 std::string RCImm::getRefNameC(Reference* sourceMT) {
-  auto sourceRnd = sourceMT->referend;
-  if (dynamic_cast<Int *>(sourceRnd)) {
-    return "int64_t";
-  } else if (dynamic_cast<Bool *>(sourceRnd)) {
-    return "int8_t";
-  } else if (dynamic_cast<Float *>(sourceRnd)) {
-    return "double";
-  } else if (dynamic_cast<Str *>(sourceRnd)) {
-    return "ValeStr*";
-  } else if (auto interfaceRnd = dynamic_cast<InterfaceReferend *>(sourceRnd)) {
-    auto baseName = globalState->program->getExportedName(interfaceRnd->fullName);
-    assert(sourceMT->ownership == Ownership::SHARE);
-    if (sourceMT->location == Location::INLINE) {
-      return baseName;
-    } else {
-      return baseName + "*";
-    };
-  } else if (sourceRnd == globalState->metalCache->emptyTupleStruct) {
-    return "void";
-  } else if (auto structRnd = dynamic_cast<StructReferend *>(sourceRnd)) {
-    auto baseName = globalState->program->getExportedName(structRnd->fullName);
-    assert(sourceMT->ownership == Ownership::SHARE);
-    if (sourceMT->location == Location::INLINE) {
-      return baseName;
-    } else {
-      return baseName + "*";
-    }
-  } else if (dynamic_cast<KnownSizeArrayT *>(sourceRnd) ||
-             dynamic_cast<UnknownSizeArrayT *>(sourceRnd)) {
-    assert(false); // impl
-  } else {
-    std::cerr << "Unimplemented type in immutables' getRefNameC: "
-              << typeid(*sourceMT->referend).name() << std::endl;
-    assert(false);
-  }
+  assert(false);
 }
 
 void RCImm::generateStructDefsC(
     std::unordered_map<std::string, std::string>* cByExportedName,
     StructDefinition* structDefM) {
-  auto name = globalState->program->getExportedName(structDefM->referend->fullName);
-  std::stringstream s;
-  s << "typedef struct " << name << " {" << std::endl;
-  for (int i = 0; i < structDefM->members.size(); i++) {
-    auto member = structDefM->members[i];
-    s << "  " << getRefNameC(member->type) << " " << member->name << ";" << std::endl;
-  }
-  s << "} " << name << ";" << std::endl;
-
-  cByExportedName->insert(std::make_pair(name, s.str()));
+  assert(false);
 }
 
 void RCImm::generateInterfaceDefsC(std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* interfaceDefM) {
-  auto name = globalState->program->getExportedName(interfaceDefM->referend->fullName);
-  std::stringstream s;
-  s << "typedef struct " << name << " { void* unused1; void* unused2; } " << name << ";";
-  cByExportedName->insert(std::make_pair(name, s.str()));
+  assert(false);
 }
 
-LLVMTypeRef RCImm::getExternalType(
-    Reference* refMT) {
+Reference* RCImm::getExternalType(Reference* refMT) {
   // Instance regions (unlike this one) return their handle types from this method.
   // For this region though, we don't give out handles, we give out copies.
-  return globalState->linearRegion->translateType(
-      globalState->linearRegion->linearizeReference(refMT));
+  return globalState->linearRegion->linearizeReference(refMT);
 }
 
 

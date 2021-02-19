@@ -300,8 +300,7 @@ public:
 
   // For instance regions, this will return the handle's type.
   // For value regions, we'll just be returning linear's translateType.
-  virtual LLVMTypeRef getExternalType(
-      Reference* refMT) = 0;
+  virtual Reference* getExternalType(Reference* refMT) = 0;
 
   virtual LoadResult loadElementFromKSA(
       FunctionState* functionState,

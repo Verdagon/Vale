@@ -302,7 +302,7 @@ public:
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
 
 
-  LLVMTypeRef getExternalType(
+  Reference* getExternalType(
       Reference* refMT) override;
 
   Ref receiveUnencryptedAlienReference(
@@ -362,6 +362,7 @@ private:
   void defineInterfaceSerializeFunction(InterfaceReferend* valeReferend);
 
   Prototype* getSerializePrototype(Referend* valeReferend);
+  Prototype* getSerializeThunkPrototype(StructReferend* structReferend, InterfaceReferend* interfaceReferend);
 
   LLVMValueRef predictShallowSize(
       LLVMBuilderRef builder,
@@ -380,14 +381,12 @@ private:
       const std::vector<Ref>& memberRefs,
       bool dryRun);
 
-  Prototype* getSerializeProtoype(
-      Reference* valeRefMT,
-      Reference* hostRefMT);
+  InterfaceMethod* getSerializeInterfaceMethod(Referend* valeReferend);
+
   Ref callSerialize(
       FunctionState *functionState,
       LLVMBuilderRef builder,
-      Reference* valeRefMT,
-      Reference* hostRefMT,
+      Referend* valeReferend,
       Ref regionInstanceRef,
       Ref objectRef,
       Ref dryRunBoolRef);
@@ -397,8 +396,7 @@ private:
   Ref topLevelSerialize(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* valeRefMT,
-      Reference* hostRefMT,
+      Referend* valeReferend,
       Ref ref);
 
   void bumpDestinationOffset(

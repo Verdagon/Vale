@@ -23,8 +23,7 @@ public:
       StructReferend* struuct,
       std::vector<LLVMTypeRef> membersLT) ;
   void declareStruct(StructReferend* structM);
-  void declareEdge(
-      Edge* edge);
+  void declareEdge(StructReferend* structReferend, InterfaceReferend* interfaceReferend);
   void translateEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
@@ -59,6 +58,17 @@ public:
       LLVMBuilderRef builder,
       Reference* virtualParamMT,
       InterfaceFatPtrLE virtualArgLE);
+
+  int getEdgeNumber(InterfaceReferend* interfaceReferend, StructReferend* structReferend) {
+    auto structs = orderedStructsByInterface.find(interfaceReferend)->second;
+    auto index = std::find(structs.begin(), structs.end(), structReferend) - structs.begin();
+    assert(index < structs.size());
+    return index;
+  }
+  std::vector<StructReferend*> getOrderedEdges(InterfaceReferend* interfaceReferend) {
+    return orderedStructsByInterface.find(interfaceReferend)->second;
+  }
+
 private:
   GlobalState* globalState = nullptr;
 

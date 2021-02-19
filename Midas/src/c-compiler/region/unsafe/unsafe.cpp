@@ -297,12 +297,8 @@ void Unsafe::declareEdge(
 
 void Unsafe::translateEdge(
     Edge* edge) {
-  auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
-
-  std::vector<LLVMTypeRef> interfaceFunctionsLT;
-  std::vector<LLVMValueRef> edgeFunctionsL;
-  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
-      globalState->getEdgeFunctionTypesAndFunctions(edge);
+  auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
+  auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -313,16 +309,8 @@ void Unsafe::declareInterface(
 
 void Unsafe::translateInterface(
     InterfaceDefinition* interfaceM) {
-  std::vector<LLVMTypeRef> interfaceMethodTypesL;
-  for (int i = 0; i < interfaceM->methods.size(); i++) {
-    interfaceMethodTypesL.push_back(
-        LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
-            0));
-  }
-  referendStructs.translateInterface(
-      interfaceM,
-      interfaceMethodTypesL);
+  auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
+  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
 }
 
 void Unsafe::discardOwningRef(
@@ -782,20 +770,21 @@ void Unsafe::generateInterfaceDefsC(
   assert(false); // impl
 }
 
-LLVMTypeRef Unsafe::getExternalType(Reference* refMT) {
-  if (refMT->ownership == Ownership::SHARE) {
-    assert(false);
-  } else {
-    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-      return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
-    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-      assert(false); // impl
-    } else {
-      std::cerr << "Invalid type for extern!" << std::endl;
-      assert(false);
-    }
-  }
-  assert(false);
+Reference* Unsafe::getExternalType(Reference* refMT) {
+  return refMT;
+//  if (refMT->ownership == Ownership::SHARE) {
+//    assert(false);
+//  } else {
+//    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+//      return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
+//    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+//      assert(false); // impl
+//    } else {
+//      std::cerr << "Invalid type for extern!" << std::endl;
+//      assert(false);
+//    }
+//  }
+//  assert(false);
 }
 
 Ref Unsafe::receiveAndDecryptFamiliarReference(

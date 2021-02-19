@@ -475,7 +475,7 @@ StructMember* readStructMember(MetalCache* cache, const json& struuct) {
 InterfaceMethod* readInterfaceMethod(MetalCache* cache, const json& struuct) {
   assert(struuct.is_object());
   assert(struuct["__type"] == "InterfaceMethod");
-  return new InterfaceMethod(
+  return cache->getInterfaceMethod(
       readPrototype(cache, struuct["prototype"]),
       struuct["virtualParamIndex"]);
 }

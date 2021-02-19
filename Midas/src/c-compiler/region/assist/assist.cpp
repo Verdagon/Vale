@@ -206,15 +206,9 @@ void Assist::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void Assist::translateEdge(
-    Edge* edge) {
-  auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
-
-  std::vector<LLVMTypeRef> interfaceFunctionsLT;
-  std::vector<LLVMValueRef> edgeFunctionsL;
-  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
-      globalState->getEdgeFunctionTypesAndFunctions(edge);
-
+void Assist::translateEdge(Edge* edge) {
+  auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
+  auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -225,17 +219,8 @@ void Assist::declareInterface(
 
 void Assist::translateInterface(
     InterfaceDefinition* interfaceM) {
-  assert((uint64_t)interfaceM->referend > 0x10000);
-  std::vector<LLVMTypeRef> interfaceMethodTypesL;
-  for (int i = 0; i < interfaceM->methods.size(); i++) {
-    interfaceMethodTypesL.push_back(
-        LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
-            0));
-  }
-  referendStructs.translateInterface(
-      interfaceM,
-      interfaceMethodTypesL);
+  auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
+  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
 }
 
 Ref Assist::weakAlias(
@@ -801,25 +786,25 @@ std::string Assist::getRefNameC(Reference* refMT) {
   }
 }
 
-LLVMTypeRef Assist::getExternalType(
-    Reference* refMT) {
-  if (refMT->ownership == Ownership::SHARE) {
-    assert(false);
-  } else {
-    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-      if (refMT->location == Location::INLINE) {
-        assert(false); // what do we do in this case? malloc an owning thing and send it in?
-        // perhaps just disallow sending inl owns?
-      }
-      return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
-    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-      return LLVMPointerType(referendStructs.getInterfaceRefStruct(interfaceReferend), 0);
-    } else {
-      std::cerr << "Invalid type for extern!" << std::endl;
-      assert(false);
-    }
-  }
-  assert(false);
+Reference* Assist::getExternalType(Reference* refMT) {
+  return refMT;
+//  if (refMT->ownership == Ownership::SHARE) {
+//    assert(false);
+//  } else {
+//    if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+//      if (refMT->location == Location::INLINE) {
+//        assert(false); // what do we do in this case? malloc an owning thing and send it in?
+//        // perhaps just disallow sending inl owns?
+//      }
+//      return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
+//    } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+//      return LLVMPointerType(referendStructs.getInterfaceRefStruct(interfaceReferend), 0);
+//    } else {
+//      std::cerr << "Invalid type for extern!" << std::endl;
+//      assert(false);
+//    }
+//  }
+//  assert(false);
 }
 
 Ref Assist::receiveAndDecryptFamiliarReference(

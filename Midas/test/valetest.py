@@ -396,6 +396,21 @@ class ValeTest(unittest.TestCase):
     def test_naiverc_extimmstructparamdeep(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "naive-rc", 42)
 
+    def test_assist_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "assist", 42)
+    def test_unsafefast_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "unsafe-fast", 42)
+    def test_resilientv0_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v0", 42)
+    def test_resilientv1_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v1", 42)
+    def test_resilientv2_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v2", 42)
+    def test_resilientv3_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v3", 42)
+    def test_naiverc_extimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "naive-rc", 42)
+
     # def test_assist_externimmusa(self) -> None:
     #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/externimmusa.vale", PATH_TO_SAMPLES + "programs/arrays/externimmusa.c"], "assist", 15)
     # def test_unsafefast_externimmusa(self) -> None:

@@ -96,9 +96,22 @@ public:
   // These contain the extra interface methods that Midas adds to particular interfaces.
   // For example, for every immutable, Midas needs to add a serialize() method that
   // adds it to an outgoing linear buffer.
-  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>, AddressHasher<InterfaceReferend*>> interfaceExtraMethods;
-  std::unordered_map<Edge*, Edge*, AddressHasher<Edge*>> extraAdditionsEdges;
   std::unordered_map<Prototype*, LLVMValueRef, AddressHasher<Prototype*>> extraFunctions;
+  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>, AddressHasher<InterfaceReferend*>> interfaceExtraMethods;
+  std::unordered_map<Edge*, std::vector<std::pair<InterfaceMethod*, Prototype*>>, AddressHasher<Edge*>> edgeExtraMethods;
+  // This keeps us from adding more edges or interfaces after we've already started compiling them.
+  bool interfacesOpen = true;
+
+  void addInterfaceExtraMethod(InterfaceReferend* interfaceReferend, InterfaceMethod* method) {
+    assert(interfacesOpen);
+    interfaceExtraMethods[interfaceReferend].push_back(method);
+  }
+  void addEdgeExtraMethod(Edge* edge, InterfaceMethod* interfaceMethod, Prototype* function) {
+    assert(interfacesOpen);
+    int index = edgeExtraMethods[edge].size();
+    assert(interfaceExtraMethods[edge->interfaceName][index] == interfaceMethod);
+    edgeExtraMethods[edge].push_back(std::make_pair(interfaceMethod, function));
+  }
 
 //  std::unordered_map<Name*, StructDefinition*> extraStructs;
 //  std::unordered_map<Name*, InterfaceDefinition*> extraInterfaces;
@@ -141,7 +154,7 @@ public:
     auto extraMethods = iter->second;
     for (int i = 0; i < extraMethods.size(); i++) {
       if (extraMethods[i]->prototype == prototype) {
-        return i;
+        return interfaceDefM->methods.size() + i;
       }
     }
     assert(false);
@@ -165,6 +178,7 @@ public:
   }
 
   Name* serializeName = nullptr;
+  Name* serializeThunkName = nullptr;
   Name* unserializeName = nullptr;
 
   LLVMBuilderRef valeMainBuilder = nullptr;
@@ -177,8 +191,9 @@ public:
   std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 
 
-  std::tuple<std::vector<LLVMTypeRef>, std::vector<LLVMValueRef>>
-  getEdgeFunctionTypesAndFunctions(Edge* edge);
+  std::vector<LLVMValueRef> getEdgeFunctions(Edge* edge);
+
+  std::vector<LLVMTypeRef> getInterfaceFunctionTypes(InterfaceReferend* referend);
 
 
   IRegion* getRegion(Reference* referenceM);

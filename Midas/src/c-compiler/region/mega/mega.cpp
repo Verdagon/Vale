@@ -605,12 +605,8 @@ void Mega::declareEdge(
 
 void Mega::translateEdge(
     Edge* edge) {
-  auto interfaceM = globalState->program->getInterface(edge->interfaceName->fullName);
-
-  std::vector<LLVMTypeRef> interfaceFunctionsLT;
-  std::vector<LLVMValueRef> edgeFunctionsL;
-  std::tie(interfaceFunctionsLT, edgeFunctionsL) =
-      globalState->getEdgeFunctionTypesAndFunctions(edge);
+  auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
+  auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
   referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
@@ -621,16 +617,8 @@ void Mega::declareInterface(
 
 void Mega::translateInterface(
     InterfaceDefinition* interfaceM) {
-  std::vector<LLVMTypeRef> interfaceMethodTypesL;
-  for (int i = 0; i < interfaceM->methods.size(); i++) {
-    interfaceMethodTypesL.push_back(
-        LLVMPointerType(
-            translateInterfaceMethodToFunctionType(globalState, interfaceM->methods[i]),
-            0));
-  }
-  referendStructs.translateInterface(
-      interfaceM,
-      interfaceMethodTypesL);
+  auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
+  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
 }
 
 void Mega::discardOwningRef(
@@ -1697,61 +1685,62 @@ void Mega::generateInterfaceDefsC(
   }
 }
 
-LLVMTypeRef Mega::getExternalType(Reference* refMT) {
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-      if (refMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-          return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
-        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-          assert(false); // impl
-        } else {
-          std::cerr << "Invalid type for extern!" << std::endl;
-          assert(false);
-        }
-      }
-      assert(false);
-      break;
-    case RegionOverride::RESILIENT_V0:
-    case RegionOverride::RESILIENT_V1:
-      if (refMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-          return weakRefStructs.getStructWeakRefStruct(structReferend);
-        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-          assert(false); // impl
-        } else {
-          std::cerr << "Invalid type for extern!" << std::endl;
-          assert(false);
-        }
-      }
-      assert(false);
-      break;
-    case RegionOverride::RESILIENT_V2:
-    case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_LIMIT:
-      if (refMT->ownership == Ownership::SHARE) {
-        assert(false);
-      } else {
-        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
-          return weakRefStructs.getStructWeakRefStruct(structReferend);
-        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
-          assert(false); // impl
-        } else {
-          std::cerr << "Invalid type for extern!" << std::endl;
-          assert(false);
-        }
-      }
-      assert(false);
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  assert(false);
+Reference* Mega::getExternalType(Reference* refMT) {
+  return refMT;
+//  switch (globalState->opt->regionOverride) {
+//    case RegionOverride::NAIVE_RC:
+//      if (refMT->ownership == Ownership::SHARE) {
+//        assert(false);
+//      } else {
+//        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+//          return LLVMPointerType(referendStructs.getWrapperStruct(structReferend), 0);
+//        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+//          assert(false); // impl
+//        } else {
+//          std::cerr << "Invalid type for extern!" << std::endl;
+//          assert(false);
+//        }
+//      }
+//      assert(false);
+//      break;
+//    case RegionOverride::RESILIENT_V0:
+//    case RegionOverride::RESILIENT_V1:
+//      if (refMT->ownership == Ownership::SHARE) {
+//        assert(false);
+//      } else {
+//        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+//          return weakRefStructs.getStructWeakRefStruct(structReferend);
+//        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+//          assert(false); // impl
+//        } else {
+//          std::cerr << "Invalid type for extern!" << std::endl;
+//          assert(false);
+//        }
+//      }
+//      assert(false);
+//      break;
+//    case RegionOverride::RESILIENT_V2:
+//    case RegionOverride::RESILIENT_V3:
+//    case RegionOverride::RESILIENT_LIMIT:
+//      if (refMT->ownership == Ownership::SHARE) {
+//        assert(false);
+//      } else {
+//        if (auto structReferend = dynamic_cast<StructReferend*>(refMT->referend)) {
+//          return weakRefStructs.getStructWeakRefStruct(structReferend);
+//        } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(refMT->referend)) {
+//          assert(false); // impl
+//        } else {
+//          std::cerr << "Invalid type for extern!" << std::endl;
+//          assert(false);
+//        }
+//      }
+//      assert(false);
+//      break;
+//    default:
+//      assert(false);
+//      break;
+//  }
+//  assert(false);
 }
 
 Ref Mega::receiveAndDecryptFamiliarReference(

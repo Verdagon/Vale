@@ -459,6 +459,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   globalState->program = program;
 
   globalState->serializeName = globalState->metalCache->getName("__vale_serialize");
+  globalState->serializeThunkName = globalState->metalCache->getName("__vale_serialize_thunk");
   globalState->unserializeName = globalState->metalCache->getName("__vale_unserialize");
 
 
@@ -625,10 +626,24 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   // It also has to be after we *define* them, because they want to access members.
   // But it has to be before we translate interfaces, because thats when we manifest
   // the itable layouts.
-  addExtraFunctions(globalState);
   for (auto region : globalState->regions) {
     region.second->declareExtraFunctions();
   }
+
+  for (auto p : program->structs) {
+    auto name = p.first;
+    auto structM = p.second;
+    for (auto e : structM->edges) {
+      globalState->getRegion(structM->regionId)->declareEdge(e);
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        globalState->linearRegion->declareEdge(e);
+      }
+    }
+  }
+
+  // This keeps us from accidentally adding interfaces and interface methods after we've
+  // started compiling interfaces.
+  globalState->interfacesOpen = false;
 
   for (auto p : program->interfaces) {
     auto name = p.first;
@@ -676,18 +691,6 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     globalState->getRegion(arrayM->rawArray->regionId)->addUnknownSizeArrayExtraFunctions(arrayM);
     if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
       globalState->linearRegion->addUnknownSizeArrayExtraFunctions(arrayM);
-    }
-  }
-
-
-  for (auto p : program->structs) {
-    auto name = p.first;
-    auto structM = p.second;
-    for (auto e : structM->edges) {
-      globalState->getRegion(structM->regionId)->declareEdge(e);
-      if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->linearRegion->declareEdge(e);
-      }
     }
   }
 
@@ -863,7 +866,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     // generating some stuff for the outside to point inside.
     if (globalState->program->isExported(structM->name)) {
       if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->rcImm->generateStructDefsC(&cByExportedName, structM);
+        globalState->linearRegion->generateStructDefsC(&cByExportedName, structM);
       } else {
         globalState->mutRegion->generateStructDefsC(&cByExportedName, structM);
       }
@@ -874,7 +877,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     if (globalState->program->isExported(interfaceM->name)) {
 
       if (interfaceM->mutability == Mutability::IMMUTABLE) {
-        globalState->rcImm->generateInterfaceDefsC(&cByExportedName, interfaceM);
+        globalState->linearRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
       } else {
         globalState->mutRegion->generateInterfaceDefsC(&cByExportedName, interfaceM);
       }
@@ -886,13 +889,15 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
         globalState->program->isExported(functionM->prototype->name)) {
       auto exportedName = program->getExportedName(functionM->prototype->name);
       std::stringstream s;
-      s << "extern " << globalState->getRegion(functionM->prototype->returnType)->getRefNameC(functionM->prototype->returnType) << " ";
+      auto externReturnType = globalState->getRegion(functionM->prototype->returnType)->getExternalType(functionM->prototype->returnType);
+      s << "extern " << globalState->getRegion(externReturnType)->getRefNameC(externReturnType) << " ";
       s << exportedName << "(";
       for (int i = 0; i < functionM->prototype->params.size(); i++) {
         if (i > 0) {
           s << ", ";
         }
-        s << globalState->getRegion(functionM->prototype->params[i])->getRefNameC(functionM->prototype->params[i]) << " param" << i;
+        auto hostParamRefMT = globalState->getRegion(functionM->prototype->params[i])->getExternalType(functionM->prototype->params[i]);
+        s << globalState->getRegion(hostParamRefMT)->getRefNameC(hostParamRefMT) << " param" << i;
       }
       s << ");" << std::endl;
       cByExportedName.insert(std::make_pair(exportedName, s.str()));

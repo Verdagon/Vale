@@ -29,11 +29,14 @@ LLVMValueRef declareFunction(
   if (globalState->program->isExported(functionM->prototype->name)) {
     std::vector<LLVMTypeRef> exportParamTypesL;
     for (auto valeRefMT : functionM->prototype->params) {
-      exportParamTypesL.push_back(globalState->getRegion(valeRefMT)->getExternalType(valeRefMT));
+      auto hostRefMT = globalState->getRegion(valeRefMT)->getExternalType(valeRefMT);
+      exportParamTypesL.push_back(globalState->getRegion(hostRefMT)->translateType(hostRefMT));
     }
-    LLVMTypeRef exportReturnTypeL =
+    auto hostReturnRefMT =
         globalState->getRegion(functionM->prototype->returnType)
             ->getExternalType(functionM->prototype->returnType);
+    LLVMTypeRef exportReturnTypeL =
+        globalState->getRegion(hostReturnRefMT)->translateType(hostReturnRefMT);
 
     LLVMTypeRef exportFunctionTypeL =
         LLVMFunctionType(exportReturnTypeL, exportParamTypesL.data(), exportParamTypesL.size(), 0);
@@ -126,8 +129,10 @@ LLVMValueRef declareExternFunction(
     GlobalState* globalState,
     Prototype* prototypeM) {
   std::vector<LLVMTypeRef> paramTypesL;
-  for (auto paramTypeM : prototypeM->params) {
-    paramTypesL.push_back(globalState->getRegion(paramTypeM)->getExternalType(paramTypeM));
+  for (auto valeParamRefMT : prototypeM->params) {
+    auto hostParamRefMT = globalState->getRegion(valeParamRefMT)->getExternalType(valeParamRefMT);
+    auto hostParamRefLT = globalState->getRegion(hostParamRefMT)->translateType(hostParamRefMT);
+    paramTypesL.push_back(hostParamRefLT);
   }
 
   LLVMTypeRef returnTypeL;
@@ -136,7 +141,8 @@ LLVMValueRef declareExternFunction(
   } else if (prototypeM->returnType == globalState->metalCache->emptyTupleStructRef) {
     returnTypeL = LLVMVoidTypeInContext(globalState->context);
   } else {
-    returnTypeL = globalState->getRegion(prototypeM->returnType)->getExternalType(prototypeM->returnType);
+    auto hostRetRefMT = globalState->getRegion(prototypeM->returnType)->getExternalType(prototypeM->returnType);
+    returnTypeL = globalState->getRegion(hostRetRefMT)->translateType(hostRetRefMT);
   }
 
   auto nameL = prototypeM->name->name;

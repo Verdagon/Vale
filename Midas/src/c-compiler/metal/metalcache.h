@@ -80,6 +80,7 @@ public:
       knownSizeArrays(0, addressNumberer->makeHasher<Name*>()),
       unconvertedReferences(0, addressNumberer->makeHasher<Referend*>()),
       prototypes(0, addressNumberer->makeHasher<Name*>()),
+      interfaceMethods(0, addressNumberer->makeHasher<Prototype*>()),
       locals(0, addressNumberer->makeHasher<VariableId*>()) {
     rcImmRegionId = getRegionId("rcimm");
     linearRegionId = getRegionId("linear");
@@ -196,6 +197,13 @@ public:
         [&](){ return new Prototype(name, paramTypes, returnType); });
   }
 
+  InterfaceMethod* getInterfaceMethod(Prototype* prototype, int virtualParamIndex) {
+    return makeIfNotPresent(
+        &interfaceMethods[prototype],
+        virtualParamIndex,
+        [&](){ return new InterfaceMethod(prototype, virtualParamIndex); });
+  }
+
   AddressNumberer* addressNumberer;
 
   std::unordered_map<std::string, RegionId*> regionIds;
@@ -238,6 +246,8 @@ public:
   using PrototypeByParamListByReturnTypeByNameMap =
       std::unordered_map<Name*, PrototypeByParamListByReturnTypeMap, AddressHasher<Name*>>;
   PrototypeByParamListByReturnTypeByNameMap prototypes;
+
+  std::unordered_map<Prototype*, std::unordered_map<int, InterfaceMethod*>, AddressHasher<Prototype*>> interfaceMethods;
 
   std::unordered_map<int, std::unordered_map<std::string, VariableId*>> variableIds;
   using LocalByReferenceMap = std::unordered_map<Reference*, Local*, AddressHasher<Reference*>>;

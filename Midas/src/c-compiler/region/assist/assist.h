@@ -359,7 +359,7 @@ public:
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
 
 
-  LLVMTypeRef getExternalType(
+  Reference* getExternalType(
       Reference* refMT) override;
 
   Ref receiveUnencryptedAlienReference(
