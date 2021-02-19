@@ -700,7 +700,7 @@ object ExpressionVivem {
         }
         NodeContinue(makeVoid(programH, heap, callId))
       }
-      case cac @ ConstructUnknownSizeArrayH(sizeExpr, generatorInterfaceExpr, generatorMethod, arrayRefType) => {
+      case cac @ ConstructUnknownSizeArrayH(sizeExpr, generatorInterfaceExpr, generatorMethod, _, arrayRefType) => {
         val sizeReference =
           executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), sizeExpr) match {
             case r @ NodeReturn(_) => return r

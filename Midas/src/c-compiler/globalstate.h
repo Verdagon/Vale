@@ -63,10 +63,7 @@ public:
   LLVMValueRef malloc = nullptr, free = nullptr, assert = nullptr, exit = nullptr,
       assertI64Eq = nullptr, printCStr = nullptr,
       getch = nullptr, printInt = nullptr,
-      strlen = nullptr, censusContains = nullptr, censusAdd = nullptr, censusRemove = nullptr,
-      newVStr = nullptr,
-  getStrCharsFunc = nullptr,
-      getStrNumBytesFunc = nullptr;
+      strlen = nullptr, censusContains = nullptr, censusAdd = nullptr, censusRemove = nullptr;
 
 
   LLVMTypeRef wrcTableStructLT = nullptr;

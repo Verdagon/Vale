@@ -497,7 +497,6 @@ void RCImm::deallocate(
 
 Ref RCImm::constructUnknownSizeArrayCountedStruct(
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     Reference* usaMT,
     UnknownSizeArrayT* unknownSizeArrayT,
@@ -512,7 +511,7 @@ Ref RCImm::constructUnknownSizeArrayCountedStruct(
   auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
   auto resultRef =
       ::constructUnknownSizeArrayCountedStruct(
-          globalState, functionState, blockState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
+          globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
           generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
@@ -538,10 +537,11 @@ Ref RCImm::mallocStr(
     Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    LLVMValueRef lengthLE) {
+    LLVMValueRef lengthLE,
+    LLVMValueRef sourceCharsPtrLE) {
   auto resultRef =
       wrap(this, globalState->metalCache->strRef, ::mallocStr(
-          globalState, functionState, builder, lengthLE, &referendStructs,
+          globalState, functionState, builder, lengthLE, sourceCharsPtrLE, &referendStructs,
           [this, functionState](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
 //                FL(), functionState, innerBuilder, globalState->metalCache->str,
@@ -786,11 +786,10 @@ Ref RCImm::receiveUnencryptedAlienReference(
     auto strLenLE = sourceRegion->getStringLen(functionState, builder, sourceRef);
     auto strLenBytesPtrLE = sourceRegion->getStringBytesPtr(functionState, builder, sourceRef);
 
-    auto vstrRef = mallocStr(makeEmptyTupleRef(globalState, this, builder), functionState, builder, strLenLE);
-    auto vstrCharsPtrLE = getStringBytesPtr(functionState, builder, vstrRef);
-
-    std::vector<LLVMValueRef> strncpyArgs = { vstrCharsPtrLE, strLenBytesPtrLE, strLenLE };
-    LLVMBuildCall(builder, globalState->strncpy, strncpyArgs.data(), strncpyArgs.size(), "");
+    auto vstrRef =
+        mallocStr(
+            makeEmptyTupleRef(globalState, this, builder),
+            functionState, builder, strLenLE, strLenBytesPtrLE);
 
     sourceRegion->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
 

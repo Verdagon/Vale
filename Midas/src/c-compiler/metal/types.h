@@ -189,7 +189,7 @@ public:
 
 };
 
-class KnownSizeArrayDefinitionT : public Referend {
+class KnownSizeArrayDefinitionT {
 public:
   Name* name;
   KnownSizeArrayT* referend;
@@ -221,7 +221,7 @@ public:
 
 };
 
-class UnknownSizeArrayDefinitionT : public Referend {
+class UnknownSizeArrayDefinitionT {
 public:
   Name* name;
   UnknownSizeArrayT* referend;

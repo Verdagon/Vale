@@ -419,7 +419,8 @@ Ref Assist::mallocStr(
     Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    LLVMValueRef lengthLE) {
+    LLVMValueRef lengthLE,
+    LLVMValueRef sourceCharsPtrLE) {
   assert(false);
 }
 
@@ -698,7 +699,6 @@ void Assist::deallocate(
 
 Ref Assist::constructUnknownSizeArrayCountedStruct(
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     Reference* usaMT,
     UnknownSizeArrayT* unknownSizeArrayT,
@@ -713,7 +713,7 @@ Ref Assist::constructUnknownSizeArrayCountedStruct(
   auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
   auto resultRef =
       ::constructUnknownSizeArrayCountedStruct(
-          globalState, functionState, blockState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
+          globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
           generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {

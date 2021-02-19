@@ -53,15 +53,16 @@ Ref buildConstantVStr(
       globalState->getRegion(globalState->metalCache->strRef)
           ->mallocStr(
               makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder),
-              functionState, builder, lengthLE);
-
-  // Fill the chars
-  std::vector<LLVMValueRef> argsLE = {
-      globalState->getRegion(globalState->metalCache->strRef)->getStringBytesPtr(functionState, builder, strRef),
-      globalState->getOrMakeStringConstant(contents),
-      lengthLE
-  };
-  LLVMBuildCall(builder, globalState->strncpy, argsLE.data(), argsLE.size(), "");
+              functionState, builder, lengthLE,
+              globalState->getOrMakeStringConstant(contents));
+//
+//  // Fill the chars
+//  std::vector<LLVMValueRef> argsLE = {
+//      globalState->getRegion(globalState->metalCache->strRef)->getStringBytesPtr(functionState, builder, strRef),
+//      ,
+//      lengthLE
+//  };
+//  LLVMBuildCall(builder, globalState->strncpy, argsLE.data(), argsLE.size(), "");
 
   return strRef;
 }

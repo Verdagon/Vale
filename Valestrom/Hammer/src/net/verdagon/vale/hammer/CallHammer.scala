@@ -94,6 +94,8 @@ object CallHammer {
       TypeHammer.translateUnknownSizeArray(hinputs, hamuts, arrayType2)
     vassert(arrayRefTypeH.expectUnknownSizeArrayReference().kind == arrayTypeH)
 
+    val elementType = hamuts.getUnknownSizeArray(arrayTypeH).rawArray.elementType
+
     val generatorMethodH =
       FunctionHammer.translatePrototype(hinputs, hamuts, generatorMethod)
 
@@ -102,6 +104,7 @@ object CallHammer {
           sizeRegisterId.expectIntAccess(),
           generatorRegisterId.expectInterfaceAccess(),
           generatorMethodH,
+          elementType,
           arrayRefTypeH.expectUnknownSizeArrayReference())
 
     ExpressionHammer.translateDeferreds(

@@ -38,7 +38,6 @@ Ref translateConstructUnknownSizeArray(
   auto usaRef =
       globalState->getRegion(constructUnknownSizeArray->arrayRefType)->constructUnknownSizeArrayCountedStruct(
           functionState,
-          blockState,
           builder,
           constructUnknownSizeArray->arrayRefType,
           unknownSizeArrayMT,

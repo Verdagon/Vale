@@ -353,7 +353,6 @@ void innerDeallocate(
 void fillUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     UnknownSizeArrayT* usaMT,
     Reference* elementType,
@@ -410,6 +409,7 @@ WrapperPtrLE mallocStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE,
+    LLVMValueRef sourceCharsPtrLE,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
   // The +1 is for the null terminator at the end, for C compatibility.
@@ -451,7 +451,11 @@ WrapperPtrLE mallocStr(
 
   // Set the null terminating character to the 0th spot and the end spot, just to guard against bugs
   auto charsBeginPtr = getCharsPtrFromWrapperPtr(globalState, builder, newStrWrapperPtrLE);
-  LLVMBuildStore(builder, constI8LE(globalState, 0), charsBeginPtr);
+
+
+  std::vector<LLVMValueRef> strncpyArgsLE = { charsBeginPtr, sourceCharsPtrLE, lengthLE };
+  LLVMBuildCall(builder, globalState->strncpy, strncpyArgsLE.data(), strncpyArgsLE.size(), "");
+
   auto charsEndPtr = LLVMBuildGEP(builder, charsBeginPtr, &lengthLE, 1, "charsEndPtr");
   LLVMBuildStore(builder, constI8LE(globalState, 0), charsEndPtr);
 
@@ -1157,7 +1161,6 @@ Ref resilientStoreElementInUSA(
 Ref constructUnknownSizeArrayCountedStruct(
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     IReferendStructsSource* referendStructs,
     Reference* usaMT,
@@ -1186,7 +1189,6 @@ Ref constructUnknownSizeArrayCountedStruct(
   fillUnknownSizeArray(
       globalState,
       functionState,
-      blockState,
       builder,
       unknownSizeArrayT,
       elementType,

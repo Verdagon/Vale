@@ -274,7 +274,6 @@ public:
 
   virtual Ref constructUnknownSizeArrayCountedStruct(
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* usaMT,
       UnknownSizeArrayT* unknownSizeArrayT,
@@ -345,7 +344,8 @@ public:
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      LLVMValueRef lengthLE) = 0;
+      LLVMValueRef lengthLE,
+      LLVMValueRef sourceCharsPtrLE) = 0;
 
   virtual LLVMTypeRef getInterfaceMethodVirtualParamAnyType(
       Reference* reference) = 0;

@@ -499,6 +499,8 @@ case class ConstructUnknownSizeArrayH(
   generatorExpression: ExpressionH[InterfaceRefH],
   // The prototype for the "__call" function to call on the interface for each element.
   generatorMethod: PrototypeH,
+
+  elementType: ReferenceH[ReferendH],
   // The resulting type of the array.
   // TODO: Remove this, it's redundant with the generatorExpression's interface's
   // only method's return type.

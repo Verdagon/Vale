@@ -281,7 +281,6 @@ public:
 
   Ref constructUnknownSizeArrayCountedStruct(
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* usaMT,
       UnknownSizeArrayT* unknownSizeArrayT,
@@ -297,7 +296,8 @@ public:
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      LLVMValueRef lengthLE) override;
+      LLVMValueRef lengthLE,
+      LLVMValueRef sourceCharsPtrLE) override;
 
   RegionId* getRegionId() override;
 

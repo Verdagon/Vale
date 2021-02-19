@@ -631,7 +631,7 @@ object VonHammer {
             VonMember("expectedElementType", vonifyCoord(expectedElementType)),
             VonMember("resultType", vonifyCoord(resultType))))
       }
-      case ConstructUnknownSizeArrayH(sizeExpr, generatorExpr, generatorMethod, resultType) => {
+      case ConstructUnknownSizeArrayH(sizeExpr, generatorExpr, generatorMethod, elementType, resultType) => {
         VonObject(
           "ConstructUnknownSizeArray",
           None,
@@ -644,7 +644,8 @@ object VonHammer {
             VonMember("generatorReferend", vonifyKind(generatorExpr.resultType.kind)),
             VonMember("generatorMethod", vonifyPrototype(generatorMethod)),
             VonMember("generatorKnownLive", VonBool(false)),
-            VonMember("resultType", vonifyCoord(resultType))))
+            VonMember("resultType", vonifyCoord(resultType)),
+            VonMember("elementType", vonifyCoord(resultType))))
       }
       case ksal @ KnownSizeArrayLoadH(arrayExpr, indexExpr, targetOwnership, expectedElementType, resultType) => {
         VonObject(

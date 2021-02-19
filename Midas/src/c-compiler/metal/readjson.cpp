@@ -372,7 +372,7 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readReferend(cache, expression["indexReferend"]),
         readReference(cache, expression["resultType"]),
         readUnconvertedOwnership(cache, expression["targetOwnership"]),
-        readReference(cache, expression["arrayElementType"]));
+        readReference(cache, expression["expectedElementType"]));
   } else if (type == "UnknownSizeArrayStore") {
     return new UnknownSizeArrayStore(
         readExpression(cache, expression["arrayExpr"]),
@@ -397,7 +397,7 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readPrototype(cache, expression["generatorMethod"]),
         expression["generatorKnownLive"],
         readReference(cache, expression["resultType"]),
-        readReference(cache, expression["arrayElementType"]));
+        readReference(cache, expression["elementType"]));
   } else if (type == "DestroyUnknownSizeArray") {
     return new DestroyUnknownSizeArray(
         readExpression(cache, expression["arrayExpr"]),

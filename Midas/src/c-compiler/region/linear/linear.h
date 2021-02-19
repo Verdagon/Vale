@@ -267,7 +267,6 @@ public:
 
   Ref constructUnknownSizeArrayCountedStruct(
       FunctionState* functionState,
-      BlockState* blockState,
       LLVMBuilderRef builder,
       Reference* usaMT,
       UnknownSizeArrayT* unknownSizeArrayT,
@@ -283,14 +282,16 @@ public:
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      LLVMValueRef lengthLE) override;
+      LLVMValueRef lengthLE,
+      LLVMValueRef sourceCharsPtrLE) override;
 
   Ref innerMallocStr(
       Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef lengthLE,
-      bool dryRun);
+      LLVMValueRef sourceCharsPtrLE,
+      Ref dryRunBoolRef);
 
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, Ref ref) override;
 
@@ -379,7 +380,7 @@ private:
       LLVMBuilderRef builder,
       Reference* desiredStructMT,
       const std::vector<Ref>& memberRefs,
-      bool dryRun);
+      Ref dryRunBoolRef);
 
   InterfaceMethod* getSerializeInterfaceMethod(Referend* valeReferend);
 

@@ -54,16 +54,16 @@ void ReferendStructsRouter::translateInterface(InterfaceDefinition* interface, s
   return getReferendStructsSource(interface->referend)->translateInterface(interface, interfaceMethodTypesL);
 }
 void ReferendStructsRouter::declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) {
-  return getReferendStructsSource(knownSizeArrayMT)->declareKnownSizeArray(knownSizeArrayMT);
+  return getReferendStructsSource(knownSizeArrayMT->referend)->declareKnownSizeArray(knownSizeArrayMT);
 }
 void ReferendStructsRouter::declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
-  return getReferendStructsSource(unknownSizeArrayMT)->declareUnknownSizeArray(unknownSizeArrayMT);
+  return getReferendStructsSource(unknownSizeArrayMT->referend)->declareUnknownSizeArray(unknownSizeArrayMT);
 }
 void ReferendStructsRouter::translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) {
-  return getReferendStructsSource(unknownSizeArrayMT)->translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  return getReferendStructsSource(unknownSizeArrayMT->referend)->translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 void ReferendStructsRouter::translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) {
-  return getReferendStructsSource(knownSizeArrayMT)->translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  return getReferendStructsSource(knownSizeArrayMT->referend)->translateKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
 ControlBlockPtrLE ReferendStructsRouter::getConcreteControlBlockPtr(

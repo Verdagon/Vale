@@ -116,7 +116,6 @@ void innerDeallocate(
 void fillUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     UnknownSizeArrayT* usaMT,
     Reference* elementType,
@@ -137,6 +136,7 @@ WrapperPtrLE mallocStr(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef lengthLE,
+    LLVMValueRef sourceCharsPtrLE,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 LLVMValueRef mallocKnownSize(
@@ -324,7 +324,6 @@ Ref resilientStoreElementInUSA(
 Ref constructUnknownSizeArrayCountedStruct(
     GlobalState* globalState,
     FunctionState* functionState,
-    BlockState* blockState,
     LLVMBuilderRef builder,
     IReferendStructsSource* referendStructs,
     Reference* usaMT,
