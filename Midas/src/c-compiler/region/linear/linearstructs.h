@@ -52,6 +52,14 @@ public:
       FunctionState* functionState,
       LLVMBuilderRef builder,
       LLVMValueRef ptrLE);
+  LLVMValueRef getUnknownSizeArrayElementsPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef ptrLE);
+  LLVMValueRef getKnownSizeArrayElementsPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      LLVMValueRef ptrLE);
   LLVMValueRef getStringLen(FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef ptrLE);
   LLVMValueRef getVoidPtrFromInterfacePtr(
       FunctionState* functionState,

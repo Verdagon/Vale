@@ -359,6 +359,7 @@ case class KnownSizeArrayLoadH(
   // owning Car reference element.
   targetOwnership: OwnershipH,
   expectedElementType: ReferenceH[ReferendH],
+  arraySize: Int,
   resultType: ReferenceH[ReferendH],
 ) extends ExpressionH[ReferendH] {
 

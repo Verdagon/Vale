@@ -1,4 +1,5 @@
 #include <iostream>
+#include <region/common/common.h>
 #include "region/common/controlblock.h"
 #include "function/expressions/shared/elements.h"
 
@@ -22,36 +23,44 @@ Ref translateConstructUnknownSizeArray(
   auto sizeExpr = constructUnknownSizeArray->sizeExpr;
   auto sizeType = constructUnknownSizeArray->sizeType;
   auto elementType = constructUnknownSizeArray->elementType;
+  auto arrayRefType = constructUnknownSizeArray->arrayRefType;
 
   auto unknownSizeArrayMT = dynamic_cast<UnknownSizeArrayT*>(constructUnknownSizeArray->arrayRefType->referend);
 
-  auto usaWrapperPtrLT = globalState->getRegion(constructUnknownSizeArray->arrayRefType)->translateType(constructUnknownSizeArray->arrayRefType);
-  auto usaElementLT = globalState->getRegion(elementType)->translateType(elementType);
+  auto sizeRef = translateExpression(globalState, functionState, blockState, builder, sizeExpr);
 
-  auto sizeLE = translateExpression(globalState, functionState, blockState, builder, sizeExpr);
-
-  auto generatorLE = translateExpression(globalState, functionState, blockState, builder, generatorExpr);
-  globalState->getRegion(constructUnknownSizeArray->generatorType)->checkValidReference(FL(), functionState, builder,
-      constructUnknownSizeArray->generatorType, generatorLE);
+  auto generatorRef = translateExpression(globalState, functionState, blockState, builder, generatorExpr);
+  globalState->getRegion(generatorType)->checkValidReference(FL(), functionState, builder,
+      generatorType, generatorRef);
 
   // If we get here, arrayLT is a pointer to our counted struct.
   auto usaRef =
-      globalState->getRegion(constructUnknownSizeArray->arrayRefType)->constructUnknownSizeArrayCountedStruct(
+      globalState->getRegion(arrayRefType)->constructUnknownSizeArray(
+          makeEmptyTupleRef(globalState),
           functionState,
           builder,
-          constructUnknownSizeArray->arrayRefType,
+          arrayRefType,
           unknownSizeArrayMT,
-          generatorType,
-          constructUnknownSizeArray->generatorMethod,
-          generatorLE,
-          usaElementLT,
-          sizeLE,
+          sizeRef,
           unknownSizeArrayMT->name->name);
-  globalState->getRegion(constructUnknownSizeArray->arrayRefType)->checkValidReference(FL(), functionState, builder,
-      constructUnknownSizeArray->arrayRefType, usaRef);
+  globalState->getRegion(arrayRefType)->checkValidReference(FL(), functionState, builder,
+      arrayRefType, usaRef);
 
-  globalState->getRegion(sizeType)->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeLE);
-  globalState->getRegion(generatorType)->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorLE);
+  fillUnknownSizeArray(
+      globalState,
+      functionState,
+      builder,
+      arrayRefType,
+      unknownSizeArrayMT,
+      elementType,
+      generatorType,
+      constructUnknownSizeArray->generatorMethod,
+      generatorRef,
+      sizeRef,
+      usaRef);//getUnknownSizeArrayContentsPtr(builder, usaWrapperPtrLE));
+
+  globalState->getRegion(sizeType)->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeRef);
+  globalState->getRegion(generatorType)->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorRef);
 
   return usaRef;
 }

@@ -350,40 +350,45 @@ void innerDeallocate(
   }
 }
 
+void fillKnownSizeArray(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref ksaRef,
+    const std::vector<Ref>& elementRefs) {
+
+  for (int i = 0; i < elementRefs.size(); i++) {
+    globalState->getRegion(ksaRefMT)->initializeElementInKSA(
+        functionState, builder, ksaRefMT, ksaMT, ksaRef, true, globalState->constI64(i), elementRefs[i]);
+  }
+}
+
 void fillUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Reference* usaRefMT,
     UnknownSizeArrayT* usaMT,
     Reference* elementType,
     Reference* generatorType,
     Prototype* generatorMethod,
     Ref generatorLE,
     Ref sizeLE,
-    LLVMValueRef usaElementsPtrLE) {
+    Ref usaRef) {
 
-  foreachArrayElement(
+  intRangeLoop(
       globalState, functionState, builder, sizeLE,
-      [globalState, functionState, elementType, generatorMethod, generatorType, usaElementsPtrLE, generatorLE](Ref indexRef, LLVMBuilderRef bodyBuilder) {
+      [globalState, functionState, usaRefMT, usaMT, generatorMethod, generatorType, usaRef, generatorLE](
+          Ref indexRef, LLVMBuilderRef bodyBuilder) {
         globalState->getRegion(generatorType)->alias(
             AFL("ConstructUSA generate iteration"),
             functionState, bodyBuilder, generatorType, generatorLE);
-
-        auto indexLE =
-            globalState->getRegion(globalState->metalCache->intRef)
-                ->checkValidReference(FL(),
-                    functionState, bodyBuilder, globalState->metalCache->intRef, indexRef);
-        std::vector<LLVMValueRef> indices = { constI64LE(globalState, 0), indexLE };
-
-        auto elementPtrLE =
-            LLVMBuildGEP(
-                bodyBuilder, usaElementsPtrLE, indices.data(), indices.size(), "elementPtr");
         std::vector<Ref> argExprsLE = { generatorLE, indexRef };
         auto elementRef = buildInterfaceCall(globalState, functionState, bodyBuilder, generatorMethod, argExprsLE, 0);
-        auto elementLE =
-            globalState->getRegion(elementType)
-                ->checkValidReference(FL(), functionState, bodyBuilder, elementType, elementRef);
-        LLVMBuildStore(bodyBuilder, elementLE, elementPtrLE);
+        globalState->getRegion(usaMT)->initializeElementInUSA(
+            functionState, bodyBuilder, usaRefMT, usaMT, usaRef, true, indexRef, elementRef);
       });
 }
 
@@ -905,31 +910,6 @@ ControlBlock makeResilientV2WeakableControlBlock(GlobalState* globalState) {
 //      makeResilientV2WeakableControlBlock(globalState));
 //}
 
-void fillKnownSizeArray(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* elementMT,
-    LLVMValueRef arrayLE,
-    const std::vector<Ref>& elementsLE) {
-
-  for (int i = 0; i < elementsLE.size(); i++) {
-    auto memberName = std::string("element") + std::to_string(i);
-    LLVMValueRef indices[2] = {
-        LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 0, false),
-        LLVMConstInt(LLVMInt64TypeInContext(globalState->context), i, false),
-    };
-    auto elementLE = globalState->getRegion(elementMT)->checkValidReference(FL(), functionState, builder, elementMT, elementsLE[i]);
-    // Every time we fill in a field, it actually makes a new entire
-    // struct value, and gives us a LLVMValueRef for the new value.
-    // So, `structValueBeingInitialized` contains the latest one.
-    LLVMBuildStore(
-        builder,
-        elementLE,
-        LLVMBuildGEP(builder, arrayLE, indices, 2, memberName.c_str()));
-  }
-}
-
 // Returns a LLVMValueRef for a ref to the string object.
 // The caller should then use getStringBytesPtr to then fill the string's contents.
 Ref constructKnownSizeArray(
@@ -938,8 +918,6 @@ Ref constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* refM,
     KnownSizeArrayT* ksaMT,
-    Reference* elementType,
-    const std::vector<Ref>& memberRefs,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock) {
 
@@ -952,13 +930,6 @@ Ref constructKnownSizeArray(
   fillControlBlock(
       builder,
       referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, refM, newStructLE));
-  fillKnownSizeArray(
-      globalState,
-      functionState,
-      builder,
-      elementType,
-      getKnownSizeArrayContentsPtr(builder, newStructLE),
-      memberRefs);
   return wrap(globalState->getRegion(refM), refM, newStructLE.refLE);
 }
 
@@ -1074,6 +1045,33 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
   }
 }
 
+Ref regularStoreElementInKSA(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    IReferendStructsSource* referendStructs,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Mutability mutability,
+    Reference* elementType,
+    int size,
+    Ref arrayRef,
+    Ref indexRef,
+    Ref elementRef) {
+  auto wrapperPtrLE =
+      referendStructs->makeWrapperPtr(
+          FL(), functionState, builder, ksaRefMT,
+          globalState->getRegion(ksaRefMT)->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef));
+  auto arrayElementsPtrLE =
+      getKnownSizeArrayContentsPtr(builder,
+                                     referendStructs->makeWrapperPtr(
+                                         FL(), functionState, builder, ksaRefMT,
+                                         globalState->getRegion(ksaRefMT)->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
+  return storeElement(
+      globalState, functionState, builder, ksaRefMT,
+      elementType, globalState->constI64(size), arrayElementsPtrLE, mutability, indexRef, elementRef);
+}
+
 Ref regularStoreElementInUSA(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -1158,7 +1156,7 @@ Ref resilientStoreElementInUSA(
   }
 }
 
-Ref constructUnknownSizeArrayCountedStruct(
+Ref constructUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1166,9 +1164,6 @@ Ref constructUnknownSizeArrayCountedStruct(
     Reference* usaMT,
     Reference* elementType,
     UnknownSizeArrayT* unknownSizeArrayT,
-    Reference* generatorType,
-    Prototype* generatorMethod,
-    Ref generatorRef,
     LLVMTypeRef usaWrapperPtrLT,
     LLVMTypeRef usaElementLT,
     Ref sizeRef,
@@ -1186,17 +1181,6 @@ Ref constructUnknownSizeArrayCountedStruct(
       builder,
       referendStructs->getConcreteControlBlockPtr(FL(), functionState, builder, usaMT, usaWrapperPtrLE));
   LLVMBuildStore(builder, sizeLE, getUnknownSizeArrayLengthPtr(globalState, builder, usaWrapperPtrLE));
-  fillUnknownSizeArray(
-      globalState,
-      functionState,
-      builder,
-      unknownSizeArrayT,
-      elementType,
-      generatorType,
-      generatorMethod,
-      generatorRef,
-      sizeRef,
-      getUnknownSizeArrayContentsPtr(builder, usaWrapperPtrLE));
   auto refLE = wrap(globalState->getRegion(usaMT), usaMT, usaWrapperPtrLE.refLE);
 
   if (globalState->opt->census) {

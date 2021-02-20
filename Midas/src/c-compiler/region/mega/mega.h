@@ -97,11 +97,11 @@ public:
   // Returns a LLVMValueRef for a ref to the string object.
   // The caller should then use getStringBytesPtr to then fill the string's contents.
   Ref constructKnownSizeArray(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* referenceM,
-      KnownSizeArrayT* referendM,
-      const std::vector<Ref>& memberRefs) override;
+      KnownSizeArrayT* referendM) override;
 
   // should expose a dereference thing instead
 //  LLVMValueRef getKnownSizeArrayElementsPtr(
@@ -279,17 +279,52 @@ public:
       Ref ref) override;
 
 
-  Ref constructUnknownSizeArrayCountedStruct(
+  Ref constructUnknownSizeArray(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* usaMT,
       UnknownSizeArrayT* unknownSizeArrayT,
-      Reference* generatorType,
-      Prototype* generatorMethod,
-      Ref generatorRef,
-      LLVMTypeRef usaElementLT,
       Ref sizeRef,
       const std::string& typeName) override;
+
+  void initializeElementInUSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* usaRefMT,
+      UnknownSizeArrayT* usaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef,
+      Ref elementRef) override;
+
+  Ref deinitializeElementFromUSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* usaRefMT,
+      UnknownSizeArrayT* usaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef) override;
+
+  void initializeElementInKSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* ksaRefMT,
+      KnownSizeArrayT* ksaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef,
+      Ref elementRef) override;
+
+  Ref deinitializeElementFromKSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* ksaRefMT,
+      KnownSizeArrayT* ksaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef) override;
 
 
   Ref mallocStr(
@@ -366,6 +401,10 @@ public:
       std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* refMT) override;
   void generateInterfaceDefsC(
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) override;
+  void generateKnownSizeArrayDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName, KnownSizeArrayDefinitionT* ksaDefM) override;
+  void generateUnknownSizeArrayDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName, UnknownSizeArrayDefinitionT* usaDefM) override;
 
   Reference* getExternalType(Reference* refMT) override;
 

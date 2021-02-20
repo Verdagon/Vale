@@ -119,11 +119,11 @@ public:
       std::function<Ref(LLVMBuilderRef)> buildElse) = 0;
 
   virtual Ref constructKnownSizeArray(
+      Ref regionInstanceRef,
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* referenceM,
-      KnownSizeArrayT* referendM,
-      const std::vector<Ref>& memberRefs) = 0;
+      KnownSizeArrayT* referendM) = 0;
 
   virtual Ref getUnknownSizeArrayLength(
       FunctionState* functionState,
@@ -154,6 +154,10 @@ public:
       std::unordered_map<std::string, std::string>* cByExportedName, StructDefinition* refMT) = 0;
   virtual void generateInterfaceDefsC(
       std::unordered_map<std::string, std::string>* cByExportedName, InterfaceDefinition* refMT) = 0;
+  virtual void generateKnownSizeArrayDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName, KnownSizeArrayDefinitionT* ksaDefM) = 0;
+  virtual void generateUnknownSizeArrayDefsC(
+      std::unordered_map<std::string, std::string>* cByExportedName, UnknownSizeArrayDefinitionT* usaDefM) = 0;
 
   virtual void declareStruct(StructDefinition* structM) = 0;
   virtual void translateStruct(StructDefinition* structM) = 0;
@@ -253,7 +257,24 @@ public:
       bool arrayRefKnownLive,
       Ref indexRef) = 0;
 
-  virtual Ref storeElementInUSA(
+  virtual void deallocate(
+      AreaAndFileAndLine from,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* refMT,
+      Ref ref) = 0;
+
+
+  virtual Ref constructUnknownSizeArray(
+      Ref regionInstanceRef,
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* usaMT,
+      UnknownSizeArrayT* unknownSizeArrayT,
+      Ref sizeRef,
+      const std::string& typeName) = 0;
+
+  virtual void initializeElementInUSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
       Reference* usaRefMT,
@@ -263,26 +284,43 @@ public:
       Ref indexRef,
       Ref elementRef) = 0;
 
-
-  virtual void deallocate(
-      AreaAndFileAndLine from,
+  virtual Ref deinitializeElementFromUSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* refMT,
-      Ref ref) = 0;
+      Reference* usaRefMT,
+      UnknownSizeArrayT* usaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef) = 0;
 
-
-  virtual Ref constructUnknownSizeArrayCountedStruct(
+  virtual void initializeElementInKSA(
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* usaMT,
-      UnknownSizeArrayT* unknownSizeArrayT,
-      Reference* generatorType,
-      Prototype* generatorMethod,
-      Ref generatorRef,
-      LLVMTypeRef usaElementLT,
-      Ref sizeRef,
-      const std::string& typeName) = 0;
+      Reference* ksaRefMT,
+      KnownSizeArrayT* ksaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef,
+      Ref elementRef) = 0;
+
+  virtual Ref deinitializeElementFromKSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* ksaRefMT,
+      KnownSizeArrayT* ksaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef) = 0;
+
+  virtual Ref storeElementInUSA(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* usaRefMT,
+      UnknownSizeArrayT* usaMT,
+      Ref arrayRef,
+      bool arrayRefKnownLive,
+      Ref indexRef,
+      Ref elementRef) = 0;
 
   virtual void checkInlineStructType(
       FunctionState* functionState,

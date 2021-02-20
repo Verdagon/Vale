@@ -32,5 +32,5 @@ Ref translateDiscard(
           builder,
           sourceResultType,
           sourceRef);
-  return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
+  return makeEmptyTupleRef(globalState);
 }

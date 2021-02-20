@@ -79,7 +79,7 @@ LLVMValueRef declareFunction(
     auto valeReturnRefOrVoid = buildCall(globalState, &functionState, builder, functionM->prototype, argsToActualFunction);
     auto valeReturnRef =
         (functionM->prototype->returnType == globalState->metalCache->emptyTupleStructRef ?
-            makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder) :
+            makeEmptyTupleRef(globalState) :
             valeReturnRefOrVoid);
 
     auto valeReturnMT = functionM->prototype->returnType;

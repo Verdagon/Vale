@@ -52,6 +52,7 @@ sealed trait ICitizenName2 extends IName2 {
 }
 case class ImplDeclareName2(subCitizenHumanName: String, codeLocation: CodeLocation2) extends IName2 { def order = 1; def all[T](func: PartialFunction[Queriable2, T]): List[T] = { List(this).collect(func) ++ codeLocation.all(func) } }
 case class LetName2(codeLocation: CodeLocation2) extends IName2 { def order = 2; def all[T](func: PartialFunction[Queriable2, T]): List[T] = { List(this).collect(func) ++ codeLocation.all(func) } }
+case class ExportAsName2(codeLocation: CodeLocation2) extends IName2 { def order = 2; def all[T](func: PartialFunction[Queriable2, T]): List[T] = { List(this).collect(func) ++ codeLocation.all(func) } }
 
 case class RawArrayName2(mutability: Mutability, elementType: Coord) extends IName2 { def order = 40; def all[T](func: PartialFunction[Queriable2, T]): List[T] = { List(this).collect(func) ++ elementType.all(func) } }
 case class KnownSizeArrayName2(size: Int, arr: RawArrayName2) extends IName2 { def order = 42; def all[T](func: PartialFunction[Queriable2, T]): List[T] = { List(this).collect(func) ++ arr.all(func) } }

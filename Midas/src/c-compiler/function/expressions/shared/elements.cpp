@@ -207,41 +207,75 @@ Ref storeElement(
 }
 
 
-void foreachArrayElement(
+void intRangeLoop(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Ref sizeRef,
     std::function<void(Ref, LLVMBuilderRef)> iterationBuilder) {
+  auto sizeLE =
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
+
   LLVMValueRef iterationIndexPtrLE =
       makeMidasLocal(
           functionState,
           builder,
           LLVMInt64TypeInContext(globalState->context),
           "iterationIndex",
-          LLVMConstInt(LLVMInt64TypeInContext(globalState->context),0, false));
-
-  auto sizeLE =
-      globalState->getRegion(globalState->metalCache->intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
+          constI64LE(globalState, 0));
 
   buildWhile(
       globalState,
       functionState,
       builder,
-      [globalState, functionState, sizeLE, iterationIndexPtrLE](LLVMBuilderRef conditionBuilder) {
+      [globalState, sizeLE, iterationIndexPtrLE](LLVMBuilderRef conditionBuilder) {
         auto iterationIndexLE =
             LLVMBuildLoad(conditionBuilder, iterationIndexPtrLE, "iterationIndex");
         auto isBeforeEndLE =
-            LLVMBuildICmp(
-                conditionBuilder,LLVMIntSLT,iterationIndexLE,sizeLE,"iterationIndexIsBeforeEnd");
+            LLVMBuildICmp(conditionBuilder, LLVMIntSLT, iterationIndexLE, sizeLE, "iterationIndexIsBeforeEnd");
         return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isBeforeEndLE);
       },
-      [globalState, functionState, iterationBuilder, iterationIndexPtrLE](LLVMBuilderRef bodyBuilder) {
+      [globalState, iterationBuilder, iterationIndexPtrLE](LLVMBuilderRef bodyBuilder) {
         auto iterationIndexLE = LLVMBuildLoad(bodyBuilder, iterationIndexPtrLE, "iterationIndex");
         auto iterationIndexRef = wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, iterationIndexLE);
         iterationBuilder(iterationIndexRef, bodyBuilder);
         adjustCounter(globalState, bodyBuilder, iterationIndexPtrLE, 1);
+      });
+}
+
+
+void intRangeLoopReverse(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref sizeRef,
+    std::function<void(Ref, LLVMBuilderRef)> iterationBuilder) {
+  auto int64LT = LLVMInt64TypeInContext(globalState->context);
+  auto sizeLE =
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
+
+  LLVMValueRef iterationIndexPtrLE =
+      makeMidasLocal(functionState, builder, int64LT, "iterationIndex", sizeLE);
+
+  buildWhile(
+      globalState,
+      functionState,
+      builder,
+      [globalState, iterationIndexPtrLE](LLVMBuilderRef conditionBuilder) {
+        auto iterationIndexLE =
+            LLVMBuildLoad(conditionBuilder, iterationIndexPtrLE, "iterationIndex");
+        auto isBeforeEndLE =
+            LLVMBuildICmp(
+                conditionBuilder, LLVMIntSGT, iterationIndexLE, constI64LE(globalState, 0), "iterationIndexIsBeforeEnd");
+        return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, isBeforeEndLE);
+      },
+      [globalState, iterationBuilder, iterationIndexPtrLE](LLVMBuilderRef bodyBuilder) {
+        adjustCounter(globalState, bodyBuilder, iterationIndexPtrLE, -1);
+        auto iterationIndexLE = LLVMBuildLoad(bodyBuilder, iterationIndexPtrLE, "iterationIndex");
+        auto iterationIndexRef = wrap(globalState->getRegion(globalState->metalCache->intRef), globalState->metalCache->intRef, iterationIndexLE);
+        iterationBuilder(iterationIndexRef, bodyBuilder);
       });
 }
 

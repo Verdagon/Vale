@@ -16,11 +16,8 @@
 
 LLVMTypeRef makeNeverType(GlobalState* globalState);
 
-LLVMValueRef makeEmptyTuple(
-    GlobalState* globalState, IRegion* region, LLVMBuilderRef builder);
-
-Ref makeEmptyTupleRef(
-    GlobalState* globalState, IRegion* region, LLVMBuilderRef builder);
+LLVMValueRef makeEmptyTuple(GlobalState* globalState);
+Ref makeEmptyTupleRef(GlobalState* globalState);
 
 LLVMValueRef makeMidasLocal(
     FunctionState* functionState,

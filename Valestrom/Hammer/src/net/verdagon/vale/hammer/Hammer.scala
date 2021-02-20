@@ -3,9 +3,8 @@ package net.verdagon.vale.hammer
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.parser.VariabilityP
-import net.verdagon.vale.templar.{CitizenName2, ExternFunctionName2, FullName2, FunctionName2, IName2, IVarName2, ImmConcreteDestructorName2, ImmInterfaceDestructorName2}
+import net.verdagon.vale.templar.{CitizenName2, ExportAs2, ExternFunctionName2, FullName2, FunctionName2, IName2, IVarName2, ImmConcreteDestructorName2, ImmInterfaceDestructorName2, types => t}
 import net.verdagon.vale.{vassert, vfail}
-import net.verdagon.vale.templar.{types => t}
 
 case class FunctionRefH(prototype: PrototypeH) {
   //  def functionType = prototype.functionType
@@ -145,6 +144,7 @@ object Hammer {
       structs,
       emptyPackStructRef,
       functions,
+      exports,
       externPrototypes2,
       edgeBlueprintsByInterface,
       edges) = hinputs
@@ -177,6 +177,18 @@ object Hammer {
     val nonUserFunctions = functions.filter(f => !f.header.isUserFunction).toList
     FunctionHammer.translateFunctions(hinputs, hamuts, userFunctions)
     FunctionHammer.translateFunctions(hinputs, hamuts, nonUserFunctions)
+
+    exports.foreach({ case ExportAs2(tyype, exportedName) =>
+      val kindH = TypeHammer.translateKind(hinputs, hamuts, tyype)
+      val nameH =
+        kindH match {
+          case UnknownSizeArrayTH(name) => name
+          case KnownSizeArrayTH(name) => name
+          case StructRefH(name) => name
+          case InterfaceRefH(name) => name
+        }
+      hamuts.addExport(nameH, exportedName)
+    })
 
     val immDestructors2 =
       functions.filter(function => {

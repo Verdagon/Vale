@@ -52,7 +52,7 @@ Ref buildConstantVStr(
   auto strRef =
       globalState->getRegion(globalState->metalCache->strRef)
           ->mallocStr(
-              makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder),
+              makeEmptyTupleRef(globalState),
               functionState, builder, lengthLE,
               globalState->getOrMakeStringConstant(contents));
 //

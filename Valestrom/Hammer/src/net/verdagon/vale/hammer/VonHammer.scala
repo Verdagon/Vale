@@ -647,7 +647,7 @@ object VonHammer {
             VonMember("resultType", vonifyCoord(resultType)),
             VonMember("elementType", vonifyCoord(resultType))))
       }
-      case ksal @ KnownSizeArrayLoadH(arrayExpr, indexExpr, targetOwnership, expectedElementType, resultType) => {
+      case ksal @ KnownSizeArrayLoadH(arrayExpr, indexExpr, targetOwnership, expectedElementType, arraySize, resultType) => {
         VonObject(
           "KnownSizeArrayLoad",
           None,
@@ -660,6 +660,7 @@ object VonHammer {
             VonMember("resultType", vonifyCoord(ksal.resultType)),
             VonMember("targetOwnership", vonifyOwnership(targetOwnership)),
             VonMember("expectedElementType", vonifyCoord(expectedElementType)),
+            VonMember("arraySize", VonInt(arraySize)),
             VonMember("resultType", vonifyCoord(resultType))))
       }
       case ExternCallH(functionExpr, argsExprs) => {

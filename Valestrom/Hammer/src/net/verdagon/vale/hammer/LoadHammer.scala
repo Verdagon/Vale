@@ -136,6 +136,7 @@ object LoadHammer {
           indexAccess,
           targetOwnership,
           expectedElementType,
+          ksa.size,
           resultType)
 
     (loadedNodeH, arrayDeferreds ++ indexDeferreds)

@@ -126,11 +126,16 @@ RegionId* Mega::getRegionId() {
 }
 
 
-Ref Mega::constructKnownSizeArray(FunctionState *functionState, LLVMBuilderRef builder, Reference *referenceM, KnownSizeArrayT *referendM, const std::vector<Ref> &membersLE) {
+Ref Mega::constructKnownSizeArray(
+    Ref regionInstanceRef,
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Reference *referenceM,
+    KnownSizeArrayT *referendM) {
   auto ksaDef = globalState->program->getKnownSizeArray(referendM->name);
   auto resultRef =
       ::constructKnownSizeArray(
-          globalState, functionState, builder, referenceM, referendM, ksaDef->rawArray->elementType, membersLE, &referendStructs,
+          globalState, functionState, builder, referenceM, referendM, &referendStructs,
           [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
             fillControlBlock(
                 FL(),
@@ -1469,33 +1474,32 @@ void Mega::deallocate(
   innerDeallocate(from, globalState, functionState, &referendStructs, builder, refMT, ref);
 }
 
-Ref Mega::constructUnknownSizeArrayCountedStruct(
+Ref Mega::constructUnknownSizeArray(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaMT,
     UnknownSizeArrayT* unknownSizeArrayT,
-    Reference* generatorType,
-    Prototype* generatorMethod,
-    Ref generatorRef,
-    LLVMTypeRef usaElementLT,
     Ref sizeRef,
     const std::string& typeName) {
   auto usaWrapperPtrLT =
       referendStructs.getUnknownSizeArrayWrapperStruct(unknownSizeArrayT);
   auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
+  auto elementType = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name)->rawArray->elementType;
+  auto usaElementLT = globalState->getRegion(elementType)->translateType(elementType);
   auto resultRef =
-      ::constructUnknownSizeArrayCountedStruct(
-           globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
-           generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
+      ::constructUnknownSizeArray(
+          globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT,
+          usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-            fillControlBlock(
-                FL(),
-                functionState,
-                innerBuilder,
-                unknownSizeArrayT,
-                controlBlockPtrLE,
-                typeName);
+          fillControlBlock(
+              FL(),
+              functionState,
+              innerBuilder,
+              unknownSizeArrayT,
+              controlBlockPtrLE,
+              typeName);
           });
   return resultRef;
 }
@@ -1605,6 +1609,16 @@ std::string Mega::getRefNameC(Reference* refMT) {
   } else {
     assert(false);
   }
+}
+
+void Mega::generateUnknownSizeArrayDefsC(
+    std::unordered_map<std::string, std::string>* cByExportedName,
+    UnknownSizeArrayDefinitionT* usaDefM) {
+}
+
+void Mega::generateKnownSizeArrayDefsC(
+    std::unordered_map<std::string, std::string>* cByExportedName,
+    KnownSizeArrayDefinitionT* usaDefM) {
 }
 
 void Mega::generateStructDefsC(
@@ -2104,5 +2118,51 @@ bool Mega::containsReferend(Referend* referendM) {
     auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
     return ksaDef->rawArray->regionId == getRegionId();
   } else assert(false);
+  assert(false);
+}
+
+void Mega::initializeElementInUSA(
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Reference *usaRefMT,
+    UnknownSizeArrayT *usaMT,
+    Ref usaRef,
+    bool arrayRefKnownLive,
+    Ref indexRef,
+    Ref elementRef) {
+  assert(false);
+}
+
+Ref Mega::deinitializeElementFromUSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* usaRefMT,
+    UnknownSizeArrayT* usaMT,
+    Ref arrayRef,
+    bool arrayRefKnownLive,
+    Ref indexRef) {
+  assert(false);
+}
+
+void Mega::initializeElementInKSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref arrayRef,
+    bool arrayRefKnownLive,
+    Ref indexRef,
+    Ref elementRef) {
+  assert(false);
+}
+
+Ref Mega::deinitializeElementFromKSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref arrayRef,
+    bool arrayRefKnownLive,
+    Ref indexRef) {
   assert(false);
 }

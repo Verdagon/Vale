@@ -55,7 +55,14 @@ LLVMValueRef loadInnerArrayMember(
     LLVMValueRef elemsPtrLE,
     LLVMValueRef indexLE);
 
-void foreachArrayElement(
+void intRangeLoop(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref sizeRef,
+    std::function<void(Ref, LLVMBuilderRef)> iterationBuilder);
+
+void intRangeLoopReverse(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -74,5 +81,12 @@ LLVMValueRef getUnknownSizeArrayLengthPtr(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     WrapperPtrLE unknownSizeArrayWrapperPtrLE);
+
+void storeInnerArrayMember(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    LLVMValueRef elemsPtrLE,
+    LLVMValueRef indexLE,
+    LLVMValueRef sourceLE);
 
 #endif

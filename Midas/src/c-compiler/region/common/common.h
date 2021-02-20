@@ -117,13 +117,14 @@ void fillUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
+    Reference* usaRefMT,
     UnknownSizeArrayT* usaMT,
     Reference* elementType,
     Reference* generatorType,
     Prototype* generatorMethod,
     Ref generatorLE,
     Ref sizeLE,
-    LLVMValueRef usaElementsPtrLE);
+    Ref usaRef);
 std::tuple<Reference*, LLVMValueRef> megaGetRefInnardsForChecking(Ref ref);
 
 LLVMValueRef callMalloc(
@@ -239,9 +240,10 @@ void fillKnownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Reference* elementMT,
-    LLVMValueRef arrayLE,
-    const std::vector<Ref>& elementsLE);
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref ksaRef,
+    const std::vector<Ref>& elementRefs);
 
 // Returns a LLVMValueRef for a ref to the string object.
 // The caller should then use getStringBytesPtr to then fill the string's contents.
@@ -251,8 +253,6 @@ Ref constructKnownSizeArray(
     LLVMBuilderRef builder,
     Reference* refM,
     KnownSizeArrayT* ksaMT,
-    Reference* elementType,
-    const std::vector<Ref>& memberRefs,
     IReferendStructsSource* referendStructs,
     std::function<void(LLVMBuilderRef builder, ControlBlockPtrLE controlBlockPtrLE)> fillControlBlock);
 
@@ -292,6 +292,20 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
     bool arrayKnownLive,
     Ref indexRef);
 
+Ref regularStoreElementInKSA(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    IReferendStructsSource* referendStructs,
+    Reference* usaRefMT,
+    KnownSizeArrayT* usaMT,
+    Mutability mutability,
+    Reference* elementType,
+    int size,
+    Ref arrayRef,
+    Ref indexRef,
+    Ref elementRef);
+
 Ref regularStoreElementInUSA(
     GlobalState* globalState,
     FunctionState* functionState,
@@ -321,7 +335,7 @@ Ref resilientStoreElementInUSA(
     std::function<WrapperPtrLE()> lockWeakRef);
 
 
-Ref constructUnknownSizeArrayCountedStruct(
+Ref constructUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -329,9 +343,6 @@ Ref constructUnknownSizeArrayCountedStruct(
     Reference* usaMT,
     Reference* elementType,
     UnknownSizeArrayT* unknownSizeArrayT,
-    Reference* generatorType,
-    Prototype* generatorMethod,
-    Ref generatorRef,
     LLVMTypeRef usaWrapperPtrLT,
     LLVMTypeRef usaElementLT,
     Ref sizeRef,

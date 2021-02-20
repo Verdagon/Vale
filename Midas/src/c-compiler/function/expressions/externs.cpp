@@ -194,7 +194,7 @@ Ref buildExternCall(
       buildFlare(FL(), globalState, functionState, builder, "Resuming function ", functionState->containingFuncName);
 
       if (prototype->returnType == globalState->metalCache->emptyTupleStructRef) {
-        return makeEmptyTupleRef(globalState, globalState->getRegion(prototype->returnType), builder);
+        return makeEmptyTupleRef(globalState);
       } else {
         auto valeReturnRefMT = prototype->returnType;
         auto hostReturnMT =

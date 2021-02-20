@@ -99,7 +99,7 @@ Ref translateExpressionInner(
     }
     makeHammerLocal(
         globalState, functionState, blockState, builder, stackify->local, refToStore);
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState);
   } else if (auto localStore = dynamic_cast<LocalStore*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     // The purpose of LocalStore is to put a swap value into a local, and give
@@ -251,7 +251,7 @@ Ref translateExpressionInner(
     globalState->getRegion(consumerType)
         ->checkValidReference(FL(), functionState, builder, consumerType, consumerRef);
 
-    foreachArrayElement(
+    intRangeLoop(
         globalState, functionState, builder, sizeRef,
         [globalState, functionState, elementType, consumerType, consumerMethod, arrayType, arrayReferend, consumerRef, arrayRef, arrayKnownLive](
             Ref indexRef, LLVMBuilderRef bodyBuilder) {
@@ -290,7 +290,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyKSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState);
   } else if (auto destroyUnknownSizeArrayIntoFunction = dynamic_cast<DestroyUnknownSizeArray*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto consumerType = destroyUnknownSizeArrayIntoFunction->consumerType;
@@ -317,9 +317,9 @@ Ref translateExpressionInner(
     globalState->getRegion(consumerType)
         ->checkValidReference(FL(), functionState, builder, consumerType, consumerRef);
 
-    foreachArrayElement(
+    intRangeLoopReverse(
         globalState, functionState, builder, arrayLenRef,
-        [globalState, functionState, blockState, consumerType, consumerMethod, arrayReferend, arrayType, arrayRef, arrayKnownLive, consumerRef](Ref indexRef, LLVMBuilderRef bodyBuilder) {
+        [globalState, functionState, consumerType, consumerMethod, arrayReferend, arrayType, arrayRef, arrayKnownLive, consumerRef](Ref indexRef, LLVMBuilderRef bodyBuilder) {
           globalState->getRegion(consumerType)
               ->alias(
                   AFL("DestroyUSAIntoF consume iteration"),
@@ -352,7 +352,7 @@ Ref translateExpressionInner(
         ->dealias(
             AFL("DestroyUSAIntoF"), functionState, builder, consumerType, consumerRef);
 
-    return makeEmptyTupleRef(globalState, globalState->getRegion(globalState->metalCache->emptyTupleStructRef), builder);
+    return makeEmptyTupleRef(globalState);
   } else if (auto knownSizeArrayLoad = dynamic_cast<KnownSizeArrayLoad*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = knownSizeArrayLoad->arrayType;

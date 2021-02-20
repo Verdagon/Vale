@@ -865,6 +865,18 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       }
     }
   }
+  for (auto p : program->unknownSizeArrays) {
+    auto usaDefM = p.second;
+    // can we think of this in terms of regions? it's kind of like we're
+    // generating some stuff for the outside to point inside.
+    if (globalState->program->isExported(usaDefM->name)) {
+      if (usaDefM->rawArray->mutability == Mutability::IMMUTABLE) {
+        globalState->linearRegion->generateUnknownSizeArrayDefsC(&cByExportedName, usaDefM);
+      } else {
+        globalState->mutRegion->generateUnknownSizeArrayDefsC(&cByExportedName, usaDefM);
+      }
+    }
+  }
   for (auto p : program->interfaces) {
     auto interfaceM = p.second;
     if (globalState->program->isExported(interfaceM->name)) {

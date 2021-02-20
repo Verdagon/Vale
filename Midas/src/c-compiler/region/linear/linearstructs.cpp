@@ -125,11 +125,9 @@ void LinearStructs::translateUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
   auto unknownSizeArrayStruct = getUnknownSizeArrayStruct(unknownSizeArrayMT);
-  auto innerArrayLT = LLVMArrayType(elementLT, 0);
-
   std::vector<LLVMTypeRef> elementsL;
   elementsL.push_back(LLVMInt64TypeInContext(globalState->context));
-  elementsL.push_back(innerArrayLT);
+  elementsL.push_back(LLVMArrayType(elementLT, 0));
   LLVMStructSetBody(unknownSizeArrayStruct, elementsL.data(), elementsL.size(), false);
 }
 
@@ -176,6 +174,20 @@ LLVMValueRef LinearStructs::getStringBytesPtr(
           builder, charsArrayPtrLE, indices.data(), indices.size(), "elementPtr");
   assert(LLVMTypeOf(firstCharPtrLE) == LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0));
   return firstCharPtrLE;
+}
+
+LLVMValueRef LinearStructs::getUnknownSizeArrayElementsPtr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef ptrLE) {
+  return LLVMBuildStructGEP(builder, ptrLE, 1, "elementsPtr");
+}
+
+LLVMValueRef LinearStructs::getKnownSizeArrayElementsPtr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef ptrLE) {
+  return LLVMBuildStructGEP(builder, ptrLE, 0, "elementsPtr");
 }
 
 LLVMValueRef LinearStructs::getStringLen(FunctionState* functionState, LLVMBuilderRef builder, LLVMValueRef ptrLE) {

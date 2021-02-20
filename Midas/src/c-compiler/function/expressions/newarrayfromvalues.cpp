@@ -1,4 +1,5 @@
 #include <iostream>
+#include <region/common/common.h>
 #include "region/common/controlblock.h"
 #include "function/expressions/shared/elements.h"
 
@@ -45,11 +46,19 @@ Ref translateNewArrayFromValues(
         // If we get here, arrayLT is a pointer to our counted struct.
         auto resultLE =
             globalState->getRegion(newArrayFromValues->arrayRefType)->constructKnownSizeArray(
+                makeEmptyTupleRef(globalState),
                 functionState,
                 builder,
                 newArrayFromValues->arrayRefType,
-                newArrayFromValues->arrayReferend,
-                elementsLE);
+                newArrayFromValues->arrayReferend);
+        fillKnownSizeArray(
+            globalState,
+            functionState,
+            builder,
+            newArrayFromValues->arrayRefType,
+            knownSizeArrayMT,
+            resultLE,
+            elementsLE);
         globalState->getRegion(newArrayFromValues->arrayRefType)->checkValidReference(FL(), functionState, builder,
             newArrayFromValues->arrayRefType, resultLE);
         return resultLE;

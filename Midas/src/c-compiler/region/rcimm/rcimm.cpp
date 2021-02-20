@@ -6,6 +6,7 @@
 #include <function/expressions/shared/string.h>
 #include <region/common/common.h>
 #include <sstream>
+#include <function/expressions/shared/elements.h>
 #include "rcimm.h"
 #include "translatetype.h"
 #include "region/linear/linear.h"
@@ -359,15 +360,15 @@ WrapperPtrLE RCImm::lockWeakRef(
 }
 
 Ref RCImm::constructKnownSizeArray(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* referenceM,
-    KnownSizeArrayT* referendM,
-    const std::vector<Ref>& memberRefs) {
+    KnownSizeArrayT* referendM) {
   auto ksaDef = globalState->program->getKnownSizeArray(referendM->name);
   auto resultRef =
       ::constructKnownSizeArray(
-          globalState, functionState, builder, referenceM, referendM, ksaDef->rawArray->elementType, memberRefs, &referendStructs,
+          globalState, functionState, builder, referenceM, referendM, &referendStructs,
           [this, functionState, referenceM, referendM](LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
 //            fillControlBlock(
 //                FL(),
@@ -471,6 +472,20 @@ LoadResult RCImm::loadElementFromUSA(
       arrayKnownLive, indexRef);
 }
 
+Ref RCImm::deinitializeElementFromUSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* usaRefMT,
+    UnknownSizeArrayT* usaMT,
+    Ref arrayRef,
+    bool arrayKnownLive,
+    Ref indexRef) {
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+  return regularLoadElementFromUSAWithoutUpgrade(
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef,
+      arrayKnownLive, indexRef).move();
+}
+
 
 Ref RCImm::storeElementInUSA(
     FunctionState* functionState,
@@ -484,6 +499,21 @@ Ref RCImm::storeElementInUSA(
   assert(false);
 }
 
+void RCImm::initializeElementInUSA(
+    FunctionState *functionState,
+    LLVMBuilderRef builder,
+    Reference *usaRefMT,
+    UnknownSizeArrayT *usaMT,
+    Ref usaRef,
+    bool arrayRefKnownLive,
+    Ref indexRef,
+    Ref elementRef) {
+  auto elementType = globalState->program->getUnknownSizeArray(usaMT->name)->rawArray->elementType;
+  regularStoreElementInUSA(
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, Mutability::IMMUTABLE,
+      elementType, usaRef, indexRef, elementRef);
+}
+
 
 void RCImm::deallocate(
     AreaAndFileAndLine from,
@@ -495,35 +525,25 @@ void RCImm::deallocate(
 }
 
 
-Ref RCImm::constructUnknownSizeArrayCountedStruct(
+Ref RCImm::constructUnknownSizeArray(
+    Ref regionInstanceRef,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Reference* usaMT,
     UnknownSizeArrayT* unknownSizeArrayT,
-    Reference* generatorType,
-    Prototype* generatorMethod,
-    Ref generatorRef,
-    LLVMTypeRef usaElementLT,
     Ref sizeRef,
     const std::string& typeName) {
   auto usaWrapperPtrLT =
       referendStructs.getUnknownSizeArrayWrapperStruct(unknownSizeArrayT);
   auto usaDef = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name);
+  auto elementType = globalState->program->getUnknownSizeArray(unknownSizeArrayT->name)->rawArray->elementType;
+  auto usaElementLT = globalState->getRegion(elementType)->translateType(elementType);
   auto resultRef =
-      ::constructUnknownSizeArrayCountedStruct(
-          globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT, generatorType, generatorMethod,
-          generatorRef, usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
+      ::constructUnknownSizeArray(
+          globalState, functionState, builder, &referendStructs, usaMT, usaDef->rawArray->elementType, unknownSizeArrayT,
+          usaWrapperPtrLT, usaElementLT, sizeRef, typeName,
           [this, functionState, unknownSizeArrayT, usaMT, typeName](
               LLVMBuilderRef innerBuilder, ControlBlockPtrLE controlBlockPtrLE) {
-//            fillControlBlock(
-//                FL(),
-//                functionState,
-//                innerBuilder,
-//                unknownSizeArrayT,
-//                unknownSizeArrayT->rawArray->mutability,
-//                controlBlockPtrLE,
-//                typeName);
-
             fillControlBlock(
                 FL(), globalState, functionState, &referendStructs, innerBuilder, unknownSizeArrayT, controlBlockPtrLE,
                 typeName);
@@ -755,6 +775,16 @@ void RCImm::generateInterfaceDefsC(std::unordered_map<std::string, std::string>*
   assert(false);
 }
 
+void RCImm::generateUnknownSizeArrayDefsC(
+    std::unordered_map<std::string, std::string>* cByExportedName,
+    UnknownSizeArrayDefinitionT* usaDefM) {
+}
+
+void RCImm::generateKnownSizeArrayDefsC(
+    std::unordered_map<std::string, std::string>* cByExportedName,
+    KnownSizeArrayDefinitionT* usaDefM) {
+}
+
 Reference* RCImm::getExternalType(Reference* refMT) {
   // Instance regions (unlike this one) return their handle types from this method.
   // For this region though, we don't give out handles, we give out copies.
@@ -788,8 +818,7 @@ Ref RCImm::receiveUnencryptedAlienReference(
 
     auto vstrRef =
         mallocStr(
-            makeEmptyTupleRef(globalState, this, builder),
-            functionState, builder, strLenLE, strLenBytesPtrLE);
+            makeEmptyTupleRef(globalState), functionState, builder, strLenLE, strLenBytesPtrLE);
 
     sourceRegion->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
 
@@ -831,7 +860,7 @@ Ref RCImm::receiveUnencryptedAlienReference(
   } else if (sourceRefMT == globalState->metalCache->neverRef) {
     assert(false); // How can we hand a never into something?
   } else if (sourceRefMT == globalState->metalCache->emptyTupleStructRef) {
-    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState, this, builder));
+    return wrap(globalState->getRegion(sourceRefMT), sourceRefMT, makeEmptyTuple(globalState));
   } else if (auto structReferend = dynamic_cast<StructReferend*>(sourceRefMT->referend)) {
     assert(false); // impl
 
@@ -899,5 +928,32 @@ bool RCImm::containsReferend(Referend* referendM) {
     auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
     return ksaDef->rawArray->regionId == getRegionId();
   } else assert(false);
+  assert(false);
+}
+
+void RCImm::initializeElementInKSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref ksaRef,
+    bool arrayRefKnownLive,
+    Ref indexRef,
+    Ref elementRef) {
+  auto ksaDefM = globalState->program->getKnownSizeArray(ksaMT->name);
+  auto elementType = ksaDefM->rawArray->elementType;
+  regularStoreElementInKSA(
+      globalState, functionState, builder, &referendStructs, ksaRefMT, ksaMT, Mutability::IMMUTABLE,
+      elementType, ksaDefM->size, ksaRef, indexRef, elementRef);
+}
+
+Ref RCImm::deinitializeElementFromKSA(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* ksaRefMT,
+    KnownSizeArrayT* ksaMT,
+    Ref arrayRef,
+    bool arrayRefKnownLive,
+    Ref indexRef) {
   assert(false);
 }

@@ -359,7 +359,7 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readExpression(cache, expression["indexExpr"]),
         readReference(cache, expression["resultType"]),
         readUnconvertedOwnership(cache, expression["targetOwnership"]),
-        readReference(cache, expression["arrayElementType"]),
+        readReference(cache, expression["expectedElementType"]),
         expression["arraySize"]);
   } else if (type == "UnknownSizeArrayLoad") {
     return new UnknownSizeArrayLoad(
