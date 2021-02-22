@@ -90,6 +90,10 @@ public:
   std::unordered_map<std::string, LLVMValueRef> functions;
   std::unordered_map<std::string, LLVMValueRef> externFunctions;
 
+  // This is temporary, Valestrom should soon embed mutability and region into the referend for us
+  // so we won't have to do this.
+  std::unordered_map<Referend*, RegionId*, AddressHasher<Referend*>> regionIdByReferend;
+
   // These contain the extra interface methods that Midas adds to particular interfaces.
   // For example, for every immutable, Midas needs to add a serialize() method that
   // adds it to an outgoing linear buffer.
@@ -184,6 +188,10 @@ public:
   IRegion* mutRegion = nullptr;
   IRegion* unsafeRegion = nullptr;
   IRegion* assistRegion = nullptr;
+  IRegion* naiveRcRegion = nullptr;
+  IRegion* resilientV3Region = nullptr;
+  IRegion* resilientV2Region = nullptr;
+  IRegion* resilientV1Region = nullptr;
   Linear* linearRegion = nullptr;
   std::unordered_map<RegionId*, IRegion*, AddressHasher<RegionId*>> regions;
 

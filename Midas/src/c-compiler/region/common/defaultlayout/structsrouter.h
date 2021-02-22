@@ -148,8 +148,6 @@ public:
       Reference* refM,
       ControlBlockPtrLE controlBlockPtr) override;
 
-  bool containsReferend(Referend* referendM) override;
-
 private:
   GlobalState* globalState = nullptr;
   GetReferendStructsSource getReferendStructsSource;
@@ -169,8 +167,6 @@ public:
   WeakFatPtrLE makeWeakFatPtr(Reference* referenceM_, LLVMValueRef ptrLE) override;
   LLVMTypeRef getWeakRefHeaderStruct(Referend* referend) override;
   LLVMTypeRef getWeakVoidRefStruct(Referend* referend) override;
-
-  bool containsReferend(Referend* referendM) override;
 
 private:
   GetWeakRefStructsSource getWeakRefStructsSource;

@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.scout.CodeLocationS
 import net.verdagon.vale.templar.templata.{CodeLocation2, CoordTemplata, ITemplata, Queriable2}
 import net.verdagon.vale.templar.types.{Coord, InterfaceRef2, Kind, KnownSizeArrayT2, Mutability, Share, StructRef2, UnknownSizeArrayT2}
-import net.verdagon.vale.{vassert, vwat}
+import net.verdagon.vale.{vassert, vpass, vwat}
 
 // Scout's/Astronomer's name parts correspond to where they are in the source code,
 // but Templar's correspond more to what namespaces and stamped functions / structs
@@ -256,6 +256,8 @@ case class TupleName2(
 case class LambdaCitizenName2(
   codeLocation: CodeLocation2,
 ) extends ICitizenName2 {
+  vpass()
+
   def templateArgs: List[ITemplata] = List()
   def order = 17;
   def all[T](func: PartialFunction[Queriable2, T]): List[T] = {

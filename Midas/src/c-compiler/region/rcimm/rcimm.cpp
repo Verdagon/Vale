@@ -147,11 +147,15 @@ Ref RCImm::upcastWeak(
 
 void RCImm::declareKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(knownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void RCImm::declareUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(unknownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
@@ -173,6 +177,8 @@ void RCImm::translateKnownSizeArray(
 
 void RCImm::declareStruct(
     StructDefinition* structM) {
+  globalState->regionIdByReferend.emplace(structM->referend, getRegionId());
+
   referendStructs.declareStruct(structM);
 }
 
@@ -202,6 +208,8 @@ void RCImm::translateEdge(Edge* edge) {
 
 void RCImm::declareInterface(
     InterfaceDefinition* interfaceM) {
+  globalState->regionIdByReferend.emplace(interfaceM->referend, getRegionId());
+
   referendStructs.declareInterface(interfaceM);
 }
 
@@ -902,35 +910,6 @@ Ref RCImm::encryptAndSendFamiliarReference(
   assert(false);
 }
 
-bool RCImm::containsReferend(Referend* referendM) {
-  if (auto intM = dynamic_cast<Int*>(referendM)) {
-    return intM->regionId == getRegionId();
-  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
-    return boolM->regionId == getRegionId();
-  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
-    return floatM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
-    return strM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
-    auto structDef = globalState->program->getStruct(structReferendM->fullName);
-    return structDef->regionId == getRegionId();
-  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
-    return interfaceDef->regionId == getRegionId();
-  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
-    return usaDef->rawArray->regionId == getRegionId();
-  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
-    return ksaDef->rawArray->regionId == getRegionId();
-  } else assert(false);
-  assert(false);
-}
-
 void RCImm::initializeElementInKSA(
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -956,4 +935,8 @@ Ref RCImm::deinitializeElementFromKSA(
     bool arrayRefKnownLive,
     Ref indexRef) {
   assert(false);
+}
+
+Weakability RCImm::getReferendWeakability(Referend* referend) {
+  return Weakability::NON_WEAKABLE;
 }

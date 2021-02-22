@@ -393,10 +393,18 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
       metalCache.mutRegionId = metalCache.unsafeRegionId;
       break;
     case RegionOverride::NAIVE_RC:
-    case RegionOverride::RESILIENT_V0:
-    case RegionOverride::RESILIENT_V1:
-    case RegionOverride::RESILIENT_V2:
+      metalCache.mutRegionId = metalCache.naiveRcRegionId;
+      break;
     case RegionOverride::RESILIENT_V3:
+      metalCache.mutRegionId = metalCache.resilientV3RegionId;
+      break;
+    case RegionOverride::RESILIENT_V2:
+      metalCache.mutRegionId = metalCache.resilientV2RegionId;
+      break;
+    case RegionOverride::RESILIENT_V1:
+      metalCache.mutRegionId = metalCache.resilientV1RegionId;
+      break;
+    case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_LIMIT:
       assert(false);
       break;
@@ -518,12 +526,25 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   Assist assistRegion(globalState);
   globalState->assistRegion = &assistRegion;
   globalState->regions.emplace(globalState->assistRegion->getRegionId(), globalState->assistRegion);
+  Mega naiveRcRegion(globalState, globalState->metalCache->naiveRcRegionId);
+  globalState->naiveRcRegion = &naiveRcRegion;
+  globalState->regions.emplace(globalState->naiveRcRegion->getRegionId(), globalState->naiveRcRegion);
   Unsafe unsafeRegion(globalState);
   globalState->unsafeRegion = &unsafeRegion;
   globalState->regions.emplace(globalState->unsafeRegion->getRegionId(), globalState->unsafeRegion);
   Linear linearRegion(globalState);
   globalState->linearRegion = &linearRegion;
   globalState->regions.emplace(globalState->linearRegion->getRegionId(), globalState->linearRegion);
+  Mega resilientV3Region(globalState, globalState->metalCache->resilientV3RegionId);
+  globalState->resilientV3Region = &resilientV3Region;
+  globalState->regions.emplace(globalState->resilientV3Region->getRegionId(), globalState->resilientV3Region);
+  Mega resilientV2Region(globalState, globalState->metalCache->resilientV2RegionId);
+  globalState->resilientV2Region = &resilientV2Region;
+  globalState->regions.emplace(globalState->resilientV2Region->getRegionId(), globalState->resilientV2Region);
+  Mega resilientV1Region(globalState, globalState->metalCache->resilientV1RegionId);
+  globalState->resilientV1Region = &resilientV1Region;
+  globalState->regions.emplace(globalState->resilientV1Region->getRegionId(), globalState->resilientV1Region);
+
 //  Mega megaRegion(globalState);
   globalState->mutRegion = globalState->getRegion(metalCache.mutRegionId);
 

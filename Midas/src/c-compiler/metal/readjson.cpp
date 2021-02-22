@@ -384,8 +384,7 @@ Expression* readExpression(MetalCache* cache, const json& expression) {
         readReferend(cache, expression["indexReferend"]),
         readExpression(cache, expression["sourceExpr"]),
         readReference(cache, expression["sourceType"]),
-        readReferend(cache, expression["sourceReferend"]),
-        readReference(cache, expression["arrayElementType"]));
+        readReferend(cache, expression["sourceReferend"]));
   } else if (type == "ConstructUnknownSizeArray") {
     return new ConstructUnknownSizeArray(
         readExpression(cache, expression["sizeExpr"]),

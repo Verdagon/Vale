@@ -325,11 +325,10 @@ Ref translateExpressionInner(
                   AFL("DestroyUSAIntoF consume iteration"),
                   functionState, bodyBuilder, consumerType, consumerRef);
 
-          auto loadResult =
+          auto elementRef =
               globalState->getRegion(arrayType)
-                  ->loadElementFromUSA(
+                  ->deinitializeElementFromUSA(
                       functionState, bodyBuilder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexRef);
-          auto elementRef = loadResult.move();
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
           buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0);
         });
@@ -442,8 +441,9 @@ Ref translateExpressionInner(
     auto arrayExpr = unknownSizeArrayStore->arrayExpr;
     auto indexExpr = unknownSizeArrayStore->indexExpr;
     auto arrayReferend = unknownSizeArrayStore->arrayReferend;
-    auto elementType = unknownSizeArrayStore->arrayElementType;
     bool arrayKnownLive = unknownSizeArrayStore->arrayKnownLive;
+
+    auto elementType = globalState->program->getUnknownSizeArray(arrayReferend->name)->rawArray->elementType;
 
     auto arrayRefLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
     globalState->getRegion(arrayType)

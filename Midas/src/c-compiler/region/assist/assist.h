@@ -422,8 +422,6 @@ public:
 
   LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
-  bool containsReferend(Referend* referendM) override;
-
   void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
   void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
   void addStructExtraFunctions(StructDefinition* structDefM) override {}
@@ -431,6 +429,8 @@ public:
 
   void declareExtraFunctions() override {}
   void defineExtraFunctions() override {}
+
+  Weakability getReferendWeakability(Referend* referend) override;
 
 private:
 

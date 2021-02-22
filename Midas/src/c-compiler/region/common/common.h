@@ -234,8 +234,8 @@ Ref resilientThing(
     IWeakRefStructsSource* weakRefStructs);
 ControlBlock makeResilientV1WeakableControlBlock(GlobalState* globalState);
 ControlBlock makeResilientV2WeakableControlBlock(GlobalState* globalState);
-ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState);
-ControlBlock makeMutWeakableControlBlock(GlobalState* globalState);
+ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState, RegionId* regionId);
+ControlBlock makeMutWeakableControlBlock(GlobalState* globalState, RegionId* regionId);
 void fillKnownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,

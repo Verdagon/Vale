@@ -208,10 +208,6 @@ LLVMValueRef ReferendStructsRouter::getStrongRcFromControlBlockPtr(
   return getReferendStructsSource(refM->referend)->getStrongRcFromControlBlockPtr(builder, refM, controlBlockPtr);
 }
 
-bool ReferendStructsRouter::containsReferend(Referend* referend) {
-  return getReferendStructsSource(referend)->containsReferend(referend);
-}
-
 
 LLVMTypeRef WeakRefStructsRouter::getStructWeakRefStruct(StructReferend* structReferend) {
   return getWeakRefStructsSource(structReferend)->getStructWeakRefStruct(structReferend);
@@ -234,8 +230,4 @@ LLVMTypeRef WeakRefStructsRouter::getWeakRefHeaderStruct(Referend* referend) {
 }
 LLVMTypeRef WeakRefStructsRouter::getWeakVoidRefStruct(Referend* referend) {
   return getWeakRefStructsSource(referend)->getWeakVoidRefStruct(referend);
-}
-
-bool WeakRefStructsRouter::containsReferend(Referend* referend) {
-  return getWeakRefStructsSource(referend)->containsReferend(referend);
 }

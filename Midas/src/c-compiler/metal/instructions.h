@@ -299,7 +299,6 @@ public:
   Expression* sourceExpr;
   Reference* sourceType;
   Referend* sourceReferend;
-  Reference* arrayElementType;
 
   UnknownSizeArrayStore(
       Expression* arrayExpr_,
@@ -311,8 +310,7 @@ public:
       Referend* indexReferend_,
       Expression* sourceExpr_,
       Reference* sourceType_,
-      Referend* sourceReferend_,
-      Reference* arrayElementType_) :
+      Referend* sourceReferend_) :
     arrayExpr(arrayExpr_),
     arrayType(arrayType_),
     arrayReferend(arrayReferend_),
@@ -322,8 +320,7 @@ public:
     indexReferend(indexReferend_),
     sourceExpr(sourceExpr_),
     sourceType(sourceType_),
-    sourceReferend(sourceReferend_),
-    arrayElementType(arrayElementType_) {}
+    sourceReferend(sourceReferend_) {}
 };
 
 

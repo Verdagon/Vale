@@ -606,8 +606,8 @@ Ref LgtWeaks::assembleWeakRef(
 }
 
 
-LLVMTypeRef LgtWeaks::makeWeakRefHeaderStruct(GlobalState* globalState) {
-  assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V1);
+LLVMTypeRef LgtWeaks::makeWeakRefHeaderStruct(GlobalState* globalState, RegionId* regionId) {
+  assert(regionId == globalState->metalCache->resilientV1RegionId);
   auto genRefStructL = LLVMStructCreateNamed(globalState->context, "__GenRef");
 
   std::vector<LLVMTypeRef> memberTypesL;

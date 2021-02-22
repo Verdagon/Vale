@@ -400,7 +400,7 @@ public:
   Reference* linearizeReference(Reference* immRcRefMT);
   Reference* unlinearizeReference(Reference* hostRefMT);
 
-  bool containsReferend(Referend* referendM) override;
+  Weakability getReferendWeakability(Referend* referend) override;
 
 private:
   void declareConcreteSerializeFunction(Referend* valeReferendM);

@@ -14,63 +14,91 @@
 #include "mega.h"
 #include <sstream>
 
-LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState) {
-  if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
-    return LgtWeaks::makeWeakRefHeaderStruct(globalState);
-  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V2 ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT) {
-    return HybridGenerationalMemory::makeWeakRefHeaderStruct(globalState);
-  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
-      globalState->opt->regionOverride == RegionOverride::NAIVE_RC) {
+LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState, RegionId* regionId) {
+  if (regionId == globalState->metalCache->naiveRcRegionId) {
     return WrcWeaks::makeWeakRefHeaderStruct(globalState);
+  } else if (regionId == globalState->metalCache->resilientV3RegionId ||
+      regionId == globalState->metalCache->resilientV2RegionId) {
+    return HybridGenerationalMemory::makeWeakRefHeaderStruct(globalState, regionId);
+  } else if (regionId == globalState->metalCache->resilientV1RegionId) {
+    return LgtWeaks::makeWeakRefHeaderStruct(globalState, regionId);
   } else {
     assert(false);
   }
+
+//  if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V1) {
+//    return LgtWeaks::makeWeakRefHeaderStruct(globalState);
+//  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V2 ||
+//      globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
+//      globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT) {
+//    return HybridGenerationalMemory::makeWeakRefHeaderStruct(globalState);
+//  } else if (globalState->opt->regionOverride == RegionOverride::RESILIENT_V0 ||
+//      globalState->opt->regionOverride == RegionOverride::NAIVE_RC) {
+//    return WrcWeaks::makeWeakRefHeaderStruct(globalState);
+//  } else {
+//    assert(false);
+//  }
 }
 
-ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState) {
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-      return makeAssistAndNaiveRCNonWeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V0:
-      return makeResilientV0WeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V1:
-      return makeResilientV1WeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V2:
-    case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_LIMIT:
-      return makeResilientV2WeakableControlBlock(globalState);
-    default:
-      assert(false);
+ControlBlock makeMutNonWeakableControlBlock(GlobalState* globalState, RegionId* regionId) {
+  if (regionId == globalState->metalCache->naiveRcRegionId) {
+    return makeAssistAndNaiveRCNonWeakableControlBlock(globalState);
+  } else if (regionId == globalState->metalCache->resilientV3RegionId ||
+             regionId == globalState->metalCache->resilientV2RegionId) {
+    return makeResilientV2WeakableControlBlock(globalState);
+  } else if (regionId == globalState->metalCache->resilientV1RegionId) {
+    return makeResilientV1WeakableControlBlock(globalState);
+  } else {
+    assert(false);
   }
+//    case RegionOverride::RESILIENT_V0:
+//      return makeResilientV0WeakableControlBlock(globalState);
+//    case RegionOverride::RESILIENT_V1:
+//      return makeResilientV1WeakableControlBlock(globalState);
+//    case RegionOverride::RESILIENT_V2:
+//    case RegionOverride::RESILIENT_V3:
+//    case RegionOverride::RESILIENT_LIMIT:
+//      return makeResilientV2WeakableControlBlock(globalState);
+//    default:
+//      assert(false);
+//  }
 }
 
-ControlBlock makeMutWeakableControlBlock(GlobalState* globalState) {
-  switch (globalState->opt->regionOverride) {
-    case RegionOverride::NAIVE_RC:
-      return makeAssistAndNaiveRCWeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V0:
-      return makeResilientV0WeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V1:
-      return makeResilientV1WeakableControlBlock(globalState);
-    case RegionOverride::RESILIENT_V2:
-    case RegionOverride::RESILIENT_V3:
-    case RegionOverride::RESILIENT_LIMIT:
-      return makeResilientV2WeakableControlBlock(globalState);
-    default:
-      assert(false);
+ControlBlock makeMutWeakableControlBlock(GlobalState* globalState, RegionId* regionId) {
+  if (regionId == globalState->metalCache->naiveRcRegionId) {
+    return makeAssistAndNaiveRCWeakableControlBlock(globalState);
+  } else if (regionId == globalState->metalCache->resilientV3RegionId ||
+      regionId == globalState->metalCache->resilientV2RegionId) {
+    return makeResilientV2WeakableControlBlock(globalState);
+  } else if (regionId == globalState->metalCache->resilientV1RegionId) {
+    return makeResilientV1WeakableControlBlock(globalState);
+  } else {
+    assert(false);
   }
+//  switch (globalState->opt->regionOverride) {
+//    case RegionOverride::NAIVE_RC:
+//      return makeAssistAndNaiveRCWeakableControlBlock(globalState);
+//    case RegionOverride::RESILIENT_V0:
+//      return makeResilientV0WeakableControlBlock(globalState);
+//    case RegionOverride::RESILIENT_V1:
+//      return makeResilientV1WeakableControlBlock(globalState);
+//    case RegionOverride::RESILIENT_V2:
+//    case RegionOverride::RESILIENT_V3:
+//    case RegionOverride::RESILIENT_LIMIT:
+//      return makeResilientV2WeakableControlBlock(globalState);
+//    default:
+//      assert(false);
+//  }
 }
 
-Mega::Mega(GlobalState* globalState_) :
+Mega::Mega(GlobalState* globalState_, RegionId* regionId_) :
     globalState(globalState_),
-    immStructs(globalState, makeImmControlBlock(globalState)),
-    mutNonWeakableStructs(globalState, makeMutNonWeakableControlBlock(globalState)),
+    regionId(regionId_),
+    mutNonWeakableStructs(globalState, makeMutNonWeakableControlBlock(globalState, regionId)),
     mutWeakableStructs(
         globalState,
-        makeMutWeakableControlBlock(globalState),
-        makeWeakRefHeaderStruct(globalState)),
+        makeMutWeakableControlBlock(globalState, regionId),
+        makeWeakRefHeaderStruct(globalState, regionId)),
     referendStructs(
         globalState,
         [this](Referend* referend) -> IReferendStructsSource* {
@@ -122,7 +150,7 @@ Mega::Mega(GlobalState* globalState_) :
 }
 
 RegionId* Mega::getRegionId() {
-  assert(false);
+  return regionId;
 }
 
 
@@ -145,6 +173,7 @@ Ref Mega::constructKnownSizeArray(
                 controlBlockPtrLE,
                 referendM->name->name);
           });
+  // We dont increment here, see SRCAO
   return resultRef;
 }
 
@@ -563,11 +592,15 @@ Ref Mega::upcastWeak(
 
 void Mega::declareKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(knownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void Mega::declareUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(unknownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
@@ -588,6 +621,8 @@ void Mega::translateKnownSizeArray(
 }
 void Mega::declareStruct(
     StructDefinition* structM) {
+  globalState->regionIdByReferend.emplace(structM->referend, getRegionId());
+
   referendStructs.declareStruct(structM);
 }
 
@@ -618,6 +653,8 @@ void Mega::translateEdge(
 
 void Mega::declareInterface(
     InterfaceDefinition* interfaceM) {
+  globalState->regionIdByReferend.emplace(interfaceM->referend, getRegionId());
+
   referendStructs.declareInterface(interfaceM);
 }
 
@@ -1360,7 +1397,7 @@ LoadResult Mega::loadElementFromUSA(
     Ref indexRef) {
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
-      auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
       return regularLoadElementFromUSAWithoutUpgrade(
           globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, arrayKnownLive, indexRef);
     }
@@ -1369,7 +1406,7 @@ LoadResult Mega::loadElementFromUSA(
     case RegionOverride::RESILIENT_V2:
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
-      auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
       return resilientLoadElementFromUSAWithoutUpgrade(
           globalState, functionState, builder, &referendStructs, usaRefMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaMT, arrayRef, arrayKnownLive, indexRef);
     }
@@ -1501,6 +1538,7 @@ Ref Mega::constructUnknownSizeArray(
               controlBlockPtrLE,
               typeName);
           });
+  // We dont increment here, see SRCAO
   return resultRef;
 }
 
@@ -1785,7 +1823,8 @@ Ref Mega::receiveAndDecryptFamiliarReference(
         case Ownership::OWN:
         case Ownership::BORROW:
         case Ownership::WEAK:
-          assert(false);
+          // Someday we'll do some encryption stuff here
+          return sourceRef;
       }
       assert(false);
       break;
@@ -1798,7 +1837,8 @@ Ref Mega::receiveAndDecryptFamiliarReference(
         case Ownership::OWN:
         case Ownership::BORROW:
         case Ownership::WEAK:
-          assert(false);
+          // Someday we'll do some encryption stuff here
+          return sourceRef;
       }
       assert(false);
       break;
@@ -2087,38 +2127,16 @@ Ref Mega::encryptAndSendFamiliarReference(
           ->dealias(FL(), functionState, builder, sourceRefMT, sourceRef);
 
       return sourceRef;
+    case RegionOverride::RESILIENT_V2:
+    case RegionOverride::RESILIENT_V3:
+      // Someday we'll do some encryption stuff here
+      return sourceRef;
+    case RegionOverride::RESILIENT_V1:
+      // Someday we'll do some encryption stuff here
+      return sourceRef;
     default:
       assert(false);
   }
-}
-
-bool Mega::containsReferend(Referend* referendM) {
-  if (auto intM = dynamic_cast<Int*>(referendM)) {
-    return intM->regionId == getRegionId();
-  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
-    return boolM->regionId == getRegionId();
-  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
-    return floatM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
-    return strM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
-    auto structDef = globalState->program->getStruct(structReferendM->fullName);
-    return structDef->regionId == getRegionId();
-  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
-    return interfaceDef->regionId == getRegionId();
-  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
-    return usaDef->rawArray->regionId == getRegionId();
-  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
-    return ksaDef->rawArray->regionId == getRegionId();
-  } else assert(false);
-  assert(false);
 }
 
 void Mega::initializeElementInUSA(
@@ -2130,7 +2148,22 @@ void Mega::initializeElementInUSA(
     bool arrayRefKnownLive,
     Ref indexRef,
     Ref elementRef) {
-  assert(false);
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::NAIVE_RC:
+    case RegionOverride::RESILIENT_V0:
+    case RegionOverride::RESILIENT_V1:
+    case RegionOverride::RESILIENT_V2:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_LIMIT: {
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+      regularStoreElementInUSA(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability,
+          usaDef->rawArray->elementType, usaRef, indexRef, elementRef);
+      break;
+    }
+    default:
+      assert(false);
+  }
 }
 
 Ref Mega::deinitializeElementFromUSA(
@@ -2141,7 +2174,24 @@ Ref Mega::deinitializeElementFromUSA(
     Ref arrayRef,
     bool arrayRefKnownLive,
     Ref indexRef) {
-  assert(false);
+  switch (globalState->opt->regionOverride) {
+    case RegionOverride::NAIVE_RC: {
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+      return regularLoadElementFromUSAWithoutUpgrade(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, true, indexRef).move();
+    }
+    case RegionOverride::RESILIENT_V0:
+    case RegionOverride::RESILIENT_V1:
+    case RegionOverride::RESILIENT_V2:
+    case RegionOverride::RESILIENT_V3:
+    case RegionOverride::RESILIENT_LIMIT: {
+      auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+      return resilientLoadElementFromUSAWithoutUpgrade(
+          globalState, functionState, builder, &referendStructs, usaRefMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaMT, arrayRef, true, indexRef).move();
+    }
+    default:
+      assert(false);
+  }
 }
 
 void Mega::initializeElementInKSA(
@@ -2165,4 +2215,14 @@ Ref Mega::deinitializeElementFromKSA(
     bool arrayRefKnownLive,
     Ref indexRef) {
   assert(false);
+}
+
+Weakability Mega::getReferendWeakability(Referend* referend) {
+  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+    return globalState->lookupStruct(structReferend->fullName)->weakability;
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+    return globalState->lookupInterface(interfaceReferend->fullName)->weakability;
+  } else {
+    return Weakability::NON_WEAKABLE;
+  }
 }

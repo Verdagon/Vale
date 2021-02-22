@@ -389,7 +389,7 @@ public:
       Reference* refM,
       LLVMValueRef refLE);
 
-  bool containsReferend(Referend* referendM) override;
+  Weakability getReferendWeakability(Referend* referend) override;
 
 private:
   GlobalState* globalState = nullptr;

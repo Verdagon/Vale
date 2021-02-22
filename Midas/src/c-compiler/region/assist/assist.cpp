@@ -159,11 +159,13 @@ Ref Assist::upcastWeak(
 
 void Assist::declareKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(knownSizeArrayMT->referend, getRegionId());
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void Assist::declareUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(unknownSizeArrayMT->referend, getRegionId());
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
@@ -185,6 +187,7 @@ void Assist::translateKnownSizeArray(
 
 void Assist::declareStruct(
     StructDefinition* structM) {
+  globalState->regionIdByReferend.emplace(structM->referend, getRegionId());
   referendStructs.declareStruct(structM);
 }
 
@@ -214,6 +217,7 @@ void Assist::translateEdge(Edge* edge) {
 
 void Assist::declareInterface(
     InterfaceDefinition* interfaceM) {
+  globalState->regionIdByReferend.emplace(interfaceM->referend, getRegionId());
   referendStructs.declareInterface(interfaceM);
 }
 
@@ -416,7 +420,7 @@ Ref Assist::constructKnownSizeArray(
                 controlBlockPtrLE,
                 referendM->name->name);
           });
-  adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, referenceM, 1);
+  // We dont increment here, see SRCAO
   return resultRef;
 }
 
@@ -729,7 +733,7 @@ Ref Assist::constructUnknownSizeArray(
                 controlBlockPtrLE,
                 typeName);
           });
-  adjustStrongRc(FL(), globalState, functionState, &referendStructs, builder, resultRef, usaMT, 1);
+  // We dont increment here, see SRCAO
   return resultRef;
 }
 
@@ -869,35 +873,6 @@ Ref Assist::encryptAndSendFamiliarReference(
   return sourceRef;
 }
 
-bool Assist::containsReferend(Referend* referendM) {
-  if (auto intM = dynamic_cast<Int*>(referendM)) {
-    return intM->regionId == getRegionId();
-  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
-    return boolM->regionId == getRegionId();
-  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
-    return floatM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
-    return strM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto structReferendM = dynamic_cast<StructReferend*>(referendM)) {
-    auto structDef = globalState->program->getStruct(structReferendM->fullName);
-    return structDef->regionId == getRegionId();
-  } else if (auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(referendM)) {
-    auto interfaceDef = globalState->program->getInterface(interfaceReferendM->fullName);
-    return interfaceDef->regionId == getRegionId();
-  } else if (auto usaM = dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    auto usaDef = globalState->program->getUnknownSizeArray(usaM->name);
-    return usaDef->rawArray->regionId == getRegionId();
-  } else if (auto ksaM = dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    auto ksaDef = globalState->program->getKnownSizeArray(ksaM->name);
-    return ksaDef->rawArray->regionId == getRegionId();
-  } else assert(false);
-  assert(false);
-}
-
 void Assist::initializeElementInUSA(
     FunctionState *functionState,
     LLVMBuilderRef builder,
@@ -907,7 +882,9 @@ void Assist::initializeElementInUSA(
     bool arrayRefKnownLive,
     Ref indexRef,
     Ref elementRef) {
-  assert(false);
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+  regularStoreElementInUSA(
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaRef, indexRef, elementRef);
 }
 
 Ref Assist::deinitializeElementFromUSA(
@@ -918,7 +895,7 @@ Ref Assist::deinitializeElementFromUSA(
     Ref arrayRef,
     bool arrayRefKnownLive,
     Ref indexRef) {
-  assert(false);
+  return loadElementFromUSA(functionState, builder, usaRefMT, usaMT, arrayRef, arrayRefKnownLive, indexRef).move();
 }
 
 void Assist::initializeElementInKSA(
@@ -942,4 +919,14 @@ Ref Assist::deinitializeElementFromKSA(
     bool arrayRefKnownLive,
     Ref indexRef) {
   assert(false);
+}
+
+Weakability Assist::getReferendWeakability(Referend* referend) {
+  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+    return globalState->lookupStruct(structReferend->fullName)->weakability;
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+    return globalState->lookupInterface(interfaceReferend->fullName)->weakability;
+  } else {
+    return Weakability::NON_WEAKABLE;
+  }
 }

@@ -72,6 +72,7 @@ Linear::Linear(GlobalState* globalState_)
   addMappedReferend(globalState->metalCache->str, linearStr);
   addMappedReferend(globalState->metalCache->never, globalState->metalCache->getNever(getRegionId()));
 
+  globalState->regionIdByReferend.emplace(regionReferend, globalState->metalCache->linearRegionId);
   structs.declareStruct(regionReferend);
   std::vector<LLVMTypeRef> membersLT = {
       LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
@@ -215,9 +216,11 @@ Ref Linear::upcastWeak(
 
 void Linear::declareKnownSizeArray(
     KnownSizeArrayDefinitionT* ksaDefM) {
+
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + ksaDefM->name->name);
   auto hostReferend = globalState->metalCache->getKnownSizeArray(hostName);
   addMappedReferend(ksaDefM->referend, hostReferend);
+  globalState->regionIdByReferend.emplace(hostReferend, getRegionId());
 
   structs.declareKnownSizeArray(hostReferend);
 
@@ -229,6 +232,7 @@ void Linear::declareUnknownSizeArray(
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + usaDefM->name->name);
   auto hostReferend = globalState->metalCache->getUnknownSizeArray(hostName);
   addMappedReferend(usaDefM->referend, hostReferend);
+  globalState->regionIdByReferend.emplace(hostReferend, getRegionId());
 
   structs.declareUnknownSizeArray(hostReferend);
 
@@ -269,9 +273,11 @@ void Linear::addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) 
 
 void Linear::declareStruct(
     StructDefinition* structM) {
+
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + structM->name->name);
   auto hostReferend = globalState->metalCache->getStructReferend(hostName);
   addMappedReferend(structM->referend, hostReferend);
+  globalState->regionIdByReferend.emplace(hostReferend, getRegionId());
 
   structs.declareStruct(hostReferend);
 
@@ -352,6 +358,7 @@ void Linear::declareInterface(
   auto hostName = globalState->metalCache->getName(namePrefix + "_" + interfaceM->name->name);
   auto hostReferend = globalState->metalCache->getInterfaceReferend(hostName);
   addMappedReferend(interfaceM->referend, hostReferend);
+  globalState->regionIdByReferend.emplace(hostReferend, getRegionId());
 
   structs.declareInterface(hostReferend);
 
@@ -722,7 +729,7 @@ Ref Linear::innerConstructKnownSizeArray(
   auto intRefMT = globalState->metalCache->intRef;
 
   assert(ksaRefMT->referend == hostKsaMT);
-  assert(containsReferend(hostKsaMT));
+  assert(globalState->getRegion(hostKsaMT) == this);
 
   auto valeReferendMT = valeReferendByHostReferend.find(hostKsaMT)->second;
   auto valeKsaMT = dynamic_cast<KnownSizeArrayT*>(valeReferendMT);
@@ -770,7 +777,7 @@ Ref Linear::innerConstructUnknownSizeArray(
   auto intRefMT = globalState->metalCache->intRef;
 
   assert(usaRefMT->referend == usaMT);
-  assert(containsReferend(usaMT));
+  assert(globalState->getRegion(usaMT) == this);
 
   auto lenLE = globalState->getRegion(intRefMT)->checkValidReference(FL(), functionState, builder, intRefMT, sizeRef);
   auto lenI64LE = LLVMBuildZExt(builder, lenLE, LLVMInt64TypeInContext(globalState->context), "");
@@ -1084,7 +1091,7 @@ LLVMTypeRef Linear::getInterfaceMethodVirtualParamAnyType(Reference* reference) 
 }
 
 LLVMValueRef Linear::predictShallowSize(LLVMBuilderRef builder, Referend* referend, LLVMValueRef lenIntLE) {
-  assert(containsReferend(referend));
+  assert(globalState->getRegion(referend) == this);
   if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
     return constI64LE(globalState, LLVMABISizeOfType(globalState->dataLayout, structs.getStructStruct(structReferend)));
   } else if (referend == linearStr) {
@@ -1491,13 +1498,6 @@ Reference* Linear::unlinearizeReference(Reference* hostRefMT) {
       hostRefMT->ownership, hostRefMT->location, valeReferend);
 }
 
-bool Linear::containsReferend(Referend* referendM) {
-  if (referendM == regionReferend) {
-    return true;
-  }
-  return valeReferendByHostReferend.find(referendM) != valeReferendByHostReferend.end();
-}
-
 void Linear::fillLinearInnerStruct(
     FunctionState* functionState,
     LLVMBuilderRef builder,
@@ -1528,7 +1528,7 @@ void Linear::initializeElementInUSA(
     Ref elementRef) {
   buildFlare(FL(), globalState, functionState, builder);
   assert(hostUsaRefMT->referend == hostUsaMT);
-  assert(containsReferend(hostUsaMT));
+  assert(globalState->getRegion(hostUsaMT) == this);
 
   buildFlare(FL(), globalState, functionState, builder);
   auto valeReferendMT = valeReferendByHostReferend.find(hostUsaMT)->second;
@@ -1580,7 +1580,7 @@ void Linear::initializeElementInKSA(
     Ref elementRef) {
 
   assert(hostKsaRefMT->referend == hostKsaMT);
-  assert(containsReferend(hostKsaMT));
+  assert(globalState->getRegion(hostKsaMT) == this);
 
   auto valeReferendMT = valeReferendByHostReferend.find(hostKsaMT)->second;
   auto valeKsaMT = dynamic_cast<KnownSizeArrayT*>(valeReferendMT);
@@ -1608,4 +1608,8 @@ Ref Linear::deinitializeElementFromKSA(
     bool arrayRefKnownLive,
     Ref indexRef) {
   assert(false);
+}
+
+Weakability Linear::getReferendWeakability(Referend* referend) {
+  return Weakability::NON_WEAKABLE;
 }

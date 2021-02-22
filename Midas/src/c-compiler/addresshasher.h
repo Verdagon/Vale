@@ -14,6 +14,7 @@ public:
   AddressHasher<T> makeHasher();
 };
 
+// Makes it so we can hash by addresses, but deterministically.
 template<typename T>
 struct AddressHasher {
 public:

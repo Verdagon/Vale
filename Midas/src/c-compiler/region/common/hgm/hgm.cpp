@@ -456,10 +456,12 @@ Ref HybridGenerationalMemory::assembleWeakRef(
 }
 
 
-LLVMTypeRef HybridGenerationalMemory::makeWeakRefHeaderStruct(GlobalState* globalState) {
-  assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V2 ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
-      globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT);
+LLVMTypeRef HybridGenerationalMemory::makeWeakRefHeaderStruct(GlobalState* globalState, RegionId* regionId) {
+  assert(regionId == globalState->metalCache->resilientV2RegionId ||
+             regionId == globalState->metalCache->resilientV3RegionId);
+//  assert(globalState->opt->regionOverride == RegionOverride::RESILIENT_V2 ||
+//      globalState->opt->regionOverride == RegionOverride::RESILIENT_V3 ||
+//      globalState->opt->regionOverride == RegionOverride::RESILIENT_LIMIT);
   auto genRefStructL = LLVMStructCreateNamed(globalState->context, "__GenRef");
 
   std::vector<LLVMTypeRef> memberTypesL;

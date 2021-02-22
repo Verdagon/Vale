@@ -249,11 +249,15 @@ Ref Unsafe::upcastWeak(
 
 void Unsafe::declareKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(knownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareKnownSizeArray(knownSizeArrayMT);
 }
 
 void Unsafe::declareUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
+  globalState->regionIdByReferend.emplace(unknownSizeArrayMT->referend, getRegionId());
+
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
@@ -275,6 +279,8 @@ void Unsafe::translateKnownSizeArray(
 
 void Unsafe::declareStruct(
     StructDefinition* structM) {
+  globalState->regionIdByReferend.emplace(structM->referend, getRegionId());
+
   referendStructs.declareStruct(structM);
 }
 
@@ -286,9 +292,7 @@ void Unsafe::translateStruct(
         globalState->getRegion(structM->members[i]->type)
             ->translateType(structM->members[i]->type));
   }
-  referendStructs.translateStruct(
-      structM,
-      innerStructMemberTypesL);
+  referendStructs.translateStruct(structM, innerStructMemberTypesL);
 }
 
 void Unsafe::declareEdge(
@@ -305,6 +309,8 @@ void Unsafe::translateEdge(
 
 void Unsafe::declareInterface(
     InterfaceDefinition* interfaceM) {
+  globalState->regionIdByReferend.emplace(interfaceM->referend, getRegionId());
+
   referendStructs.declareInterface(interfaceM);
 }
 
@@ -608,7 +614,7 @@ LoadResult Unsafe::loadElementFromUSA(
     Ref arrayRef,
     bool arrayKnownLive,
     Ref indexRef) {
-  auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
   return regularLoadElementFromUSAWithoutUpgrade(
       globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, arrayKnownLive, indexRef);
 }
@@ -622,7 +628,7 @@ Ref Unsafe::storeElementInUSA(
     bool arrayKnownLive,
     Ref indexRef,
     Ref elementRef) {
-  auto usaDef = globalState->program->getKnownSizeArray(usaMT->name);
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
   return regularStoreElementInUSA(
       globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, indexRef, elementRef);
 }
@@ -801,16 +807,21 @@ Ref Unsafe::receiveAndDecryptFamiliarReference(
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
-  if (sourceRefMT->ownership == Ownership::SHARE) {
-    assert(false);
-  } else {
-    assert(false);
-  }
-  assert(false);
+  // Someday, we'll do some encryption stuff here.
+  return sourceRef;
 }
 
 LLVMTypeRef Unsafe::getInterfaceMethodVirtualParamAnyType(Reference* reference) {
-  return mutWeakableStructs.getWeakVoidRefStruct(reference->referend);
+  switch (reference->ownership) {
+    case Ownership::BORROW:
+    case Ownership::OWN:
+    case Ownership::SHARE:
+      return LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0);
+    case Ownership::WEAK:
+      return mutWeakableStructs.getWeakVoidRefStruct(reference->referend);
+    default:
+      assert(false);
+  }
 }
 
 Ref Unsafe::receiveUnencryptedAlienReference(
@@ -827,32 +838,8 @@ Ref Unsafe::encryptAndSendFamiliarReference(
     LLVMBuilderRef builder,
     Reference* sourceRefMT,
     Ref sourceRef) {
-  assert(false);
-}
-
-bool Unsafe::containsReferend(Referend* referendM) {
-  if (auto intM = dynamic_cast<Int*>(referendM)) {
-    return intM->regionId == getRegionId();
-  } else if (auto boolM = dynamic_cast<Bool*>(referendM)) {
-    return boolM->regionId == getRegionId();
-  } else if (auto floatM = dynamic_cast<Float*>(referendM)) {
-    return floatM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (auto strM = dynamic_cast<Str*>(referendM)) {
-    return strM->regionId == getRegionId();
-  } else if (auto neverM = dynamic_cast<Never*>(referendM)) {
-    return neverM->regionId == getRegionId();
-  } else if (dynamic_cast<StructReferend*>(referendM)) {
-    return referendStructs.containsReferend(referendM);
-  } else if (dynamic_cast<InterfaceReferend*>(referendM)) {
-    return referendStructs.containsReferend(referendM);
-  } else if (dynamic_cast<UnknownSizeArrayT*>(referendM)) {
-    return referendStructs.containsReferend(referendM);
-  } else if (dynamic_cast<KnownSizeArrayT*>(referendM)) {
-    return referendStructs.containsReferend(referendM);
-  } else assert(false);
-  assert(false);
+  // Someday, we'll do some encryption stuff here.
+  return sourceRef;
 }
 
 void Unsafe::initializeElementInUSA(
@@ -864,7 +851,9 @@ void Unsafe::initializeElementInUSA(
     bool arrayRefKnownLive,
     Ref indexRef,
     Ref elementRef) {
-  assert(false);
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+  regularStoreElementInUSA(
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaRef, indexRef, elementRef);
 }
 
 Ref Unsafe::deinitializeElementFromUSA(
@@ -875,7 +864,9 @@ Ref Unsafe::deinitializeElementFromUSA(
     Ref arrayRef,
     bool arrayRefKnownLive,
     Ref indexRef) {
-  assert(false);
+  auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
+  return regularLoadElementFromUSAWithoutUpgrade(
+      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, true, indexRef).move();
 }
 
 void Unsafe::initializeElementInKSA(
@@ -899,4 +890,14 @@ Ref Unsafe::deinitializeElementFromKSA(
     bool arrayRefKnownLive,
     Ref indexRef) {
   assert(false);
+}
+
+Weakability Unsafe::getReferendWeakability(Referend* referend) {
+  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
+    return globalState->lookupStruct(structReferend->fullName)->weakability;
+  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
+    return globalState->lookupInterface(interfaceReferend->fullName)->weakability;
+  } else {
+    return Weakability::NON_WEAKABLE;
+  }
 }

@@ -390,7 +390,7 @@ public:
 
   virtual RegionId* getRegionId() = 0;
 
-  virtual bool containsReferend(Referend* referendM) = 0;
+  virtual Weakability getReferendWeakability(Referend* referend) = 0;
 };
 
 #endif

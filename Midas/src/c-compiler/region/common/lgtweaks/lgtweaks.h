@@ -128,7 +128,7 @@ public:
       Ref weakRef);
 
 
-  static LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState);
+  static LLVMTypeRef makeWeakRefHeaderStruct(GlobalState* globalState, RegionId* regionId);
 
 private:
   LLVMValueRef getTargetGenFromWeakRef(

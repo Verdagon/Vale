@@ -86,6 +86,10 @@ public:
     linearRegionId = getRegionId("linear");
     unsafeRegionId = getRegionId("unsafe");
     assistRegionId = getRegionId("assist");
+    naiveRcRegionId = getRegionId("naiverc");
+    resilientV3RegionId = getRegionId("resilientv3");
+    resilientV2RegionId = getRegionId("resilientv2");
+    resilientV1RegionId = getRegionId("resilientv1");
 
     innt = getInt(rcImmRegionId);
     intRef = getReference(Ownership::SHARE, Location::INLINE, innt);
@@ -257,6 +261,10 @@ public:
   RegionId* rcImmRegionId = nullptr;
   RegionId* linearRegionId = nullptr;
   RegionId* unsafeRegionId = nullptr;
+  RegionId* naiveRcRegionId = nullptr;
+  RegionId* resilientV3RegionId = nullptr;
+  RegionId* resilientV2RegionId = nullptr;
+  RegionId* resilientV1RegionId = nullptr;
   RegionId* assistRegionId = nullptr;
   // This is temporary, until we can get valestrom to properly fill in coords' regions
   RegionId* mutRegionId = nullptr;

@@ -11,7 +11,8 @@ GlobalState::GlobalState(AddressNumberer* addressNumberer_) :
     interfaceExtraMethods(0, addressNumberer->makeHasher<InterfaceReferend*>()),
     edgeExtraMethods(0, addressNumberer->makeHasher<Edge*>()),
     extraFunctions(0, addressNumberer->makeHasher<Prototype*>()),
-    regions(0, addressNumberer->makeHasher<RegionId*>())
+    regions(0, addressNumberer->makeHasher<RegionId*>()),
+    regionIdByReferend(0, addressNumberer->makeHasher<Referend*>())
 {}
 
 std::vector<LLVMTypeRef> GlobalState::getInterfaceFunctionTypes(InterfaceReferend* referend) {
@@ -65,12 +66,22 @@ IRegion* GlobalState::getRegion(Reference* referenceM) {
 }
 
 IRegion* GlobalState::getRegion(Referend* referendM) {
-  for (auto regionIdAndRegion : regions) {
-    if (regionIdAndRegion.second->containsReferend(referendM)) {
-      return regionIdAndRegion.second;
-    }
+  if (auto innt = dynamic_cast<Int*>(referendM)) {
+    return getRegion(innt->regionId);
+  } else if (auto boool = dynamic_cast<Bool*>(referendM)) {
+    return getRegion(boool->regionId);
+  } else if (auto flooat = dynamic_cast<Float*>(referendM)) {
+    return getRegion(flooat->regionId);
+  } else if (auto never = dynamic_cast<Never*>(referendM)) {
+    return getRegion(never->regionId);
+  } else if (auto str = dynamic_cast<Str*>(referendM)) {
+    return getRegion(str->regionId);
+  } else {
+    auto iter = regionIdByReferend.find(referendM);
+    assert(iter != regionIdByReferend.end());
+    auto regionId = iter->second;
+    return getRegion(regionId);
   }
-  assert(false);
 }
 
 IRegion* GlobalState::getRegion(RegionId* regionId) {
@@ -82,6 +93,14 @@ IRegion* GlobalState::getRegion(RegionId* regionId) {
     return unsafeRegion;
   } else if (regionId == metalCache->assistRegionId) {
     return assistRegion;
+  } else if (regionId == metalCache->naiveRcRegionId) {
+    return naiveRcRegion;
+  } else if (regionId == metalCache->resilientV3RegionId) {
+    return resilientV3Region;
+  } else if (regionId == metalCache->resilientV2RegionId) {
+    return resilientV2Region;
+  } else if (regionId == metalCache->resilientV1RegionId) {
+    return resilientV1Region;
   } else {
     assert(false);
   }
@@ -156,11 +175,5 @@ Name* GlobalState::getReferendName(Referend* referend) {
 }
 
 Weakability GlobalState::getReferendWeakability(Referend* referend) {
-  if (auto structReferend = dynamic_cast<StructReferend*>(referend)) {
-    return lookupStruct(structReferend->fullName)->weakability;
-  } else if (auto interfaceReferend = dynamic_cast<InterfaceReferend*>(referend)) {
-    return lookupInterface(interfaceReferend->fullName)->weakability;
-  } else {
-    return Weakability::NON_WEAKABLE;
-  }
+  return getRegion(referend)->getReferendWeakability(referend);
 }
