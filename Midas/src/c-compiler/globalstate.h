@@ -17,6 +17,7 @@ class IReferendStructsSource;
 class IWeakRefStructsSource;
 class ControlBlock;
 class Linear;
+class RCImm;
 
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_GEN = 0;
 constexpr int LGT_ENTRY_MEMBER_INDEX_FOR_NEXT_FREE = 1;
@@ -98,8 +99,22 @@ public:
   // For example, for every immutable, Midas needs to add a serialize() method that
   // adds it to an outgoing linear buffer.
   std::unordered_map<Prototype*, LLVMValueRef, AddressHasher<Prototype*>> extraFunctions;
-  std::unordered_map<InterfaceReferend*, std::vector<InterfaceMethod*>, AddressHasher<InterfaceReferend*>> interfaceExtraMethods;
-  std::unordered_map<Edge*, std::vector<std::pair<InterfaceMethod*, Prototype*>>, AddressHasher<Edge*>> edgeExtraMethods;
+  std::unordered_map<
+      InterfaceReferend*,
+      std::vector<InterfaceMethod*>,
+          AddressHasher<InterfaceReferend*>> interfaceExtraMethods;
+
+  using OverridesBySubstructMap =
+      std::unordered_map<
+          StructReferend*,
+          std::vector<std::pair<InterfaceMethod*, Prototype*>>,
+          AddressHasher<StructReferend*>>;
+  using OverridesBySubstructByInterfaceMap =
+      std::unordered_map<
+          InterfaceReferend*,
+          OverridesBySubstructMap,
+          AddressHasher<InterfaceReferend*>>;
+  OverridesBySubstructByInterfaceMap overridesBySubstructByInterface;
   // This keeps us from adding more edges or interfaces after we've already started compiling them.
   bool interfacesOpen = true;
 
@@ -107,11 +122,23 @@ public:
     assert(interfacesOpen);
     interfaceExtraMethods[interfaceReferend].push_back(method);
   }
-  void addEdgeExtraMethod(Edge* edge, InterfaceMethod* interfaceMethod, Prototype* function) {
+  void addEdgeExtraMethod(InterfaceReferend* interfaceMT, StructReferend* structMT, InterfaceMethod* interfaceMethod, Prototype* function) {
+    auto interfaceExtraMethodsI = interfaceExtraMethods.find(interfaceMT);
+    assert(interfaceExtraMethodsI != interfaceExtraMethods.end());
+
     assert(interfacesOpen);
-    int index = edgeExtraMethods[edge].size();
-    assert(interfaceExtraMethods[edge->interfaceName][index] == interfaceMethod);
-    edgeExtraMethods[edge].push_back(std::make_pair(interfaceMethod, function));
+    auto iter = overridesBySubstructByInterface.find(interfaceMT);
+    if (iter == overridesBySubstructByInterface.end()) {
+      iter =
+          overridesBySubstructByInterface.emplace(
+              interfaceMT,
+              OverridesBySubstructMap{0, addressNumberer->makeHasher<StructReferend*>()})
+              .first;
+    }
+    int index = iter->second[structMT].size();
+
+    assert(interfaceExtraMethodsI->second[index] == interfaceMethod);
+    iter->second[structMT].push_back(std::make_pair(interfaceMethod, function));
   }
 
 //  std::unordered_map<Name*, StructDefinition*> extraStructs;
@@ -144,18 +171,23 @@ public:
   }
 
   int getInterfaceMethodIndex(InterfaceReferend* interfaceReferendM, Prototype* prototype) {
-    auto interfaceDefM = program->getInterface(interfaceReferendM->fullName);
-    for (int i = 0; i < interfaceDefM->methods.size(); i++) {
-      if (interfaceDefM->methods[i]->prototype == prototype) {
-        return i;
+    int numMetalMethods = 0;
+    auto interfaceDefMIter = program->interfaces.find(interfaceReferendM->fullName->name);
+    if (interfaceDefMIter != program->interfaces.end()) {
+      auto interfaceDefM = interfaceDefMIter->second;
+      for (int i = 0; i < interfaceDefM->methods.size(); i++) {
+        if (interfaceDefM->methods[i]->prototype == prototype) {
+          return i;
+        }
       }
+      numMetalMethods = interfaceDefM->methods.size();
     }
     auto iter = interfaceExtraMethods.find(interfaceReferendM);
     assert(iter != interfaceExtraMethods.end());
     auto extraMethods = iter->second;
     for (int i = 0; i < extraMethods.size(); i++) {
       if (extraMethods[i]->prototype == prototype) {
-        return interfaceDefM->methods.size() + i;
+        return numMetalMethods + i;
       }
     }
     assert(false);
@@ -181,10 +213,11 @@ public:
   Name* serializeName = nullptr;
   Name* serializeThunkName = nullptr;
   Name* unserializeName = nullptr;
+  Name* unserializeThunkName = nullptr;
 
   LLVMBuilderRef valeMainBuilder = nullptr;
 
-  IRegion* rcImm = nullptr;
+  RCImm* rcImm = nullptr;
   IRegion* mutRegion = nullptr;
   IRegion* unsafeRegion = nullptr;
   IRegion* assistRegion = nullptr;

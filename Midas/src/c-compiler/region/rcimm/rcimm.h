@@ -62,22 +62,31 @@ public:
       InterfaceReferend* targetInterfaceReferendM,
       Reference* targetInterfaceTypeM) override;
 
-  void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
-  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
-  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
-  void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
   void declareStruct(StructDefinition* structM) override;
-  void translateStruct(StructDefinition* structM) override;
-  void declareEdge(Edge* edge) override;
-  void translateEdge(Edge* edge) override;
+  void declareStructExtraFunctions(StructDefinition* structDefM) override;
+  void defineStruct(StructDefinition* structM) override;
+  void defineStructExtraFunctions(StructDefinition* structDefM) override;
+
+  void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void declareKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
+  void defineKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
+  void defineKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
+
+  void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void declareUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void defineUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
+  void defineUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
+
   void declareInterface(InterfaceDefinition* interfaceM) override;
-  void translateInterface(InterfaceDefinition* interfaceM) override;
-  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
-  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
-  void addStructExtraFunctions(StructDefinition* structDefM) override {}
-  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
-  void declareExtraFunctions() override {}
-  void defineExtraFunctions() override {}
+  void declareInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
+  void defineInterface(InterfaceDefinition* interfaceM) override;
+  void defineInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
+
+  void declareEdge(Edge* edge) override;
+  void defineEdge(Edge* edge) override;
+
+  void declareExtraFunctions() override;
+  void defineExtraFunctions() override;
 
   Ref weakAlias(
       FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) override;
@@ -391,7 +400,39 @@ public:
 
   Weakability getReferendWeakability(Referend* referend) override;
 
+  LLVMValueRef getInterfaceMethodFunctionPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* virtualParamMT,
+      Ref virtualArgRef,
+      int indexInEdge) override;
+
+  // This is public so that linear can get at it to stick it in a vtable.
+  Prototype* getUnserializePrototype(Referend* valeReferend);
+  Prototype* getUnserializeThunkPrototype(StructReferend* structReferend, InterfaceReferend* interfaceReferend);
+
 private:
+  void declareConcreteUnserializeFunction(Referend* valeReferendM);
+  void defineConcreteUnserializeFunction(Referend* valeReferendM);
+  void declareInterfaceUnserializeFunction(InterfaceReferend* valeReferend);
+  void defineEdgeUnserializeFunction(Edge* edge);
+
+  InterfaceMethod* getUnserializeInterfaceMethod(Referend* valeReferend);
+
+  Ref callUnserialize(
+      FunctionState *functionState,
+      LLVMBuilderRef builder,
+      Referend* valeReferend,
+      Ref objectRef);
+
+  // Does the entire serialization process: measuring the length, allocating a buffer, and
+  // serializing into it.
+  Ref topLevelUnserialize(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Referend* valeReferend,
+      Ref ref);
+
   GlobalState* globalState = nullptr;
 
   ReferendStructs referendStructs;

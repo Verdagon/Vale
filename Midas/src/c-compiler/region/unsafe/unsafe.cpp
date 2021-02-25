@@ -261,20 +261,20 @@ void Unsafe::declareUnknownSizeArray(
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
-void Unsafe::translateUnknownSizeArray(
+void Unsafe::defineUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
           ->translateType(unknownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  referendStructs.defineUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
-void Unsafe::translateKnownSizeArray(
+void Unsafe::defineKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
           ->translateType(knownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  referendStructs.defineKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
 void Unsafe::declareStruct(
@@ -284,7 +284,7 @@ void Unsafe::declareStruct(
   referendStructs.declareStruct(structM);
 }
 
-void Unsafe::translateStruct(
+void Unsafe::defineStruct(
     StructDefinition* structM) {
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
@@ -292,7 +292,7 @@ void Unsafe::translateStruct(
         globalState->getRegion(structM->members[i]->type)
             ->translateType(structM->members[i]->type));
   }
-  referendStructs.translateStruct(structM, innerStructMemberTypesL);
+  referendStructs.defineStruct(structM, innerStructMemberTypesL);
 }
 
 void Unsafe::declareEdge(
@@ -300,11 +300,11 @@ void Unsafe::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void Unsafe::translateEdge(
+void Unsafe::defineEdge(
     Edge* edge) {
   auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
   auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
-  referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
+  referendStructs.defineEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
 void Unsafe::declareInterface(
@@ -314,10 +314,10 @@ void Unsafe::declareInterface(
   referendStructs.declareInterface(interfaceM);
 }
 
-void Unsafe::translateInterface(
+void Unsafe::defineInterface(
     InterfaceDefinition* interfaceM) {
   auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
-  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
+  referendStructs.defineInterface(interfaceM, interfaceMethodTypesL);
 }
 
 void Unsafe::discardOwningRef(
@@ -900,4 +900,14 @@ Weakability Unsafe::getReferendWeakability(Referend* referend) {
   } else {
     return Weakability::NON_WEAKABLE;
   }
+}
+
+LLVMValueRef Unsafe::getInterfaceMethodFunctionPtr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* virtualParamMT,
+    Ref virtualArgRef,
+    int indexInEdge) {
+  return getInterfaceMethodFunctionPtrFromItable(
+      globalState, functionState, builder, virtualParamMT, virtualArgRef, indexInEdge);
 }

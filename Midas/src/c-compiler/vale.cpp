@@ -462,6 +462,7 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   globalState->serializeName = globalState->metalCache->getName("__vale_serialize");
   globalState->serializeThunkName = globalState->metalCache->getName("__vale_serialize_thunk");
   globalState->unserializeName = globalState->metalCache->getName("__vale_unserialize");
+  globalState->unserializeThunkName = globalState->metalCache->getName("__vale_unserialize_thunk");
 
 
   globalState->stringConstantBuilder = entryBuilder;
@@ -608,28 +609,91 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    assert(name == structM->name->name);
-    globalState->getRegion(structM->regionId)->translateStruct(structM);
+    globalState->getRegion(structM->regionId)->declareStructExtraFunctions(structM);
     if (structM->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->translateStruct(structM);
+      globalState->linearRegion->declareStructExtraFunctions(structM);
+    }
+  }
+
+  for (auto p : program->interfaces) {
+    auto name = p.first;
+    auto interfaceM = p.second;
+    globalState->getRegion(interfaceM->regionId)->declareInterfaceExtraFunctions(interfaceM);
+    if (interfaceM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->declareInterfaceExtraFunctions(interfaceM);
     }
   }
 
   for (auto p : program->knownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->regionId)->translateKnownSizeArray(arrayM);
+    globalState->getRegion(arrayM->rawArray->regionId)->declareKnownSizeArrayExtraFunctions(arrayM);
     if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->translateKnownSizeArray(arrayM);
+      globalState->linearRegion->declareKnownSizeArrayExtraFunctions(arrayM);
     }
   }
 
   for (auto p : program->unknownSizeArrays) {
     auto name = p.first;
     auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->regionId)->translateUnknownSizeArray(arrayM);
+    globalState->getRegion(arrayM->rawArray->regionId)->declareUnknownSizeArrayExtraFunctions(arrayM);
     if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->translateUnknownSizeArray(arrayM);
+      globalState->linearRegion->declareUnknownSizeArrayExtraFunctions(arrayM);
+    }
+  }
+
+  // This is here before any defines because:
+  // 1. It has to be before we define any extra functions for structs etc because the linear
+  //    region's extra functions need to know all the substructs for interfaces so it can number
+  //    them, which is used in supporting its interface calling.
+  // 2. Everything else is declared here too and it seems consistent
+  for (auto p : program->structs) {
+    auto name = p.first;
+    auto structM = p.second;
+    for (auto e : structM->edges) {
+      globalState->getRegion(structM->regionId)->declareEdge(e);
+      if (structM->mutability == Mutability::IMMUTABLE) {
+        globalState->linearRegion->declareEdge(e);
+      }
+    }
+  }
+
+  for (auto p : program->structs) {
+    auto name = p.first;
+    auto structM = p.second;
+    assert(name == structM->name->name);
+    globalState->getRegion(structM->regionId)->defineStruct(structM);
+    if (structM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineStruct(structM);
+    }
+  }
+
+  // This must be before we start defining extra functions, because some of them might rely
+  // on knowing the interface tables' layouts to make interface calls.
+  for (auto p : program->interfaces) {
+    auto name = p.first;
+    auto interfaceM = p.second;
+    globalState->getRegion(interfaceM->regionId)->defineInterface(interfaceM);
+    if (interfaceM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineInterface(interfaceM);
+    }
+  }
+
+  for (auto p : program->knownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->defineKnownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineKnownSizeArray(arrayM);
+    }
+  }
+
+  for (auto p : program->unknownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->defineUnknownSizeArray(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineUnknownSizeArray(arrayM);
     }
   }
 
@@ -647,11 +711,28 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->structs) {
     auto name = p.first;
     auto structM = p.second;
-    for (auto e : structM->edges) {
-      globalState->getRegion(structM->regionId)->declareEdge(e);
-      if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->linearRegion->declareEdge(e);
-      }
+    assert(name == structM->name->name);
+    globalState->getRegion(structM->regionId)->defineStructExtraFunctions(structM);
+    if (structM->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineStructExtraFunctions(structM);
+    }
+  }
+
+  for (auto p : program->knownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->defineKnownSizeArrayExtraFunctions(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineKnownSizeArrayExtraFunctions(arrayM);
+    }
+  }
+
+  for (auto p : program->unknownSizeArrays) {
+    auto name = p.first;
+    auto arrayM = p.second;
+    globalState->getRegion(arrayM->rawArray->regionId)->defineUnknownSizeArrayExtraFunctions(arrayM);
+    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
+      globalState->linearRegion->defineUnknownSizeArrayExtraFunctions(arrayM);
     }
   }
 
@@ -662,50 +743,14 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   for (auto p : program->interfaces) {
     auto name = p.first;
     auto interfaceM = p.second;
-    globalState->getRegion(interfaceM->regionId)->translateInterface(interfaceM);
+    globalState->getRegion(interfaceM->regionId)->defineInterfaceExtraFunctions(interfaceM);
     if (interfaceM->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->translateInterface(interfaceM);
+      globalState->linearRegion->defineInterfaceExtraFunctions(interfaceM);
     }
   }
 
   for (auto region : globalState->regions) {
     region.second->defineExtraFunctions();
-  }
-
-  for (auto p : program->structs) {
-    auto name = p.first;
-    auto structM = p.second;
-    globalState->getRegion(structM->regionId)->addStructExtraFunctions(structM);
-    if (structM->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->addStructExtraFunctions(structM);
-    }
-  }
-
-  for (auto p : program->interfaces) {
-    auto name = p.first;
-    auto interfaceM = p.second;
-    globalState->getRegion(interfaceM->regionId)->addInterfaceExtraFunctions(interfaceM);
-    if (interfaceM->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->addInterfaceExtraFunctions(interfaceM);
-    }
-  }
-
-  for (auto p : program->knownSizeArrays) {
-    auto name = p.first;
-    auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->regionId)->addKnownSizeArrayExtraFunctions(arrayM);
-    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->addKnownSizeArrayExtraFunctions(arrayM);
-    }
-  }
-
-  for (auto p : program->unknownSizeArrays) {
-    auto name = p.first;
-    auto arrayM = p.second;
-    globalState->getRegion(arrayM->rawArray->regionId)->addUnknownSizeArrayExtraFunctions(arrayM);
-    if (arrayM->rawArray->mutability == Mutability::IMMUTABLE) {
-      globalState->linearRegion->addUnknownSizeArrayExtraFunctions(arrayM);
-    }
   }
 
   for (auto p : program->externs) {
@@ -730,6 +775,12 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
   assert(mainL != nullptr);
   assert(mainM != nullptr);
 
+  for (auto p : program->functions) {
+    auto name = p.first;
+    auto function = p.second;
+    translateFunction(globalState, function);
+  }
+
   // We translate the edges after the functions are declared because the
   // functions have to exist for the itables to point to them.
   for (auto p : program->structs) {
@@ -737,18 +788,12 @@ void compileValeCode(GlobalState* globalState, const std::string& filename) {
     auto structM = p.second;
     for (auto e : structM->edges) {
       if (structM->mutability == Mutability::IMMUTABLE) {
-        globalState->rcImm->translateEdge(e);
-        globalState->linearRegion->translateEdge(e);
+        globalState->rcImm->defineEdge(e);
+        globalState->linearRegion->defineEdge(e);
       } else {
-        globalState->mutRegion->translateEdge(e);
+        globalState->mutRegion->defineEdge(e);
       }
     }
-  }
-
-  for (auto p : program->functions) {
-    auto name = p.first;
-    auto function = p.second;
-    translateFunction(globalState, function);
   }
 
   LLVMBuildStore(

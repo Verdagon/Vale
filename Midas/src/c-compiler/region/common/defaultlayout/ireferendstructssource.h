@@ -12,19 +12,19 @@ public:
   virtual LLVMTypeRef getStringWrapperStruct() = 0;
   virtual LLVMTypeRef getInterfaceRefStruct(InterfaceReferend* interfaceReferend) = 0;
   virtual LLVMTypeRef getInterfaceTableStruct(InterfaceReferend* interfaceReferend) = 0;
-  virtual void translateStruct(StructDefinition* structM, std::vector<LLVMTypeRef> membersLT) = 0;
+  virtual void defineStruct(StructDefinition* structM, std::vector<LLVMTypeRef> membersLT) = 0;
   virtual void declareStruct(StructDefinition* structM) = 0;
   virtual void declareEdge(Edge* edge) = 0;
-  virtual void translateEdge(
+  virtual void defineEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
       std::vector<LLVMValueRef> functions) = 0;
   virtual void declareInterface(InterfaceDefinition* interface) = 0;
-  virtual void translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) = 0;
+  virtual void defineInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) = 0;
   virtual void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) = 0;
   virtual void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) = 0;
-  virtual void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) = 0;
-  virtual void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) = 0;
+  virtual void defineUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) = 0;
+  virtual void defineKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) = 0;
 
   virtual ControlBlockPtrLE getConcreteControlBlockPtr(
       AreaAndFileAndLine from,

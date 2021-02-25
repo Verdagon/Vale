@@ -19,7 +19,6 @@ LoadResult loadElementWithoutUpgrade(
     Reference* elementRefM,
     Ref sizeLE,
     LLVMValueRef arrayPtrLE,
-    Mutability mutability,
     Ref indexLE);
 
 //Ref loadElementWithUpgrade(

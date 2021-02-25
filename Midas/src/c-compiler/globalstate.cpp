@@ -4,24 +4,27 @@
 #include "globalstate.h"
 #include "translatetype.h"
 #include "region/linear/linear.h"
+#include "region/rcimm/rcimm.h"
 
 GlobalState::GlobalState(AddressNumberer* addressNumberer_) :
     addressNumberer(addressNumberer_),
     interfaceTablePtrs(0, addressNumberer->makeHasher<Edge*>()),
     interfaceExtraMethods(0, addressNumberer->makeHasher<InterfaceReferend*>()),
-    edgeExtraMethods(0, addressNumberer->makeHasher<Edge*>()),
+    overridesBySubstructByInterface(0, addressNumberer->makeHasher<InterfaceReferend*>()),
     extraFunctions(0, addressNumberer->makeHasher<Prototype*>()),
     regions(0, addressNumberer->makeHasher<RegionId*>()),
     regionIdByReferend(0, addressNumberer->makeHasher<Referend*>())
 {}
 
 std::vector<LLVMTypeRef> GlobalState::getInterfaceFunctionTypes(InterfaceReferend* referend) {
-  auto interfaceDefM = program->getInterface(referend->fullName);
-
+  auto interfaceDefMIter = program->interfaces.find(referend->fullName->name);
   std::vector<LLVMTypeRef> interfaceFunctionsLT;
-  for (auto method : interfaceDefM->methods) {
-    auto interfaceFunctionLT = translateInterfaceMethodToFunctionType(this, method);
-    interfaceFunctionsLT.push_back(LLVMPointerType(interfaceFunctionLT, 0));
+  if (interfaceDefMIter != program->interfaces.end()) {
+    auto interfaceDefM = interfaceDefMIter->second;
+    for (auto method : interfaceDefM->methods) {
+      auto interfaceFunctionLT = translateInterfaceMethodToFunctionType(this, method);
+      interfaceFunctionsLT.push_back(LLVMPointerType(interfaceFunctionLT, 0));
+    }
   }
   for (auto interfaceExtraMethod : interfaceExtraMethods[referend]) {
     auto interfaceFunctionLT =
@@ -36,9 +39,20 @@ std::vector<LLVMValueRef> GlobalState::getEdgeFunctions(Edge* edge) {
   auto interfaceM = program->getInterface(edge->interfaceName->fullName);
 
   assert(edge->structPrototypesByInterfaceMethod.size() == interfaceM->methods.size());
-  assert(edgeExtraMethods[edge].size() == interfaceExtraMethods[edge->interfaceName].size());
 
   std::vector<LLVMValueRef> edgeFunctionsL;
+
+  {
+    auto overridesBySubstructI = overridesBySubstructByInterface.find(edge->interfaceName);
+    if (overridesBySubstructI != overridesBySubstructByInterface.end()) {
+      auto overridesI = overridesBySubstructI->second.find(edge->structName);
+      if (overridesI != overridesBySubstructI->second.end()) {
+        auto overrides = overridesI->second;
+        assert(overrides.size() == interfaceExtraMethods[edge->interfaceName].size());
+      }
+    }
+  }
+
   for (int i = 0; i < edge->structPrototypesByInterfaceMethod.size(); i++) {
     assert(edge->structPrototypesByInterfaceMethod[i].first == interfaceM->methods[i]);
 
@@ -47,15 +61,24 @@ std::vector<LLVMValueRef> GlobalState::getEdgeFunctions(Edge* edge) {
     edgeFunctionsL.push_back(edgeFunctionL);
   }
 
-  auto& extraInterfaceMethods = interfaceExtraMethods[edge->interfaceName];
-  auto& extraEdgeMethods = edgeExtraMethods[edge];
-  assert(extraInterfaceMethods.size() == extraEdgeMethods.size());
-  for (int i = 0; i < extraInterfaceMethods.size(); i++) {
-    assert(extraEdgeMethods[i].first == extraInterfaceMethods[i]);
+  {
+    auto &extraInterfaceMethods = interfaceExtraMethods[edge->interfaceName];
+    auto overridesBySubstructI = overridesBySubstructByInterface.find(edge->interfaceName);
+    if (overridesBySubstructI != overridesBySubstructByInterface.end()) {
+      auto overridesBySubstruct = overridesBySubstructI->second;
+      auto overridesI = overridesBySubstruct.find(edge->structName);
+      if (overridesI != overridesBySubstruct.end()) {
+        auto &extraOverrides = overridesI->second;
+        assert(extraInterfaceMethods.size() == extraOverrides.size());
+        for (int i = 0; i < extraInterfaceMethods.size(); i++) {
+          assert(extraOverrides[i].first == extraInterfaceMethods[i]);
 
-    auto prototype = extraEdgeMethods[i].second;
-    auto edgeFunctionL = extraFunctions.find(prototype)->second;
-    edgeFunctionsL.push_back(edgeFunctionL);
+          auto prototype = extraOverrides[i].second;
+          auto edgeFunctionL = extraFunctions.find(prototype)->second;
+          edgeFunctionsL.push_back(edgeFunctionL);
+        }
+      }
+    }
   }
 
   return edgeFunctionsL;

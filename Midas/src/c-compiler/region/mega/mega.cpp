@@ -604,20 +604,20 @@ void Mega::declareUnknownSizeArray(
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
-void Mega::translateUnknownSizeArray(
+void Mega::defineUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
           ->translateType(unknownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  referendStructs.defineUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
-void Mega::translateKnownSizeArray(
+void Mega::defineKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
           ->translateType(knownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  referendStructs.defineKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 void Mega::declareStruct(
     StructDefinition* structM) {
@@ -626,7 +626,7 @@ void Mega::declareStruct(
   referendStructs.declareStruct(structM);
 }
 
-void Mega::translateStruct(
+void Mega::defineStruct(
     StructDefinition* structM) {
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
@@ -634,7 +634,7 @@ void Mega::translateStruct(
         globalState->getRegion(structM->members[i]->type)
             ->translateType(structM->members[i]->type));
   }
-  referendStructs.translateStruct(
+  referendStructs.defineStruct(
       structM,
       innerStructMemberTypesL);
 }
@@ -644,11 +644,11 @@ void Mega::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void Mega::translateEdge(
+void Mega::defineEdge(
     Edge* edge) {
   auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
   auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
-  referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
+  referendStructs.defineEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
 void Mega::declareInterface(
@@ -658,10 +658,10 @@ void Mega::declareInterface(
   referendStructs.declareInterface(interfaceM);
 }
 
-void Mega::translateInterface(
+void Mega::defineInterface(
     InterfaceDefinition* interfaceM) {
   auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
-  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
+  referendStructs.defineInterface(interfaceM, interfaceMethodTypesL);
 }
 
 void Mega::discardOwningRef(
@@ -2225,4 +2225,14 @@ Weakability Mega::getReferendWeakability(Referend* referend) {
   } else {
     return Weakability::NON_WEAKABLE;
   }
+}
+
+LLVMValueRef Mega::getInterfaceMethodFunctionPtr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* virtualParamMT,
+    Ref virtualArgRef,
+    int indexInEdge) {
+  return getInterfaceMethodFunctionPtrFromItable(
+      globalState, functionState, builder, virtualParamMT, virtualArgRef, indexInEdge);
 }

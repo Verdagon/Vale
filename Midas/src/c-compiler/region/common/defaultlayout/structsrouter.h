@@ -25,19 +25,19 @@ public:
   LLVMTypeRef getInterfaceTableStruct(InterfaceReferend* interfaceReferend) override;
   LLVMTypeRef getStringWrapperStruct() override;
 
-  void translateStruct(StructDefinition* structM, std::vector<LLVMTypeRef> membersLT) override;
+  void defineStruct(StructDefinition* structM, std::vector<LLVMTypeRef> membersLT) override;
   void declareStruct(StructDefinition* structM) override;
   void declareEdge(Edge* edge) override;
-  void translateEdge(
+  void defineEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
       std::vector<LLVMValueRef> functions) override;
   void declareInterface(InterfaceDefinition* interfaceM) override;
-  void translateInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) override;
+  void defineInterface(InterfaceDefinition* interface, std::vector<LLVMTypeRef> interfaceMethodTypesL) override;
   void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT) override;
   void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT) override;
-  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
-  void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void defineUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayMT, LLVMTypeRef elementLT) override;
+  void defineKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayMT, LLVMTypeRef elementLT) override;
 
   ControlBlockPtrLE getConcreteControlBlockPtr(
       AreaAndFileAndLine from,

@@ -268,8 +268,15 @@ Ref translateExpressionInner(
               ->checkValidReference(
                   FL(), functionState, bodyBuilder, elementType, elementRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
+
+          auto consumerInterfaceMT = dynamic_cast<InterfaceReferend*>(consumerType->referend);
+          assert(consumerInterfaceMT);
+          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
+          auto methodFunctionPtrLE =
+              globalState->getRegion(consumerType)
+                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
           buildInterfaceCall(
-              globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0);
+              globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {
@@ -330,7 +337,14 @@ Ref translateExpressionInner(
                   ->deinitializeElementFromUSA(
                       functionState, bodyBuilder, arrayType, arrayReferend, arrayRef, arrayKnownLive, indexRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
-          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs, 0);
+
+          auto consumerInterfaceMT = dynamic_cast<InterfaceReferend*>(consumerType->referend);
+          assert(consumerInterfaceMT);
+          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
+          auto methodFunctionPtrLE =
+              globalState->getRegion(consumerType)
+                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
+          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {

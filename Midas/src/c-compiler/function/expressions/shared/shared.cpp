@@ -6,6 +6,7 @@
 #include "translatetype.h"
 #include "region/common/controlblock.h"
 #include "region/linear/linear.h"
+#include "region/rcimm/rcimm.h"
 #include "utils/branch.h"
 
 // A "Never" is something that should never be read.
@@ -217,13 +218,14 @@ Ref buildInterfaceCall(
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Prototype* prototype,
+    LLVMValueRef methodFunctionPtrLE,
     std::vector<Ref> argRefs,
     int virtualParamIndex) {
   auto virtualParamMT = prototype->params[virtualParamIndex];
 
   auto interfaceReferendM = dynamic_cast<InterfaceReferend*>(virtualParamMT->referend);
   assert(interfaceReferendM);
-  int indexInEdge = globalState->getInterfaceMethodIndex(interfaceReferendM, prototype);
+//  int indexInEdge = globalState->getInterfaceMethod(interfaceReferendM, prototype);
 
   auto virtualArgRef = argRefs[virtualParamIndex];
 
@@ -233,6 +235,7 @@ Ref buildInterfaceCall(
       globalState->getRegion(virtualParamMT)
           ->explodeInterfaceRef(
               functionState, builder, virtualParamMT, virtualArgRef);
+  buildFlare(FL(), globalState, functionState, builder);
 
   // We can't represent these arguments as refs, because this new virtual arg is a void*, and we
   // can't represent that as a ref.
@@ -245,15 +248,20 @@ Ref buildInterfaceCall(
   }
   argsLE[virtualParamIndex] = newVirtualArgLE;
 
-  assert(LLVMGetTypeKind(LLVMTypeOf(itablePtrLE)) == LLVMPointerTypeKind);
-  auto funcPtrPtrLE =
-      LLVMBuildStructGEP(
-          builder, itablePtrLE, indexInEdge, "methodPtrPtr");
+  buildFlare(FL(), globalState, functionState, builder, interfaceReferendM->fullName->name, " ", ptrToIntLE(globalState, builder, methodFunctionPtrLE));
 
-  auto funcPtrLE = LLVMBuildLoad(builder, funcPtrPtrLE, "methodPtr");
+//  assert(LLVMGetTypeKind(LLVMTypeOf(itablePtrLE)) == LLVMPointerTypeKind);
+//  auto funcPtrPtrLE =
+//      LLVMBuildStructGEP(
+//          builder, itablePtrLE, indexInEdge, "methodPtrPtr");
+
+//  auto funcPtrLE = LLVMBuildLoad(builder, funcPtrPtrLE, "methodPtr");
+
+
 
   auto resultLE =
-      LLVMBuildCall(builder, funcPtrLE, argsLE.data(), argsLE.size(), "");
+      LLVMBuildCall(builder, methodFunctionPtrLE, argsLE.data(), argsLE.size(), "");
+  buildFlare(FL(), globalState, functionState, builder);
   return wrap(globalState->getRegion(prototype->returnType), prototype->returnType, resultLE);
 }
 

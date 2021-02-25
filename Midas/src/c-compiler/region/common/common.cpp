@@ -181,7 +181,6 @@ LoadResult loadElementFromKSAInner(
     Reference* ksaRefMT,
     KnownSizeArrayT* ksaMT,
     int size,
-    Mutability mutability,
     Reference* elementType,
     Ref indexRef,
     LLVMValueRef arrayElementsPtrLE) {
@@ -193,7 +192,7 @@ LoadResult loadElementFromKSAInner(
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, ksaRefMT,
       elementType,
-      sizeRef, arrayElementsPtrLE, mutability, indexRef);
+      sizeRef, arrayElementsPtrLE, indexRef);
 }
 
 // Checks that the generation is <= to the actual one.
@@ -378,6 +377,7 @@ void fillUnknownSizeArray(
     Ref sizeLE,
     Ref usaRef) {
 
+  buildFlare(FL(), globalState, functionState, builder);
   intRangeLoop(
       globalState, functionState, builder, sizeLE,
       [globalState, functionState, usaRefMT, usaMT, generatorMethod, generatorType, usaRef, generatorLE](
@@ -386,10 +386,23 @@ void fillUnknownSizeArray(
             AFL("ConstructUSA generate iteration"),
             functionState, bodyBuilder, generatorType, generatorLE);
         std::vector<Ref> argExprsLE = { generatorLE, indexRef };
-        auto elementRef = buildInterfaceCall(globalState, functionState, bodyBuilder, generatorMethod, argExprsLE, 0);
+
+//        auto virtualArgRefMT = functionType->params[virtualParamIndex];
+//        auto virtualArgRef = argsLE[virtualParamIndex];
+        buildFlare(FL(), globalState, functionState, bodyBuilder);
+        auto methodFunctionPtrLE =
+            globalState->getRegion(generatorType)
+                ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, generatorType, generatorLE, 0);
+        buildFlare(FL(), globalState, functionState, bodyBuilder);
+        auto elementRef =
+            buildInterfaceCall(
+                globalState, functionState, bodyBuilder, generatorMethod, methodFunctionPtrLE, argExprsLE, 0);
+        buildFlare(FL(), globalState, functionState, bodyBuilder);
         globalState->getRegion(usaMT)->initializeElementInUSA(
             functionState, bodyBuilder, usaRefMT, usaMT, usaRef, true, indexRef, elementRef);
+        buildFlare(FL(), globalState, functionState, bodyBuilder);
       });
+  buildFlare(FL(), globalState, functionState, builder);
 }
 
 std::tuple<Reference*, LLVMValueRef> megaGetRefInnardsForChecking(Ref ref) {
@@ -991,7 +1004,7 @@ LoadResult regularLoadElementFromUSAWithoutUpgrade(
   return loadElementWithoutUpgrade(
       globalState, functionState, builder, usaRefMT,
       elementType,
-      sizeRef, arrayElementsPtrLE, mutability, indexRef);
+      sizeRef, arrayElementsPtrLE, indexRef);
 }
 
 LoadResult resilientLoadElementFromUSAWithoutUpgrade(
@@ -1022,7 +1035,7 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
       return loadElementWithoutUpgrade(
           globalState, functionState, builder, usaRefMT,
           elementType,
-          sizeRef, arrayElementsPtrLE, mutability, indexRef);
+          sizeRef, arrayElementsPtrLE, indexRef);
     }
     case Ownership::BORROW: {
       auto wrapperPtrLE =
@@ -1036,7 +1049,7 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
       return loadElementWithoutUpgrade(
           globalState, functionState, builder, usaRefMT,
           elementType,
-          sizeRef, arrayElementsPtrLE, mutability, indexRef);
+          sizeRef, arrayElementsPtrLE, indexRef);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1320,7 +1333,7 @@ LoadResult regularloadElementFromKSA(
               globalState->getRegion(ksaRefMT)
                   ->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
   return loadElementFromKSAInner(
-      globalState, functionState, builder, ksaRefMT, ksaMT, arraySize, mutability, elementType, indexRef, arrayElementsPtrLE);
+      globalState, functionState, builder, ksaRefMT, ksaMT, arraySize, elementType, indexRef, arrayElementsPtrLE);
 }
 
 LoadResult resilientloadElementFromKSA(
@@ -1347,13 +1360,13 @@ LoadResult resilientloadElementFromKSA(
                   globalState->getRegion(ksaRefMT)
                       ->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
       return loadElementFromKSAInner(
-          globalState, functionState, builder, ksaRefMT, ksaMT, size, mutability, elementType, indexRef, arrayElementsPtrLE);
+          globalState, functionState, builder, ksaRefMT, ksaMT, size, elementType, indexRef, arrayElementsPtrLE);
     }
     case Ownership::BORROW: {
       LLVMValueRef arrayElementsPtrLE =
           getKnownSizeArrayContentsPtr(
               builder, globalState->getRegion(ksaRefMT)->lockWeakRef(FL(), functionState, builder, ksaRefMT, arrayRef, arrayKnownLive));
-      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, size, mutability, elementType, indexRef, arrayElementsPtrLE);
+      return loadElementFromKSAInner(globalState, functionState, builder, ksaRefMT, ksaMT, size, elementType, indexRef, arrayElementsPtrLE);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1473,10 +1486,14 @@ std::tuple<LLVMValueRef, LLVMValueRef> explodeStrongInterfaceRef(
           FL(), functionState, builder, virtualParamMT, virtualArgLE);
   itablePtrLE = getItablePtrFromInterfacePtr(globalState, functionState, builder,
       virtualParamMT, virtualArgInterfaceFatPtrLE);
+  buildFlare(FL(), globalState, functionState, builder);
   auto objVoidPtrLE =
       referendStructs->getVoidPtrFromInterfacePtr(
           functionState, builder, virtualParamMT, virtualArgInterfaceFatPtrLE);
   newVirtualArgLE = objVoidPtrLE;
+
+  buildFlare(FL(), globalState, functionState, builder, "itablePtrLE ", ptrToIntLE(globalState, builder, itablePtrLE));
+
   return std::make_tuple(itablePtrLE, newVirtualArgLE);
 }
 
@@ -1624,3 +1641,34 @@ void storeMemberWeak(
   innerStructPtrLE = referendStructs->getStructContentsPtr(builder, structRefMT->referend, wrapperPtrLE);
   storeInnerInnerStructMember(builder, innerStructPtrLE, memberIndex, memberName, newValueLE);
 }
+
+LLVMValueRef getInterfaceMethodFunctionPtrFromItable(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* virtualParamMT,
+    Ref virtualArgRef,
+    int indexInEdge) {
+  LLVMValueRef itablePtrLE = nullptr;
+  LLVMValueRef newVirtualArgLE = nullptr;
+  std::tie(itablePtrLE, newVirtualArgLE) =
+      globalState->getRegion(virtualParamMT)
+          ->explodeInterfaceRef(
+              functionState, builder, virtualParamMT, virtualArgRef);
+  buildFlare(FL(), globalState, functionState, builder);
+
+  auto interfaceMT = dynamic_cast<InterfaceReferend*>(virtualParamMT->referend);
+  assert(interfaceMT);
+//  int indexInEdge = 0;
+//  InterfaceMethod* method = nullptr;
+//  std::tie(indexInEdge, method) = globalState->getInterfaceMethod(interfaceMT, prototype);
+
+  assert(LLVMGetTypeKind(LLVMTypeOf(itablePtrLE)) == LLVMPointerTypeKind);
+  buildFlare(FL(), globalState, functionState, builder, "index in edge: ", indexInEdge);
+  auto funcPtrPtrLE = LLVMBuildStructGEP(builder, itablePtrLE, indexInEdge, "methodPtrPtr");
+
+  auto resultLE = LLVMBuildLoad(builder, funcPtrPtrLE, "methodPtr");
+  buildFlare(FL(), globalState, functionState, builder, "method ptr: ", ptrToIntLE(globalState, builder, resultLE));
+  return resultLE;
+}
+

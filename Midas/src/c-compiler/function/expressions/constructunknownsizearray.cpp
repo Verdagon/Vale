@@ -43,9 +43,11 @@ Ref translateConstructUnknownSizeArray(
           unknownSizeArrayMT,
           sizeRef,
           unknownSizeArrayMT->name->name);
+  buildFlare(FL(), globalState, functionState, builder);
   globalState->getRegion(arrayRefType)->checkValidReference(FL(), functionState, builder,
       arrayRefType, usaRef);
 
+  buildFlare(FL(), globalState, functionState, builder);
   fillUnknownSizeArray(
       globalState,
       functionState,
@@ -58,6 +60,7 @@ Ref translateConstructUnknownSizeArray(
       generatorRef,
       sizeRef,
       usaRef);//getUnknownSizeArrayContentsPtr(builder, usaWrapperPtrLE));
+  buildFlare(FL(), globalState, functionState, builder);
 
   globalState->getRegion(sizeType)->dealias(AFL("ConstructUSA"), functionState, builder, sizeType, sizeRef);
   globalState->getRegion(generatorType)->dealias(AFL("ConstructUSA"), functionState, builder, generatorType, generatorRef);

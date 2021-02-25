@@ -130,11 +130,18 @@ inline void buildFlare(
   }
 }
 
+LLVMValueRef getInterfaceMethodFunctionPtrFromItable(
+    GlobalState* globalState,
+    LLVMBuilderRef builder,
+    InterfaceMethod* method,
+    LLVMValueRef itablePtrLE);
+
 Ref buildInterfaceCall(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
     Prototype* prototype,
+    LLVMValueRef methodFunctionPtrLE,
     std::vector<Ref> argRefs,
     int virtualParamIndex);
 

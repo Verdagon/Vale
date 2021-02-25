@@ -89,7 +89,6 @@ LoadResult loadElementWithoutUpgrade(
     Reference* elementRefM,
     Ref sizeRef,
     LLVMValueRef arrayPtrLE,
-    Mutability mutability,
     Ref indexRef) {
   auto indexLE =
       globalState->getRegion(globalState->metalCache->intRef)
@@ -107,18 +106,18 @@ LoadResult loadElementWithoutUpgrade(
   buildAssert(globalState, functionState, builder, isWithinBounds, "Index out of bounds!");
 
   LLVMValueRef fromArrayLE = nullptr;
-  if (mutability == Mutability::IMMUTABLE) {
+//  if (mutability == Mutability::IMMUTABLE) {
     if (arrayRefM->location == Location::INLINE) {
       assert(false);
 //      return LLVMBuildExtractValue(builder, structExpr, indexLE, "index");
     } else {
       fromArrayLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
     }
-  } else if (mutability == Mutability::MUTABLE) {
-    fromArrayLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
-  } else {
-    assert(false);
-  }
+//  } else if (mutability == Mutability::MUTABLE) {
+//    fromArrayLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
+//  } else {
+//    assert(false);
+//  }
 
   {
     // Careful here! This is a bit cheaty; we shouldn't pretend we have the source reference,
@@ -191,7 +190,7 @@ Ref storeElement(
 
       auto loadResult =
           loadElementWithoutUpgrade(
-              globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, mutability, indexRef);
+              globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, indexRef);
       auto resultRef = loadResult.move();
 
       storeInnerArrayMember(globalState, builder, arrayPtrLE, indexLE, sourceLE);

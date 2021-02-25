@@ -150,7 +150,7 @@ LLVMTypeRef WeakableReferendStructs::getInterfaceWeakRefStruct(InterfaceReferend
 
 
 
-void ReferendStructs::translateStruct(
+void ReferendStructs::defineStruct(
     StructDefinition* struuct,
     std::vector<LLVMTypeRef> membersLT) {
   LLVMTypeRef valStructL = getInnerStruct(struuct->referend);
@@ -202,7 +202,7 @@ void ReferendStructs::declareEdge(
   globalState->interfaceTablePtrs.emplace(edge, itablePtr);
 }
 
-void ReferendStructs::translateEdge(
+void ReferendStructs::defineEdge(
     Edge* edge,
     std::vector<LLVMTypeRef> interfaceFunctionsLT,
     std::vector<LLVMValueRef> functions) {
@@ -211,16 +211,8 @@ void ReferendStructs::translateEdge(
   auto builder = LLVMCreateBuilderInContext(globalState->context);
   auto itableLE = LLVMGetUndef(interfaceTableStructL);
   for (int i = 0; i < functions.size(); i++) {
-    itableLE = LLVMBuildInsertValue(
-        builder,
-        itableLE,
-        LLVMConstBitCast(
-//            LLVMConstBitCast(
-                functions[i],
-//                LLVMPointerType(LLVMVoidTypeInContext(globalState->context), 0)),
-            LLVMPointerType(interfaceFunctionsLT[i], 0)),
-        i,
-        std::to_string(i).c_str());
+    auto entryLE = LLVMConstBitCast(functions[i], LLVMPointerType(interfaceFunctionsLT[i], 0));
+    itableLE = LLVMBuildInsertValue(builder, itableLE, entryLE, i, std::to_string(i).c_str());
   }
   LLVMDisposeBuilder(builder);
 
@@ -229,21 +221,36 @@ void ReferendStructs::translateEdge(
 }
 
 void ReferendStructs::declareInterface(InterfaceDefinition* interface) {
+  assert(interfaceTableStructs.count(interface->name->name) == 0);
+  auto interfaceTableStructL =
+      LLVMStructCreateNamed(
+          globalState->context, (interface->name->name + "itable").c_str());
+  interfaceTableStructs.emplace(interface->name->name, interfaceTableStructL);
+
+
+  assert(interfaceRefStructs.count(interface->name->name) == 0);
 
   auto interfaceRefStructL =
       LLVMStructCreateNamed(
           globalState->context, interface->name->name.c_str());
-  assert(interfaceRefStructs.count(interface->name->name) == 0);
-  interfaceRefStructs.emplace(interface->name->name, interfaceRefStructL);
 
-  auto interfaceTableStructL =
-      LLVMStructCreateNamed(
-          globalState->context, (interface->name->name + "itable").c_str());
-  assert(interfaceTableStructs.count(interface->name->name) == 0);
-  interfaceTableStructs.emplace(interface->name->name, interfaceTableStructL);
+  std::vector<LLVMTypeRef> refStructMemberTypesL;
+
+  // this points to the control block.
+  // It makes it easier to increment and decrement ref counts.
+  refStructMemberTypesL.push_back(LLVMPointerType(controlBlock.getStruct(), 0));
+
+  refStructMemberTypesL.push_back(LLVMPointerType(interfaceTableStructL, 0));
+  LLVMStructSetBody(
+      interfaceRefStructL,
+      refStructMemberTypesL.data(),
+      refStructMemberTypesL.size(),
+      false);
+
+  interfaceRefStructs.emplace(interface->name->name, interfaceRefStructL);
 }
 
-void ReferendStructs::translateInterface(
+void ReferendStructs::defineInterface(
     InterfaceDefinition* interface,
     std::vector<LLVMTypeRef> interfaceMethodTypesL) {
   LLVMTypeRef itableStruct =
@@ -251,21 +258,6 @@ void ReferendStructs::translateInterface(
 
   LLVMStructSetBody(
       itableStruct, interfaceMethodTypesL.data(), interfaceMethodTypesL.size(), false);
-
-  LLVMTypeRef refStructL = getInterfaceRefStruct(interface->referend);
-  std::vector<LLVMTypeRef> refStructMemberTypesL;
-
-  // this points to the control block.
-  // It makes it easier to increment and decrement ref counts.
-  refStructMemberTypesL.push_back(LLVMPointerType(controlBlock.getStruct(), 0));
-
-
-  refStructMemberTypesL.push_back(LLVMPointerType(itableStruct, 0));
-  LLVMStructSetBody(
-      refStructL,
-      refStructMemberTypesL.data(),
-      refStructMemberTypesL.size(),
-      false);
 }
 
 
@@ -282,7 +274,7 @@ void ReferendStructs::declareUnknownSizeArray(
   unknownSizeArrayWrapperStructs.emplace(unknownSizeArrayMT->name->name, countedStruct);
 }
 
-void ReferendStructs::translateUnknownSizeArray(
+void ReferendStructs::defineUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
 
@@ -300,7 +292,7 @@ void ReferendStructs::translateUnknownSizeArray(
   LLVMStructSetBody(unknownSizeArrayWrapperStruct, elementsL.data(), elementsL.size(), false);
 }
 
-void ReferendStructs::translateKnownSizeArray(
+void ReferendStructs::defineKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT,
     LLVMTypeRef elementLT) {
   auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT->referend);
@@ -704,12 +696,12 @@ LLVMValueRef ReferendStructs::getStrongRcPtrFromControlBlockPtr(
 
 
 
-void WeakableReferendStructs::translateStruct(
+void WeakableReferendStructs::defineStruct(
     StructDefinition* struuct,
     std::vector<LLVMTypeRef> membersLT) {
   assert(weakRefHeaderStructL);
 
-  referendStructs.translateStruct(struuct, membersLT);
+  referendStructs.defineStruct(struuct, membersLT);
 
   LLVMTypeRef wrapperStructL = getWrapperStruct(struuct->referend);
 
@@ -736,11 +728,11 @@ void WeakableReferendStructs::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void WeakableReferendStructs::translateEdge(
+void WeakableReferendStructs::defineEdge(
     Edge* edge,
     std::vector<LLVMTypeRef> interfaceFunctionsLT,
     std::vector<LLVMValueRef> functions) {
-  referendStructs.translateEdge(edge, interfaceFunctionsLT, functions);
+  referendStructs.defineEdge(edge, interfaceFunctionsLT, functions);
 }
 
 void WeakableReferendStructs::declareInterface(InterfaceDefinition* interface) {
@@ -750,23 +742,24 @@ void WeakableReferendStructs::declareInterface(InterfaceDefinition* interface) {
       LLVMStructCreateNamed(
           globalState->context, (interface->name->name + "w").c_str());
   assert(interfaceWeakRefStructs.count(interface->name->name) == 0);
+
   interfaceWeakRefStructs.emplace(interface->name->name, interfaceWeakRefStructL);
-}
 
-void WeakableReferendStructs::translateInterface(
-    InterfaceDefinition* interface,
-    std::vector<LLVMTypeRef> interfaceMethodTypesL) {
-  assert(weakRefHeaderStructL);
-
-  referendStructs.translateInterface(interface, interfaceMethodTypesL);
 
   LLVMTypeRef refStructL = getInterfaceRefStruct(interface->referend);
 
-  auto interfaceWeakRefStructL = getInterfaceWeakRefStruct(interface->referend);
   std::vector<LLVMTypeRef> interfaceWeakRefStructMemberTypesL;
   interfaceWeakRefStructMemberTypesL.push_back(weakRefHeaderStructL);
   interfaceWeakRefStructMemberTypesL.push_back(refStructL);
   LLVMStructSetBody(interfaceWeakRefStructL, interfaceWeakRefStructMemberTypesL.data(), interfaceWeakRefStructMemberTypesL.size(), false);
+}
+
+void WeakableReferendStructs::defineInterface(
+    InterfaceDefinition* interface,
+    std::vector<LLVMTypeRef> interfaceMethodTypesL) {
+  assert(weakRefHeaderStructL);
+
+  referendStructs.defineInterface(interface, interfaceMethodTypesL);
 }
 
 
@@ -792,12 +785,12 @@ void WeakableReferendStructs::declareUnknownSizeArray(
   unknownSizeArrayWeakRefStructs.emplace(unknownSizeArrayMT->name->name, weakRefStructL);
 }
 
-void WeakableReferendStructs::translateUnknownSizeArray(
+void WeakableReferendStructs::defineUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
   assert(weakRefHeaderStructL);
 
-  referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  referendStructs.defineUnknownSizeArray(unknownSizeArrayMT, elementLT);
 
   auto unknownSizeArrayWrapperStruct = getUnknownSizeArrayWrapperStruct(unknownSizeArrayMT->referend);
 
@@ -808,12 +801,12 @@ void WeakableReferendStructs::translateUnknownSizeArray(
   LLVMStructSetBody(arrayWeakRefStructL, arrayWeakRefStructMemberTypesL.data(), arrayWeakRefStructMemberTypesL.size(), false);
 }
 
-void WeakableReferendStructs::translateKnownSizeArray(
+void WeakableReferendStructs::defineKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT,
     LLVMTypeRef elementLT) {
   assert(weakRefHeaderStructL);
 
-  referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  referendStructs.defineKnownSizeArray(knownSizeArrayMT, elementLT);
 
   auto knownSizeArrayWrapperStruct = getKnownSizeArrayWrapperStruct(knownSizeArrayMT->referend);
 

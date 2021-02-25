@@ -62,23 +62,27 @@ public:
       Reference* targetInterfaceTypeM) override;
 
   void declareKnownSizeArray(KnownSizeArrayDefinitionT* ksaDefM) override;
-  void translateKnownSizeArray(KnownSizeArrayDefinitionT* ksaDefM) override;
-  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
+  void defineKnownSizeArray(KnownSizeArrayDefinitionT* ksaDefM) override;
+  void declareKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
+  void defineKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override;
 
   void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) override;
-  void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) override;
-  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void declareUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void defineUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) override;
+  void defineUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override;
 
   void declareStruct(StructDefinition* structDefM) override;
-  void translateStruct(StructDefinition* structDefM) override;
-  void addStructExtraFunctions(StructDefinition* structDefM) override;
+  void declareStructExtraFunctions(StructDefinition* structDefM) override;
+  void defineStruct(StructDefinition* structDefM) override;
+  void defineStructExtraFunctions(StructDefinition* structDefM) override;
 
   void declareInterface(InterfaceDefinition* interfaceDefM) override;
-  void translateInterface(InterfaceDefinition* interfaceDefM) override;
-  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
+  void declareInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
+  void defineInterface(InterfaceDefinition* interfaceDefM) override;
+  void defineInterfaceExtraFunctions(InterfaceDefinition* structDefM) override;
 
   void declareEdge(Edge* edge) override;
-  void translateEdge(Edge* edge) override;
+  void defineEdge(Edge* edge) override;
 
   Ref weakAlias(
       FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) override;
@@ -397,16 +401,29 @@ public:
   void defineExtraFunctions() override;
 
   // Temporary, gets the corresponding Linear type reference.
+  Referend* linearizeReferend(Referend* referendMT);
+  KnownSizeArrayT* unlinearizeKSA(KnownSizeArrayT* referendMT);
+  StructReferend* unlinearizeStructReferend(StructReferend* referendMT);
+  InterfaceReferend* unlinearizeInterfaceReferend(InterfaceReferend* referendMT);
+  StructReferend* linearizeStructReferend(StructReferend* referendMT);
+  InterfaceReferend* linearizeInterfaceReferend(InterfaceReferend* referendMT);
   Reference* linearizeReference(Reference* immRcRefMT);
   Reference* unlinearizeReference(Reference* hostRefMT);
 
   Weakability getReferendWeakability(Referend* referend) override;
 
+  LLVMValueRef getInterfaceMethodFunctionPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* virtualParamMT,
+      Ref virtualArgRef,
+      int indexInEdge) override;
+
 private:
   void declareConcreteSerializeFunction(Referend* valeReferendM);
   void defineConcreteSerializeFunction(Referend* valeReferendM);
   void declareInterfaceSerializeFunction(InterfaceReferend* valeReferend);
-  void defineInterfaceSerializeFunction(InterfaceReferend* valeReferend);
+  void defineEdgeSerializeFunction(Edge* edge);
 
 
   Ref innerConstructUnknownSizeArray(

@@ -169,20 +169,20 @@ void Assist::declareUnknownSizeArray(
   referendStructs.declareUnknownSizeArray(unknownSizeArrayMT);
 }
 
-void Assist::translateUnknownSizeArray(
+void Assist::defineUnknownSizeArray(
     UnknownSizeArrayDefinitionT* unknownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(unknownSizeArrayMT->rawArray->elementType)
           ->translateType(unknownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateUnknownSizeArray(unknownSizeArrayMT, elementLT);
+  referendStructs.defineUnknownSizeArray(unknownSizeArrayMT, elementLT);
 }
 
-void Assist::translateKnownSizeArray(
+void Assist::defineKnownSizeArray(
     KnownSizeArrayDefinitionT* knownSizeArrayMT) {
   auto elementLT =
       globalState->getRegion(knownSizeArrayMT->rawArray->elementType)
           ->translateType(knownSizeArrayMT->rawArray->elementType);
-  referendStructs.translateKnownSizeArray(knownSizeArrayMT, elementLT);
+  referendStructs.defineKnownSizeArray(knownSizeArrayMT, elementLT);
 }
 
 void Assist::declareStruct(
@@ -191,7 +191,7 @@ void Assist::declareStruct(
   referendStructs.declareStruct(structM);
 }
 
-void Assist::translateStruct(
+void Assist::defineStruct(
     StructDefinition* structM) {
   std::vector<LLVMTypeRef> innerStructMemberTypesL;
   for (int i = 0; i < structM->members.size(); i++) {
@@ -199,7 +199,7 @@ void Assist::translateStruct(
         globalState->getRegion(structM->members[i]->type)
             ->translateType(structM->members[i]->type));
   }
-  referendStructs.translateStruct(
+  referendStructs.defineStruct(
       structM,
       innerStructMemberTypesL);
 }
@@ -209,10 +209,10 @@ void Assist::declareEdge(
   referendStructs.declareEdge(edge);
 }
 
-void Assist::translateEdge(Edge* edge) {
+void Assist::defineEdge(Edge* edge) {
   auto interfaceFunctionsLT = globalState->getInterfaceFunctionTypes(edge->interfaceName);
   auto edgeFunctionsL = globalState->getEdgeFunctions(edge);
-  referendStructs.translateEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
+  referendStructs.defineEdge(edge, interfaceFunctionsLT, edgeFunctionsL);
 }
 
 void Assist::declareInterface(
@@ -221,10 +221,10 @@ void Assist::declareInterface(
   referendStructs.declareInterface(interfaceM);
 }
 
-void Assist::translateInterface(
+void Assist::defineInterface(
     InterfaceDefinition* interfaceM) {
   auto interfaceMethodTypesL = globalState->getInterfaceFunctionTypes(interfaceM->referend);
-  referendStructs.translateInterface(interfaceM, interfaceMethodTypesL);
+  referendStructs.defineInterface(interfaceM, interfaceMethodTypesL);
 }
 
 Ref Assist::weakAlias(
@@ -929,4 +929,15 @@ Weakability Assist::getReferendWeakability(Referend* referend) {
   } else {
     return Weakability::NON_WEAKABLE;
   }
+}
+
+
+LLVMValueRef Assist::getInterfaceMethodFunctionPtr(
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* virtualParamMT,
+    Ref virtualArgRef,
+    int indexInEdge) {
+  return getInterfaceMethodFunctionPtrFromItable(
+      globalState, functionState, builder, virtualParamMT, virtualArgRef, indexInEdge);
 }

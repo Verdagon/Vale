@@ -82,7 +82,6 @@ LoadResult loadElementFromKSAInner(
     Reference* ksaRefMT,
     KnownSizeArrayT* ksaMT,
     int size,
-    Mutability mutability,
     Reference* elementType,
     Ref indexRef,
     LLVMValueRef arrayElementsPtrLE);
@@ -544,5 +543,14 @@ LLVMValueRef callFree(
     GlobalState* globalState,
     LLVMBuilderRef builder,
     ControlBlockPtrLE controlBlockPtrLE);
+
+
+LLVMValueRef getInterfaceMethodFunctionPtrFromItable(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Reference* virtualParamMT,
+    Ref virtualArgRef,
+    int indexInEdge);
 
 #endif

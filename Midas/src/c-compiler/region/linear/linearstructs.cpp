@@ -74,10 +74,18 @@ void LinearStructs::declareEdge(StructReferend* structReferend, InterfaceReferen
 }
 
 void LinearStructs::declareInterface(InterfaceReferend* interface) {
+  assert(interfaceRefStructsL.count(interface) == 0);
+
   auto interfaceRefStructL =
       LLVMStructCreateNamed(
           globalState->context, interface->fullName->name.c_str());
-  assert(interfaceRefStructsL.count(interface) == 0);
+
+  std::vector<LLVMTypeRef> memberTypesL = {
+      LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
+      LLVMInt64TypeInContext(globalState->context),
+  };
+  LLVMStructSetBody(interfaceRefStructL, memberTypesL.data(), memberTypesL.size(), false);
+
   interfaceRefStructsL.emplace(interface, interfaceRefStructL);
 
   // No need to make interface table structs, there are no itables for Linear.
@@ -95,33 +103,23 @@ void LinearStructs::declareUnknownSizeArray(
   unknownSizeArrayStructsL.emplace(unknownSizeArrayMT, countedStruct);
 }
 
-void LinearStructs::translateStruct(
+void LinearStructs::defineStruct(
     StructReferend* struuct,
     std::vector<LLVMTypeRef> membersLT) {
   LLVMTypeRef structL = getStructStruct(struuct);
   LLVMStructSetBody(structL, membersLT.data(), membersLT.size(), false);
 }
 
-void LinearStructs::translateInterface(InterfaceReferend *interface) {
-  LLVMTypeRef refStructL = getInterfaceRefStruct(interface);
-  std::vector<LLVMTypeRef> memberTypesL = {
-      LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0),
-      LLVMInt64TypeInContext(globalState->context),
-  };
-  LLVMStructSetBody(refStructL, memberTypesL.data(), memberTypesL.size(), false);
-
-//  LLVMTypeRef itableStruct = getInterfaceTableStruct(interface);
-//  LLVMStructSetBody(
-//      itableStruct, functionsLT.data(), functionsLT.size(), false);
+void LinearStructs::defineInterface(InterfaceReferend *interface) {
 }
 
-void LinearStructs::translateEdge(
+void LinearStructs::defineEdge(
     Edge* edge,
     std::vector<LLVMTypeRef> interfaceFunctionsLT,
     std::vector<LLVMValueRef> functions) {
 }
 
-void LinearStructs::translateUnknownSizeArray(
+void LinearStructs::defineUnknownSizeArray(
     UnknownSizeArrayT* unknownSizeArrayMT,
     LLVMTypeRef elementLT) {
   auto unknownSizeArrayStruct = getUnknownSizeArrayStruct(unknownSizeArrayMT);
@@ -131,7 +129,7 @@ void LinearStructs::translateUnknownSizeArray(
   LLVMStructSetBody(unknownSizeArrayStruct, elementsL.data(), elementsL.size(), false);
 }
 
-void LinearStructs::translateKnownSizeArray(
+void LinearStructs::defineKnownSizeArray(
     KnownSizeArrayT* knownSizeArrayMT,
     int size,
     LLVMTypeRef elementLT) {

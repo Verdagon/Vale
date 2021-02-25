@@ -71,28 +71,28 @@ public:
   void declareUnknownSizeArray(
       UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
-  void translateUnknownSizeArray(
+  void defineUnknownSizeArray(
       UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) override;
 
-  void translateKnownSizeArray(
+  void defineKnownSizeArray(
       KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) override;
 
   void declareStruct(
       StructDefinition* structM) override;
 
-  void translateStruct(
+  void defineStruct(
       StructDefinition* structM) override;
 
   void declareEdge(
       Edge* edge) override;
 
-  void translateEdge(
+  void defineEdge(
       Edge* edge) override;
 
   void declareInterface(
       InterfaceDefinition* interfaceM) override;
 
-  void translateInterface(
+  void defineInterface(
       InterfaceDefinition* interfaceM) override;
 
   Ref weakAlias(
@@ -422,15 +422,26 @@ public:
 
   LLVMTypeRef getInterfaceMethodVirtualParamAnyType(Reference* reference) override;
 
-  void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
-  void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
-  void addStructExtraFunctions(StructDefinition* structDefM) override {}
-  void addInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
+  void defineKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
+  void defineUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
+  void defineStructExtraFunctions(StructDefinition* structDefM) override {}
+  void defineInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
+  void declareStructExtraFunctions(StructDefinition* structDefM) override {}
+  void declareKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* ksaDef) override {}
+  void declareUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* usaDefM) override {}
+  void declareInterfaceExtraFunctions(InterfaceDefinition* structDefM) override {}
 
   void declareExtraFunctions() override {}
   void defineExtraFunctions() override {}
 
   Weakability getReferendWeakability(Referend* referend) override;
+
+  LLVMValueRef getInterfaceMethodFunctionPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* virtualParamMT,
+      Ref virtualArgRef,
+      int indexInEdge) override;
 
 private:
 

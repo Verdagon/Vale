@@ -50,8 +50,7 @@ class ValeTest(unittest.TestCase):
         print(
             f"Using valec from {cls.GENPATH}. " +
             "Set GENPATH env var if this is incorrect",
-            file=sys.stderr
-        )
+            file=sys.stderr)
 
     def setUp(self) -> None:
         self.GENPATH: str = type(self).GENPATH
@@ -80,6 +79,27 @@ class ValeTest(unittest.TestCase):
         # print(proc.stderr)
         self.assertEqual(proc.returncode, expected_return_code,
                          f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
+
+    # Tests for immutables in exports/externs
+    def test_assist_externimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/externimmstructparam.c"], "assist", 42)
+    def test_assist_exportimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.c"], "assist", 42)
+    def test_assist_exportimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.c"], "assist", 42)
+    def test_assist_externimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/externimmstructparamdeep.c"], "assist", 42)
+    def test_assist_externimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/externimminterfaceparam.c"], "assist", 42)
+    def test_assist_externimmusaparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/externimmusaparam.c"], "assist", 10)
+    def test_assist_exportretvoid(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "assist", 42)
+    def test_assist_externretvoid(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretvoid.vale", PATH_TO_SAMPLES + "programs/externs/externretvoid.c"], "assist", 42)
+    def test_assist_externstrlen(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "assist", 11)
+
 
     def test_assist_mutswaplocals(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/mutswaplocals.vale"], "assist", 42)
@@ -327,84 +347,6 @@ class ValeTest(unittest.TestCase):
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusa.vale"], "resilient-v3", 3)
     def test_naiverc_immusa(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusa.vale"], "naive-rc", 3)
-
-    def test_assist_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "assist", 42)
-    def test_unsafefast_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "unsafe-fast", 42)
-    def test_resilientv1_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v1", 42)
-    def test_resilientv2_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v2", 42)
-    def test_resilientv3_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "resilient-v3", 42)
-    def test_naiverc_extimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparam.c"], "naive-rc", 42)
-
-    def test_assist_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "assist", 42)
-    def test_unsafefast_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "unsafe-fast", 42)
-    def test_resilientv1_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v1", 42)
-    def test_resilientv2_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v2", 42)
-    def test_resilientv3_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "resilient-v3", 42)
-    def test_naiverc_extimmstructparamdeep(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/extimmstructparamdeep.c"], "naive-rc", 42)
-
-    def test_assist_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "assist", 42)
-    def test_unsafefast_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "unsafe-fast", 42)
-    def test_resilientv1_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v1", 42)
-    def test_resilientv2_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v2", 42)
-    def test_resilientv3_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "resilient-v3", 42)
-    def test_naiverc_extimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/extimminterfaceparam.c"], "naive-rc", 42)
-
-    def test_assist_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "assist", 10)
-    def test_unsafefast_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "unsafe-fast", 10)
-    def test_resilientv1_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "resilient-v1", 10)
-    def test_resilientv2_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "resilient-v2", 10)
-    def test_resilientv3_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "resilient-v3", 10)
-    def test_naiverc_extimmusaparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmusaparam.c"], "naive-rc", 10)
-
-    # def test_assist_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "assist", 10)
-    # def test_unsafefast_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "unsafe-fast", 10)
-    # def test_resilientv1_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "resilient-v1", 10)
-    # def test_resilientv2_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "resilient-v2", 10)
-    # def test_resilientv3_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "resilient-v3", 10)
-    # def test_naiverc_extimmksaparam(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extimmksaparam.vale", PATH_TO_SAMPLES + "programs/externs/extimmksaparam.c"], "naive-rc", 10)
-
-    def test_assist_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "assist", 5)
-    def test_unsafefast_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "unsafe-fast", 5)
-    def test_resilientv1_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "resilient-v1", 5)
-    def test_resilientv2_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "resilient-v2", 5)
-    def test_resilientv3_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "resilient-v3", 5)
-    def test_naiverc_immusalen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/immusalen.vale"], "naive-rc", 5)
 
     def test_assist_mutusa(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/arrays/mutusa.vale"], "assist", 3)
@@ -770,44 +712,18 @@ class ValeTest(unittest.TestCase):
     # def test_naiverc_externstructparam(self) -> None:
     #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstructparam.vale", PATH_TO_SAMPLES + "programs/externs/externstructparam.c"], "naive-rc", 42)
 
-    def test_assist_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "assist", 11)
-    def test_unsafefast_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "unsafe-fast", 11)
-    def test_resilientv1_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "resilient-v1", 11)
-    def test_resilientv2_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "resilient-v2", 11)
-    def test_resilientv3_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "resilient-v3", 11)
-    def test_naiverc_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "naive-rc", 11)
-
-    def test_assist_extretmutstruct(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "assist", 42)
-    def test_unsafefast_extretmutstruct(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "unsafe-fast", 42)
-    def test_resilientv1_extretmutstruct(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "resilient-v1", 42)
-    def test_resilientv2_extretmutstruct(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "resilient-v2", 42)
-    def test_resilientv3_extretmutstruct(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "resilient-v3", 42)
-    # def test_naiverc_extretmutstruct(self) -> None:
-    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/extretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/extretmutstruct.c"], "naive-rc", 42)
-
-    def test_assist_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "assist", 42)
-    def test_unsafefast_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "unsafe-fast", 42)
-    def test_resilientv1_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "resilient-v1", 42)
-    def test_resilientv2_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "resilient-v2", 42)
-    def test_resilientv3_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "resilient-v3", 42)
-    def test_naiverc_exportretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "naive-rc", 42)
+    def test_assist_externretmutstruct(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "assist", 42)
+    def test_unsafefast_externretmutstruct(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "unsafe-fast", 42)
+    def test_resilientv1_externretmutstruct(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "resilient-v1", 42)
+    def test_resilientv2_externretmutstruct(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "resilient-v2", 42)
+    def test_resilientv3_externretmutstruct(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "resilient-v3", 42)
+    # def test_naiverc_externretmutstruct(self) -> None:
+    #     self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretmutstruct.vale", PATH_TO_SAMPLES + "programs/externs/externretmutstruct.c"], "naive-rc", 42)
 
     def test_assist_strlen(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/strings/strlen.vale"], "assist", 11)

@@ -12,6 +12,13 @@ Ref translateInterfaceCall(
     BlockState* blockState,
     LLVMBuilderRef builder,
     InterfaceCall* call) {
+
+  auto argExprs = call->argExprs;
+  auto virtualParamIndex = call->virtualParamIndex;
+  auto interfaceRef = call->interfaceRef;
+  auto indexInEdge = call->indexInEdge;
+  auto functionType = call->functionType;
+
   auto argExprsLE =
       translateExpressions(globalState, functionState, blockState, builder, call->argExprs);
 
@@ -24,14 +31,19 @@ Ref translateInterfaceCall(
     argsLE.push_back(argLE);
   }
 
-  buildFlare(FL(), globalState, functionState, builder);
 
+  auto virtualArgRefMT = functionType->params[virtualParamIndex];
+  auto virtualArgRef = argsLE[virtualParamIndex];
+  auto methodFunctionPtrLE =
+      globalState->getRegion(virtualArgRefMT)
+          ->getInterfaceMethodFunctionPtr(functionState, builder, virtualArgRefMT, virtualArgRef, indexInEdge);
   auto resultLE =
       buildInterfaceCall(
           globalState,
           functionState,
           builder,
           call->functionType,
+          methodFunctionPtrLE,
           argExprsLE,
           call->virtualParamIndex);
   globalState->getRegion(call->functionType->returnType)

@@ -160,30 +160,33 @@ public:
       std::unordered_map<std::string, std::string>* cByExportedName, UnknownSizeArrayDefinitionT* usaDefM) = 0;
 
   virtual void declareStruct(StructDefinition* structM) = 0;
-  virtual void translateStruct(StructDefinition* structM) = 0;
-  virtual void addStructExtraFunctions(StructDefinition* structM) = 0;
+  virtual void declareStructExtraFunctions(StructDefinition* structM) = 0;
+  virtual void defineStruct(StructDefinition* structM) = 0;
+  virtual void defineStructExtraFunctions(StructDefinition* structM) = 0;
 
   virtual void declareInterface(InterfaceDefinition* interfaceM) = 0;
-  virtual void translateInterface(InterfaceDefinition* interfaceM) = 0;
-  virtual void addInterfaceExtraFunctions(InterfaceDefinition* structM) = 0;
+  virtual void declareInterfaceExtraFunctions(InterfaceDefinition* structM) = 0;
+  virtual void defineInterface(InterfaceDefinition* interfaceM) = 0;
+  virtual void defineInterfaceExtraFunctions(InterfaceDefinition* structM) = 0;
 
   virtual void declareKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
-  virtual void translateKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
-  virtual void addKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* structM) = 0;
+  virtual void declareKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* structM) = 0;
+  virtual void defineKnownSizeArray(KnownSizeArrayDefinitionT* knownSizeArrayDefinitionMT) = 0;
+  virtual void defineKnownSizeArrayExtraFunctions(KnownSizeArrayDefinitionT* structM) = 0;
 
   virtual void declareUnknownSizeArray(UnknownSizeArrayDefinitionT* unknownSizeArrayDefinitionMT) = 0;
-  virtual void translateUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) = 0;
-  virtual void addUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* structM) = 0;
+  virtual void declareUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* structM) = 0;
+  virtual void defineUnknownSizeArray(UnknownSizeArrayDefinitionT* usaDefM) = 0;
+  virtual void defineUnknownSizeArrayExtraFunctions(UnknownSizeArrayDefinitionT* structM) = 0;
 
   virtual void declareEdge(Edge* edge) = 0;
-  virtual void translateEdge(Edge* edge) = 0;
+  virtual void defineEdge(Edge* edge) = 0;
 
   virtual void declareExtraFunctions() = 0;
   virtual void defineExtraFunctions() = 0;
 
 
   virtual Ref weakAlias(FunctionState* functionState, LLVMBuilderRef builder, Reference* sourceRefMT, Reference* targetRefMT, Ref sourceRef) = 0;
-
 
   virtual void discardOwningRef(
       AreaAndFileAndLine from,
@@ -206,6 +209,13 @@ public:
       LLVMBuilderRef builder,
       Reference* virtualParamMT,
       Ref virtualArgRef) = 0;
+
+  virtual LLVMValueRef getInterfaceMethodFunctionPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Reference* virtualParamMT,
+      Ref virtualArgRef,
+      int indexInEdge) = 0;
 
   virtual void aliasWeakRef(
       AreaAndFileAndLine from,

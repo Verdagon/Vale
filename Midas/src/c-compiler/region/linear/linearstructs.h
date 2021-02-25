@@ -19,25 +19,25 @@ public:
   LLVMTypeRef getInterfaceRefStruct(InterfaceReferend* interfaceReferend);
   LLVMTypeRef getStringStruct();
 
-  void translateStruct(
+  void defineStruct(
       StructReferend* struuct,
       std::vector<LLVMTypeRef> membersLT) ;
   void declareStruct(StructReferend* structM);
   void declareEdge(StructReferend* structReferend, InterfaceReferend* interfaceReferend);
-  void translateEdge(
+  void defineEdge(
       Edge* edge,
       std::vector<LLVMTypeRef> interfaceFunctionsLT,
       std::vector<LLVMValueRef> functions);
   void declareInterface(InterfaceReferend* interface);
-  void translateInterface(InterfaceReferend* interface);
+  void defineInterface(InterfaceReferend* interface);
   void declareKnownSizeArray(
       KnownSizeArrayT* knownSizeArrayMT);
   void declareUnknownSizeArray(
       UnknownSizeArrayT* unknownSizeArrayMT);
-  void translateUnknownSizeArray(
+  void defineUnknownSizeArray(
       UnknownSizeArrayT* unknownSizeArrayMT,
       LLVMTypeRef elementLT);
-  void translateKnownSizeArray(
+  void defineKnownSizeArray(
       KnownSizeArrayT* knownSizeArrayMT,
       int size,
       LLVMTypeRef elementLT);
@@ -73,8 +73,10 @@ public:
     assert(index < structs.size());
     return index;
   }
-  std::vector<StructReferend*> getOrderedEdges(InterfaceReferend* interfaceReferend) {
-    return orderedStructsByInterface.find(interfaceReferend)->second;
+  std::vector<StructReferend*> getOrderedSubstructs(InterfaceReferend* interfaceReferend) {
+    auto iter = orderedStructsByInterface.find(interfaceReferend);
+    assert(iter != orderedStructsByInterface.end());
+    return iter->second;
   }
 
 private:
