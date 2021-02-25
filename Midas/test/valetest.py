@@ -81,12 +81,12 @@ class ValeTest(unittest.TestCase):
                          f"Unexpected result: {proc.returncode}\n" + proc.stdout + proc.stderr)
 
     # Tests for immutables in exports/externs
+    def test_assist_externstrlen(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "assist", 11)
+    def test_assist_externretvoid(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretvoid.vale", PATH_TO_SAMPLES + "programs/externs/externretvoid.c"], "assist", 42)
     def test_assist_externimmstructparam(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/externimmstructparam.c"], "assist", 42)
-    def test_assist_exportimmstructparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.c"], "assist", 42)
-    def test_assist_exportimminterfaceparam(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.c"], "assist", 42)
     def test_assist_externimmstructparamdeep(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/externimmstructparamdeep.c"], "assist", 42)
     def test_assist_externimminterfaceparam(self) -> None:
@@ -95,10 +95,14 @@ class ValeTest(unittest.TestCase):
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/externimmusaparam.c"], "assist", 10)
     def test_assist_exportretvoid(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "assist", 42)
-    def test_assist_externretvoid(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externretvoid.vale", PATH_TO_SAMPLES + "programs/externs/externretvoid.c"], "assist", 42)
-    def test_assist_externstrlen(self) -> None:
-        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externstrlen.vale", PATH_TO_SAMPLES + "programs/externs/externstrlen.c"], "assist", 11)
+    def test_assist_exportimmstructparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimmstructparam.c"], "assist", 42)
+    def test_assist_exportimmstructparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmstructparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/exportimmstructparamdeep.c"], "assist", 42)
+    def test_assist_exportimminterfaceparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimminterfaceparam.c"], "assist", 42)
+    def test_assist_exportimmusaparam(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimmusaparam.c"], "assist", 10)
 
 
     def test_assist_mutswaplocals(self) -> None:
