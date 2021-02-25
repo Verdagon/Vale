@@ -61,6 +61,14 @@ void buildAssert(
     LLVMValueRef conditionLE,
     const std::string& failMessage);
 
+void buildAssertWithExitCode(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef conditionLE,
+    int exitCode,
+    const std::string& failMessage);
+
 void buildAssertIntEq(
     GlobalState* globalState,
     FunctionState* functionState,

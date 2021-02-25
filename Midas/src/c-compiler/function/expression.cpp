@@ -206,7 +206,7 @@ Ref translateExpressionInner(
     auto mutability = ownershipToMutability(memberLoad->structType->ownership);
     auto memberIndex = memberLoad->memberIndex;
     auto memberName = memberLoad->memberName;
-    bool structKnownLive = memberLoad->structKnownLive;
+    bool structKnownLive = memberLoad->structKnownLive || globalState->opt->overrideKnownLiveTrue;
     auto resultRef =
         loadMember(
             AFL("MemberLoad"),
@@ -378,7 +378,7 @@ Ref translateExpressionInner(
     auto resultType =
         globalState->metalCache->getReference(
             targetOwnership, targetLocation, elementType->referend);
-    bool arrayKnownLive = knownSizeArrayLoad->arrayKnownLive;
+    bool arrayKnownLive = knownSizeArrayLoad->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
     int arraySize = knownSizeArrayLoad->arraySize;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -420,7 +420,7 @@ Ref translateExpressionInner(
     auto targetOwnership = unknownSizeArrayLoad->targetOwnership;
     auto targetLocation = targetOwnership == Ownership::SHARE ? elementType->location : Location::YONDER;
     auto resultType = globalState->metalCache->getReference(targetOwnership, targetLocation, elementType->referend);
-    bool arrayKnownLive = unknownSizeArrayLoad->arrayKnownLive;
+    bool arrayKnownLive = unknownSizeArrayLoad->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
 
     auto arrayRef = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
 
@@ -455,7 +455,7 @@ Ref translateExpressionInner(
     auto arrayExpr = unknownSizeArrayStore->arrayExpr;
     auto indexExpr = unknownSizeArrayStore->indexExpr;
     auto arrayReferend = unknownSizeArrayStore->arrayReferend;
-    bool arrayKnownLive = unknownSizeArrayStore->arrayKnownLive;
+    bool arrayKnownLive = unknownSizeArrayStore->arrayKnownLive || globalState->opt->overrideKnownLiveTrue;
 
     auto elementType = globalState->program->getUnknownSizeArray(arrayReferend->name)->rawArray->elementType;
 
@@ -511,7 +511,7 @@ Ref translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto arrayType = arrayLength->sourceType;
     auto arrayExpr = arrayLength->sourceExpr;
-    bool arrayKnownLive = arrayLength->sourceKnownLive;
+    bool arrayKnownLive = arrayLength->sourceKnownLive || globalState->opt->overrideKnownLiveTrue;
 //    auto indexExpr = arrayLength->indexExpr;
 
     auto arrayRefLE = translateExpression(globalState, functionState, blockState, builder, arrayExpr);
@@ -556,7 +556,7 @@ Ref translateExpressionInner(
     auto memberName = memberStore->memberName;
     auto structType = memberStore->structType;
     auto memberType = structDefM->members[memberIndex]->type;
-    bool structKnownLive = memberStore->structKnownLive;
+    bool structKnownLive = memberStore->structKnownLive || globalState->opt->overrideKnownLiveTrue;
 
     auto sourceExpr =
         translateExpression(
@@ -626,7 +626,7 @@ Ref translateExpressionInner(
             structToInterfaceUpcast->targetInterfaceType,
             structToInterfaceUpcast->targetInterfaceReferend);
   } else if (auto lockWeak = dynamic_cast<LockWeak*>(expr)) {
-    bool sourceKnownLive = lockWeak->sourceKnownLive;
+    bool sourceKnownLive = lockWeak->sourceKnownLive || globalState->opt->overrideKnownLiveTrue;
 
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
 

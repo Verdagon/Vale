@@ -285,7 +285,9 @@ LLVMValueRef HybridGenerationalMemory::getIsAliveFromWeakFatPtr(
     Reference* weakRefM,
     WeakFatPtrLE weakFatPtrLE,
     bool knownLive) {
-  if (limitMode || (knownLive && elideChecksForKnownLive)) {
+  if (limitMode) {
+    return LLVMConstInt(LLVMInt1TypeInContext(globalState->context), 1, false);
+  } else if (knownLive && elideChecksForKnownLive) {
     return LLVMConstInt(LLVMInt1TypeInContext(globalState->context), 1, false);
   } else {
     // Get target generation from the ref
@@ -301,12 +303,12 @@ LLVMValueRef HybridGenerationalMemory::getIsAliveFromWeakFatPtr(
     auto actualGenLE = getGenerationFromControlBlockPtr(globalState, builder, referendStructsSource, weakRefM->referend,
         controlBlockPtrLE);
 
-    return LLVMBuildICmp(
-        builder,
-        LLVMIntEQ,
-        actualGenLE,
-        targetGenLE,
-        "genLive");
+    auto isLiveLE = LLVMBuildICmp(builder, LLVMIntEQ, actualGenLE, targetGenLE, "isLive");
+    if (knownLive && !elideChecksForKnownLive) {
+      buildAssertWithExitCode(globalState, functionState, builder, isLiveLE, 116, "knownLive is true, but object is dead!");
+    }
+
+    return isLiveLE;
   }
 }
 

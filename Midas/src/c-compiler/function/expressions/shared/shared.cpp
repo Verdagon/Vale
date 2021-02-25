@@ -181,11 +181,21 @@ void buildAssert(
     LLVMBuilderRef builder,
     LLVMValueRef conditionLE,
     const std::string& failMessage) {
+  buildAssertWithExitCode(globalState, functionState, builder, conditionLE, 1, failMessage);
+}
+
+void buildAssertWithExitCode(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    LLVMValueRef conditionLE,
+    int exitCode,
+    const std::string& failMessage) {
   buildIf(
       globalState, functionState, builder, isZeroLE(builder, conditionLE),
-      [globalState, functionState, failMessage](LLVMBuilderRef thenBuilder) {
+      [globalState, exitCode, failMessage](LLVMBuilderRef thenBuilder) {
         buildPrint(globalState, thenBuilder, failMessage + " Exiting!\n");
-        auto exitCodeIntLE = LLVMConstInt(LLVMInt8TypeInContext(globalState->context), 255, false);
+        auto exitCodeIntLE = LLVMConstInt(LLVMInt8TypeInContext(globalState->context), exitCode, false);
         LLVMBuildCall(thenBuilder, globalState->exit, &exitCodeIntLE, 1, "");
       });
 }

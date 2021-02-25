@@ -24,7 +24,8 @@ class ValeTest(unittest.TestCase):
               in_filepaths: List[str],
               o_files_dir: str,
               exe_name: str,
-              region_override: str) -> subprocess.CompletedProcess:
+              region_override: str,
+              extra_flags: List[str]) -> subprocess.CompletedProcess:
         assert self.GENPATH
         python = "python" if self.windows else "python3"
         return procrun(
@@ -40,7 +41,7 @@ class ValeTest(unittest.TestCase):
              "--exports-dir", o_files_dir,
              "--add-exports-include-path",
              "-o",
-             exe_name] + in_filepaths)
+             exe_name] + extra_flags + in_filepaths)
 
     def exec(self, exe_file: str) -> subprocess.CompletedProcess:
         return procrun([f"./{exe_file}"])
@@ -57,12 +58,15 @@ class ValeTest(unittest.TestCase):
         self.windows = platform.system() == 'Windows'
 
     def compile_and_execute(
-            self, in_filepaths: List[str], region_override: str) -> subprocess.CompletedProcess:
+            self,
+            in_filepaths: List[str],
+            region_override: str,
+            extra_flags: List[str]) -> subprocess.CompletedProcess:
         first_vale_filepath = in_filepaths[0]
         file_name_without_extension = os.path.splitext(os.path.basename(first_vale_filepath))[0]
         build_dir = f"test/test_build/{file_name_without_extension}_build"
 
-        proc = self.valec(in_filepaths, build_dir, file_name_without_extension, region_override)
+        proc = self.valec(in_filepaths, build_dir, file_name_without_extension, region_override, extra_flags)
         self.assertEqual(proc.returncode, 0,
                          f"valec couldn't compile {in_filepaths}:\n" +
                          proc.stdout + "\n" + proc.stderr)
@@ -73,8 +77,14 @@ class ValeTest(unittest.TestCase):
         return proc
 
     def compile_and_execute_and_expect_return_code(
-        self, vale_files: List[str], region_override: str, expected_return_code) -> None:
-        proc = self.compile_and_execute(vale_files, region_override)
+            self,
+            vale_files: List[str],
+            region_override: str,
+            expected_return_code: int,
+            extra_flags: List[str]) -> None:
+        if extra_flags is None:
+            extra_flags = []
+        proc = self.compile_and_execute(vale_files, region_override, extra_flags)
         # print(proc.stdout)
         # print(proc.stderr)
         self.assertEqual(proc.returncode, expected_return_code,
@@ -104,6 +114,9 @@ class ValeTest(unittest.TestCase):
     def test_assist_exportimmusaparam(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/exportimmusaparam.c"], "assist", 10)
 
+    # kldc = known live double check
+    def test_resilientv3_kldc(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/structs/deadmutstruct.vale"], "resilient-v3", 116, ["--override-known-live-true"])
 
     def test_assist_mutswaplocals(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/mutswaplocals.vale"], "assist", 42)

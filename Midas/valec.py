@@ -194,6 +194,9 @@ class ValeCompiler:
         if "--elide-checks-for-known-live" in args:
             args.remove("--elide-checks-for-known-live")
             midas_options.append("--elide-checks-for-known-live")
+        if "--override-known-live-true" in args:
+            args.remove("--override-known-live-true")
+            midas_options.append("--override-known-live-true")
         if "--region-override" in args:
             ind = args.index("--region-override")
             del args[ind]
