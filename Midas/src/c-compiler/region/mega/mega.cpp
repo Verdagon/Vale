@@ -1433,7 +1433,7 @@ Ref Mega::storeElementInUSA(
               globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef));
       auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
       auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
-      ::swapElement(
+      return ::swapElement(
           globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
     }
     case RegionOverride::RESILIENT_V0:
@@ -1445,7 +1445,7 @@ Ref Mega::storeElementInUSA(
       auto arrayWrapperPtrLE = lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive);
       auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
       auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
-      ::swapElement(
+      return ::swapElement(
           globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE,
           indexRef, elementRef);
     }
