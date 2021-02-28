@@ -189,10 +189,9 @@ LoadResult loadElementFromKSAInner(
           globalState->getRegion(globalState->metalCache->intRef),
           globalState->metalCache->intRef,
           LLVMConstInt(LLVMInt64TypeInContext(globalState->context), size, false));
-  return loadElementWithoutUpgrade(
-      globalState, functionState, builder, ksaRefMT,
-      elementType,
-      sizeRef, arrayElementsPtrLE, indexRef);
+  buildFlare(FL(), globalState, functionState, builder);
+  return loadElement(
+      globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
 }
 
 // Checks that the generation is <= to the actual one.
@@ -966,7 +965,7 @@ void regularCheckValidReference(
     // Nothing to do, there's no control block or ref counts or anything.
   } else if (refM->location == Location::YONDER) {
     auto controlBlockPtrLE =
-        referendStructs->getControlBlockPtr(FL(), functionState, builder, refLE, refM);
+        referendStructs->getControlBlockPtr(checkerAFL, functionState, builder, refLE, refM);
 
     // We dont check ref count >0 because imm destructors receive with rc=0.
     //      auto rcLE = getRcFromControlBlockPtr(globalState, builder, controlBlockPtrLE);
@@ -1001,10 +1000,9 @@ LoadResult regularLoadElementFromUSAWithoutUpgrade(
           referendStructs->makeWrapperPtr(
               FL(), functionState, builder, usaRefMT,
               globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef)));
-  return loadElementWithoutUpgrade(
-      globalState, functionState, builder, usaRefMT,
-      elementType,
-      sizeRef, arrayElementsPtrLE, indexRef);
+  buildFlare(FL(), globalState, functionState, builder);
+  return loadElement(
+      globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
 }
 
 LoadResult resilientLoadElementFromUSAWithoutUpgrade(
@@ -1032,10 +1030,9 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
               FL(), functionState, builder, usaRefMT,
               globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT,
                   arrayRef)));
-      return loadElementWithoutUpgrade(
-          globalState, functionState, builder, usaRefMT,
-          elementType,
-          sizeRef, arrayElementsPtrLE, indexRef);
+      buildFlare(FL(), globalState, functionState, builder);
+      return loadElement(
+          globalState, functionState, builder, arrayElementsPtrLE, elementType, sizeRef, indexRef);
     }
     case Ownership::BORROW: {
       auto wrapperPtrLE =
@@ -1046,10 +1043,10 @@ LoadResult resilientLoadElementFromUSAWithoutUpgrade(
           getUnknownSizeArrayContentsPtr(
               builder,
               globalState->getRegion(usaRefMT)->lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive));
-      return loadElementWithoutUpgrade(
-          globalState, functionState, builder, usaRefMT,
-          elementType,
-          sizeRef, arrayElementsPtrLE, indexRef);
+      buildFlare(FL(), globalState, functionState, builder);
+      return loadElement(
+          globalState, functionState, builder, arrayElementsPtrLE, elementType,
+          sizeRef, indexRef);
     }
     case Ownership::WEAK:
       assert(false); // VIR never loads from a weak ref
@@ -1076,97 +1073,14 @@ Ref regularStoreElementInKSA(
           FL(), functionState, builder, ksaRefMT,
           globalState->getRegion(ksaRefMT)->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef));
   auto arrayElementsPtrLE =
-      getKnownSizeArrayContentsPtr(builder,
-                                     referendStructs->makeWrapperPtr(
-                                         FL(), functionState, builder, ksaRefMT,
-                                         globalState->getRegion(ksaRefMT)->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
-  return storeElement(
-      globalState, functionState, builder, ksaRefMT,
-      elementType, globalState->constI64(size), arrayElementsPtrLE, mutability, indexRef, elementRef);
-}
-
-Ref regularStoreElementInUSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    IReferendStructsSource* referendStructs,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Mutability mutability,
-    Reference* elementType,
-    Ref arrayRef,
-    Ref indexRef,
-    Ref elementRef) {
-  auto wrapperPtrLE =
-      referendStructs->makeWrapperPtr(
-          FL(), functionState, builder, usaRefMT,
-          globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef));
-  auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, wrapperPtrLE);
-  auto arrayElementsPtrLE =
-      getUnknownSizeArrayContentsPtr(builder,
+      getKnownSizeArrayContentsPtr(
+          builder,
           referendStructs->makeWrapperPtr(
-              FL(), functionState, builder, usaRefMT,
-              globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef)));
-  return storeElement(
-      globalState, functionState, builder, usaRefMT,
-      elementType, sizeRef, arrayElementsPtrLE, mutability, indexRef, elementRef);
-}
-
-Ref resilientStoreElementInUSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    IReferendStructsSource* referendStructs,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Mutability mutability,
-    Reference* elementType,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Ref elementRef,
-    std::function<WrapperPtrLE()> lockWeakRef) {
-
-  switch (usaRefMT->ownership) {
-    case Ownership::SHARE:
-    case Ownership::OWN: {
-      auto wrapperPtrLE =
-          referendStructs->makeWrapperPtr(
-              FL(), functionState, builder, usaRefMT,
-              globalState->getRegion(usaRefMT)->checkValidReference(
-                  FL(), functionState, builder, usaRefMT, arrayRef));
-      auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, wrapperPtrLE);
-      auto arrayElementsPtrLE =
-          getUnknownSizeArrayContentsPtr(
-              builder,
-              referendStructs->makeWrapperPtr(
-                  FL(),
-                  functionState,
-                  builder,
-                  usaRefMT,
-                  globalState->getRegion(usaRefMT)->checkValidReference(
-                      FL(), functionState, builder, usaRefMT, arrayRef)));
-      assert(false); // uhhhhh why arent we doing anything with the arrayElementsPtrLE
-      break;
-    }
-    case Ownership::BORROW: {
-      auto wrapperPtrLE = lockWeakRef();
-      auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, wrapperPtrLE);
-      auto arrayElementsPtrLE =
-          getUnknownSizeArrayContentsPtr(
-              builder,
-              globalState->getRegion(usaRefMT)->lockWeakRef(
-                  FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive));
-
-      return storeElement(
-          globalState, functionState, builder, usaRefMT,
-          elementType, sizeRef, arrayElementsPtrLE, mutability, indexRef, elementRef);
-    }
-    case Ownership::WEAK:
-      assert(false); // VIR never loads from a weak ref
-    default:
-      assert(false);
-  }
+              FL(), functionState, builder, ksaRefMT,
+              globalState->getRegion(ksaRefMT)->checkValidReference(FL(), functionState, builder, ksaRefMT, arrayRef)));
+  return swapElement(
+      globalState, functionState, builder, ksaRefMT->location,
+      elementType, globalState->constI64(size), arrayElementsPtrLE, indexRef, elementRef);
 }
 
 Ref constructUnknownSizeArray(

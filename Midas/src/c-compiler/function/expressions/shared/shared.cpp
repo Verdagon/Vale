@@ -294,6 +294,16 @@ void buildAssertCensusContains(
     LLVMValueRef resultAsVoidPtrLE =
         LLVMBuildPointerCast(
             builder, ptrLE, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "");
+
+    auto isNullLE = LLVMBuildIsNull(builder, resultAsVoidPtrLE, "isNull");
+    buildIf(globalState, functionState, builder, isNullLE,
+            [globalState, checkerAFL, ptrLE](LLVMBuilderRef thenBuilder) {
+              buildPrintAreaAndFileAndLine(globalState, thenBuilder, checkerAFL);
+              buildPrint(globalState, thenBuilder, "Object null, so not in census, exiting!\n");
+              auto exitCodeIntLE = LLVMConstInt(LLVMInt8TypeInContext(globalState->context), 255, false);
+              LLVMBuildCall(thenBuilder, globalState->exit, &exitCodeIntLE, 1, "");
+            });
+
     auto isRegisteredIntLE =
         LLVMBuildCall(
             builder, globalState->censusContains, &resultAsVoidPtrLE, 1, "");

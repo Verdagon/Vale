@@ -305,35 +305,6 @@ Ref regularStoreElementInKSA(
     Ref indexRef,
     Ref elementRef);
 
-Ref regularStoreElementInUSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    IReferendStructsSource* referendStructs,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Mutability mutability,
-    Reference* elementType,
-    Ref arrayRef,
-    Ref indexRef,
-    Ref elementRef);
-
-Ref resilientStoreElementInUSA(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    IReferendStructsSource* referendStructs,
-    Reference* usaRefMT,
-    UnknownSizeArrayT* usaMT,
-    Mutability mutability,
-    Reference* elementType,
-    Ref arrayRef,
-    bool arrayKnownLive,
-    Ref indexRef,
-    Ref elementRef,
-    std::function<WrapperPtrLE()> lockWeakRef);
-
-
 Ref constructUnknownSizeArray(
     GlobalState* globalState,
     FunctionState* functionState,

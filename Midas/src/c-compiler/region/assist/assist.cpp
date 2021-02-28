@@ -7,6 +7,7 @@
 #include <region/common/common.h>
 #include <region/common/heap.h>
 #include <sstream>
+#include <function/expressions/shared/elements.h>
 #include "assist.h"
 
 Assist::Assist(GlobalState* globalState_) :
@@ -668,8 +669,15 @@ Ref Assist::storeElementInUSA(
     Ref indexRef,
     Ref elementRef) {
   auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
-  return regularStoreElementInUSA(
-      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, indexRef, elementRef);
+
+  auto arrayWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder, usaRefMT,
+          globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef));
+  auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+  auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+  return ::swapElement(
+      globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
 }
 
 Ref Assist::upcast(
@@ -883,8 +891,15 @@ void Assist::initializeElementInUSA(
     Ref indexRef,
     Ref elementRef) {
   auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
-  regularStoreElementInUSA(
-      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, usaRef, indexRef, elementRef);
+  auto arrayWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder, usaRefMT,
+          globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, usaRef));
+
+  auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+  auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+  ::initializeElement(
+      globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
 }
 
 Ref Assist::deinitializeElementFromUSA(

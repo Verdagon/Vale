@@ -11,16 +11,6 @@
 #include "globalstate.h"
 #include "function/function.h"
 
-LoadResult loadElementWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* arrayRefM,
-    Reference* elementRefM,
-    Ref sizeLE,
-    LLVMValueRef arrayPtrLE,
-    Ref indexLE);
-
 //Ref loadElementWithUpgrade(
 //    GlobalState* globalState,
 //    FunctionState* functionState,
@@ -34,25 +24,38 @@ LoadResult loadElementWithoutUpgrade(
 //    Ref indexLE,
 //    Reference* resultRefM);
 
-Ref storeElement(
+void initializeElement(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Reference* arrayRefM,
+    Location location,
     Reference* elementRefM,
     Ref sizeLE,
     LLVMValueRef arrayPtrLE,
-    Mutability mutability,
+    Ref indexLE,
+    Ref sourceLE);
+
+Ref swapElement(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Location location,
+    Reference* elementRefM,
+    Ref sizeLE,
+    LLVMValueRef arrayPtrLE,
     Ref indexLE,
     Ref sourceLE);
 
 
 
-LLVMValueRef loadInnerArrayMember(
+LoadResult loadElement(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef elemsPtrLE,
-    LLVMValueRef indexLE);
+    Reference* elementRefM,
+    Ref sizeRef,
+    Ref indexRef);
 
 void intRangeLoop(
     GlobalState* globalState,
@@ -83,6 +86,7 @@ LLVMValueRef getUnknownSizeArrayLengthPtr(
 
 void storeInnerArrayMember(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef elemsPtrLE,
     LLVMValueRef indexLE,

@@ -7,6 +7,6 @@
 
 int64_t extFunc(Flamscrankle* flam) {
   int64_t result = flam->a + flam->c;
-  free(flam);
+  ValeReleaseMessage(flam);
   return result;
 }

@@ -557,11 +557,18 @@ void RCImm::initializeElementInUSA(
     Ref indexRef,
     Ref elementRef) {
   auto elementType = globalState->program->getUnknownSizeArray(usaMT->name)->rawArray->elementType;
-  regularStoreElementInUSA(
-      globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, Mutability::IMMUTABLE,
-      elementType, usaRef, indexRef, elementRef);
-}
+  buildFlare(FL(), globalState, functionState, builder);
 
+  auto arrayWrapperPtrLE =
+      referendStructs.makeWrapperPtr(
+          FL(), functionState, builder, usaRefMT,
+          globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, usaRef));
+  auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+  auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+  ::initializeElement(
+      globalState, functionState, builder, usaRefMT->location,
+      elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
+}
 
 void RCImm::deallocate(
     AreaAndFileAndLine from,

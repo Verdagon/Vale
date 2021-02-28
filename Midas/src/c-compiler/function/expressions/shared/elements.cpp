@@ -7,6 +7,26 @@
 #include "elements.h"
 #include "utils/counters.h"
 
+LLVMValueRef checkIndexInBounds(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Ref sizeRef,
+    Ref indexRef) {
+  auto sizeLE =
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
+  auto indexLE =
+      globalState->getRegion(globalState->metalCache->intRef)
+          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, indexRef);
+  auto isNonNegativeLE = LLVMBuildICmp(builder, LLVMIntSGE, indexLE, constI64LE(globalState, 0), "isNonNegative");
+  auto isUnderLength = LLVMBuildICmp(builder, LLVMIntSLT, indexLE, sizeLE, "isUnderLength");
+  auto isWithinBounds = LLVMBuildAnd(builder, isNonNegativeLE, isUnderLength, "isWithinBounds");
+  buildAssert(globalState, functionState, builder, isWithinBounds, "Index out of bounds!");
+
+  return indexLE;
+}
+
 LLVMValueRef getKnownSizeArrayContentsPtr(
     LLVMBuilderRef builder,
     WrapperPtrLE knownSizeArrayWrapperPtrLE) {
@@ -43,28 +63,36 @@ LLVMValueRef getUnknownSizeArrayLengthPtr(
 }
 
 
-LLVMValueRef loadInnerArrayMember(
+LoadResult loadElement(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef elemsPtrLE,
-    LLVMValueRef indexLE) {
+    Reference* elementRefM,
+    Ref sizeRef,
+    Ref indexRef) {
+  auto indexLE = checkIndexInBounds(globalState, functionState, builder, sizeRef, indexRef);
+
   assert(LLVMGetTypeKind(LLVMTypeOf(elemsPtrLE)) == LLVMPointerTypeKind);
   LLVMValueRef indices[2] = {
       constI64LE(globalState, 0),
       indexLE
   };
-  auto resultLE =
+  auto fromArrayLE =
       LLVMBuildLoad(
           builder,
-          LLVMBuildGEP(
-              builder, elemsPtrLE, indices, 2, "indexPtr"),
+          LLVMBuildGEP(builder, elemsPtrLE, indices, 2, "indexPtr"),
           "index");
 
-  return resultLE;
+  auto sourceRef = wrap(globalState->getRegion(elementRefM), elementRefM, fromArrayLE);
+  globalState->getRegion(elementRefM)
+      ->checkValidReference(FL(), functionState, builder, elementRefM, sourceRef);
+  return LoadResult{sourceRef};
 }
 
 void storeInnerArrayMember(
     GlobalState* globalState,
+    FunctionState* functionState,
     LLVMBuilderRef builder,
     LLVMValueRef elemsPtrLE,
     LLVMValueRef indexLE,
@@ -74,61 +102,9 @@ void storeInnerArrayMember(
       constI64LE(globalState, 0),
       indexLE
   };
-  LLVMBuildStore(
-      builder,
-      sourceLE,
-      LLVMBuildGEP(
-          builder, elemsPtrLE, indices, 2, "indexPtr"));
-}
-
-LoadResult loadElementWithoutUpgrade(
-    GlobalState* globalState,
-    FunctionState* functionState,
-    LLVMBuilderRef builder,
-    Reference* arrayRefM,
-    Reference* elementRefM,
-    Ref sizeRef,
-    LLVMValueRef arrayPtrLE,
-    Ref indexRef) {
-  auto indexLE =
-      globalState->getRegion(globalState->metalCache->intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, indexRef);
-  auto sizeLE =
-      globalState->getRegion(globalState->metalCache->intRef)
-          ->checkValidReference(
-              FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
-
-  auto isNonNegativeLE = LLVMBuildICmp(builder, LLVMIntSGE, indexLE, constI64LE(globalState, 0), "isNonNegative");
-  auto isUnderLength = LLVMBuildICmp(builder, LLVMIntSLT, indexLE, sizeLE, "isUnderLength");
-  auto isWithinBounds = LLVMBuildAnd(builder, isNonNegativeLE, isUnderLength, "isWithinBounds");
-  buildFlare(FL(), globalState, functionState, builder, "index: ", indexLE);
-  buildFlare(FL(), globalState, functionState, builder, "size: ", sizeLE);
-  buildAssert(globalState, functionState, builder, isWithinBounds, "Index out of bounds!");
-
-  LLVMValueRef fromArrayLE = nullptr;
-//  if (mutability == Mutability::IMMUTABLE) {
-    if (arrayRefM->location == Location::INLINE) {
-      assert(false);
-//      return LLVMBuildExtractValue(builder, structExpr, indexLE, "index");
-    } else {
-      fromArrayLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
-    }
-//  } else if (mutability == Mutability::MUTABLE) {
-//    fromArrayLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
-//  } else {
-//    assert(false);
-//  }
-
-  {
-    // Careful here! This is a bit cheaty; we shouldn't pretend we have the source reference,
-    // because we don't. We're *reading* from it, but by wrapping it, we're pretending we *have* it.
-    // We're only doing this here so we can feed it to checkValidReference, and immediately throwing
-    // it away.
-    auto sourceRef = wrap(globalState->getRegion(elementRefM), elementRefM, fromArrayLE);
-    globalState->getRegion(elementRefM)
-        ->checkValidReference(FL(), functionState, builder, elementRefM, sourceRef);
-    return LoadResult{sourceRef};
-  }
+  auto destPtrLE = LLVMBuildGEP(builder, elemsPtrLE, indices, 2, "destPtr");
+  buildFlare(FL(), globalState, functionState, builder, "writing a reference to ", ptrToIntLE(globalState, builder, destPtrLE));
+  LLVMBuildStore(builder, sourceLE, destPtrLE);
 }
 
 //Ref loadElementWithUpgrade(
@@ -144,65 +120,51 @@ LoadResult loadElementWithoutUpgrade(
 //    Ref indexRef,
 //    Reference* resultRefM) {
 //  auto fromArrayRef =
-//      loadElementWithoutUpgrade(
+//      loadElement(
 //          globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, mutability, indexRef);
 //  return upgradeLoadResultToRefWithTargetOwnership(globalState, functionState, builder, elementRefM,
 //      resultRefM,
 //      fromArrayRef);
 //}
 
-
-Ref storeElement(
+Ref swapElement(
     GlobalState* globalState,
     FunctionState* functionState,
     LLVMBuilderRef builder,
-    Reference* arrayRefM,
+    Location location,
     Reference* elementRefM,
     Ref sizeRef,
     LLVMValueRef arrayPtrLE,
-    Mutability mutability,
     Ref indexRef,
     Ref sourceRef) {
-  auto sizeLE =
-      globalState->getRegion(globalState->metalCache->intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, sizeRef);
+  assert(location != Location::INLINE); // impl
 
-  auto indexLE =
-      globalState->getRegion(globalState->metalCache->intRef)
-          ->checkValidReference(FL(), functionState, builder, globalState->metalCache->intRef, indexRef);
-  auto isNonNegativeLE = LLVMBuildICmp(builder, LLVMIntSGE, indexLE, constI64LE(globalState, 0), "isNonNegative");
-  auto isUnderLength = LLVMBuildICmp(builder, LLVMIntSLT, indexLE, sizeLE, "isUnderLength");
-  auto isWithinBounds = LLVMBuildAnd(builder, isNonNegativeLE, isUnderLength, "isWithinBounds");
-  buildAssert(globalState, functionState, builder, isWithinBounds, "Index out of bounds!");
-
-//  auto arrayPtrLE = globalState->getRegion(refHere)->checkValidReference(FL(), functionState, builder, arrayRefM, arrayRef);
+  auto indexLE = checkIndexInBounds(globalState, functionState, builder, sizeRef, indexRef);
   auto sourceLE =
       globalState->getRegion(elementRefM)
           ->checkValidReference(FL(), functionState, builder, elementRefM, sourceRef);
+  auto resultLE = loadElement(globalState, functionState, builder, arrayPtrLE, elementRefM, sizeRef, indexRef);
+  storeInnerArrayMember(globalState, functionState, builder, arrayPtrLE, indexLE, sourceLE);
+  return resultLE.move();
+}
 
-  if (mutability == Mutability::IMMUTABLE) {
-    if (arrayRefM->location == Location::INLINE) {
-      assert(false);
-//      return LLVMBuildExtractValue(builder, structExpr, indexLE, "index");
-    } else {
-//      auto arrayWrapperPtrLE = getUnknownSizeArrayWrapperPtr(globalState, functionState, builder, arrayRefM, arrayRef);
-//      LLVMValueRef arrayPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+void initializeElement(
+    GlobalState* globalState,
+    FunctionState* functionState,
+    LLVMBuilderRef builder,
+    Location location,
+    Reference* elementRefM,
+    Ref sizeRef,
+    LLVMValueRef arrayPtrLE,
+    Ref indexRef,
+    Ref sourceRef) {
+  assert(location != Location::INLINE); // impl
 
-      auto loadResult =
-          loadElementWithoutUpgrade(
-              globalState, functionState, builder, arrayRefM, elementRefM, sizeRef, arrayPtrLE, indexRef);
-      auto resultRef = loadResult.move();
-
-      storeInnerArrayMember(globalState, builder, arrayPtrLE, indexLE, sourceLE);
-      return resultRef;
-    }
-  } else if (mutability == Mutability::MUTABLE) {
-    auto resultLE = loadInnerArrayMember(globalState, builder, arrayPtrLE, indexLE);
-    storeInnerArrayMember(globalState, builder, arrayPtrLE, indexLE, sourceLE);
-    return wrap(globalState->getRegion(elementRefM), elementRefM, resultLE);
-  } else {
-    assert(false);
-  }
+  auto indexLE = checkIndexInBounds(globalState, functionState, builder, sizeRef, indexRef);
+  auto sourceLE =
+      globalState->getRegion(elementRefM)
+          ->checkValidReference(FL(), functionState, builder, elementRefM, sourceRef);
+  storeInnerArrayMember(globalState, functionState, builder, arrayPtrLE, indexLE, sourceLE);
 }
 
 

@@ -452,9 +452,7 @@ private:
       AreaAndFileAndLine from,
       FunctionState* functionState,
       LLVMBuilderRef builder,
-      Reference* desiredStructMT,
-      const std::vector<Ref>& memberRefs,
-      Ref dryRunBoolRef);
+      Reference* desiredStructMT);
 
   InterfaceMethod* getSerializeInterfaceMethod(Referend* valeReferend);
 
@@ -480,6 +478,16 @@ private:
       Ref regionInstanceRef,
       LLVMValueRef sizeIntLE);
 
+  void reserveRootMetadataBytesIfNeeded(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef);
+
+  LLVMValueRef getDestinationPtr(
+      FunctionState* functionState,
+      LLVMBuilderRef builder,
+      Ref regionInstanceRef);
+
   Ref getDestinationRef(
       FunctionState* functionState,
       LLVMBuilderRef builder,
@@ -489,13 +497,6 @@ private:
   LLVMValueRef getDestinationOffset(
       LLVMBuilderRef builder,
       LLVMValueRef regionInstancePtrLE);
-
-  void fillLinearInnerStruct(
-      FunctionState* functionState,
-      LLVMBuilderRef builder,
-      StructDefinition* structM,
-      std::vector<Ref> membersLE,
-      LLVMValueRef innerStructPtrLE);
 
   void addMappedReferend(Referend* valeReferend, Referend* hostReferend) {
     hostReferendByValeReferend.emplace(valeReferend, hostReferend);
@@ -519,6 +520,12 @@ private:
 
   StructReferend* regionReferend = nullptr;
   Reference* regionRefMT = nullptr;
+
+  StructReferend* startMetadataReferend = nullptr;
+  Reference* startMetadataRefMT = nullptr;
+
+  StructReferend* rootMetadataReferend = nullptr;
+  Reference* rootMetadataRefMT = nullptr;
 
   Str* linearStr = nullptr;
   Reference* linearStrRefMT = nullptr;

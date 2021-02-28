@@ -81,7 +81,7 @@ class ValeTest(unittest.TestCase):
             vale_files: List[str],
             region_override: str,
             expected_return_code: int,
-            extra_flags: List[str]) -> None:
+            extra_flags: List[str] = None) -> None:
         if extra_flags is None:
             extra_flags = []
         proc = self.compile_and_execute(vale_files, region_override, extra_flags)
@@ -103,6 +103,8 @@ class ValeTest(unittest.TestCase):
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimminterfaceparam.vale", PATH_TO_SAMPLES + "programs/externs/externimminterfaceparam.c"], "assist", 42)
     def test_assist_externimmusaparam(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmusaparam.vale", PATH_TO_SAMPLES + "programs/externs/externimmusaparam.c"], "assist", 10)
+    def test_assist_externimmusaparamdeep(self) -> None:
+        self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/externimmusaparamdeep.vale", PATH_TO_SAMPLES + "programs/externs/externimmusaparamdeep.c"], "assist", 20)
     def test_assist_exportretvoid(self) -> None:
         self.compile_and_execute_and_expect_return_code([PATH_TO_SAMPLES + "programs/externs/exportretvoid.vale", PATH_TO_SAMPLES + "programs/externs/exportretvoid.c"], "assist", 42)
     def test_assist_exportimmstructparam(self) -> None:

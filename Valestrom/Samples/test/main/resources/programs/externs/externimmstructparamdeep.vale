@@ -1,16 +1,23 @@
 
 struct Flamscrankle export imm {
-  a int;
+  x int;
   b Bogglewoggle;
-  c int;
+  y int;
 }
 
 struct Bogglewoggle export imm {
-  a int;
+  s Spigglewigget;
+  x int;
+}
+
+struct Spigglewigget export imm {
+  x int;
+  y int;
+  z int;
 }
 
 fn extFunc(flam Flamscrankle) int extern;
 
 fn main() int export {
-  = extFunc(Flamscrankle(7, Bogglewoggle(21), 14));
+  = extFunc(Flamscrankle(7, Bogglewoggle(Spigglewigget(5, 7, 4), 5), 14));
 }

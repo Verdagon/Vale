@@ -1427,8 +1427,14 @@ Ref Mega::storeElementInUSA(
   switch (globalState->opt->regionOverride) {
     case RegionOverride::NAIVE_RC: {
       auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
-      return regularStoreElementInUSA(
-          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef, indexRef, elementRef);
+      auto arrayWrapperPtrLE =
+          referendStructs.makeWrapperPtr(
+              FL(), functionState, builder, usaRefMT,
+              globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, arrayRef));
+      auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+      auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+      ::swapElement(
+          globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
     }
     case RegionOverride::RESILIENT_V0:
     case RegionOverride::RESILIENT_V1:
@@ -1436,12 +1442,12 @@ Ref Mega::storeElementInUSA(
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
       auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
-      return resilientStoreElementInUSA(
-          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability, usaDef->rawArray->elementType, arrayRef,
-          arrayKnownLive, indexRef, elementRef,
-          [this, functionState, builder, usaRefMT, arrayRef, arrayKnownLive]() -> WrapperPtrLE {
-            return lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive);
-          });
+      auto arrayWrapperPtrLE = lockWeakRef(FL(), functionState, builder, usaRefMT, arrayRef, arrayKnownLive);
+      auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+      auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+      ::swapElement(
+          globalState, functionState, builder, usaRefMT->location, usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE,
+          indexRef, elementRef);
     }
     default:
       assert(false);
@@ -2156,9 +2162,15 @@ void Mega::initializeElementInUSA(
     case RegionOverride::RESILIENT_V3:
     case RegionOverride::RESILIENT_LIMIT: {
       auto usaDef = globalState->program->getUnknownSizeArray(usaMT->name);
-      regularStoreElementInUSA(
-          globalState, functionState, builder, &referendStructs, usaRefMT, usaMT, usaDef->rawArray->mutability,
-          usaDef->rawArray->elementType, usaRef, indexRef, elementRef);
+      auto arrayWrapperPtrLE =
+          referendStructs.makeWrapperPtr(
+              FL(), functionState, builder, usaRefMT,
+              globalState->getRegion(usaRefMT)->checkValidReference(FL(), functionState, builder, usaRefMT, usaRef));
+      auto sizeRef = ::getUnknownSizeArrayLength(globalState, functionState, builder, arrayWrapperPtrLE);
+      auto arrayElementsPtrLE = getUnknownSizeArrayContentsPtr(builder, arrayWrapperPtrLE);
+      ::initializeElement(
+          globalState, functionState, builder, usaRefMT->location,
+          usaDef->rawArray->elementType, sizeRef, arrayElementsPtrLE, indexRef, elementRef);
       break;
     }
     default:
