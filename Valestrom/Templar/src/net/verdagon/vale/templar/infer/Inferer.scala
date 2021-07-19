@@ -50,7 +50,7 @@ trait IInfererDelegate[Env, State] {
 
   def getRuntimeSizedArrayKind(env: Env, state: State, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT
 
-  def getTupleKind(env: Env, state: State, elements: List[CoordT]): TupleTT
+  def getTupleKind(env: Env, state: State, elements: List[CoordT]): StructTT
 
   def getAncestorInterfaceDistance(temputs: State, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): (Option[Int])
 
@@ -144,7 +144,7 @@ object Inferer {
         delegate.getRuntimeSizedArrayKind(env, state, type2, arrayMutability, arrayVariability)
       }
 
-      override def getTupleKind(env: Env, state: State, elements: List[CoordT]): TupleTT = {
+      override def getTupleKind(env: Env, state: State, elements: List[CoordT]): StructTT = {
         delegate.getTupleKind(env, state, elements)
       }
 

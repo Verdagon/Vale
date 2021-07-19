@@ -71,7 +71,6 @@ object TemplataNamer {
       case BoolT() => "bool"// "𝒷"
       case StrT() => "str"// "𝓈"
       case VoidT() => "void" // "∅"
-      case TupleTT(_, _) => "tup"
       case NeverT() => "never"
       case RuntimeSizedArrayTT(array) => "𝔸" + getReferenceIdentifierName(array.memberType)
       case StaticSizedArrayTT(size, arrayT2) => "𝔸" + size + getReferenceIdentifierName(arrayT2.memberType)

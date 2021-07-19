@@ -542,9 +542,6 @@ class ExpressionTemplar(
                   case s @ StructTT(_) => {
                     throw CompileErrorExceptionT(CantMutateFinalMember(range, s.fullName, memberName))
                   }
-                  case s @ TupleTT(_, _) => {
-                    throw CompileErrorExceptionT(CantMutateFinalMember(range, s.underlyingStruct.fullName, memberName))
-                  }
                   case _ => vimpl(structExpr.kind.toString)
                 }
               }
@@ -614,23 +611,21 @@ class ExpressionTemplar(
               case at@StaticSizedArrayTT(_, _) => {
                 arrayTemplar.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
-              case at@TupleTT(members, understruct) => {
+              case at @ StructTT(name @ FullNameT(_, _, TupleNameT(members))) => {
                 indexExpr2 match {
                   case ConstantIntTE(index, _) => {
-                    val understructDef = temputs.lookupStruct(understruct);
-                    val memberName = understructDef.fullName.addStep(understructDef.members(index.toInt).name)
-                    val memberType = understructDef.members(index.toInt).tyype
-
-                    vassert(understructDef.members.exists(member => understructDef.fullName.addStep(member.name) == memberName))
-
-//                    val ownershipInClosureStruct = understructDef.members(index).tyype.reference.ownership
+                    if (index < 0 || index >= members.size) {
+                      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Index out of range of tuple: " + index))
+                    }
+                    val memberType = members(index.toInt)
+                    val memberName = name.addStep(CodeVarNameT(index.toString))
 
                     val targetPermission =
                       Templar.intersectPermission(
                         containerExpr2.resultRegister.reference.permission,
-                        memberType.reference.permission)
+                        memberType.permission)
 
-                    ReferenceMemberLookupTE(range, containerExpr2, memberName, memberType.reference, targetPermission, FinalT)
+                    ReferenceMemberLookupTE(range, containerExpr2, memberName, memberType, targetPermission, FinalT)
                   }
                   case _ => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Struct random access not implemented yet!"))
                 }
@@ -672,26 +667,26 @@ class ExpressionTemplar(
 
                 ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
               }
-              case TupleTT(_, structTT) => {
-                temputs.lookupStruct(structTT) match {
-                  case structDef@StructDefinitionT(_, _, _, _, _, _) => {
-                    val (structMember, memberIndex) = vassertSome(structDef.getMemberAndIndex(memberName))
-                    val memberFullName = structDef.fullName.addStep(structDef.members(memberIndex).name)
-                    val memberType = structMember.tyype.expectReferenceMember().reference;
-
-                    vassert(structDef.members.exists(member => structDef.fullName.addStep(member.name) == memberFullName))
-                    vassert(structDef.members.exists(_.name == memberFullName.last))
-
-                    val (effectiveVariability, targetPermission) =
-                      Templar.factorVariabilityAndPermission(
-                        containerExpr2.resultRegister.reference.permission,
-                        structMember.variability,
-                        memberType.permission)
-
-                    ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
-                  }
-                }
-              }
+//              case TupleTT(_, structTT) => {
+//                temputs.lookupStruct(structTT) match {
+//                  case structDef@StructDefinitionT(_, _, _, _, _, _) => {
+//                    val (structMember, memberIndex) = vassertSome(structDef.getMemberAndIndex(memberName))
+//                    val memberFullName = structDef.fullName.addStep(structDef.members(memberIndex).name)
+//                    val memberType = structMember.tyype.expectReferenceMember().reference;
+//
+//                    vassert(structDef.members.exists(member => structDef.fullName.addStep(member.name) == memberFullName))
+//                    vassert(structDef.members.exists(_.name == memberFullName.last))
+//
+//                    val (effectiveVariability, targetPermission) =
+//                      Templar.factorVariabilityAndPermission(
+//                        containerExpr2.resultRegister.reference.permission,
+//                        structMember.variability,
+//                        memberType.permission)
+//
+//                    ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
+//                  }
+//                }
+//              }
               case as@StaticSizedArrayTT(_, _) => {
                 if (memberNameStr.forall(Character.isDigit)) {
                   arrayTemplar.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(memberNameStr.toInt, 32), as)

@@ -353,16 +353,6 @@ case class PackTE(
   }
 }
 
-case class TupleTE(
-    elements: List[ReferenceExpressionTE],
-    resultReference: CoordT,
-    tupleType: TupleTT) extends ReferenceExpressionTE {
-  override def resultRegister = ReferenceResultT(resultReference)
-  def all[T](func: PartialFunction[QueriableT, T]): List[T] = {
-    List(this).collect(func) ++ elements.flatMap(_.all(func)) ++ tupleType.all(func)
-  }
-}
-
 // Discards a reference, whether it be owned or borrow or whatever.
 // This is used after panics or other never-returning things, to signal that a certain
 // variable should be considered gone. See AUMAP.

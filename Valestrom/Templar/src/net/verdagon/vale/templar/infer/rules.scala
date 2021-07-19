@@ -27,6 +27,12 @@ case class ComponentsTR(
 ) extends IRulexTR {
   override def resultType: ITemplataType = tyype
 }
+case class CoordKindTR(
+  range: RangeS,
+  coordRule: IRulexTR
+) extends IRulexTR {
+  override def resultType: ITemplataType = KindTemplataType
+}
 case class TemplexTR(templex: ITemplexT) extends IRulexTR {
   override def resultType: ITemplataType = templex.resultType
 }

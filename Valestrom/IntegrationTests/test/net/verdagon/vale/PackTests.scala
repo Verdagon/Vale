@@ -1,7 +1,7 @@
 package net.verdagon.vale
 
-import net.verdagon.vale.templar.{StaticArrayFromValuesTE, PackTE, TupleTE}
-import net.verdagon.vale.templar.types.{IntT, PackTT}
+import net.verdagon.vale.templar.{FullNameT, PackTE, StaticArrayFromValuesTE, TupleNameT}
+import net.verdagon.vale.templar.types.{CoordT, IntT, PackTT, StructTT}
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
 
@@ -17,7 +17,7 @@ class PackTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.all({ case TupleTE(List(_, _, _), _, _) => }).size shouldEqual 1
+    main.all({ case StructTT(FullNameT(_, _, TupleNameT(List(_, _, _)))) => }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(5)
   }
@@ -34,12 +34,10 @@ class PackTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
     main.all({
-      case TupleTE(
+      case StructTT(FullNameT(_, _, TupleNameT(
         List(
-          TupleTE(List(_, _), _, _),
-          TupleTE(List(_, _), _, _)),
-        _,
-        _) =>
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))),
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))))))) =>
     }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(6)
@@ -56,7 +54,12 @@ class PackTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main .all({ case TupleTE(List(_, TupleTE(List(_, _), _, _)), _, _) => }).size shouldEqual 1
+    main .all({
+      case StructTT(FullNameT(_, _, TupleNameT(
+        List(
+          CoordT(_, _, IntT(_)),
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))))))) =>
+    }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(5)
   }

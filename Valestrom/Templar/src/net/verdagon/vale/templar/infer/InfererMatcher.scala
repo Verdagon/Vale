@@ -5,7 +5,7 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser.{ConstraintP, OwnP, ReadonlyP, ReadwriteP, ShareP, WeakP}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
 import net.verdagon.vale.scout.{RangeS, Environment => _, FunctionEnvironment => _, IEnvironment => _}
-import net.verdagon.vale.templar.{CompileErrorExceptionT, FunctionNameT, INameT, IRuneT, NameTranslator, RangedInternalErrorT}
+import net.verdagon.vale.templar.{CompileErrorExceptionT, FullNameT, FunctionNameT, INameT, IRuneT, NameTranslator, RangedInternalErrorT, TupleNameT}
 import net.verdagon.vale.templar.infer.infer._
 import net.verdagon.vale.templar.templata.{Conversions, _}
 import net.verdagon.vale.templar.types._
@@ -560,12 +560,12 @@ class InfererMatcher[Env, State](
       case (RepeaterSequenceTT(range, _, _, _, _, _), CoordTemplata(otherCoord)) => {
         (InferMatchConflict(inferences.inferences, range, "Expected repeater sequence, was: " + otherCoord, List.empty))
       }
-      case (ManualSequenceTT(range, expectedElementTemplexesT, resultType), CoordTemplata(CoordT(ownership, _, TupleTT(elements, _)))) => {
+      case (ManualSequenceTT(range, expectedElementTemplexesT, resultType), CoordTemplata(CoordT(ownership, _, StructTT(FullNameT(_, _, TupleNameT(elements)))))) => {
         vassert(resultType == CoordTemplataType)
         vcurious(ownership == ShareT || ownership == OwnT)
         matchTupleKind(env, state, typeByRune, localRunes, inferences, expectedElementTemplexesT, elements)
       }
-      case (ManualSequenceTT(range, expectedElementTemplexesT, resultType), KindTemplata(TupleTT(elements, _))) => {
+      case (ManualSequenceTT(range, expectedElementTemplexesT, resultType), KindTemplata(StructTT(FullNameT(_, _, TupleNameT(elements))))) => {
         vassert(resultType == KindTemplataType)
         matchTupleKind(env, state, typeByRune, localRunes, inferences, expectedElementTemplexesT, elements)
       }
@@ -809,7 +809,7 @@ class InfererMatcher[Env, State](
       case "passThroughIfConcrete" => {
         val List(kindRule) = args
         instance match {
-          case KindTemplata(StructTT(_) | PackTT(_, _) | TupleTT(_, _) | StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_)) => {
+          case KindTemplata(StructTT(_) | PackTT(_, _) | StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_)) => {
             matchTemplataAgainstRulexTR(env, state, typeByRune, localRunes, inferences, instance, kindRule)
           }
           case _ => return (InferMatchConflict(inferences.inferences, range, "Bad arguments to passThroughIfConcrete: " + args, List.empty))

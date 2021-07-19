@@ -71,7 +71,7 @@ trait ITemplataTemplarInnerDelegate[Env, State] {
     env: Env,
     state: State,
     elements: List[CoordT]):
-  (TupleTT)
+  (StructTT)
 
   def getInterfaceTemplataType(it: InterfaceTemplata): ITemplataType
   def getStructTemplataType(st: StructTemplata): ITemplataType

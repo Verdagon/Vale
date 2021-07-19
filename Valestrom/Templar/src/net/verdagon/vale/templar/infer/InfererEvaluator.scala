@@ -90,9 +90,9 @@ class InfererEvaluator[Env, State](
 
     // Next, we'll feed in the arguments that they used in the call.
 
-    val rulesAndAddedRunesTypeByRuneFromParamInputs =
+    val (argRunes, argIsaRules) =
       maybeParamInputs match {
-        case None => List.empty
+        case None => (Nil, Nil)
         case Some(paramInputs) => {
           if (paramAtoms.size != paramInputs.size) {
             return InferSolveFailure(
@@ -106,24 +106,27 @@ class InfererEvaluator[Env, State](
               "Got:\n" + paramInputs.zipWithIndex.map({ case (paramInput, i) => "  " + i + " " + paramInput }).mkString("\n"),
               List.empty)
           }
-          paramAtoms.zip(paramInputs).zipWithIndex.map({
-            case (((paramAtom, paramFilterInstance), paramIndex)) => {
-              addParameterRules(state, inferences, invocationRange, paramAtom, paramFilterInstance, List(paramIndex)) match {
-                case (iec @ InferEvaluateConflict(_, _, _, _), _) => {
-                  return (InferSolveFailure(typeByRune, directInputs, maybeParamInputs, inferences.inferences, invocationRange, "Failed to add parameter " + paramIndex, List(iec)))
-                }
-                case (InferEvaluateSuccess(rules17, true), addedRunesTypeByRune) => (rules17, addedRunesTypeByRune)
-              }
-            }
+
+          val paramRunes =
+            paramAtoms.map(paramAtom => NameTranslator.translateRune(paramAtom.coordRune))
+          val argRunes = paramRunes.map(paramRune => SolverKindRuneT(paramRune))
+          argRunes.zip(paramInputs).foreach({ case (argRune, argInput) =>
+            inferences.addConclusion(argRune, CoordTemplata(argInput.tyype))
           })
+          val argIsaRules =
+            paramRunes.zip(argRunes).map({ case (paramRune, argRune) =>
+              IsaTR(
+                invocationRange,
+                CoordKindTR(invocationRange, TemplexTR(RuneTT(invocationRange, argRune, CoordTemplataType))),
+                CoordKindTR(invocationRange, TemplexTR(RuneTT(invocationRange, paramRune, CoordTemplataType))))
+            })
+          (argRunes, argIsaRules)
         }
       }
-    val (rulesFromParamInputs, unflattenedAddedRunesTypeByRune) = rulesAndAddedRunesTypeByRuneFromParamInputs.unzip
-    val addedRunesTypeByRune = unflattenedAddedRunesTypeByRune.foldLeft(Map[IRuneT, ITemplataType]())(_ ++ _)
-    val combinedTypeByRune = typeByRune ++ addedRunesTypeByRune
+    val combinedTypeByRune = typeByRune ++ argRunes.map(rune => (rune -> CoordTemplataType)).toMap
 
-    val rules = initialRules ++ rulesFromParamInputs.flatten
-    val localRunes = localRuneWithoutParameterRunes ++ addedRunesTypeByRune.keySet
+    val rules = initialRules ++ argIsaRules
+    val localRunes = localRuneWithoutParameterRunes ++ argRunes
 
     // Now we'll try solving a bunch, just to see if there's any contradictions,
     // and if so bail.
@@ -169,90 +172,92 @@ class InfererEvaluator[Env, State](
   // TODO: Don't use IInferEvaluateResult for this, because it has a deeplySatisfied member
   // which is n/a for this kind of thing.
   (IInferEvaluateResult[List[IRulexTR]], Map[IRuneT, ITemplataType]) = {
-    val AtomAP(paramRange, _, patternVirtuality, patternCoordRuneA, maybePatternDestructure) = paramAtom
-    val patternCoordRune2 = NameTranslator.translateRune(patternCoordRuneA)
-
-    val (rulesFromType, runesAddedForType) =
-      paramFilterInstance.tyype.kind match {
-        case c: CitizenRefT => {
-          val ancestorInterfaces = delegate.getAncestorInterfaces(state, c)
-          val selfAndAncestors = List(c) ++ ancestorInterfaces
-          val kindRune = SolverKindRuneT(patternCoordRune2)
-          inferences.addPossibilities(kindRune, selfAndAncestors.map(KindTemplata))
-          val rule =
-            EqualsTR(
-              paramRange,
-              TemplexTR(RuneTT(paramRange, patternCoordRune2, CoordTemplataType)),
-              ComponentsTR(
-                paramRange,
-                CoordTemplataType,
-                List(
-                  // This seems weird. We should probably remove this, see GAOFPS
-                  TemplexTR(OwnershipTT(paramRange, Conversions.unevaluateOwnership(paramFilterInstance.tyype.ownership))),
-                  TemplexTR(PermissionTT(paramRange, Conversions.unevaluatePermission(paramFilterInstance.tyype.permission))),
-                  TemplexTR(RuneTT(paramRange, kindRune, KindTemplataType)))))
-          (List(rule), Map[IRuneT, ITemplataType](kindRune -> KindTemplataType))
-        }
-        case _ => {
-          inferences.templatasByRune.get(patternCoordRune2) match {
-            case Some(existingOne) if existingOne != CoordTemplata(paramFilterInstance.tyype) => {
-              return (
-                InferEvaluateConflict(
-                  inferences.inferences,
-                  invocationRange,
-                  "Incoming argument type doesnt match already known rune " + paramAtom.coordRune + " value. Had value " + existingOne + " but incoming arg was " + paramFilterInstance.tyype,
-                  Nil),
-                Map[IRuneT, ITemplataType]())
-            }
-            case _ =>
-          }
-          inferences.addConclusion(patternCoordRune2, CoordTemplata(paramFilterInstance.tyype))
-          (List.empty, Map[IRuneT, ITemplataType]())
-        }
-      }
-    val rulesFromVirtuality =
-      (paramFilterInstance.virtuality, patternVirtuality) match {
-        case (None, _) => List.empty
-        case (Some(AbstractT$), Some(AbstractAP)) => List.empty
-        case (Some(OverrideT(superInterface)), Some(OverrideAP(range, superInterfaceRune))) => {
-          // We might already have this superInterface figured out.
-          inferences.templatasByRune.get(NameTranslator.translateRune(superInterfaceRune)) match {
-            case None => {
-              val ancestorInterfaces = delegate.getAncestorInterfaces(state, superInterface)
-              val selfAndAncestors = List(superInterface) ++ ancestorInterfaces
-              inferences.addPossibilities(
-                NameTranslator.translateRune(superInterfaceRune),
-                selfAndAncestors.map(KindTemplata))
-              List.empty
-            }
-            case Some(existingInference) => {
-              vassert(existingInference == KindTemplata(superInterface))
-              List.empty
-            }
-          }
-        }
-        case (paramFilterVirtuality, patternVirtuality) => {
-          return (
-            InferEvaluateConflict(
-              inferences.inferences,
-              invocationRange,
-              "Param filter's virtuality and pattern's virtualities didnt match:\n" + paramFilterVirtuality + "\nand:\n" + patternVirtuality,
-              Nil),
-            Map())
-        }
-      }
-    vcurious(rulesFromVirtuality == List.empty) // do no rules come from virtuality?
-    val rulesFromPatternDestructure =
-      maybePatternDestructure match {
-        case None => List.empty
-        case Some(patternDestructures) => {
-          addDestructureRules(state, inferences, invocationRange, patternCoordRune2, paramFilterInstance.tyype, patternDestructures, paramLocation) match {
-            case iec @ InferEvaluateConflict(_, _, _, _) => return (iec, Map())
-            case InferEvaluateSuccess(r, _) => r
-          }
-        }
-      }
-    (InferEvaluateSuccess(rulesFromType ++ rulesFromVirtuality ++ rulesFromPatternDestructure, true), runesAddedForType)
+    vimpl()
+//    val AtomAP(paramRange, _, patternVirtuality, patternCoordRuneA, maybePatternDestructure) = paramAtom
+//    val patternCoordRune2 = NameTranslator.translateRune(patternCoordRuneA)
+//
+//    val (rulesFromType, runesAddedForType) =
+//      paramFilterInstance.tyype.kind match {
+//        case c: CitizenRefT => {
+//          val ancestorInterfaces = delegate.getAncestorInterfaces(state, c)
+//          val selfAndAncestors = List(c) ++ ancestorInterfaces
+//          val kindRune = SolverKindRuneT(patternCoordRune2)
+//          inferences.addPossibilities(kindRune, selfAndAncestors.map(KindTemplata))
+//          val rule =
+//            EqualsTR(
+//              paramRange,
+//              TemplexTR(RuneTT(paramRange, patternCoordRune2, CoordTemplataType)),
+//              ComponentsTR(
+//                paramRange,
+//                CoordTemplataType,
+//                List(
+//                  // This seems weird. We should probably remove this, see GAOFPS
+//                  TemplexTR(OwnershipTT(paramRange, Conversions.unevaluateOwnership(paramFilterInstance.tyype.ownership))),
+//                  TemplexTR(PermissionTT(paramRange, Conversions.unevaluatePermission(paramFilterInstance.tyype.permission))),
+//                  TemplexTR(RuneTT(paramRange, kindRune, KindTemplataType)))))
+//          (List(rule), Map[IRuneT, ITemplataType](kindRune -> KindTemplataType))
+//        }
+//        case _ => {
+//          inferences.templatasByRune.get(patternCoordRune2) match {
+//            case Some(existingOne) if existingOne != CoordTemplata(paramFilterInstance.tyype) => {
+//              return (
+//                InferEvaluateConflict(
+//                  inferences.inferences,
+//                  invocationRange,
+//                  "Incoming argument type doesnt match already known rune " + paramAtom.coordRune + " value. Had value " + existingOne + " but incoming arg was " + paramFilterInstance.tyype,
+//                  Nil),
+//                Map[IRuneT, ITemplataType]())
+//            }
+//            case _ =>
+//          }
+//          inferences.addConclusion(patternCoordRune2, CoordTemplata(paramFilterInstance.tyype))
+//          (List.empty, Map[IRuneT, ITemplataType]())
+//        }
+//      }
+//    val rulesFromVirtuality =
+//      (paramFilterInstance.virtuality, patternVirtuality) match {
+//        case (None, _) => List.empty
+//        case (Some(AbstractT$), Some(AbstractAP)) => List.empty
+//        case (Some(OverrideT(superInterface)), Some(OverrideAP(range, superInterfaceRune))) => {
+//          // We might already have this superInterface figured out.
+//          inferences.templatasByRune.get(NameTranslator.translateRune(superInterfaceRune)) match {
+//            case None => {
+//              val ancestorInterfaces = delegate.getAncestorInterfaces(state, superInterface)
+//              val selfAndAncestors = List(superInterface) ++ ancestorInterfaces
+//              inferences.addPossibilities(
+//                NameTranslator.translateRune(superInterfaceRune),
+//                selfAndAncestors.map(KindTemplata))
+//              List.empty
+//            }
+//            case Some(existingInference) => {
+//              vassert(existingInference == KindTemplata(superInterface))
+//              List.empty
+//            }
+//          }
+//        }
+//        case (paramFilterVirtuality, patternVirtuality) => {
+//          return (
+//            InferEvaluateConflict(
+//              inferences.inferences,
+//              invocationRange,
+//              "Param filter's virtuality and pattern's virtualities didnt match:\n" + paramFilterVirtuality + "\nand:\n" + patternVirtuality,
+//              Nil),
+//            Map())
+//        }
+//      }
+//    vcurious(rulesFromVirtuality == List.empty) // do no rules come from virtuality?
+//    val rulesFromPatternDestructure =
+//      maybePatternDestructure match {
+//        case None => List.empty
+//        case Some(patternDestructures) => {
+//          addDestructureRules(state, inferences, invocationRange, patternCoordRune2, paramFilterInstance.tyype, patternDestructures, paramLocation) match {
+//            case iec @ InferEvaluateConflict(_, _, _, _) => return (iec, Map())
+//            case InferEvaluateUnknown(deeplySatisfied) => return InferEvaluateUnknown(deeplySatisfied)
+//            case InferEvaluateSuccess(r, _) => r
+//          }
+//        }
+//      }
+//    (InferEvaluateSuccess(rulesFromType ++ rulesFromVirtuality ++ rulesFromPatternDestructure, true), runesAddedForType)
   }
 
   private def addDestructureRules(
@@ -264,8 +269,42 @@ class InfererEvaluator[Env, State](
     patternDestructures: List[AtomAP],
     paramLocation: List[Int]
   ): IInferEvaluateResult[List[IRulexTR]] = {
+    val expectedContainerKind =
+      incomingContainerCoord.kind match {
+        case incomingInterface @ InterfaceTT(_) => {
+          inferences.templatasByRune.get(expectedContainerTypeRune) match {
+            case None => return InferEvaluateUnknown(false)
+            case Some(KindTemplata(kind)) => {
+              kind match {
+                case expectedContainerStruct @ StructTT(_) => {
+                  delegate.getAncestorInterfaceDistance(state, expectedContainerStruct, incomingInterface) match {
+                    case None => return InferEvaluateConflict(inferences.inferences, invocationRange, "Can't downcast interface " + incomingInterface + " into struct " + kind, List())
+                    case Some(_) => expectedContainerStruct
+                  }
+                }
+                case _ => return InferEvaluateConflict(inferences.inferences, invocationRange, "Can only downcast an interface into a struct. Found: " + kind, List())
+              }
+            }
+            case Some(other) => return InferEvaluateConflict(inferences.inferences, invocationRange, "Destructure type must be a struct or static-sized array. Found: " + other, List())
+          }
+        }
+        case _ => {
+          inferences.templatasByRune.get(expectedContainerTypeRune) match {
+            case None => return InferEvaluateUnknown(false)
+            case Some(KindTemplata(kind)) => {
+              kind match {
+                case StructTT(_) => kind
+                case StaticSizedArrayTT(_, _) => kind
+                case _ => return InferEvaluateConflict(inferences.inferences, invocationRange, "Destructure type must be a struct or static-sized array. Found: " + kind, List())
+              }
+            }
+            case Some(other) => return InferEvaluateConflict(inferences.inferences, invocationRange, "Destructure type must be a struct or static-sized array. Found: " + other, List())
+          }
+        }
+      }
+
     val incomingMembers =
-      getMemberCoords(state, inferences, incomingContainerCoord.kind, invocationRange, patternDestructures.size) match {
+      getMemberCoords(state, inferences, expectedContainerKind, invocationRange, patternDestructures.size) match {
         case iec@InferEvaluateConflict(_, _, _, _) => return InferEvaluateConflict(inferences.inferences, invocationRange, "Failed getting incomingMembers for destructure", List(iec))
         case InferEvaluateSuccess(m, true) => m
       }
@@ -424,6 +463,7 @@ class InfererEvaluator[Env, State](
       case r @ IsaTR(_, _, _) => evaluateIsaRule(env, state, typeByRune, localRunes, inferences, r)
       case r @ OrTR(_, _) => evaluateOrRule(env, state, typeByRune, localRunes, inferences, r)
       case r @ ComponentsTR(_, _, _) => evaluateComponentsRule(env, state, typeByRune, localRunes, inferences, r)
+      case r @ CoordKindTR(_, _) => evaluateCoordKindRule(env, state, typeByRune, localRunes, inferences, r)
       case TemplexTR(templex) => evaluateTemplex(env, state, typeByRune, localRunes, inferences, templex)
       case r @ CallTR(_, _, _, _) => evaluateRuleCall(env, state, typeByRune, localRunes, inferences, r)
     }
@@ -554,7 +594,7 @@ class InfererEvaluator[Env, State](
           }
         val List(templata) = argTemplatas
         templata match {
-          case k @ KindTemplata(StructTT(_) | PackTT(_, _) | TupleTT(_, _) | StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_)) => {
+          case k @ KindTemplata(StructTT(_) | PackTT(_, _) | StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_)) => {
             (InferEvaluateSuccess(k, deeplySatisfied))
           }
           case _ => return (InferEvaluateConflict(inferences.inferences, range, "passThroughIfConcrete expected concrete kind, but got " + templata, List.empty))
@@ -1017,15 +1057,15 @@ class InfererEvaluator[Env, State](
         case (InferEvaluateSuccess(subTemplata, ds)) => (Some(subTemplata), ds)
       }
 
-    val (maybeConcept, conceptDeeplySatisfied) =
+    val (maybeSuper, conceptDeeplySatisfied) =
       evaluateRule(env, state, typeByRune, localRunes, inferences, superRule) match {
         case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed evaluating concept rule!", List(iec)))
         case (InferEvaluateUnknown(ds)) => (None, ds)
         case (InferEvaluateSuccess(subTemplata, ds)) => (Some(subTemplata), ds)
       }
 
-    (maybeSub, maybeConcept) match {
-      case (Some(KindTemplata(sub : CitizenRefT)), Some(KindTemplata(suuper : InterfaceTT))) => {
+    (maybeSub, maybeSuper, superRule) match {
+      case (Some(KindTemplata(sub : CitizenRefT)), Some(KindTemplata(suuper : InterfaceTT)), _) => {
         val supers = delegate.getAncestorInterfaces(state, sub)
 
         if (supers.contains(suuper)) {
@@ -1036,7 +1076,10 @@ class InfererEvaluator[Env, State](
           return (InferEvaluateConflict(inferences.inferences, range, "Isa failed!\nSub: " + sub + "\nSuper: " + suuper, List.empty))
         }
       }
-      case (Some(_), Some(_)) => vfail()
+      case (Some(KindTemplata(sub : CitizenRefT)), None, CoordKindTR(_, coordRule)) => {
+        vimpl()
+      }
+      case (Some(_), Some(_), _) => vfail()
       case _ => {
 //        println("conforms unsatisfied")
         (InferEvaluateUnknown(false))
@@ -1062,6 +1105,27 @@ class InfererEvaluator[Env, State](
 //    println("or unsatisfied")
 
     (InferEvaluateUnknown(deeplySatisfied))
+  }
+
+  private[infer] def evaluateCoordKindRule(
+    env: Env,
+    state: State,
+    typeByRune: Map[IRuneT, ITemplataType],
+    localRunes: Set[IRuneT],
+    inferences: InferencesBox,
+    rule: CoordKindTR
+  ): (IInferEvaluateResult[ITemplata]) = {
+    val CoordKindTR(range, coordRule) = rule
+    evaluateRule(env, state, typeByRune, localRunes, inferences, coordRule) match {
+      case (iec@InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "sparklebark", List(iec)))
+      case (InferEvaluateUnknown(ds)) => InferEvaluateUnknown(ds)
+      case (InferEvaluateSuccess(templata, ds)) => {
+        templata match {
+          case CoordTemplata(coord) => InferEvaluateSuccess(KindTemplata(coord.kind), ds)
+          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(range, "CoordKind argument must be a coord!"))
+        }
+      }
+    }
   }
 
   private[infer] def evaluateComponentsRule(
@@ -1332,12 +1396,12 @@ class InfererEvaluator[Env, State](
         }
         InferEvaluateSuccess(members, true)
       }
-      case TupleTT(members, _) => {
-        if (members.size != expectedNumMembers) {
-          return InferEvaluateConflict(inferences.inferences, range, "Expected something with " + expectedNumMembers + " members but received " + kind, List.empty)
-        }
-        InferEvaluateSuccess(members, true)
-      }
+//      case TupleTT(members, _) => {
+//        if (members.size != expectedNumMembers) {
+//          return InferEvaluateConflict(inferences.inferences, range, "Expected something with " + expectedNumMembers + " members but received " + kind, List.empty)
+//        }
+//        InferEvaluateSuccess(members, true)
+//      }
       case StaticSizedArrayTT(size, RawArrayTT(memberType, _, _)) => {
         // We need to do this check right here because right after this we're making an array of size `size`
         // which we just received as an integer from the user.

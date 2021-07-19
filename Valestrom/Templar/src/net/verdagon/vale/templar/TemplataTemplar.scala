@@ -46,7 +46,7 @@ trait ITemplataTemplarDelegate {
 
   def getRuntimeSizedArrayKind(env: IEnvironment, state: Temputs, element: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT
 
-  def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): TupleTT
+  def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT
 }
 
 class TemplataTemplar(
@@ -145,7 +145,7 @@ class TemplataTemplar(
           delegate.getRuntimeSizedArrayKind(env, state, element, arrayMutability, arrayVariability)
         }
 
-        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): TupleTT = {
+        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT = {
           delegate.getTupleKind(env, state, elements)
         }
 

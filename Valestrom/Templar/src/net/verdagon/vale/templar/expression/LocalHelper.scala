@@ -211,10 +211,6 @@ class LocalHelper(
         val mutability = Templar.getMutability(temputs, understruct2)
         if (mutability == MutableT) ConstraintT else ShareT
       }
-      case TupleTT(_, understruct2) => {
-        val mutability = Templar.getMutability(temputs, understruct2)
-        if (mutability == MutableT) ConstraintT else ShareT
-      }
       case StaticSizedArrayTT(_, RawArrayTT(_, mutability, _)) => {
         if (mutability == MutableT) ConstraintT else ShareT
       }

@@ -85,7 +85,6 @@ object TypeHammer {
       // A PackT2 is really just a struct ref under the hood. The dinstinction is only meaningful
       // to the Templar.
       case p @ PackTT(_, underlyingStruct) => StructHammer.translateStructRef(hinputs, hamuts, underlyingStruct)
-      case p @ TupleTT(_, underlyingStruct) => StructHammer.translateStructRef(hinputs, hamuts, underlyingStruct)
       case a @ StaticSizedArrayTT(_, _) => translateStaticSizedArray(hinputs, hamuts, a)
       case a @ RuntimeSizedArrayTT(_) => translateRuntimeSizedArray(hinputs, hamuts, a)
     }
@@ -104,7 +103,6 @@ object TypeHammer {
         case (WeakT, _) => YonderH
         case (ShareT, OverloadSet(_, _, _)) => InlineH
         case (ShareT, PackTT(_, _)) => InlineH
-        case (ShareT, TupleTT(_, _)) => InlineH
         case (ShareT, StructTT(FullNameT(_, _, TupleNameT(_)))) => InlineH
         case (ShareT, VoidT()) => InlineH
         case (ShareT, IntT(_)) => InlineH

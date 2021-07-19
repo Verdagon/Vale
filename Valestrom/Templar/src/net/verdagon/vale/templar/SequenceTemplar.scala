@@ -20,7 +20,11 @@ class SequenceTemplar(
     val (tupleType2, mutability) = makeTupleType(env.globalEnv, temputs, types2)
     val ownership = if (mutability == MutableT) OwnT else ShareT
     val permission = if (mutability == MutableT) ReadwriteT else ReadonlyT
-    val finalExpr = TupleTE(exprs2, CoordT(ownership, permission, tupleType2), tupleType2)
+    val finalExpr =
+      ConstructTE(
+        tupleType2,
+        CoordT(ownership, permission, tupleType2),
+        exprs2)
     (finalExpr)
   }
 
@@ -28,7 +32,7 @@ class SequenceTemplar(
     env: IEnvironment,
     temputs: Temputs,
     types2: List[CoordT]):
-  (TupleTT, MutabilityT) = {
+  (StructTT, MutabilityT) = {
     val (structTT, mutability) =
       structTemplar.makeSeqOrPackUnderstruct(env.globalEnv, temputs, types2, TupleNameT(types2))
 
@@ -46,6 +50,6 @@ class SequenceTemplar(
     val _ =
       destructorTemplar.getCitizenDestructor(env, temputs, reference)
 
-    (TupleTT(types2, structTT), mutability)
+    (structTT, mutability)
   }
 }

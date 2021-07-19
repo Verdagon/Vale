@@ -5,7 +5,7 @@ import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.IRuneT
 import net.verdagon.vale.templar.templata.ITemplata
 import net.verdagon.vale.templar.types.ParamFilter
-import net.verdagon.vale.vassert
+import net.verdagon.vale.{repeatStr, vassert}
 
 import scala.collection.immutable.List
 
@@ -32,6 +32,10 @@ package object infer {
     causes: List[IConflictCause]
   ) extends IInferSolveResult with IConflictCause {
     vassert(message.nonEmpty || causes.nonEmpty)
+
+    override def toString: String = {
+      stringifyInferFailure(0, this)
+    }
   }
   case class InferSolveSuccess(
     inferences: Inferences
@@ -92,4 +96,46 @@ package object infer {
     // `(Bork like ISomething<#T>)` rule.
     deeplySatisfied: Boolean
   ) extends IInferMatchResult
+
+  def stringifyInferFailure(indent: Int, failure: InferSolveFailure): String = {
+    val InferSolveFailure(
+      typeByRune,
+      directInputs,
+      maybeParamInputs,
+      inferences,
+      range,
+      message,
+      causes,
+    ) = failure
+
+    "Failure: " + message + ":\n" +
+    repeatStr("  ", indent) + "typeByRune: " + typeByRune + "\n" +
+    repeatStr("  ", indent) + "directInputs: " + directInputs.mkString(", ") + "\n" +
+      (maybeParamInputs match {
+        case None => ""
+        case Some(paramInputs) => {
+          repeatStr("  ", indent) + "paramInputs: " + paramInputs.mkString(", ") + "\n"
+        }
+      }) +
+      repeatStr("  ", indent) + "inferences:\n" + inferences.templatasByRune.mkString(", ") + "\n" +
+      repeatStr("  ", indent) + "causes:\n" +
+      causes.map(stringifyConflictCause(indent + 1, _))
+  }
+
+  def stringifyConflictCause(indent: Int, cause: infer.IConflictCause): String = {
+    cause match {
+      case InferEvaluateConflict(inferences, range, message, causes) => {
+        "Eval conflict: " + message + ":\n" +
+          repeatStr("  ", indent) + "inferences:\n" + inferences.templatasByRune.mkString(", ") + "\n" +
+          repeatStr("  ", indent) + "causes:\n" +
+          causes.map(stringifyConflictCause(indent + 1, _))
+      }
+      case InferMatchConflict(inferences, range, message, causes) => {
+        "Match conflict: " + message + ":\n" +
+          repeatStr("  ", indent) + "inferences:\n" + inferences.templatasByRune.mkString(", ") + "\n" +
+          repeatStr("  ", indent) + "causes:\n" +
+          causes.map(stringifyConflictCause(indent + 1, _))
+      }
+    }
+  }
 }

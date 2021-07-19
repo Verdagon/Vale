@@ -104,6 +104,9 @@ class FakeTemplataTemplarInnerDelegate extends ITemplataTemplarInnerDelegate[Sim
   override def evaluateInterfaceTemplata(state: FakeState, callRange: RangeS, templata: InterfaceTemplata, templateArgs: List[ITemplata]): (KindT) = {
     vfail()
   }
+  override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: List[CoordT]): StructTT = {
+    vfail()
+  }
   override def evaluateStructTemplata(state: FakeState, callRange: RangeS, templata: StructTemplata, templateArgs: List[ITemplata]): (KindT) = {
     vfail()
   }
@@ -125,9 +128,6 @@ class FakeTemplataTemplarInnerDelegate extends ITemplataTemplarInnerDelegate[Sim
   }
   override def getRuntimeSizedArrayKind(env: SimpleEnvironment, state: FakeState, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT = {
     RuntimeSizedArrayTT(RawArrayTT(type2, arrayMutability, arrayVariability))
-  }
-  override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: List[CoordT]): TupleTT = {
-    vfail()
   }
   override def getInterfaceTemplataType(it: InterfaceTemplata): TemplateTemplataType = {
     vfail()
@@ -273,10 +273,11 @@ class InfererTests extends FunSuite with Matchers {
     entries = entries.addEntry(true, CitizenNameT("IntAndBoolTupName", Nil),
       TemplataEnvEntry(
         KindTemplata(
-          TupleTT(
-            List(Program2.intType, Program2.boolType),
-            // Normally this would be backed by a struct simply named "Tup"
-            StructTT(FullNameT(PackageCoordinate.TEST_TLD, Nil, CitizenNameT("ImmStruct", Nil)))))))
+          StructTT(
+            FullNameT(
+              PackageCoordinate.TEST_TLD,
+              Nil,
+              TupleNameT(List(Program2.intType, Program2.boolType)))))))
     val callPrototype = PrototypeTemplata(incrementPrototype)
     entries = entries.addEntry(true, callPrototype.value.fullName.last, TemplataEnvEntry(callPrototype))
     SimpleEnvironment(entries)
@@ -295,9 +296,12 @@ class InfererTests extends FunSuite with Matchers {
             case IntT(_) | VoidT() | BoolT() => ImmutableT
             case StaticSizedArrayTT(_, RawArrayTT(_, mutability, _)) => mutability
             case RuntimeSizedArrayTT(RawArrayTT(_, mutability, _)) => mutability
-            case TupleTT(_, StructTT(FullNameT(_, _, CitizenNameT(humanName, _)))) if humanName.startsWith("Imm") => ImmutableT
+            case StructTT(FullNameT(_, _, CitizenNameT(humanName, _))) if humanName.startsWith("Imm") => ImmutableT
             case _ => vfail()
           }
+        }
+        override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: List[CoordT]): StructTT = {
+          StructTT(FullNameT(PackageCoordinate.TEST_TLD, Nil, TupleNameT(elements)))
         }
         override def evaluateInterfaceTemplata(state: FakeState, callRange: RangeS, templata: InterfaceTemplata, templateArgs: List[ITemplata]): (KindT) = {
           (templata, templateArgs) match {
@@ -338,11 +342,6 @@ class InfererTests extends FunSuite with Matchers {
         }
         override def getStaticSizedArrayKind(env: SimpleEnvironment, state: FakeState, mutability: MutabilityT, variability: VariabilityT, size: Int, element: CoordT): (StaticSizedArrayTT) = {
           (StaticSizedArrayTT(size, RawArrayTT(element, mutability, variability)))
-        }
-
-        override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: List[CoordT]): TupleTT = {
-          // Theres only one tuple in this test, and its backed by the ImmStruct.
-          TupleTT(elements, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Nil, CitizenNameT("ImmStruct", Nil))))
         }
       }
     val delegate =
@@ -1052,9 +1051,12 @@ class InfererTests extends FunSuite with Matchers {
         CoordT(
           ShareT,
           ReadonlyT,
-          TupleTT(
-            List(CoordT(ShareT, ReadonlyT,IntT.i32), CoordT(ShareT, ReadonlyT,BoolT())),
-            StructTT(FullNameT(PackageCoordinate.TEST_TLD, Nil,CitizenNameT("ImmStruct",Nil))))))
+          StructTT(
+            FullNameT(
+              PackageCoordinate.TEST_TLD,
+              Nil,
+              TupleNameT(
+                List(CoordT(ShareT, ReadonlyT,IntT.i32), CoordT(ShareT, ReadonlyT,BoolT())))))))
   }
 
   test("Test matching manual sequence as coord") {

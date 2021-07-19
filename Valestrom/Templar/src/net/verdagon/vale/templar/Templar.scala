@@ -209,7 +209,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           arrayTemplar.getRuntimeSizedArrayKind(env, state, element, arrayMutability, arrayVariability)
         }
 
-        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): TupleTT = {
+        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT = {
           val (tuple, mutability) = sequenceTemplar.makeTupleType(env, state, elements)
           tuple
         }
@@ -234,7 +234,6 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
             val underlyingstructTT =
               kind match {
                 case sr@StructTT(_) => sr
-                case TupleTT(_, underlyingStruct) => underlyingStruct
                 case PackTT(_, underlyingStruct) => underlyingStruct
                 case _ => return None
               }
@@ -287,7 +286,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): TupleTT = {
+        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT = {
           profiler.childFrame("InferTemplarDelegate.getTupleKind", () => {
             val (tuple, mutability) = sequenceTemplar.makeTupleType(env, state, elements)
             tuple
@@ -961,7 +960,6 @@ object Templar {
   def isPrimitive(kind: KindT): Boolean = {
     kind match {
       case VoidT() | IntT(_) | BoolT() | StrT() | NeverT() | FloatT() => true
-      case TupleTT(_, understruct) => isPrimitive(understruct)
       case sr @ StructTT(_) => sr == Program2.emptyTupleStructRef
       case InterfaceTT(_) => false
       case StaticSizedArrayTT(_, _) => false
@@ -988,7 +986,6 @@ object Templar {
       case sr @ StructTT(_) => temputs.lookupMutability(sr)
       case ir @ InterfaceTT(_) => temputs.lookupMutability(ir)
       case PackTT(_, sr) => temputs.lookupMutability(sr)
-      case TupleTT(_, sr) => temputs.lookupMutability(sr)
       case OverloadSet(_, _, _) => {
         // Just like FunctionT2
         ImmutableT
