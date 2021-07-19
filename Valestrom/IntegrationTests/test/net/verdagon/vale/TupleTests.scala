@@ -1,7 +1,7 @@
 package net.verdagon.vale
 
 import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.types.IntT
+import net.verdagon.vale.templar.types.{IntT, StructTT}
 import net.verdagon.von.{VonBool, VonInt, VonObject}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -24,7 +24,9 @@ class TupleTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
     temputs.lookupFunction("main").header.returnType.kind shouldEqual IntT.i32
     // Funny story, theres no such thing as a one element tuple! It becomes a one element array.
-    temputs.lookupFunction("main").only({ case TupleTE(_, _, _) => })
+    temputs.lookupFunction("main").only({
+      case StructTT(FullNameT(_, _, TupleNameT(List(_)))) =>
+    })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(9)
   }

@@ -227,18 +227,6 @@ case class PackTT(members: List[CoordT], underlyingStruct: StructTT) extends Kin
   }
 }
 
-case class TupleTT(members: List[CoordT], underlyingStruct: StructTT) extends KindT {
-  override def order: Int = 20;
-
-  underlyingStruct.all({
-    case AddressMemberTypeT(_) => vfail("Tuples' underlying structs cant have addressibles in them!")
-  })
-
-  def all[T](func: PartialFunction[QueriableT, T]): List[T] = {
-    List(this).collect(func) ++ members.flatMap(_.all(func)) ++ underlyingStruct.all(func)
-  }
-}
-
 case class RawArrayTT(
   memberType: CoordT,
   mutability: MutabilityT,

@@ -197,10 +197,6 @@ class DestructorTemplar(
                 val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
                 destroySharedCitizen(temputs, understructReference2)
               }
-              case TupleTT(_, understruct2) => {
-                val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
-                destroySharedCitizen(temputs, understructReference2)
-              }
               case StructTT(_) | InterfaceTT(_) => {
                 destroySharedCitizen(temputs, undestructedExpr2.resultRegister.reference)
               }

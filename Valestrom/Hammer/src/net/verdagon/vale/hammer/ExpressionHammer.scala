@@ -161,29 +161,29 @@ object ExpressionHammer {
         (resultNode, deferreds)
       }
 
-      case TupleTE(exprs, resultType, resultPackType) => {
-        val (resultLines, deferreds) =
-          translateExpressions(hinputs, hamuts, currentFunctionHeader, locals, exprs);
-        val (underlyingStructRefH) =
-          StructHammer.translateStructRef(hinputs, hamuts, resultPackType.underlyingStruct);
-        val (resultReference) =
-          TypeHammer.translateReference(hinputs, hamuts, resultType)
-        vassert(resultReference.kind == underlyingStructRefH)
-
-        val structDefH = hamuts.structDefsByRef2(resultPackType.underlyingStruct)
-        vassert(resultLines.size == structDefH.members.size)
-        val newStructNode =
-          NewStructH(
-            resultLines,
-            structDefH.members.map(_.name),
-            resultReference.expectStructReference())
-        // Export locals from inside the pack
-
-        val newStructAndDeferredsExprH =
-            translateDeferreds(hinputs, hamuts, currentFunctionHeader, locals, newStructNode, deferreds)
-
-        (newStructAndDeferredsExprH, List.empty)
-      }
+//      case TupleTE(exprs, resultType, resultPackType) => {
+//        val (resultLines, deferreds) =
+//          translateExpressions(hinputs, hamuts, currentFunctionHeader, locals, exprs);
+//        val (underlyingStructRefH) =
+//          StructHammer.translateStructRef(hinputs, hamuts, resultPackType.underlyingStruct);
+//        val (resultReference) =
+//          TypeHammer.translateReference(hinputs, hamuts, resultType)
+//        vassert(resultReference.kind == underlyingStructRefH)
+//
+//        val structDefH = hamuts.structDefsByRef2(resultPackType.underlyingStruct)
+//        vassert(resultLines.size == structDefH.members.size)
+//        val newStructNode =
+//          NewStructH(
+//            resultLines,
+//            structDefH.members.map(_.name),
+//            resultReference.expectStructReference())
+//        // Export locals from inside the pack
+//
+//        val newStructAndDeferredsExprH =
+//            translateDeferreds(hinputs, hamuts, currentFunctionHeader, locals, newStructNode, deferreds)
+//
+//        (newStructAndDeferredsExprH, List.empty)
+//      }
 
       case StaticArrayFromValuesTE(exprs, arrayReference2, arrayType2) => {
         val (resultLines, deferreds) =
