@@ -14,19 +14,30 @@ import net.verdagon.von.{IVonData, JsonSyntax, VonPrinter}
 
 import scala.collection.immutable.List
 
+case object FullCompilationOptions {
+  val testDefault =
+    FullCompilationOptions(
+      false,
+      new NullProfiler(),
+      true,
+      true,
+      (x => println("###: " + x)))
+}
+
 case class FullCompilationOptions(
-  debugOut: String => Unit = (x => {
+  verbose: Boolean,
+  profiler: IProfiler,
+  useOptimization: Boolean,
+  useSanityChecks: Boolean,
+  debugOut: (=> String) => Unit = (x => {
     println("##: " + x)
   }),
-  verbose: Boolean = true,
-  profiler: IProfiler = new NullProfiler(),
-  useOptimization: Boolean = false,
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class FullCompilation(
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]],
-  options: FullCompilationOptions = FullCompilationOptions()) {
+  options: FullCompilationOptions) {
   var hammerCompilation =
     new HammerCompilation(
       packagesToBuild,
@@ -35,7 +46,8 @@ class FullCompilation(
         options.debugOut,
         options.verbose,
         options.profiler,
-        options.useOptimization))
+        options.useOptimization,
+        options.useSanityChecks))
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = hammerCompilation.getCodeMap()
   def getParseds(): Result[FileCoordinateMap[(FileP, Vector[(Int, Int)])], FailedParse] = hammerCompilation.getParseds()

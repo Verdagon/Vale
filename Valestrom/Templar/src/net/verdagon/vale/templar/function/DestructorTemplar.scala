@@ -224,6 +224,7 @@ class DestructorTemplar(
     val dropExpr2 = drop(bodyEnv, temputs, ArgLookupTE(0, type2))
     val header =
       FunctionHeaderT(
+        opts.sanityChecks,
         bodyEnv.fullName,
         Vector.empty,
         Vector(ParameterT(CodeVarNameT("x"), None, type2)),
@@ -256,6 +257,7 @@ class DestructorTemplar(
 
     val header =
       FunctionHeaderT(
+        opts.sanityChecks,
         destructorFullName,
         Vector.empty,
         params2,
@@ -340,6 +342,7 @@ class DestructorTemplar(
     val function2 =
       FunctionT(
         FunctionHeaderT(
+          opts.sanityChecks,
           env.fullName,
           Vector.empty,
           Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType)),
@@ -396,6 +399,7 @@ class DestructorTemplar(
     val function2 =
       FunctionT(
         FunctionHeaderT(
+          opts.sanityChecks,
           env.fullName,
           Vector.empty,
           Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType2)),

@@ -34,7 +34,7 @@ class ImportTests extends FunSuite with Matchers {
               .add("moduleA", Vector.empty, "moduleA.vale", moduleACode)
               .add("moduleB", Vector.empty, "moduleB.vale", moduleBCode))
           .or(Tests.getPackageToResourceResolver),
-        FullCompilationOptions())
+        FullCompilationOptions.testDefault)
 
     compile.evalForKind(Vector()) shouldEqual VonInt(42)
   }
@@ -62,7 +62,7 @@ class ImportTests extends FunSuite with Matchers {
               .add("moduleA", Vector.empty, "moduleA.vale", moduleACode)
               .add("moduleB", Vector.empty, "moduleB.vale", moduleBCode))
           .or(Tests.getPackageToResourceResolver),
-        FullCompilationOptions())
+        FullCompilationOptions.testDefault)
 
     vassert(!compile.getParseds().getOrDie().moduleToPackagesToFilenameToContents.contains("moduleB"))
 
@@ -94,7 +94,7 @@ class ImportTests extends FunSuite with Matchers {
               .add("moduleA", Vector.empty, "moduleA.vale", moduleACode)
               .add("moduleB", Vector("bork"), "moduleB.vale", moduleBCode))
           .or(Tests.getPackageToResourceResolver),
-        FullCompilationOptions())
+        FullCompilationOptions.testDefault)
 
     compile.evalForKind(Vector()) shouldEqual VonInt(42)
   }
@@ -119,7 +119,7 @@ class ImportTests extends FunSuite with Matchers {
             FileCoordinateMap(Map())
               .add("moduleA", Vector.empty, "moduleA.vale", moduleACode))
           .or({ case PackageCoordinate("moduleB", Vector("bork")) => Some(Map()) }),
-    FullCompilationOptions())
+        FullCompilationOptions.testDefault)
 
     compile.evalForKind(Vector()) shouldEqual VonInt(42)
   }

@@ -139,6 +139,15 @@ case class FunctionCallPE(
   override def hashCode(): Int = vcurious();
 }
 
+case class EachLoopPE(
+  range: Range,
+  patterns: List[PatternPP],
+  containerExpr: IExpressionPE,
+  body: BlockPE
+) extends IExpressionPE {
+  override def hashCode(): Int = vcurious();
+}
+
 case class MethodCallPE(
   range: Range,
   inline: Option[UnitP],

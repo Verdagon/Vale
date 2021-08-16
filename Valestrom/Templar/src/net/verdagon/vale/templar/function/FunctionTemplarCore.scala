@@ -268,7 +268,7 @@ class FunctionTemplarCore(
       attributesT: Vector[IFunctionAttribute2],
       paramsT: Vector[ParameterT],
       returnCoord: CoordT) = {
-    val header = FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
+    val header = FunctionHeaderT(opts.sanityChecks, fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
     temputs.declareFunctionReturnType(header.toSignature, returnCoord)
     header
   }
@@ -358,6 +358,7 @@ class FunctionTemplarCore(
       case FunctionNameT(humanName, Vector(), params) => {
         val header =
           FunctionHeaderT(
+            opts.sanityChecks,
             fullName,
             Vector(Extern2(range.file.packageCoordinate)) ++ attributes,
             params2,
@@ -402,6 +403,7 @@ class FunctionTemplarCore(
     vassert(params2.exists(_.virtuality == Some(AbstractT$)))
     val header =
       FunctionHeaderT(
+        opts.sanityChecks,
         env.fullName,
         Vector.empty,
         params2,
@@ -441,6 +443,7 @@ class FunctionTemplarCore(
     val destructor2 =
       FunctionT(
         FunctionHeaderT(
+          opts.sanityChecks,
           env.fullName,
           Vector.empty,
           Vector(ParameterT(CodeVarNameT("this"), Some(OverrideT(interfaceTT)), structType2)),

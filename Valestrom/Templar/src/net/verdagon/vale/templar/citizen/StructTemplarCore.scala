@@ -521,6 +521,7 @@ class StructTemplarCore(
             anonymousSubstructName.addStep(FunctionNameT(humanName, Vector.empty, params.map(_.tyype)))
           val forwarderHeader =
             FunctionHeaderT(
+              opts.sanityChecks,
               fowarderName,
               Vector.empty,
               params,
@@ -681,6 +682,7 @@ class StructTemplarCore(
       })
     val forwarderHeader =
       FunctionHeaderT(
+        opts.sanityChecks,
         structFullName.addStep(FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, Vector.empty, forwarderParams.map(_.tyype))),
         Vector.empty,
         forwarderParams,
@@ -752,6 +754,7 @@ class StructTemplarCore(
     val constructor2 =
       FunctionT(
         FunctionHeaderT(
+          opts.sanityChecks,
           constructorFullName,
           Vector.empty,
           constructorParams,

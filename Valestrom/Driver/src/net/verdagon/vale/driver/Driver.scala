@@ -46,6 +46,7 @@ object Driver {
     includeBuiltins: Boolean,
     mode: Option[String], // build v run etc
     verbose: Boolean,
+    useSanityChecks: Boolean
   ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
   def parseOpts(opts: Options, list: List[String]) : Options = {
@@ -308,6 +309,10 @@ object Driver {
         Vector(PackageCoordinate.BUILTIN) ++ opts.inputs.map(_.packageCoord).distinct,
         Builtins.getCodeMap().or(packageCoord => resolvePackageContents(opts.inputs, packageCoord)),
         FullCompilationOptions(
+          opts.verbose,
+          new NullProfiler(),
+          false,
+          opts.useSanityChecks,
           if (opts.verbose) {
             (x => {
               println("#: " + x)
@@ -315,9 +320,6 @@ object Driver {
           } else {
             x => Unit // do nothing with it
           },
-          opts.verbose,
-          new NullProfiler(),
-          false
         )
       )
 
@@ -451,7 +453,7 @@ object Driver {
 
   def main(args: Array[String]): Unit = {
     try {
-      val opts = parseOpts(Options(Vector.empty, None, false, true, true, false, true, None, false), args.toList)
+      val opts = parseOpts(Options(Vector.empty, None, false, true, true, false, true, None, false, true), args.toList)
       vcheck(opts.mode.nonEmpty, "No mode!", InputException)
       vcheck(opts.inputs.nonEmpty, "No input files!", InputException)
 
@@ -465,16 +467,17 @@ object Driver {
               opts.inputs.map(_.packageCoord).distinct,
               Builtins.getCodeMap().or(packageCoord => resolvePackageContents(opts.inputs, packageCoord)),
               FullCompilationOptions(
+                opts.verbose,
+                new NullProfiler(),
+                false,
+                opts.useSanityChecks,
                 if (opts.verbose) {
                   (x => {
                     println("##: " + x)
                   })
                 } else {
                   x => Unit // do nothing with it
-                },
-                opts.verbose,
-                new NullProfiler(),
-                false))
+                }))
 
           val parseds =
             compilation.getParseds() match {

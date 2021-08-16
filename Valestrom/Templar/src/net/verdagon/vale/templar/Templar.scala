@@ -37,18 +37,19 @@ trait IFunctionGenerator {
 
 case class TemplarOptions(
   functionGeneratorByName: Map[String, IFunctionGenerator],
-  debugOut: String => Unit = (x => {
+  debugOut: (=> String) => Unit = (x => {
     println("###: " + x)
   }),
   verboseErrors: Boolean = false,
   useOptimization: Boolean = false,
+  sanityChecks: Boolean = true,
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
 
 
-class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler, useOptimization: Boolean) {
+class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfiler, useOptimization: Boolean, useSanityChecks: Boolean) {
   val generatedFunctions =
     Vector(
       DestructorTemplar.addConcreteDestructor(MutableT),
@@ -83,7 +84,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            FunctionHeaderT(useSanityChecks, namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
           temputs.addFunction(
             FunctionT(
@@ -106,7 +107,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            FunctionHeaderT(useSanityChecks, namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
           val sourceKind = vassertSome(paramCoords.headOption).tyype.kind
@@ -169,7 +170,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         }
       })
 
-  val opts = TemplarOptions(generatorsById, debugOut, verbose, useOptimization)
+  val opts = TemplarOptions(generatorsById, debugOut, verbose, useOptimization, useSanityChecks)
 
   val newTemplataStore: () => TemplatasStore =
     () => {
@@ -562,14 +563,19 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
             }
           })
 
-        val temputs = Temputs()
+        val temputs = Temputs(opts)
 
         structTemplar.addBuiltInStructs(env11, temputs)
 
         functionsA.foreach({
           case (functionS) => {
             if (functionS.isTemplate) {
-              // Do nothing, it's a template
+              if (opts.useOptimization) {
+                functionTemplar.evaluateGenericFunctionFromNonCallForPrototype(
+                  temputs, RangeS.internal(-178), FunctionTemplata.make(env11, functionS))
+              } else {
+                // Do nothing, the template will be lazily instantiated
+              }
             } else {
               if (isRootFunction(functionS)) {
                 val _ =
