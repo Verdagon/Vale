@@ -11,12 +11,13 @@ import net.verdagon.vale.templar.{ICompileErrorT, TemplarCompilation, TemplarCom
 import scala.collection.immutable.List
 
 case class HammerCompilationOptions(
-  debugOut: String => Unit = (x => {
+  debugOut: (=> String) => Unit = (x => {
     println("##: " + x)
   }),
   verbose: Boolean = true,
   profiler: IProfiler = new NullProfiler(),
   useOptimization: Boolean = false,
+  useSanityChecks: Boolean = true,
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class HammerCompilation(
@@ -31,7 +32,8 @@ class HammerCompilation(
         options.debugOut,
         options.verbose,
         options.profiler,
-        options.useOptimization))
+        options.useOptimization,
+        options.useSanityChecks))
   var hamutsCache: Option[ProgramH] = None
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = templarCompilation.getCodeMap()

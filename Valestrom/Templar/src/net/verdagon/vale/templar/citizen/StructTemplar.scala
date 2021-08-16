@@ -333,6 +333,7 @@ class StructTemplar(
       val constructor2 =
         FunctionT(
           FunctionHeaderT(
+            opts.sanityChecks,
             constructorName,
             Vector.empty,
             Vector.empty,

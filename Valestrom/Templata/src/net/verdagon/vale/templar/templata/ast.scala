@@ -160,7 +160,40 @@ case class Extern2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 
 case object Pure2 extends IFunctionAttribute2 with ICitizenAttribute2
 case object UserFunction2 extends IFunctionAttribute2 // Whether it was written by a human. Mostly for tests right now.
 
-case class FunctionHeaderT(
+object FunctionHeaderT {
+  private def apply(
+      fullName: FullNameT[IFunctionNameT],
+      attributes: Vector[IFunctionAttribute2],
+      params: Vector[ParameterT],
+      returnType: CoordT,
+      maybeOriginFunction: Option[FunctionA]) = {
+    vfail()
+  }
+
+  def apply(
+      useSanityChecks: Boolean,
+      fullName: FullNameT[IFunctionNameT],
+      attributes: Vector[IFunctionAttribute2],
+      params: Vector[ParameterT],
+      returnType: CoordT,
+      maybeOriginFunction: Option[FunctionA]):
+  FunctionHeaderT = {
+    // Make sure there's no duplicate names
+    vassert(params.map(_.name).toSet.size == params.size);
+
+    vassert(fullName.last.parameters == params.map(_.tyype))
+
+    maybeOriginFunction.foreach(originFunction => {
+      if (originFunction.identifyingRunes.size != fullName.last.templateArgs.size) {
+        vfail("wtf m8")
+      }
+    })
+
+    new FunctionHeaderT(fullName, attributes, params, returnType, maybeOriginFunction)
+  }
+}
+
+case class FunctionHeaderT private (
     fullName: FullNameT[IFunctionNameT],
     attributes: Vector[IFunctionAttribute2],
     params: Vector[ParameterT],
@@ -168,23 +201,12 @@ case class FunctionHeaderT(
     maybeOriginFunction: Option[FunctionA]) extends QueriableT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
-  // Make sure there's no duplicate names
-  vassert(params.map(_.name).toSet.size == params.size);
-
-  vassert(fullName.last.parameters == paramTypes)
-
   def isExtern = attributes.exists({ case Extern2(_) => true case _ => false })
 //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
   def isUserFunction = attributes.contains(UserFunction2)
   def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface
   def getOverride: Option[(StructTT, InterfaceTT)] = toBanner.getOverride
   def getVirtualIndex: Option[Int] = toBanner.getVirtualIndex
-
-  maybeOriginFunction.foreach(originFunction => {
-    if (originFunction.identifyingRunes.size != fullName.last.templateArgs.size) {
-      vfail("wtf m8")
-    }
-  })
 
   def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunction, fullName, params)
   def toPrototype: PrototypeT = PrototypeT(fullName, returnType)

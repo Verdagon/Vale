@@ -29,14 +29,14 @@ object RunCompilation {
       Builtins.getCodeMap()
         .or(FileCoordinateMap.test(code.toVector))
         .or(Tests.getPackageToResourceResolver),
-      FullCompilationOptions())
+      FullCompilationOptions.testDefault)
   }
 }
 
 class RunCompilation(
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]],
-  options: FullCompilationOptions = FullCompilationOptions()) {
+  options: FullCompilationOptions) {
   var fullCompilation = new FullCompilation(packagesToBuild, packageToContentsResolver, options)
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = fullCompilation.getCodeMap()

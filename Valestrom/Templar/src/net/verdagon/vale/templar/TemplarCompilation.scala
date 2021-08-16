@@ -10,12 +10,11 @@ import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
 
 case class TemplarCompilationOptions(
-  debugOut: String => Unit = (x => {
-    println("##: " + x)
-  }),
+  debugOut: (=> String) => Unit = (x => println("##: " + x)),
   verbose: Boolean = true,
   profiler: IProfiler = new NullProfiler(),
   useOptimization: Boolean = false,
+  useSanityChecks: Boolean = true,
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class TemplarCompilation(
@@ -36,7 +35,7 @@ class TemplarCompilation(
     hinputsCache match {
       case Some(temputs) => Ok(temputs)
       case None => {
-        val templar = new Templar(options.debugOut, options.verbose, options.profiler, options.useOptimization)
+        val templar = new Templar(options.debugOut, options.verbose, options.profiler, options.useOptimization, options.useSanityChecks)
         templar.evaluate(astronomerCompilation.getAstrouts().getOrDie()) match {
           case Err(e) => Err(e)
           case Ok(hinputs) => {

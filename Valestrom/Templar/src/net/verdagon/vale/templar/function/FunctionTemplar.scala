@@ -163,9 +163,39 @@ class FunctionTemplar(
 
   }
 
+  def evaluateGenericFunctionFromNonCallForPrototype(
+    temputs: Temputs,
+    callRange: RangeS,
+    functionTemplata: FunctionTemplata):
+  (PrototypeT) = {
+    profiler.newProfile("FunctionTemplarEvaluateGenericFunctionFromNonCallForPrototype", functionTemplata.debugString, () => {
+      val FunctionTemplata(env, function) = functionTemplata
+      if (function.isLight) {
+        evaluateGenericLightFunctionFromNonCallForPrototype(
+          env, temputs, callRange, function)
+      } else {
+        val lambdaCitizenName2 =
+          functionTemplata.function.name match {
+            case LambdaNameA(codeLocation) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
+            case _ => vwat()
+          }
+
+        val KindTemplata(closureStructRef@StructTT(_)) =
+          vassertSome(
+            env.getNearestTemplataWithAbsoluteName2(
+              lambdaCitizenName2,
+              Set(TemplataLookupContext)))
+        val header =
+          evaluateGenericClosureFunctionFromNonCallForHeader(
+            env, temputs, callRange, closureStructRef, function)
+        (header.toPrototype)
+      }
+    })
+  }
+
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
-  // fn main():Int{main()}
+  // fn main() int { main() }
   def evaluateOrdinaryFunctionFromNonCallForPrototype(
     temputs: Temputs,
     callRange: RangeS,
@@ -312,6 +342,17 @@ class FunctionTemplar(
       env, temputs, callRange, closureStructRef, function)
   }
 
+  private def evaluateGenericClosureFunctionFromNonCallForHeader(
+    env: IEnvironment,
+    temputs: Temputs,
+    callRange: RangeS,
+    closureStructRef: StructTT,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    closureOrLightLayer.evaluateGenericClosureFunctionFromNonCallForHeader(
+      env, temputs, callRange, closureStructRef, function)
+  }
+
   private def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
     env: IEnvironment,
     temputs: Temputs,
@@ -333,6 +374,16 @@ class FunctionTemplar(
     function: FunctionA):
   (PrototypeT) = {
     closureOrLightLayer.evaluateOrdinaryLightFunctionFromNonCallForPrototype(
+      env, temputs, callRange, function)
+  }
+
+  private def evaluateGenericLightFunctionFromNonCallForPrototype(
+    env: IEnvironment,
+    temputs: Temputs,
+    callRange: RangeS,
+    function: FunctionA):
+  (PrototypeT) = {
+    closureOrLightLayer.evaluateGenericLightFunctionFromNonCallForPrototype(
       env, temputs, callRange, function)
   }
 

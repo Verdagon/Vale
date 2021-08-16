@@ -14,12 +14,14 @@ object Benchmark {
       new RunCompilation(
         Vector(PackageCoordinate.BUILTIN, PackageCoordinate.TEST_TLD),
         Builtins.getCodeMap()
-          .or(FileCoordinateMap.test(Tests.loadExpected("programs/roguelike.vale")))
+          .or(FileCoordinateMap.test(Tests.loadExpected("programs/addret.vale")))
           .or(Tests.getPackageToResourceResolver),
         FullCompilationOptions(
           debugOut = (_) => {},
           profiler = profiler,
-          useOptimization = useOptimization))
+          useOptimization = useOptimization,
+          verbose = false,
+          useSanityChecks = false))
     compile.getAstrouts() match {
       case Err(e) => println(AstronomerErrorHumanizer.humanize(compile.getCodeMap().getOrDie(), e))
       case Ok(t) =>
@@ -57,7 +59,7 @@ object Benchmark {
       // driver over and over, because class loading, icache, etc are all totally valid things that we care about.
       // For now though, this will do.
       go(true)
-      val profiles = (0 until 10).map(_ => go(true))
+      val profiles = (0 until 100).map(_ => go(true))
       val times = profiles.map(_.totalNanoseconds)
       val averageTime = times.sum / times.size
       println("Done benchmarking! Total: " + averageTime)

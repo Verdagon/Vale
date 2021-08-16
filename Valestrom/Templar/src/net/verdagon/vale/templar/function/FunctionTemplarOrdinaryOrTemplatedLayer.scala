@@ -265,6 +265,28 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
       runedEnv, temputs, callRange, function)
   }
 
+  // Preconditions:
+  // - either no closured vars, or they were already added to the env.
+  def evaluateGenericFunctionFromNonCallForHeader(
+    // The environment the function was defined in.
+    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    temputs: Temputs,
+    callRange: RangeS):
+  (FunctionHeaderT) = {
+    val function = nearEnv.function
+    // Check preconditions
+    checkClosureConcernsHandled(nearEnv)
+    vassert(!function.isTemplate)
+
+    val inferences =
+      inferTemplar.inferOrdinaryRules(
+        nearEnv, temputs, function.templateRules, function.typeByRune, function.localRunes)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
+
+    middleLayer.getOrEvaluateFunctionForHeader(
+      runedEnv, temputs, callRange, function)
+  }
+
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
   // fn main():Int{main()}
@@ -278,6 +300,28 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
     vassert(!function.isTemplate)
+
+    val inferences =
+      inferTemplar.inferOrdinaryRules(
+        nearEnv, temputs, function.templateRules, function.typeByRune, function.localRunes)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
+
+    middleLayer.getOrEvaluateFunctionForPrototype(
+      runedEnv, temputs, callRange, function)
+  }
+
+  def evaluateGenericFunctionFromNonCallForPrototype(
+    // The environment the function was defined in.
+    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    temputs: Temputs,
+    callRange: RangeS):
+  (PrototypeT) = {
+    val function = nearEnv.function
+    // Check preconditions
+    checkClosureConcernsHandled(nearEnv)
+    vassert(function.isTemplate)
+
+    vimpl() // start here!
 
     val inferences =
       inferTemplar.inferOrdinaryRules(

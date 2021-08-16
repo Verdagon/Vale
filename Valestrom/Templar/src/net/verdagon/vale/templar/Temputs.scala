@@ -16,7 +16,7 @@ case class DeferredEvaluatingFunction(
   call: (Temputs) => Unit)
 
 
-case class Temputs() {
+case class Temputs(opts: TemplarOptions) {
   // Signatures that have already started to be compiled.
   // The value is a location for checking where a given function came from, which is useful
   // for detecting when the user makes two functions with identical signatures.
@@ -112,20 +112,22 @@ case class Temputs() {
   }
 
   def addFunction(function: FunctionT): Unit = {
-    vassert(declaredSignatures.contains(function.header.toSignature))
-    vassert(
-      function.body.resultRegister.reference.kind == NeverT() ||
-      function.body.resultRegister.reference == function.header.returnType)
-    function.all({
-      case ReturnTE(innerExpr) => {
-        vassert(
-          innerExpr.resultRegister.reference.kind == NeverT() ||
-          innerExpr.resultRegister.reference == function.header.returnType)
-      }
-    })
+    if (opts.sanityChecks) {
+      vassert(declaredSignatures.contains(function.header.toSignature))
+      vassert(
+        function.body.resultRegister.reference.kind == NeverT() ||
+          function.body.resultRegister.reference == function.header.returnType)
+      function.all({
+        case ReturnTE(innerExpr) => {
+          vassert(
+            innerExpr.resultRegister.reference.kind == NeverT() ||
+              innerExpr.resultRegister.reference == function.header.returnType)
+        }
+      })
 
-    if (functions.exists(_.header == function.header)) {
-      vfail("wot")
+      if (functions.exists(_.header == function.header)) {
+        vfail("wot")
+      }
     }
 
     functions += function

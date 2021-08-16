@@ -158,6 +158,21 @@ class FunctionTemplarClosureOrLightLayer(
       newEnv, temputs, callRange)
   }
 
+  def evaluateGenericLightFunctionFromNonCallForPrototype(
+    outerEnv: IEnvironment,
+    temputs: Temputs,
+    callRange: RangeS,
+    function: FunctionA
+  ): PrototypeT = {
+    checkNotClosure(function)
+    vassert(function.isTemplate)
+
+    val name = makeNameWithClosureds(outerEnv, function.name)
+    val newEnv = BuildingFunctionEnvironmentWithClosureds(outerEnv, name, function, Vector.empty, newTemplataStore())
+    ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCallForPrototype(
+      newEnv, temputs, callRange)
+  }
+
   def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
     outerEnv: IEnvironment,
     temputs: Temputs,
@@ -190,6 +205,25 @@ class FunctionTemplarClosureOrLightLayer(
     val (variables, entries) = makeClosureVariablesAndEntries(temputs, closureStructRef)
     val newEnv = BuildingFunctionEnvironmentWithClosureds(outerEnv, name, function, variables, newTemplataStore().addEntries(opts.useOptimization, entries))
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
+      newEnv, temputs, callRange)
+  }
+
+  def evaluateGenericClosureFunctionFromNonCallForHeader(
+    outerEnv: IEnvironment,
+    temputs: Temputs,
+    callRange: RangeS,
+    closureStructRef: StructTT,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    // We dont here because it knows from how many variables
+    // it closures... but even lambdas without closured vars are still closures and are still
+    // backed by structs.
+    vassert(!function.isTemplate)
+
+    val name = makeNameWithClosureds(outerEnv, function.name)
+    val (variables, entries) = makeClosureVariablesAndEntries(temputs, closureStructRef)
+    val newEnv = BuildingFunctionEnvironmentWithClosureds(outerEnv, name, function, variables, newTemplataStore().addEntries(opts.useOptimization, entries))
+    ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCallForHeader(
       newEnv, temputs, callRange)
   }
 

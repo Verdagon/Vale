@@ -137,7 +137,7 @@ class HammerTests extends FunSuite with Matchers {
               .add("moduleA", Vector.empty, "StructA.vale", "struct StructA export { a int; }")
               .add("moduleB", Vector.empty, "StructB.vale", "struct StructB export { a int; }"))
           .or(Tests.getPackageToResourceResolver),
-        FullCompilationOptions())
+        FullCompilationOptions.testDefault)
     val hamuts = compile.getHamuts()
 
     val packageA = hamuts.lookupPackage(PackageCoordinate("moduleA", Vector.empty))
