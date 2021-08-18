@@ -139,7 +139,7 @@ class InferTemplar(
   def translateRule(rulexA: IRulexAR): IRulexTR = {
     rulexA match {
       case EqualsAR(range, left, right) => EqualsTR(range, translateRule(left), translateRule(right))
-      case TemplexAR(templex) => TemplexTR(translateTemplex(templex))
+      case TemplexAR(templex) => translateTemplex(templex)
       case ComponentsAR(range, tyype, componentsA) => ComponentsTR(range, tyype, componentsA.map(translateRule))
       case OrAR(range, possibilities) => OrTR(range, possibilities.map(translateRule))
       case CallAR(range, name, args, resultType) => CallTR(range, name, args.map(translateRule), resultType)
@@ -148,7 +148,7 @@ class InferTemplar(
     }
   }
 
-  def translateTemplex(templexA: ITemplexA): ITemplexT = {
+  def translateTemplex(templexA: ITemplexA): IRulexTR = {
     templexA match {
       case RuneAT(range, rune, resultType) => RuneTT(range, NameTranslator.translateRune(rune), resultType)
       case NameAT(range, name, resultType) => NameTT(range, name, resultType)

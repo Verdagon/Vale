@@ -396,10 +396,10 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__C"), CoordTemplataType)),
+            RuneTT(RangeS.testZero,CodeRuneT("__C"), CoordTemplataType),
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__C"), CoordTemplataType)),
-              TemplexTR(InterpretedTT(RangeS.testZero,ConstraintP,ReadonlyP,NameTT(RangeS.testZero,CodeTypeNameA("ImmInterface"), CoordTemplataType))))),
+              RuneTT(RangeS.testZero,CodeRuneT("__C"), CoordTemplataType),
+              InterpretedTT(RangeS.testZero,ConstraintP,ReadonlyP,NameTT(RangeS.testZero,CodeTypeNameA("ImmInterface"), CoordTemplataType)))),
           RangeS.testZero,
           Map(CodeRuneT("__C") -> CoordTemplataType),
           Set(CodeRuneT("__C")),
@@ -419,7 +419,7 @@ class InfererTests extends FunSuite with Matchers {
         .solve(
           makeCannedEnvironment(),
           FakeState(),
-          Vector(TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType))),
+          Vector(RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType)),
           RangeS.testZero,
           Map(CodeRuneT("C") -> CoordTemplataType),
           Set(CodeRuneT("C")),
@@ -437,7 +437,7 @@ class InfererTests extends FunSuite with Matchers {
         .solve(
           makeCannedEnvironment(),
           FakeState(),
-          Vector(EqualsTR(RangeS.testZero,TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType)), TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("A"), KindTemplataType)))),
+          Vector(EqualsTR(RangeS.testZero,RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType), RuneTT(RangeS.testZero,CodeRuneT("A"), KindTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("A") -> KindTemplataType),
           Set(CodeRuneT("A"), CodeRuneT("C")),
@@ -457,8 +457,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType)),
-              CallTR(RangeS.testZero,"toRef", Vector(TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("A"), KindTemplataType))), CoordTemplataType))),
+              RuneTT(RangeS.testZero,CodeRuneT("C"), CoordTemplataType),
+              CallTR(RangeS.testZero,"toRef", Vector(RuneTT(RangeS.testZero,CodeRuneT("A"), KindTemplataType)), CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("C") -> CoordTemplataType, CodeRuneT("A") -> KindTemplataType),
           Set(CodeRuneT("C"), CodeRuneT("A")),
@@ -477,8 +477,8 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
-            EqualsTR(RangeS.testZero,TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)))),
+            RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
+            EqualsTR(RangeS.testZero,RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("Z") -> CoordTemplataType),
           Set(CodeRuneT("Z")),
@@ -498,10 +498,10 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__RetRune"), CoordTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("__RetRune"), CoordTemplataType),
               CallTR(RangeS.testZero,
                 "toRef",
-                Vector(TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutStruct"), KindTemplataType))),
+                Vector(NameTT(RangeS.testZero,CodeTypeNameA("MutStruct"), KindTemplataType)),
                 CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("__RetRune") -> CoordTemplataType),
@@ -522,8 +522,8 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
-            EqualsTR(RangeS.testZero,TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),CallTR(RangeS.testZero,"toRef", Vector(TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("int"), KindTemplataType))), CoordTemplataType))),
+            RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
+            EqualsTR(RangeS.testZero,RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),CallTR(RangeS.testZero,"toRef", Vector(NameTT(RangeS.testZero,CodeTypeNameA("int"), KindTemplataType)), CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("Z") -> CoordTemplataType),
           Set(CodeRuneT("Z")),
@@ -543,8 +543,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("X"), KindTemplataType)),
-              TemplexTR(CallTT(RangeS.testZero,NameTT(RangeS.testZero,CodeTypeNameA("MutTInterface"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),Vector(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)), KindTemplataType)))),
+              RuneTT(RangeS.testZero,CodeRuneT("X"), KindTemplataType),
+              CallTT(RangeS.testZero,NameTT(RangeS.testZero,CodeTypeNameA("MutTInterface"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),Vector(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)), KindTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("X") -> KindTemplataType, CodeRuneT("T") -> CoordTemplataType),
           Set(CodeRuneT("X"), CodeRuneT("T")),
@@ -563,27 +563,27 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType)),
+            RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType),
+            RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType),
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType),
               ComponentsTR(
                 RangeS.internal(-100),
                 CoordTemplataType,
                 Vector(
-                  TemplexTR(OwnershipTT(RangeS.testZero,OwnP)),
-                  TemplexTR(PermissionTT(RangeS.testZero,ReadwriteP)),
-                  TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType))))),
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType)),
+                  OwnershipTT(RangeS.testZero,OwnP),
+                  PermissionTT(RangeS.testZero,ReadwriteP),
+                  RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType)))),
+            RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType),
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType),
               ComponentsTR(
                 RangeS.internal(-101),
                 CoordTemplataType,
                 Vector(
-                  TemplexTR(OwnershipTT(RangeS.testZero,ConstraintP)),
-                  TemplexTR(PermissionTT(RangeS.testZero,ReadonlyP)),
-                  TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType)))))),
+                  OwnershipTT(RangeS.testZero,ConstraintP),
+                  PermissionTT(RangeS.testZero,ReadonlyP),
+                  RuneTT(RangeS.testZero,CodeRuneT("1337"), KindTemplataType))))),
           RangeS.testZero,
           Map(
             CodeRuneT("1337") -> KindTemplataType,
@@ -605,10 +605,10 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType)),
+            RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType),
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType)),
-              CallTR(RangeS.testZero,"toRef", Vector(TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType))), CoordTemplataType))),
+              RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType),
+              CallTR(RangeS.testZero,"toRef", Vector(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType)), CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("__Let0_") -> CoordTemplataType),
           Set(CodeRuneT("__Let0_")),
@@ -627,17 +627,16 @@ class InfererTests extends FunSuite with Matchers {
           makeCannedEnvironment(),
           FakeState(),
           Vector(
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType)),
+            RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType),
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType),
               CallTR(RangeS.testZero,
                 "toRef",
                 Vector(
-                  TemplexTR(
-                    CallTT(RangeS.testZero,
-                      NameTT(RangeS.testZero,CodeTypeNameA("MutTInterface"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),
-                      Vector(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
-                      KindTemplataType))),
+                  CallTT(RangeS.testZero,
+                    NameTT(RangeS.testZero,CodeTypeNameA("MutTInterface"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),
+                    Vector(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
+                    KindTemplataType)),
                 CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("__Let0_") -> CoordTemplataType, CodeRuneT("T") -> CoordTemplataType),
@@ -663,15 +662,15 @@ class InfererTests extends FunSuite with Matchers {
     val rules =
       Vector(
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
+          RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType),
           ComponentsTR(
             RangeS.internal(-102),
             CoordTemplataType,
             Vector(
-              OrTR(RangeS.testZero,Vector(TemplexTR(OwnershipTT(RangeS.testZero,OwnP)), TemplexTR(OwnershipTT(RangeS.testZero,ShareP)))),
-              OrTR(RangeS.testZero,Vector(TemplexTR(PermissionTT(RangeS.testZero,ReadwriteP)), TemplexTR(PermissionTT(RangeS.testZero,ReadonlyP)))),
-              CallTR(RangeS.testZero,"passThroughIfConcrete",Vector(TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType))), KindTemplataType)))),
-        EqualsTR(RangeS.testZero,TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("V"), CoordTemplataType)),CallTR(RangeS.testZero,"toRef",Vector(TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("void"),KindTemplataType))), CoordTemplataType)))
+              OrTR(RangeS.testZero,Vector(OwnershipTT(RangeS.testZero,OwnP), OwnershipTT(RangeS.testZero,ShareP))),
+              OrTR(RangeS.testZero,Vector(PermissionTT(RangeS.testZero,ReadwriteP), PermissionTT(RangeS.testZero,ReadonlyP))),
+              CallTR(RangeS.testZero,"passThroughIfConcrete",Vector(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType)), KindTemplataType)))),
+        EqualsTR(RangeS.testZero,RuneTT(RangeS.testZero,CodeRuneT("V"), CoordTemplataType),CallTR(RangeS.testZero,"toRef",Vector(NameTT(RangeS.testZero,CodeTypeNameA("void"),KindTemplataType)), CoordTemplataType)))
     val atoms =
       Vector(AtomAP(RangeS.testZero,Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),None,CodeRuneA("T"),None))
 
@@ -719,17 +718,17 @@ class InfererTests extends FunSuite with Matchers {
     val rules =
       Vector(
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
+          RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType),
           ComponentsTR(
             RangeS.internal(-103),
             CoordTemplataType,
             Vector(
-              OrTR(RangeS.testZero,Vector(TemplexTR(OwnershipTT(RangeS.testZero,OwnP)), TemplexTR(OwnershipTT(RangeS.testZero,ShareP)))),
-              OrTR(RangeS.testZero,Vector(TemplexTR(PermissionTT(RangeS.testZero,ReadwriteP)), TemplexTR(PermissionTT(RangeS.testZero,ReadonlyP)))),
-              CallTR(RangeS.testZero,"passThroughIfInterface",Vector(TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType))), KindTemplataType)))),
+              OrTR(RangeS.testZero,Vector(OwnershipTT(RangeS.testZero,OwnP), OwnershipTT(RangeS.testZero,ShareP))),
+              OrTR(RangeS.testZero,Vector(PermissionTT(RangeS.testZero,ReadwriteP), PermissionTT(RangeS.testZero,ReadonlyP))),
+              CallTR(RangeS.testZero,"passThroughIfInterface",Vector(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType)), KindTemplataType)))),
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("V"), CoordTemplataType)),
-          CallTR(RangeS.testZero,"toRef",Vector(TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("void"), KindTemplataType))), CoordTemplataType)))
+          RuneTT(RangeS.testZero,CodeRuneT("V"), CoordTemplataType),
+          CallTR(RangeS.testZero,"toRef",Vector(NameTT(RangeS.testZero,CodeTypeNameA("void"), KindTemplataType)), CoordTemplataType)))
     val atoms =
       Vector(AtomAP(RangeS.testZero,Some(LocalA(CodeVarNameA("this"),NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),None,CodeRuneA("T"),None))
 
@@ -771,14 +770,14 @@ class InfererTests extends FunSuite with Matchers {
     val rules =
       Vector(
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
+          RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType),
           ComponentsTR(
             RangeS.internal(-107),
             CoordTemplataType,
             Vector(
-              OrTR(RangeS.testZero,Vector(TemplexTR(OwnershipTT(RangeS.testZero,OwnP)), TemplexTR(OwnershipTT(RangeS.testZero,ShareP)))),
-              OrTR(RangeS.testZero,Vector(TemplexTR(PermissionTT(RangeS.testZero,ReadwriteP)), TemplexTR(PermissionTT(RangeS.testZero,ReadonlyP)))),
-              CallTR(RangeS.testZero,"passThroughIfStruct",Vector(TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType))), KindTemplataType)))))
+              OrTR(RangeS.testZero,Vector(OwnershipTT(RangeS.testZero,OwnP), OwnershipTT(RangeS.testZero,ShareP))),
+              OrTR(RangeS.testZero,Vector(PermissionTT(RangeS.testZero,ReadwriteP), PermissionTT(RangeS.testZero,ReadonlyP))),
+              CallTR(RangeS.testZero,"passThroughIfStruct",Vector(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType)), KindTemplataType)))))
     val atoms =
       Vector(AtomAP(RangeS.testZero,Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),None,CodeRuneA("T"),None))
 
@@ -825,14 +824,13 @@ class InfererTests extends FunSuite with Matchers {
 
     val rules =
       Vector(
-        TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
+        RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
-          TemplexTR(
-            CallTT(RangeS.testZero,
-              NameTT(RangeS.testZero,CodeTypeNameA("MutTStruct"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),
-              Vector(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)),
-              CoordTemplataType))))
+          RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
+          CallTT(RangeS.testZero,
+            NameTT(RangeS.testZero,CodeTypeNameA("MutTStruct"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),
+            Vector(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)),
+            CoordTemplataType)))
     val atoms =
       Vector(AtomAP(RangeS.testZero,Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),None,CodeRuneA("T"),None))
 
@@ -857,8 +855,8 @@ class InfererTests extends FunSuite with Matchers {
   test("Test result of a CallAT can coerce to coord") {
     val rules =
       Vector(
-        TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Par0"), CoordTemplataType)),
-        EqualsTR(RangeS.testZero,TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Par0"), CoordTemplataType)),TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutStruct"), CoordTemplataType))))
+        RuneTT(RangeS.testZero,CodeRuneT("__Par0"), CoordTemplataType),
+        EqualsTR(RangeS.testZero,RuneTT(RangeS.testZero,CodeRuneT("__Par0"), CoordTemplataType),NameTT(RangeS.testZero,CodeTypeNameA("MutStruct"), CoordTemplataType)))
     val atoms =
       Vector(AtomAP(RangeS.testZero,Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),None,CodeRuneA("T"),None))
 
@@ -881,14 +879,13 @@ class InfererTests extends FunSuite with Matchers {
   test("Matching a CoordTemplataType onto a CallAT") {
     val rules =
       Vector(
-        TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType)),
+        RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType),
         EqualsTR(RangeS.testZero,
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType)),
-          TemplexTR(
+          RuneTT(RangeS.testZero,CodeRuneT("0"), CoordTemplataType),
             CallTT(RangeS.testZero,
               NameTT(RangeS.testZero,CodeTypeNameA("MutTStruct"), TemplateTemplataType(Vector(CoordTemplataType), KindTemplataType)),
               Vector(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
-              CoordTemplataType))))
+              CoordTemplataType)))
 
     val (InferSolveSuccess(inferencesD)) =
       makeCannedEvaluator().solve(
@@ -912,9 +909,9 @@ class InfererTests extends FunSuite with Matchers {
         makeCannedEnvironment(),
         FakeState(),
         Vector(
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType)),
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0__Mem_0"), CoordTemplataType)),
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("__Let0__Mem_1"), CoordTemplataType))),
+          RuneTT(RangeS.testZero,CodeRuneT("__Let0_"), CoordTemplataType),
+          RuneTT(RangeS.testZero,CodeRuneT("__Let0__Mem_0"), CoordTemplataType),
+          RuneTT(RangeS.testZero,CodeRuneT("__Let0__Mem_1"), CoordTemplataType)),
         RangeS.testZero,
         Map(CodeRuneT("__Let0_") -> CoordTemplataType, CodeRuneT("__Let0__Mem_0") -> CoordTemplataType, CodeRuneT("__Let0__Mem_1") -> CoordTemplataType),
         Set(CodeRuneT("__Let0_"), CodeRuneT("__Let0__Mem_0"), CodeRuneT("__Let0__Mem_1")),
@@ -950,15 +947,14 @@ class InfererTests extends FunSuite with Matchers {
         makeCannedEnvironment(),
         FakeState(),
         Vector(
-          TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
+          RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
           EqualsTR(RangeS.testZero,
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
-            TemplexTR(
+            RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
               RepeaterSequenceTT(RangeS.testZero,
                 MutabilityTT(RangeS.testZero,ImmutableP),
                 VariabilityTT(RangeS.testZero,FinalP),
                 IntTT(RangeS.testZero,5),
-                InterpretedTT(RangeS.testZero,ShareP,ReadonlyP,NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)), CoordTemplataType)))),
+                InterpretedTT(RangeS.testZero,ShareP,ReadonlyP,NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)), CoordTemplataType))),
         RangeS.testZero,
         Map(CodeRuneT("Z") -> CoordTemplataType),
         Set(CodeRuneT("Z")),
@@ -977,14 +973,13 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutStaticSizedArrayOf4Int"), CoordTemplataType)),
-            TemplexTR(
-              RepeaterSequenceTT(RangeS.testZero,
-                RuneTT(RangeS.testZero,CodeRuneT("M"), MutabilityTemplataType),
-                RuneTT(RangeS.testZero,CodeRuneT("V"), VariabilityTemplataType),
-                RuneTT(RangeS.testZero,CodeRuneT("N"), IntegerTemplataType),
-                RuneTT(RangeS.testZero,CodeRuneT("E"), CoordTemplataType),
-                CoordTemplataType)))),
+            NameTT(RangeS.testZero,CodeTypeNameA("MutStaticSizedArrayOf4Int"), CoordTemplataType),
+            RepeaterSequenceTT(RangeS.testZero,
+              RuneTT(RangeS.testZero,CodeRuneT("M"), MutabilityTemplataType),
+              RuneTT(RangeS.testZero,CodeRuneT("V"), VariabilityTemplataType),
+              RuneTT(RangeS.testZero,CodeRuneT("N"), IntegerTemplataType),
+              RuneTT(RangeS.testZero,CodeRuneT("E"), CoordTemplataType),
+              CoordTemplataType))),
         RangeS.testZero,
         Map(CodeRuneT("E") -> CoordTemplataType),
         Set(CodeRuneT("E"), CodeRuneT("M"), CodeRuneT("V"), CodeRuneT("N")),
@@ -1005,14 +1000,13 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutStaticSizedArrayOf4Int"), KindTemplataType)),
-            TemplexTR(
+            NameTT(RangeS.testZero,CodeTypeNameA("MutStaticSizedArrayOf4Int"), KindTemplataType),
               RepeaterSequenceTT(RangeS.testZero,
                 RuneTT(RangeS.testZero,CodeRuneT("M"), MutabilityTemplataType),
                 RuneTT(RangeS.testZero,CodeRuneT("V"), VariabilityTemplataType),
                 RuneTT(RangeS.testZero,CodeRuneT("N"), IntegerTemplataType),
                 RuneTT(RangeS.testZero,CodeRuneT("E"), CoordTemplataType),
-                KindTemplataType)))),
+                KindTemplataType))),
         RangeS.testZero,
         Map(CodeRuneT("E") -> CoordTemplataType),
         Set(CodeRuneT("E"), CodeRuneT("M"), CodeRuneT("V"), CodeRuneT("N")),
@@ -1033,13 +1027,12 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType)),
-            TemplexTR(
+            RuneTT(RangeS.testZero,CodeRuneT("Z"), CoordTemplataType),
               ManualSequenceTT(RangeS.testZero,
                 Vector(
                   NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType),
                   NameTT(RangeS.testZero,CodeTypeNameA("bool"), CoordTemplataType)),
-                CoordTemplataType)))),
+                CoordTemplataType))),
         RangeS.testZero,
         Map(CodeRuneT("Z") -> CoordTemplataType),
         Set(CodeRuneT("Z")),
@@ -1064,13 +1057,12 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("IntAndBoolTupName"), CoordTemplataType)),
-            TemplexTR(
+            NameTT(RangeS.testZero,CodeTypeNameA("IntAndBoolTupName"), CoordTemplataType),
               ManualSequenceTT(RangeS.testZero,
                 Vector(
                   RuneTT(RangeS.testZero,CodeRuneT("A"), CoordTemplataType),
                   RuneTT(RangeS.testZero,CodeRuneT("B"), CoordTemplataType)),
-                CoordTemplataType)))),
+                CoordTemplataType))),
         RangeS.testZero,
         Map(),
         Set(CodeRuneT("A"), CodeRuneT("B")),
@@ -1089,13 +1081,12 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("IntAndBoolTupName"), KindTemplataType)),
-            TemplexTR(
+            NameTT(RangeS.testZero,CodeTypeNameA("IntAndBoolTupName"), KindTemplataType),
               ManualSequenceTT(RangeS.testZero,
                 Vector(
                   RuneTT(RangeS.testZero,CodeRuneT("A"), CoordTemplataType),
                   RuneTT(RangeS.testZero,CodeRuneT("B"), CoordTemplataType)),
-                KindTemplataType)))),
+                KindTemplataType))),
         RangeS.testZero,
         Map(),
         Set(CodeRuneT("A"), CodeRuneT("B")),
@@ -1114,22 +1105,20 @@ class InfererTests extends FunSuite with Matchers {
         FakeState(),
         Vector(
           EqualsTR(RangeS.testZero,
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
-            TemplexTR(
+            RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
               CallTT(RangeS.testZero,
                 NameTT(RangeS.testZero,CodeTypeNameA("Array"), TemplateTemplataType(Vector(MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType)),
                 Vector(MutabilityTT(RangeS.testZero,MutableP), VariabilityTT(RangeS.testZero,VaryingP), NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)),
-                KindTemplataType))),
+                KindTemplataType)),
           EqualsTR(RangeS.testZero,
-            TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
-            TemplexTR(
+            RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
               CallTT(RangeS.testZero,
                 NameTT(RangeS.testZero,CodeTypeNameA("Array"), TemplateTemplataType(Vector(MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType)),
                 Vector(
                   RuneTT(RangeS.testZero,CodeRuneT("M"), MutabilityTemplataType),
                   RuneTT(RangeS.testZero,CodeRuneT("V"), VariabilityTemplataType),
                   RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)),
-                KindTemplataType)))),
+                KindTemplataType))),
         RangeS.testZero,
         Map(
           CodeRuneT("T") -> CoordTemplataType,
@@ -1154,8 +1143,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             IsaTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
-              TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType)))),
+              RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
+              NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("K") -> KindTemplataType),
           Set(CodeRuneT("K")),
@@ -1171,8 +1160,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             IsaTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
-              TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType)))),
+              RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
+              NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("K") -> KindTemplataType),
           Set(CodeRuneT("K")),
@@ -1191,10 +1180,10 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
               IsaTR(RangeS.testZero,
-                TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType)),
-                TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType))))),
+                RuneTT(RangeS.testZero,CodeRuneT("Z"), KindTemplataType),
+                NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType)))),
           RangeS.testZero,
           Map(CodeRuneT("K") -> KindTemplataType),
           Set(CodeRuneT("K"), CodeRuneT("Z")),
@@ -1210,8 +1199,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             IsaTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType)),
-              TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType)))),
+              RuneTT(RangeS.testZero,CodeRuneT("K"), KindTemplataType),
+              NameTT(RangeS.testZero,CodeTypeNameA("MutInterface"), KindTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("K") -> KindTemplataType),
           Set(CodeRuneT("K")),
@@ -1234,10 +1223,10 @@ class InfererTests extends FunSuite with Matchers {
                 RangeS.internal(-104),
                 PrototypeTemplataType,
                 Vector(
-                  TemplexTR(StringTT(RangeS.testZero,"increment")),
-                  TemplexTR(CoordListTT(RangeS.testZero,Vector(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)))),
-                  TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType)))),
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType)))),
+                  StringTT(RangeS.testZero,"increment"),
+                  CoordListTT(RangeS.testZero,Vector(NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType))),
+                  NameTT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType))),
+              RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("F") -> PrototypeTemplataType),
           Set(CodeRuneT("F")),
@@ -1264,15 +1253,14 @@ class InfererTests extends FunSuite with Matchers {
                 RangeS.internal(-105),
                 PrototypeTemplataType,
                 Vector(
-                  TemplexTR(StringTT(RangeS.testZero,"increment")),
-                  TemplexTR(
+                  StringTT(RangeS.testZero,"increment"),
                     CoordListTT(RangeS.testZero,
                       Vector(
-                        RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType)))),
+                        RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType))),
                   EqualsTR(RangeS.testZero,
-                    TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA("int"),CoordTemplataType)),
-                    TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType))))),
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType)))),
+                    NameTT(RangeS.testZero,CodeTypeNameA("int"),CoordTemplataType),
+                    RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType)))),
+              RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("T") -> CoordTemplataType, CodeRuneT("F") -> PrototypeTemplataType),
           Set(CodeRuneT("T"), CodeRuneT("F")),
@@ -1291,14 +1279,14 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("F"),PrototypeTemplataType),
               ComponentsTR(
                 RangeS.internal(-106),
                 PrototypeTemplataType,
                 Vector(
-                  TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("X"),StringTemplataType)),
-                  TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("Y"),PackTemplataType(CoordTemplataType))),
-                  TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType)))))),
+                  RuneTT(RangeS.testZero,CodeRuneT("X"),StringTemplataType),
+                  RuneTT(RangeS.testZero,CodeRuneT("Y"),PackTemplataType(CoordTemplataType)),
+                  RuneTT(RangeS.testZero,CodeRuneT("T"),CoordTemplataType))))),
           RangeS.testZero,
           Map(CodeRuneT("X") -> StringTemplataType, CodeRuneT("Y") -> PackTemplataType(CoordTemplataType), CodeRuneT("T") -> CoordTemplataType, CodeRuneT("F") -> PrototypeTemplataType),
           Set(CodeRuneT("X"), CodeRuneT("Y"), CodeRuneT("T"), CodeRuneT("F")),
@@ -1319,8 +1307,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(InterpretedTT(RangeS.testZero,targetOwnership,targetPermission, NameTT(RangeS.testZero,CodeTypeNameA(sourceName), CoordTemplataType))),
-              TemplexTR(RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)))),
+              InterpretedTT(RangeS.testZero,targetOwnership,targetPermission, NameTT(RangeS.testZero,CodeTypeNameA(sourceName), CoordTemplataType)),
+              RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType))),
           RangeS.testZero,
           Map(CodeRuneT("T") -> CoordTemplataType),
           Set(CodeRuneT("T")),
@@ -1406,8 +1394,8 @@ class InfererTests extends FunSuite with Matchers {
           FakeState(),
           Vector(
             EqualsTR(RangeS.testZero,
-              TemplexTR(NameTT(RangeS.testZero,CodeTypeNameA(sourceName), CoordTemplataType)),
-              TemplexTR(InterpretedTT(RangeS.testZero,targetOwnership,targetPermission, RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType))))),
+              NameTT(RangeS.testZero,CodeTypeNameA(sourceName), CoordTemplataType),
+              InterpretedTT(RangeS.testZero,targetOwnership,targetPermission, RuneTT(RangeS.testZero,CodeRuneT("T"), CoordTemplataType)))),
           RangeS.testZero,
           Map(CodeRuneT("T") -> CoordTemplataType),
           Set(CodeRuneT("T")),
