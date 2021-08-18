@@ -298,7 +298,7 @@ case class TemplatasStore(
     }
   }
 
-  //  def runesMatch(runeA: IRuneA, rune2: IRune2): Boolean = {
+  //  def runesMatch(runeA: IRuneA, rune2: IRuneT): Boolean = {
   //    (runeA, rune2) match {
   //      case (CodeRuneA(nameA), CodeRune2(name2)) => nameA == name2
   //      case (ImplicitRuneA(nameA), ImplicitRune2(name2)) => nameA == name2
