@@ -10,8 +10,10 @@ import scala.collection.immutable.List
 
 // These are different from IRulexA because those use IRuneA, not IRune2 which
 // has more possibilities.
+// See PVSBUFI
 sealed trait IRulexTR {
   def resultType: ITemplataType
+  def range: RangeS
 }
 case class EqualsTR(range: RangeS, left: IRulexTR, right: IRulexTR) extends IRulexTR {
   override def hashCode(): Int = vcurious()
@@ -33,11 +35,6 @@ case class ComponentsTR(
 
   override def resultType: ITemplataType = tyype
 }
-case class TemplexTR(templex: ITemplexT) extends IRulexTR {
-  override def hashCode(): Int = vcurious()
-
-  override def resultType: ITemplataType = templex.resultType
-}
 // This is for built-in parser functions, such as exists() or isBaseOf() etc.
 case class CallTR(
   range: RangeS,
@@ -58,40 +55,35 @@ case class IsaTR(
   override def resultType: ITemplataType = subRule.resultType
 }
 
-// See PVSBUFI
-sealed trait ITemplexT {
-  def resultType: ITemplataType
-  def range: RangeS
-}
-case class IntTT(range: RangeS, value: Long) extends ITemplexT {
+case class IntTT(range: RangeS, value: Long) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = IntegerTemplataType
 }
-case class StringTT(range: RangeS, value: String) extends ITemplexT {
+case class StringTT(range: RangeS, value: String) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = StringTemplataType
 }
-case class BoolTT(range: RangeS, value: Boolean) extends ITemplexT {
+case class BoolTT(range: RangeS, value: Boolean) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = BooleanTemplataType
 }
-case class MutabilityTT(range: RangeS, mutability: MutabilityP) extends ITemplexT {
+case class MutabilityTT(range: RangeS, mutability: MutabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = MutabilityTemplataType
 }
-case class PermissionTT(range: RangeS, permission: PermissionP) extends ITemplexT {
+case class PermissionTT(range: RangeS, permission: PermissionP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = PermissionTemplataType
 }
-case class LocationTT(range: RangeS, location: LocationP) extends ITemplexT {
+case class LocationTT(range: RangeS, location: LocationP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = LocationTemplataType
 }
-case class OwnershipTT(range: RangeS, ownership: OwnershipP) extends ITemplexT {
+case class OwnershipTT(range: RangeS, ownership: OwnershipP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = OwnershipTemplataType
 }
-case class VariabilityTT(range: RangeS, variability: VariabilityP) extends ITemplexT {
+case class VariabilityTT(range: RangeS, variability: VariabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = VariabilityTemplataType
 }
@@ -100,7 +92,7 @@ case class NameTT(
   range: RangeS,
   name: IImpreciseNameStepA,
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 //  println("hi")
 }
@@ -109,7 +101,7 @@ case class AbsoluteNameTT(
   range: RangeS,
   name: INameA,
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 //  println("hi")
 }
@@ -123,7 +115,7 @@ case class RuneTT(
   range: RangeS,
   rune: IRuneT,
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
@@ -132,8 +124,8 @@ case class InterpretedTT(
   range: RangeS,
   ownership: OwnershipP,
   permission: PermissionP,
-  inner: ITemplexT
-) extends ITemplexT {
+  inner: IRulexTR
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   vassert(inner.resultType == CoordTemplataType)
   override def resultType: ITemplataType = CoordTemplataType
@@ -141,74 +133,74 @@ case class InterpretedTT(
 
 case class NullableTT(
   range: RangeS,
-  inner: ITemplexT) extends ITemplexT {
+  inner: IRulexTR) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = KindTemplataType
 }
 
 case class CallTT(
   range: RangeS,
-  template: ITemplexT,
-  args: Vector[ITemplexT],
+  template: IRulexTR,
+  args: Vector[IRulexTR],
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
 //case class FunctionTT(
-//  mutability: Option[ITemplexT],
-//  parameters: Vector[Option[ITemplexT]],
-//  returnType: Option[ITemplexT]
-//) extends ITemplexT {
+//  mutability: Option[IRulexTR],
+//  parameters: Vector[Option[IRulexTR]],
+//  returnType: Option[IRulexTR]
+//) extends IRulexTR {
 // override def hashCode(): Int = vcurious()}
 
 case class PrototypeTT(
   range: RangeS,
   name: String,
-  parameters: Vector[ITemplexT],
-  returnType: ITemplexT
-) extends ITemplexT {
+  parameters: Vector[IRulexTR],
+  returnType: IRulexTR
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = vimpl()
 }
 
 //case class PackTT(
-//  members: Vector[ITemplexT],
+//  members: Vector[IRulexTR],
 //  // This is here because we might want to coerce the result. We do this for
 //  // calls, packs, etc.
 //  resultType: ITemplataType
-//) extends ITemplexT {
+//) extends IRulexTR {
 // override def hashCode(): Int = vcurious()}
 
 case class RepeaterSequenceTT(
   range: RangeS,
-  mutability: ITemplexT,
-  variability: ITemplexT,
-  size: ITemplexT,
-  element: ITemplexT,
+  mutability: IRulexTR,
+  variability: IRulexTR,
+  size: IRulexTR,
+  element: IRulexTR,
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
 case class ManualSequenceTT(
   range: RangeS,
-  elements: Vector[ITemplexT],
+  elements: Vector[IRulexTR],
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
 case class CoordListTT(
   range: RangeS,
-  elements: Vector[ITemplexT]
-) extends ITemplexT {
+  elements: Vector[IRulexTR]
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   override def resultType: ITemplataType = PackTemplataType(CoordTemplataType)
 }

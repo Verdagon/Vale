@@ -182,15 +182,15 @@ class InfererEvaluator[Env, State](
           val rule =
             EqualsTR(
               paramRange,
-              TemplexTR(RuneTT(paramRange, patternCoordRune2, CoordTemplataType)),
+              RuneTT(paramRange, patternCoordRune2, CoordTemplataType),
               ComponentsTR(
                 paramRange,
                 CoordTemplataType,
                 Vector(
                   // This seems weird. We should probably remove this, see GAOFPS
-                  TemplexTR(OwnershipTT(paramRange, Conversions.unevaluateOwnership(paramFilterInstance.tyype.ownership))),
-                  TemplexTR(PermissionTT(paramRange, Conversions.unevaluatePermission(paramFilterInstance.tyype.permission))),
-                  TemplexTR(RuneTT(paramRange, kindRune, KindTemplataType)))))
+                  OwnershipTT(paramRange, Conversions.unevaluateOwnership(paramFilterInstance.tyype.ownership)),
+                  PermissionTT(paramRange, Conversions.unevaluatePermission(paramFilterInstance.tyype.permission)),
+                  RuneTT(paramRange, kindRune, KindTemplataType))))
           (Vector(rule), Map[IRuneT, ITemplataType](kindRune -> KindTemplataType))
         }
         case _ => {
@@ -424,8 +424,259 @@ class InfererEvaluator[Env, State](
       case r @ IsaTR(_, _, _) => evaluateIsaRule(env, state, typeByRune, localRunes, inferences, r)
       case r @ OrTR(_, _) => evaluateOrRule(env, state, typeByRune, localRunes, inferences, r)
       case r @ ComponentsTR(_, _, _) => evaluateComponentsRule(env, state, typeByRune, localRunes, inferences, r)
-      case TemplexTR(templex) => evaluateTemplex(env, state, typeByRune, localRunes, inferences, templex)
       case r @ CallTR(_, _, _, _) => evaluateRuleCall(env, state, typeByRune, localRunes, inferences, r)
+
+      case StringTT(_, value) => InferEvaluateSuccess(StringTemplata(value), true)
+      case IntTT(_, value) => InferEvaluateSuccess(IntegerTemplata(value), true)
+      case BoolTT(_, value) => InferEvaluateSuccess(BooleanTemplata(value), true)
+      case MutabilityTT(_, mutability) => {
+        (InferEvaluateSuccess(MutabilityTemplata(Conversions.evaluateMutability(mutability)), true))
+      }
+      case PermissionTT(_, permission) => {
+        (InferEvaluateSuccess(PermissionTemplata(Conversions.evaluatePermission(permission)), true))
+      }
+      case LocationTT(_, location) => {
+        (InferEvaluateSuccess(LocationTemplata(Conversions.evaluateLocation(location)), true))
+      }
+      case OwnershipTT(_, ownership) => {
+        (InferEvaluateSuccess(OwnershipTemplata(Conversions.evaluateOwnership(ownership)), true))
+      }
+      case VariabilityTT(_, variability) => {
+        (InferEvaluateSuccess(VariabilityTemplata(Conversions.evaluateVariability(variability)), true))
+      }
+      case NameTT(range, name, expectedType) => {
+        val templata =
+          templataTemplar.lookupTemplata(env, state, range, name, expectedType)
+        (InferEvaluateSuccess(templata, true))
+      }
+      case AbsoluteNameTT(range, name, expectedType) => {
+        val templata =
+          templataTemplar.lookupTemplata(env, state, range, NameTranslator.translateNameStep(name), expectedType)
+        (InferEvaluateSuccess(templata, true))
+      }
+      case RuneTT(range, rune, expectedType) => {
+        if (localRunes.contains(rune)) {
+          inferences.templatasByRune.get(rune) match {
+            case Some(templata) => {
+              if (templata.tyype != expectedType) {
+                return (InferEvaluateConflict(inferences.inferences, range, "Rune " + rune + " is of type " + expectedType + ", but it received a " + templata.tyype + ", specifically " + templata, Vector.empty))
+              }
+              (InferEvaluateSuccess(templata, true))
+            }
+            case None => {
+              //              println("RuneAT unsatisfied")
+              (InferEvaluateUnknown(false))
+            }
+          }
+        } else {
+          // We might be grabbing a rune from a parent environment thats already solved,
+          // such as when we do spaceship.fly() in TMRE.
+          val templata = delegate.lookupTemplata(env, range, rune)
+          if (templata.tyype != expectedType) {
+            return (InferEvaluateConflict(inferences.inferences, range, "Rune " + rune + " is of type " + expectedType + ", but it received a " + templata.tyype + ", specifically " + templata, Vector.empty))
+          }
+          (InferEvaluateSuccess(templata, true))
+        }
+      }
+      case InterpretedTT(range, targetOwnership, targetPermission, innerKindRule) => {
+        evaluateRule(env, state, typeByRune, localRunes, inferences, innerKindRule) match {
+          case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "bogglewogget", Vector(iec)))
+          case (InferEvaluateUnknown(innerCoordDeeplySatisfied)) => {
+            // If we don't know the inner coord, we can't verify that the ownership is compatible with the inner kind.
+            // For example, we can't do a borrow of something that's already a borrow or a weak.
+            val _ = innerCoordDeeplySatisfied
+            val deeplySatisfied = false
+            //            println("InterpretedAT unsatisfied")
+
+            (InferEvaluateUnknown(deeplySatisfied))
+          }
+          case (InferEvaluateSuccess(CoordTemplata(CoordT(innerCoordOwnership, innerCoordPermission, innerCoordKind)), innerCoordDeeplySatisfied)) => {
+
+            val resultingOwnership =
+              (innerCoordOwnership, targetOwnership) match {
+                case (OwnT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was an own!", Vector.empty))
+                case (OwnT, OwnP) => OwnT // No change, allow it
+                case (OwnT, ConstraintP) => ConstraintT // Can borrow an own, allow it
+                case (OwnT, WeakP) => WeakT // Can weak an own, allow it
+                case (ConstraintT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was a borrow!", Vector.empty))
+                case (ConstraintT, OwnP) => OwnT // Can turn a borrow into an own, allow it
+                case (ConstraintT, ConstraintP) => ConstraintT // No change, allow it
+                case (ConstraintT, WeakP) => WeakT // Can weak a borrow, allow it
+                case (WeakT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was a weak!", Vector.empty))
+                case (WeakT, OwnP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a own, but was a weak!", Vector.empty))
+                case (WeakT, ConstraintP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a borrow, but was a weak!", Vector.empty))
+                case (WeakT, WeakP) => WeakT // No change, allow it
+                case (ShareT, OwnP) => ShareT // Can own a share, just becomes another share.
+                case (ShareT, ConstraintP) => ShareT // Can borrow a share, just becomes another share.
+                case (ShareT, WeakP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a weak, but was a share!", Vector.empty)) // Cant get a weak ref to a share because it doesnt have lock().
+                case (ShareT, ShareP) => ShareT // No change, allow it
+              }
+
+            val resultingPermission =
+              if (innerCoordOwnership == ShareT) {
+                if (targetPermission == ReadwriteP) {
+                  // It would technically be *weird* to make a Readwrite reference to an immutable, but it happens
+                  // accidentally as part of making an owning reference to something, like with ^T. Using ^T in a rule
+                  // but handing in a share is a pretty reasonable thing to happen, so let's let it slide.
+                }
+                ReadonlyT
+              } else {
+                // For mutables, we can turn a &T into a &!T, or vice versa, or anything else.
+                Conversions.evaluatePermission(targetPermission)
+              }
+
+            // If we got here then the ownership and mutability were compatible.
+            val satisfied = true
+            val deeplySatisfied = innerCoordDeeplySatisfied && satisfied
+
+            (InferEvaluateSuccess(CoordTemplata(CoordT(resultingOwnership, resultingPermission, innerCoordKind)), deeplySatisfied))
+          }
+        }
+      }
+      case CallTT(range, templateRule, templexesT, callResultType) => {
+
+        // it should be a template that results in a `tyype`
+
+        val (maybeTemplateTemplata, templateDeeplySatisfied) =
+          evaluateRule(env, state, typeByRune, localRunes, inferences, templateRule) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "bogglewogget", Vector(iec)))
+            case (InferEvaluateUnknown(ds)) => (None, ds)
+            case (InferEvaluateSuccess(templata, ds)) => (Some(templata), ds)
+          }
+
+        val (maybeArgTemplatas, argsDeeplySatisfied) =
+          evaluateRulees(env, state, typeByRune, localRunes, inferences, range, templexesT) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => {
+              return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CallAT arguments", Vector(iec)))
+            }
+            case (InferEvaluateUnknown(ds)) => {
+              (None, ds)
+            }
+            case (InferEvaluateSuccess(argTemplatas, ds)) => {
+              (Some(argTemplatas), ds)
+            }
+          }
+
+        (maybeTemplateTemplata, maybeArgTemplatas) match {
+          case (None, _) => {
+            //            println("CallAT 1 unsatisfied")
+            (InferEvaluateUnknown(false))
+          }
+          case (_, None) => {
+            //            println("CallAT 2 unsatisfied")
+            (InferEvaluateUnknown(false))
+          }
+          case (Some(it @ InterfaceTemplata(_, _)), Some(listOfArgTemplatas)) => {
+            val result =
+              templataTemplar.evaluateInterfaceTemplata(state, range, it, listOfArgTemplatas, callResultType)
+            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
+          }
+          case (Some(st @ StructTemplata(_, _)), Some(listOfArgTemplatas)) => {
+            val result =
+              templataTemplar.evaluateStructTemplata(state, range, st, listOfArgTemplatas, callResultType)
+            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
+          }
+          case (Some(btt @ ArrayTemplateTemplata()), Some(listOfArgTemplatas)) => {
+            val result =
+              templataTemplar.evaluateBuiltinTemplateTemplata(env, state, range, btt, listOfArgTemplatas, callResultType)
+            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
+          }
+          case (_, _) => {
+            vcurious() // it feels sfinae-ey
+            (InferEvaluateUnknown(vimpl()))
+          }
+        }
+      }
+      case PrototypeTT(_, _, _, _) => {
+        vfail("Unimplemented")
+      }
+      case CoordListTT(range, memberTemplexes) => {
+        evaluateRulees(env, state, typeByRune, localRunes, inferences, range, memberTemplexes) match {
+          case (iec @ InferEvaluateConflict(_, _, _, _)) => {
+            return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CoordListTT arguments", Vector(iec)))
+          }
+          case (InferEvaluateUnknown(deeplySatisfied)) => InferEvaluateUnknown(deeplySatisfied)
+          case (InferEvaluateSuccess(memberTemplatas, deeplySatisfied)) => {
+            val memberCoords = memberTemplatas.collect({ case CoordTemplata(coord) => coord })
+            if (memberCoords.size != memberTemplatas.size) {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Packs can only take coords!"))
+            }
+            InferEvaluateSuccess(CoordListTemplata(memberCoords), deeplySatisfied)
+          }
+        }
+      }
+      case RepeaterSequenceTT(range, mutabilityTemplex, variabilityTemplex, sizeTemplex, elementTemplex, resultType) => {
+        val (maybeMutability, mutabilityDeeplySatisfied) =
+          evaluateRule(env, state, typeByRune, localRunes, inferences, mutabilityTemplex) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate mutability", Vector(iec)))
+            case (InferEvaluateUnknown(ds)) => (None, ds)
+            case (InferEvaluateSuccess(MutabilityTemplata(mutability), ds)) => (Some(mutability), ds)
+            case (InferEvaluateSuccess(notInt, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Mutability isn't a mutability: " + notInt, Vector()))
+          }
+        val (maybeVariability, variabilityDeeplySatisfied) =
+          evaluateRule(env, state, typeByRune, localRunes, inferences, variabilityTemplex) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate variability", Vector(iec)))
+            case (InferEvaluateUnknown(ds)) => (None, ds)
+            case (InferEvaluateSuccess(VariabilityTemplata(variability), ds)) => (Some(variability), ds)
+            case (InferEvaluateSuccess(notInt, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Variability isn't a variability: " + notInt, Vector()))
+          }
+        val (maybeSize, sizeDeeplySatisfied) =
+          evaluateRule(env, state, typeByRune, localRunes, inferences, sizeTemplex) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate element", Vector(iec)))
+            case (InferEvaluateUnknown(ds)) => (None, ds)
+            case (InferEvaluateSuccess(IntegerTemplata(size), ds)) => (Some(size), ds)
+            case (InferEvaluateSuccess(notCoord, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Element isn't a coord: " + notCoord, Vector()))
+          }
+        val (maybeElement, elementDeeplySatisfied) =
+          evaluateRule(env, state, typeByRune, localRunes, inferences, elementTemplex) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate element", Vector(iec)))
+            case (InferEvaluateUnknown(ds)) => (None, ds)
+            case (InferEvaluateSuccess(CoordTemplata(coord), ds)) => (Some(coord), ds)
+            case (InferEvaluateSuccess(notCoord, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Element isn't a coord: " + notCoord, Vector()))
+          }
+
+        (maybeMutability, maybeVariability, maybeSize, maybeElement) match {
+          case (Some(mutability), Some(variability), Some(size), Some(element)) => {
+            val tuple =
+              templataTemplar.getStaticSizedArrayKind(env, state, range, mutability, variability, size.toInt, element, resultType)
+            (InferEvaluateSuccess(tuple, mutabilityDeeplySatisfied && variabilityDeeplySatisfied && sizeDeeplySatisfied && elementDeeplySatisfied))
+          }
+          case _ => {
+            // Not satisfied because there's an implicit constraint that these things together make up a valid repeater sequence.
+            val deeplySatisfied = false
+            //            println("Repeater unsatisfied")
+            (InferEvaluateUnknown(deeplySatisfied))
+          }
+        }
+      }
+      case ManualSequenceTT(range, elements, resultType) => {
+        val (maybeTemplatas, elementsDeeplySatisfied) =
+          evaluateRulees(env, state, typeByRune, localRunes, inferences, range, elements) match {
+            case (iec @ InferEvaluateConflict(_, _, _, _)) => {
+              return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CallAT arguments", Vector(iec)))
+            }
+            case (InferEvaluateUnknown(ds)) => {
+              (None, ds)
+            }
+            case (InferEvaluateSuccess(argTemplatas, ds)) => {
+              (Some(argTemplatas), ds)
+            }
+          }
+        maybeTemplatas match {
+          case None => {
+            val deeplySatisfied = false
+            InferEvaluateUnknown(deeplySatisfied)
+          }
+          case Some(templatas) => {
+            val coords = templatas.collect({ case CoordTemplata(coord) => coord })
+            if (coords.size != templatas.size) {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Not all templatas given to tuple were coords!"))
+            }
+            val tuple = templataTemplar.getTupleKind(env, state, range, coords, resultType)
+            (InferEvaluateSuccess(tuple, elementsDeeplySatisfied))
+          }
+        }
+      }
     }
   }
 
@@ -618,283 +869,20 @@ class InfererEvaluator[Env, State](
     }
   }
 
-  private[infer] def evaluateTemplex(
-    env: Env,
-    state: State,
-      typeByRune: Map[IRuneT, ITemplataType],
-    localRunes: Set[IRuneT],
-    inferences: InferencesBox,
-    ruleTemplex: ITemplexT
-  ): (IInferEvaluateResult[ITemplata]) = {
-    ruleTemplex match {
-      case StringTT(_, value) => InferEvaluateSuccess(StringTemplata(value), true)
-      case IntTT(_, value) => InferEvaluateSuccess(IntegerTemplata(value), true)
-      case BoolTT(_, value) => InferEvaluateSuccess(BooleanTemplata(value), true)
-      case MutabilityTT(_, mutability) => {
-        (InferEvaluateSuccess(MutabilityTemplata(Conversions.evaluateMutability(mutability)), true))
-      }
-      case PermissionTT(_, permission) => {
-        (InferEvaluateSuccess(PermissionTemplata(Conversions.evaluatePermission(permission)), true))
-      }
-      case LocationTT(_, location) => {
-        (InferEvaluateSuccess(LocationTemplata(Conversions.evaluateLocation(location)), true))
-      }
-      case OwnershipTT(_, ownership) => {
-        (InferEvaluateSuccess(OwnershipTemplata(Conversions.evaluateOwnership(ownership)), true))
-      }
-      case VariabilityTT(_, variability) => {
-        (InferEvaluateSuccess(VariabilityTemplata(Conversions.evaluateVariability(variability)), true))
-      }
-      case NameTT(range, name, expectedType) => {
-        val templata =
-          templataTemplar.lookupTemplata(env, state, range, name, expectedType)
-        (InferEvaluateSuccess(templata, true))
-      }
-      case AbsoluteNameTT(range, name, expectedType) => {
-        val templata =
-          templataTemplar.lookupTemplata(env, state, range, NameTranslator.translateNameStep(name), expectedType)
-        (InferEvaluateSuccess(templata, true))
-      }
-      case RuneTT(range, rune, expectedType) => {
-        if (localRunes.contains(rune)) {
-          inferences.templatasByRune.get(rune) match {
-            case Some(templata) => {
-              if (templata.tyype != expectedType) {
-                return (InferEvaluateConflict(inferences.inferences, range, "Rune " + rune + " is of type " + expectedType + ", but it received a " + templata.tyype + ", specifically " + templata, Vector.empty))
-              }
-              (InferEvaluateSuccess(templata, true))
-            }
-            case None => {
-//              println("RuneAT unsatisfied")
-              (InferEvaluateUnknown(false))
-            }
-          }
-        } else {
-          // We might be grabbing a rune from a parent environment thats already solved,
-          // such as when we do spaceship.fly() in TMRE.
-          val templata = delegate.lookupTemplata(env, range, rune)
-          if (templata.tyype != expectedType) {
-            return (InferEvaluateConflict(inferences.inferences, range, "Rune " + rune + " is of type " + expectedType + ", but it received a " + templata.tyype + ", specifically " + templata, Vector.empty))
-          }
-          (InferEvaluateSuccess(templata, true))
-        }
-      }
-      case InterpretedTT(range, targetOwnership, targetPermission, innerKindRule) => {
-        evaluateTemplex(env, state, typeByRune, localRunes, inferences, innerKindRule) match {
-          case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "bogglewogget", Vector(iec)))
-          case (InferEvaluateUnknown(innerCoordDeeplySatisfied)) => {
-            // If we don't know the inner coord, we can't verify that the ownership is compatible with the inner kind.
-            // For example, we can't do a borrow of something that's already a borrow or a weak.
-            val _ = innerCoordDeeplySatisfied
-            val deeplySatisfied = false
-//            println("InterpretedAT unsatisfied")
-
-            (InferEvaluateUnknown(deeplySatisfied))
-          }
-          case (InferEvaluateSuccess(CoordTemplata(CoordT(innerCoordOwnership, innerCoordPermission, innerCoordKind)), innerCoordDeeplySatisfied)) => {
-
-            val resultingOwnership =
-              (innerCoordOwnership, targetOwnership) match {
-                case (OwnT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was an own!", Vector.empty))
-                case (OwnT, OwnP) => OwnT // No change, allow it
-                case (OwnT, ConstraintP) => ConstraintT // Can borrow an own, allow it
-                case (OwnT, WeakP) => WeakT // Can weak an own, allow it
-                case (ConstraintT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was a borrow!", Vector.empty))
-                case (ConstraintT, OwnP) => OwnT // Can turn a borrow into an own, allow it
-                case (ConstraintT, ConstraintP) => ConstraintT // No change, allow it
-                case (ConstraintT, WeakP) => WeakT // Can weak a borrow, allow it
-                case (WeakT, ShareP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a share, but was a weak!", Vector.empty))
-                case (WeakT, OwnP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a own, but was a weak!", Vector.empty))
-                case (WeakT, ConstraintP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a borrow, but was a weak!", Vector.empty))
-                case (WeakT, WeakP) => WeakT // No change, allow it
-                case (ShareT, OwnP) => ShareT // Can own a share, just becomes another share.
-                case (ShareT, ConstraintP) => ShareT // Can borrow a share, just becomes another share.
-                case (ShareT, WeakP) => return (InferEvaluateConflict(inferences.inferences, range, "Expected a weak, but was a share!", Vector.empty)) // Cant get a weak ref to a share because it doesnt have lock().
-                case (ShareT, ShareP) => ShareT // No change, allow it
-              }
-
-            val resultingPermission =
-              if (innerCoordOwnership == ShareT) {
-                if (targetPermission == ReadwriteP) {
-                  // It would technically be *weird* to make a Readwrite reference to an immutable, but it happens
-                  // accidentally as part of making an owning reference to something, like with ^T. Using ^T in a rule
-                  // but handing in a share is a pretty reasonable thing to happen, so let's let it slide.
-                }
-                ReadonlyT
-              } else {
-                // For mutables, we can turn a &T into a &!T, or vice versa, or anything else.
-                Conversions.evaluatePermission(targetPermission)
-              }
-
-            // If we got here then the ownership and mutability were compatible.
-            val satisfied = true
-            val deeplySatisfied = innerCoordDeeplySatisfied && satisfied
-
-            (InferEvaluateSuccess(CoordTemplata(CoordT(resultingOwnership, resultingPermission, innerCoordKind)), deeplySatisfied))
-          }
-        }
-      }
-      case CallTT(range, templateRule, templexesT, callResultType) => {
-
-        // it should be a template that results in a `tyype`
-
-        val (maybeTemplateTemplata, templateDeeplySatisfied) =
-          evaluateTemplex(env, state, typeByRune, localRunes, inferences, templateRule) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "bogglewogget", Vector(iec)))
-            case (InferEvaluateUnknown(ds)) => (None, ds)
-            case (InferEvaluateSuccess(templata, ds)) => (Some(templata), ds)
-          }
-
-        val (maybeArgTemplatas, argsDeeplySatisfied) =
-          evaluateTemplexes(env, state, typeByRune, localRunes, inferences, range, templexesT) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => {
-              return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CallAT arguments", Vector(iec)))
-            }
-            case (InferEvaluateUnknown(ds)) => {
-              (None, ds)
-            }
-            case (InferEvaluateSuccess(argTemplatas, ds)) => {
-              (Some(argTemplatas), ds)
-            }
-          }
-
-        (maybeTemplateTemplata, maybeArgTemplatas) match {
-          case (None, _) => {
-//            println("CallAT 1 unsatisfied")
-            (InferEvaluateUnknown(false))
-          }
-          case (_, None) => {
-//            println("CallAT 2 unsatisfied")
-            (InferEvaluateUnknown(false))
-          }
-          case (Some(it @ InterfaceTemplata(_, _)), Some(listOfArgTemplatas)) => {
-            val result =
-              templataTemplar.evaluateInterfaceTemplata(state, range, it, listOfArgTemplatas, callResultType)
-            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
-          }
-          case (Some(st @ StructTemplata(_, _)), Some(listOfArgTemplatas)) => {
-            val result =
-              templataTemplar.evaluateStructTemplata(state, range, st, listOfArgTemplatas, callResultType)
-            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
-          }
-          case (Some(btt @ ArrayTemplateTemplata()), Some(listOfArgTemplatas)) => {
-            val result =
-              templataTemplar.evaluateBuiltinTemplateTemplata(env, state, range, btt, listOfArgTemplatas, callResultType)
-            (InferEvaluateSuccess(result, templateDeeplySatisfied && argsDeeplySatisfied))
-          }
-          case (_, _) => {
-            vcurious() // it feels sfinae-ey
-            (InferEvaluateUnknown(vimpl()))
-          }
-        }
-      }
-      case PrototypeTT(_, _, _, _) => {
-        vfail("Unimplemented")
-      }
-      case CoordListTT(range, memberTemplexes) => {
-        evaluateTemplexes(env, state, typeByRune, localRunes, inferences, range, memberTemplexes) match {
-          case (iec @ InferEvaluateConflict(_, _, _, _)) => {
-            return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CoordListTT arguments", Vector(iec)))
-          }
-          case (InferEvaluateUnknown(deeplySatisfied)) => InferEvaluateUnknown(deeplySatisfied)
-          case (InferEvaluateSuccess(memberTemplatas, deeplySatisfied)) => {
-            val memberCoords = memberTemplatas.collect({ case CoordTemplata(coord) => coord })
-            if (memberCoords.size != memberTemplatas.size) {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Packs can only take coords!"))
-            }
-            InferEvaluateSuccess(CoordListTemplata(memberCoords), deeplySatisfied)
-          }
-        }
-      }
-      case RepeaterSequenceTT(range, mutabilityTemplex, variabilityTemplex, sizeTemplex, elementTemplex, resultType) => {
-        val (maybeMutability, mutabilityDeeplySatisfied) =
-          evaluateTemplex(env, state, typeByRune, localRunes, inferences, mutabilityTemplex) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate mutability", Vector(iec)))
-            case (InferEvaluateUnknown(ds)) => (None, ds)
-            case (InferEvaluateSuccess(MutabilityTemplata(mutability), ds)) => (Some(mutability), ds)
-            case (InferEvaluateSuccess(notInt, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Mutability isn't a mutability: " + notInt, Vector()))
-          }
-        val (maybeVariability, variabilityDeeplySatisfied) =
-          evaluateTemplex(env, state, typeByRune, localRunes, inferences, variabilityTemplex) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate variability", Vector(iec)))
-            case (InferEvaluateUnknown(ds)) => (None, ds)
-            case (InferEvaluateSuccess(VariabilityTemplata(variability), ds)) => (Some(variability), ds)
-            case (InferEvaluateSuccess(notInt, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Variability isn't a variability: " + notInt, Vector()))
-          }
-        val (maybeSize, sizeDeeplySatisfied) =
-          evaluateTemplex(env, state, typeByRune, localRunes, inferences, sizeTemplex) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate element", Vector(iec)))
-            case (InferEvaluateUnknown(ds)) => (None, ds)
-            case (InferEvaluateSuccess(IntegerTemplata(size), ds)) => (Some(size), ds)
-            case (InferEvaluateSuccess(notCoord, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Element isn't a coord: " + notCoord, Vector()))
-          }
-        val (maybeElement, elementDeeplySatisfied) =
-          evaluateTemplex(env, state, typeByRune, localRunes, inferences, elementTemplex) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate element", Vector(iec)))
-            case (InferEvaluateUnknown(ds)) => (None, ds)
-            case (InferEvaluateSuccess(CoordTemplata(coord), ds)) => (Some(coord), ds)
-            case (InferEvaluateSuccess(notCoord, _)) => return (InferEvaluateConflict(inferences.inferences, range, "Element isn't a coord: " + notCoord, Vector()))
-          }
-
-        (maybeMutability, maybeVariability, maybeSize, maybeElement) match {
-          case (Some(mutability), Some(variability), Some(size), Some(element)) => {
-            val tuple =
-              templataTemplar.getStaticSizedArrayKind(env, state, range, mutability, variability, size.toInt, element, resultType)
-            (InferEvaluateSuccess(tuple, mutabilityDeeplySatisfied && variabilityDeeplySatisfied && sizeDeeplySatisfied && elementDeeplySatisfied))
-          }
-          case _ => {
-            // Not satisfied because there's an implicit constraint that these things together make up a valid repeater sequence.
-            val deeplySatisfied = false
-//            println("Repeater unsatisfied")
-            (InferEvaluateUnknown(deeplySatisfied))
-          }
-        }
-      }
-      case ManualSequenceTT(range, elements, resultType) => {
-        val (maybeTemplatas, elementsDeeplySatisfied) =
-          evaluateTemplexes(env, state, typeByRune, localRunes, inferences, range, elements) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => {
-              return (InferEvaluateConflict(inferences.inferences, range, "Failed to evaluate CallAT arguments", Vector(iec)))
-            }
-            case (InferEvaluateUnknown(ds)) => {
-              (None, ds)
-            }
-            case (InferEvaluateSuccess(argTemplatas, ds)) => {
-              (Some(argTemplatas), ds)
-            }
-          }
-        maybeTemplatas match {
-          case None => {
-            val deeplySatisfied = false
-            InferEvaluateUnknown(deeplySatisfied)
-          }
-          case Some(templatas) => {
-            val coords = templatas.collect({ case CoordTemplata(coord) => coord })
-            if (coords.size != templatas.size) {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Not all templatas given to tuple were coords!"))
-            }
-            val tuple = templataTemplar.getTupleKind(env, state, range, coords, resultType)
-            (InferEvaluateSuccess(tuple, elementsDeeplySatisfied))
-          }
-        }
-      }
-    }
-  }
-
-  private[infer] def evaluateTemplexes(
+  private[infer] def evaluateRulees(
     env: Env,
     state: State,
       typeByRune: Map[IRuneT, ITemplataType],
     localRunes: Set[IRuneT],
     inferences: InferencesBox,
     range: RangeS,
-    templexes: Vector[ITemplexT]):
+    templexes: Vector[IRulexTR]):
   (IInferEvaluateResult[Vector[ITemplata]]) = {
     val initialFoldyThing: IInferEvaluateResult[Vector[ITemplata]] =
       InferEvaluateSuccess(Vector[ITemplata](), true)
     templexes.zipWithIndex.foldLeft((initialFoldyThing))({
       case ((InferEvaluateSuccess(resultsSoFar, deeplySatisfiedSoFar)), (maybeArgRule, index)) => {
-        evaluateTemplex(env, state, typeByRune, localRunes, inferences, maybeArgRule) match {
+        evaluateRule(env, state, typeByRune, localRunes, inferences, maybeArgRule) match {
           case (iec @ InferEvaluateConflict(_, _, _, _)) => {
             return (InferEvaluateConflict[Vector[ITemplata]](inferences.inferences, range, "Failed to evaluate templex " + index, Vector(iec)))
           }
@@ -907,7 +895,7 @@ class InfererEvaluator[Env, State](
         }
       }
       case ((InferEvaluateUnknown(deeplySatisfiedSoFar)), (maybeArgRule, index)) => {
-        evaluateTemplex(env, state, typeByRune, localRunes, inferences, maybeArgRule) match {
+        evaluateRule(env, state, typeByRune, localRunes, inferences, maybeArgRule) match {
           case (iec @ InferEvaluateConflict(_, _, _, _)) => {
             return (InferEvaluateConflict[Vector[ITemplata]](inferences.inferences, range, "Failed to evaluate templex " + index, Vector(iec)))
           }
