@@ -18,10 +18,10 @@ class LocalHelper(
 
   def makeTemporaryLocal(
     fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
     coord: CoordT):
   ReferenceLocalVariableT = {
-    val varNameCounter = fate.nextVarCounter()
-    val varId = fate.functionEnvironment.fullName.addStep(TemplarTemporaryVarNameT(varNameCounter))
+    val varId = fate.functionEnvironment.fullName.addStep(TemplarTemporaryVarNameT(life))
     val rlv = ReferenceLocalVariableT(varId, FinalT, coord)
     fate.addVariable(rlv)
     rlv
@@ -32,9 +32,10 @@ class LocalHelper(
   def makeTemporaryLocal(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
     r: ReferenceExpressionTE):
   (DeferTE) = {
-    val rlv = makeTemporaryLocal(fate, r.resultRegister.reference)
+    val rlv = makeTemporaryLocal(fate, life, r.resultRegister.reference)
     val letExpr2 = LetAndLendTE(rlv, r)
 
     val unlet = unletLocal(fate, rlv)
@@ -56,19 +57,14 @@ class LocalHelper(
   def unletAll(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
-    variables: List[ILocalVariableT]):
-  (List[ReferenceExpressionTE]) = {
-    variables match {
-      case Nil => (List.empty)
-      case head :: tail => {
-        val unlet = unletLocal(fate, head)
-        val maybeHeadExpr2 =
-          destructorTemplar.drop(fate, temputs, unlet)
-        val tailExprs2 =
-          unletAll(temputs, fate, tail)
-        (maybeHeadExpr2 :: tailExprs2)
-      }
-    }
+    variables: Vector[ILocalVariableT]):
+  (Vector[ReferenceExpressionTE]) = {
+    variables.map({ case variable =>
+      val unlet = unletLocal(fate, variable)
+      val maybeHeadExpr2 =
+        destructorTemplar.drop(fate, temputs, unlet)
+      maybeHeadExpr2
+    })
   }
 
   // A user local variable is one that the user can address inside their code.

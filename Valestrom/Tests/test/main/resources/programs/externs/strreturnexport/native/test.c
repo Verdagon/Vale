@@ -2,19 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "tmod/getAStr.h"
+#include "vtest/getAStr.h"
 
-ValeStr* tmod_runExtCommand() {
-  ValeStr* str = tmod_getAStr();
+ValeStr* vtest_runExtCommand() {
+  ValeStr* str = vtest_getAStr();
 
-  printf("got str result: %p\n", str);
   assert(str->length == 6);
   int diff = strncmp(str->chars, "hello!", 6);
   assert(diff == 0);
 
   ValeStr* result = ValeStrFrom(str->chars);
 
-  ValeReleaseMessage(str);
+  free(str);
 
   return result;
 }

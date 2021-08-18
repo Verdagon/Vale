@@ -5,12 +5,12 @@ import java.util.InputMismatchException
 import net.verdagon.vale.astronomer.{Astronomer, AstronomerErrorHumanizer, ProgramA}
 import net.verdagon.vale.hammer.{Hammer, Hamuts, VonHammer}
 import net.verdagon.vale.highlighter.{Highlighter, Spanner}
-import net.verdagon.vale.metal.ProgramH
+import net.verdagon.vale.metal.{PackageH, ProgramH}
 import net.verdagon.vale.parser.{CombinatorParsers, FailedParse, FileP, InputException, ParseErrorHumanizer, ParseFailure, ParseSuccess, ParsedLoader, Parser, ParserVonifier}
 import net.verdagon.vale.scout.{Scout, ScoutErrorHumanizer}
 import net.verdagon.vale.templar.{Templar, TemplarErrorHumanizer}
 import net.verdagon.vale.vivem.Vivem
-import net.verdagon.vale.{Builtins, Err, FileCoordinate, FileCoordinateMap, NullProfiler, Ok, PackageCoordinate, Result, vassert, vassertSome, vcheck, vfail, vwat}
+import net.verdagon.vale.{Builtins, Err, FileCoordinate, FileCoordinateMap, NullProfiler, Ok, PackageCoordinate, Result, vassert, vassertSome, vcheck, vfail, vimpl, vwat}
 import net.verdagon.von.{IVonData, JsonSyntax, VonInt, VonPrinter}
 
 import java.nio.charset.Charset
@@ -18,25 +18,26 @@ import scala.io.Source
 import scala.util.matching.Regex
 
 object Driver {
-  val DEFAULT_PACKAGE_COORD = PackageCoordinate("my_module", List.empty)
+  val DEFAULT_PACKAGE_COORD = PackageCoordinate("my_module", Vector.empty)
 
   sealed trait IValestromInput {
     def packageCoord: PackageCoordinate
   }
   case class ModulePathInput(moduleName: String, path: String) extends IValestromInput {
-    override def packageCoord: PackageCoordinate = PackageCoordinate(moduleName, List.empty)
+    val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+    override def packageCoord: PackageCoordinate = PackageCoordinate(moduleName, Vector.empty)
   }
-  case class DirectFilePathInput(packageCoord: PackageCoordinate, path: String) extends IValestromInput
+  case class DirectFilePathInput(packageCoord: PackageCoordinate, path: String) extends IValestromInput { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
   case class SourceInput(
       packageCoord: PackageCoordinate,
       // Name isnt guaranteed to be unique, we sometimes hand in strings like "builtins.vale"
       name: String,
-      code: String) extends IValestromInput
+      code: String) extends IValestromInput { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
   case class Options(
-    inputs: List[IValestromInput],
+    inputs: Vector[IValestromInput],
 //    modulePaths: Map[String, String],
-    packagesToBuild: List[PackageCoordinate],
+//    packagesToBuild: Vector[PackageCoordinate],
     outputDirPath: Option[String],
     benchmark: Boolean,
     outputVPST: Boolean,
@@ -45,7 +46,7 @@ object Driver {
     includeBuiltins: Boolean,
     mode: Option[String], // build v run etc
     verbose: Boolean,
-  )
+  ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
   def parseOpts(opts: Options, list: List[String]) : Options = {
     list match {
@@ -81,9 +82,9 @@ object Driver {
         if (opts.mode.isEmpty) {
           parseOpts(opts.copy(mode = Some(value)), tail)
         } else {
-          if (value.contains(":")) {
-            val packageCoordAndPath = value.split(":")
-            vcheck(packageCoordAndPath.size == 2, "Arguments can only have 1 colon. Saw: " + value, InputException)
+          if (value.contains("=")) {
+            val packageCoordAndPath = value.split("=")
+            vcheck(packageCoordAndPath.size == 2, "Arguments can only have 1 equals. Saw: " + value, InputException)
             vcheck(packageCoordAndPath(0) != "", "Must have a module name before a colon. Saw: " + value, InputException)
             vcheck(packageCoordAndPath(1) != "", "Must have a file path after a colon. Saw: " + value, InputException)
             val Array(packageCoordStr, path) = packageCoordAndPath
@@ -91,9 +92,9 @@ object Driver {
             val packageCoordinate =
               if (packageCoordStr.contains(".")) {
                 val packageCoordinateParts = packageCoordStr.split("\\.")
-                PackageCoordinate(packageCoordinateParts.head, packageCoordinateParts.tail.toList)
+                PackageCoordinate(packageCoordinateParts.head, packageCoordinateParts.tail.toVector)
               } else {
-                PackageCoordinate(packageCoordStr, List.empty)
+                PackageCoordinate(packageCoordStr, Vector.empty)
               }
             val input =
               if (path.endsWith(".vale") || path.endsWith(".vpst")) {
@@ -106,17 +107,18 @@ object Driver {
               }
             parseOpts(opts.copy(inputs = opts.inputs :+ input), tail)
           } else {
-            if (value.endsWith(".vale") || value.endsWith(".vpst")) {
-              throw InputException(".vale and .vpst inputs must be prefixed with their module name and a colon.")
-            }
-            val parts =
-              if (value.contains(".")) {
-                value.split("\\.").toList
-              } else {
-                List(value)
-              }
-            val packageCoord = PackageCoordinate(parts.head, parts.tail)
-            parseOpts(opts.copy(packagesToBuild = opts.packagesToBuild :+ packageCoord), tail)
+            throw InputException("Unrecognized input: " + value)
+//            if (value.endsWith(".vale") || value.endsWith(".vpst")) {
+//              throw InputException(".vale and .vpst inputs must be prefixed with their module name and a colon.")
+//            }
+//            val parts =
+//              if (value.contains(".")) {
+//                value.split("\\.").toVector
+//              } else {
+//                Vector(value)
+//              }
+//            val packageCoord = PackageCoordinate(parts.head, parts.tail)
+//            parseOpts(opts.copy(packagesToBuild = opts.packagesToBuild :+ packageCoord), tail)
           }
         }
       }
@@ -124,7 +126,7 @@ object Driver {
   }
 
   def resolvePackageContents(
-      inputs: List[IValestromInput],
+      inputs: Vector[IValestromInput],
       packageCoord: PackageCoordinate):
   Option[Map[String, String]] = {
     val PackageCoordinate(module, packages) = packageCoord
@@ -133,9 +135,9 @@ object Driver {
 
     val sourceInputs =
       inputs.zipWithIndex.filter(_._1.packageCoord.module == module).flatMap({
-        case (SourceInput(_, name, code), index) if (packages == List.empty) => {
+        case (SourceInput(_, name, code), index) if (packages == Vector.empty) => {
           // All .vpst and .vale direct inputs are considered part of the root paackage.
-          List((index + "(" + name + ")" -> code))
+          Vector((index + "(" + name + ")" -> code))
         }
         case (mpi @ ModulePathInput(_, modulePath), _) => {
 //          println("checking with modulepathinput " + mpi)
@@ -144,26 +146,27 @@ object Driver {
           val directory = new java.io.File(directoryPath)
           val filesInDirectory = directory.listFiles()
           if (filesInDirectory == null) {
-            return None
+            Vector()
+          } else {
+            val inputFiles =
+              filesInDirectory.filter(_.getName.endsWith(".vale")) ++
+                filesInDirectory.filter(_.getName.endsWith(".vpst"))
+            //          println("found files: " + inputFiles)
+            val inputFilePaths = inputFiles.map(_.getPath)
+            inputFilePaths.toVector.map(filepath => {
+              val bufferedSource = Source.fromFile(filepath)
+              val code = bufferedSource.getLines.mkString("\n")
+              bufferedSource.close
+              (filepath -> code)
+            })
           }
-          val inputFiles =
-            filesInDirectory.filter(_.getName.endsWith(".vale")) ++
-              filesInDirectory.filter(_.getName.endsWith(".vpst"))
-//          println("found files: " + inputFiles)
-          val inputFilePaths = inputFiles.map(_.getPath)
-          inputFilePaths.toList.map(filepath => {
-            val bufferedSource = Source.fromFile(filepath)
-            val code = bufferedSource.getLines.mkString("\n")
-            bufferedSource.close
-            (filepath -> code)
-          })
         }
         case (DirectFilePathInput(_, path), _) => {
           val file = path
           val bufferedSource = Source.fromFile(file)
           val code = bufferedSource.getLines.mkString("\n")
           bufferedSource.close
-          List((path -> code))
+          Vector((path -> code))
         }
       })
     val filepathToSource = sourceInputs.groupBy(_._1).mapValues(_.head._2)
@@ -177,7 +180,7 @@ object Driver {
 //    compilation: Compilation):
 //  Result[
 //    (FileCoordinateMap[String],
-//      FileCoordinateMap[(String, List[(Int, Int)])],
+//      FileCoordinateMap[(String, Vector[(Int, Int)])],
 //      FileCoordinateMap[FileP],
 //      Long),
 //    String] = {
@@ -185,13 +188,13 @@ object Driver {
 //    val expandedInputs =
 //      inputs.flatMap({
 //        case si @ SourceInput(_, _, _) => {
-//          List(si)
+//          Vector(si)
 //        }
 //        case pi @ PathInput(moduleName, path) => {
 //          if (path.endsWith(".vale")) {
-//            List(pi)
+//            Vector(pi)
 //          } else if (path.endsWith(".vpst")) {
-//            List(pi)
+//            Vector(pi)
 //          } else {
 //            try {
 //              val directory = new java.io.File(path)
@@ -199,7 +202,7 @@ object Driver {
 //              val inputFiles =
 //                filesInDirectory.filter(_.getName.endsWith(".vale")) ++
 //                  filesInDirectory.filter(_.getName.endsWith(".vpst"))
-//              inputFiles.map(_.getPath).map(x => PathInput(moduleName, x)).toList
+//              inputFiles.map(_.getPath).map(x => PathInput(moduleName, x)).toVector
 //            } catch {
 //              case _ : FileNotFoundException => {
 //                throw InputException("Couldn't find file or folder: " + path)
@@ -235,11 +238,11 @@ object Driver {
 //
 //    val moduleToPackageToFilepathToCode =
 //      loadedInputs.groupBy(_.moduleName).mapValues(loadedInputsInModule => {
-//        val paackage = List[String]()
+//        val paackage = Vector[String]()
 //        val filepathToCode =
 //          loadedInputsInModule.groupBy(_.path).map({
-//            case (path, List.empty) => vfail("No files with path: " + path)
-//            case (path, List(onlyCodeWithThisFilename)) => (path -> onlyCodeWithThisFilename.code)
+//            case (path, Vector.empty) => vfail("No files with path: " + path)
+//            case (path, Vector(onlyCodeWithThisFilename)) => (path -> onlyCodeWithThisFilename.code)
 //            case (path, multipleCodeWithThisFilename) => vfail("Multiple files with path " + path + ": " + multipleCodeWithThisFilename.mkString(", "))
 //          })
 //        val packageToFilepathToCode = Map(paackage -> filepathToCode)
@@ -265,7 +268,7 @@ object Driver {
 //            }
 //          }
 //        } else if (filepath.endsWith(".vpst")) {
-//          (contents, List.empty)
+//          (contents, Vector.empty)
 //        } else {
 //          throw new InputException("Unknown input type: " + filepath)
 //        }
@@ -294,11 +297,15 @@ object Driver {
 
   def build(opts: Options):
   Result[Option[ProgramH], String] = {
+    new java.io.File(opts.outputDirPath.get).mkdirs()
+    new java.io.File(opts.outputDirPath.get + "/vast").mkdir()
+    new java.io.File(opts.outputDirPath.get + "/vpst").mkdir()
+
     val startTime = java.lang.System.currentTimeMillis()
 
     val compilation =
       new FullCompilation(
-        PackageCoordinate.BUILTIN :: opts.packagesToBuild,
+        Vector(PackageCoordinate.BUILTIN) ++ opts.inputs.map(_.packageCoord).distinct,
         Builtins.getCodeMap().or(packageCoord => resolvePackageContents(opts.inputs, packageCoord)),
         FullCompilationOptions(
           if (opts.verbose) {
@@ -328,7 +335,7 @@ object Driver {
         val von = ParserVonifier.vonifyFile(programP)
         val vpstJson = new VonPrinter(JsonSyntax, 120).print(von)
         val parts = filepath.split("[/\\\\]")
-        val vpstFilepath = opts.outputDirPath.get + "/" + parts.last.replaceAll("\\.vale", ".vpst")
+        val vpstFilepath = opts.outputDirPath.get + "/vpst/" + parts.last.replaceAll("\\.vale", ".vpst")
         writeFile(vpstFilepath, vpstJson)
       })
     }
@@ -376,15 +383,30 @@ object Driver {
         println("Hammer phase duration: " + (finishTime - startHammerTime))
       }
 
-      val outputVastFilepath = opts.outputDirPath.get + "/build.vast"
-      val json = jsonifyProgram(programH)
-      writeFile(outputVastFilepath, json)
-      println("Wrote VAST to file " + outputVastFilepath)
+      programH.packages.flatMap({ case (packageCoord, paackage) =>
+        val outputVastFilepath =
+          opts.outputDirPath.get + "/vast/" +
+          (if (packageCoord.isInternal) {
+            "__vale"
+          } else {
+            packageCoord.module + packageCoord.packages.map("." + _).mkString("")
+          }) +
+          ".vast"
+        val json = jsonifyPackage(packageCoord, paackage)
+        writeFile(outputVastFilepath, json)
+//        println("Wrote VAST to file " + outputVastFilepath)
+      })
 
       Ok(Some(programH))
     } else {
       Ok(None)
     }
+  }
+
+  def jsonifyPackage(packageCoord: PackageCoordinate, packageH: PackageH): String = {
+    val programV = VonHammer.vonifyPackage(packageCoord, packageH)
+    val json = new VonPrinter(JsonSyntax, 120).print(programV)
+    json
   }
 
   def jsonifyProgram(programH: ProgramH): String = {
@@ -429,18 +451,18 @@ object Driver {
 
   def main(args: Array[String]): Unit = {
     try {
-      val opts = parseOpts(Options(List.empty, List.empty, None, false, true, true, false, true, None, false), args.toList)
+      val opts = parseOpts(Options(Vector.empty, None, false, true, true, false, true, None, false), args.toList)
       vcheck(opts.mode.nonEmpty, "No mode!", InputException)
       vcheck(opts.inputs.nonEmpty, "No input files!", InputException)
 
       opts.mode.get match {
         case "highlight" => {
           vcheck(opts.inputs.size == 1, "Must have exactly 1 input file for highlighting", InputException)
-          val List(inputFilePath) = opts.inputs
+          val Vector(inputFilePath) = opts.inputs
 
           val compilation =
             new FullCompilation(
-              opts.packagesToBuild,
+              opts.inputs.map(_.packageCoord).distinct,
               Builtins.getCodeMap().or(packageCoord => resolvePackageContents(opts.inputs, packageCoord)),
               FullCompilationOptions(
                 if (opts.verbose) {
@@ -465,12 +487,12 @@ object Driver {
           val vpstCodeMap = compilation.getVpstMap().getOrDie()
 
           val code =
-            valeCodeMap.moduleToPackagesToFilenameToContents.values.flatMap(_.values.flatMap(_.values)).toList match {
-              case Nil => throw InputException("No vale code given to highlight!")
-              case List(x) => x
+            valeCodeMap.moduleToPackagesToFilenameToContents.values.flatMap(_.values.flatMap(_.values)).toVector match {
+              case Vector() => throw InputException("No vale code given to highlight!")
+              case Vector(x) => x
               case _ => throw InputException("No vale code given to highlight!")
             }
-          val List(vpst) = vpstCodeMap.moduleToPackagesToFilenameToContents.values.flatMap(_.values.flatMap(_.values)).toList
+          val Vector(vpst) = vpstCodeMap.moduleToPackagesToFilenameToContents.values.flatMap(_.values.flatMap(_.values)).toVector
 
           parseds.map({ case (FileCoordinate(module, packages, filepath), (parsed, commentRanges)) =>
             val span = Spanner.forProgram(parsed)

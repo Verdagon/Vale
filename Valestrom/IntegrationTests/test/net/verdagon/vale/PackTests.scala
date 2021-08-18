@@ -17,7 +17,7 @@ class PackTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.all({ case StructTT(FullNameT(_, _, TupleNameT(List(_, _, _)))) => }).size shouldEqual 1
+    main.all({ case StructTT(FullNameT(_, _, TupleNameT(Vector(_, _, _)))) => }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(5)
   }
@@ -35,9 +35,9 @@ class PackTests extends FunSuite with Matchers {
     val main = temputs.lookupFunction("main")
     main.all({
       case StructTT(FullNameT(_, _, TupleNameT(
-        List(
-          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))),
-          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))))))) =>
+        Vector(
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(Vector(_, _))))),
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(Vector(_, _))))))))) =>
     }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(6)
@@ -56,9 +56,9 @@ class PackTests extends FunSuite with Matchers {
     val main = temputs.lookupFunction("main")
     main .all({
       case StructTT(FullNameT(_, _, TupleNameT(
-        List(
+      Vector(
           CoordT(_, _, IntT(_)),
-          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(List(_, _))))))))) =>
+          CoordT(_, _, StructTT(FullNameT(_, _, TupleNameT(Vector(_, _))))))))) =>
     }).size shouldEqual 1
 
     compile.evalForKind(Vector()) shouldEqual VonInt(5)

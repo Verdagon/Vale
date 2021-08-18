@@ -40,6 +40,64 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) shouldEqual VonInt(4)
   }
 
+  test("Destroy SSA of imms into function") {
+    val compile = RunCompilation.test(
+      """
+        |fn main() int export {
+        |  a = [][13, 14, 15];
+        |  sum = 0;
+        |  drop_into(a, &!(e){ set sum = sum + e; });
+        |  = sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) shouldEqual VonInt(42)
+  }
+
+  test("Destroy RSA of imms into function") {
+    val compile = RunCompilation.test(
+      """
+        |fn main() int export {
+        |  a = [*](3, {13 + _});
+        |  sum = 0;
+        |  drop_into(a, &!(e){ set sum = sum + e; });
+        |  = sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) shouldEqual VonInt(42)
+  }
+
+  test("Destroy SSA of muts into function") {
+    val compile = RunCompilation.test(
+      """
+        |struct Spaceship { fuel int; }
+        |fn main() int export {
+        |  a = [][Spaceship(13), Spaceship(14), Spaceship(15)];
+        |  sum = 0;
+        |  drop_into(a, &!(e){ set sum = sum + e.fuel; });
+        |  = sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) shouldEqual VonInt(42)
+  }
+
+  test("Destroy RSA of muts into function") {
+    val compile = RunCompilation.test(
+      """
+        |struct Spaceship { fuel int; }
+        |fn main() int export {
+        |  a = [*](3, {Spaceship(13 + _)});
+        |  sum = 0;
+        |  drop_into(a, &!(e){ set sum = sum + e.fuel; });
+        |  = sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) shouldEqual VonInt(42)
+  }
+
   test("Unspecified-mutability static array from lambda defaults to mutable") {
     val compile = RunCompilation.test(
       """

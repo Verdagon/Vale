@@ -30,7 +30,7 @@ fn println(s StrSlice) void {
 fn !=(a str, b StrSlice) bool { a.slice() != b }
 fn !=(a StrSlice, b str) bool { a != b.slice() }
 fn !=(a StrSlice, b StrSlice) bool {
-  vstr_eq(a.string, a.begin, a.end, b.string, b.begin, b.end) == false
+  streq(a.string, a.begin, a.end, b.string, b.begin, b.end) == false
 }
 //
 
@@ -446,8 +446,8 @@ struct FunctionHeaderP {
   // attributes List<IFunctionAttributeP>;
 
   // If this is None, then the function had no identifying runes.
-  // If it's Some(List.empty) it might represent the <> in `fn moo<>(a int, b bool) { ... }`
-  // If it's Some(List(...)) then it's the <T, Y> in `fn moo<T, Y>(a T, b Y) { ... }`
+  // If it's Some(Vector.empty) it might represent the <> in `fn moo<>(a int, b bool) { ... }`
+  // If it's Some(Vector(...)) then it's the <T, Y> in `fn moo<T, Y>(a T, b Y) { ... }`
   maybeUserSpecifiedIdentifyingRunes Opt<IdentifyingRunesP>;
 
   // Any template rules for the function.

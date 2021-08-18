@@ -79,7 +79,9 @@ Ref translateExpressionInner(
     return wrap(globalState->getRegion(globalState->metalCache->boolRef), globalState->metalCache->boolRef, resultLE);
   } else if (auto discardM = dynamic_cast<Discard*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
-    return translateDiscard(globalState, functionState, blockState, builder, discardM);
+    Ref result = translateDiscard(globalState, functionState, blockState, builder, discardM);
+//    buildFlare(FL(), globalState, functionState, builder, std::string("/") + typeid(*expr).name());
+    return result;
   } else if (auto ret = dynamic_cast<Return*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     auto sourceRef = translateExpression(globalState, functionState, blockState, builder, ret->sourceExpr);
@@ -156,7 +158,7 @@ Ref translateExpressionInner(
     auto resultLE = LLVMGetParam(functionState->containingFuncL, argument->argumentIndex);
     auto resultRef = wrap(globalState->getRegion(argument->resultType), argument->resultType, resultLE);
     globalState->getRegion(argument->resultType)->checkValidReference(FL(), functionState, builder, argument->resultType, resultRef);
-    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
+//    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
     return resultRef;
   } else if (auto constantStr = dynamic_cast<ConstantStr*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -244,8 +246,8 @@ Ref translateExpressionInner(
     globalState->getRegion(consumerType)
         ->checkValidReference(FL(), functionState, builder, consumerType, consumerRef);
 
-    intRangeLoop(
-        globalState, functionState, builder, sizeRef,
+    intRangeLoopReverse(
+        globalState, functionState, builder, globalState->metalCache->i32, sizeRef,
         [globalState, functionState, elementType, consumerType, consumerMethod, arrayType, arrayKind, consumerRef, arrayRef, arrayKnownLive](
             Ref indexRef, LLVMBuilderRef bodyBuilder) {
           globalState->getRegion(consumerType)->alias(
@@ -262,14 +264,16 @@ Ref translateExpressionInner(
                   FL(), functionState, bodyBuilder, elementType, elementRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
 
-          auto consumerInterfaceMT = dynamic_cast<InterfaceKind*>(consumerType->kind);
-          assert(consumerInterfaceMT);
-          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
-          auto methodFunctionPtrLE =
-              globalState->getRegion(consumerType)
-                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
-          buildInterfaceCall(
-              globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
+          buildCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs);
+//
+//          auto consumerInterfaceMT = dynamic_cast<InterfaceKind*>(consumerType->kind);
+//          assert(consumerInterfaceMT);
+//          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
+//          auto methodFunctionPtrLE =
+//              globalState->getRegion(consumerType)
+//                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
+//          buildInterfaceCall(
+//              globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {
@@ -331,13 +335,15 @@ Ref translateExpressionInner(
                       functionState, bodyBuilder, arrayType, arrayKind, arrayRef, arrayKnownLive, indexRef);
           std::vector<Ref> argExprRefs = { consumerRef, elementRef };
 
-          auto consumerInterfaceMT = dynamic_cast<InterfaceKind*>(consumerType->kind);
-          assert(consumerInterfaceMT);
-          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
-          auto methodFunctionPtrLE =
-              globalState->getRegion(consumerType)
-                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
-          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
+          buildCall(globalState, functionState, bodyBuilder, consumerMethod, argExprRefs);
+
+//          auto consumerInterfaceMT = dynamic_cast<InterfaceKind*>(consumerType->kind);
+//          assert(consumerInterfaceMT);
+//          int indexInEdge = globalState->getInterfaceMethodIndex(consumerInterfaceMT, consumerMethod);
+//          auto methodFunctionPtrLE =
+//              globalState->getRegion(consumerType)
+//                  ->getInterfaceMethodFunctionPtr(functionState, bodyBuilder, consumerType, consumerRef, indexInEdge);
+//          buildInterfaceCall(globalState, functionState, bodyBuilder, consumerMethod, methodFunctionPtrLE, argExprRefs, 0);
         });
 
     if (arrayType->ownership == Ownership::OWN) {
@@ -536,6 +542,7 @@ Ref translateExpressionInner(
   } else if (auto call = dynamic_cast<Call*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", call->function->name->name);
     auto resultLE = translateCall(globalState, functionState, blockState, builder, call);
+//    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name(), " ", call->function->name->name);
     return resultLE;
   } else if (auto externCall = dynamic_cast<ExternCall*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
@@ -544,9 +551,9 @@ Ref translateExpressionInner(
   } else if (auto interfaceCall = dynamic_cast<InterfaceCall*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", interfaceCall->functionType->name->name);
     auto resultLE = translateInterfaceCall(globalState, functionState, blockState, builder, interfaceCall);
-    if (interfaceCall->functionType->returnType->kind != globalState->metalCache->never) {
-      buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
-    }
+//    if (interfaceCall->functionType->returnType->kind != globalState->metalCache->never) {
+//      buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name());
+//    }
     return resultLE;
   } else if (auto memberStore = dynamic_cast<MemberStore*>(expr)) {
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());

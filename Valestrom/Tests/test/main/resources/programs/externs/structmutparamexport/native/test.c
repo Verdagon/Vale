@@ -1,11 +1,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "tmod/Spaceship.h"
-#include "tmod/spaceshipGetA.h"
-#include "tmod/spaceshipGetB.h"
+#include "vtest/Spaceship.h"
+#include "vtest/spaceshipGetA.h"
+#include "vtest/spaceshipGetB.h"
 
-extern ValeInt tmod_sumSpaceshipFields(tmod_SpaceshipRef* s) {
-  printf("ref is: %lld, %lld, %d, %d\n", s->unused0, s->unused1, s->unused2, s->unused3);
-  return tmod_spaceshipGetA(s) + tmod_spaceshipGetB(s);
+extern ValeInt vtest_sumSpaceshipFields(vtest_SpaceshipRef s) {
+  return vtest_spaceshipGetA(s) + vtest_spaceshipGetB(s);
 }

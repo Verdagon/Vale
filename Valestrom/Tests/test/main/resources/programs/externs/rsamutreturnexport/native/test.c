@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tmod/MutIntArray.h"
-#include "tmod/valeMakeRSA.h"
-#include "tmod/cMakeRSA.h"
+#include "vtest/MutIntArray.h"
+#include "vtest/valeMakeRSA.h"
+#include "vtest/cMakeRSA.h"
 
-void tmod_cMakeRSA(tmod_MutIntArrayRef* result) {
-  tmod_valeMakeRSA(result);
+vtest_MutIntArrayRef vtest_cMakeRSA() {
+  return vtest_valeMakeRSA();
 }

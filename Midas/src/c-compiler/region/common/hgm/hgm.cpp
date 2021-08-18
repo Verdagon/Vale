@@ -46,6 +46,8 @@ void HybridGenerationalMemory::mainSetup(FunctionState* functionState, LLVMBuild
     halfProtectedI8PtrPtrLE = LLVMAddGlobal(globalState->mod, LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0), "halfProtectedI8Ptr");
     LLVMSetInitializer(halfProtectedI8PtrPtrLE, LLVMConstNull(LLVMPointerType(LLVMInt8TypeInContext(globalState->context), 0)));
 
+    buildFlare(FL(), globalState, functionState, builder, "Half protected ptr: ", ptrToIntLE(globalState, builder, halfProtectedI8PtrPtrLE));
+
     auto setupFuncProto = makeMainSetupFunction();
     auto setupFuncL = globalState->extraFunctions.find(setupFuncProto)->second;
     LLVMBuildCall(builder, setupFuncL, nullptr, 0, "");
@@ -633,7 +635,7 @@ LLVMValueRef HybridGenerationalMemory::lockGenFatPtr(
             buildPrint(globalState, thenBuilder, "Tried dereferencing dangling reference! ");
             buildPrint(globalState, thenBuilder, "Exiting!\n");
             // See MPESC for status codes
-            auto exitCodeIntLE = LLVMConstInt(LLVMInt8TypeInContext(globalState->context), 14, false);
+            auto exitCodeIntLE = LLVMConstInt(LLVMInt64TypeInContext(globalState->context), 14, false);
             LLVMBuildCall(thenBuilder, globalState->externs->exit, &exitCodeIntLE, 1, "");
           }
         });

@@ -18,7 +18,7 @@ Externs::Externs(LLVMModuleRef mod, LLVMContextRef context) {
   censusRemove = addExtern(mod, "__vcensusRemove", voidLT, {voidPtrLT});
   malloc = addExtern(mod, "malloc", int8PtrLT, {int64LT});
   free = addExtern(mod, "free", voidLT, {int8PtrLT});
-  exit = addExtern(mod, "exit", voidLT, {int8LT});
+  exit = addExtern(mod, "exit", voidLT, {int64LT});
   assert = addExtern(mod, "__vassert", voidLT, {int1LT, int8PtrLT});
   assertI64Eq = addExtern(mod, "__vassertI64Eq", voidLT, {int64LT, int64LT, int8PtrLT});
   printCStr = addExtern(mod, "__vprintCStr", voidLT, {int8PtrLT});
@@ -30,5 +30,26 @@ Externs::Externs(LLVMModuleRef mod, LLVMContextRef context) {
   memset = addExtern(mod, "memset", voidLT, {int8PtrLT, int8LT, int64LT});
 
   initTwinPages = addExtern(mod, "__vale_initTwinPages", int8PtrLT, {});
+}
 
+bool hasEnding (std::string const &fullString, std::string const &ending) {
+  if (fullString.length() >= ending.length()) {
+    return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+  } else {
+    return false;
+  }
+}
+
+bool includeSizeParam(GlobalState* globalState, Prototype* prototype, int paramIndex) {
+  // See SASP for what this is all about.
+  if (hasEnding(prototype->name->name, "_vasp")) {
+    auto paramMT = prototype->params[paramIndex];
+    if (dynamic_cast<StructKind*>(paramMT->kind) ||
+        dynamic_cast<InterfaceKind*>(paramMT->kind) ||
+        dynamic_cast<StaticSizedArrayT*>(paramMT->kind) ||
+        dynamic_cast<RuntimeSizedArrayT*>(paramMT->kind)) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -24,7 +24,7 @@ ValeStr* ValeStrFrom(char* source) {
   return result;
 }
 
-ValeInt vstr_indexOf(
+ValeInt __vale_strindexof(
     ValeStr* haystackContainerStr, ValeInt haystackBegin, ValeInt haystackEnd,
     ValeStr* needleContainerStr, ValeInt needleBegin, ValeInt needleEnd) {
   char* haystackContainerChars = haystackContainerStr->chars;
@@ -37,18 +37,18 @@ ValeInt vstr_indexOf(
 
   for (ValeInt i = 0; i <= haystackLen - needleLen; i++) {
     if (strncmp(needle, haystack + i, needleLen) == 0) {
-      ValeReleaseMessage(haystackContainerStr);
-      ValeReleaseMessage(needleContainerStr);
+      free(haystackContainerStr);
+      free(needleContainerStr);
       return i;
     }
   }
-  ValeReleaseMessage(haystackContainerStr);
-  ValeReleaseMessage(needleContainerStr);
+  free(haystackContainerStr);
+  free(needleContainerStr);
   return -1;
 }
 
 
-ValeStr* vstr_substring(
+ValeStr* __vale_substring(
     ValeStr* sourceStr,
     ValeInt begin,
     ValeInt length) {
@@ -60,11 +60,11 @@ ValeStr* vstr_substring(
   ValeStr* result = ValeStrNew(length);
   char* resultChars = result->chars;
   strncpy(resultChars, sourceChars + begin, length);
-  ValeReleaseMessage(sourceStr);
+  free(sourceStr);
   return result;
 }
 
-char vstr_eq(
+char __vale_streq(
     ValeStr* aStr,
     ValeInt aBegin,
     ValeInt aEnd,
@@ -80,26 +80,26 @@ char vstr_eq(
   ValeInt bLen = bEnd - bBegin;
 
   if (aLen != bLen) {
-    ValeReleaseMessage(aStr);
-    ValeReleaseMessage(bStr);
+    free(aStr);
+    free(bStr);
     return FALSE;
   }
   ValeInt len = aLen;
 
   for (int i = 0; i < len; i++) {
     if (a[i] != b[i]) {
-      ValeReleaseMessage(aStr);
-      ValeReleaseMessage(bStr);
+      free(aStr);
+      free(bStr);
       return FALSE;
     }
   }
 
-  ValeReleaseMessage(aStr);
-  ValeReleaseMessage(bStr);
+  free(aStr);
+  free(bStr);
   return TRUE;
 }
 
-ValeInt vstr_cmp(
+ValeInt __vale_strcmp(
     ValeStr* aStr,
     ValeInt aBegin,
     ValeInt aEnd,
@@ -119,32 +119,32 @@ ValeInt vstr_cmp(
       break;
     }
     if (i >= aLen && i < bLen) {
-      ValeReleaseMessage(aStr);
-      ValeReleaseMessage(bStr);
+      free(aStr);
+      free(bStr);
       return -1;
     }
     if (i < aLen && i >= bLen) {
-      ValeReleaseMessage(aStr);
-      ValeReleaseMessage(bStr);
+      free(aStr);
+      free(bStr);
       return 1;
     }
     if (a[i] < b[i]) {
-      ValeReleaseMessage(aStr);
-      ValeReleaseMessage(bStr);
+      free(aStr);
+      free(bStr);
       return -1;
     }
     if (a[i] > b[i]) {
-      ValeReleaseMessage(aStr);
-      ValeReleaseMessage(bStr);
+      free(aStr);
+      free(bStr);
       return 1;
     }
   }
-  ValeReleaseMessage(aStr);
-  ValeReleaseMessage(bStr);
+  free(aStr);
+  free(bStr);
   return 0;
 }
 
-ValeStr* __vaddStr(
+ValeStr* __vale_addStr(
     ValeStr* aStr, ValeInt aBegin, ValeInt aLength,
     ValeStr* bStr, ValeInt bBegin, ValeInt bLength) {
   char* a = aStr->chars;
@@ -164,12 +164,12 @@ ValeStr* __vaddStr(
   // (Midas also adds this in case we didn't do it here)
   dest[aLength + bLength] = 0;
 
-  ValeReleaseMessage(aStr);
-  ValeReleaseMessage(bStr);
+  free(aStr);
+  free(bStr);
   return result;
 }
 
-extern ValeStr* __castI64Str(int64_t n) {
+extern ValeStr* __vale_castI64Str(int64_t n) {
   char tempBuffer[100] = { 0 };
   int charsWritten = snprintf(tempBuffer, 100, "%lld", n);
   ValeStr* result = ValeStrNew(charsWritten);
@@ -178,11 +178,11 @@ extern ValeStr* __castI64Str(int64_t n) {
   return result;
 }
 
-extern ValeStr* __castI32Str(int32_t n) {
-  return __castI64Str((int64_t)n);
+extern ValeStr* __vale_castI32Str(int32_t n) {
+  return __vale_castI64Str((int64_t)n);
 }
 
-extern ValeStr* __castFloatStr(double f) {
+extern ValeStr* __vale_castFloatStr(double f) {
   char tempBuffer[100] = { 0 };
   int charsWritten = snprintf(tempBuffer, 100, "%lf", f);
   ValeStr* result = ValeStrNew(charsWritten);
@@ -191,21 +191,21 @@ extern ValeStr* __castFloatStr(double f) {
   return result;
 }
 
-void __vprintStr(ValeStr* s, ValeInt start, ValeInt length) {
+void __vale_printstr(ValeStr* s, ValeInt start, ValeInt length) {
   char* chars = s->chars;
   fwrite(chars + start, 1, length, stdout);
-  ValeReleaseMessage(s);
+  free(s);
 }
 
-ValeInt vstr_toascii(ValeStr* s, ValeInt begin, ValeInt end) {
+ValeInt __vale_strtoascii(ValeStr* s, ValeInt begin, ValeInt end) {
   assert(begin + 1 <= end);
   char* chars = s->chars;
   ValeInt result = (ValeInt)*(chars + begin);
-  ValeReleaseMessage(s);
+  free(s);
   return result;
 }
 
-ValeStr* vstr_fromascii(ValeInt code) {
+ValeStr* __vale_strfromascii(ValeInt code) {
   ValeStr* result = ValeStrNew(1);
   char* dest = result->chars;
   *dest = code;

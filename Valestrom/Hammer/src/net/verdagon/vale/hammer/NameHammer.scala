@@ -67,7 +67,7 @@ object NameHammer {
       case TemplarBlockResultVarNameT(num) => "blockResult" + num
       case TemplarFunctionResultVarNameT() => "funcResult"
       case TemplarPatternDestructureeNameT(num) => "patDestrName" + num
-      case TemplarPatternMemberNameT(num, memberIndex) => "patMemName" + num + "_" + memberIndex
+      case TemplarPatternMemberNameT(life) => "patMemName" + life
       case TemplarTemporaryVarNameT(num) => "tempVarName" + num
       case TupleNameT(members) => "Tup" + members.size
       case RuntimeSizedArrayNameT(arr) => "rsa"
@@ -81,13 +81,8 @@ object NameHammer {
     fullName2: FullNameT[INameT]
   ): FullNameH = {
     val FullNameT(packageCoord @ PackageCoordinate(project, packageSteps), _, _) = fullName2
-    val newNameParts =
-//      (VonStr(project) :: packageSteps.map(VonStr)) ++
-      fullName2.steps.map(step => VonHammer.translateName(hinputs, hamuts, step))
-    val readableName =
-//      (if (packageCoord.module != "") packageCoord.module + "." else "") +
-//      packageSteps.map(_ + ".") +
-      getReadableName(fullName2.last)
+    val newNameParts = fullName2.steps.map(step => VonHammer.translateName(hinputs, hamuts, step))
+    val readableName = getReadableName(fullName2.last)
 
     val id =
       if (fullName2.last.isInstanceOf[ExternFunctionNameT]) {
@@ -132,11 +127,12 @@ object NameHammer {
 
   def translatePackageCoordinate(coord: PackageCoordinate): VonObject = {
     val PackageCoordinate(module, paackage) = coord
+    val nonEmptyModuleName = if (module == "") "__vale" else module;
     VonObject(
       "PackageCoordinate",
       None,
       Vector(
-        VonMember("project", VonStr(module)),
+        VonMember("project", VonStr(nonEmptyModuleName)),
         VonMember("packageSteps", VonArray(None, paackage.map(VonStr).toVector))))
   }
 }
