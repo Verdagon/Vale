@@ -304,6 +304,7 @@ class DestructorTemplar(
   def generateStaticSizedArrayDestructor(
     env: FunctionEnvironment,
     temputs: Temputs,
+    life: LocationInFunctionEnvironment,
     maybeOriginFunction1: Option[FunctionA],
     sequenceRefType2: CoordT,
     sequence: StaticSizedArrayTT):
@@ -318,7 +319,8 @@ class DestructorTemplar(
     val elementDropFunctionPrototype = getDropFunction(env, temputs, sequence.array.memberType)
 
     val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
-      structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, RangeS.internal(-1203), elementDropFunctionPrototype)
+      structTemplar.prototypeToAnonymousIFunctionSubstruct(
+        env, temputs, life, RangeS.internal(-1203), elementDropFunctionPrototype)
 
     val ifunctionExpression =
       StructToInterfaceUpcastTE(
@@ -366,6 +368,7 @@ class DestructorTemplar(
   def generateRuntimeSizedArrayDestructor(
     env: FunctionEnvironment,
     temputs: Temputs,
+    life: LocationInFunctionEnvironment,
     maybeOriginFunction1: Option[FunctionA],
     arrayRefType2: CoordT,
     array: RuntimeSizedArrayTT):
@@ -376,7 +379,7 @@ class DestructorTemplar(
     val elementDropFunctionPrototype = getDropFunction(env, temputs, array.array.memberType)
 
     val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
-      structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, RangeS.internal(-1879), elementDropFunctionPrototype)
+      structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, life, RangeS.internal(-1879), elementDropFunctionPrototype)
 
     val ifunctionExpression =
       StructToInterfaceUpcastTE(
@@ -550,6 +553,7 @@ object DestructorTemplar {
           destructorTemplar: DestructorTemplar,
           env: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
           paramCoords: Vector[ParameterT],
@@ -568,11 +572,11 @@ object DestructorTemplar {
             }
             case Vector(r @ CoordT(_, _, as @ StaticSizedArrayTT(_, _))) => {
               destructorTemplar.generateStaticSizedArrayDestructor(
-                env, temputs, maybeOriginFunction1, r, as)
+                env, temputs, life + 0, maybeOriginFunction1, r, as)
             }
             case Vector(r @ CoordT(_, _, ra @ RuntimeSizedArrayTT(_))) => {
               destructorTemplar.generateRuntimeSizedArrayDestructor(
-                env, temputs, maybeOriginFunction1, r, ra)
+                env, temputs, life + 1, maybeOriginFunction1, r, ra)
             }
             case _ => {
               vfail("wot")
@@ -635,6 +639,7 @@ object DestructorTemplar {
           destructorTemplar: DestructorTemplar,
           namedEnv: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
           params: Vector[ParameterT],
@@ -716,6 +721,7 @@ object DestructorTemplar {
           destructorTemplar: DestructorTemplar,
           namedEnv: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
           params: Vector[ParameterT],
@@ -808,6 +814,7 @@ object DestructorTemplar {
           destructorTemplar: DestructorTemplar,
           namedEnv: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
           params: Vector[ParameterT],
