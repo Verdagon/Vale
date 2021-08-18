@@ -12,21 +12,23 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.templata.TemplataTemplar
 
-import scala.collection.immutable.{List, Nil, Set}
+import scala.collection.immutable.{List, Set}
 
 trait IBodyTemplarDelegate {
   def evaluateBlockStatements(
     temputs: Temputs,
     startingFate: FunctionEnvironment,
     fate: FunctionEnvironmentBox,
-    exprs: List[IExpressionAE]):
+    life: LocationInFunctionEnvironment,
+    exprs: Vector[IExpressionAE]):
   (ReferenceExpressionTE, Set[CoordT])
 
   def translatePatternList(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
-    patterns1: List[AtomAP],
-    patternInputExprs2: List[ReferenceExpressionTE]):
+    life: LocationInFunctionEnvironment,
+    patterns1: Vector[AtomAP],
+    patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
 }
 
@@ -44,9 +46,10 @@ class BodyTemplar(
   def declareAndEvaluateFunctionBody(
       funcOuterEnv: FunctionEnvironmentBox,
       temputs: Temputs,
+    life: LocationInFunctionEnvironment,
       bfunction1: BFunctionA,
       maybeExplicitReturnCoord: Option[CoordT],
-      params2: List[ParameterT],
+      params2: Vector[ParameterT],
       isDestructor: Boolean):
   (Option[CoordT], BlockTE) = {
     val BFunctionA(function1, _) = bfunction1;
@@ -56,7 +59,7 @@ class BodyTemplar(
         case None => {
           val (body2, returns) =
             evaluateFunctionBody(
-                funcOuterEnv, temputs, bfunction1.origin.params, params2, bfunction1.body, isDestructor, None) match {
+                funcOuterEnv, temputs, life, bfunction1.origin.params, params2, bfunction1.body, isDestructor, None) match {
               case Err(ResultTypeMismatchError(expectedType, actualType)) => {
                 throw CompileErrorExceptionT(BodyResultDoesntMatch(bfunction1.origin.range, function1.name, expectedType, actualType))
 
@@ -83,6 +86,7 @@ class BodyTemplar(
             evaluateFunctionBody(
                 funcOuterEnv,
                 temputs,
+                life,
                 bfunction1.origin.params,
                 params2,
                 bfunction1.body,
@@ -111,27 +115,28 @@ class BodyTemplar(
     })
   }
 
-  case class ResultTypeMismatchError(expectedType: CoordT, actualType: CoordT)
+  case class ResultTypeMismatchError(expectedType: CoordT, actualType: CoordT) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
   private def evaluateFunctionBody(
-      funcOuterEnv: FunctionEnvironmentBox,
-      temputs: Temputs,
-      params1: List[ParameterA],
-      params2: List[ParameterT],
-      body1: BodyAE,
-      isDestructor: Boolean,
-      maybeExpectedResultType: Option[CoordT]):
+    funcOuterEnv: FunctionEnvironmentBox,
+    temputs: Temputs,
+    life: LocationInFunctionEnvironment,
+    params1: Vector[ParameterA],
+    params2: Vector[ParameterT],
+    body1: BodyAE,
+    isDestructor: Boolean,
+    maybeExpectedResultType: Option[CoordT]):
   Result[(BlockTE, Set[CoordT]), ResultTypeMismatchError] = {
     val env = funcOuterEnv.makeChildEnvironment(newTemplataStore)
     val startingEnv = env.functionEnvironment
 
     val patternsTE =
-      evaluateLets(funcOuterEnv, temputs, body1.range, params1, params2);
+      evaluateLets(funcOuterEnv, temputs, life + 0, body1.range, params1, params2);
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
-      delegate.evaluateBlockStatements(temputs, startingEnv, funcOuterEnv, body1.block.exprs);
+      delegate.evaluateBlockStatements(temputs, startingEnv, funcOuterEnv, life + 1, body1.block.exprs);
 
-    val unconvertedBodyWithoutReturn = Templar.consecutive(List(patternsTE, statementsFromBlock))
+    val unconvertedBodyWithoutReturn = Templar.consecutive(Vector(patternsTE, statementsFromBlock))
 
 
     val convertedBodyWithoutReturn =
@@ -187,15 +192,16 @@ class BodyTemplar(
   private def evaluateLets(
       fate: FunctionEnvironmentBox,
       temputs: Temputs,
+    life: LocationInFunctionEnvironment,
     range: RangeS,
-      params1: List[ParameterA],
-      params2: List[ParameterT]):
+      params1: Vector[ParameterA],
+      params2: Vector[ParameterT]):
   ReferenceExpressionTE = {
     val paramLookups2 =
       params2.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })
     val letExprs2 =
       delegate.translatePatternList(
-        temputs, fate, params1.map(_.pattern), paramLookups2);
+        temputs, fate, life, params1.map(_.pattern), paramLookups2);
 
     // todo: at this point, to allow for recursive calls, add a callable type to the environment
     // for everything inside the body to use

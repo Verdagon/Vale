@@ -1,31 +1,42 @@
-cd C:\Users\Valerian
 
-git clone https://github.com/ValeLang/Vale
+git clone --single-branch https://github.com/ValeLang/stdlib --branch master
 
-cd Vale/Valestrom
+cd Valestrom
 
-sbt assembly
+echo Compiling Valestrom...
+call sbt assembly
 
 cd ..
 
 cd Midas
 
-cmake -B build -D LLVM_DIR="C:\Users\Valerian\llvm11\lib\cmake\llvm"
+echo Generating Midas...
+cmake -B build -D LLVM_DIR="C:\llvm-install-minimum\lib\cmake\llvm"
 
 cd build
 
+echo Compiling Midas...
 cmake --build .
 
-cd ..
+cd ..\..\Driver
 
-copy C:\Users\Valerian\llvm11\Debug\bin\LLVM-C.dll .
+echo Compiling Driver...
+call build.bat
 
-python -m unittest -f -k assist
+cd ..\Tester
+
+echo Compiling Tester...
+call build.bat
+
+echo Running Tester...
+build\tester --valestrom_dir_override ..\Valestrom --midas_dir_override ..\Midas\build\Debug --builtins_dir_override ..\Midas\src\builtins --valec_dir_override ..\Driver\build --midas_tests_dir ..\Midas\test --concurrent 6 @assist
 
 cd ..\scripts
 
-package-windows.bat
+call package-windows.bat
 
 cd ..\release-windows
 
-zip ValeCompiler.zip *
+PATH=%PATH%;C:\Program Files\7-Zip
+PATH=%PATH%;C:\Program Files\7-Zip\7z.exe
+7z a ValeCompiler.zip *

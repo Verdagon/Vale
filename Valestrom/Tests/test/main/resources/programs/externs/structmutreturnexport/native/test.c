@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tmod/Thing.h"
+#include "vtest/Thing.h"
+#include "vtest/makeThing.h"
+#include "vtest/runExtCommand.h"
 
-extern tmod_ThingRef tmod_makeThing(ValeStr* a, ValeInt b);
-
-tmod_ThingRef tmod_runExtCommand() {
-  return tmod_makeThing(ValeStrFrom("hello"), 37);
+vtest_ThingRef vtest_runExtCommand() {
+  return vtest_makeThing(ValeStrFrom("hello"), 37);
 }

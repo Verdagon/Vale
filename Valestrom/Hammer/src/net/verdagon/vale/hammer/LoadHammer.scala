@@ -19,7 +19,7 @@ object LoadHammer {
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
       load2: SoftLoadTE):
-  (ExpressionH[KindH], List[ExpressionT]) = {
+  (ExpressionH[KindH], Vector[ExpressionT]) = {
     val SoftLoadTE(sourceExpr2, targetOwnership, targetPermission) = load2
 
     val (loadedAccessH, sourceDeferreds) =
@@ -60,7 +60,7 @@ object LoadHammer {
       indexExpr2: ReferenceExpressionTE,
       targetOwnershipT: t.OwnershipT,
       targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
     val targetPermission = Conversions.evaluatePermission(targetPermissionT)
 
@@ -108,7 +108,7 @@ object LoadHammer {
     indexExpr2: ReferenceExpressionTE,
     targetOwnershipT: t.OwnershipT,
     targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
     val targetPermission = Conversions.evaluatePermission(targetPermissionT)
 
@@ -158,7 +158,7 @@ object LoadHammer {
       expectedType2: CoordT,
       targetOwnershipT: t.OwnershipT,
       targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val (structResultLine, structDeferreds) =
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
@@ -224,7 +224,7 @@ object LoadHammer {
 //      resultCoord: Coord,
       targetOwnershipT: t.OwnershipT,
       targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val (structResultLine, structDeferreds) =
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
@@ -267,7 +267,7 @@ object LoadHammer {
       localReference2: CoordT,
       targetOwnershipT: t.OwnershipT,
       targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val local = locals.get(varId).get
     vassert(!locals.unstackifiedVars.contains(local.id))
 
@@ -299,7 +299,7 @@ object LoadHammer {
           localTypeH,
           loadResultType,
           NameHammer.addStep(hamuts, boxStructRefH.fullName, StructHammer.BOX_MEMBER_NAME))
-    (loadedNode, List.empty)
+    (loadedNode, Vector.empty)
   }
 
   def translateMundaneLocalLoad(
@@ -311,7 +311,7 @@ object LoadHammer {
       expectedType2: CoordT,
       targetOwnershipT: t.OwnershipT,
       targetPermissionT: t.PermissionT,
-  ): (ExpressionH[KindH], List[ExpressionT]) = {
+  ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
     val targetPermission = Conversions.evaluatePermission(targetPermissionT)
 
@@ -334,7 +334,7 @@ object LoadHammer {
           targetOwnership,
           targetPermission,
           NameHammer.translateFullName(hinputs, hamuts, varId))
-    (loadedNode, List.empty)
+    (loadedNode, Vector.empty)
   }
 
   def translateLocalAddress(
@@ -373,7 +373,7 @@ object LoadHammer {
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
       lookup2: AddressMemberLookupTE):
-  (ExpressionH[KindH], List[ExpressionT]) = {
+  (ExpressionH[KindH], Vector[ExpressionT]) = {
     val AddressMemberLookupTE(_,structExpr2, memberName, resultType2, _) = lookup2;
 
     val (structResultLine, structDeferreds) =

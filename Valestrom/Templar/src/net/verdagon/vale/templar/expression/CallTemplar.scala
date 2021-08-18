@@ -31,10 +31,11 @@ class CallTemplar(
   private def evaluateCall(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
+      life: LocationInFunctionEnvironment,
       range: RangeS,
       callableExpr: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS],
-      givenArgsExprs2: List[ReferenceExpressionTE]):
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     callableExpr.resultRegister.reference.kind match {
       case NeverT() | BoolT() => {
@@ -42,11 +43,11 @@ class CallTemplar(
       }
       case structTT @ StructTT(_) => {
         evaluateClosureCall(
-          fate, temputs, range, structTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
+          fate, temputs, life, range, structTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
       }
       case interfaceTT @ InterfaceTT(_) => {
         evaluateClosureCall(
-          fate, temputs, range, interfaceTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
+          fate, temputs, life, range, interfaceTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
       }
       case OverloadSet(_, functionName, _) => {
         val unconvertedArgsPointerTypes2 =
@@ -69,7 +70,7 @@ class CallTemplar(
               functionName,
               explicitlySpecifiedTemplateArgTemplexesS,
               argsParamFilters,
-              List.empty,
+              Vector.empty,
               false) match {
             case (seff @ ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
               throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
@@ -112,8 +113,8 @@ class CallTemplar(
     fate: FunctionEnvironment,
     range: RangeS,
     functionName: GlobalFunctionFamilyNameA,
-    explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS],
-    givenArgsExprs2: List[ReferenceExpressionTE]):
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val unconvertedArgsPointerTypes2 =
       givenArgsExprs2.map(_.resultRegister.expectReference().reference)
@@ -135,7 +136,7 @@ class CallTemplar(
         functionName,
         explicitlySpecifiedTemplateArgTemplexesS,
         argsParamFilters,
-        List.empty,
+        Vector.empty,
         false) match {
         case (seff @ ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
           ErrorReporter.report(CouldntFindFunctionToCallT(range, seff))
@@ -172,11 +173,12 @@ class CallTemplar(
   private def evaluateClosureCall(
       fate: FunctionEnvironmentBox,
       temputs: Temputs,
+      life: LocationInFunctionEnvironment,
       range: RangeS,
       citizenRef: CitizenRefT,
-      explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
       givenCallableUnborrowedExpr2: ReferenceExpressionTE,
-      givenArgsExprs2: List[ReferenceExpressionTE]):
+      givenArgsExprs2: Vector[ReferenceExpressionTE]):
       (FunctionCallTE) = {
     // Whether we're given a borrow or an own, the call itself will be given a borrow.
     val givenCallableBorrowExpr2 =
@@ -184,7 +186,7 @@ class CallTemplar(
         case CoordT(ConstraintT, _, _) => (givenCallableUnborrowedExpr2)
         case CoordT(ShareT, _, _) => (givenCallableUnborrowedExpr2)
         case CoordT(OwnT, _, _) => {
-          localHelper.makeTemporaryLocal(temputs, fate, givenCallableUnborrowedExpr2)
+          localHelper.makeTemporaryLocal(temputs, fate, life, givenCallableUnborrowedExpr2)
         }
       }
 
@@ -201,11 +203,11 @@ class CallTemplar(
         givenCallableUnborrowedExpr2.resultRegister.reference.permission,
         citizenRef)
     val paramFilters =
-      ParamFilter(closureParamType, None) ::
+      Vector(ParamFilter(closureParamType, None)) ++
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, range, GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME), explicitlySpecifiedTemplateArgTemplexesS, paramFilters, List.empty, false) match {
+        env, temputs, range, GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME), explicitlySpecifiedTemplateArgTemplexesS, paramFilters, Vector.empty, false) match {
         case ScoutExpectedFunctionSuccess(p) => p
         case seff @ ScoutExpectedFunctionFailure(_, _, _, _, _) => {
           throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
@@ -221,7 +223,7 @@ class CallTemplar(
     vassert(givenCallableBorrowExpr2.resultRegister.reference.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
 
-    val actualArgsExprs2 = actualCallableExpr2 :: givenArgsExprs2
+    val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
     val argTypes = actualArgsExprs2.map(_.resultRegister.reference)
     if (argTypes != prototype2.paramTypes) {
@@ -238,41 +240,35 @@ class CallTemplar(
 
   def checkTypes(
     temputs: Temputs,
-    params: List[CoordT],
-    args: List[CoordT],
+    params: Vector[CoordT],
+    args: Vector[CoordT],
     exact: Boolean):
   Unit = {
     vassert(params.size == args.size)
-    (params, args) match {
-      case (Nil, Nil) =>
-      case (paramsHead :: paramsTail, argsHead :: argsTail) => {
-          if (paramsHead == argsHead) {
+    params.zip(args).foreach({ case (paramsHead, argsHead) =>
+      if (paramsHead == argsHead) {
 
-          } else {
-            if (!exact) {
-              templataTemplar.isTypeConvertible(temputs, argsHead, paramsHead) match {
-                case (true) => {
+      } else {
+        if (!exact) {
+          templataTemplar.isTypeConvertible(temputs, argsHead, paramsHead) match {
+            case (true) => {
 
-                }
-                case (false) => {
-                  // do stuff here.
-                  // also there is one special case here, which is when we try to hand in
-                  // an owning when they just want a borrow, gotta account for that here
-                  vfail("do stuff " + argsHead + " and " + paramsHead)
-                }
-              }
-            } else {
+            }
+            case (false) => {
               // do stuff here.
               // also there is one special case here, which is when we try to hand in
               // an owning when they just want a borrow, gotta account for that here
               vfail("do stuff " + argsHead + " and " + paramsHead)
             }
           }
-        // It matches! Now check the rest.
-        checkTypes(temputs, paramsTail, argsTail, exact)
+        } else {
+          // do stuff here.
+          // also there is one special case here, which is when we try to hand in
+          // an owning when they just want a borrow, gotta account for that here
+          vfail("do stuff " + argsHead + " and " + paramsHead)
+        }
       }
-      case _ => vfail("wat")
-    }
+    })
 //    checkTypes(params.tail, args.tail)
 //    vassert(argTypes == callableType.paramTypes, "arg param type mismatch. params: " + callableType.paramTypes + " args: " + argTypes)
   }
@@ -280,13 +276,14 @@ class CallTemplar(
   def evaluatePrefixCall(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
     range: RangeS,
       callableReferenceExpr2: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS],
-      argsExprs2: List[ReferenceExpressionTE]):
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val callExpr =
-      evaluateCall(temputs, fate, range, callableReferenceExpr2, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
+      evaluateCall(temputs, fate, life, range, callableReferenceExpr2, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
     (callExpr)
   }
 
@@ -295,8 +292,8 @@ class CallTemplar(
     fate: FunctionEnvironmentBox,
     rangeS: RangeS,
     functionName: GlobalFunctionFamilyNameA,
-    explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS],
-    argsExprs2: List[ReferenceExpressionTE]):
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
   }

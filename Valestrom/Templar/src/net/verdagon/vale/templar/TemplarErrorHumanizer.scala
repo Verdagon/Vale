@@ -89,7 +89,7 @@ object TemplarErrorHumanizer {
         case ExternFunctionDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
           ": Extern function " + signature + " depends on kind " + nonExportedKind + " that wasn't exported from package " + paackage
         }
-        case ExportedKindDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
+        case ExportedImmutableKindDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
           ": Exported kind " + signature + " depends on kind " + nonExportedKind + " that wasn't exported from package " + paackage
         }
         case InitializedWrongNumberOfElements(range, expectedNumElements, numElementsInitialized) => {
@@ -283,7 +283,7 @@ object TemplarErrorHumanizer {
       reason.inferences.templatasByRune.map({ case (key, value) => repeatStr("  ", indentations) + "- " + key + " = " + value + "\n" }).mkString("") +
       reason.inferences.typeByRune
         .filter(x => !reason.inferences.templatasByRune.contains(x._1))
-        .map({ case (rune, _) => "  ".repeat(indentations) + "- " + rune + " = unknown" + "\n" }).mkString("") +
+        .map({ case (rune, _) => repeatStr("  ", indentations) + "- " + rune + " = unknown" + "\n" }).mkString("") +
       reason.causes.map(humanizeConflictCause(indentations + 1, codeMap, _)).mkString("")
   }
 }

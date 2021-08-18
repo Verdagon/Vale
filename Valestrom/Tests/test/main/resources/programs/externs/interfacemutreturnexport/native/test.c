@@ -2,13 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "tmod/IShip.h"
-#include "tmod/runExtCommand.h"
-#include "tmod/makeFirefly.h"
+#include "vtest/IShip.h"
+#include "vtest/runExtCommand.h"
+#include "vtest/makeFirefly.h"
 
-void tmod_runExtCommand(tmod_IShipRef* resultShipRefPtr) {
-  tmod_IShipRef shipRef = { 0 };
-  tmod_makeFirefly(&shipRef, 42);
-
-  *resultShipRefPtr = shipRef;
+vtest_IShipRef vtest_runExtCommand() {
+  return vtest_makeFirefly(42);
 }

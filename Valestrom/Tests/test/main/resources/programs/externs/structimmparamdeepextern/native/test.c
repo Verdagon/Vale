@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "tmod/Spigglewigget.h"
-#include "tmod/Bogglewoggle.h"
-#include "tmod/Flamscrankle.h"
+#include "vtest/Spigglewigget.h"
+#include "vtest/Bogglewoggle.h"
+#include "vtest/Flamscrankle.h"
+#include "vtest/extFunc_vasp.h"
 
 size_t nextMultipleOf16(size_t x) {
   return ((x - 1) | 15) + 1;
@@ -15,7 +16,7 @@ size_t floorMultipleOf16(size_t x) {
   return x & ~0xF;
 }
 
-ValeInt tmod_extFunc(tmod_Flamscrankle* flam) {
+ValeInt vtest_extFunc_vasp(vtest_Flamscrankle* flam, ValeInt flamMessageSize) {
   // Make sure the root pointer is at a multiple of 16.
   // If this fails, that means we have a bug, or malloc is breaking our assumptions
   // about alignment.
@@ -26,24 +27,24 @@ ValeInt tmod_extFunc(tmod_Flamscrankle* flam) {
 
   size_t flamAddr = (size_t)(void*)flam;
   // AP = And Padding; to get the next multiple of 16 from the end of the Flamscrankle.
-  size_t flamAPEndAddr = nextMultipleOf16(flamAddr + sizeof(tmod_Flamscrankle));
+  size_t flamAPEndAddr = nextMultipleOf16(flamAddr + sizeof(vtest_Flamscrankle));
 
-  // The root object (Flamscrankle here) always has a 16B "metadata block" before it, which contains
-  // the start address and the size of the message.
-  size_t rootMetadataAPEndAddr = flamAddr;
-  size_t rootMetadataAddr = floorMultipleOf16(rootMetadataAPEndAddr - 16);
+//  // The root object (Flamscrankle here) always has a 16B "metadata block" before it, which contains
+//  // the start address and the size of the message.
+//  size_t rootMetadataAPEndAddr = flamAddr;
+//  size_t rootMetadataAddr = floorMultipleOf16(rootMetadataAPEndAddr - 16);
 
-  // Bogglewoggle is before the Flamscrankle, but at a multiple of 16.
-  size_t bogAPEndAddr = rootMetadataAddr;
-  size_t bogAddr = floorMultipleOf16(bogAPEndAddr - sizeof(tmod_Bogglewoggle));
+  // Bogglewoggle is after the Flamscrankle, but at a multiple of 16.
+  size_t bogAddr = flamAPEndAddr;
+  size_t bogAPEndAddr = nextMultipleOf16(bogAddr + sizeof(vtest_Bogglewoggle));
 
-  // Spigglewigget is before the Bogglewoggle, but at a multiple of 16.
-  size_t spigAPEndAddr = bogAddr;
-  size_t spigAddr = floorMultipleOf16(spigAPEndAddr - sizeof(tmod_Spigglewigget));
+  // Spigglewigget is after the Bogglewoggle, but at a multiple of 16.
+  size_t spigAddr = bogAPEndAddr;
+  size_t spigAPEndAddr = nextMultipleOf16(spigAddr + sizeof(vtest_Spigglewigget));
 
-  // Start metadata is before the Spigglewigget, but at a multiple of 16.
-  size_t startMetadataAPEndAddr = spigAddr;
-  size_t startMetadataAddr = floorMultipleOf16(startMetadataAPEndAddr - 24);
+//  // Start metadata is before the Spigglewigget, but at a multiple of 16.
+//  size_t startMetadataAPEndAddr = spigAddr;
+//  size_t startMetadataAddr = floorMultipleOf16(startMetadataAPEndAddr - 24);
 
   {
     // The things in this block more just test the test itself, but thats fine.
@@ -63,20 +64,9 @@ ValeInt tmod_extFunc(tmod_Flamscrankle* flam) {
   ValeInt result = flam->x + flam->b->s->x + flam->b->s->y + flam->b->s->z + flam->b->x + flam->y;
   assert(result == 42);
 
-  size_t startAddrFromRootMetadata = ((uint64_t*)(void*)rootMetadataAddr)[0];
-  assert(startAddrFromRootMetadata == startMetadataAddr);
-  size_t sizeFromRootMetadata = ((uint64_t*)(void*)rootMetadataAddr)[1];
-  assert(startMetadataAddr + sizeFromRootMetadata == flamAPEndAddr);
+  // Tests the _vasp suffix gave us the right message size, see SASP.
+  assert(flamMessageSize == (spigAPEndAddr - flamAddr));
 
-  // Make sure the metadata block has the correct size in it, which should be the size of all of them
-  // and the metadata block and the padding after each.
-  uint64_t sizeFromStartMetadata = ((uint64_t*)(void*)startMetadataAddr)[0];
-  assert(sizeFromStartMetadata == sizeFromRootMetadata);
-  uint64_t startAddrFromStartMetadata = ((uint64_t*)(void*)startMetadataAddr)[1];
-  assert(startAddrFromStartMetadata == startAddrFromRootMetadata);
-  uint64_t rootAddrFromStartMetadata = ((uint64_t*)(void*)startMetadataAddr)[2];
-  assert(rootAddrFromStartMetadata == flamAddr);
-
-  ValeReleaseMessage(flam);
+  free(flam);
   return result;
 }

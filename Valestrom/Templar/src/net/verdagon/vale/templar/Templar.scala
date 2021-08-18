@@ -27,10 +27,11 @@ trait IFunctionGenerator {
     destructorTemplar: DestructorTemplar,
     env: FunctionEnvironment,
     temputs: Temputs,
+    life: LocationInFunctionEnvironment,
     callRange: RangeS,
     // We might be able to move these all into the function environment... maybe....
     originFunction: Option[FunctionA],
-    paramCoords: List[ParameterT],
+    paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT)
 }
@@ -42,13 +43,15 @@ case class TemplarOptions(
   }),
   verboseErrors: Boolean = false,
   useOptimization: Boolean = false,
-)
+) {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
 
 
 
 class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler, useOptimization: Boolean) {
   val generatedFunctions =
-    List(
+    Vector(
       DestructorTemplar.addConcreteDestructor(MutableT),
       DestructorTemplar.addConcreteDestructor(ImmutableT),
       DestructorTemplar.addInterfaceDestructor(MutableT),
@@ -75,13 +78,14 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           destructorTemplar: DestructorTemplar,
           namedEnv: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
-          paramCoords: List[ParameterT],
+          paramCoords: Vector[ParameterT],
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, List.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
           temputs.addFunction(
             FunctionT(
@@ -98,13 +102,14 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           destructorTemplar: DestructorTemplar,
           namedEnv: FunctionEnvironment,
           temputs: Temputs,
+          life: LocationInFunctionEnvironment,
           callRange: RangeS,
           maybeOriginFunction1: Option[FunctionA],
-          paramCoords: List[ParameterT],
+          paramCoords: Vector[ParameterT],
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, List.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
           val sourceKind = vassertSome(paramCoords.headOption).tyype.kind
@@ -154,7 +159,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
                 if (sourceStruct == targetStruct) {
                   FunctionCallTE(
                     okConstructor,
-                    List(ArgLookupTE(0, incomingCoord)))
+                    Vector(ArgLookupTE(0, incomingCoord)))
                 } else {
                   throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
                 }
@@ -186,11 +191,11 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           ancestorHelper.getAncestorInterfaceDistance(temputs, descendantCitizenRef, ancestorInterfaceRef)
         }
 
-        override def getStructRef(temputs: Temputs, callRange: RangeS,structTemplata: StructTemplata, uncoercedTemplateArgs: List[ITemplata]): StructTT = {
+        override def getStructRef(temputs: Temputs, callRange: RangeS,structTemplata: StructTemplata, uncoercedTemplateArgs: Vector[ITemplata]): StructTT = {
           structTemplar.getStructRef(temputs, callRange, structTemplata, uncoercedTemplateArgs)
         }
 
-        override def getInterfaceRef(temputs: Temputs, callRange: RangeS,interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: List[ITemplata]): InterfaceTT = {
+        override def getInterfaceRef(temputs: Temputs, callRange: RangeS,interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata]): InterfaceTT = {
           structTemplar.getInterfaceRef(temputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
 
@@ -209,7 +214,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           arrayTemplar.getRuntimeSizedArrayKind(env, state, element, arrayMutability, arrayVariability)
         }
 
-        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT = {
+        override def getTupleKind(env: IEnvironment, state: Temputs, elements: Vector[CoordT]): StructTT = {
           val (tuple, mutability) = sequenceTemplar.makeTupleType(env, state, elements)
           tuple
         }
@@ -229,7 +234,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        override def lookupMemberTypes(state: Temputs, kind: KindT, expectedNumMembers: Int): Option[List[CoordT]] = {
+        override def lookupMemberTypes(state: Temputs, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
           profiler.childFrame("InferTemplarDelegate.lookupMemberTypes", () => {
             val underlyingstructTT =
               kind match {
@@ -270,7 +275,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        //      override def getPackKind(env: IEnvironment, state: Temputs, members: List[Coord]): (PackT2, Mutability) = {
+        //      override def getPackKind(env: IEnvironment, state: Temputs, members: Vector[Coord]): (PackT2, Mutability) = {
         //        PackTemplar.makePackType(env.globalEnv, state, members)
         //      }
 
@@ -286,7 +291,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        override def getTupleKind(env: IEnvironment, state: Temputs, elements: List[CoordT]): StructTT = {
+        override def getTupleKind(env: IEnvironment, state: Temputs, elements: Vector[CoordT]): StructTT = {
           profiler.childFrame("InferTemplarDelegate.getTupleKind", () => {
             val (tuple, mutability) = sequenceTemplar.makeTupleType(env, state, elements)
             tuple
@@ -297,7 +302,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           state: Temputs,
           callRange: RangeS,
           templata: InterfaceTemplata,
-          templateArgs: List[ITemplata]):
+          templateArgs: Vector[ITemplata]):
         (KindT) = {
           profiler.childFrame("InferTemplarDelegate.evaluateInterfaceTemplata", () => {
             structTemplar.getInterfaceRef(state, callRange, templata, templateArgs)
@@ -308,7 +313,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           state: Temputs,
           callRange: RangeS,
           templata: StructTemplata,
-          templateArgs: List[ITemplata]):
+          templateArgs: Vector[ITemplata]):
         (KindT) = {
           profiler.childFrame("InferTemplarDelegate.evaluateStructTemplata", () => {
             structTemplar.getStructRef(state, callRange, templata, templateArgs)
@@ -328,7 +333,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        override def getMemberCoords(state: Temputs, structTT: StructTT): List[CoordT] = {
+        override def getMemberCoords(state: Temputs, structTT: StructTT): Vector[CoordT] = {
           profiler.childFrame("InferTemplarDelegate.getMemberCoords", () => {
             structTemplar.getMemberCoords(state, structTT)
           })
@@ -354,9 +359,9 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
         }
 
-        override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: List[CoordT]): PrototypeT = {
+        override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {
           profiler.childFrame("InferTemplarDelegate.resolveExactSignature", () => {
-            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameA(name), List.empty, coords.map(ParamFilter(_, None)), List.empty, true) match {
+            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameA(name), Vector.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
               case sef@ScoutExpectedFunctionFailure(humanName, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction) => {
                 throw new CompileErrorExceptionT(CouldntFindFunctionToCallT(range, sef))
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, sef.toString))
@@ -377,7 +382,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
 
   val ancestorHelper: AncestorHelper =
     new AncestorHelper(opts, profiler, inferTemplar, new IAncestorHelperDelegate {
-      override def getInterfaceRef(temputs: Temputs, callRange: RangeS, interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: List[ITemplata]): InterfaceTT = {
+      override def getInterfaceRef(temputs: Temputs, callRange: RangeS, interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata]): InterfaceTT = {
         structTemplar.getInterfaceRef(temputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
       }
     })
@@ -395,7 +400,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameStepA, explicitlySpecifiedTemplateArgTemplexesS: List[ITemplexS], args: List[ParamFilter], extraEnvsToLookIn: List[IEnvironment], exact: Boolean):
+          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameStepA, explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
         OverloadTemplar.IScoutExpectedFunctionResult = {
           overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName, explicitlySpecifiedTemplateArgTemplexesS, args, extraEnvsToLookIn, exact)
         }
@@ -424,13 +429,20 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         temputs: Temputs,
         startingFate: FunctionEnvironment,
         fate: FunctionEnvironmentBox,
-        exprs: List[IExpressionAE]
+        life: LocationInFunctionEnvironment,
+        exprs: Vector[IExpressionAE]
     ): (ReferenceExpressionTE, Set[CoordT]) = {
-      expressionTemplar.evaluateBlockStatements(temputs, startingFate, fate, exprs)
+      expressionTemplar.evaluateBlockStatements(temputs, startingFate, fate, life, exprs)
     }
 
-    override def translatePatternList(temputs: Temputs, fate: FunctionEnvironmentBox, patterns1: List[AtomAP], patternInputExprs2: List[ReferenceExpressionTE]): ReferenceExpressionTE = {
-      expressionTemplar.translatePatternList(temputs, fate, patterns1, patternInputExprs2)
+    override def translatePatternList(
+      temputs: Temputs,
+      fate: FunctionEnvironmentBox,
+      life: LocationInFunctionEnvironment,
+      patterns1: Vector[AtomAP],
+      patternInputExprs2: Vector[ReferenceExpressionTE]
+    ): ReferenceExpressionTE = {
+      expressionTemplar.translatePatternList(temputs, fate, life, patterns1, patternInputExprs2)
     }
 
     override def evaluateParent(env: IEnvironment, temputs: Temputs, sparkHeader: FunctionHeaderT): Unit = {
@@ -442,13 +454,14 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       generator: IFunctionGenerator,
       fullEnv: FunctionEnvironment,
       temputs: Temputs,
+      life: LocationInFunctionEnvironment,
       callRange: RangeS,
       originFunction: Option[FunctionA],
-      paramCoords: List[ParameterT],
+      paramCoords: Vector[ParameterT],
       maybeRetCoord: Option[CoordT]):
     FunctionHeaderT = {
       generator.generate(
-        functionTemplarCore, structTemplar, destructorTemplar, fullEnv, temputs, callRange, originFunction, paramCoords, maybeRetCoord)
+        functionTemplarCore, structTemplar, destructorTemplar, fullEnv, temputs, life, callRange, originFunction, paramCoords, maybeRetCoord)
     }
   })
   val overloadTemplar: OverloadTemplar = new OverloadTemplar(opts, profiler, templataTemplar, inferTemplar, functionTemplar)
@@ -488,7 +501,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       destructorTemplar,
       convertHelper,
       new IExpressionTemplarDelegate {
-        override def evaluateTemplatedFunctionFromCallForPrototype(temputs: Temputs, callRange: RangeS, functionTemplata: FunctionTemplata, explicitTemplateArgs: List[ITemplata], args: List[ParamFilter]): FunctionTemplar.IEvaluateFunctionResult[PrototypeT] = {
+        override def evaluateTemplatedFunctionFromCallForPrototype(temputs: Temputs, callRange: RangeS, functionTemplata: FunctionTemplata, explicitTemplateArgs: Vector[ITemplata], args: Vector[ParamFilter]): FunctionTemplar.IEvaluateFunctionResult[PrototypeT] = {
           functionTemplar.evaluateTemplatedFunctionFromCallForPrototype(temputs, callRange, functionTemplata, explicitTemplateArgs, args)
         }
 
@@ -511,19 +524,19 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         val env0 =
           PackageEnvironment(
             None,
-            FullNameT(PackageCoordinate.BUILTIN, List.empty, PackageTopLevelNameT()),
+            FullNameT(PackageCoordinate.BUILTIN, Vector.empty, PackageTopLevelNameT()),
             newTemplataStore()
                 .addEntries(
                   opts.useOptimization,
                   Map(
-                    PrimitiveNameT("int") -> List(TemplataEnvEntry(KindTemplata(IntT.i32))),
-                    PrimitiveNameT("i64") -> List(TemplataEnvEntry(KindTemplata(IntT.i64))),
-                    PrimitiveNameT("Array") -> List(TemplataEnvEntry(ArrayTemplateTemplata())),
-                    PrimitiveNameT("bool") -> List(TemplataEnvEntry(KindTemplata(BoolT()))),
-                    PrimitiveNameT("float") -> List(TemplataEnvEntry(KindTemplata(FloatT()))),
-                    PrimitiveNameT("__Never") -> List(TemplataEnvEntry(KindTemplata(NeverT()))),
-                    PrimitiveNameT("str") -> List(TemplataEnvEntry(KindTemplata(StrT()))),
-                    PrimitiveNameT("void") -> List(TemplataEnvEntry(KindTemplata(VoidT()))))))
+                    PrimitiveNameT("int") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i32))),
+                    PrimitiveNameT("i64") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i64))),
+                    PrimitiveNameT("Array") -> Vector(TemplataEnvEntry(ArrayTemplateTemplata())),
+                    PrimitiveNameT("bool") -> Vector(TemplataEnvEntry(KindTemplata(BoolT()))),
+                    PrimitiveNameT("float") -> Vector(TemplataEnvEntry(KindTemplata(FloatT()))),
+                    PrimitiveNameT("__Never") -> Vector(TemplataEnvEntry(KindTemplata(NeverT()))),
+                    PrimitiveNameT("str") -> Vector(TemplataEnvEntry(KindTemplata(StrT()))),
+                    PrimitiveNameT("void") -> Vector(TemplataEnvEntry(KindTemplata(VoidT()))))))
         val env1b =
           BuiltInFunctions.builtIns.foldLeft(env0)({
             case (env1a, builtIn) => {
@@ -585,7 +598,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
               if (isRootStruct(structS)) {
                 val _ =
                   structTemplar.getStructRef(
-                    temputs, structS.range, StructTemplata.make(env11, structS), List.empty)
+                    temputs, structS.range, StructTemplata.make(env11, structS), Vector.empty)
               }
             }
           }
@@ -599,7 +612,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
               if (isRootInterface(interfaceS)) {
                 val _ =
                   structTemplar.getInterfaceRef(
-                    temputs, interfaceS.range, InterfaceTemplata.make(env11, interfaceS), List.empty)
+                    temputs, interfaceS.range, InterfaceTemplata.make(env11, interfaceS), Vector.empty)
               }
             }
           }
@@ -678,7 +691,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           })
 
         // NEVER ZIP TWO SETS TOGETHER
-        val edgeBlueprintsAsList = edgeBlueprints.toList
+        val edgeBlueprintsAsList = edgeBlueprints.toVector
         val edgeBlueprintsByInterface = edgeBlueprintsAsList.map(_.interface).zip(edgeBlueprintsAsList).toMap;
 
         edgeBlueprintsByInterface.foreach({ case (interfaceTT, edgeBlueprint) =>
@@ -690,54 +703,54 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         val reachables = Reachability.findReachables(temputs, edgeBlueprintsAsList, edges)
 
         val categorizedFunctions = temputs.getAllFunctions().groupBy(f => reachables.functions.contains(f.header.toSignature))
-        val reachableFunctions = categorizedFunctions.getOrElse(true, List.empty)
-        val unreachableFunctions = categorizedFunctions.getOrElse(false, List.empty)
+        val reachableFunctions = categorizedFunctions.getOrElse(true, Vector.empty)
+        val unreachableFunctions = categorizedFunctions.getOrElse(false, Vector.empty)
         unreachableFunctions.foreach(f => debugOut("Shaking out unreachable: " + f.header.fullName))
         reachableFunctions.foreach(f => debugOut("Including: " + f.header.fullName))
 
         val categorizedSSAs = temputs.getAllStaticSizedArrays().groupBy(f => reachables.staticSizedArrays.contains(f))
-        val reachableSSAs = categorizedSSAs.getOrElse(true, List.empty)
-        val unreachableSSAs = categorizedSSAs.getOrElse(false, List.empty)
+        val reachableSSAs = categorizedSSAs.getOrElse(true, Vector.empty)
+        val unreachableSSAs = categorizedSSAs.getOrElse(false, Vector.empty)
         unreachableSSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
         reachableSSAs.foreach(f => debugOut("Including: " + f))
 
         val categorizedRSAs = temputs.getAllRuntimeSizedArrays().groupBy(f => reachables.runtimeSizedArrays.contains(f))
-        val reachableRSAs = categorizedRSAs.getOrElse(true, List.empty)
-        val unreachableRSAs = categorizedRSAs.getOrElse(false, List.empty)
+        val reachableRSAs = categorizedRSAs.getOrElse(true, Vector.empty)
+        val unreachableRSAs = categorizedRSAs.getOrElse(false, Vector.empty)
         unreachableRSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
         reachableRSAs.foreach(f => debugOut("Including: " + f))
 
         val categorizedStructs = temputs.getAllStructs().groupBy(f => reachables.structs.contains(f.getRef))
-        val reachableStructs = categorizedStructs.getOrElse(true, List.empty)
-        val unreachableStructs = categorizedStructs.getOrElse(false, List.empty)
+        val reachableStructs = categorizedStructs.getOrElse(true, Vector.empty)
+        val unreachableStructs = categorizedStructs.getOrElse(false, Vector.empty)
         unreachableStructs.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
         reachableStructs.foreach(f => debugOut("Including: " + f.fullName))
 
         val categorizedInterfaces = temputs.getAllInterfaces().groupBy(f => reachables.interfaces.contains(f.getRef))
-        val reachableInterfaces = categorizedInterfaces.getOrElse(true, List.empty)
-        val unreachableInterfaces = categorizedInterfaces.getOrElse(false, List.empty)
+        val reachableInterfaces = categorizedInterfaces.getOrElse(true, Vector.empty)
+        val unreachableInterfaces = categorizedInterfaces.getOrElse(false, Vector.empty)
         unreachableInterfaces.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
         reachableInterfaces.foreach(f => debugOut("Including: " + f.fullName))
 
         val categorizedEdges = edges.groupBy(f => reachables.edges.contains(f))
-        val reachableEdges = categorizedEdges.getOrElse(true, List.empty)
-        val unreachableEdges = categorizedEdges.getOrElse(false, List.empty)
+        val reachableEdges = categorizedEdges.getOrElse(true, Vector.empty)
+        val unreachableEdges = categorizedEdges.getOrElse(false, Vector.empty)
         unreachableEdges.foreach(f => debugOut("Shaking out unreachable: " + f))
         reachableEdges.foreach(f => debugOut("Including: " + f))
 
         val reachableKinds = (reachableStructs.map(_.getRef) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs).toSet[KindT]
         val categorizedDestructors = temputs.getKindToDestructorMap().groupBy({ case (kind, destructor) => reachableKinds.contains(kind) })
-        val reachableDestructors = categorizedDestructors.getOrElse(true, List.empty)
-        val unreachableDestructors = categorizedDestructors.getOrElse(false, List.empty)
+        val reachableDestructors = categorizedDestructors.getOrElse(true, Vector.empty)
+        val unreachableDestructors = categorizedDestructors.getOrElse(false, Vector.empty)
         unreachableDestructors.foreach(f => debugOut("Shaking out unreachable: " + f))
         reachableDestructors.foreach(f => debugOut("Including: " + f))
 
         val hinputs =
           Hinputs(
-            reachableInterfaces.toList,
-            reachableStructs.toList,
+            reachableInterfaces.toVector,
+            reachableStructs.toVector,
             Program2.emptyTupleStructRef,
-            reachableFunctions.toList,
+            reachableFunctions.toVector,
             reachableDestructors.toMap,
             edgeBlueprintsByInterface,
             edges,
@@ -762,8 +775,8 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           _.map(x => (x._2, x._3))
             .groupBy(_._1)
             .mapValues({
-              case Nil => vwat()
-              case List(only) => only
+              case Vector() => vwat()
+              case Vector(only) => only
               case multiple => {
                 val exports = multiple.map(_._2)
                 throw CompileErrorExceptionT(
@@ -776,7 +789,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
 
     temputs.getFunctionExports.foreach(funcExport => {
       val exportedKindToExport = packageToKindToExport.getOrElse(funcExport.packageCoordinate, Map())
-      (funcExport.prototype.returnType :: funcExport.prototype.paramTypes)
+      (Vector(funcExport.prototype.returnType) ++ funcExport.prototype.paramTypes)
         .foreach(paramType => {
           if (!Templar.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
             throw CompileErrorExceptionT(
@@ -787,7 +800,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
     })
     temputs.getFunctionExterns.foreach(functionExtern => {
       val exportedKindToExport = packageToKindToExport.getOrElse(functionExtern.packageCoordinate, Map())
-      (functionExtern.prototype.returnType :: functionExtern.prototype.paramTypes)
+      (Vector(functionExtern.prototype.returnType) ++ functionExtern.prototype.paramTypes)
         .foreach(paramType => {
           if (!Templar.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
             throw CompileErrorExceptionT(
@@ -803,24 +816,24 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
             val structDef = temputs.getStructDefForRef(sr)
             structDef.members.foreach({ case StructMemberT(_, _, member) =>
               val CoordT(_, _, memberKind) = member.reference
-              if (!Templar.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
+              if (structDef.mutability == ImmutableT && !Templar.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
                 throw CompileErrorExceptionT(
-                  ExportedKindDependedOnNonExportedKind(
+                  ExportedImmutableKindDependedOnNonExportedKind(
                     export.range, packageCoord, exportedKind, memberKind))
               }
             })
           }
-          case StaticSizedArrayTT(_, RawArrayTT(CoordT(_, _, elementKind), _, _)) => {
-            if (!Templar.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
+          case StaticSizedArrayTT(_, RawArrayTT(CoordT(_, _, elementKind), mutability, _)) => {
+            if (mutability == ImmutableT && !Templar.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
-                ExportedKindDependedOnNonExportedKind(
+                ExportedImmutableKindDependedOnNonExportedKind(
                   export.range, packageCoord, exportedKind, elementKind))
             }
           }
-          case RuntimeSizedArrayTT(RawArrayTT(CoordT(_, _, elementKind), _, _)) => {
-            if (!Templar.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
+          case RuntimeSizedArrayTT(RawArrayTT(CoordT(_, _, elementKind), mutability, _)) => {
+            if (mutability == ImmutableT && !Templar.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
-                ExportedKindDependedOnNonExportedKind(
+                ExportedImmutableKindDependedOnNonExportedKind(
                   export.range, packageCoord, exportedKind, elementKind))
             }
           }
@@ -909,8 +922,8 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       profiler.childFrame("assemble partial edges", () => {
         val partialEdges = EdgeTemplar.assemblePartialEdges(temputs)
         partialEdges.flatMap(e => e.methods.flatMap({
-          case n @ NeededOverride(_, _) => List(n)
-          case FoundFunction(_) => List.empty
+          case n @ NeededOverride(_, _) => Vector(n)
+          case FoundFunction(_) => Vector.empty
         }))
       })
 
@@ -925,9 +938,9 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           temputs,
           RangeS.internal(-1900),
           neededOverride.name,
-          List.empty, // No explicitly specified ones. It has to be findable just by param filters.
+          Vector.empty, // No explicitly specified ones. It has to be findable just by param filters.
           neededOverride.paramFilters,
-          List.empty,
+          Vector.empty,
           true) match {
           case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
             throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find function for vtable!\n" + seff.toString))
@@ -943,15 +956,15 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
 
 object Templar {
   // Flattens any nested ConsecutorTEs
-  def consecutive(exprs: List[ReferenceExpressionTE]): ReferenceExpressionTE = {
+  def consecutive(exprs: Vector[ReferenceExpressionTE]): ReferenceExpressionTE = {
     exprs match {
-      case Nil => vwat("Shouldn't have zero-element consecutors!")
-      case List(only) => only
+      case Vector() => vwat("Shouldn't have zero-element consecutors!")
+      case Vector(only) => only
       case _ => {
         ConsecutorTE(
           exprs.flatMap({
             case ConsecutorTE(exprs) => exprs
-            case other => List(other)
+            case other => Vector(other)
           }))
       }
     }
@@ -967,8 +980,8 @@ object Templar {
     }
   }
 
-  def getMutabilities(temputs: Temputs, concreteValues2: List[KindT]):
-  List[MutabilityT] = {
+  def getMutabilities(temputs: Temputs, concreteValues2: Vector[KindT]):
+  Vector[MutabilityT] = {
     concreteValues2.map(concreteValue2 => getMutability(temputs, concreteValue2))
   }
 

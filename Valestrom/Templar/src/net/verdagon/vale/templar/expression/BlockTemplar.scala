@@ -13,6 +13,7 @@ trait IBlockTemplarDelegate {
   def evaluateAndCoerceToReferenceExpression(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
     expr1: IExpressionAE):
   (ReferenceExpressionTE, Set[CoordT])
 }
@@ -34,28 +35,30 @@ class BlockTemplar(
   def evaluateBlock(
     parentFate: FunctionEnvironmentBox,
     temputs: Temputs,
+    life: LocationInFunctionEnvironment,
     block1: BlockAE):
-  (BlockTE, Set[FullNameT[IVarNameT]], Int, Set[CoordT]) = {
+  (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
     val fate = parentFate.makeChildEnvironment(newTemplataStore)
     val startingFate = fate.snapshot
 
     val (expressionsWithResult, returnsFromExprs) =
-      evaluateBlockStatements(temputs, startingFate, fate, block1.exprs)
+      evaluateBlockStatements(temputs, startingFate, fate, life, block1.exprs)
 
     val block2 = BlockTE(expressionsWithResult)
 
-    val (unstackifiedAncestorLocals, varCountersUsed) = fate.getEffects()
-    (block2, unstackifiedAncestorLocals, varCountersUsed, returnsFromExprs)
+    val (unstackifiedAncestorLocals) = fate.getEffects()
+    (block2, unstackifiedAncestorLocals, returnsFromExprs)
   }
 
   def evaluateBlockStatements(
     temputs: Temputs,
     startingFate: FunctionEnvironment,
     fate: FunctionEnvironmentBox,
-    exprs: List[IExpressionAE]):
+    life: LocationInFunctionEnvironment,
+    exprs: Vector[IExpressionAE]):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedExpressions, returnsFromExprs) =
-      evaluateBlockStatementsInner(temputs, fate, exprs);
+      evaluateBlockStatementsInner(temputs, fate, life + 0, exprs.toList);
 
     val unreversedVariablesToDestruct = getUnmovedVariablesIntroducedSince(startingFate, fate)
 
@@ -81,7 +84,7 @@ class BlockTemplar(
         unresultifiedUndestructedExpressions ++ moots
       } else {
         val (resultifiedExpressions, resultLocalVariable) =
-          resultifyExpressions(fate, unresultifiedUndestructedExpressions)
+          resultifyExpressions(fate, life + 1, unresultifiedUndestructedExpressions.toVector)
 
         val reversedVariablesToDestruct = unreversedVariablesToDestruct.reverse
         // Dealiasing should be done by hammer. But destructors are done here
@@ -90,13 +93,13 @@ class BlockTemplar(
         (resultifiedExpressions ++ destroyExpressions) :+ localHelper.unletLocal(fate, resultLocalVariable)
       }
 
-    (Templar.consecutive(newExpressionsList), returnsFromExprs)
+    (Templar.consecutive(newExpressionsList.toVector), returnsFromExprs)
   }
 
   def getUnmovedVariablesIntroducedSince(
     sinceFate: FunctionEnvironment,
     currentFate: FunctionEnvironmentBox):
-  List[ILocalVariableT] = {
+  Vector[ILocalVariableT] = {
     val localsAsOfThen =
       sinceFate.locals.collect({
         case x @ ReferenceLocalVariableT(_, _, _) => x
@@ -122,12 +125,14 @@ class BlockTemplar(
   // Dont call this for void or never or no expressions.
   // Maybe someday we can do this even for Never and Void, for consistency and so
   // we dont have any special casing.
-  def resultifyExpressions(fate: FunctionEnvironmentBox, exprs: List[ReferenceExpressionTE]):
-  (List[ReferenceExpressionTE], ReferenceLocalVariableT) = {
+  def resultifyExpressions(
+    fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
+    exprs: Vector[ReferenceExpressionTE]):
+  (Vector[ReferenceExpressionTE], ReferenceLocalVariableT) = {
     vassert(exprs.nonEmpty)
     val lastExpr = exprs.last
-    val resultVarNum = fate.nextVarCounter()
-    val resultVarId = fate.fullName.addStep(TemplarBlockResultVarNameT(resultVarNum))
+    val resultVarId = fate.fullName.addStep(TemplarBlockResultVarNameT(life))
     val resultVariable = ReferenceLocalVariableT(resultVarId, FinalT, lastExpr.resultRegister.reference)
     val resultLet = LetNormalTE(resultVariable, lastExpr)
     fate.addVariable(resultVariable)
@@ -137,14 +142,15 @@ class BlockTemplar(
   private def evaluateBlockStatementsInner(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
+    life: LocationInFunctionEnvironment,
     expr1: List[IExpressionAE]):
   (List[ReferenceExpressionTE], Set[CoordT]) = {
     expr1 match {
-      case Nil => (List.empty, Set())
+      case Nil => (Nil, Set())
       case first1 :: rest1 => {
         val (perhapsUndestructedFirstExpr2, returnsFromFirst) =
           delegate.evaluateAndCoerceToReferenceExpression(
-            temputs, fate, first1);
+            temputs, fate, life + 0, first1);
 
         val destructedFirstExpr2 =
           if (rest1.isEmpty) {
@@ -160,7 +166,7 @@ class BlockTemplar(
           }
 
         val (restExprs2, returnsFromRest) =
-          evaluateBlockStatementsInner(temputs, fate, rest1)
+          evaluateBlockStatementsInner(temputs, fate, life + 1, rest1)
 
         (destructedFirstExpr2 +: restExprs2, returnsFromFirst ++ returnsFromRest)
       }
@@ -170,15 +176,10 @@ class BlockTemplar(
   def mootAll(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
-    variables: List[ILocalVariableT]):
-  (List[ReferenceExpressionTE]) = {
-    variables match {
-      case Nil => (List.empty)
-      case head :: tail => {
-        val unlet = UnreachableMootTE(localHelper.unletLocal(fate, head))
-        val tailExprs2 = mootAll(temputs, fate, tail)
-        (unlet :: tailExprs2)
-      }
-    }
+    variables: Vector[ILocalVariableT]):
+  (Vector[ReferenceExpressionTE]) = {
+    variables.map({ case head =>
+      UnreachableMootTE(localHelper.unletLocal(fate, head))
+    })
   }
 }

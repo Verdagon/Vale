@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "tmod/MutIntArray.h"
-#include "tmod/valeMakeSSA.h"
-#include "tmod/cMakeSSA.h"
+#include "vtest/MutIntArray.h"
+#include "vtest/valeMakeSSA.h"
+#include "vtest/cMakeSSA.h"
 
-void tmod_cMakeSSA(tmod_MutIntArrayRef* result) {
-  tmod_valeMakeSSA(result);
+vtest_MutIntArrayRef vtest_cMakeSSA() {
+  return vtest_valeMakeSSA();
 }

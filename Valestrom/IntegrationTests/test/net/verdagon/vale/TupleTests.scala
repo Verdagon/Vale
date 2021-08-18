@@ -25,7 +25,7 @@ class TupleTests extends FunSuite with Matchers {
     temputs.lookupFunction("main").header.returnType.kind shouldEqual IntT.i32
     // Funny story, theres no such thing as a one element tuple! It becomes a one element array.
     temputs.lookupFunction("main").only({
-      case StructTT(FullNameT(_, _, TupleNameT(List(_)))) =>
+      case StructTT(FullNameT(_, _, TupleNameT(Vector(_)))) =>
     })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(9)

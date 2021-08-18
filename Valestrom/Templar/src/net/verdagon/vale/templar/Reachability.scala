@@ -18,7 +18,7 @@ class Reachables(
 }
 
 object Reachability {
-  def findReachables(program: Temputs, edgeBlueprints: List[InterfaceEdgeBlueprint], edges: List[EdgeT]): Reachables = {
+  def findReachables(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT]): Reachables = {
     val structs = program.getAllStructs()
     val interfaces = program.getAllInterfaces()
     val functions = program.getAllFunctions()
@@ -47,7 +47,7 @@ object Reachability {
     visitStruct(program, edgeBlueprints, edges, reachables, Program2.emptyTupleStructRef)
     reachables
   }
-  def visitFunction(program: Temputs, edgeBlueprints: List[InterfaceEdgeBlueprint], edges: List[EdgeT], reachables: Reachables, calleeSignature: SignatureT): Unit = {
+  def visitFunction(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, calleeSignature: SignatureT): Unit = {
     if (reachables.functions.contains(calleeSignature)) {
       return
     }
@@ -58,6 +58,7 @@ object Reachability {
       case ConstructArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       case StaticArrayFromCallableTE(_, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       case DestroyStaticSizedArrayIntoFunctionTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      case DestroyRuntimeSizedArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
       case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
       case ssa @ StaticSizedArrayTT(_, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
@@ -73,7 +74,7 @@ object Reachability {
     })
   }
 
-  def visitStruct(program: Temputs, edgeBlueprints: List[InterfaceEdgeBlueprint], edges: List[EdgeT], reachables: Reachables, structTT: StructTT): Unit = {
+  def visitStruct(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, structTT: StructTT): Unit = {
     if (reachables.structs.contains(structTT)) {
       return
     }
@@ -92,7 +93,7 @@ object Reachability {
     edges.filter(_.struct == structTT).foreach(visitImpl(program, edgeBlueprints, edges, reachables, _))
   }
 
-  def visitInterface(program: Temputs, edgeBlueprints: List[InterfaceEdgeBlueprint], edges: List[EdgeT], reachables: Reachables, interfaceTT: InterfaceTT): Unit = {
+  def visitInterface(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, interfaceTT: InterfaceTT): Unit = {
     if (reachables.interfaces.contains(interfaceTT)) {
       return
     }
@@ -114,7 +115,7 @@ object Reachability {
     edges.filter(_.interface == interfaceTT).foreach(visitImpl(program, edgeBlueprints, edges, reachables, _))
   }
 
-  def visitImpl(program: Temputs, edgeBlueprints: List[InterfaceEdgeBlueprint], edges: List[EdgeT], reachables: Reachables, edge: EdgeT): Unit = {
+  def visitImpl(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, edge: EdgeT): Unit = {
     if (reachables.edges.contains(edge)) {
       return
     }
@@ -128,8 +129,8 @@ object Reachability {
 
   def visitStaticSizedArray(
     program: Temputs,
-    edgeBlueprints: List[InterfaceEdgeBlueprint],
-    edges: List[EdgeT],
+    edgeBlueprints: Vector[InterfaceEdgeBlueprint],
+    edges: Vector[EdgeT],
     reachables: Reachables,
     ssa: StaticSizedArrayTT
   ): Unit = {
@@ -148,8 +149,8 @@ object Reachability {
 
   def visitRuntimeSizedArray(
     program: Temputs,
-    edgeBlueprints: List[InterfaceEdgeBlueprint],
-    edges: List[EdgeT],
+    edgeBlueprints: Vector[InterfaceEdgeBlueprint],
+    edges: Vector[EdgeT],
     reachables: Reachables,
     rsa: RuntimeSizedArrayTT
   ): Unit = {

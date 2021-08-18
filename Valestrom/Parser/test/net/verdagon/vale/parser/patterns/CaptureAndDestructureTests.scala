@@ -3,7 +3,7 @@ package net.verdagon.vale.parser.patterns
 import net.verdagon.vale.parser.Patterns._
 import net.verdagon.vale.parser.CombinatorParsers._
 import net.verdagon.vale.parser._
-import net.verdagon.vale.{vfail, vimpl}
+import net.verdagon.vale.{Collector, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 
 class CaptureAndDestructureTests extends FunSuite with Matchers with Collector {
@@ -45,7 +45,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector {
           None,
           Some(
           DestructureP(_,
-            List(
+            Vector(
               capturedWithType("a", NameOrRunePT(NameP(_, "int"))),
               capturedWithType("b", NameOrRunePT(NameP(_, "bool")))))),
           None) =>
@@ -53,7 +53,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector {
   }
   test("capture with empty sequence type") {
     compile("a []") shouldHave {
-      case capturedWithType("a", ManualSequencePT(_,Nil)) =>
+      case capturedWithType("a", ManualSequencePT(_,Vector())) =>
     }
   }
   test("empty destructure") {
@@ -62,7 +62,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector {
   }
   test("capture with empty destructure") {
     compile("a ()") shouldHave {
-      case PatternPP(_,_,Some(CaptureP(_,LocalNameP(NameP(_, "a")))),None,Some(DestructureP(_,Nil)),None) =>
+      case PatternPP(_,_,Some(CaptureP(_,LocalNameP(NameP(_, "a")))),None,Some(DestructureP(_,Vector())),None) =>
     }
   }
   test("Destructure with nested atom") {
@@ -72,7 +72,7 @@ class CaptureAndDestructureTests extends FunSuite with Matchers with Collector {
           None,
           Some(
           DestructureP(_,
-            List(capturedWithType("b", NameOrRunePT(NameP(_, "int")))))),
+            Vector(capturedWithType("b", NameOrRunePT(NameP(_, "int")))))),
           None) =>
     }
   }

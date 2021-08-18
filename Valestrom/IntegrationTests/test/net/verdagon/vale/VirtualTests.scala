@@ -5,7 +5,7 @@ import net.verdagon.vale.templar.templata.{AbstractT$, SignatureT}
 import net.verdagon.vale.templar.types._
 import org.scalatest.{FunSuite, Matchers}
 import net.verdagon.vale.vivem.IntV
-import net.verdagon.von.VonInt
+import net.verdagon.von.{VonInt, VonStr}
 
 class VirtualTests extends FunSuite with Matchers {
 
@@ -29,16 +29,16 @@ class VirtualTests extends FunSuite with Matchers {
             SignatureT(
               FullNameT(
                 PackageCoordinate.TEST_TLD,
-                List.empty,
+                Vector.empty,
                 FunctionNameT(
                   "doThing",
-                  List.empty,
-                  List(
+                  Vector.empty,
+                  Vector(
                     CoordT(
                       OwnT,
                       ReadwriteT,
                       InterfaceTT(
-                        FullNameT(PackageCoordinate.TEST_TLD, List.empty, CitizenNameT("I", List.empty))))))))))
+                        FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, CitizenNameT("I", Vector.empty))))))))))
       vassert(doThing.header.params(0).virtuality.get == AbstractT$)
     }
 
@@ -63,16 +63,16 @@ class VirtualTests extends FunSuite with Matchers {
           SignatureT(
             FullNameT(
               PackageCoordinate.TEST_TLD,
-              List.empty,
+              Vector.empty,
               FunctionNameT(
                 "doThing",
-                List.empty,
-                List(
+                Vector.empty,
+                Vector(
                   CoordT(
                     OwnT,
                     ReadwriteT,
                     InterfaceTT(
-                      FullNameT(PackageCoordinate.TEST_TLD, List.empty, CitizenNameT("I", List.empty))))))))))
+                      FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, CitizenNameT("I", Vector.empty))))))))))
     vassert(doThing.header.params(0).virtuality.get == AbstractT$)
   }
 
@@ -96,7 +96,7 @@ class VirtualTests extends FunSuite with Matchers {
       vassertSome(
         temputs.lookupFunction(
           SignatureT(
-            FullNameT(PackageCoordinate.TEST_TLD, List(CitizenNameT("I",List.empty)),FunctionNameT("doThing",List.empty,List(CoordT(OwnT,ReadwriteT,InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, List.empty,CitizenNameT("I",List.empty))))))))))
+            FullNameT(PackageCoordinate.TEST_TLD, Vector(CitizenNameT("I",Vector.empty)),FunctionNameT("doThing",Vector.empty,Vector(CoordT(OwnT,ReadwriteT,InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty,CitizenNameT("I",Vector.empty))))))))))
     vassert(doThing.header.params(0).virtuality.get == AbstractT$)
   }
 
@@ -168,4 +168,18 @@ class VirtualTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) shouldEqual VonInt(42)
   }
 
+  test("Lambda is compatible anonymous interface") {
+    val compile = RunCompilation.test(
+      """
+        |import castutils.*;
+        |interface AFunction2<R, P1, P2> rules(R Ref, P1 Ref, P2 Ref) {
+        |  fn __call(virtual this &AFunction2<R, P1, P2>, a P1, b P2) R;
+        |}
+        |fn main() str export {
+        |  func = AFunction2<str, int, bool>((i, b){ str(i) + str(b) });
+        |  ret func(42, true);
+        |}
+        |""".stripMargin)
+    compile.evalForKind(Vector()) shouldEqual VonStr("42true")
+  }
 }
