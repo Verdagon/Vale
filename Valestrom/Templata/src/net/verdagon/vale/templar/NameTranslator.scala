@@ -54,7 +54,7 @@ object NameTranslator {
 //    ImpreciseCodeVarName2(name)
 //  }
 //
-//  def translateRune(absoluteNameA: AbsoluteNameA[IRuneA]): FullName2[IRune2] = {
+//  def translateRune(absoluteNameA: AbsoluteNameA[IRuneA]): FullName2[IRuneT] = {
 //    val AbsoluteNameA(file, initS, lastS) = absoluteNameA
 //    FullName2(file, initS.map(translateNameStep), translateRune(lastS))
 //  }

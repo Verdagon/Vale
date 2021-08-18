@@ -726,7 +726,7 @@ class InfererEvaluator[Env, State](
 //  private[infer] def evaluateCoordVectorRule(
 //      env: Env,
 //      state: State,
-//      runes: Set[IRune2],
+//      runes: Set[IRuneT],
 //      inferences: InferencesBox,
 //      rule: CoordVectorTR):
 //  IInferEvaluateResult[CoordListTemplata] = {
