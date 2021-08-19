@@ -9,9 +9,64 @@ import net.verdagon.vale.templar.infer.{IInfererDelegate, _}
 import net.verdagon.vale.templar.infer.infer.{IInferSolveResult, InferSolveFailure, InferSolveSuccess}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{IProfiler, vassertSome, vfail, vimpl}
+import net.verdagon.vale.{IProfiler, vassert, vassertSome, vfail, vimpl}
 
 import scala.collection.immutable.List
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
+
+case class ConstructingRuneWorldTR(
+  rules: mutable.ArrayBuffer[IRulexTR],
+
+  runeToIndex: mutable.HashMap[IRuneA, Int],
+
+  // For example, if rule 7 says:
+  //   1 = Ref(2, 3, 4, 5)
+  // then 2, 3, 4, 5 together could solve the rule, or 1 could solve the rule.
+  // In other words, the two sets of runes that could solve the rule are:
+  // - [1]
+  // - [2, 3, 4, 5]
+  // Here we have two "puzzles". The runes in a puzzle are called "pieces".
+  // Puzzles are identified up-front by Astronomer.
+
+  puzzleToRunes: mutable.ArrayBuffer[Vector[Int]],
+  puzzleToRule: mutable.ArrayBuffer[Int],
+
+  runeToPuzzles: mutable.ArrayBuffer[mutable.ArrayBuffer[Int]]
+) {
+  def addRule(rule: IRulexTR): Int = {
+    val ruleIndex = rules.size
+    rules += rule
+    ruleIndex
+  }
+  def addRune(rune: IRuneA): Int = {
+    val ruleIndex = runeToIndex.size
+    runeToIndex.put(rune, ruleIndex)
+    runeToPuzzles += mutable.ArrayBuffer()
+    ruleIndex
+  }
+  def addRune(): Int = {
+    val ruleIndex = runeToIndex.size
+    runeToPuzzles += mutable.ArrayBuffer()
+    ruleIndex
+  }
+  def addPuzzle(ruleIndex: Int, runes: Vector[Int]): Int = {
+    val puzzleIndex = puzzleToRunes.size
+    vassert(puzzleToRunes.size == puzzleToRule.size)
+    puzzleToRunes += runes
+    puzzleToRule += ruleIndex
+    runes.foreach(rune => runeToPuzzles(rune) += puzzleIndex)
+    puzzleIndex
+  }
+
+  def build(): RuneWorldTR = {
+    RuneWorldTR(
+      rules.toArray,
+      puzzleToRunes.map(_.toArray).toArray,
+      puzzleToRule.toArray,
+      runeToPuzzles.map(_.toArray).toArray)
+  }
+}
 
 class InferTemplar(
     opts: TemplarOptions,
@@ -30,12 +85,17 @@ class InferTemplar(
     checkAllRunesPresent: Boolean,
   ): (IInferSolveResult) = {
     profiler.newProfile("infer", "", () => {
+      val output = ConstructingRuneWorldTR(ArrayBuffer(), mutable.HashMap(), ArrayBuffer(), ArrayBuffer(), ArrayBuffer())
+      rules.map(translateRule(output, _))
+      val rulesTR = output.build()
+
+
       Inferer.solve[IEnvironment, Temputs](
         profiler,
         delegate,
         env,
         state,
-        translateRules(rules),
+        rulesTR,
         typeByRune.map({ case (key, value) => NameTranslator.translateRune(key) -> value }),
         localRunes.map(NameTranslator.translateRune),
         invocationRange,
@@ -132,39 +192,135 @@ class InferTemplar(
     })
   }
 
-  def translateRules(rs: Vector[IRulexAR]): Vector[IRulexTR] = {
-    rs.map(translateRule)
-  }
-
-  def translateRule(rulexA: IRulexAR): IRulexTR = {
+  def translateRule(
+    output: ConstructingRuneWorldTR,
+    rulexA: IRulexAR
+  ): Int = {
     rulexA match {
-      case EqualsAR(range, left, right) => EqualsTR(range, translateRule(left), translateRule(right))
-      case TemplexAR(templex) => TemplexTR(translateTemplex(templex))
-      case ComponentsAR(range, tyype, componentsA) => ComponentsTR(range, tyype, componentsA.map(translateRule))
-      case OrAR(range, possibilities) => OrTR(range, possibilities.map(translateRule))
-      case CallAR(range, name, args, resultType) => CallTR(range, name, args.map(translateRule), resultType)
-//      case CoordListAR(rules) => CoordListTR(rules.map(translateRule))
+      case EqualsAR(range, left, right) => {
+        val leftRuneTR = translateRule(output, left)
+        val rightRuneTR = translateRule(output, right)
+        val ruleIndex = output.addRule(EqualsTR(range, leftRuneTR, rightRuneTR))
+        output.addPuzzle(ruleIndex, Vector(leftRuneTR))
+        output.addPuzzle(ruleIndex, Vector(rightRuneTR))
+      }
+      case TemplexAR(templex) => translateTemplex(output, templex)
+      case ComponentsAR(range, tyype, componentsAR) => {
+        tyype match {
+          case CoordTemplataType => {
+            val Vector(ownershipAR, /*locationRune, regionRune,*/ permissionAR, kindAR) = componentsAR
+            val coordRune = output.addRune()
+            val ownershipRune = translateRule(output, ownershipAR)
+            val permissionRune = translateRule(output, permissionAR)
+            val kindRune = translateRule(output, kindAR)
+            val ruleIndex = output.addRule(CoordComponentsTR(range, coordRune, ownershipRune, permissionRune, kindRune))
+            output.addPuzzle(ruleIndex, Vector(coordRune))
+            output.addPuzzle(ruleIndex, Vector(ownershipRune, permissionRune, kindRune))
+            coordRune
+          }
+          case KindTemplataType => {
+            val Vector(mutabilityAR) = componentsAR
+            val kindRune = output.addRune()
+            val mutabilityRune = translateRule(output, mutabilityAR)
+            val ruleIndex = output.addRule(KindComponentsTR(range, kindRune, mutabilityRune))
+            output.addPuzzle(ruleIndex, Vector(kindRune))
+            kindRune
+          }
+        }
+      }
+      case OrAR(range, possibilities) => {
+        vimpl()
+        //        OrTR(range, possibilities.map(translateRule(output, _)))
+      }
+      case CallAR(range, name, args, resultType) => {
+        val resultRune = output.addRune()
+        BuiltinCallTR(range, resultRune, name, args.map(translateRule(output, _)), resultType)
+        vimpl() // we should split apart the various builtins, so we can know the correct puzzles
+        resultRune
+      }
+      //      case CoordListAR(rules) => CoordListTR(rules.map(translateRule))
       case _ => vimpl()
     }
   }
 
-  def translateTemplex(templexA: ITemplexA): ITemplexT = {
+  def translateTemplex(
+    output: ConstructingRuneWorldTR,
+    templexA: ITemplexA
+  ): Int = {
     templexA match {
-      case RuneAT(range, rune, resultType) => RuneTT(range, NameTranslator.translateRune(rune), resultType)
-      case NameAT(range, name, resultType) => NameTT(range, name, resultType)
-      case OwnershipAT(range, ownership) => OwnershipTT(range, ownership)
-      case PermissionAT(range, permission) => PermissionTT(range, permission)
-      case InterpretedAT(range, ownership, permission, inner) => InterpretedTT(range, ownership, permission, translateTemplex(inner))
-      case AbsoluteNameAT(range, name, resultType) => AbsoluteNameTT(range, name, resultType)
-      case CallAT(range, template, args, resultType) => CallTT(range, translateTemplex(template), args.map(translateTemplex), resultType)
-      case MutabilityAT(range, m) => MutabilityTT(range, m)
-      case VariabilityAT(range, m) => VariabilityTT(range, m)
-      case ManualSequenceAT(range, m, resultType) => ManualSequenceTT(range, m.map(translateTemplex), resultType)
-      case RepeaterSequenceAT(range, mutability, variability, size, element, resultType) => RepeaterSequenceTT(range, translateTemplex(mutability), translateTemplex(variability), translateTemplex(size), translateTemplex(element), resultType)
-//      case PackAT(range, members, resultType) => PackTT(range, members.map(translateTemplex), resultType)
-      case IntAT(range, value) => IntTT(range, value)
-      case StringAT(range, value) => StringTT(range, value)
-      case CoordListAT(range, elements) => CoordListTT(range, elements.map(translateTemplex))
+      case RuneAT(range, rune, resultType) => {
+        output.addRune(rune)
+      }
+      case NameAT(range, name, resultType) => {
+        val resultRune = output.addRune()
+        NameTR(range, resultRune, name, resultType)
+        resultRune
+      }
+      case OwnershipAT(range, ownership) => {
+        val resultRune = output.addRune()
+        OwnershipTR(range, resultRune, ownership)
+        resultRune
+      }
+      case PermissionAT(range, permission) => {
+        val resultRune = output.addRune()
+        PermissionTR(range, resultRune, permission)
+        resultRune
+      }
+      case InterpretedAT(range, ownership, permission, inner) => {
+        val resultRune = output.addRune()
+        InterpretedTR(range, resultRune, ownership, permission, translateTemplex(output, inner))
+        resultRune
+      }
+      case AbsoluteNameAT(range, name, resultType) => {
+        val resultRune = output.addRune()
+        AbsoluteNameTR(range, resultRune, name, resultType)
+        resultRune
+      }
+      case CallAT(range, template, args, resultType) => {
+        val resultRune = output.addRune()
+        CallTR(range, resultRune, translateTemplex(output, template), args.map(translateTemplex(output, _)), resultType)
+        resultRune
+      }
+      case MutabilityAT(range, m) => {
+        val resultRune = output.addRune()
+        MutabilityTR(range, resultRune, m)
+        resultRune
+      }
+      case VariabilityAT(range, m) => {
+        val resultRune = output.addRune()
+        VariabilityTR(range, resultRune, m)
+        resultRune
+      }
+      case ManualSequenceAT(range, m, resultType) => {
+        val resultRune = output.addRune()
+        ManualSequenceTR(range, resultRune, m.map(translateTemplex(output, _)), resultType)
+        resultRune
+      }
+      case RepeaterSequenceAT(range, mutability, variability, size, element, resultType) => {
+        val resultRune = output.addRune()
+        RepeaterSequenceTR(range, resultRune, translateTemplex(output, mutability), translateTemplex(output, variability), translateTemplex(output, size), translateTemplex(output, element), resultType)
+        resultRune
+      }
+      //      case PackAT(range, members, resultType) => {
+      val resultRune = output.addRune()
+      //      PackTR(range, members.map(translateTemplex(output, _)), resultType)
+        resultRune
+      //}
+      case IntAT(range, value) => {
+        val resultRune = output.addRune()
+        IntTR(range, resultRune, value)
+        resultRune
+      }
+      case StringAT(range, value) => {
+        val resultRune = output.addRune()
+        StringTR(range, resultRune, value)
+        resultRune
+      }
+      case CoordListAT(range, elements) => {
+        val resultRune = output.addRune()
+        CoordListTR(range, resultRune, elements.map(translateTemplex(output, _)))
+        resultRune
+      }
       case _ => vimpl(templexA.toString)
     }
   }

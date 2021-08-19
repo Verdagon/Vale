@@ -8,207 +8,200 @@ import net.verdagon.vale.{vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
 
-// These are different from IRulexA because those use IRuneA, not IRune2 which
+case class RuneWorldTR(
+  rules: Array[IRulexTR],
+
+  // For example, if rule 7 says:
+  //   1 = Ref(2, 3, 4, 5)
+  // then 2, 3, 4, 5 together could solve the rule, or 1 could solve the rule.
+  // In other words, the two sets of runes that could solve the rule are:
+  // - [1]
+  // - [2, 3, 4, 5]
+  // Here we have two "puzzles". The runes in a puzzle are called "pieces".
+  // Puzzles are identified up-front by Astronomer.
+
+  puzzleToPiecesAndRule: Array[Array[Int]],
+  puzzleToRule: Array[Int],
+
+  pieceToPuzzles: Array[Array[Int]])
+
+// These are different from IRulexA because those use IRuneA, not IRuneT which
 // has more possibilities.
+// See PVSBUFI
 sealed trait IRulexTR {
-  def resultType: ITemplataType
+  def range: RangeS
 }
-case class EqualsTR(range: RangeS, left: IRulexTR, right: IRulexTR) extends IRulexTR {
-  override def hashCode(): Int = vcurious()
-
-  override def resultType: ITemplataType = left.resultType
-}
-case class OrTR(range: RangeS, possibilities: Vector[IRulexTR]) extends IRulexTR {
-  override def hashCode(): Int = vcurious()
-
-  vassert(possibilities.nonEmpty)
-  override def resultType: ITemplataType = possibilities.head.resultType
-}
-case class ComponentsTR(
+case class EqualsTR(
   range: RangeS,
-  tyype: ITemplataType,
-  components: Vector[IRulexTR]
+  leftRune: Int,
+  rightRune: Int,
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-
-  override def resultType: ITemplataType = tyype
+  vassert(possibilities.nonEmpty)
 }
-case class TemplexTR(templex: ITemplexT) extends IRulexTR {
+case class OrTR(
+  range: RangeS,
+  possibilities: Vector[RuneWorldTR]
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-
-  override def resultType: ITemplataType = templex.resultType
+  vassert(possibilities.nonEmpty)
+}
+case class CoordComponentsTR(
+  range: RangeS,
+  coordRune: Int,
+  ownershipRune: Int,
+  permissionRune: Int,
+  kindRune: Int,
+) extends IRulexTR {
+  override def hashCode(): Int = vcurious()
+}
+case class KindComponentsTR(
+  range: RangeS,
+  kindRune: Int,
+  mutabilityRune: Int,
+) extends IRulexTR {
+  override def hashCode(): Int = vcurious()
 }
 // This is for built-in parser functions, such as exists() or isBaseOf() etc.
-case class CallTR(
+case class BuiltinCallTR(
   range: RangeS,
+  rune: Int,
   name: String,
-  args: Vector[IRulexTR],
+  args: Vector[Int],
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  }
+}
 
 case class IsaTR(
   range: RangeS,
-  subRule: IRulexTR,
-  interfaceRule: IRulexTR
+  subRule: Int,
+  interfaceRule: Int
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-
-  override def resultType: ITemplataType = subRule.resultType
 }
 
-// See PVSBUFI
-sealed trait ITemplexT {
-  def resultType: ITemplataType
-  def range: RangeS
-}
-case class IntTT(range: RangeS, value: Long) extends ITemplexT {
+case class IntTR(range: RangeS, rune: Int, value: Long) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = IntegerTemplataType
 }
-case class StringTT(range: RangeS, value: String) extends ITemplexT {
+case class StringTR(range: RangeS, rune: Int, value: String) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = StringTemplataType
 }
-case class BoolTT(range: RangeS, value: Boolean) extends ITemplexT {
+case class BoolTR(range: RangeS, rune: Int, value: Boolean) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = BooleanTemplataType
 }
-case class MutabilityTT(range: RangeS, mutability: MutabilityP) extends ITemplexT {
+case class MutabilityTR(range: RangeS, rune: Int, mutability: MutabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = MutabilityTemplataType
 }
-case class PermissionTT(range: RangeS, permission: PermissionP) extends ITemplexT {
+case class PermissionTR(range: RangeS, rune: Int, permission: PermissionP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = PermissionTemplataType
 }
-case class LocationTT(range: RangeS, location: LocationP) extends ITemplexT {
+case class LocationTR(range: RangeS, rune: Int, location: LocationP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = LocationTemplataType
 }
-case class OwnershipTT(range: RangeS, ownership: OwnershipP) extends ITemplexT {
+case class OwnershipTR(range: RangeS, rune: Int, ownership: OwnershipP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = OwnershipTemplataType
 }
-case class VariabilityTT(range: RangeS, variability: VariabilityP) extends ITemplexT {
+case class VariabilityTR(range: RangeS, rune: Int, variability: VariabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = VariabilityTemplataType
 }
 
-case class NameTT(
+case class NameTR(
   range: RangeS,
+  rune: Int,
   name: IImpreciseNameStepA,
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-//  println("hi")
+  //  println("hi")
 }
 
-case class AbsoluteNameTT(
+case class AbsoluteNameTR(
   range: RangeS,
+  rune: Int,
   name: INameA,
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-//  println("hi")
+  //  println("hi")
 }
 
-// We have both NameAT and RuneAT even though theyre syntactically identical
-// because in the template engine, when we try to match an incoming type
-// against a NameAT/RuneAT, we do different things. For NameAT, we take the thing
-// from the environment and make sure it matches. For RuneAT, we might put
-// something into the environment.
-case class RuneTT(
+// InterpretedTR will overwrite inner's permission and ownership to the given ones.
+case class InterpretedTR(
   range: RangeS,
-  rune: IRuneT,
-  resultType: ITemplataType
-) extends ITemplexT {
-  override def hashCode(): Int = vcurious()
-}
-
-// InterpretedTT will overwrite inner's permission and ownership to the given ones.
-case class InterpretedTT(
-  range: RangeS,
+  rune: Int,
   ownership: OwnershipP,
   permission: PermissionP,
-  inner: ITemplexT
-) extends ITemplexT {
+  inner: Int
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  vassert(inner.resultType == CoordTemplataType)
-  override def resultType: ITemplataType = CoordTemplataType
 }
 
-case class NullableTT(
+case class NullableTR(
   range: RangeS,
-  inner: ITemplexT) extends ITemplexT {
+  rune: Int,
+  inner: Int) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = KindTemplataType
 }
 
-case class CallTT(
+case class CallTR(
   range: RangeS,
-  template: ITemplexT,
-  args: Vector[ITemplexT],
+  rune: Int,
+  templateRune: Int,
+  args: Vector[Int],
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
-//case class FunctionTT(
-//  mutability: Option[ITemplexT],
-//  parameters: Vector[Option[ITemplexT]],
-//  returnType: Option[ITemplexT]
-//) extends ITemplexT {
+//case class FunctionTR(
+//  mutability: Option[IRulexTR],
+//  parameters: Vector[Option[IRulexTR]],
+//  returnType: Option[IRulexTR]
+//) extends IRulexTR {
 // override def hashCode(): Int = vcurious()}
 
-case class PrototypeTT(
+case class PrototypeTR(
   range: RangeS,
+  rune: Int,
   name: String,
-  parameters: Vector[ITemplexT],
-  returnType: ITemplexT
-) extends ITemplexT {
+  parameters: Vector[Int],
+  returnType: Int
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = vimpl()
 }
 
-//case class PackTT(
-//  members: Vector[ITemplexT],
-//  // This is here because we might want to coerce the result. We do this for
-//  // calls, packs, etc.
-//  resultType: ITemplataType
-//) extends ITemplexT {
-// override def hashCode(): Int = vcurious()}
-
-case class RepeaterSequenceTT(
+case class RepeaterSequenceTR(
   range: RangeS,
-  mutability: ITemplexT,
-  variability: ITemplexT,
-  size: ITemplexT,
-  element: ITemplexT,
+  rune: Int,
+  mutability: Int,
+  variability: Int,
+  size: Int,
+  element: Int,
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
-case class ManualSequenceTT(
+case class ManualSequenceTR(
   range: RangeS,
-  elements: Vector[ITemplexT],
+  rune: Int,
+  elements: Vector[Int],
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
   resultType: ITemplataType
-) extends ITemplexT {
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
-case class CoordListTT(
+case class CoordListTR(
   range: RangeS,
-  elements: Vector[ITemplexT]
-) extends ITemplexT {
+  rune: Int,
+  elements: Vector[Int]
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  override def resultType: ITemplataType = PackTemplataType(CoordTemplataType)
 }

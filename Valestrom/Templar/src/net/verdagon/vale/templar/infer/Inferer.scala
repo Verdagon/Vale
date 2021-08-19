@@ -74,7 +74,7 @@ object Inferer {
     delegate: IInfererDelegate[Env, State],
     env: Env,
     state: State,
-    rules: Vector[IRulexTR],
+    rules: RuneWorldTR,
     typeByRune: Map[IRuneT, ITemplataType],
     localRunes: Set[IRuneT],
     invocationRange: RangeS,
