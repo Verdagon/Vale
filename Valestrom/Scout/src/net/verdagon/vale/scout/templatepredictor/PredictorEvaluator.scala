@@ -102,6 +102,12 @@ object PredictorEvaluator {
         val Vector(kindRule) = argumentRules
         evaluateRule(conclusions, kindRule)
       }
+      case "impl" => {
+        val Vector(subRule, superRule) = argumentRules
+        val subSuccess = evaluateRule(conclusions, subRule)
+        val superSuccess = evaluateRule(conclusions, superRule)
+        subSuccess && superSuccess
+      }
       case "passThroughIfInterface" => {
         val Vector(kindRule) = argumentRules
         evaluateRule(conclusions, kindRule)

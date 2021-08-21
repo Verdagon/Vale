@@ -186,7 +186,7 @@ class RuleTyperEvaluator[Env, State](
     env: Env,
     conclusions: ConclusionsBox,
     ruleCall: CallSR,
-  ): (IRuleTyperEvaluateResult[CallAR]) = {
+  ): (IRuleTyperEvaluateResult[IRulexAR]) = {
     val CallSR(range, name, argumentRules) = ruleCall
 
     name match {
@@ -208,9 +208,27 @@ class RuleTyperEvaluator[Env, State](
           case (rtmc @ RuleTyperMatchConflict(_, _, _, _)) => (RuleTyperEvaluateConflict(conclusions.conclusions, range, "Conflict in toRef argument!", Some(rtmc)))
           case (RuleTyperMatchSuccess(kindRuleT)) => {
             val ruleT = CallAR(range, name, Vector(kindRuleT), CoordTemplataType)
-            (RuleTyperEvaluateSuccess(ruleT))
+            RuleTyperEvaluateSuccess(ruleT)
           }
         }
+      }
+      case "impl" => {
+        if (argumentRules.size != 2) {
+          return (RuleTyperEvaluateConflict(conclusions.conclusions, range, "toRef expects 2 argument, but received " + argumentRules.size, None))
+        }
+        val Vector(subRule, superRule) = argumentRules
+        val subRuleT =
+          makeMatcher().matchTypeAgainstRulexSR(state, env, conclusions, KindTemplataType, subRule) match {
+            case (rtmc @ RuleTyperMatchConflict(_, _, _, _)) => return RuleTyperEvaluateConflict(conclusions.conclusions, range, "Conflict in impl's sub-kind argument!", Some(rtmc))
+            case (RuleTyperMatchSuccess(nameRuleT)) => nameRuleT
+          }
+        val superRuleT =
+          makeMatcher().matchTypeAgainstRulexSR(state, env, conclusions, KindTemplataType, superRule) match {
+            case (rtmc @ RuleTyperMatchConflict(_, _, _, _)) => return RuleTyperEvaluateConflict(conclusions.conclusions, range, "Conflict in impl's super-kind argument!", Some(rtmc))
+            case (RuleTyperMatchSuccess(nameRuleT)) => nameRuleT
+          }
+        val ruleT = IsaAR(range, subRuleT, superRuleT)
+        RuleTyperEvaluateSuccess(ruleT)
       }
       case "passThroughIfInterface" => {
         if (argumentRules.size != 1) {

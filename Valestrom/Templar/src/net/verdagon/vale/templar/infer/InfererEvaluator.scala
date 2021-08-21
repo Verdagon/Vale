@@ -62,7 +62,7 @@ class InfererEvaluator[Env, State](
     maybeParamInputs: Option[Vector[ParamFilter]],
     checkAllRunesPresent: Boolean
   ): (IInferSolveResult) = {
-    val inferences = InferencesBox(Inferences(typeByRune, Map(), Map()))
+    val inferences = InferencesBox(Inferences(typeByRune, Map(), Map(), Map()))
 
     // Feed into the system the things the user already specified.
 
@@ -328,20 +328,15 @@ class InfererEvaluator[Env, State](
     invocationRange: RangeS,
   ): (IInferEvaluateResult[Unit]) = {
     val initialInferences = inferences.inferences
-    val deeplySatisfied =
-      rules.foldLeft((true))({
-        case ((deeplySatisfiedSoFar), rule) => {
-          evaluateRule(env, state, typeByRune, localRunes, inferences, rule) match {
-            case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, invocationRange, "", Vector(iec)))
-            case (InferEvaluateUnknown(thisDeeplySatisfied)) => {
-              (deeplySatisfiedSoFar && thisDeeplySatisfied)
-            }
-            case (InferEvaluateSuccess(_, thisDeeplySatisfied)) => {
-              (deeplySatisfiedSoFar && thisDeeplySatisfied)
-            }
-          }
+    val deeplySatisfieds =
+      rules.map(rule => {
+        evaluateRule(env, state, typeByRune, localRunes, inferences, rule) match {
+          case (iec @ InferEvaluateConflict(_, _, _, _)) => return (InferEvaluateConflict(inferences.inferences, invocationRange, "", Vector(iec)))
+          case (InferEvaluateUnknown(thisDeeplySatisfied)) => thisDeeplySatisfied
+          case (InferEvaluateSuccess(_, thisDeeplySatisfied)) => thisDeeplySatisfied
         }
       })
+    val deeplySatisfied = !deeplySatisfieds.contains(false)
 
     if (inferences.inferences != initialInferences) {
       // Things have not settled, we made some sort of progress in this last iteration.

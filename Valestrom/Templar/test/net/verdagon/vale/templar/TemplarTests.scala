@@ -755,6 +755,24 @@ class TemplarTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
   }
 
+  test("Run lambda from function") {
+//    val compile = TemplarTestCompilation.test(
+//      """
+//        |fn runThing<F>(f F) int
+//        |rules(
+//        |  F Ref(_, _, K Kind),
+//        |  impl(K, IFunction1<mut, int, int>))
+//        |{
+//        |  f()
+//        |}
+//        |fn main() int export {
+//        |  runThing({ 42 })
+//        |}
+//        |""".stripMargin)
+//
+//    compile.expectTemputs()
+  }
+
   test("Test return") {
     val compile = TemplarTestCompilation.test(
       """

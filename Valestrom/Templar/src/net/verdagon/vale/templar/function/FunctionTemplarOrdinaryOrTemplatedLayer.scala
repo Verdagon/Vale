@@ -321,11 +321,9 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(function.isTemplate)
 
-    vimpl() // start here!
-
     val inferences =
-      inferTemplar.inferOrdinaryRules(
-        nearEnv, temputs, function.templateRules, function.typeByRune, function.localRunes)
+      inferTemplar.inferGenericRules(
+        nearEnv, temputs, function.templateRules, function.typeByRune, function.identifyingRunes, function.localRunes)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForPrototype(

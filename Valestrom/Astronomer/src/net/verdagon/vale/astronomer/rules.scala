@@ -113,10 +113,12 @@ case class CallAR(
 case class IsaAR(
   range: RangeS,
   subRule: IRulexAR,
-  interfaceRule: IRulexAR
+  superRule: IRulexAR
 ) extends IRulexAR {
+  vassert(subRule.resultType == KindTemplataType)
+  vassert(superRule.resultType == KindTemplataType)
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def resultType: ITemplataType = subRule.resultType
+  override def resultType: ITemplataType = KindTemplataType
 }
 
 // See PVSBUFI
