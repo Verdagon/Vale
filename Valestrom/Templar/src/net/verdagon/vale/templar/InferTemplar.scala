@@ -72,6 +72,26 @@ class InferTemplar(
     })
   }
 
+  def inferGenericRules(
+    env0: IEnvironment,
+    temputs: Temputs,
+    rules: Vector[IRulexAR],
+    typeByRune: Map[IRuneA, ITemplataType],
+    identifyingRunes: Vector[IRuneA],
+    localRunes: Set[IRuneA],
+  ): (Map[IRuneT, ITemplata]) = {
+    profiler.childFrame("inferGenericRules", () => {
+      solve(env0, temputs, rules, typeByRune, localRunes, RangeS.internal(-13337), Map(), Vector.empty, None, false) match {
+        case (InferSolveSuccess(inferences)) => {
+          (inferences.templatasByRune)
+        }
+        case (isf@InferSolveFailure(_, _, _, _, range, _, _)) => {
+          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Conflict in determining ordinary rules' runes: " + isf))
+        }
+      }
+    })
+  }
+
   def inferFromExplicitTemplateArgs(
     env0: IEnvironment,
     temputs: Temputs,
@@ -143,6 +163,7 @@ class InferTemplar(
       case ComponentsAR(range, tyype, componentsA) => ComponentsTR(range, tyype, componentsA.map(translateRule))
       case OrAR(range, possibilities) => OrTR(range, possibilities.map(translateRule))
       case CallAR(range, name, args, resultType) => CallTR(range, name, args.map(translateRule), resultType)
+      case IsaAR(range, subRule, superRule) => IsaTR(range, translateRule(subRule), translateRule(superRule))
 //      case CoordListAR(rules) => CoordListTR(rules.map(translateRule))
       case _ => vimpl()
     }

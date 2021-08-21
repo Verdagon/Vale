@@ -59,14 +59,14 @@ class RuleTests extends FunSuite with Matchers with Collector {
   }
 
   test("Relations") {
-    compile(rulePR, "implements(MyObject, IObject)") shouldHave {
-      case CallPR(_, NameP(_, "implements"),Vector(TemplexPR(NameOrRunePT(NameP(_, "MyObject"))), TemplexPR(NameOrRunePT(NameP(_, "IObject"))))) =>
+    compile(rulePR, "impl(MyObject, IObject)") shouldHave {
+      case CallPR(_, NameP(_, "impl"),Vector(TemplexPR(NameOrRunePT(NameP(_, "MyObject"))), TemplexPR(NameOrRunePT(NameP(_, "IObject"))))) =>
     }
-    compile(rulePR, "implements(R, IObject)") shouldHave {
-        case CallPR(_, NameP(_, "implements"),Vector(TemplexPR(NameOrRunePT(NameP(_, "R"))), TemplexPR(NameOrRunePT(NameP(_, "IObject"))))) =>
+    compile(rulePR, "impl(R, IObject)") shouldHave {
+        case CallPR(_, NameP(_, "impl"),Vector(TemplexPR(NameOrRunePT(NameP(_, "R"))), TemplexPR(NameOrRunePT(NameP(_, "IObject"))))) =>
     }
-    compile(rulePR, "implements(MyObject, T)") shouldHave {
-        case CallPR(_, NameP(_, "implements"),Vector(TemplexPR(NameOrRunePT(NameP(_, "MyObject"))), TemplexPR(NameOrRunePT(NameP(_, "T"))))) =>
+    compile(rulePR, "impl(MyObject, T)") shouldHave {
+        case CallPR(_, NameP(_, "impl"),Vector(TemplexPR(NameOrRunePT(NameP(_, "MyObject"))), TemplexPR(NameOrRunePT(NameP(_, "T"))))) =>
     }
     compile(rulePR, "exists(fn +(T)int)") shouldHave {
         case CallPR(_, NameP(_, "exists"), Vector(TemplexPR(PrototypePT(_,NameP(_, "+"), Vector(NameOrRunePT(NameP(_, "T"))), NameOrRunePT(NameP(_, "int")))))) =>

@@ -46,7 +46,7 @@ case class CallTR(
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-  }
+}
 
 case class IsaTR(
   range: RangeS,

@@ -19,7 +19,7 @@ case object FullCompilationOptions {
     FullCompilationOptions(
       false,
       new NullProfiler(),
-      true,
+      false,
       true,
       (x => println("###: " + x)))
 }
