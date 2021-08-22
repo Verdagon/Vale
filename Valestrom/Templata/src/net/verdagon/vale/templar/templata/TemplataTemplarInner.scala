@@ -83,15 +83,15 @@ class TemplataTemplarInner[Env, State](delegate: ITemplataTemplarInnerDelegate[E
   def evaluateTemplex(
     env: Env,
     state: State,
-    type1: ITemplexA):
+    type1: IRulexAR):
   (ITemplata) = {
-    vassert(type1.isInstanceOf[ITemplexA])
+    vassert(type1.isInstanceOf[IRulexAR])
     type1 match {
-      case NameAT(range, name, tyype) => {
+      case NameAR(range, name, tyype) => {
         val thing = delegate.lookupTemplataImprecise(env, range, name)
         coerce(state, range, thing, tyype)
       }
-      case RuneAT(range, rune, resultType) => {
+      case RuneAR(range, rune, resultType) => {
         val thing = delegate.lookupTemplata(env, range, NameTranslator.translateRune(rune))
         coerce(state, range, thing, resultType)
       }
@@ -152,7 +152,7 @@ class TemplataTemplarInner[Env, State](delegate: ITemplataTemplarInnerDelegate[E
   def evaluateTemplexes(
     env: Env,
     state: State,
-    types1: Vector[ITemplexA]):
+    types1: Vector[IRulexAR]):
   (Vector[ITemplata]) = {
     types1.map(evaluateTemplex(env, state, _))
   }

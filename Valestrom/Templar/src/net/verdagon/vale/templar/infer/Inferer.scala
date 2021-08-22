@@ -14,7 +14,7 @@ trait IInfererDelegate[Env, State] {
   def evaluateType(
     env: Env,
     state: State,
-    type1: ITemplexA):
+    type1: IRulexAR):
   (ITemplata)
 
   def lookupMemberTypes(
@@ -74,7 +74,7 @@ object Inferer {
     delegate: IInfererDelegate[Env, State],
     env: Env,
     state: State,
-    rules: Vector[IRulexTR],
+    rules: RuneWorldTR,
     typeByRune: Map[IRuneT, ITemplataType],
     localRunes: Set[IRuneT],
     invocationRange: RangeS,

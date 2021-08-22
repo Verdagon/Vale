@@ -25,10 +25,10 @@ class RuleScoutTests extends FunSuite with Matchers {
       Vector(
         EqualsSR(RangeS.testZero,
           TypedSR(RangeS.testZero,CodeRuneS("B"),CoordTypeSR),
-          TemplexSR(CallST(RangeS.testZero,NameST(RangeS.testZero, CodeTypeNameS("List")),Vector(RuneST(RangeS.testZero,CodeRuneS("A")))))),
+          CallSR(RangeS.testZero,NameSR(RangeS.testZero, CodeTypeNameS("List")),Vector(RuneSR(RangeS.testZero,CodeRuneS("A"))))),
         EqualsSR(RangeS.testZero,
           TypedSR(RangeS.testZero,CodeRuneS("C"),CoordTypeSR),
-          OrSR(RangeS.testZero,Vector(TemplexSR(RuneST(RangeS.testZero,CodeRuneS("B"))), TemplexSR(RuneST(RangeS.testZero,CodeRuneS("A"))), TemplexSR(NameST(RangeS.testZero, CodeTypeNameS("int")))))),
+          OrSR(RangeS.testZero,Vector(RuneSR(RangeS.testZero,CodeRuneS("B")), RuneSR(RangeS.testZero,CodeRuneS("A")), NameSR(RangeS.testZero, CodeTypeNameS("int"))))),
         TypedSR(RangeS.testZero,CodeRuneS("A"),CoordTypeSR))
     RuleSUtils.getDistinctOrderedRunesForRulexes(expectedRulesS) shouldEqual
       Vector(CodeRuneS("B"), CodeRuneS("A"), CodeRuneS("C"))
@@ -45,10 +45,10 @@ class RuleScoutTests extends FunSuite with Matchers {
       case Vector(
         EqualsSR(_,
           TypedSR(_,br1 @ CodeRuneS("B"),CoordTypeSR),
-          TemplexSR(CallST(_,NameST(_, CodeTypeNameS("List")),Vector(RuneST(_,ar1 @ CodeRuneS("A")))))),
+          CallSR(_,NameSR(_, CodeTypeNameS("List")),Vector(RuneSR(_,ar1 @ CodeRuneS("A"))))),
         EqualsSR(_,
           TypedSR(_,CodeRuneS("C"),CoordTypeSR),
-          OrSR(_,Vector(TemplexSR(RuneST(_,br2)), TemplexSR(RuneST(_,ar3)), TemplexSR(NameST(_, CodeTypeNameS("int")))))),
+          OrSR(_,Vector(RuneSR(_,br2), RuneSR(_,ar3), NameSR(_, CodeTypeNameS("int"))))),
         TypedSR(_,ar2,CoordTypeSR)) => {
         vassert(br1 == br2)
         vassert(ar1 == ar2)

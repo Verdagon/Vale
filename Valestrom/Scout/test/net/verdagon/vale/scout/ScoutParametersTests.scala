@@ -53,7 +53,7 @@ class ScoutParametersTests extends FunSuite with Matchers {
         case Vector(
           EqualsSR(_,
             TypedSR(_,tcr @ ImplicitRuneS(_,_),CoordTypeSR),
-            TemplexSR(InterpretedST(_,ConstraintP,ReadonlyP,RuneST(_,CodeRuneS("T")))))) => tcr
+            InterpretedSR(_,ConstraintP,ReadonlyP,RuneSR(_,CodeRuneS("T"))))) => tcr
       }
 
     tCoordRuneFromParams shouldEqual tCoordRuneFromRules
@@ -77,7 +77,7 @@ class ScoutParametersTests extends FunSuite with Matchers {
       case Vector(
         EqualsSR(_,
           TypedSR(_, pr,CoordTypeSR),
-          TemplexSR(NameST(_, CodeTypeNameS("int"))))) => {
+          NameSR(_, CodeTypeNameS("int")))) => {
         vassert(pr == paramRune)
       }
     }
@@ -138,7 +138,7 @@ class ScoutParametersTests extends FunSuite with Matchers {
         TypedSR(_, tr,CoordTypeSR),
         EqualsSR(_,
           TypedSR(_, ar,CoordTypeSR),
-          TemplexSR(NameST(_, CodeTypeNameS("int"))))) => {
+          NameSR(_, CodeTypeNameS("int")))) => {
         vassert(tr == tRune)
         vassert(ar == aRune)
       }

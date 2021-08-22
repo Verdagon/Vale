@@ -5,7 +5,7 @@ import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, Rule
 import net.verdagon.vale.scout.rules.{EqualsSR, TemplexSR, TypedSR}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata.{IPotentialBanner, _}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS, ITemplexS, RangeS}
+import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS, IRulexSR, RangeS}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, IScoutExpectedFunctionResult, InferFailure, Outscored, ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
@@ -67,7 +67,7 @@ class OverloadTemplar(
       temputs: Temputs,
       callRange: RangeS,
       functionName: IImpreciseNameStepA,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
       args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
       exact: Boolean):
@@ -102,7 +102,7 @@ class OverloadTemplar(
     temputs: Temputs,
     callRange: RangeS,
     functionName: IImpreciseNameStepA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
@@ -184,7 +184,7 @@ class OverloadTemplar(
     temputs: Temputs,
     callRange: RangeS,
     functionName: IImpreciseNameStepA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     paramFilters: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
@@ -270,7 +270,7 @@ class OverloadTemplar(
                             EqualsSR(
                               callRange,
                               TypedSR(callRange, templateArgRuneNames, Conversions.unevaluateTemplataType(identifyingRuneTemplataType)),
-                              TemplexSR(explicitlySpecifiedTemplateArgTemplexS))
+                              explicitlySpecifiedTemplateArgTemplexS)
                           }
                         })
                       val templateArgRuneNamesA = templateArgRuneNamesS.map(Astronomer.translateRune)
@@ -409,7 +409,7 @@ class OverloadTemplar(
       temputs: Temputs,
       callRange: RangeS,
       functionName: IImpreciseNameStepA,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
       args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
       exact: Boolean):

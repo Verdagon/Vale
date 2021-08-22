@@ -180,9 +180,9 @@ object PatternScout {
             val rune = rulesS.newImplicitRune()
             val newRule =
               if (runeOnLeft) {
-                EqualsSR(templexS.range, TypedSR(range, rune, RuleScout.translateType(runeType)), TemplexSR(templexS))
+                EqualsSR(templexS.range, TypedSR(range, rune, RuleScout.translateType(runeType)), templexS)
               } else {
-                EqualsSR(templexS.range, TemplexSR(templexS), TypedSR(range, rune, RuleScout.translateType(runeType)))
+                EqualsSR(templexS.range, templexS, TypedSR(range, rune, RuleScout.translateType(runeType)))
               }
             (newRulesFromInner ++ Vector(newRule), rune)
           }
@@ -227,7 +227,7 @@ object PatternScout {
     env: IEnvironment,
     rulesS: RuleStateBox,
     templexesP: Vector[ITemplexPT]):
-  (Vector[IRulexSR], Vector[ITemplexS]) = {
+  (Vector[IRulexSR], Vector[IRulexSR]) = {
     val results = templexesP.map(translatePatternTemplex(env, rulesS, _))
     (results.map(_._1).flatten, results.map(_._2))
   }
@@ -240,45 +240,45 @@ object PatternScout {
       env: IEnvironment,
       rulesS: RuleStateBox,
       templexP: ITemplexPT):
-  (Vector[IRulexSR], ITemplexS, Option[IRuneS]) = {
+  (Vector[IRulexSR], IRulexSR, Option[IRuneS]) = {
     val evalRange = (range: Range) => Scout.evalRange(env.file, range)
 
     templexP match {
       case AnonymousRunePT(range) => {
         val rune = rulesS.newImplicitRune()
-        (Vector.empty, RuneST(evalRange(range), rune), Some(rune))
+        (Vector.empty, RuneSR(evalRange(range), rune), Some(rune))
       }
-      case IntPT(range,value) => (Vector.empty, IntST(evalRange(range), value), None)
-      case BoolPT(range,value) => (Vector.empty, BoolST(evalRange(range), value), None)
+      case IntPT(range,value) => (Vector.empty, IntSR(evalRange(range), value), None)
+      case BoolPT(range,value) => (Vector.empty, BoolSR(evalRange(range), value), None)
       case NameOrRunePT(NameP(range, nameOrRune)) => {
         if (env.allUserDeclaredRunes().contains(CodeRuneS(nameOrRune))) {
-          (Vector.empty, RuneST(evalRange(range), CodeRuneS(nameOrRune)), Some(CodeRuneS(nameOrRune)))
+          (Vector.empty, RuneSR(evalRange(range), CodeRuneS(nameOrRune)), Some(CodeRuneS(nameOrRune)))
         } else {
-          (Vector.empty, NameST(Scout.evalRange(env.file, range), CodeTypeNameS(nameOrRune)), None)
+          (Vector.empty, NameSR(Scout.evalRange(env.file, range), CodeTypeNameS(nameOrRune)), None)
         }
       }
-      case MutabilityPT(range, mutability) => (Vector.empty, MutabilityST(evalRange(range), mutability), None)
-      case VariabilityPT(range, variability) => (Vector.empty, VariabilityST(evalRange(range), variability), None)
+      case MutabilityPT(range, mutability) => (Vector.empty, MutabilitySR(evalRange(range), mutability), None)
+      case VariabilityPT(range, variability) => (Vector.empty, VariabilitySR(evalRange(range), variability), None)
       case InterpretedPT(range,ownership,permission, innerP) => {
         val (newRules, innerS, _) =
           translatePatternTemplex(env, rulesS, innerP)
-        (newRules, InterpretedST(evalRange(range), ownership, permission, innerS), None)
+        (newRules, InterpretedSR(evalRange(range), ownership, permission, innerS), None)
       }
       case CallPT(range,maybeTemplateP, argsMaybeTemplexesP) => {
         val (newRulesFromTemplate, maybeTemplateS, _) = translatePatternTemplex(env, rulesS, maybeTemplateP)
         val (newRulesFromArgs, argsMaybeTemplexesS) = translatePatternTemplexes(env, rulesS, argsMaybeTemplexesP)
-        (newRulesFromTemplate ++ newRulesFromArgs, CallST(evalRange(range), maybeTemplateS, argsMaybeTemplexesS), None)
+        (newRulesFromTemplate ++ newRulesFromArgs, CallSR(evalRange(range), maybeTemplateS, argsMaybeTemplexesS), None)
       }
       case RepeaterSequencePT(range, mutabilityP, variabilityP, sizeP, elementP) => {
         val (newRulesFromMutability, mutabilityS, _) = translatePatternTemplex(env, rulesS, mutabilityP)
         val (newRulesFromVariability, variabilityS, _) = translatePatternTemplex(env, rulesS, variabilityP)
         val (newRulesFromSize, sizeS, _) = translatePatternTemplex(env, rulesS, sizeP)
         val (newRulesFromElement, elementS, _) = translatePatternTemplex(env, rulesS, elementP)
-        (newRulesFromMutability ++ newRulesFromVariability ++ newRulesFromSize ++ newRulesFromElement, RepeaterSequenceST(evalRange(range), mutabilityS, variabilityS, sizeS, elementS), None)
+        (newRulesFromMutability ++ newRulesFromVariability ++ newRulesFromSize ++ newRulesFromElement, RepeaterSequenceSR(evalRange(range), mutabilityS, variabilityS, sizeS, elementS), None)
       }
       case ManualSequencePT(range,maybeMembersP) => {
         val (newRules, maybeMembersS) = translatePatternTemplexes(env, rulesS, maybeMembersP)
-        (newRules, ManualSequenceST(evalRange(range), maybeMembersS), None)
+        (newRules, ManualSequenceSR(evalRange(range), maybeMembersS), None)
       }
 //      case FunctionPT(mutableP, paramsP, retP) => {
 //        val (mutableS, _) = translatePatternMaybeTemplex(declaredRunes, rulesS, mutableP, None)

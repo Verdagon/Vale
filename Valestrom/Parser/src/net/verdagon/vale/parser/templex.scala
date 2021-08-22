@@ -27,7 +27,7 @@ case class NameOrRunePT(name: NameP) extends ITemplexPT {
   override def hashCode(): Int = vcurious()
   def range = name.range
 }
-case class NullablePT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
+//case class NullablePT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class InterpretedPT(range: Range, ownership: OwnershipP, permission: PermissionP, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class OwnershipPT(range: Range, ownership: OwnershipP) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class PackPT(range: Range, members: Vector[ITemplexPT]) extends ITemplexPT { override def hashCode(): Int = vcurious() }

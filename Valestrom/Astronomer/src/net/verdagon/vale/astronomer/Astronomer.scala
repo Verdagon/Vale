@@ -277,16 +277,19 @@ object Astronomer {
     } else vfail()
   }
 
-  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox] = {
-    new RuleTyperEvaluator[Environment, AstroutsBox](
-      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox] {
-        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {
-          Astronomer.lookupType(state, env, range, name)
+  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
+    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
+      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
+        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
+          vimpl()
         }
-
-        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: INameS): ITemplataType = {
-          Astronomer.lookupType(state, env, range, name)
-        }
+//        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {
+//          Astronomer.lookupType(state, env, range, name)
+//        }
+//
+//        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: INameS): ITemplataType = {
+//          Astronomer.lookupType(state, env, range, name)
+//        }
       })
   }
 
@@ -308,15 +311,17 @@ object Astronomer {
       case _ =>
     }
 
-    val (conclusions, rulesA) =
-      makeRuleTyper().solve(astrouts, env, rules, rangeS, Vector.empty, Some(localRunesA ++ knowableRunesA)) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, rtsf))
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+    val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
+
+    val conclusions =
+      makeRuleTyper().solve(astrouts, env, rulesA, rangeS) match {
+        case Err(e) => throw CompileErrorExceptionA(e)
+        case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
       }
 
     val tyype =
       if (isTemplate) {
-        TemplateTemplataType(identifyingRunesA.map(conclusions.typeByRune), KindTemplataType)
+        TemplateTemplataType(identifyingRunesA.map(conclusions), KindTemplataType)
       } else {
         KindTemplataType
       }
@@ -337,7 +342,7 @@ object Astronomer {
       knowableRunesA,
       identifyingRunesA,
       localRunesA,
-      conclusions.typeByRune,
+      conclusions,
       rulesA,
       membersA)
   }
@@ -376,15 +381,17 @@ object Astronomer {
       case _ =>
     }
 
-    val (conclusions, rulesA) =
-      makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(knowableRunesA ++ localRunesA)) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+    val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
+
+    val conclusions =
+      makeRuleTyper().solve(astrouts, env, rulesA, range) match {
+        case Err(e) => throw CompileErrorExceptionA(e)
+        case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
       }
 
     val tyype =
       if (isTemplate) {
-        TemplateTemplataType(identifyingRunesA.map(conclusions.typeByRune), KindTemplataType)
+        TemplateTemplataType(identifyingRunesA.map(conclusions), KindTemplataType)
       } else {
         KindTemplataType
       }
@@ -403,7 +410,7 @@ object Astronomer {
         knowableRunesA,
         identifyingRunesA,
         localRunesA,
-        conclusions.typeByRune,
+        conclusions,
         rulesA,
         internalMethodsA)
     interfaceA
@@ -420,17 +427,17 @@ object Astronomer {
       case _ =>
     }
 
-    val (conclusionsForRulesFromStructDirection, rulesFromStructDirectionA) =
-      makeRuleTyper().solve(astrouts, env, rulesFromStructDirection, range, Vector.empty, Some(knowableRunesA ++ localRunesA)) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
-      }
-    val (conclusionsForRulesFromInterfaceDirection, rulesFromInterfaceDirectionA) =
-      makeRuleTyper().solve(astrouts, env, rulesFromInterfaceDirection, range, Vector.empty, Some(knowableRunesA ++ localRunesA)) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
-      }
-    vassert(conclusionsForRulesFromStructDirection == conclusionsForRulesFromInterfaceDirection)
+    val (conclusionsForRulesFromStructDirection, rulesFromStructDirectionA) = (vimpl(), vimpl())
+//      makeRuleTyper().solve(astrouts, env, rulesFromStructDirection, range, Vector.empty, Some(knowableRunesA ++ localRunesA)) match {
+//        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
+//        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+//      }
+    val (conclusionsForRulesFromInterfaceDirection, rulesFromInterfaceDirectionA) = (vimpl(), vimpl())
+//      makeRuleTyper().solve(astrouts, env, rulesFromInterfaceDirection, range, Vector.empty, Some(knowableRunesA ++ localRunesA)) match {
+//        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
+//        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+//      }
+    vimpl()//vassert(conclusionsForRulesFromStructDirection == conclusionsForRulesFromInterfaceDirection)
     val conclusions = conclusionsForRulesFromStructDirection
 
     ImplA(
@@ -438,7 +445,7 @@ object Astronomer {
       nameA,
       rulesFromStructDirectionA,
       rulesFromInterfaceDirectionA,
-      conclusions.typeByRune,
+      vimpl(),//conclusions,
       localRunesA,
       translateRune(structKindRuneS),
       translateRune(interfaceKindRuneS))
@@ -449,15 +456,17 @@ object Astronomer {
 
     val runeS = ImplicitRuneS(exportName, 0)
     val runeA = translateRune(runeS)
-    val rulesS = Vector(EqualsSR(range, TypedSR(range, runeS, KindTypeSR), TemplexSR(templexS)))
+    val rulesS = Vector(EqualsSR(range, TypedSR(range, runeS, KindTypeSR), templexS))
 
-    val (conclusions, rulesA) =
-      makeRuleTyper().solve(astrouts, env, rulesS, range, Vector.empty, Some(Set(runeA))) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+    val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rulesS)
+
+    val conclusions =
+      makeRuleTyper().solve(astrouts, env, rulesA, range) match {
+        case Err(e) => throw CompileErrorExceptionA(e)
+        case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
       }
 
-    ExportAsA(range, exportedName, rulesA, conclusions.typeByRune, runeA)
+    ExportAsA(range, exportedName, rulesA, conclusions, runeA)
   }
 
   def translateParameter(env: Environment, paramS: ParameterS): ParameterA = {
@@ -517,24 +526,24 @@ object Astronomer {
 
     val paramsA = paramsS.map(translateParameter(env, _))
 
-    val (conclusions, rulesA) =
-      makeRuleTyper().solve(astrouts, env, templateRules, rangeS, Vector.empty, Some(localRunesA)) match {
-        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => {
-          ErrorReporter.report(CouldntSolveRulesA(rangeS, rtsf))
-        }
-        case (c, RuleTyperSolveSuccess(r)) => (c, r)
+    val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(templateRules)
+
+    val conclusions =
+      makeRuleTyper().solve(astrouts, env, rulesA, rangeS) match {
+        case Err(e) => throw CompileErrorExceptionA(e)
+        case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
       }
 
     val tyype =
       if (isTemplate) {
         TemplateTemplataType(
-          identifyingRunesA.map(conclusions.typeByRune),
+          identifyingRunesA.map(conclusions),
           FunctionTemplataType)
       } else {
         FunctionTemplataType
       }
 
-    val innerEnv = env.addRunes(conclusions.typeByRune)
+    val innerEnv = env.addRunes(conclusions)
 
     val bodyA = translateBody(astrouts, innerEnv, bodyS)
 
@@ -546,7 +555,7 @@ object Astronomer {
       knowableRunesA,
       identifyingRunesA,
       localRunesA,
-      conclusions.typeByRune ++ env.typeByRune,
+      conclusions ++ env.typeByRune,
       paramsA,
       maybeRetCoordRune.map(translateRune),
       rulesA,

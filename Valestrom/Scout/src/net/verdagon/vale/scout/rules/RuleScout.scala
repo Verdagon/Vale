@@ -59,8 +59,8 @@ object RuleScout {
         vassert(userDeclaredRunes.contains(CodeRuneS(runeName)))
         TypedSR(evalRange(range), CodeRuneS(runeName), translateType(tyype))
       }
-      case TemplexPR(templex) => TemplexSR(translateTemplex(env, ruleState, userDeclaredRunes, templex))
-      case CallPR(range, NameP(_, name), args) => CallSR(Scout.evalRange(env.file, range), name, args.map(translateRulex(env, ruleState, userDeclaredRunes, _)))
+      case TemplexPR(templex) => translateTemplex(env, ruleState, userDeclaredRunes, templex)
+      case BuiltinCallPR(range, NameP(_, name), args) => BuiltinCallSR(Scout.evalRange(env.file, range), name, args.map(translateRulex(env, ruleState, userDeclaredRunes, _)))
     }
   }
   def translateType(tyype: ITypePR): ITypeSR = {
@@ -87,52 +87,52 @@ object RuleScout {
     ruleState: RuleStateBox,
     userDeclaredRunes: Set[IRuneS],
     templex: ITemplexPT):
-  ITemplexS = {
+  IRulexSR = {
     val evalRange = (range: Range) => Scout.evalRange(env.file, range)
     templex match {
-      case StringPT(range, value) => StringST(evalRange(range), value)
-      case IntPT(range, value) => IntST(evalRange(range), value)
-      case MutabilityPT(range, mutability) => MutabilityST(evalRange(range), mutability)
-      case PermissionPT(range, permission) => PermissionST(evalRange(range), permission)
-      case LocationPT(range, location) => LocationST(evalRange(range), location)
-      case OwnershipPT(range, ownership) => OwnershipST(evalRange(range), ownership)
-      case VariabilityPT(range, variability) => VariabilityST(evalRange(range), variability)
-      case BoolPT(range, value) => BoolST(evalRange(range), value)
+      case StringPT(range, value) => StringSR(evalRange(range), value)
+      case IntPT(range, value) => IntSR(evalRange(range), value)
+      case MutabilityPT(range, mutability) => MutabilitySR(evalRange(range), mutability)
+      case PermissionPT(range, permission) => PermissionSR(evalRange(range), permission)
+      case LocationPT(range, location) => LocationSR(evalRange(range), location)
+      case OwnershipPT(range, ownership) => OwnershipSR(evalRange(range), ownership)
+      case VariabilityPT(range, variability) => VariabilitySR(evalRange(range), variability)
+      case BoolPT(range, value) => BoolSR(evalRange(range), value)
       case NameOrRunePT(NameP(range, name)) => {
         if (userDeclaredRunes.contains(CodeRuneS(name))) {
-          RuneST(evalRange(range), CodeRuneS(name))
+          RuneSR(evalRange(range), CodeRuneS(name))
         } else {
-          NameST(Scout.evalRange(env.file, range), CodeTypeNameS(name))
+          NameSR(Scout.evalRange(env.file, range), CodeTypeNameS(name))
         }
       }
       case AnonymousRunePT(range) => {
         val rune = ruleState.newImplicitRune()
-        RuneST(evalRange(range), rune)
+        RuneSR(evalRange(range), rune)
       }
       case CallPT(range, template, args) => {
-        CallST(evalRange(range), translateTemplex(env, ruleState, userDeclaredRunes, template), args.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
+        CallSR(evalRange(range), translateTemplex(env, ruleState, userDeclaredRunes, template), args.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
       }
       case FunctionPT(range, mutability, paramsPack, returnType) => {
-        CallST(
+        CallSR(
           evalRange(range),
-          NameST(Scout.evalRange(env.file, range), CodeTypeNameS("IFunction")),
+          NameSR(Scout.evalRange(env.file, range), CodeTypeNameS("IFunction")),
           Vector(
-            mutability match { case None => MutabilityST(evalRange(range), MutableP) case Some(m) => translateTemplex(env, ruleState, userDeclaredRunes, m) },
+            mutability match { case None => MutabilitySR(evalRange(range), MutableP) case Some(m) => translateTemplex(env, ruleState, userDeclaredRunes, m) },
             translateTemplex(env, ruleState, userDeclaredRunes, paramsPack),
             translateTemplex(env, ruleState, userDeclaredRunes, returnType)))
       }
-      case PrototypePT(range, NameP(_, name), parameters, returnType) => PrototypeST(evalRange(range), name, parameters.map(translateTemplex(env, ruleState, userDeclaredRunes, _)), translateTemplex(env, ruleState, userDeclaredRunes, returnType))
-      case PackPT(range, members) => PackST(evalRange(range), members.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
-      case BorrowPT(range, inner) => BorrowST(evalRange(range), translateTemplex(env, ruleState, userDeclaredRunes, inner))
+      case PrototypePT(range, NameP(_, name), parameters, returnType) => PrototypeSR(evalRange(range), name, parameters.map(translateTemplex(env, ruleState, userDeclaredRunes, _)), translateTemplex(env, ruleState, userDeclaredRunes, returnType))
+      case PackPT(range, members) => PackSR(evalRange(range), members.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
+      case BorrowPT(range, inner) => BorrowSR(evalRange(range), translateTemplex(env, ruleState, userDeclaredRunes, inner))
       case RepeaterSequencePT(range, mutability, variability, size, element) => {
-        RepeaterSequenceST(
+        RepeaterSequenceSR(
           evalRange(range),
           translateTemplex(env, ruleState, userDeclaredRunes, mutability),
           translateTemplex(env, ruleState, userDeclaredRunes, variability),
           translateTemplex(env, ruleState, userDeclaredRunes, size),
           translateTemplex(env, ruleState, userDeclaredRunes, element))
       }
-      case ManualSequencePT(range, elements) => ManualSequenceST(evalRange(range), elements.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
+      case ManualSequencePT(range, elements) => ManualSequenceSR(evalRange(range), elements.map(translateTemplex(env, ruleState, userDeclaredRunes, _)))
     }
   }
 }

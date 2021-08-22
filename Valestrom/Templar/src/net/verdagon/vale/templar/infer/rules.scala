@@ -8,7 +8,7 @@ import net.verdagon.vale.{vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
 
-case class RuneWorld(
+case class RuneWorldTR(
   rules: Array[IRulexTR],
 
   // For example, if rule 7 says:
@@ -31,7 +31,17 @@ case class RuneWorld(
 sealed trait IRulexTR {
   def range: RangeS
 }
-case class OrTR(range: RangeS, possibilities: Vector[RuneWorld]) extends IRulexTR {
+case class EqualsTR(
+  range: RangeS,
+  leftRune: Int,
+  rightRune: Int,
+) extends IRulexTR {
+  override def hashCode(): Int = vcurious()
+}
+case class OrTR(
+  range: RangeS,
+  possibilities: Vector[RuneWorldTR]
+) extends IRulexTR {
   override def hashCode(): Int = vcurious()
   vassert(possibilities.nonEmpty)
 }
@@ -52,7 +62,7 @@ case class KindComponentsTR(
   override def hashCode(): Int = vcurious()
 }
 // This is for built-in parser functions, such as exists() or isBaseOf() etc.
-case class CallTR(
+case class BuiltinCallTR(
   range: RangeS,
   rune: Int,
   name: String,
@@ -70,53 +80,53 @@ case class IsaTR(
   override def hashCode(): Int = vcurious()
 }
 
-case class IntTT(range: RangeS, rune: Int, value: Long) extends IRulexTR {
+case class IntTR(range: RangeS, rune: Int, value: Long) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class StringTT(range: RangeS, rune: Int, value: String) extends IRulexTR {
+case class StringTR(range: RangeS, rune: Int, value: String) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class BoolTT(range: RangeS, rune: Int, value: Boolean) extends IRulexTR {
+case class BoolTR(range: RangeS, rune: Int, value: Boolean) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class MutabilityTT(range: RangeS, rune: Int, mutability: MutabilityP) extends IRulexTR {
+case class MutabilityTR(range: RangeS, rune: Int, mutability: MutabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class PermissionTT(range: RangeS, rune: Int, permission: PermissionP) extends IRulexTR {
+case class PermissionTR(range: RangeS, rune: Int, permission: PermissionP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class LocationTT(range: RangeS, rune: Int, location: LocationP) extends IRulexTR {
+case class LocationTR(range: RangeS, rune: Int, location: LocationP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class OwnershipTT(range: RangeS, rune: Int, ownership: OwnershipP) extends IRulexTR {
+case class OwnershipTR(range: RangeS, rune: Int, ownership: OwnershipP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
-case class VariabilityTT(range: RangeS, rune: Int, variability: VariabilityP) extends IRulexTR {
+case class VariabilityTR(range: RangeS, rune: Int, variability: VariabilityP) extends IRulexTR {
   override def hashCode(): Int = vcurious()
 }
 
-case class NameTT(
+case class NameTR(
   range: RangeS,
   rune: Int,
   name: IImpreciseNameStepA,
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-//  println("hi")
+  //  println("hi")
 }
 
-case class AbsoluteNameTT(
+case class AbsoluteNameTR(
   range: RangeS,
   rune: Int,
   name: INameA,
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
-//  println("hi")
+  //  println("hi")
 }
 
-// InterpretedTT will overwrite inner's permission and ownership to the given ones.
-case class InterpretedTT(
+// InterpretedTR will overwrite inner's permission and ownership to the given ones.
+case class InterpretedTR(
   range: RangeS,
   rune: Int,
   ownership: OwnershipP,
@@ -126,17 +136,17 @@ case class InterpretedTT(
   override def hashCode(): Int = vcurious()
 }
 
-case class NullableTT(
-  range: RangeS,
-  rune: Int,
-  inner: Int) extends IRulexTR {
-  override def hashCode(): Int = vcurious()
-}
+//case class NullableTR(
+//  range: RangeS,
+//  rune: Int,
+//  inner: Int) extends IRulexTR {
+//  override def hashCode(): Int = vcurious()
+//}
 
-case class CallTT(
+case class CallTR(
   range: RangeS,
   rune: Int,
-  template: Int,
+  templateRune: Int,
   args: Vector[Int],
   // This is here because we might want to coerce the result. We do this for
   // calls, packs, etc.
@@ -145,14 +155,14 @@ case class CallTT(
   override def hashCode(): Int = vcurious()
 }
 
-//case class FunctionTT(
+//case class FunctionTR(
 //  mutability: Option[IRulexTR],
 //  parameters: Vector[Option[IRulexTR]],
 //  returnType: Option[IRulexTR]
 //) extends IRulexTR {
 // override def hashCode(): Int = vcurious()}
 
-case class PrototypeTT(
+case class PrototypeTR(
   range: RangeS,
   rune: Int,
   name: String,
@@ -162,7 +172,7 @@ case class PrototypeTT(
   override def hashCode(): Int = vcurious()
 }
 
-case class RepeaterSequenceTT(
+case class RepeaterSequenceTR(
   range: RangeS,
   rune: Int,
   mutability: Int,
@@ -176,7 +186,7 @@ case class RepeaterSequenceTT(
   override def hashCode(): Int = vcurious()
 }
 
-case class ManualSequenceTT(
+case class ManualSequenceTR(
   range: RangeS,
   rune: Int,
   elements: Vector[Int],
@@ -187,7 +197,7 @@ case class ManualSequenceTT(
   override def hashCode(): Int = vcurious()
 }
 
-case class CoordListTT(
+case class CoordListTR(
   range: RangeS,
   rune: Int,
   elements: Vector[Int]

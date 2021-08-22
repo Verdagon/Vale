@@ -5,7 +5,7 @@ import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.{LetRuleState, PatternScout, RuleState, RuleStateBox}
 import net.verdagon.vale.scout.predictor.Conclusions
-import net.verdagon.vale.scout.rules.RuleScout
+import net.verdagon.vale.scout.rules.{IRulexSR, RuleScout}
 import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
 
 object ExpressionScout {
@@ -17,7 +17,7 @@ object ExpressionScout {
   // Looks up something that's not a local.
   // Should be just a function, but its also super likely that the user just forgot
   // to declare a variable, and we interpreted it as an outside lookup.
-  case class OutsideLookupResult(range: RangeS, name: String, templateArgs: Option[Vector[ITemplexS]]) extends IScoutResult[IExpressionSE] {
+  case class OutsideLookupResult(range: RangeS, name: String, templateArgs: Option[Vector[IRulexSR]]) extends IScoutResult[IExpressionSE] {
     override def hashCode(): Int = vcurious()
   }
   // Anything else, such as:

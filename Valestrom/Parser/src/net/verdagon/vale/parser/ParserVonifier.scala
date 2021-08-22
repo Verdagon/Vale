@@ -380,9 +380,9 @@ object ParserVonifier {
           Vector(
             VonMember("templex", vonifyTemplex(templex))))
       }
-      case CallPR(range, name, args) => {
+      case BuiltinCallPR(range, name, args) => {
         VonObject(
-          "CallPR",
+          "BuiltinCallPR",
           None,
           Vector(
             VonMember("range", vonifyRange(range)),
@@ -535,14 +535,14 @@ object ParserVonifier {
           Vector(
             VonMember("rune", vonifyName(rune))))
       }
-      case NullablePT(range, inner) => {
-        VonObject(
-          "NullableT",
-          None,
-          Vector(
-            VonMember("range", vonifyRange(range)),
-            VonMember("inner", vonifyTemplex(inner))))
-      }
+//      case NullablePT(range, inner) => {
+//        VonObject(
+//          "NullableT",
+//          None,
+//          Vector(
+//            VonMember("range", vonifyRange(range)),
+//            VonMember("inner", vonifyTemplex(inner))))
+//      }
       case InterpretedPT(range, ownership, permission, inner) => {
         VonObject(
           "InterpretedT",

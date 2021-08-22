@@ -94,8 +94,8 @@ object vimpl {
   def apply(): Nothing = {
     vfail("impl")
   }
-  def apply(message: String): Nothing = {
-    vfail(message)
+  def apply(message: Object): Nothing = {
+    vfail(message.toString)
   }
 
   def unapply(thing: Any): Option[Nothing] = {

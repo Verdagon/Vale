@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{ITemplexS, RangeS}
+import net.verdagon.vale.scout.{IRulexSR, RangeS}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, ILookupContext, TemplataLookupContext}
@@ -9,9 +9,11 @@ import net.verdagon.vale.templar.infer.{IInfererDelegate, _}
 import net.verdagon.vale.templar.infer.infer.{IInferSolveResult, InferSolveFailure, InferSolveSuccess}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{IProfiler, vassertSome, vfail, vimpl}
+import net.verdagon.vale.{IProfiler, vassert, vassertSome, vfail, vimpl}
 
 import scala.collection.immutable.List
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class InferTemplar(
     opts: TemplarOptions,
@@ -30,12 +32,17 @@ class InferTemplar(
     checkAllRunesPresent: Boolean,
   ): (IInferSolveResult) = {
     profiler.newProfile("infer", "", () => {
+      val output = ConstructingRuneWorldTR(ArrayBuffer(), mutable.HashMap(), ArrayBuffer(), ArrayBuffer(), ArrayBuffer())
+      rules.map(translateRule(output, _))
+      val rulesTR = output.build()
+
+
       Inferer.solve[IEnvironment, Temputs](
         profiler,
         delegate,
         env,
         state,
-        translateRules(rules),
+        rulesTR,
         typeByRune.map({ case (key, value) => NameTranslator.translateRune(key) -> value }),
         localRunes.map(NameTranslator.translateRune),
         invocationRange,
@@ -130,42 +137,5 @@ class InferTemplar(
         Some(patternInputCoords),
         true)
     })
-  }
-
-  def translateRules(rs: Vector[IRulexAR]): Vector[IRulexTR] = {
-    rs.map(translateRule)
-  }
-
-  def translateRule(rulexA: IRulexAR): IRulexTR = {
-    rulexA match {
-      case EqualsAR(range, left, right) => EqualsTR(range, translateRule(left), translateRule(right))
-      case TemplexAR(templex) => translateTemplex(templex)
-      case ComponentsAR(range, tyype, componentsA) => ComponentsTR(range, tyype, componentsA.map(translateRule))
-      case OrAR(range, possibilities) => OrTR(range, possibilities.map(translateRule))
-      case CallAR(range, name, args, resultType) => CallTR(range, name, args.map(translateRule), resultType)
-//      case CoordListAR(rules) => CoordListTR(rules.map(translateRule))
-      case _ => vimpl()
-    }
-  }
-
-  def translateTemplex(templexA: ITemplexA): IRulexTR = {
-    templexA match {
-      case RuneAT(range, rune, resultType) => RuneTT(range, NameTranslator.translateRune(rune), resultType)
-      case NameAT(range, name, resultType) => NameTT(range, name, resultType)
-      case OwnershipAT(range, ownership) => OwnershipTT(range, ownership)
-      case PermissionAT(range, permission) => PermissionTT(range, permission)
-      case InterpretedAT(range, ownership, permission, inner) => InterpretedTT(range, ownership, permission, translateTemplex(inner))
-      case AbsoluteNameAT(range, name, resultType) => AbsoluteNameTT(range, name, resultType)
-      case CallAT(range, template, args, resultType) => CallTT(range, translateTemplex(template), args.map(translateTemplex), resultType)
-      case MutabilityAT(range, m) => MutabilityTT(range, m)
-      case VariabilityAT(range, m) => VariabilityTT(range, m)
-      case ManualSequenceAT(range, m, resultType) => ManualSequenceTT(range, m.map(translateTemplex), resultType)
-      case RepeaterSequenceAT(range, mutability, variability, size, element, resultType) => RepeaterSequenceTT(range, translateTemplex(mutability), translateTemplex(variability), translateTemplex(size), translateTemplex(element), resultType)
-//      case PackAT(range, members, resultType) => PackTT(range, members.map(translateTemplex), resultType)
-      case IntAT(range, value) => IntTT(range, value)
-      case StringAT(range, value) => StringTT(range, value)
-      case CoordListAT(range, elements) => CoordListTT(range, elements.map(translateTemplex))
-      case _ => vimpl(templexA.toString)
-    }
   }
 }

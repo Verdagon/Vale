@@ -64,12 +64,12 @@ class TemplataTemplar(
   def evaluateTemplex(
     env: IEnvironment,
     temputs: Temputs,
-    templex: ITemplexA
+    templex: IRulexAR
   ): (ITemplata) = {
     makeInner().evaluateTemplex(env, temputs, templex)
   }
 
-  def evaluateTemplexes(env: IEnvironment, temputs: Temputs, templexes: Vector[ITemplexA]):
+  def evaluateTemplexes(env: IEnvironment, temputs: Temputs, templexes: Vector[IRulexAR]):
   (Vector[ITemplata]) = {
     makeInner().evaluateTemplexes(env, temputs, templexes)
   }

@@ -235,7 +235,7 @@ object Scout {
         EqualsSR(
           memberRange,
           TypedSR(memberRange, memberRune, CoordTypeSR),
-          TemplexSR(TemplexScout.translateTemplex(structEnv, memberType)))
+          TemplexScout.translateTemplex(structEnv, memberType))
       })
 
     val rate = RuleStateBox(RuleState(structEnv.name, 0))
@@ -256,8 +256,8 @@ object Scout {
       rulesWithoutMutabilityS :+
         EqualsSR(
           structRangeS,
-          TemplexSR(RuneST(structRangeS, mutabilityRune)),
-          TemplexSR(mutabilityST))
+          RuneSR(structRangeS, mutabilityRune),
+          mutabilityST)
 
     // We gather all the runes from the scouted rules to be consistent with the function scout.
     val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
@@ -348,8 +348,8 @@ object Scout {
       rulesWithoutMutabilityS :+
       EqualsSR(
         interfaceRangeS,
-        TemplexSR(RuneST(interfaceRangeS, mutabilityRune)),
-        TemplexSR(mutabilityST))
+        RuneSR(interfaceRangeS, mutabilityRune),
+        mutabilityST)
 
     // We gather all the runes from the scouted rules to be consistent with the function scout.
     val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
@@ -403,7 +403,7 @@ object Scout {
 
   def getHumanName(templex: ITemplexPT): String = {
     templex match {
-      case NullablePT(_, inner) => getHumanName(inner)
+//      case NullablePT(_, inner) => getHumanName(inner)
       case InlinePT(_, inner) => getHumanName(inner)
 //      case PermissionedPT(_, permission, inner) => getHumanName(inner)
       case InterpretedPT(_, ownership, permission, inner) => getHumanName(inner)

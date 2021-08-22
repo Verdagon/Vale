@@ -22,7 +22,7 @@ case class TemplexPR(templex: ITemplexPT) extends IRulexPR {
   def range = templex.range
 }
 // This is for built-in parser functions, such as exists() or isBaseOf() etc.
-case class CallPR(range: Range, name: NameP, args: Vector[IRulexPR]) extends IRulexPR { override def hashCode(): Int = vcurious() }
+case class BuiltinCallPR(range: Range, name: NameP, args: Vector[IRulexPR]) extends IRulexPR { override def hashCode(): Int = vcurious() }
 case class ResolveSignaturePR(range: Range, nameStrRule: IRulexPR, argsPackRule: PackPR) extends IRulexPR { override def hashCode(): Int = vcurious() }
 case class PackPR(range: Range, elements: Vector[IRulexPR]) extends IRulexPR { override def hashCode(): Int = vcurious() }
 
@@ -62,7 +62,7 @@ object RulePUtils {
       case ComponentsPR(_, container, components) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(Vector(container) ++ components)
       case TypedPR(range, maybeRune, tyype) => maybeRune.map(_.str).toVector
       case TemplexPR(templex) => getOrderedRuneDeclarationsFromTemplexWithDuplicates(templex)
-      case CallPR(range, name, args) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(args)
+      case BuiltinCallPR(range, name, args) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(args)
     }
   }
 

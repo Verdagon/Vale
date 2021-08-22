@@ -63,8 +63,8 @@ class ScoutTests extends FunSuite with Matchers {
     val memberRune = MemberRuneS(0)
     imoo.rules match {
       case Vector(
-      EqualsSR(_, TypedSR(_, memberRune, CoordTypeSR), TemplexSR(NameST(_, CodeTypeNameS("int")))),
-      EqualsSR(_, TemplexSR(RuneST(_, ImplicitRuneS(_, _))), TemplexSR(MutabilityST(_, MutableP)))) =>
+      EqualsSR(_, TypedSR(_, memberRune, CoordTypeSR), NameSR(_, CodeTypeNameS("int"))),
+      EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
     }
     imoo.members match {
       case Vector(StructMemberS(_, "x", FinalP, memberRune)) =>
@@ -88,7 +88,7 @@ class ScoutTests extends FunSuite with Matchers {
     val imoo = program1.lookupInterface("IMoo")
 
     imoo.rules match {
-      case Vector(EqualsSR(_, TemplexSR(RuneST(_, ImplicitRuneS(_, _))), TemplexSR(MutabilityST(_, MutableP)))) =>
+      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
     }
 
     val blork = imoo.internalMethods.head
@@ -101,13 +101,13 @@ class ScoutTests extends FunSuite with Matchers {
         case Vector(
         EqualsSR(_,
         TypedSR(_, actualThisParamRune, CoordTypeSR),
-        TemplexSR(InterpretedST(_, ConstraintP, ReadonlyP, NameST(_, CodeTypeNameS("IMoo"))))),
+        InterpretedSR(_, ConstraintP, ReadonlyP, NameSR(_, CodeTypeNameS("IMoo")))),
         EqualsSR(_,
         TypedSR(_, actualBoolParamRune, CoordTypeSR),
-        TemplexSR(NameST(_, CodeTypeNameS("bool")))),
+        NameSR(_, CodeTypeNameS("bool"))),
         EqualsSR(_,
         TypedSR(_, actualRetRune, CoordTypeSR),
-        TemplexSR(NameST(_, CodeTypeNameS("void"))))) => {
+        NameSR(_, CodeTypeNameS("void")))) => {
           actualThisParamRune match {
             case ImplicitRuneS(_, 0) =>
           }
@@ -157,16 +157,16 @@ class ScoutTests extends FunSuite with Matchers {
       }
     impl.rulesFromStructDirection match {
       case Vector(
-      EqualsSR(_, TypedSR(_, a, KindTypeSR), TemplexSR(NameST(_, CodeTypeNameS("Moo")))),
-      EqualsSR(_, TypedSR(_, b, KindTypeSR), TemplexSR(NameST(_, CodeTypeNameS("IMoo"))))) => {
+      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo"))),
+      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo")))) => {
         vassert(a == structRune)
         vassert(b == interfaceRune)
       }
     }
     impl.rulesFromInterfaceDirection match {
       case Vector(
-      EqualsSR(_, TypedSR(_, b, KindTypeSR), TemplexSR(NameST(_, CodeTypeNameS("IMoo")))),
-      EqualsSR(_, TypedSR(_, a, KindTypeSR), TemplexSR(NameST(_, CodeTypeNameS("Moo"))))) => {
+      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo"))),
+      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo")))) => {
         vassert(a == structRune)
         vassert(b == interfaceRune)
       }

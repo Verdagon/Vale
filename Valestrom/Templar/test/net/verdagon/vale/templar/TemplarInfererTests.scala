@@ -169,7 +169,7 @@ class InfererTests extends FunSuite with Matchers {
             Vector(),
             Set(CodeRuneA("M")),
             Map(CodeRuneA("M") -> MutabilityTemplataType),
-            Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,ImmutableP)))),
+            Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,ImmutableP)))),
             Vector())))
     entries = entries.addEntry(true,
       CitizenNameT("ImmStruct", Vector()),
@@ -187,9 +187,9 @@ class InfererTests extends FunSuite with Matchers {
             Set(CodeRuneA("M"), CodeRuneA("I"), CodeRuneA("B")),
             Map(CodeRuneA("M") -> MutabilityTemplataType, CodeRuneA("I") -> CoordTemplataType, CodeRuneA("B") -> CoordTemplataType),
             Vector(
-              EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,ImmutableP))),
-              EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("I"), CoordTemplataType)), TemplexAR(NameAT(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType))),
-              EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("B"), CoordTemplataType)), TemplexAR(NameAT(RangeS.testZero,CodeTypeNameA("bool"), CoordTemplataType)))),
+              EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,ImmutableP))),
+              EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("I"), CoordTemplataType)), TemplexAR(NameAR(RangeS.testZero,CodeTypeNameA("int"), CoordTemplataType))),
+              EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("B"), CoordTemplataType)), TemplexAR(NameAR(RangeS.testZero,CodeTypeNameA("bool"), CoordTemplataType)))),
             Vector(
               StructMemberA(RangeS.testZero,"i", FinalP, CodeRuneA("I")),
               StructMemberA(RangeS.testZero,"i", FinalP, CodeRuneA("B"))))))
@@ -209,7 +209,7 @@ class InfererTests extends FunSuite with Matchers {
               Vector(CodeRuneA("T")),
               Set(CodeRuneA("T"), CodeRuneA("M")),
               Map(CodeRuneA("T") -> CoordTemplataType, CodeRuneA("M") -> MutabilityTemplataType),
-              Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,MutableP)))),
+              Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,MutableP)))),
               Vector())))
     entries = entries.addEntry(true, CitizenTemplateNameT("MutTInterface", CodeLocationT.internal(-27)),
       InterfaceEnvEntry(
@@ -225,7 +225,7 @@ class InfererTests extends FunSuite with Matchers {
           Vector(CodeRuneA("T")),
           Set(CodeRuneA("T"), CodeRuneA("M")),
           Map(CodeRuneA("T") -> CoordTemplataType, CodeRuneA("M") -> MutabilityTemplataType),
-          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,MutableP)))),
+          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,MutableP)))),
           Vector())))
     entries = entries.addEntry(true, CitizenTemplateNameT("MutStruct", CodeLocationT.internal(-29)),
       StructEnvEntry(
@@ -241,7 +241,7 @@ class InfererTests extends FunSuite with Matchers {
           Vector(),
           Set(CodeRuneA("M")),
           Map(CodeRuneA("M") -> MutabilityTemplataType),
-          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,MutableP)))),
+          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,MutableP)))),
           Vector())))
     entries = entries.addEntry(true, CitizenTemplateNameT("MutInterface", CodeLocationT.internal(-31)),
       InterfaceEnvEntry(
@@ -257,7 +257,7 @@ class InfererTests extends FunSuite with Matchers {
           Vector(),
           Set(CodeRuneA("M")),
           Map(CodeRuneA("M") -> MutabilityTemplataType),
-          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAT(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAT(RangeS.testZero,MutableP)))),
+          Vector(EqualsAR(RangeS.testZero,TemplexAR(RuneAR(RangeS.testZero,CodeRuneA("M"), MutabilityTemplataType)), TemplexAR(MutabilityAR(RangeS.testZero,MutableP)))),
           Vector())))
     entries = entries.addEntry(true, CitizenNameT("MutStructConstraint", Vector()),
       TemplataEnvEntry(CoordTemplata(CoordT(ConstraintT,ReadonlyT, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct", Vector())))))))

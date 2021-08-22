@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.UseP
-import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, ITemplexS, ProgramS, RangeS}
+import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, IRulexSR, ProgramS, RangeS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
@@ -298,7 +298,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         override def evaluateType(
           env: IEnvironment,
           temputs: Temputs,
-          type1: ITemplexA
+          type1: IRulexAR
         ): (ITemplata) = {
           profiler.childFrame("InferTemplarDelegate.evaluateType", () => {
             templataTemplar.evaluateTemplex(env, temputs, type1)
@@ -472,7 +472,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameStepA, explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
+          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameStepA, explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
         OverloadTemplar.IScoutExpectedFunctionResult = {
           overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName, explicitlySpecifiedTemplateArgTemplexesS, args, extraEnvsToLookIn, exact)
         }

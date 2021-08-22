@@ -1,6 +1,7 @@
 package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
+import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.{vassert, vcheck, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
@@ -77,128 +78,86 @@ case class ImpreciseCodeVarNameS(name: String) extends IImpreciseNameStepS { val
 
 
 // See PVSBUFI
-sealed trait ITemplexS { def range: RangeS }
-case class IntST(range: RangeS, value: Long) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class StringST(range: RangeS, value: String) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class MutabilityST(range: RangeS, mutability: MutabilityP) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class PermissionST(range: RangeS, permission: PermissionP) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class LocationST(range: RangeS, location: LocationP) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class OwnershipST(range: RangeS, ownership: OwnershipP) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class VariabilityST(range: RangeS, variability: VariabilityP) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class BoolST(range: RangeS, value: Boolean) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class AbsoluteNameST(range: RangeS, name: INameS) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class NameST(range: RangeS, name: CodeTypeNameS) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class RuneST(range: RangeS, rune: IRuneS) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class InterpretedST(range: RangeS, ownership: OwnershipP, permission: PermissionP, inner: ITemplexS) extends ITemplexS { override def hashCode(): Int = vcurious() }
+case class IntSR(range: RangeS, value: Long) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class StringSR(range: RangeS, value: String) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class MutabilitySR(range: RangeS, mutability: MutabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class PermissionSR(range: RangeS, permission: PermissionP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class LocationSR(range: RangeS, location: LocationP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class OwnershipSR(range: RangeS, ownership: OwnershipP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class VariabilitySR(range: RangeS, variability: VariabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class BoolSR(range: RangeS, value: Boolean) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class AbsoluteNameSR(range: RangeS, name: INameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class NameSR(range: RangeS, name: CodeTypeNameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class RuneSR(range: RangeS, rune: IRuneS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class InterpretedSR(range: RangeS, ownership: OwnershipP, permission: PermissionP, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
 //case class PermissionedST(range: RangeS, permission: PermissionP, inner: ITemplexS) extends ITemplexS {  override def hashCode(): Int = vcurious() }
-case class NullableST(range: RangeS, inner: ITemplexS) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class CallST(range: RangeS,
-    template: ITemplexS,
-    args: Vector[ITemplexS]) extends ITemplexS {
+//case class NullableSR(range: RangeS, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class CallSR(range: RangeS,
+    template: IRulexSR,
+    args: Vector[IRulexSR]) extends IRulexSR {
 }
 //case class FunctionST(
 //  mutability: Option[ITemplexS],
 //  parameters: Vector[Option[ITemplexS]],
 //  returnType: Option[ITemplexS]
 //) extends ITemplexS {  override def hashCode(): Int = vcurious() }
-case class PrototypeST(
+case class PrototypeSR(
   range: RangeS,
   name: String,
-  parameters: Vector[ITemplexS],
-  returnType: ITemplexS
-) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class PackST(
+  parameters: Vector[IRulexSR],
+  returnType: IRulexSR
+) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class PackSR(
   range: RangeS,
-  members: Vector[ITemplexS]
-) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class BorrowST(
+  members: Vector[IRulexSR]
+) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class BorrowSR(
   range: RangeS,
-  inner: ITemplexS
-) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class RepeaterSequenceST(
+  inner: IRulexSR
+) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class RepeaterSequenceSR(
   range: RangeS,
-  mutability: ITemplexS,
-  variability: ITemplexS,
-  size: ITemplexS,
-  element: ITemplexS
-) extends ITemplexS { override def hashCode(): Int = vcurious() }
-case class ManualSequenceST(
+  mutability: IRulexSR,
+  variability: IRulexSR,
+  size: IRulexSR,
+  element: IRulexSR
+) extends IRulexSR { override def hashCode(): Int = vcurious() }
+case class ManualSequenceSR(
   range: RangeS,
-  elements: Vector[ITemplexS]
-) extends ITemplexS { override def hashCode(): Int = vcurious() }
+  elements: Vector[IRulexSR]
+) extends IRulexSR { override def hashCode(): Int = vcurious() }
 
 object TemplexSUtils {
-  def getDistinctOrderedRunesForTemplex(templex: ITemplexS): Vector[IRuneS] = {
+  def getDistinctOrderedRunesForTemplex(templex: IRulexSR): Vector[IRuneS] = {
     templex match {
-      case StringST(_, _) => Vector.empty
-      case IntST(_, _) => Vector.empty
-      case MutabilityST(_, _) => Vector.empty
-      case PermissionST(_, _) => Vector.empty
-      case LocationST(_, _) => Vector.empty
-      case OwnershipST(_, _) => Vector.empty
-      case VariabilityST(_, _) => Vector.empty
-      case BoolST(_, _) => Vector.empty
-      case NameST(_, _) => Vector.empty
-      case AbsoluteNameST(_, _) => Vector.empty
-      case RuneST(_, rune) => Vector(rune)
-      case InterpretedST(_, _, _, inner) => getDistinctOrderedRunesForTemplex(inner)
-      case BorrowST(_, inner) => getDistinctOrderedRunesForTemplex(inner)
-      case CallST(_, template, args) => {
+      case StringSR(_, _) => Vector.empty
+      case IntSR(_, _) => Vector.empty
+      case MutabilitySR(_, _) => Vector.empty
+      case PermissionSR(_, _) => Vector.empty
+      case LocationSR(_, _) => Vector.empty
+      case OwnershipSR(_, _) => Vector.empty
+      case VariabilitySR(_, _) => Vector.empty
+      case BoolSR(_, _) => Vector.empty
+      case NameSR(_, _) => Vector.empty
+      case AbsoluteNameSR(_, _) => Vector.empty
+      case RuneSR(_, rune) => Vector(rune)
+      case InterpretedSR(_, _, _, inner) => getDistinctOrderedRunesForTemplex(inner)
+      case BorrowSR(_, inner) => getDistinctOrderedRunesForTemplex(inner)
+      case CallSR(_, template, args) => {
         (Vector(template) ++ args).flatMap(getDistinctOrderedRunesForTemplex).distinct
       }
-      case PrototypeST(_, name, parameters, returnType) => {
+      case PrototypeSR(_, name, parameters, returnType) => {
         (parameters :+ returnType).flatMap(getDistinctOrderedRunesForTemplex).distinct
       }
-      case PackST(_, members) => {
+      case PackSR(_, members) => {
         members.flatMap(getDistinctOrderedRunesForTemplex).distinct
       }
-      case RepeaterSequenceST(_, mutability, variability, size, element) => {
+      case RepeaterSequenceSR(_, mutability, variability, size, element) => {
         Vector(mutability, variability, size, element).flatMap(getDistinctOrderedRunesForTemplex).distinct
       }
-      case ManualSequenceST(_, elements) => {
+      case ManualSequenceSR(_, elements) => {
         elements.flatMap(getDistinctOrderedRunesForTemplex).distinct
       }
     }
   }
-
-//  // DO NOT COPY this without considering using a traverse pattern like
-//  // we do elsewhere.
-//  def templexNamesToRunes(envName: INameS, runes: Set[IRuneS])(templex: ITemplexS): ITemplexS = {
-//    templex match {
-//      case NameST(ImpreciseNameS(Vector.empty, CodeTypeNameS(name))) if (runes.exists(_.last == CodeRuneS(name))) => RuneST(envName.addStep(CodeRuneS(name)))
-//      case NameST(iname) => NameST(iname)
-//      case IntST(value) => IntST(value)
-//      case MutabilityST(mutability) => MutabilityST(mutability)
-//      case PermissionST(permission) => PermissionST(permission)
-//      case LocationST(location) => LocationST(location)
-//      case OwnershipST(ownership) => OwnershipST(ownership)
-//      case VariabilityST(variability) => VariabilityST(variability)
-//      case BoolST(value) => BoolST(value)
-//      case RuneST(rune) => RuneST(rune)
-//      case InterpretedST(ownership, inner) => InterpretedST(ownership, templexNamesToRunes(envName, runes)(inner))
-//      case CallST(template, args) => {
-//        CallST(
-//          templexNamesToRunes(envName, runes)(template),
-//          args.map(templexNamesToRunes(envName, runes)))
-//      }
-//      case PrototypeST(name, parameters, returnType) => {
-//        PrototypeST(
-//          name,
-//          parameters.map(templexNamesToRunes(envName, runes)),
-//          templexNamesToRunes(envName, runes)(returnType))
-//      }
-//      case PackST(members) => {
-//        PackST(members.map(templexNamesToRunes(envName, runes)))
-//      }
-//      case RepeaterSequenceST(mutability, size, element) => {
-//        RepeaterSequenceST(
-//          templexNamesToRunes(envName, runes)(mutability),
-//          templexNamesToRunes(envName, runes)(size),
-//          templexNamesToRunes(envName, runes)(element))
-//      }
-//      case ManualSequenceST(elements) => {
-//        ManualSequenceST(elements.map(templexNamesToRunes(envName, runes)))
-//      }
-//    }
-//  }
 }

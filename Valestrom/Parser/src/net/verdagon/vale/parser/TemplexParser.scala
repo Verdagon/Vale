@@ -41,8 +41,8 @@ trait TemplexParser extends RegexParsers with ParserUtils {
     pos ~ "borrow" ~ pos ^^ { case begin ~ _ ~ end => OwnershipPT(Range(begin, end), ConstraintP) } |
     pos ~ "weak" ~ pos ^^ { case begin ~ _ ~ end => OwnershipPT(Range(begin, end), WeakP) } |
     pos ~ "share" ~ pos ^^ { case begin ~ _ ~ end => OwnershipPT(Range(begin, end), ShareP) } |
-    mutabilityAtomTemplex |
-    variabilityAtomTemplex |
+    mutabilityARomTemplex |
+    variabilityARomTemplex |
     pos ~ "inl" ~ pos ^^ { case begin ~ _ ~ end => LocationPT(Range(begin, end), InlineP) } |
     pos ~ "yon" ~ pos ^^ { case begin ~ _ ~ end => LocationPT(Range(begin, end), YonderP) } |
     pos ~ "xrw" ~ pos ^^ { case begin ~ _ ~ end => PermissionPT(Range(begin, end), ExclusiveReadwriteP) } |
@@ -52,18 +52,18 @@ trait TemplexParser extends RegexParsers with ParserUtils {
     (typeIdentifier ^^ NameOrRunePT)
   }
 
-  def mutabilityAtomTemplex: Parser[MutabilityPT] = {
+  def mutabilityARomTemplex: Parser[MutabilityPT] = {
     pos ~ "mut" ~ pos ^^ { case begin ~ _ ~ end => MutabilityPT(Range(begin, end), MutableP) } |
     pos ~ "imm" ~ pos ^^ { case begin ~ _ ~ end => MutabilityPT(Range(begin, end), ImmutableP) }
   }
 
-  def variabilityAtomTemplex: Parser[VariabilityPT] = {
+  def variabilityARomTemplex: Parser[VariabilityPT] = {
     pos ~ "vary" ~ pos ^^ { case begin ~ _ ~ end => VariabilityPT(Range(begin, end), VaryingP) } |
     pos ~ "final" ~ pos ^^ { case begin ~ _ ~ end => VariabilityPT(Range(begin, end), FinalP) }
   }
 
   private[parser] def unariedTemplex: Parser[ITemplexPT] = {
-    (pos ~ ("?" ~> optWhite ~> templex) ~ pos ^^ { case begin ~ inner ~ end => NullablePT(Range(begin, end), inner) }) |
+//    (pos ~ ("?" ~> optWhite ~> templex) ~ pos ^^ { case begin ~ inner ~ end => NullablePT(Range(begin, end), inner) }) |
     (pos ~ ("^" ~> optWhite ~> templex) ~ pos ^^ { case begin ~ inner ~ end => InterpretedPT(Range(begin, end), OwnP, ReadwriteP, inner) }) |
     (pos ~ ("*" ~> optWhite ~> templex) ~ pos ^^ { case begin ~ inner ~ end => InterpretedPT(Range(begin, end), ShareP, ReadonlyP, inner) }) |
     (pos ~ ("&&!" ~> optWhite ~> templex) ~ pos ^^ { case begin ~ inner ~ end => InterpretedPT(Range(begin, end), WeakP, ReadwriteP, inner) }) |
