@@ -138,7 +138,7 @@ trait RuleParser extends RegexParsers with ParserUtils {
   private[parser] def implementsPR: Parser[IRulexPR] = {
     pos ~ pstr("implements") ~ (optWhite ~> "(" ~> optWhite ~> rulePR <~ optWhite <~ "," <~ optWhite) ~
         (rulePR <~ optWhite <~ ")") ~ pos ^^ {
-      case begin ~ impl ~ struct ~ interface ~ end => CallPR(Range(begin, end), impl, Vector(struct, interface))
+      case begin ~ impl ~ struct ~ interface ~ end => BuiltinCallPR(Range(begin, end), impl, Vector(struct, interface))
     }
   }
 
@@ -147,7 +147,7 @@ trait RuleParser extends RegexParsers with ParserUtils {
   // Atomic means no neighboring, see parser doc.
   private[parser] def existsPR: Parser[IRulexPR] = {
     pos ~ pstr("exists") ~ (optWhite ~> "(" ~> optWhite ~> rulePR <~ optWhite <~ ")") ~ pos ^^ {
-      case begin ~ exists ~ thing ~ end => CallPR(Range(begin, end), exists, Vector(thing))
+      case begin ~ exists ~ thing ~ end => BuiltinCallPR(Range(begin, end), exists, Vector(thing))
     }
   }
 

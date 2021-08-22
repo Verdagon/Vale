@@ -138,7 +138,7 @@ case class ImplS(
 case class ExportAsS(
     range: RangeS,
     exportName: ExportAsNameS,
-    templexS: ITemplexS,
+    templexS: IRulexSR,
     exportedName: String) {
   override def hashCode(): Int = vcurious()
 }
@@ -215,7 +215,7 @@ case class SimpleParameterS(
     origin: Option[AtomSP],
     name: String,
     virtuality: Option[VirtualitySP],
-    tyype: ITemplexS) {
+    tyype: IRulexSR) {
   override def hashCode(): Int = vcurious()
 }
 

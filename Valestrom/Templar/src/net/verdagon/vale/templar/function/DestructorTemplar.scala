@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{AbstractAP, AtomAP, CallAR, CodeRuneA, CodeTypeNameA, CodeVarNameA, ComponentsAR, CoordTemplataType, EqualsAR, FunctionA, FunctionNameA, FunctionTemplataType, GeneratedBodyA, GlobalFunctionFamilyNameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmDropImpreciseNameA, ImmDropNameA, ImmInterfaceDestructorImpreciseNameA, ImmInterfaceDestructorNameA, KindTemplataType, LocalA, MutabilityAT, NameAT, OrAR, OverrideAP, OwnershipAT, OwnershipTemplataType, ParameterA, PermissionAT, PermissionTemplataType, RuneAT, TemplateTemplataType, TemplexAR, UserFunctionA}
+import net.verdagon.vale.astronomer.{AbstractAP, AtomAP, CallAR, CodeRuneA, CodeTypeNameA, CodeVarNameA, ComponentsAR, CoordTemplataType, EqualsAR, FunctionA, FunctionNameA, FunctionTemplataType, GeneratedBodyA, GlobalFunctionFamilyNameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmDropImpreciseNameA, ImmDropNameA, ImmInterfaceDestructorImpreciseNameA, ImmInterfaceDestructorNameA, KindTemplataType, LocalA, MutabilityAR, NameAR, OrAR, OverrideAP, OwnershipAR, OwnershipTemplataType, ParameterA, PermissionAR, PermissionTemplataType, RuneAR, TemplateTemplataType, TemplexAR, UserFunctionA}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout.{CodeLocationS, NotUsed, RangeS, Used}
 import net.verdagon.vale.templar.types.{CoordT, _}
@@ -521,25 +521,25 @@ object DestructorTemplar {
       Some(CodeRuneA("V")),
       Vector(
         EqualsAR(RangeS.internal(-16722),
-          TemplexAR(RuneAT(RangeS.internal(-16723),CodeRuneA("XX"), KindTemplataType)),
+          TemplexAR(RuneAR(RangeS.internal(-16723),CodeRuneA("XX"), KindTemplataType)),
           ComponentsAR(
             RangeS.internal(-93),
-            KindTemplataType, Vector(TemplexAR(MutabilityAT(RangeS.internal(-16724),Conversions.unevaluateMutability(mutability)))))),
+            KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-16724),Conversions.unevaluateMutability(mutability)))))),
         EqualsAR(RangeS.internal(-16725),
-          TemplexAR(RuneAT(RangeS.internal(-16726),CodeRuneA("T"), CoordTemplataType)),
+          TemplexAR(RuneAR(RangeS.internal(-16726),CodeRuneA("T"), CoordTemplataType)),
           ComponentsAR(
             RangeS.internal(-94),
             CoordTemplataType,
             Vector(
-              OrAR(RangeS.internal(-16727),Vector(TemplexAR(OwnershipAT(RangeS.internal(-1672),OwnP)), TemplexAR(OwnershipAT(RangeS.internal(-1672),ShareP)))),
-              OrAR(RangeS.internal(-16728),Vector(TemplexAR(PermissionAT(RangeS.internal(-1672),ReadwriteP)), TemplexAR(PermissionAT(RangeS.internal(-1672),ReadonlyP)))),
+              OrAR(RangeS.internal(-16727),Vector(TemplexAR(OwnershipAR(RangeS.internal(-1672),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-1672),ShareP)))),
+              OrAR(RangeS.internal(-16728),Vector(TemplexAR(PermissionAR(RangeS.internal(-1672),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-1672),ReadonlyP)))),
               CallAR(RangeS.internal(-16729),
                 "passThroughIfConcrete",
-                Vector(TemplexAR(RuneAT(RangeS.internal(-167210),CodeRuneA("XX"), KindTemplataType))),
+                Vector(TemplexAR(RuneAR(RangeS.internal(-167210),CodeRuneA("XX"), KindTemplataType))),
                 KindTemplataType)))),
         EqualsAR(RangeS.internal(-167211),
-          TemplexAR(RuneAT(RangeS.internal(-167212),CodeRuneA("V"), CoordTemplataType)),
-          TemplexAR(NameAT(RangeS.internal(-167213),CodeTypeNameA("void"), CoordTemplataType)))),
+          TemplexAR(RuneAR(RangeS.internal(-167212),CodeRuneA("V"), CoordTemplataType)),
+          TemplexAR(NameAR(RangeS.internal(-167213),CodeTypeNameA("void"), CoordTemplataType)))),
       GeneratedBodyA("concreteDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
@@ -608,25 +608,25 @@ object DestructorTemplar {
         Some(CodeRuneA("V")),
         Vector(
           EqualsAR(RangeS.internal(-167214),
-            TemplexAR(RuneAT(RangeS.internal(-167215),CodeRuneA("XX"), KindTemplataType)),
+            TemplexAR(RuneAR(RangeS.internal(-167215),CodeRuneA("XX"), KindTemplataType)),
             ComponentsAR(
               RangeS.internal(-95),
-              KindTemplataType, Vector(TemplexAR(MutabilityAT(RangeS.internal(-167216),Conversions.unevaluateMutability(mutability)))))),
+              KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-167216),Conversions.unevaluateMutability(mutability)))))),
           EqualsAR(RangeS.internal(-167217),
-            TemplexAR(RuneAT(RangeS.internal(-167218),CodeRuneA("T"), CoordTemplataType)),
+            TemplexAR(RuneAR(RangeS.internal(-167218),CodeRuneA("T"), CoordTemplataType)),
             ComponentsAR(
               RangeS.internal(-96),
               CoordTemplataType,
               Vector(
-                OrAR(RangeS.internal(-167219),Vector(TemplexAR(OwnershipAT(RangeS.internal(-167220),OwnP)), TemplexAR(OwnershipAT(RangeS.internal(-167221),ShareP)))),
-                OrAR(RangeS.internal(-167222),Vector(TemplexAR(PermissionAT(RangeS.internal(-167223),ReadwriteP)), TemplexAR(PermissionAT(RangeS.internal(-167224),ReadonlyP)))),
+                OrAR(RangeS.internal(-167219),Vector(TemplexAR(OwnershipAR(RangeS.internal(-167220),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-167221),ShareP)))),
+                OrAR(RangeS.internal(-167222),Vector(TemplexAR(PermissionAR(RangeS.internal(-167223),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-167224),ReadonlyP)))),
                 CallAR(RangeS.internal(-167225),
                   "passThroughIfInterface",
-                  Vector(TemplexAR(RuneAT(RangeS.internal(-167226),CodeRuneA("XX"), KindTemplataType))),
+                  Vector(TemplexAR(RuneAR(RangeS.internal(-167226),CodeRuneA("XX"), KindTemplataType))),
                   KindTemplataType)))),
           EqualsAR(RangeS.internal(-167227),
-            TemplexAR(RuneAT(RangeS.internal(-167228),CodeRuneA("V"), CoordTemplataType)),
-            TemplexAR(NameAT(RangeS.internal(-167229),CodeTypeNameA("void"), CoordTemplataType)))),
+            TemplexAR(RuneAR(RangeS.internal(-167228),CodeRuneA("V"), CoordTemplataType)),
+            TemplexAR(NameAR(RangeS.internal(-167229),CodeTypeNameA("void"), CoordTemplataType)))),
         GeneratedBodyA("interfaceDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
@@ -690,26 +690,26 @@ object DestructorTemplar {
         Some(CodeRuneA("V")),
         Vector(
           EqualsAR(RangeS.internal(-167230),
-            TemplexAR(RuneAT(RangeS.internal(-167231),CodeRuneA("XX"), KindTemplataType)),
+            TemplexAR(RuneAR(RangeS.internal(-167231),CodeRuneA("XX"), KindTemplataType)),
             ComponentsAR(
               RangeS.internal(-97),
-              KindTemplataType, Vector(TemplexAR(MutabilityAT(RangeS.internal(-167232),Conversions.unevaluateMutability(mutability)))))),
+              KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-167232),Conversions.unevaluateMutability(mutability)))))),
           EqualsAR(RangeS.internal(-167233),
-            TemplexAR(RuneAT(RangeS.internal(-167234),CodeRuneA("T"), CoordTemplataType)),
+            TemplexAR(RuneAR(RangeS.internal(-167234),CodeRuneA("T"), CoordTemplataType)),
             ComponentsAR(
               RangeS.internal(-98),
               CoordTemplataType,
               Vector(
-                OrAR(RangeS.internal(-167235),Vector(TemplexAR(OwnershipAT(RangeS.internal(-167236),OwnP)), TemplexAR(OwnershipAT(RangeS.internal(-167237),ShareP)))),
-                OrAR(RangeS.internal(-167238),Vector(TemplexAR(PermissionAT(RangeS.internal(-167239),ReadwriteP)), TemplexAR(PermissionAT(RangeS.internal(-167240),ReadonlyP)))),
+                OrAR(RangeS.internal(-167235),Vector(TemplexAR(OwnershipAR(RangeS.internal(-167236),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-167237),ShareP)))),
+                OrAR(RangeS.internal(-167238),Vector(TemplexAR(PermissionAR(RangeS.internal(-167239),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-167240),ReadonlyP)))),
                 CallAR(RangeS.internal(-167241),
                   "passThroughIfStruct",
-                  Vector(TemplexAR(RuneAT(RangeS.internal(-167242),CodeRuneA("XX"), KindTemplataType))),
+                  Vector(TemplexAR(RuneAR(RangeS.internal(-167242),CodeRuneA("XX"), KindTemplataType))),
                   KindTemplataType)))),
-          CallAR(RangeS.internal(-167243),"passThroughIfInterface", Vector(TemplexAR(RuneAT(RangeS.internal(-167244),CodeRuneA("I"), KindTemplataType))), KindTemplataType),
+          CallAR(RangeS.internal(-167243),"passThroughIfInterface", Vector(TemplexAR(RuneAR(RangeS.internal(-167244),CodeRuneA("I"), KindTemplataType))), KindTemplataType),
           EqualsAR(RangeS.internal(-167245),
-            TemplexAR(RuneAT(RangeS.internal(-167246),CodeRuneA("V"), CoordTemplataType)),
-            TemplexAR(NameAT(RangeS.internal(-167247),CodeTypeNameA("void"), CoordTemplataType)))),
+            TemplexAR(RuneAR(RangeS.internal(-167246),CodeRuneA("V"), CoordTemplataType)),
+            TemplexAR(NameAR(RangeS.internal(-167247),CodeTypeNameA("void"), CoordTemplataType)))),
         GeneratedBodyA("implDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
@@ -789,21 +789,21 @@ object DestructorTemplar {
       Some(CodeRuneA("V")),
       Vector(
         EqualsAR(RangeS.internal(-167248),
-          TemplexAR(RuneAT(RangeS.internal(-167249),CodeRuneA("T"), CoordTemplataType)),
+          TemplexAR(RuneAR(RangeS.internal(-167249),CodeRuneA("T"), CoordTemplataType)),
           ComponentsAR(
             RangeS.internal(-98),
             CoordTemplataType,
             Vector(
-              TemplexAR(RuneAT(RangeS.internal(-167250),CodeRuneA("O"), OwnershipTemplataType)),
-              TemplexAR(RuneAT(RangeS.internal(-167260),CodeRuneA("P"), PermissionTemplataType)),
+              TemplexAR(RuneAR(RangeS.internal(-167250),CodeRuneA("O"), OwnershipTemplataType)),
+              TemplexAR(RuneAR(RangeS.internal(-167260),CodeRuneA("P"), PermissionTemplataType)),
               ComponentsAR(
                 RangeS.internal(-99),
                 KindTemplataType,
-                Vector(TemplexAR(MutabilityAT(RangeS.internal(-167251),Conversions.unevaluateMutability(mutability)))))))),
-        TemplexAR(RuneAT(RangeS.internal(-167252),CodeRuneA("T"), CoordTemplataType)),
+                Vector(TemplexAR(MutabilityAR(RangeS.internal(-167251),Conversions.unevaluateMutability(mutability)))))))),
+        TemplexAR(RuneAR(RangeS.internal(-167252),CodeRuneA("T"), CoordTemplataType)),
         EqualsAR(RangeS.internal(-167253),
-          TemplexAR(RuneAT(RangeS.internal(-167254),CodeRuneA("V"), CoordTemplataType)),
-          TemplexAR(NameAT(RangeS.internal(-167255),CodeTypeNameA("void"), CoordTemplataType)))),
+          TemplexAR(RuneAR(RangeS.internal(-167254),CodeRuneA("V"), CoordTemplataType)),
+          TemplexAR(NameAR(RangeS.internal(-167255),CodeTypeNameA("void"), CoordTemplataType)))),
       GeneratedBodyA("dropGenerator"))
     val generator =
       new IFunctionGenerator {

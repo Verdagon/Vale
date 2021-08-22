@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.astronomer.GlobalFunctionFamilyNameA
-import net.verdagon.vale.scout.{ITemplexS, RangeS}
+import net.verdagon.vale.scout.{IRulexSR, RangeS}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import net.verdagon.vale.templar.templata._
@@ -34,7 +34,7 @@ class CallTemplar(
       life: LocationInFunctionEnvironment,
       range: RangeS,
       callableExpr: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     callableExpr.resultRegister.reference.kind match {
@@ -113,7 +113,7 @@ class CallTemplar(
     fate: FunctionEnvironment,
     range: RangeS,
     functionName: GlobalFunctionFamilyNameA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val unconvertedArgsPointerTypes2 =
@@ -176,7 +176,7 @@ class CallTemplar(
       life: LocationInFunctionEnvironment,
       range: RangeS,
       citizenRef: CitizenRefT,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
       givenCallableUnborrowedExpr2: ReferenceExpressionTE,
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
       (FunctionCallTE) = {
@@ -279,7 +279,7 @@ class CallTemplar(
     life: LocationInFunctionEnvironment,
     range: RangeS,
       callableReferenceExpr2: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
       argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val callExpr =
@@ -292,7 +292,7 @@ class CallTemplar(
     fate: FunctionEnvironmentBox,
     rangeS: RangeS,
     functionName: GlobalFunctionFamilyNameA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)

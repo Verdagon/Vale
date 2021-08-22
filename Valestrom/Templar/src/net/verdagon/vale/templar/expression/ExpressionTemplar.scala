@@ -751,34 +751,34 @@ class ExpressionTemplar(
               temputs, fate, range, rules, typeByRune, maybeMutabilityRune, maybeVariabilityRune, sizeTE, callableTE)
           (expr2, returnsFromSize ++ returnsFromCallable)
         }
-        case StaticSizedArrayFromCallableAE(range, mutabilityTemplex, variabilityTemplex, elementCoordTemplex, generatorPrototypeTemplex, sizeExpr1, generatorExpr1) => {
-          val (MutabilityTemplata(arrayMutability)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, mutabilityTemplex)
-          val (VariabilityTemplata(arrayVariability)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, variabilityTemplex)
-          val (CoordTemplata(elementCoord)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, elementCoordTemplex)
-          val (PrototypeTemplata(generatorPrototype)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, generatorPrototypeTemplex)
-
-          val (sizeExpr2, returnsFromSize) =
-            evaluate(temputs, fate, life + 0, sizeExpr1);
-
-          val (generatorExpr2, returnsFromGenerator) =
-            evaluateAndCoerceToReferenceExpression(temputs, fate, life + 1, generatorExpr1);
-
-          checkArray(
-            temputs, range, arrayMutability, elementCoord, generatorPrototype, generatorExpr2.resultRegister.reference)
-          val arrayType = arrayTemplar.getRuntimeSizedArrayKind(fate.snapshot, temputs, elementCoord, arrayMutability, arrayVariability)
-
-          val sizeRefExpr2 = coerceToReferenceExpression(fate, sizeExpr2)
-          vassert(sizeRefExpr2.resultRegister.expectReference().reference == CoordT(ShareT, ReadonlyT, IntT.i32))
-
-          val generatorMethod2 = generatorPrototype
-          val constructExpr2 =
-            ConstructArrayTE(
-              arrayType,
-              sizeRefExpr2,
-              generatorExpr2,
-              generatorMethod2)
-          (constructExpr2, returnsFromSize ++ returnsFromGenerator)
-        }
+//        case StaticSizedArrayFromCallableAE(range, mutabilityTemplex, variabilityTemplex, elementCoordTemplex, generatorPrototypeTemplex, sizeExpr1, generatorExpr1) => {
+//          val (MutabilityTemplata(arrayMutability)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, mutabilityTemplex)
+//          val (VariabilityTemplata(arrayVariability)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, variabilityTemplex)
+//          val (CoordTemplata(elementCoord)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, elementCoordTemplex)
+//          val (PrototypeTemplata(generatorPrototype)) = templataTemplar.evaluateTemplex(fate.snapshot, temputs, generatorPrototypeTemplex)
+//
+//          val (sizeExpr2, returnsFromSize) =
+//            evaluate(temputs, fate, life + 0, sizeExpr1);
+//
+//          val (generatorExpr2, returnsFromGenerator) =
+//            evaluateAndCoerceToReferenceExpression(temputs, fate, life + 1, generatorExpr1);
+//
+//          checkArray(
+//            temputs, range, arrayMutability, elementCoord, generatorPrototype, generatorExpr2.resultRegister.reference)
+//          val arrayType = arrayTemplar.getRuntimeSizedArrayKind(fate.snapshot, temputs, elementCoord, arrayMutability, arrayVariability)
+//
+//          val sizeRefExpr2 = coerceToReferenceExpression(fate, sizeExpr2)
+//          vassert(sizeRefExpr2.resultRegister.expectReference().reference == CoordT(ShareT, ReadonlyT, IntT.i32))
+//
+//          val generatorMethod2 = generatorPrototype
+//          val constructExpr2 =
+//            ConstructArrayTE(
+//              arrayType,
+//              sizeRefExpr2,
+//              generatorExpr2,
+//              generatorMethod2)
+//          (constructExpr2, returnsFromSize ++ returnsFromGenerator)
+//        }
         case LetAE(range, rulesA, typeByRune, localRunesA, pattern, sourceExpr1) => {
           val (sourceExpr2, returnsFromSource) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, sourceExpr1)

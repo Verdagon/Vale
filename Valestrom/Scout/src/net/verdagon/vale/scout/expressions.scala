@@ -130,26 +130,26 @@ case class TupleSE(range: RangeS, elements: Vector[IExpressionSE]) extends IExpr
 }
 case class StaticArrayFromValuesSE(
   range: RangeS,
-  maybeMutabilityST: Option[ITemplexS],
-  maybeVariabilityST: Option[ITemplexS],
-  maybeSizeST: Option[ITemplexS],
+  maybeMutabilityST: Option[IRulexSR],
+  maybeVariabilityST: Option[IRulexSR],
+  maybeSizeST: Option[IRulexSR],
   elements: Vector[IExpressionSE]
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
 }
 case class StaticArrayFromCallableSE(
   range: RangeS,
-  maybeMutabilityST: Option[ITemplexS],
-  maybeVariabilityST: Option[ITemplexS],
-  sizeST: ITemplexS,
+  maybeMutabilityST: Option[IRulexSR],
+  maybeVariabilityST: Option[IRulexSR],
+  sizeST: IRulexSR,
   callable: IExpressionSE
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
 }
 case class RuntimeArrayFromCallableSE(
   range: RangeS,
-  mutabilityST: Option[ITemplexS],
-  variabilityST: Option[ITemplexS],
+  mutabilityST: Option[IRulexSR],
+  variabilityST: Option[IRulexSR],
   sizeSE: IExpressionSE,
   callable: IExpressionSE
 ) extends IExpressionSE {
@@ -208,7 +208,7 @@ case class LocalLoadSE(range: RangeS, name: IVarNameS, targetOwnership: LoadAsP)
 }
 // Loads a non-local. In well formed code, this will be a function, but the user also likely
 // tried to access a variable they forgot to declare.
-case class OutsideLoadSE(range: RangeS, name: String, maybeTemplateArgs: Option[Vector[ITemplexS]], targetOwnership: LoadAsP) extends IExpressionSE {
+case class OutsideLoadSE(range: RangeS, name: String, maybeTemplateArgs: Option[Vector[IRulexSR]], targetOwnership: LoadAsP) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
 }
 case class RuneLookupSE(range: RangeS, rune: IRuneS) extends IExpressionSE {

@@ -8,34 +8,34 @@ import net.verdagon.vale.scout.rules._
 object PredictorMatcher {
   def matchAgainstTemplexSR(
       conclusions: ConclusionsBox,
-      rule: ITemplexS):
+      rule: IRulexSR):
   Unit = {
     rule match {
-      case IntST(_, _) =>
-      case BoolST(_, _) =>
-      case MutabilityST(_, _) =>
-      case PermissionST(_, _) =>
-      case LocationST(_, _) =>
-      case StringST(_, _) =>
-      case OwnershipST(_, _) =>
-      case VariabilityST(_, _) =>
-      case NameST(_, _) =>
-      case AbsoluteNameST(_, _) =>
-      case RuneST(_, rune) => conclusions.markRuneValueKnowable(rune)
-      case CallST(_, template, args) => {
+      case IntSR(_, _) =>
+      case BoolSR(_, _) =>
+      case MutabilitySR(_, _) =>
+      case PermissionSR(_, _) =>
+      case LocationSR(_, _) =>
+      case StringSR(_, _) =>
+      case OwnershipSR(_, _) =>
+      case VariabilitySR(_, _) =>
+      case NameSR(_, _) =>
+      case AbsoluteNameSR(_, _) =>
+      case RuneSR(_, rune) => conclusions.markRuneValueKnowable(rune)
+      case CallSR(_, template, args) => {
         matchAgainstTemplexSR(conclusions, template)
         args.foreach(matchAgainstTemplexSR(conclusions, _))
       }
-      case InterpretedST(_, _, _, inner) => matchAgainstTemplexSR(conclusions, inner)
-      case RepeaterSequenceST(_, mutabilityRule, variabilityRule, sizeRule,elementRule) => {
+      case InterpretedSR(_, _, _, inner) => matchAgainstTemplexSR(conclusions, inner)
+      case RepeaterSequenceSR(_, mutabilityRule, variabilityRule, sizeRule,elementRule) => {
         matchAgainstTemplexSR(conclusions, mutabilityRule)
         matchAgainstTemplexSR(conclusions, sizeRule)
         matchAgainstTemplexSR(conclusions, elementRule)
       }
-      case ManualSequenceST(_, elements) => {
+      case ManualSequenceSR(_, elements) => {
         elements.foreach(matchAgainstTemplexSR(conclusions, _))
       }
-      case PackST(_, elements) => {
+      case PackSR(_, elements) => {
         elements.foreach(matchAgainstTemplexSR(conclusions, _))
       }
       case x => vimpl(x.toString)
@@ -48,7 +48,6 @@ object PredictorMatcher {
       case rule @ OrSR(_, _) => matchAgainstOrSR(conclusions, rule)
       case rule @ ComponentsSR(_, _, _) => matchAgainstComponentsSR(conclusions, rule)
       case rule @ TypedSR(_, _, _) => matchAgainstTypedSR(conclusions, rule)
-      case TemplexSR(itemplexST) => matchAgainstTemplexSR(conclusions, itemplexST)
       case rule @ CallSR(_, _, _) => matchAgainstCallSR(conclusions, rule)
     }
   }

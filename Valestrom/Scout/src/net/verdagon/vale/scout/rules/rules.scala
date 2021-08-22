@@ -5,7 +5,7 @@ import net.verdagon.vale.{vcurious, vimpl}
 
 import scala.collection.immutable.List
 
-sealed trait IRulexSR {
+trait IRulexSR {
   def range: RangeS
 }
 case class EqualsSR(range: RangeS, left: IRulexSR, right: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
@@ -20,15 +20,16 @@ case class ComponentsSR(
 ) extends IRulexSR { override def hashCode(): Int = vcurious() }
 //case class PackSR(elements: Vector[IRulexSR]) extends IRulexSR { override def hashCode(): Int = vcurious() }
 case class TypedSR(range: RangeS, rune: IRuneS, tyype: ITypeSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class TemplexSR(templex: ITemplexS) extends IRulexSR {
-  override def range: RangeS = templex.range
-}
+//case class TemplexSR(templex: IRulexSR) extends IRulexSR {
+//  override def range: RangeS = templex.range
+//}
 // This is for built-in parser functions, such as exists() or isBaseOf() etc.
-case class CallSR(range: RangeS, name: String, args: Vector[IRulexSR]) extends IRulexSR {
+case class BuiltinCallSR(range: RangeS, name: String, args: Vector[IRulexSR]) extends IRulexSR {
 }
 
 sealed trait ITypeSR
 case object IntTypeSR extends ITypeSR
+case object StringTypeSR extends ITypeSR
 case object PrototypeTypeSR extends ITypeSR
 case object BoolTypeSR extends ITypeSR
 case object OwnershipTypeSR extends ITypeSR
@@ -61,7 +62,7 @@ object RuleSUtils {
         getDistinctOrderedRunesForRulex(container) ++ components.flatMap(getDistinctOrderedRunesForRulex).toSet
       }
       case TypedSR(_, rune, tyype) => Vector(rune)
-      case TemplexSR(templex) => TemplexSUtils.getDistinctOrderedRunesForTemplex(templex)
+//      case templex => TemplexSUtils.getDistinctOrderedRunesForTemplex(templex)
       case CallSR(_, name, args) => args.flatMap(getDistinctOrderedRunesForRulex).distinct
     }
   }

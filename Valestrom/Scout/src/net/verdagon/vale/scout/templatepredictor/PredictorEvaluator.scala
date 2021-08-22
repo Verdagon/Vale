@@ -65,8 +65,7 @@ object PredictorEvaluator {
       case r @ OrSR(_,_) => evaluateOrRule(conclusions, r)
       case r @ ComponentsSR(_,_, _) => evaluateComponentsRule(conclusions, r)
       case r @ TypedSR(_,_, _) => evaluateTypedRule(conclusions, r)
-      case TemplexSR(templex) => evaluateTemplex(conclusions, templex)
-      case r @ CallSR(_,_, _) => evaluateRuleCall(conclusions, r)
+      case r @ BuiltinCallSR(_,_, _) => evaluateRuleCall(conclusions, r)
 //      case r @ PackSR(_) => evaluatePackRule(conclusions, r)
     }
   }
@@ -85,9 +84,9 @@ object PredictorEvaluator {
 
   private def evaluateRuleCall(
     conclusions: ConclusionsBox,
-    ruleCall: CallSR,
+    ruleCall: BuiltinCallSR,
   ): Boolean = {
-    val CallSR(range, name, argumentRules) = ruleCall
+    val BuiltinCallSR(range, name, argumentRules) = ruleCall
 
     name match {
       case "toRef" => {
@@ -117,7 +116,7 @@ object PredictorEvaluator {
   }
   private def evaluateTemplexes(
     conclusions: ConclusionsBox,
-    ruleTemplexes: Vector[ITemplexS],
+    ruleTemplexes: Vector[IRulexSR],
   ): Vector[Boolean] = {
     val knowns =
       ruleTemplexes.map({
@@ -131,38 +130,38 @@ object PredictorEvaluator {
 
   private def evaluateTemplex(
     conclusions: ConclusionsBox,
-    ruleTemplex: ITemplexS,
+    ruleTemplex: IRulexSR,
   ): Boolean = {
     ruleTemplex match {
-      case IntST(_, _) => true
-      case StringST(_, _) => true
-      case BoolST(_, _) => true
-      case MutabilityST(_, _) => true
-      case PermissionST(_, _) => true
-      case LocationST(_, _) => true
-      case OwnershipST(_, _) => true
-      case VariabilityST(_, _) => true
-      case NameST(_, _) => true
-      case AbsoluteNameST(_, _) => true
-      case BorrowST(_, inner) => evaluateTemplex(conclusions, inner)
-      case RuneST(_, rune) => {
+      case IntSR(_, _) => true
+      case StringSR(_, _) => true
+      case BoolSR(_, _) => true
+      case MutabilitySR(_, _) => true
+      case PermissionSR(_, _) => true
+      case LocationSR(_, _) => true
+      case OwnershipSR(_, _) => true
+      case VariabilitySR(_, _) => true
+      case NameSR(_, _) => true
+      case AbsoluteNameSR(_, _) => true
+      case BorrowSR(_, inner) => evaluateTemplex(conclusions, inner)
+      case RuneSR(_, rune) => {
         conclusions.knowableValueRunes.contains(rune)
       }
-      case InterpretedST(_, _, _, kindRule) => evaluateTemplex(conclusions, kindRule)
-      case CallST(_, templateRule, paramRules) => {
+      case InterpretedSR(_, _, _, kindRule) => evaluateTemplex(conclusions, kindRule)
+      case CallSR(_, templateRule, paramRules) => {
         val templateKnown = evaluateTemplex(conclusions, templateRule)
         val argsKnown = evaluateTemplexes(conclusions, paramRules)
         templateKnown && argsKnown.forall(_ == true)
       }
-      case PrototypeST(_, _, _, _) => {
+      case PrototypeSR(_, _, _, _) => {
         vfail("Unimplemented")
       }
-      case PackST(_, memberTemplexes) => {
+      case PackSR(_, memberTemplexes) => {
         val membersKnown =
           evaluateTemplexes(conclusions, memberTemplexes)
         membersKnown.forall(_ == true)
       }
-      case RepeaterSequenceST(_, mutabilityTemplex, variabilityTemplex, sizeTemplex, elementTemplex) => {
+      case RepeaterSequenceSR(_, mutabilityTemplex, variabilityTemplex, sizeTemplex, elementTemplex) => {
         val mutabilityKnown =
           evaluateTemplex(conclusions, mutabilityTemplex)
         val variabilityKnown =
@@ -173,7 +172,7 @@ object PredictorEvaluator {
           evaluateTemplex(conclusions, elementTemplex)
         mutabilityKnown && variabilityKnown && sizeKnown && elementKnown
       }
-      case ManualSequenceST(_, elementsTemplexes) => {
+      case ManualSequenceSR(_, elementsTemplexes) => {
         val membersKnown =
           evaluateTemplexes(conclusions, elementsTemplexes)
         membersKnown.forall(_ == true)

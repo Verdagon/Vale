@@ -29,7 +29,7 @@ trait IStructTemplarDelegate {
     temputs: Temputs,
     callRange: RangeS,
     functionName: IImpreciseNameStepA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[ITemplexS],
+    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
@@ -105,15 +105,15 @@ class StructTemplar(
         structA.rules :+
         EqualsAR(
           structA.range,
-          TemplexAR(RuneAT(structA.range, retRune, CoordTemplataType)),
+          TemplexAR(RuneAR(structA.range, retRune, CoordTemplataType)),
           TemplexAR(
             if (structA.isTemplate) {
               CallAT(structA.range,
-                AbsoluteNameAT(structA.range,structA.name, structA.tyype),
-                structA.identifyingRunes.map(rune => RuneAT(structA.range,rune, structA.typeByRune(rune))),
+                AbsoluteNameAR(structA.range,structA.name, structA.tyype),
+                structA.identifyingRunes.map(rune => RuneAR(structA.range,rune, structA.typeByRune(rune))),
                 CoordTemplataType)
             } else {
-              AbsoluteNameAT(structA.range,structA.name, CoordTemplataType)
+              AbsoluteNameAR(structA.range,structA.name, CoordTemplataType)
             }))
 
       val isTemplate = structA.tyype != KindTemplataType
@@ -158,29 +158,29 @@ class StructTemplar(
       val rules =
         interfaceA.rules :+
           //        EqualsAR(
-          //          TemplexAR(RuneAT(retRune, CoordTemplataType)),
+          //          TemplexAR(RuneAR(retRune, CoordTemplataType)),
           //          TemplexAR(
           //            if (interfaceA.isTemplate) {
           //              CallAT(
-          //                NameAT(interfaceA.name, interfaceA.tyype),
-          //                interfaceA.identifyingRunes.map(rune => RuneAT(rune, interfaceA.typeByRune(rune))),
+          //                NameAR(interfaceA.name, interfaceA.tyype),
+          //                interfaceA.identifyingRunes.map(rune => RuneAR(rune, interfaceA.typeByRune(rune))),
           //                CoordTemplataType)
           //            } else {
-          //              NameAT(interfaceA.name, CoordTemplataType)
+          //              NameAR(interfaceA.name, CoordTemplataType)
           //            })) :+
           // We stash the interface type in the env, so that when the interface constructor generator runs,
           // it can read this to know what interface it's making a subclass of.
           EqualsAR(
             interfaceA.range,
-            TemplexAR(RuneAT(interfaceA.range, AnonymousSubstructParentInterfaceRuneA(), KindTemplataType)),
+            TemplexAR(RuneAR(interfaceA.range, AnonymousSubstructParentInterfaceRuneA(), KindTemplataType)),
             TemplexAR(
               if (interfaceA.isTemplate) {
                 CallAT(interfaceA.range,
-                  AbsoluteNameAT(interfaceA.range, interfaceA.name, interfaceA.tyype),
-                  interfaceA.identifyingRunes.map(rune => RuneAT(interfaceA.range, rune, interfaceA.typeByRune(rune))),
+                  AbsoluteNameAR(interfaceA.range, interfaceA.name, interfaceA.tyype),
+                  interfaceA.identifyingRunes.map(rune => RuneAR(interfaceA.range, rune, interfaceA.typeByRune(rune))),
                   KindTemplataType)
               } else {
-                AbsoluteNameAT(interfaceA.range, interfaceA.name, KindTemplataType)
+                AbsoluteNameAR(interfaceA.range, interfaceA.name, KindTemplataType)
               }))
 
       val isTemplate = interfaceA.tyype != KindTemplataType

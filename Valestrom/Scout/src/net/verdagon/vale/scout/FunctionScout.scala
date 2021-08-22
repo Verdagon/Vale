@@ -94,7 +94,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rangeS = Scout.evalRange(file, retRange)
           val rune = rate.newImplicitRune()
-          val rule = EqualsSR(rangeS, TemplexSR(NameST(rangeS, CodeTypeNameS("void"))), TypedSR(rangeS, rune, CoordTypeSR))
+          val rule = EqualsSR(rangeS, NameSR(rangeS, CodeTypeNameS("void")), TypedSR(rangeS, rune, CoordTypeSR))
           (Vector(rule), Some(rune))
         }
         case (Some(_), None) => (Vector.empty, None) // Infer the return
@@ -292,7 +292,7 @@ object FunctionScout {
         EqualsSR(
           closureParamRange,
           TypedSR(closureParamRange, closureParamTypeRune,CoordTypeSR),
-          TemplexSR(InterpretedST(closureParamRange,ConstraintP,ReadwriteP,AbsoluteNameST(Scout.evalRange(functionEnv.file, range), closureStructName)))))
+          InterpretedSR(closureParamRange,ConstraintP,ReadwriteP,AbsoluteNameSR(Scout.evalRange(functionEnv.file, range), closureStructName))))
     val closureParamS =
       ParameterS(
         AtomSP(
@@ -554,7 +554,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rangeS = Scout.evalRange(myStackFrame.file, retRange)
           val rune = rate.newImplicitRune()
-          val rule = EqualsSR(rangeS, TemplexSR(NameST(rangeS, CodeTypeNameS("void"))), TypedSR(rangeS, rune, CoordTypeSR))
+          val rule = EqualsSR(rangeS, NameSR(rangeS, CodeTypeNameS("void")), TypedSR(rangeS, rune, CoordTypeSR))
           (Vector(rule), Some(rune))
         }
         case (Some(_), None) => {

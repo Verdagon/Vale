@@ -61,7 +61,7 @@ case class StructA(
     identifyingRunes: Vector[IRuneA],
     localRunes: Set[IRuneA],
     typeByRune: Map[IRuneA, ITemplataType],
-    rules: Vector[IRulexAR],
+    rules: RuneWorldSolverState,
     members: Vector[StructMemberA]
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
@@ -112,7 +112,7 @@ case class ImplA(
 case class ExportAsA(
     range: RangeS,
     exportedName: String,
-    rules: Vector[IRulexAR],
+    rules: RuneWorldSolverState,
     typeByRune: Map[IRuneA, ITemplataType],
     typeRune: IRuneA) {
   val hash = range.hashCode() + exportedName.hashCode
@@ -126,7 +126,7 @@ case class ExportAsA(
 
 //case class AliasA(
 //  codeLocation: CodeLocation,
-//  rules: Vector[IRulexAR],
+//  rules: RuneWorldSolverState,
 //  typeByRune: Map[String, ITemplataType],
 //  aliasRune: String,
 //  aliaseeRune: String) { override def hashCode(): Int = vcurious() }
@@ -148,7 +148,7 @@ case class InterfaceA(
     identifyingRunes: Vector[IRuneA],
     localRunes: Set[IRuneA],
     typeByRune: Map[IRuneA, ITemplataType],
-    rules: Vector[IRulexAR],
+    rules: RuneWorldSolverState,
     // See IMRFDI
     internalMethods: Vector[FunctionA]) {
   val hash = range.hashCode() + name.hashCode()
@@ -229,7 +229,7 @@ case class FunctionA(
     // We need to leave it an option to signal that the compiler can infer the return type.
     maybeRetCoordRune: Option[IRuneA],
 
-    templateRules: Vector[IRulexAR],
+    templateRules: RuneWorldSolverState,
     body: IBodyA
 ) {
   val hash = range.hashCode() + name.hashCode()
