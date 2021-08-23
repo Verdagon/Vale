@@ -1,6 +1,6 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.parser._
+//import net.verdagon.vale.parser._
 import net.verdagon.vale.vcurious
 
 import scala.collection.immutable.List
