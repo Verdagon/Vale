@@ -62,6 +62,7 @@ object RuleSUtils {
         getDistinctOrderedRunesForRulex(container) ++ components.flatMap(getDistinctOrderedRunesForRulex).toSet
       }
       case TypedSR(_, rune, tyype) => Vector(rune)
+      case NameSR(_, name) => Vector()
 //      case templex => TemplexSUtils.getDistinctOrderedRunesForTemplex(templex)
       case CallSR(_, name, args) => args.flatMap(getDistinctOrderedRunesForRulex).distinct
     }

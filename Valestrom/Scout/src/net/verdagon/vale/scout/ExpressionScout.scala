@@ -4,9 +4,9 @@ import net.verdagon.vale.parser.{RuntimeSizedP, _}
 import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.{LetRuleState, PatternScout, RuleState, RuleStateBox}
-import net.verdagon.vale.scout.predictor.Conclusions
+//import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules.{IRulexSR, RuleScout}
-import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
+//import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
 
 object ExpressionScout {
   sealed trait IScoutResult[+T <: IExpressionSE]
