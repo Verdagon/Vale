@@ -2,7 +2,7 @@ package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 import net.verdagon.vale.parser.{ConstraintP, WeakP}
-import net.verdagon.vale.scout.rules.{EqualsSR, IntTypeSR, MutabilityTypeSR, TypedSR, VariabilityTypeSR}
+import net.verdagon.vale.scout.rules.{EqualsSR, IntTypeSR, MutabilityTypeSR, RuleFlattener, TypedSR, VariabilityTypeSR}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.{Err, Ok, Result, vassertSome, vfail, vimpl}
 

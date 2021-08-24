@@ -4,6 +4,7 @@ import net.verdagon.vale.parser.{RuntimeSizedP, _}
 import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.{LetRuleState, PatternScout, RuleState, RuleStateBox}
+import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
 //import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules.{IRulexSR, RuleScout}
 //import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
@@ -382,7 +383,7 @@ object ExpressionScout {
         val knowableRunesFromAbove = stackFrame1.parentEnv.allUserDeclaredRunes()
         val allUnknownRunes = allRunes -- knowableRunesFromAbove
         val Conclusions(knowableValueRunes, predictedTypeByRune) =
-          PredictorEvaluator.solve(Set(), rulesS, Vector.empty)
+          PredictorEvaluator.solve(Set(), rulesS, Vector.empty, evalRange(range))
         val localRunes = allRunes -- knowableRunesFromAbove
 
         val declarationsFromPattern = VariableDeclarations(PatternScout.getParameterCaptures(patternS))

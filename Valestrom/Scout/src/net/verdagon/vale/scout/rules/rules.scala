@@ -1,5 +1,6 @@
 package net.verdagon.vale.scout.rules
 
+import net.verdagon.vale.parser.{LocationP, MutabilityP, OwnershipP, PermissionP, VariabilityP}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.{vcurious, vimpl}
 
@@ -49,6 +50,59 @@ case object VariabilityTypeSR extends ITypeSR
 //case object ArrayTypeSR extends ITypeSR
 //case object CallableTypeSR extends ITypeSR
 //case object InterfaceTypeSR extends ITypeSR
+
+
+sealed trait ILiteralSR
+
+case class IntLiteralSR(value: Long) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class StringLiteralSR(value: String) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class BoolLiteralSR(value: Boolean) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class MutabilityLiteralSR(mutability: MutabilityP) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class PermissionLiteralSR(permission: PermissionP) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class LocationLiteralSR(location: LocationP) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class OwnershipLiteralSR(ownership: OwnershipP) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+case class VariabilityLiteralSR(variability: VariabilityP) extends ILiteralSR {
+  override def hashCode(): Int = vcurious()
+}
+
+
+sealed trait ILookupSR
+
+case class NameLookupSR(
+  name: IImpreciseNameStepS
+) extends ILookupSR {
+  override def hashCode(): Int = vcurious()
+  //  println("hi")
+}
+
+case class ParentRuneLookupSR(
+  rune: IRuneS
+) extends ILookupSR {
+  override def hashCode(): Int = vcurious()
+  //  println("hi")
+}
+
+case class AbsoluteNameLookupSR(
+  name: INameS
+) extends ILookupSR {
+  override def hashCode(): Int = vcurious()
+  //  println("hi")
+}
+
 
 object RuleSUtils {
 

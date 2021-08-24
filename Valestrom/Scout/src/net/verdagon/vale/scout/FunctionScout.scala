@@ -4,9 +4,10 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.ExpressionScout.NormalResult
 import net.verdagon.vale.scout.Scout.noDeclarations
 import net.verdagon.vale.scout.patterns._
-import net.verdagon.vale.scout.predictor.Conclusions
+import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
+//import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
+//import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
 import net.verdagon.vale._
 
 import scala.collection.immutable.{List, Range}
@@ -142,7 +143,8 @@ object FunctionScout {
       PredictorEvaluator.solve(
         Set(),
         rulesS,
-        explicitParams1.map(_.pattern))
+        explicitParams1.map(_.pattern),
+        Scout.evalRange(file, range))
 
     val localRunes = allRunes
     val unknowableRunes = allRunes -- knowableValueRunes
@@ -352,7 +354,8 @@ object FunctionScout {
       PredictorEvaluator.solve(
         parentStackFrame.parentEnv.allUserDeclaredRunes(),
         rulesS,
-        explicitParams1.map(_.pattern))
+        explicitParams1.map(_.pattern),
+        Scout.evalRange(myStackFrame.file, range))
 
 
     val localRunes = allRunes -- myStackFrame.parentEnv.allUserDeclaredRunes()
@@ -583,7 +586,8 @@ object FunctionScout {
       PredictorEvaluator.solve(
         interfaceEnv.allUserDeclaredRunes(),
         rulesS,
-        paramsS.map(_.pattern))
+        paramsS.map(_.pattern),
+        Scout.evalRange(myStackFrame.file, range))
 
     val localRunes = allRunes -- interfaceEnv.allUserDeclaredRunes()
     val unknowableRunes = allRunes -- knowableValueRunes

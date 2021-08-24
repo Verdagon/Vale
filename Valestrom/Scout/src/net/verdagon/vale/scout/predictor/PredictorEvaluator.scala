@@ -1,44 +1,110 @@
-//package net.verdagon.vale.scout.templatepredictor
-//
-//import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-//import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils}
-//import net.verdagon.vale.scout.predictor.{Conclusions, ConclusionsBox}
-//import net.verdagon.vale.scout.rules._
-//import net.verdagon.vale.{vfail, vimpl}
-//
-//import scala.collection.immutable.List
-//
-//// Given enough user specified template params and param inputs, we should be able to
-//// infer everything.
-//// This class's purpose is to take those things, and see if it can figure out as many
-//// inferences as possible.
-//
-//object PredictorEvaluator {
-//
-//  private[scout] def getAllRunes(
-//    userSpecifiedIdentifyingRunes: Vector[IRuneS],
-//    rules: Vector[IRulexSR],
-//    patterns1: Vector[AtomSP],
-//    maybeRetRune: Option[IRuneS]
-//  ): Set[IRuneS] = {
-//    (
-//      userSpecifiedIdentifyingRunes ++
-//        patterns1.flatMap(PatternSUtils.getDistinctOrderedRunesForPattern) ++
-//        RuleSUtils.getDistinctOrderedRunesForRulexes(rules) ++
-//        maybeRetRune.toVector
-//      ).toSet
-//  }
-//
-//  private[scout] def solve(
-//    // See MKKRFA
-//    knowableRunesFromAbove: Set[IRuneS],
-//    rules: Vector[IRulexSR],
-//    paramAtoms: Vector[AtomSP],
-//  ): Conclusions = {
+package net.verdagon.vale.scout.predictor
+
+import net.verdagon.vale.{Err, Ok, Result, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.scout.{IRuneS, RangeS}
+import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils}
+import net.verdagon.vale.scout.rules.{ILiteralSR, ILookupSR, IRulexSR, RuleFlattener, RuleSUtils}
+import net.verdagon.vale.solver.{AugmentAR, CallAR, CoerceToCoord, CompleteSolve, CoordComponentsAR, FailedSolve, IRulexAR, ISolverDelegate, IncompleteSolve, LiteralAR, LookupAR, RepeaterSequenceAR, Solver}
+
+object PredictorEvaluator {
+
+  private[scout] def getAllRunes(
+    userSpecifiedIdentifyingRunes: Vector[IRuneS],
+    rules: Vector[IRulexSR],
+    patterns1: Vector[AtomSP],
+    maybeRetRune: Option[IRuneS]
+  ): Set[IRuneS] = {
+    (
+      userSpecifiedIdentifyingRunes ++
+        patterns1.flatMap(PatternSUtils.getDistinctOrderedRunesForPattern) ++
+        RuleSUtils.getDistinctOrderedRunesForRulexes(rules) ++
+        maybeRetRune.toVector
+      ).toSet
+  }
+
+  def makeSolver():
+  Solver[RangeS, ILiteralSR, ILookupSR, Unit, Unit, Unit, String] = {
+    new Solver[RangeS, ILiteralSR, ILookupSR, Unit, Unit, Unit, String](
+      new ISolverDelegate[RangeS, ILiteralSR, ILookupSR, Unit, Unit, Unit, String] {
+        override def solve(state: Unit, env: Unit, range: RangeS, rule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR], runes: Map[Int, Unit]): Result[Map[Int, Unit], String] = {
+          rule match {
+            case LookupAR(range, rune, _) => Ok(Map(rune -> Unit))
+            case LiteralAR(range, rune, _) => Ok(Map(rune -> Unit))
+            case CoerceToCoord(range, coordRune, kindRune) => {
+              (runes.contains(coordRune), runes.contains(kindRune)) match {
+                case (true, true) => vwat()
+                case (true, false) => vwat()
+                case (false, true) => Ok(Map(coordRune -> Unit))
+                case (false, false) => vwat()
+              }
+            }
+            case AugmentAR(range, resultRune, literal, innerRune) => {
+              (runes.contains(resultRune), runes.contains(innerRune)) match {
+                case (true, true) => vwat()
+                case (true, false) => Ok(Map(innerRune -> Unit))
+                case (false, true) => Ok(Map(resultRune -> Unit))
+                case (false, false) => vwat()
+              }
+            }
+            case RepeaterSequenceAR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
+              (runes.contains(resultRune), runes.contains(mutabilityRune),  runes.contains(variabilityRune),  runes.contains(sizeRune),  runes.contains(elementRune)) match {
+                case (false, true, true, true, true) => Ok(Map(resultRune -> Unit))
+                case (true, false, false, false, false) => Ok(Map(mutabilityRune -> Unit, variabilityRune -> Unit, sizeRune -> Unit, elementRune -> Unit))
+                case _ => vwat()
+              }
+            }
+            case CallAR(range, resultRune, templateRune, argRunes) => {
+              (runes.contains(resultRune), runes.contains(templateRune), !argRunes.map(runes).contains(None)) match {
+                case (true, true, true) => vwat()
+                case (true, true, false) => Ok(argRunes.map(a => (a -> ())).toMap)
+                case (true, false, true) => vwat()
+                case (true, false, false) => vwat()
+                case (false, true, true) => Ok(Map(resultRune -> Unit))
+                case (false, true, false) => vwat()
+                case (false, false, true) => vwat()
+                case (false, false, false) => vwat()
+              }
+            }
+            case CoordComponentsAR(_, coordRune, ownershipRune, permissionRune, kindRune) => {
+              runes.get(coordRune) match {
+                case Some(_) => Ok(Map(ownershipRune -> Unit, permissionRune -> Unit, kindRune -> Unit))
+                case None => {
+                  (runes.get(ownershipRune), runes.get(permissionRune), runes.get(kindRune)) match {
+                    case (Some(_), Some(_), Some(_)) => Ok(Map(coordRune -> Unit))
+                    case _ => vfail()
+                  }
+                }
+              }
+            }
+          }
+        }
+      })
+  }
+
+  private[scout] def solve(
+    // See MKKRFA
+    knowableRunesFromAbove: Set[IRuneS],
+    rules: Vector[IRulexSR],
+    paramAtoms: Vector[AtomSP],
+    invocationRange: RangeS
+  ): Conclusions = {
+    val (runeSToRune, runeSToType, solverState) = RuleFlattener.flattenAndCompileRules(knowableRunesFromAbove, rules)
+    val solver = makeSolver()
+    val conclusions =
+      solver.solve(Unit, Unit, solverState, invocationRange) match {
+        case CompleteSolve(rawConclusions) => runeSToRune.mapValues(i => vassertSome(rawConclusions(i)))
+        case IncompleteSolve(rawConclusions) => {
+          runeSToRune
+            .filter(runeSAndRune => rawConclusions(runeSAndRune._2).nonEmpty)
+            .mapValues(i => vassertSome(rawConclusions(i)))
+        }
+        case FailedSolve(err, rawConclusions) => vimpl()
+      }
+    Conclusions(conclusions.keySet, runeSToType)
 //    val conclusionsBox = ConclusionsBox(Conclusions(knowableRunesFromAbove, Map()))
 //    solveUntilSettled(rules, conclusionsBox)
 //    conclusionsBox.conclusions
-//  }
+  }
 //
 //  private def solveUntilSettled(
 //    rules: Vector[IRulexSR],
@@ -242,4 +308,4 @@
 //
 //    runeKnown || allComponentsKnown
 //  }
-//}
+}
