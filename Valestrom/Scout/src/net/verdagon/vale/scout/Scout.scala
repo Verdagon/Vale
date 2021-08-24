@@ -4,7 +4,7 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{PatternScout, RuleState, RuleStateBox}
 import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
+import net.verdagon.vale.scout.predictor.PredictorEvaluator
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -140,7 +140,7 @@ object Scout {
 
     // We gather all the runes from the scouted rules to be consistent with the function scout.
     val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, userRulesS, Vector.empty, None)
-    val Conclusions(knowableValueRunes, _) = PredictorEvaluator.solve(Set(), userRulesS, Vector.empty)
+    val Conclusions(knowableValueRunes, _) = PredictorEvaluator.solve(Set(), userRulesS, Vector.empty, Scout.evalRange(file, range))
     val localRunes = allRunes
     val isTemplate = knowableValueRunes != allRunes
 
@@ -261,7 +261,7 @@ object Scout {
 
     // We gather all the runes from the scouted rules to be consistent with the function scout.
     val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
-    val Conclusions(knowableValueRunes, predictedTypeByRune) = PredictorEvaluator.solve(Set(), rulesS, Vector.empty)
+    val Conclusions(knowableValueRunes, predictedTypeByRune) = PredictorEvaluator.solve(Set(), rulesS, Vector.empty, Scout.evalRange(file, range))
     val localRunes = allRunes
     val isTemplate = knowableValueRunes != allRunes
 
@@ -354,7 +354,7 @@ object Scout {
     // We gather all the runes from the scouted rules to be consistent with the function scout.
     val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
     val Conclusions(knowableValueRunes, predictedTypeByRune) =
-      PredictorEvaluator.solve(Set(), rulesS, Vector.empty)
+      PredictorEvaluator.solve(Set(), rulesS, Vector.empty, Scout.evalRange(file, range))
     val localRunes = allRunes
     val isTemplate = knowableValueRunes != allRunes.toSet
 
