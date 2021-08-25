@@ -2,7 +2,8 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils, VirtualitySP}
-import net.verdagon.vale.scout.rules.{IRulexSR, ITypeSR, RuleSUtils, TypedSR}
+import net.verdagon.vale.scout.rules.{ILiteralSR, ILookupSR, IRulexSR, ITypeSR, RuleSUtils, TypedSR}
+import net.verdagon.vale.solver.{IRulexAR, World}
 import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -105,7 +106,8 @@ case class StructS(
     localRunes: Set[IRuneS],
     maybePredictedType: Option[ITypeSR],
     isTemplate: Boolean,
-    rules: Vector[IRulexSR],
+    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
+    runeSToCanonicalRune: collection.Map[IRuneS, Int],
     members: Vector[StructMemberS]) {
   override def hashCode(): Int = vcurious()
 
@@ -120,18 +122,45 @@ case class StructMemberS(
   override def hashCode(): Int = vcurious()
 }
 
+case class InterfaceS(
+  range: RangeS,
+  name: TopLevelCitizenDeclarationNameS,
+  attributes: Vector[ICitizenAttributeS],
+  weakable: Boolean,
+  mutabilityRune: IRuneS,
+  // This is needed for recursive structures like
+  //   struct ListNode<T> imm rules(T Ref) {
+  //     tail ListNode<T>;
+  //   }
+  maybePredictedMutability: Option[MutabilityP],
+  knowableRunes: Set[IRuneS],
+  identifyingRunes: Vector[IRuneS],
+  localRunes: Set[IRuneS],
+  maybePredictedType: Option[ITypeSR],
+  isTemplate: Boolean,
+  rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
+  runeSToCanonicalRune: collection.Map[IRuneS, Int],
+  // See IMRFDI
+  internalMethods: Vector[FunctionS]) {
+  override def hashCode(): Int = vcurious()
+  vassert(isTemplate == identifyingRunes.nonEmpty)
+
+  internalMethods.foreach(internalMethod => {
+    vassert(!internalMethod.isTemplate)
+  })
+}
+
 case class ImplS(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameS,
-    // These are separate because we need to change their order depending on what we start with, see NMORFI.
-    rulesFromStructDirection: Vector[IRulexSR],
-    rulesFromInterfaceDirection: Vector[IRulexSR],
-    knowableRunes: Set[IRuneS],
-    localRunes: Set[IRuneS],
+    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
+    runeSToCanonicalRune: collection.Map[IRuneS, Int],
+    knowableRunes: Set[Int],
+    localRunes: Set[Int],
     isTemplate: Boolean,
-    structKindRune: IRuneS,
-    interfaceKindRune: IRuneS) {
+    structKindRune: Int,
+    interfaceKindRune: Int) {
   override def hashCode(): Int = vcurious()
 }
 
@@ -149,33 +178,6 @@ case class ImportS(
   packageNames: Vector[String],
   importeeName: String) {
   override def hashCode(): Int = vcurious()
-}
-
-case class InterfaceS(
-    range: RangeS,
-    name: TopLevelCitizenDeclarationNameS,
-    attributes: Vector[ICitizenAttributeS],
-    weakable: Boolean,
-    mutabilityRune: IRuneS,
-    // This is needed for recursive structures like
-    //   struct ListNode<T> imm rules(T Ref) {
-    //     tail ListNode<T>;
-    //   }
-    maybePredictedMutability: Option[MutabilityP],
-    knowableRunes: Set[IRuneS],
-    identifyingRunes: Vector[IRuneS],
-    localRunes: Set[IRuneS],
-    maybePredictedType: Option[ITypeSR],
-    isTemplate: Boolean,
-    rules: Vector[IRulexSR],
-    // See IMRFDI
-    internalMethods: Vector[FunctionS]) {
-  override def hashCode(): Int = vcurious()
-  vassert(isTemplate == identifyingRunes.nonEmpty)
-
-  internalMethods.foreach(internalMethod => {
-    vassert(!internalMethod.isTemplate)
-  })
 }
 
 object interfaceSName {
@@ -243,7 +245,7 @@ case class FunctionS(
     // things to the end here, see CCAUIR.
     identifyingRunes: Vector[IRuneS],
     // Runes that we need the args or template args to indirectly figure out.
-    localRunes: Set[IRuneS],
+//    localRunes: Set[IRuneS],
 
     maybePredictedType: Option[ITypeSR],
 
@@ -253,13 +255,14 @@ case class FunctionS(
     maybeRetCoordRune: Option[IRuneS],
 
     isTemplate: Boolean,
-    templateRules: Vector[IRulexSR],
+    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
+    runeSToCanonicalRune: collection.Map[IRuneS, Int],
     body: IBodyS
 ) {
   override def hashCode(): Int = vcurious()
 
   // Make sure we have to solve all identifying runes
-  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
+//  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
 
   vassert(isTemplate == identifyingRunes.nonEmpty)
 
