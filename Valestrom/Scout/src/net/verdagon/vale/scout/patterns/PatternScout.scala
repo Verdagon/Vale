@@ -3,6 +3,7 @@ package net.verdagon.vale.scout.patterns
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, _}
+import net.verdagon.vale.solver.TentativeRune
 import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -60,20 +61,12 @@ object PatternScout {
   private[scout] def scoutPatterns(
       stackFrame: StackFrame,
       rulesS: RuleStateBox,
+      knowableRunesFromAbove: Set[IRuneS],
+      ruleBuilder: ScoutRuleBuilder,
       params: Vector[PatternPP]):
-  (Vector[IRulexSR], Vector[AtomSP]) = {
-    params.foldLeft((Vector[IRulexSR](), Vector[AtomSP]()))({
-      case ((previousNewRulesS, previousPatternsS), patternP) => {
-        val (newRulesS, patternS) =
-          PatternScout.translatePattern(stackFrame, rulesS, patternP)
-        (previousNewRulesS ++ newRulesS, previousPatternsS :+ patternS)
-      }
-    })
+  Vector[AtomSP] = {
+    params.map(PatternScout.translatePattern(stackFrame, rulesS, knowableRunesFromAbove, ruleBuilder, _))
   }
-
-  sealed trait INameRequirement
-  case object NameNotRequired extends INameRequirement
-  case class NameRequired(nameSuggestion: String) extends INameRequirement { override def hashCode(): Int = vcurious() }
 
   // Returns:
   // - Rules, which are likely just TypedSR
@@ -81,14 +74,16 @@ object PatternScout {
   private[scout] def translatePattern(
     stackFrame: StackFrame,
     ruleState: RuleStateBox,
+    knowableRunesFromAbove: Set[IRuneS],
+    ruleBuilder: ScoutRuleBuilder,
     patternPP: PatternPP):
-  (Vector[IRulexSR], AtomSP) = {
+  AtomSP = {
     val PatternPP(range,_,maybeCaptureP, maybeTypeP, maybeDestructureP, maybeVirtualityP) = patternPP
 
-    val (newRulesFromVirtuality, maybeVirtualityS) =
+    val maybeVirtualityS =
       maybeVirtualityP match {
-        case None => (Vector.empty, None)
-        case Some(AbstractP) => (Vector.empty, Some(AbstractSP))
+        case None => None
+        case Some(AbstractP) => Some(AbstractSP)
         case Some(OverrideP(range, typeP)) => {
           typeP match {
             case InterpretedPT(range, _, _, _) => {
@@ -97,34 +92,43 @@ object PatternScout {
             case _ =>
           }
 
-          val (newRulesFromVirtuality, rune) =
+          val tentativeRune =
             translateMaybeTypeIntoRune(
               stackFrame.parentEnv,
               ruleState,
               Scout.evalRange(stackFrame.file, range),
+              knowableRunesFromAbove,
+              ruleBuilder,
               Some(typeP),
               KindTypePR)
-          (newRulesFromVirtuality, Some(OverrideSP(Scout.evalRange(stackFrame.file, range), rune)))
+
+          // All this nonsense is because OverrideSP expects an IRuneS.
+          // OverrideSP can't have a canonical rune because we don't know any canonical runes
+          // yet because we're still assembling the rules.
+          val runeS = ruleState.newImplicitRune()
+          ruleBuilder.builder.noteRunesEqual(
+            tentativeRune,
+            ruleBuilder.addRune(Scout.evalRange(stackFrame.file, range), knowableRunesFromAbove, runeS))
+          Some(OverrideSP(Scout.evalRange(stackFrame.file, range), runeS))
         }
       }
 
-    val (newRulesFromType, coordRune) =
+    val coordTentativeRune =
       translateMaybeTypeIntoRune(
-        stackFrame.parentEnv, ruleState, Scout.evalRange(stackFrame.file, range), maybeTypeP, CoordTypePR)
+        stackFrame.parentEnv, ruleState, Scout.evalRange(stackFrame.file, range), knowableRunesFromAbove, ruleBuilder, maybeTypeP, CoordTypePR)
+    // All this nonsense is because AtomSP expects an IRuneS.
+    // AtomSP can't have a canonical rune because we don't know any canonical runes
+    // yet because we're still assembling the rules.
+    val coordRuneS = ruleState.newImplicitRune()
+    ruleBuilder.builder.noteRunesEqual(
+      coordTentativeRune,
+      ruleBuilder.addRune(Scout.evalRange(stackFrame.file, range), knowableRunesFromAbove, coordRuneS))
 
-    val (newRulesFromDestructures, maybePatternsS) =
+    val maybePatternsS =
       maybeDestructureP match {
-        case None => (Vector.empty, None)
+        case None => None
         case Some(DestructureP(_, destructureP)) => {
-          val (newRulesFromDestructures, patternsS) =
-            destructureP.foldLeft((Vector[IRulexSR](), Vector[AtomSP]()))({
-              case ((previousNewRulesS, previousPatternsS), patternP) => {
-                val (newRulesFromDestructure, patternS) =
-                  translatePattern(stackFrame, ruleState, patternP)
-                (previousNewRulesS ++ newRulesFromDestructure, previousPatternsS :+ patternS)
-              }
-            })
-          (newRulesFromDestructures, Some(patternsS))
+          Some(destructureP.map(translatePattern(stackFrame, ruleState, knowableRunesFromAbove, ruleBuilder, _)))
         }
       }
 
@@ -145,46 +149,49 @@ object PatternScout {
         }
       }
 
-    val atomSP = AtomSP(Scout.evalRange(stackFrame.file, range), captureS, maybeVirtualityS, coordRune, maybePatternsS)
-    (newRulesFromType ++ newRulesFromDestructures ++ newRulesFromVirtuality, atomSP)
+    AtomSP(Scout.evalRange(stackFrame.file, range), captureS, maybeVirtualityS, coordRuneS, maybePatternsS)
   }
 
   def translateMaybeTypeIntoRune(
       env: IEnvironment,
       rulesS: RuleStateBox,
       range: RangeS,
+      knowableRunesFromAbove: Set[IRuneS],
+      ruleBuilder: ScoutRuleBuilder,
       maybeTypeP: Option[ITemplexPT],
       runeType: ITypePR,
       // Determines whether the rune is on the left or the right in the Equals rule, which
       // can (unfortunately) affect the order in which the generics engine evaluates things.
       // This is a temporary solution, see DCRC, option A.
       runeOnLeft: Boolean = true):
-  (Vector[IRulexSR], IRuneS) = {
+  TentativeRune = {
     maybeTypeP match {
       case None => {
         val rune = rulesS.newImplicitRune()
-        val newRule = TypedSR(range, rune, RuleScout.translateType(runeType))
-        (Vector(newRule), rune)
+        ruleBuilder.translateRule(knowableRunesFromAbove, TypedSR(range, rune, RuleScout.translateType(runeType)))
       }
       case Some(NameOrRunePT(NameP(_, nameOrRune))) if env.allUserDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
         val rune = CodeRuneS(nameOrRune)
-        val newRule = TypedSR(range, rune, RuleScout.translateType(runeType))
-        (Vector(newRule), rune)
+        ruleBuilder.translateRule(knowableRunesFromAbove, TypedSR(range, rune, RuleScout.translateType(runeType)))
       }
       case Some(nonRuneTemplexP) => {
         val (newRulesFromInner, templexS, maybeRune) =
           translatePatternTemplex(env, rulesS, nonRuneTemplexP)
+        newRulesFromInner.foreach(ruleBuilder.translateRule(knowableRunesFromAbove, _))
+
         maybeRune match {
-          case Some(rune) => (newRulesFromInner, rune)
+          case Some(rune) => ruleBuilder.addRune(range, knowableRunesFromAbove, rune)
           case None => {
             val rune = rulesS.newImplicitRune()
-            val newRule =
-              if (runeOnLeft) {
-                EqualsSR(templexS.range, TypedSR(range, rune, RuleScout.translateType(runeType)), templexS)
-              } else {
-                EqualsSR(templexS.range, templexS, TypedSR(range, rune, RuleScout.translateType(runeType)))
-              }
-            (newRulesFromInner ++ Vector(newRule), rune)
+            if (runeOnLeft) {
+              ruleBuilder.translateRule(
+                knowableRunesFromAbove,
+                EqualsSR(templexS.range, TypedSR(range, rune, RuleScout.translateType(runeType)), templexS))
+            } else {
+              ruleBuilder.translateRule(
+                knowableRunesFromAbove,
+                EqualsSR(templexS.range, templexS, TypedSR(range, rune, RuleScout.translateType(runeType))))
+            }
           }
         }
       }
@@ -194,20 +201,23 @@ object PatternScout {
     env: IEnvironment,
     rulesS: RuleStateBox,
     range: RangeS,
+    knowableRunesFromAbove: Set[IRuneS],
+    ruleBuilder: ScoutRuleBuilder,
     maybeTypeP: Option[ITemplexPT],
     runeType: ITypePR,
     // Determines whether the rune is on the left or the right in the Equals rule, which
     // can (unfortunately) affect the order in which the generics engine evaluates things.
     // This is a temporary solution, see DCRC, option A.
     runeOnLeft: Boolean = true):
-  (Vector[IRulexSR], Option[IRuneS]) = {
+  Option[IRuneS] = {
     if (maybeTypeP.isEmpty) {
-      (Vector.empty, None)
+      None
     } else {
-      val (newRules, rune) =
+      val tentativeRune =
         translateMaybeTypeIntoRune(
-          env, rulesS, range, maybeTypeP, runeType, runeOnLeft)
-      (newRules, Some(rune))
+          env, rulesS, range, knowableRunesFromAbove, ruleBuilder, maybeTypeP, runeType, runeOnLeft)
+      val runeS = ruleBuilder.nameTentativeRune(range, knowableRunesFromAbove, rulesS.newImplicitRune(), tentativeRune)
+      Some(runeS)
     }
   }
 

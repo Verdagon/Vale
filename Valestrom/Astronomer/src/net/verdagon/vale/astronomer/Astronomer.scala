@@ -277,12 +277,12 @@ object Astronomer {
     } else vfail()
   }
 
-  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
-    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
-      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
-        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
-          vimpl()
-        }
+//  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
+//    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
+//      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
+//        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
+//          vimpl()
+//        }
 //        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {
 //          Astronomer.lookupType(state, env, range, name)
 //        }
@@ -290,8 +290,8 @@ object Astronomer {
 //        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: INameS): ITemplataType = {
 //          Astronomer.lookupType(state, env, range, name)
 //        }
-      })
-  }
+//      })
+//  }
 
   def translateStruct(astrouts: AstroutsBox, env: Environment, structS: StructS): StructA = {
     val StructS(rangeS, nameS, attributesS, weakable, mutabilityRuneS, maybePredictedMutabilityS, knowableRunesS, identifyingRunesS, localRunesS, predictedTypeByRune, isTemplate, rules, members) = structS

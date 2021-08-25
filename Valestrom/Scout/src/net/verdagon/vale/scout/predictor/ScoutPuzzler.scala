@@ -1,7 +1,7 @@
 package net.verdagon.vale.scout.predictor
 
-import net.verdagon.vale.solver.{AugmentAR, BuiltinCallAR, CallAR, CoordComponentsAR, CoordListAR, IRulexAR, IsaAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OrAR, PrototypeAR, RepeaterSequenceAR}
-import net.verdagon.vale.{vfail, vimpl}
+//import net.verdagon.vale.solver.{AugmentAR, BuiltinCallAR, CallAR, CoordComponentsAR, CoordListAR, IRulexAR, IsaAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OrAR, PrototypeAR, RepeaterSequenceAR}
+//import net.verdagon.vale.{vfail, vimpl}
 
 //object ScoutPuzzler {
 //  def apply[RuneID, RuleID, Literal, Lookup](

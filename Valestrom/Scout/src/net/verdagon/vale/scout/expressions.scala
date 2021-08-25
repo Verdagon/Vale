@@ -2,16 +2,18 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser.{ConstraintP, LendConstraintP, LendWeakP, LoadAsP, MoveP, MutabilityP, OwnershipP, PermissionP, VariabilityP, WeakP}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{IRulexSR, ITypeSR}
+import net.verdagon.vale.scout.rules.{ILiteralSR, ILookupSR, IRulexSR, ITypeSR}
+import net.verdagon.vale.solver.IRulexAR
 import net.verdagon.vale.{vassert, vcurious, vimpl, vpass}
 
 // patternId is a unique number, can be used to make temporary variables that wont
 // collide with other things
 case class LetSE(
     range: RangeS,
-    rules: Vector[IRulexSR],
-    unknowableRunes: Set[IRuneS],
-    localRunes: Set[IRuneS],
+    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
+    runeSToCanonicalRune: collection.Map[IRuneS, Int],
+//    unknowableRunes: Set[IRuneS],
+//    localRunes: Set[IRuneS],
     pattern: AtomSP,
     expr: IExpressionSE) extends IExpressionSE {
   override def hashCode(): Int = vcurious()

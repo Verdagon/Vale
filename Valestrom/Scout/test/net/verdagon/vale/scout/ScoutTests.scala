@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vfail, vwat}
+import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vfail, vimpl, vwat}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -57,18 +57,19 @@ class ScoutTests extends FunSuite with Matchers {
   }
 
   test("Struct") {
-    val program1 = compile("struct Moo { x int; }")
-    val imoo = program1.lookupStruct("Moo")
-
-    val memberRune = MemberRuneS(0)
-    imoo.rules match {
-      case Vector(
-      EqualsSR(_, TypedSR(_, memberRune, CoordTypeSR), NameSR(_, CodeTypeNameS("int"))),
-      EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
-    }
-    imoo.members match {
-      case Vector(StructMemberS(_, "x", FinalP, memberRune)) =>
-    }
+    vimpl()
+//    val program1 = compile("struct Moo { x int; }")
+//    val imoo = program1.lookupStruct("Moo")
+//
+//    val memberRune = MemberRuneS(0)
+//    imoo.rules match {
+//      case Vector(
+//      EqualsSR(_, TypedSR(_, memberRune, CoordTypeSR), NameSR(_, CodeTypeNameS("int"))),
+//      EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
+//    }
+//    imoo.members match {
+//      case Vector(StructMemberS(_, "x", FinalP, memberRune)) =>
+//    }
   }
 
   test("Lambda") {
@@ -84,93 +85,95 @@ class ScoutTests extends FunSuite with Matchers {
   }
 
   test("Interface") {
-    val program1 = compile("interface IMoo { fn blork(virtual this &IMoo, a bool)void; }")
-    val imoo = program1.lookupInterface("IMoo")
-
-    imoo.rules match {
-      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
-    }
-
-    val blork = imoo.internalMethods.head
-    blork.name match {
-      case FunctionNameS("blork", _) =>
-    }
-
-    val (actualThisParamRune, actualBoolParamRune, retRune) =
-      blork.templateRules match {
-        case Vector(
-        EqualsSR(_,
-        TypedSR(_, actualThisParamRune, CoordTypeSR),
-        InterpretedSR(_, ConstraintP, ReadonlyP, NameSR(_, CodeTypeNameS("IMoo")))),
-        EqualsSR(_,
-        TypedSR(_, actualBoolParamRune, CoordTypeSR),
-        NameSR(_, CodeTypeNameS("bool"))),
-        EqualsSR(_,
-        TypedSR(_, actualRetRune, CoordTypeSR),
-        NameSR(_, CodeTypeNameS("void")))) => {
-          actualThisParamRune match {
-            case ImplicitRuneS(_, 0) =>
-          }
-          actualBoolParamRune match {
-            case ImplicitRuneS(_, 1) =>
-          }
-          actualRetRune match {
-            case ImplicitRuneS(_, 2) =>
-          }
-          (actualThisParamRune, actualBoolParamRune, actualRetRune)
-        }
-      }
-
-    RuleSUtils.getDistinctOrderedRunesForRulexes(blork.templateRules) shouldEqual
-      Vector(actualThisParamRune, actualBoolParamRune, retRune)
-
-    blork.params match {
-      case Vector(
-      ParameterS(
-      AtomSP(_,
-      Some(CaptureS(CodeVarNameS("this"))),
-      Some(AbstractSP),
-      ImplicitRuneS(_, 0),
-      None)),
-      ParameterS(
-      AtomSP(_,
-      Some(CaptureS(CodeVarNameS("a"))),
-      None,
-      ImplicitRuneS(_, 1),
-      None))) =>
-    }
-
-    // Yes, even though the user didnt specify any. See CCAUIR.
-    blork.identifyingRunes shouldEqual Vector.empty
+    vimpl()
+//    val program1 = compile("interface IMoo { fn blork(virtual this &IMoo, a bool)void; }")
+//    val imoo = program1.lookupInterface("IMoo")
+//
+//    imoo.rules match {
+//      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
+//    }
+//
+//    val blork = imoo.internalMethods.head
+//    blork.name match {
+//      case FunctionNameS("blork", _) =>
+//    }
+//
+//    val (actualThisParamRune, actualBoolParamRune, retRune) =
+//      blork.templateRules match {
+//        case Vector(
+//        EqualsSR(_,
+//        TypedSR(_, actualThisParamRune, CoordTypeSR),
+//        InterpretedSR(_, ConstraintP, ReadonlyP, NameSR(_, CodeTypeNameS("IMoo")))),
+//        EqualsSR(_,
+//        TypedSR(_, actualBoolParamRune, CoordTypeSR),
+//        NameSR(_, CodeTypeNameS("bool"))),
+//        EqualsSR(_,
+//        TypedSR(_, actualRetRune, CoordTypeSR),
+//        NameSR(_, CodeTypeNameS("void")))) => {
+//          actualThisParamRune match {
+//            case ImplicitRuneS(_, 0) =>
+//          }
+//          actualBoolParamRune match {
+//            case ImplicitRuneS(_, 1) =>
+//          }
+//          actualRetRune match {
+//            case ImplicitRuneS(_, 2) =>
+//          }
+//          (actualThisParamRune, actualBoolParamRune, actualRetRune)
+//        }
+//      }
+//
+//    RuleSUtils.getDistinctOrderedRunesForRulexes(blork.templateRules) shouldEqual
+//      Vector(actualThisParamRune, actualBoolParamRune, retRune)
+//
+//    blork.params match {
+//      case Vector(
+//      ParameterS(
+//      AtomSP(_,
+//      Some(CaptureS(CodeVarNameS("this"))),
+//      Some(AbstractSP),
+//      ImplicitRuneS(_, 0),
+//      None)),
+//      ParameterS(
+//      AtomSP(_,
+//      Some(CaptureS(CodeVarNameS("a"))),
+//      None,
+//      ImplicitRuneS(_, 1),
+//      None))) =>
+//    }
+//
+//    // Yes, even though the user didnt specify any. See CCAUIR.
+//    blork.identifyingRunes shouldEqual Vector.empty
   }
 
   test("Impl") {
-    val program1 = compile("impl IMoo for Moo;")
-    val impl = program1.impls.head
-    val structRune =
-      impl.structKindRune match {
-        case ir0@ImplicitRuneS(_, 0) => ir0
-      }
-    val interfaceRune =
-      impl.interfaceKindRune match {
-        case ir0@ImplicitRuneS(_, 1) => ir0
-      }
-    impl.rulesFromStructDirection match {
-      case Vector(
-      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo"))),
-      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo")))) => {
-        vassert(a == structRune)
-        vassert(b == interfaceRune)
-      }
-    }
-    impl.rulesFromInterfaceDirection match {
-      case Vector(
-      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo"))),
-      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo")))) => {
-        vassert(a == structRune)
-        vassert(b == interfaceRune)
-      }
-    }
+    vimpl()
+//    val program1 = compile("impl IMoo for Moo;")
+//    val impl = program1.impls.head
+//    val structRune =
+//      impl.structKindRune match {
+//        case ir0@ImplicitRuneS(_, 0) => ir0
+//      }
+//    val interfaceRune =
+//      impl.interfaceKindRune match {
+//        case ir0@ImplicitRuneS(_, 1) => ir0
+//      }
+//    impl.rulesFromStructDirection match {
+//      case Vector(
+//      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo"))),
+//      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo")))) => {
+//        vassert(a == structRune)
+//        vassert(b == interfaceRune)
+//      }
+//    }
+//    impl.rulesFromInterfaceDirection match {
+//      case Vector(
+//      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo"))),
+//      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo")))) => {
+//        vassert(a == structRune)
+//        vassert(b == interfaceRune)
+//      }
+//    }
   }
 
   test("Method call") {
@@ -223,39 +226,40 @@ class ScoutTests extends FunSuite with Matchers {
 
 
   test("Constructing members") {
-    val program1 = compile(
-      """fn MyStruct() {
-        |  this.x = 4;
-        |  this.y = true;
-        |}
-        |""".stripMargin)
-    val main = program1.lookupFunction("MyStruct")
-
-    val CodeBodyS(BodySE(_, _, block)) = main.body
-    block match {
-      case BlockSE(_,
-      Vector(
-      LocalS(ConstructingMemberNameS("x"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed),
-      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
-      Vector(
-      LetSE(_,
-      _,
-      _,
-      _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
-      ConstantIntSE(_, 4, _)),
-      LetSE(_,
-      _,
-      _,
-      _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
-      ConstantBoolSE(_, true)),
-      FunctionCallSE(_,
-      OutsideLoadSE(_, "MyStruct", _, _),
-      Vector(
-      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
-      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
-    }
+    vimpl()
+//    val program1 = compile(
+//      """fn MyStruct() {
+//        |  this.x = 4;
+//        |  this.y = true;
+//        |}
+//        |""".stripMargin)
+//    val main = program1.lookupFunction("MyStruct")
+//
+//    val CodeBodyS(BodySE(_, _, block)) = main.body
+//    block match {
+//      case BlockSE(_,
+//      Vector(
+//      LocalS(ConstructingMemberNameS("x"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed),
+//      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
+//      Vector(
+//      LetSE(_,
+//      _,
+//      _,
+//      _,
+//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
+//      ConstantIntSE(_, 4, _)),
+//      LetSE(_,
+//      _,
+//      _,
+//      _,
+//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
+//      ConstantBoolSE(_, true)),
+//      FunctionCallSE(_,
+//      OutsideLoadSE(_, "MyStruct", _, _),
+//      Vector(
+//      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
+//      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
+//    }
   }
 
   test("Forgetting set when changing") {
@@ -385,33 +389,34 @@ class ScoutTests extends FunSuite with Matchers {
   }
 
   test("Constructing members, borrowing another member") {
-    val program1 = compile(
-      """fn MyStruct() {
-        |  this.x = 4;
-        |  this.y = &this.x;
-        |}
-        |""".stripMargin)
-    val main = program1.lookupFunction("MyStruct")
-
-    val CodeBodyS(BodySE(_, _, block)) = main.body
-    block match {
-      case BlockSE(_,
-      Vector(
-      LocalS(ConstructingMemberNameS("x"), Used, Used, NotUsed, NotUsed, NotUsed, NotUsed),
-      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
-      Vector(
-      LetSE(_, _, _, _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
-      ConstantIntSE(_, 4, _)),
-      LetSE(_, _, _, _,
-      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
-      LocalLoadSE(_, ConstructingMemberNameS("x"), LendConstraintP(Some(ReadonlyP)))),
-      FunctionCallSE(_,
-      OutsideLoadSE(_, "MyStruct", _, _),
-      Vector(
-      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
-      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
-    }
+    vimpl()
+//    val program1 = compile(
+//      """fn MyStruct() {
+//        |  this.x = 4;
+//        |  this.y = &this.x;
+//        |}
+//        |""".stripMargin)
+//    val main = program1.lookupFunction("MyStruct")
+//
+//    val CodeBodyS(BodySE(_, _, block)) = main.body
+//    block match {
+//      case BlockSE(_,
+//      Vector(
+//      LocalS(ConstructingMemberNameS("x"), Used, Used, NotUsed, NotUsed, NotUsed, NotUsed),
+//      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
+//      Vector(
+//      LetSE(_, _, _, _,
+//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
+//      ConstantIntSE(_, 4, _)),
+//      LetSE(_, _, _, _,
+//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
+//      LocalLoadSE(_, ConstructingMemberNameS("x"), LendConstraintP(Some(ReadonlyP)))),
+//      FunctionCallSE(_,
+//      OutsideLoadSE(_, "MyStruct", _, _),
+//      Vector(
+//      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
+//      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
+//    }
 
   }
 

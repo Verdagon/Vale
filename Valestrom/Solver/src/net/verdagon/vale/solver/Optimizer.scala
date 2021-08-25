@@ -68,71 +68,95 @@ object TemplarPuzzler {
   }
 }
 
-object RuneWorldOptimizer {
+start here, plz read all of it at once
+// optimizing is two things: canonicalizing and analyzing
+// maybe we can move canonicalizing out into its own thing
+// and merge the analyzing into the planner
+// or maybe even merging all of them together into the planner?
+// hopefully we can get the world out of the rules
+// either way, we need to sort out this mess
+// i kind of think we should either:
+// - just store a regular, simple AST in scout, and just have
+//   our generics engine assist it
+// - translate to IRulexAR on the fly, and then solve it
+// we would want templar to optimize these, and be able to use ints
+// for fast calculations during overload resolution
+//
+// i wonder if scout and astronomer can use IRuneS/A, and templar can
+// use ints for speed? maybe the initial stages of templar can do that
+// translation, or maybe astronomer can?
+//
+// i think we should only have two components to the solver:
+// - planner, which simply tells you which order to run your rules in
+// - solver, which is hardly even part of the solver (ironic)
+// we should probably just bite the bullet on the whole int boxing thing
+// so we can keep things simple. templar can use indexes for its stuff,
+// and its solver can be different.
+//
+// look into reserving capacity on hash maps, that could make all this fast enough
+//
+// the only point of astronomer is to find types for each rune, by doing
+// global inference.
+// you know, we should merge that into templar soon. both being global, it
+// makes sense.
+// so, lets err on the side of doing the rule optimization and planning in
+// templar maybe?
+
+object Optimizer {
   def optimize[RuleID, Literal, Lookup](
-    builder: RuneWorldBuilder[RuleID, Literal, Lookup],
-    puzzler: IRunePuzzler[RuleID, Literal, Lookup]
-  ): (mutable.HashMap[TentativeRune, Int], RuneWorldSolverState[RuleID, Literal, Lookup]) = {
+    builder: Builder[RuleID, Literal, Lookup],
+    puzzler: IRunePuzzler[RuleID, Literal, Lookup]):
+  (Map[TentativeRune, Int], World[Int, RuleID, Literal, Lookup]) = {
     // Right now, the original runes are spaced out. Even if we have 8 original runes, their numbers might be
     // 3, 6, 14, 16, 19, 24, 27, 30.
     // Let's re-number them so they're all dense. These will be the "canonical" runes.
     var nextCanonicalRune = 0
-    val runeToCanonicalRune = mutable.HashMap[TentativeRune, Int]()
+    val tentativeRuneToCanonicalRune = mutable.HashMap[TentativeRune, Int]()
     (0 until builder.nextTentativeRuneIndex).foreach(tentativeRuneIndex => {
       val tentativeRune = TentativeRune(tentativeRuneIndex)
-      builder.redundantRuneToOriginalRune.get(tentativeRune) match {
+      builder.tentativeRuneToOriginalTentativeRune.get(tentativeRune) match {
         case None => {
           // This rune isnt redundant with anything, give it its own canonical rune.
           val canonicalRune = nextCanonicalRune
           nextCanonicalRune = nextCanonicalRune + 1
-          runeToCanonicalRune.put(tentativeRune, canonicalRune)
+          tentativeRuneToCanonicalRune.put(tentativeRune, canonicalRune)
         }
         case Some(originalRune) => {
           // The originalRune should be less than this rune, so it should already have a canonical one assigned.
-          val canonicalRune = vassertSome(runeToCanonicalRune.get(originalRune))
-          runeToCanonicalRune.put(tentativeRune, canonicalRune)
+          val canonicalRune = vassertSome(tentativeRuneToCanonicalRune.get(originalRune))
+          tentativeRuneToCanonicalRune.put(tentativeRune, canonicalRune)
         }
       }
     })
 
-    val newRules = builder.rules.map(canonicalizeRule(_, runeToCanonicalRune)).toArray
-    val ruleIndexToPuzzles = newRules.map(TemplarPuzzler.apply)
+    val newRules = builder.rules.map(canonicalizeRule(_, tentativeRuneToCanonicalRune)).toArray
+    val ruleIndexToPuzzles = newRules.map(puzzler.getPuzzles)
 
     val kindRuneToBoundingInterfaceRuneAsMap =
       newRules.collect({ case IsaAR(_, sub, interface) => (sub, interface) }).toMap
     val kindRuneToBoundingInterfaceRune =
       (0 until nextCanonicalRune).map(rune => kindRuneToBoundingInterfaceRuneAsMap.getOrElse(rune, -1)).toArray
 
-    val solverState = optimizeInner(newRules, ruleIndexToPuzzles, nextCanonicalRune, kindRuneToBoundingInterfaceRune)
+    val world = analyze(newRules, ruleIndexToPuzzles, nextCanonicalRune, kindRuneToBoundingInterfaceRune)
 
-    (runeToCanonicalRune, solverState)
+    (tentativeRuneToCanonicalRune.toMap, world)
   }
 
-  def optimizeInner[RuleID, Literal, Lookup](
+  def analyze[RuleID, Literal, Lookup](
     newRules: Array[IRulexAR[Int, RuleID, Literal, Lookup]],
     ruleIndexToPuzzles: Array[Array[Array[Int]]],
     numCanonicalRunes: Int,
-    kindRuneToBoundingInterfaceRune: Array[Int]
-  ): RuneWorldSolverState[RuleID, Literal, Lookup] = {
-    val puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns = ArrayBuffer[(Int, Array[Int], Int)]()
-    val numUnknownsToPuzzles =
-      Array(
-        ArrayBuffer[Int](),
-        ArrayBuffer[Int](),
-        ArrayBuffer[Int](),
-        ArrayBuffer[Int](),
-        ArrayBuffer[Int]())
+    kindRuneToBoundingInterfaceRune: Array[Int]):
+  World[Int, RuleID, Literal, Lookup] = {
+    val puzzlesToRuleAndUnknownRunes = ArrayBuffer[(Int, Array[Int])]()
     val ruleToPuzzles = newRules.map(_ => ArrayBuffer[Int]()).toArray
     val runeToPuzzles = (0 until numCanonicalRunes).map(_ => ArrayBuffer[Int]()).toArray
     ruleIndexToPuzzles.zipWithIndex.foreach({ case (puzzlesForRule, ruleIndex) =>
       puzzlesForRule.foreach(puzzleUnknownRunes => {
-        val puzzle = puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns.size
+        val puzzle = puzzlesToRuleAndUnknownRunes.size
 
-        val indexInNumUnknowns = numUnknownsToPuzzles(puzzleUnknownRunes.length).length
-        numUnknownsToPuzzles(puzzleUnknownRunes.length) += puzzle
-
-        val thing = (ruleIndex, puzzleUnknownRunes, indexInNumUnknowns)
-        puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns += thing
+        val thing = (ruleIndex, puzzleUnknownRunes)
+        puzzlesToRuleAndUnknownRunes += thing
         ruleToPuzzles(ruleIndex) += puzzle
         puzzleUnknownRunes.foreach(unknownRune => {
           runeToPuzzles(unknownRune) += puzzle
@@ -140,40 +164,24 @@ object RuneWorldOptimizer {
       })
     })
 
-    val numPuzzles = puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns.size
-    val puzzleToRule = puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns.map(_._1)
-    val puzzleToUnknownRunes = puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns.map(_._2)
-    val puzzleToIndexInNumUnknowns = puzzlesToRuleAndUnknownRunesAndIndexInNumUnknowns.map(_._3)
-//    val ruleToRunes = ruleToPuzzles.map(puzzles => puzzles.map(puzzleToUnknownRunes).flatten.toArray)
-    val puzzleToSatisfied = puzzleToRule.indices.map(_ => false).toArray
+    val puzzleToRule = puzzlesToRuleAndUnknownRunes.map(_._1)
+    val puzzleToUnknownRunes = puzzlesToRuleAndUnknownRunes.map(_._2)
+    // We cant just merge all the puzzles' runes because some runes are never part of a puzzle, for example
+    // in literal rules or lookup rules, the result rune is never part of a puzzle.
+    val ruleToRunes = newRules.map(_.allRunes.toArray)
 
     puzzleToUnknownRunes.zipWithIndex.foreach({ case (unknownRunes, puzzle) =>
       vassert(unknownRunes.length == unknownRunes.distinct.length)
     })
 
-    val runeWorld =
-      RuneWorld[Int, RuleID, Literal, Lookup](
-        newRules,
-//        ruleToRunes.toArray,
-        puzzleToRule.toArray,
-        puzzleToUnknownRunes.map(_.clone()).toArray,
-        ruleToPuzzles.map(_.toArray),
-        runeToPuzzles.map(_.toArray),
-        kindRuneToBoundingInterfaceRune)
-
-    RuneWorldSolverState[RuleID, Literal, Lookup](
-      runeWorld,
-      puzzleToSatisfied.clone(),
-      puzzleToUnknownRunes.map(_.length).toArray,
+    World[Int, RuleID, Literal, Lookup](
+      newRules,
+      ruleToRunes.toArray,
+      puzzleToRule.toArray,
       puzzleToUnknownRunes.map(_.clone()).toArray,
-      puzzleToIndexInNumUnknowns.toArray.clone(),
-      numUnknownsToPuzzles.map(_.length).toArray,
-      numUnknownsToPuzzles.map(puzzles => {
-        // Fill in the rest with -1s
-        puzzles ++= (0 until (numPuzzles - puzzles.length)).map(_ => -1)
-        vassert(puzzles.length == numPuzzles)
-        puzzles.toArray.clone()
-      }).toArray)
+      ruleToPuzzles.map(_.toArray),
+      runeToPuzzles.map(_.toArray),
+      kindRuneToBoundingInterfaceRune)
   }
 
   def canonicalizeRule[RuneID, RuleID, Literal, Lookup](

@@ -5,6 +5,8 @@ import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.{LetRuleState, PatternScout, RuleState, RuleStateBox}
 import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
+import net.verdagon.vale.scout.rules.{ILiteralSR, ILookupSR, ScoutRuleBuilder}
+import net.verdagon.vale.solver.{IRulexAR, Optimizer, TemplarPuzzler}
 //import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules.{IRulexSR, RuleScout}
 //import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
@@ -370,21 +372,33 @@ object ExpressionScout {
         val userRulesS =
           RuleScout.translateRulexes(
             stackFrame0.parentEnv, ruleState, stackFrame1.parentEnv.allUserDeclaredRunes(), rulesP.toVector.flatMap(_.rules))
-        val (implicitRulesS, patternS) =
-          PatternScout.translatePattern(
-            stackFrame1,
-            ruleState,
-            patternP)
-        val rulesS = userRulesS ++ implicitRulesS
-
-        val allRunes = PredictorEvaluator.getAllRunes(Vector.empty, rulesS, Vector(patternS), None)
 
         // See MKKRFA
         val knowableRunesFromAbove = stackFrame1.parentEnv.allUserDeclaredRunes()
-        val allUnknownRunes = allRunes -- knowableRunesFromAbove
-        val Conclusions(knowableValueRunes, predictedTypeByRune) =
-          PredictorEvaluator.solve(Set(), rulesS, Vector.empty, evalRange(range))
-        val localRunes = allRunes -- knowableRunesFromAbove
+
+        val ruleBuilder = ScoutRuleBuilder()
+        userRulesS.foreach(ruleBuilder.translateRule(knowableRunesFromAbove, _))
+
+        val patternS =
+          PatternScout.translatePattern(
+            stackFrame1,
+            ruleState,
+            knowableRunesFromAbove,
+            ruleBuilder,
+            patternP)
+
+        val (tentativeRuneToCanonicalRune, world) =
+          Optimizer.optimize(
+            ruleBuilder.builder,
+            (inputRule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]) => TemplarPuzzler.apply(inputRule))
+
+        val Conclusions(knowableValueRunesS, predictedTypeByRune) =
+          PredictorEvaluator.solve(
+            evalRange(range),
+            ruleBuilder.runeSToTentativeRune,
+            tentativeRuneToCanonicalRune,
+            ruleBuilder.tentativeRuneToType,
+            world)
 
         val declarationsFromPattern = VariableDeclarations(PatternScout.getParameterCaptures(patternS))
 
@@ -396,7 +410,11 @@ object ExpressionScout {
             throw CompileErrorExceptionS(VariableNameAlreadyExists(evalRange(range), nameConflictVarName))
           }
         }
-        (stackFrame1 ++ declarationsFromPattern, NormalResult(evalRange(range), LetSE(evalRange(range), rulesS, allUnknownRunes, localRunes, patternS, expr1)), selfUses, childUses)
+
+        val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
+
+        val letSE = LetSE(evalRange(range), world.rules, runeSToCanonicalRune, patternS, expr1)
+        (stackFrame1 ++ declarationsFromPattern, NormalResult(evalRange(range), letSE), selfUses, childUses)
       }
       case MutatePE(mutateRange, destinationExprPE, sourceExprPE) => {
         val (stackFrame1, sourceExpr1, sourceInnerSelfUses, sourceChildUses) =

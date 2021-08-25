@@ -7,21 +7,21 @@ import scala.collection.mutable.ArrayBuffer
 
 case class TentativeRune(runeIndex: Int)
 
-object RuneWorldBuilder {
+object Builder {
   def apply[RuleID, Literal, Lookup]():
-  RuneWorldBuilder[RuleID, Literal, Lookup] = {
-    RuneWorldBuilder[RuleID, Literal, Lookup](
+  Builder[RuleID, Literal, Lookup] = {
+    Builder[RuleID, Literal, Lookup](
       mutable.ArrayBuffer[IRulexAR[TentativeRune, RuleID, Literal, Lookup]](),
       0,
       mutable.HashMap[TentativeRune, TentativeRune]())
   }
 }
 
-case class RuneWorldBuilder[RuleID, Literal, Lookup](
+case class Builder[RuleID, Literal, Lookup](
   rules: mutable.ArrayBuffer[IRulexAR[TentativeRune, RuleID, Literal, Lookup]],
   var nextTentativeRuneIndex: Int,
-  redundantRuneToOriginalRune: mutable.HashMap[TentativeRune, TentativeRune]
-) {
+  tentativeRuneToOriginalTentativeRune: mutable.HashMap[TentativeRune, TentativeRune]) {
+
   def addRule(rule: IRulexAR[TentativeRune, RuleID, Literal, Lookup]): Int = {
     val ruleIndex = rules.size
     rules += rule
@@ -38,8 +38,9 @@ case class RuneWorldBuilder[RuleID, Literal, Lookup](
     } else {
       val earlierRune = TentativeRune(Math.min(left.runeIndex, right.runeIndex))
       val laterRune = TentativeRune(Math.max(left.runeIndex, right.runeIndex))
-      redundantRuneToOriginalRune.put(laterRune, earlierRune)
+      tentativeRuneToOriginalTentativeRune.put(laterRune, earlierRune)
       left
     }
   }
+
 }
