@@ -17,6 +17,13 @@ trait Collector {
       return Some(partialFunction.apply(a))
     }
     a match {
+      case arr: Array[Any] => {
+        val opt: Option[R] = None
+        arr.foldLeft(opt)({
+          case (Some(x), _) => Some(x)
+          case (None, next) => recursiveCollectFirst(next, partialFunction)
+        })
+      }
       case iterable: Iterable[Any] => {
         val opt: Option[R] = None
         iterable.foldLeft(opt)({
@@ -38,7 +45,7 @@ trait Collector {
   implicit class ProgramWithExpect(program: Any) {
     def shouldHave[T](f: PartialFunction[Any, T]): T = {
       recursiveCollectFirst(program, f) match {
-        case None => throw new AssertionError("Couldn't find the thing, in:\n" + program)
+        case None => vfail("Couldn't find the thing, in:\n" + program)
         case Some(t) => t
       }
     }

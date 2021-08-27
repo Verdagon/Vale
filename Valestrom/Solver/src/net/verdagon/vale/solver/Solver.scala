@@ -2,85 +2,103 @@ package net.verdagon.vale.solver
 
 import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl}
 
-sealed trait ISolverOutcome[Conclusion, ErrType] {
-  def getOrDie(): Array[Option[Conclusion]]
+sealed trait ISolverOutcome[RuneID, Conclusion, ErrType] {
+  def getOrDie(): Map[RuneID, Conclusion]
 }
-case class CompleteSolve[Conclusion, ErrType](
-  conclusions: Array[Option[Conclusion]]
-) extends ISolverOutcome[Conclusion, ErrType] {
-  override def getOrDie(): Array[Option[Conclusion]] = conclusions
+case class CompleteSolve[RuneID, Conclusion, ErrType](
+  conclusions: Map[RuneID, Conclusion]
+) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+  override def getOrDie(): Map[RuneID, Conclusion] = conclusions
 }
-case class IncompleteSolve[Conclusion, ErrType](
-  conclusions: Array[Option[Conclusion]]
-) extends ISolverOutcome[Conclusion, ErrType] {
-  override def getOrDie(): Array[Option[Conclusion]] = vfail()
-}
-
-case class FailedSolve[Conclusion, ErrType](
-  error: ISolverError[Conclusion, ErrType],
-  conclusions: Array[Option[Conclusion]]
-) extends ISolverOutcome[Conclusion, ErrType] {
-  override def getOrDie(): Array[Option[Conclusion]] = vfail()
+case class IncompleteSolve[RuneID, Conclusion, ErrType](
+  conclusions: Map[RuneID, Conclusion]
+) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+  override def getOrDie(): Map[RuneID, Conclusion] = vfail()
 }
 
-sealed trait ISolverError[Conclusion, ErrType]
-case class SolverConflict[Conclusion, ErrType](
+case class FailedSolve[RuneID, Conclusion, ErrType](
+  error: ISolverError[RuneID, Conclusion, ErrType],
+  conclusions: Map[RuneID, Conclusion]
+) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+  override def getOrDie(): Map[RuneID, Conclusion] = vfail()
+}
+
+sealed trait ISolverError[RuneID, Conclusion, ErrType]
+case class SolverConflict[RuneID, Conclusion, ErrType](
   rule: Int,
-  rune: Int,
+  rune: RuneID,
   previousConclusion: Conclusion,
   newConclusion: Conclusion
-) extends ISolverError[Conclusion, ErrType]
-case class RuleError[Conclusion, ErrType](
+) extends ISolverError[RuneID, Conclusion, ErrType]
+case class RuleError[RuneID, Conclusion, ErrType](
   ruleIndex: Int,
   err: ErrType
-) extends ISolverError[Conclusion, ErrType]
-
-trait ISolverDelegate[RuleID, Literal, Lookup, Env, State, Conclusion, ErrType] {
-  def solve(
-    state: State,
-    env: Env,
-    range: RuleID,
-    rule: IRulexAR[Int, RuleID, Literal, Lookup],
-    runes: Int => Option[Conclusion]
-  ): Result[Map[Int, Conclusion], ErrType]
-}
+) extends ISolverError[RuneID, Conclusion, ErrType]
 
 // Given enough user specified template params and param inputs, we should be able to
 // infer everything.
 // This class's purpose is to take those things, and see if it can figure out as many
 // inferences as possible.
 
-class Solver[RuleID, Literal, Lookup, Env, State, Conclusion, ErrType](
-  delegate: ISolverDelegate[RuleID, Literal, Lookup, Env, State, Conclusion, ErrType]) {
-
+trait ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType] {
   def solve(
     state: State,
     env: Env,
-    orderedCanonicalRules: Array[IRulexAR[Int, RuleID, Literal, Lookup]],
-    numRunes: Int,
-    invocationRange: RuleID
-  ): Result[Array[Option[Conclusion]], FailedSolve[Conclusion, ErrType]] = {
-    val conclusions: Array[Option[Conclusion]] = (0 until numRunes).map(_ => None).toArray
+    ruleIndex: Int,
+    rule: Rule,
+    getConclusion: RuneID => Option[Conclusion],
+    concludeRune: (RuneID, Conclusion) => Unit):
+  Result[Unit, ErrType]
+}
 
-    orderedCanonicalRules.zipWithIndex.foreach({ case (solvingRule, solvingRuleIndex) =>
-      val newlySolvedRuneToConclusion =
-        delegate.solve(state, env, invocationRange, solvingRule, i => conclusions(i)) match {
-          case Ok(x) => x
-          case Err(e) => return Err(FailedSolve(RuleError(solvingRuleIndex, e), conclusions))
+object Solver {
+  def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
+    state: State,
+    env: Env,
+    numCanonicalRunes: Int,
+    rules: IndexedSeq[Rule],
+    ruleExecutionOrder: Iterable[Int],
+    ruleToRunes: Rule => Iterable[RuneID],
+    userRuneToCanonicalRune: RuneID => Int,
+    allUserRunes: Iterable[RuneID],
+    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
+  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[RuneID, Conclusion, ErrType]] = {
+    val conclusions: Array[Option[Conclusion]] = (0 until numCanonicalRunes).map(_ => None).toArray
+    def userifyConclusions(conclusions: Array[Option[Conclusion]]): Stream[(RuneID, Conclusion)] = {
+      allUserRunes.toStream.flatMap(userRune => {
+        conclusions(userRuneToCanonicalRune(userRune)).map(userRune -> _)
+      })
+    }
+
+    ruleExecutionOrder.map(rules).zipWithIndex.foreach({ case (solvingRule, solvingRuleIndex) =>
+      val ruleCanonicalRunes = ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray
+
+      val getConclusion =
+        (requestedUserRune: RuneID) => {
+          val requestedCanonicalRune = userRuneToCanonicalRune(requestedUserRune)
+          vassert(ruleCanonicalRunes.contains(requestedCanonicalRune))
+          conclusions(requestedCanonicalRune)
         }
-
-      newlySolvedRuneToConclusion.foreach({ case (newlySolvedRune, newConclusion) =>
-        conclusions(newlySolvedRune) match {
-          case None => conclusions(newlySolvedRune) = Some(newConclusion)
-          case Some(existingConclusion) => {
-            if (existingConclusion != newConclusion) {
-              return Err(FailedSolve(SolverConflict(solvingRuleIndex, newlySolvedRune, existingConclusion, newConclusion), conclusions))
+      val concludeRune =
+        (newlySolvedRune: RuneID, newConclusion: Conclusion) => {
+          val newlySolvedCanonicalRune = userRuneToCanonicalRune(newlySolvedRune)
+          vassert(ruleCanonicalRunes.contains(newlySolvedCanonicalRune))
+          conclusions(newlySolvedCanonicalRune) match {
+            case None => conclusions(newlySolvedCanonicalRune) = Some(newConclusion)
+            case Some(existingConclusion) => {
+              if (existingConclusion != newConclusion) {
+                return Err(FailedSolve(SolverConflict(solvingRuleIndex, newlySolvedRune, existingConclusion, newConclusion), userifyConclusions(conclusions).toMap))
+              }
             }
           }
+          ()
         }
-      })
+      solveRule.solve(state, env, solvingRuleIndex, solvingRule, getConclusion, concludeRune) match {
+        case Ok(_) =>
+        case Err(e) => return Err(FailedSolve(RuleError(solvingRuleIndex, e), userifyConclusions(conclusions).toMap))
+      }
     })
 
-    Ok(conclusions)
+    Ok(userifyConclusions(conclusions))
   }
 }

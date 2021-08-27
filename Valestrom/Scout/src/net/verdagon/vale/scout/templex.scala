@@ -49,11 +49,11 @@ sealed trait IRuneS
 case class CodeRuneS(name: String) extends IRuneS {
   vpass()
 }
-case class ImplicitRuneS(containerName: INameS, name: Int) extends IRuneS {
+case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   vpass()
 }
-case class LetImplicitRuneS(codeLocationS: CodeLocationS, name: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class MagicParamRuneS(codeLocationS: CodeLocationS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class LetImplicitRuneS(lid: LocationInDenizen) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class MagicParamRuneS(lid: LocationInDenizen) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class MemberRuneS(memberIndex: Int) extends IRuneS {
    val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
@@ -78,86 +78,86 @@ case class ImpreciseCodeVarNameS(name: String) extends IImpreciseNameStepS { val
 
 
 // See PVSBUFI
-case class IntSR(range: RangeS, value: Long) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class StringSR(range: RangeS, value: String) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class MutabilitySR(range: RangeS, mutability: MutabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class PermissionSR(range: RangeS, permission: PermissionP) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class LocationSR(range: RangeS, location: LocationP) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class OwnershipSR(range: RangeS, ownership: OwnershipP) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class VariabilitySR(range: RangeS, variability: VariabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class BoolSR(range: RangeS, value: Boolean) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class AbsoluteNameSR(range: RangeS, name: INameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class NameSR(range: RangeS, name: CodeTypeNameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class RuneSR(range: RangeS, rune: IRuneS) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class InterpretedSR(range: RangeS, ownership: OwnershipP, permission: PermissionP, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
-//case class PermissionedST(range: RangeS, permission: PermissionP, inner: ITemplexS) extends ITemplexS {  override def hashCode(): Int = vcurious() }
-//case class NullableSR(range: RangeS, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class CallSR(range: RangeS,
-    template: IRulexSR,
-    args: Vector[IRulexSR]) extends IRulexSR {
-}
-//case class FunctionST(
-//  mutability: Option[ITemplexS],
-//  parameters: Vector[Option[ITemplexS]],
-//  returnType: Option[ITemplexS]
-//) extends ITemplexS {  override def hashCode(): Int = vcurious() }
-case class PrototypeSR(
-  range: RangeS,
-  name: String,
-  parameters: Vector[IRulexSR],
-  returnType: IRulexSR
-) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class PackSR(
-  range: RangeS,
-  members: Vector[IRulexSR]
-) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class BorrowSR(
-  range: RangeS,
-  inner: IRulexSR
-) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class RepeaterSequenceSR(
-  range: RangeS,
-  mutability: IRulexSR,
-  variability: IRulexSR,
-  size: IRulexSR,
-  element: IRulexSR
-) extends IRulexSR { override def hashCode(): Int = vcurious() }
-case class ManualSequenceSR(
-  range: RangeS,
-  elements: Vector[IRulexSR]
-) extends IRulexSR { override def hashCode(): Int = vcurious() }
-
-object TemplexSUtils {
-  def getDistinctOrderedRunesForTemplex(templex: IRulexSR): Vector[IRuneS] = {
-    templex match {
-      case StringSR(_, _) => Vector.empty
-      case IntSR(_, _) => Vector.empty
-      case MutabilitySR(_, _) => Vector.empty
-      case PermissionSR(_, _) => Vector.empty
-      case LocationSR(_, _) => Vector.empty
-      case OwnershipSR(_, _) => Vector.empty
-      case VariabilitySR(_, _) => Vector.empty
-      case BoolSR(_, _) => Vector.empty
-      case NameSR(_, _) => Vector.empty
-      case AbsoluteNameSR(_, _) => Vector.empty
-      case RuneSR(_, rune) => Vector(rune)
-      case InterpretedSR(_, _, _, inner) => getDistinctOrderedRunesForTemplex(inner)
-      case BorrowSR(_, inner) => getDistinctOrderedRunesForTemplex(inner)
-      case CallSR(_, template, args) => {
-        (Vector(template) ++ args).flatMap(getDistinctOrderedRunesForTemplex).distinct
-      }
-      case PrototypeSR(_, name, parameters, returnType) => {
-        (parameters :+ returnType).flatMap(getDistinctOrderedRunesForTemplex).distinct
-      }
-      case PackSR(_, members) => {
-        members.flatMap(getDistinctOrderedRunesForTemplex).distinct
-      }
-      case RepeaterSequenceSR(_, mutability, variability, size, element) => {
-        Vector(mutability, variability, size, element).flatMap(getDistinctOrderedRunesForTemplex).distinct
-      }
-      case ManualSequenceSR(_, elements) => {
-        elements.flatMap(getDistinctOrderedRunesForTemplex).distinct
-      }
-    }
-  }
-}
+////case class IntSR(range: RangeS, value: Long) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class StringSR(range: RangeS, value: String) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class MutabilitySR(range: RangeS, mutability: MutabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class PermissionSR(range: RangeS, permission: PermissionP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class LocationSR(range: RangeS, location: LocationP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class OwnershipSR(range: RangeS, ownership: OwnershipP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class VariabilitySR(range: RangeS, variability: VariabilityP) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class BoolSR(range: RangeS, value: Boolean) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class AbsoluteNameSR(range: RangeS, name: INameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class NameSR(range: RangeS, name: CodeTypeNameS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class RuneSR(range: RangeS, rune: IRuneS) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class InterpretedSR(range: RangeS, ownership: OwnershipP, permission: PermissionP, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//////case class PermissionedST(range: RangeS, permission: PermissionP, inner: ITemplexS) extends ITemplexS {  override def hashCode(): Int = vcurious() }
+//////case class NullableSR(range: RangeS, inner: IRulexSR) extends IRulexSR { override def hashCode(): Int = vcurious() }
+////case class CallSR(range: RangeS,
+////    template: IRulexSR,
+////    args: Vector[IRulexSR]) extends IRulexSR {
+////}
+////case class FunctionST(
+////  mutability: Option[ITemplexS],
+////  parameters: Vector[Option[ITemplexS]],
+////  returnType: Option[ITemplexS]
+////) extends ITemplexS {  override def hashCode(): Int = vcurious() }
+//case class PrototypeSR(
+//  range: RangeS,
+//  name: String,
+//  parameters: Vector[IRulexSR],
+//  returnType: IRulexSR
+//) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//case class PackSR(
+//  range: RangeS,
+//  members: Vector[IRulexSR]
+//) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//case class BorrowSR(
+//  range: RangeS,
+//  inner: IRulexSR
+//) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//case class RepeaterSequenceSR(
+//  range: RangeS,
+//  mutability: IRulexSR,
+//  variability: IRulexSR,
+//  size: IRulexSR,
+//  element: IRulexSR
+//) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//case class ManualSequenceSR(
+//  range: RangeS,
+//  elements: Vector[IRulexSR]
+//) extends IRulexSR { override def hashCode(): Int = vcurious() }
+//
+//object TemplexSUtils {
+//  def getDistinctOrderedRunesForTemplex(templex: IRulexSR): Vector[IRuneS] = {
+//    templex match {
+//      case StringSR(_, _) => Vector.empty
+//      case IntSR(_, _) => Vector.empty
+//      case MutabilitySR(_, _) => Vector.empty
+//      case PermissionSR(_, _) => Vector.empty
+//      case LocationSR(_, _) => Vector.empty
+//      case OwnershipSR(_, _) => Vector.empty
+//      case VariabilitySR(_, _) => Vector.empty
+//      case BoolSR(_, _) => Vector.empty
+//      case NameSR(_, _) => Vector.empty
+//      case AbsoluteNameSR(_, _) => Vector.empty
+//      case RuneSR(_, rune) => Vector(rune)
+//      case InterpretedSR(_, _, _, inner) => getDistinctOrderedRunesForTemplex(inner)
+//      case BorrowSR(_, inner) => getDistinctOrderedRunesForTemplex(inner)
+//      case CallSR(_, template, args) => {
+//        (Vector(template) ++ args).flatMap(getDistinctOrderedRunesForTemplex).distinct
+//      }
+//      case PrototypeSR(_, name, parameters, returnType) => {
+//        (parameters :+ returnType).flatMap(getDistinctOrderedRunesForTemplex).distinct
+//      }
+//      case PackSR(_, members) => {
+//        members.flatMap(getDistinctOrderedRunesForTemplex).distinct
+//      }
+//      case RepeaterSequenceSR(_, mutability, variability, size, element) => {
+//        Vector(mutability, variability, size, element).flatMap(getDistinctOrderedRunesForTemplex).distinct
+//      }
+//      case ManualSequenceSR(_, elements) => {
+//        elements.flatMap(getDistinctOrderedRunesForTemplex).distinct
+//      }
+//    }
+//  }
+//}

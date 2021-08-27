@@ -1,14 +1,15 @@
 package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.patterns.{PatternScout, RuleState, RuleStateBox}
+import net.verdagon.vale.scout.patterns.PatternScout
 import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.predictor.PredictorEvaluator
-import net.verdagon.vale.solver.{IRulexAR, Optimizer, TemplarPuzzler}
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.util.parsing.input.OffsetPosition
 
 case class CompileErrorExceptionS(err: ICompileErrorS) extends RuntimeException { override def hashCode(): Int = vcurious() }
@@ -34,7 +35,7 @@ case class RangedInternalErrorS(range: RangeS, message: String) extends ICompile
 sealed trait IEnvironment {
   def file: FileCoordinate
   def name: INameS
-  def allUserDeclaredRunes(): Set[IRuneS]
+  def allDeclaredRunes(): Set[IRuneS]
 }
 
 // Someday we might split this into PackageEnvironment and CitizenEnvironment
@@ -45,23 +46,26 @@ case class Environment(
     userDeclaredRunes: Set[IRuneS]
 ) extends IEnvironment {
   override def hashCode(): Int = vcurious()
-  override def allUserDeclaredRunes(): Set[IRuneS] = {
-    userDeclaredRunes ++ parentEnv.toVector.flatMap(pe => pe.allUserDeclaredRunes())
+  override def allDeclaredRunes(): Set[IRuneS] = {
+    userDeclaredRunes ++ parentEnv.toVector.flatMap(_.allDeclaredRunes())
   }
 }
 
 case class FunctionEnvironment(
-    file: FileCoordinate,
-    name: IFunctionDeclarationNameS,
-    parentEnv: Option[IEnvironment],
-    userDeclaredRunes: Set[IRuneS],
-    // So that when we run into a magic param, we can add this to the number of previous magic
-    // params to get the final param index.
-    numExplicitParams: Int
+  file: FileCoordinate,
+  name: IFunctionDeclarationNameS,
+  parentEnv: Option[IEnvironment],
+  // Contains all the identifying runes and otherwise declared runes from this function's rules.
+  // These are important for knowing whether e.g. T is a type or a rune when we process all the runes.
+  // See: Must Scan For Declared Runes First (MSFDRF)
+  private val declaredRunes: Set[IRuneS],
+  // So that when we run into a magic param, we can add this to the number of previous magic
+  // params to get the final param index.
+  numExplicitParams: Int
 ) extends IEnvironment {
   override def hashCode(): Int = vcurious()
-  override def allUserDeclaredRunes(): Set[IRuneS] = {
-    userDeclaredRunes ++ parentEnv.toVector.flatMap(_.allUserDeclaredRunes())
+  override def allDeclaredRunes(): Set[IRuneS] = {
+    declaredRunes ++ parentEnv.toVector.flatMap(_.allDeclaredRunes()).toSet
   }
 }
 
@@ -137,7 +141,7 @@ object Scout {
     val codeLocation = Scout.evalPos(file, range.begin)
     val implName = ImplNameS(getHumanName(struct), codeLocation)
 
-    val identifyingRunes: Vector[IRuneS] =
+    val identifyingRunes =
       identifyingRuneNames
         .toVector.flatMap(_.runes)
         .map(_.name.str)
@@ -149,67 +153,68 @@ object Scout {
 
     val implEnv = Environment(file, None, implName, userDeclaredRunes.toSet)
 
-    val rate = RuleStateBox(RuleState(implEnv.name, 0))
-    val userRulesS =
-      RuleScout.translateRulexes(implEnv, rate, implEnv.allUserDeclaredRunes(), templateRulesP)
+    val lidb = new LocationInDenizenBuilder(Vector())
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
 
-    // We gather all the runes from the scouted rules to be consistent with the function scout.
-    val allRunesS = PredictorEvaluator.getAllRunes(identifyingRunes, userRulesS, Vector.empty, None)
+    RuleScout.translateRulexes(implEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
-    val knowableRunesFromAbove = Set[IRuneS]()
+//    // We gather all the runes from the scouted rules to be consistent with the function scout.
+//    val allRunesS = PredictorEvaluator.getAllRunes(identifyingRunes, userRulesS, Vector.empty, None)
 
-    val ruleBuilder = ScoutRuleBuilder()
-    userRulesS.foreach(ruleBuilder.translateRule(knowableRunesFromAbove, _))
+////    val ruleBuilder = ScoutRuleBuilder()
+//    userRulesS.foreach(ruleBuilder.translateRule( _))
 
-    val tentativeStructRune =
+    val structRune =
       PatternScout.translateMaybeTypeIntoRune(
         implEnv,
-        rate,
+        lidb.child(),
         Scout.evalRange(file, range),
-        knowableRunesFromAbove,
         ruleBuilder,
+        runeToExplicitType,
         Some(struct),
         KindTypePR)
 
-    val tentativeInterfaceRune =
+    val interfaceRune =
       PatternScout.translateMaybeTypeIntoRune(
         implEnv,
-        rate,
+        lidb.child(),
         Scout.evalRange(file, range),
-        knowableRunesFromAbove,
         ruleBuilder,
+        runeToExplicitType,
         Some(interface),
         KindTypePR)
 
-    val (tentativeRuneToCanonicalRune, world) =
-      Optimizer.optimize(
-        ruleBuilder.builder,
-        (inputRule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]) => TemplarPuzzler.apply(inputRule))
-
-    val structRune = tentativeRuneToCanonicalRune(tentativeStructRune)
-    val interfaceRune = tentativeRuneToCanonicalRune(tentativeInterfaceRune)
-
-    val Conclusions(knowableValueRunes, _) =
-      PredictorEvaluator.solve(
-        evalRange(file, range),
-        ruleBuilder.runeSToTentativeRune,
-        tentativeRuneToCanonicalRune,
-        ruleBuilder.tentativeRuneToType,
-        world)
-    val localRunesS = allRunesS
-    val isTemplate = knowableValueRunes != allRunesS
-
-    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
+//    val (tentativeRuneToCanonicalRune, world) =
+//      Optimizer.optimize(
+//        ruleBuilder.builder,
+//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+//
+//    val structRune = tentativeRuneToCanonicalRune(tentativeStructRune)
+//    val interfaceRune = tentativeRuneToCanonicalRune(tentativeInterfaceRune)
+//
+//    val Conclusions(knowableValueRunes, _) =
+//      PredictorEvaluator.solve(
+//        evalRange(file, range),
+//        ruleBuilder.runeSToTentativeRune,
+//        tentativeRuneToCanonicalRune,
+//        ruleBuilder.tentativeRuneToType,
+//        world)
+//    val localRunesS = allRunesS
+//    val isTemplate = knowableValueRunes != allRunesS
+//
+//    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
     ImplS(
       Scout.evalRange(file, range),
       implName,
-      world.rules,
-      runeSToCanonicalRune,
-      knowableValueRunes.map(runeSToCanonicalRune) ++
-        (if (isTemplate) Vector.empty else Vector(structRune, interfaceRune)),
-      localRunesS.map(runeSToCanonicalRune) ++ Vector(structRune, interfaceRune),
-      isTemplate,
+      identifyingRunes,
+      ruleBuilder.toArray,
+//      runeSToCanonicalRune,
+//      knowableValueRunes.map(runeSToCanonicalRune) ++
+//        (if (isTemplate) Vector.empty else Vector(structRune, interfaceRune)),
+//      localRunesS.map(runeSToCanonicalRune) ++ Vector(structRune, interfaceRune),
+//      isTemplate,
       structRune,
       interfaceRune)
   }
@@ -220,9 +225,12 @@ object Scout {
     val pos = Scout.evalPos(file, range.begin)
     val exportName = ExportAsNameS(pos)
     val exportEnv = Environment(file, None, exportName, Set())
-    val templexS = TemplexScout.translateTemplex(exportEnv, templexP)
 
-    ExportAsS(Scout.evalRange(file, range), exportName, templexS, exportedName.str)
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    val lidb = new LocationInDenizenBuilder(Vector())
+    val runeS = TemplexScout.translateTemplex(exportEnv, lidb, ruleBuilder, templexP)
+
+    ExportAsS(Scout.evalRange(file, range), ruleBuilder.toArray, exportName, runeS, exportedName.str)
   }
 
   private def scoutImport(file: FileCoordinate, importP: ImportP): ImportS = {
@@ -240,6 +248,8 @@ object Scout {
 
     val structRangeS = Scout.evalRange(file, range)
 
+    val lidb = new LocationInDenizenBuilder(Vector())
+
     val templateRulesP = maybeTemplateRulesP.toVector.flatMap(_.rules)
 
     val identifyingRunesS: Vector[IRuneS] =
@@ -252,101 +262,94 @@ object Scout {
     val userDeclaredRunes = identifyingRunesS ++ runesFromRules
     val structEnv = Environment(file, None, structName, userDeclaredRunes.toSet)
 
-    val memberRunes = members.indices.map(index => MemberRuneS(index))
-    val memberRules =
-      memberRunes.zip(members).collect({ case (memberRune, StructMemberP(range, _, _, memberType)) =>
-        val memberRange = Scout.evalRange(file, range)
-        EqualsSR(
-          memberRange,
-          TypedSR(memberRange, memberRune, CoordTypeSR),
-          TemplexScout.translateTemplex(structEnv, memberType))
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+
+    val membersS =
+      members.flatMap({
+        case StructMemberP(range, name, variability, memberType) => {
+          val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
+          runeToExplicitType.put(memberRune, CoordTypeSR)
+          Vector(StructMemberS(Scout.evalRange(structEnv.file, range), name.str, variability, memberRune))
+        }
+        case StructMethodP(_) => {
+          // Implement struct methods one day
+          Vector.empty
+        }
       })
 
-    val rate = RuleStateBox(RuleState(structEnv.name, 0))
-    val rulesWithoutMutabilityS =
-      RuleScout.translateRulexes(structEnv, rate, structEnv.allUserDeclaredRunes(), templateRulesP) ++
-      memberRules
+    RuleScout.translateRulexes(structEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
-    val mutabilityST =
-      RuleScout.translateTemplex(structEnv, rate, structEnv.allUserDeclaredRunes(), mutabilityPT)
     val predictedMutability =
       mutabilityPT match {
         case MutabilityPT(_, mutability) => Some(mutability)
         case _ => None
       }
 
-    val mutabilityRuneS = rate.newImplicitRune()
-    val rulesS =
-      rulesWithoutMutabilityS :+
-        EqualsSR(
-          structRangeS,
-          RuneSR(structRangeS, mutabilityRuneS),
-          mutabilityST)
+    val mutabilityRuneS = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, mutabilityPT)
+//
+//    val mutabilityRuneS = ImplicitRuneS(lidb.child().consume())
+//    val rulesS =
+//      rulesWithoutMutabilityS :+
+//        EqualsSR(
+//          structRangeS,
+//          RuneSR(structRangeS, mutabilityRuneS),
+//          mutabilityST)
 
-    // We gather all the runes from the scouted rules to be consistent with the function scout.
-    val allRunesS = PredictorEvaluator.getAllRunes(identifyingRunesS, rulesS, Vector.empty, None)
+//    // We gather all the runes from the scouted rules to be consistent with the function scout.
+//    val allRunesS = PredictorEvaluator.getAllRunes(identifyingRunesS, rulesS, Vector.empty, None)
+//
+//    val knowableRunesFromAbove = Set[IRuneS]()
+//
+//    val ruleBuilder = ScoutRuleBuilder()
+//    rulesS.foreach(ruleBuilder.translateRule( _))
 
-    val knowableRunesFromAbove = Set[IRuneS]()
+//    val (tentativeRuneToCanonicalRune, world) =
+//      Optimizer.optimize(
+//        ruleBuilder.builder,
+//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+//
+//    val Conclusions(knowableValueRunesS, predictedTypeByRune) =
+//      PredictorEvaluator.solve(
+//        evalRange(file, range),
+//        ruleBuilder.runeSToTentativeRune,
+//        tentativeRuneToCanonicalRune,
+//        ruleBuilder.tentativeRuneToType,
+//        world)
+//    val localRunesS = allRunesS
+//    val isTemplate = knowableValueRunesS != allRunesS
 
-    val ruleBuilder = ScoutRuleBuilder()
-    rulesS.foreach(ruleBuilder.translateRule(knowableRunesFromAbove, _))
-
-    val (tentativeRuneToCanonicalRune, world) =
-      Optimizer.optimize(
-        ruleBuilder.builder,
-        (inputRule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]) => TemplarPuzzler.apply(inputRule))
-
-    val Conclusions(knowableValueRunesS, predictedTypeByRune) =
-      PredictorEvaluator.solve(
-        evalRange(file, range),
-        ruleBuilder.runeSToTentativeRune,
-        tentativeRuneToCanonicalRune,
-        ruleBuilder.tentativeRuneToType,
-        world)
-    val localRunesS = allRunesS
-    val isTemplate = knowableValueRunesS != allRunesS
-
-    val membersS =
-      members.zip(memberRunes).flatMap({
-        case (StructMemberP(range, NameP(_, name), variability, _), memberRune) => {
-          Vector(StructMemberS(Scout.evalRange(structEnv.file, range), name, variability, memberRune))
-        }
-        case (StructMethodP(_), memberRune) => {
-          // Implement struct methods one day
-          Vector.empty
-        }
-      })
-
-    val maybePredictedType =
-      if (isTemplate) {
-        if ((identifyingRunesS.toSet -- predictedTypeByRune.keySet).isEmpty) {
-          Some(TemplateTypeSR(identifyingRunesS.map(predictedTypeByRune), KindTypeSR))
-        } else {
-          None
-        }
-      } else {
-        Some(KindTypeSR)
-      }
+//    val maybePredictedType =
+//      if (isTemplate) {
+//        if ((identifyingRunesS.toSet -- predictedTypeByRune.keySet).isEmpty) {
+//          Some(TemplateTypeSR(identifyingRunesS.map(predictedTypeByRune), KindTypeSR))
+//        } else {
+//          None
+//        }
+//      } else {
+//        Some(KindTypeSR)
+//      }
 
     val weakable = attributesP.exists({ case w @ WeakableP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableP(_) => false case _ => true}))
 
-    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
+//    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
     StructS(
       Scout.evalRange(file, range),
       structName,
       attrsS,
       weakable,
+      identifyingRunesS,
       mutabilityRuneS,
       predictedMutability,
-      knowableValueRunesS,
-      identifyingRunesS,
-      localRunesS,
-      maybePredictedType,
-      isTemplate,
-      world.rules,
-      runeSToCanonicalRune,
+//      knowableValueRunesS,
+//      identifyingRunesS,
+//      localRunesS,
+//      maybePredictedType,
+//      isTemplate,
+      ruleBuilder.toArray,
+//      runeSToCanonicalRune,
       membersS)
   }
 
@@ -365,72 +368,67 @@ object Scout {
 
     val interfaceRangeS = Scout.evalRange(file, range)
 
-    val identifyingRunes: Vector[IRuneS] =
+    val lidb = new LocationInDenizenBuilder(Vector())
+
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+
+    val explicitIdentifyingRunes: Vector[IRuneS] =
       maybeIdentifyingRunes
         .toVector.flatMap(_.runes).map(_.name.str)
         .map(identifyingRuneName => CodeRuneS(identifyingRuneName))
-    val runesFromRules =
-      RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(rulesP)
-        .map(identifyingRuneName => CodeRuneS(identifyingRuneName))
-    val userDeclaredRunes = (identifyingRunes ++ runesFromRules).toSet
-    val interfaceEnv = Environment(file, None, interfaceFullName, userDeclaredRunes.toSet)
+//    val runesFromRules =
+//      RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(rulesP)
+//        .map(identifyingRuneName => CodeRuneS(identifyingRuneName))
+//    val userDeclaredRunes = (identifyingRunes ++ runesFromRules).toSet
+    val interfaceEnv = Environment(file, None, interfaceFullName, explicitIdentifyingRunes.toSet)
 
-    val ruleState = RuleStateBox(RuleState(interfaceEnv.name, 0))
+    RuleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, rulesP)
 
-    val rulesWithoutMutabilityS = RuleScout.translateRulexes(interfaceEnv, ruleState, interfaceEnv.allUserDeclaredRunes(), rulesP)
-
-    val mutabilityST =
-      RuleScout.translateTemplex(interfaceEnv, ruleState, interfaceEnv.allUserDeclaredRunes(), mutabilityPT)
-    val predictedMutability =
+    val maybePredictedMutability =
       mutabilityPT match {
         case MutabilityPT(_, mutability) => Some(mutability)
         case _ => None
       }
 
-    val mutabilityRune = ruleState.newImplicitRune()
-    val rulesS =
-      rulesWithoutMutabilityS :+
-      EqualsSR(
-        interfaceRangeS,
-        RuneSR(interfaceRangeS, mutabilityRune),
-        mutabilityST)
+    val mutabilityRuneS = TemplexScout.translateTemplex(interfaceEnv, lidb.child(), ruleBuilder, mutabilityPT)
 
-    // We gather all the runes from the scouted rules to be consistent with the function scout.
-    val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
+//    // We gather all the runes from the scouted rules to be consistent with the function scout.
+//    val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
 
 
-    val knowableRunesFromAbove = Set[IRuneS]()
+//    val knowableRunesFromAbove = Set[IRuneS]()
 
-    val ruleBuilder = ScoutRuleBuilder()
-    rulesS.foreach(ruleBuilder.translateRule(knowableRunesFromAbove, _))
+//    val ruleBuilder = ScoutRuleBuilder()
+//    rulesS.foreach(ruleBuilder.translateRule( _))
 
-    val (tentativeRuneToCanonicalRune, world) =
-      Optimizer.optimize(
-        ruleBuilder.builder,
-        (inputRule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]) => TemplarPuzzler.apply(inputRule))
+//    val (tentativeRuneToCanonicalRune, world) =
+//      Optimizer.optimize(
+//        ruleBuilder.builder,
+//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
 
-    val Conclusions(knowableValueRunes, predictedTypeByRune) =
-      PredictorEvaluator.solve(Scout.evalRange(file, range), ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
-    val localRunes = allRunes
-    val isTemplate = knowableValueRunes != allRunes.toSet
+//    val Conclusions(knowableValueRunes, predictedTypeByRune) =
+//      PredictorEvaluator.solve(Scout.evalRange(file, range), ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
+//    val localRunes = allRunes
+//    val isTemplate = knowableValueRunes != allRunes.toSet
 
-    val maybePredictedType =
-      if (isTemplate) {
-        if ((identifyingRunes.toSet -- predictedTypeByRune.keySet).isEmpty) {
-          Some(TemplateTypeSR(identifyingRunes.map(predictedTypeByRune), KindTypeSR))
-        } else {
-          None
-        }
-      } else {
-        Some(KindTypeSR)
-      }
+//    val maybePredictedType =
+//      if (isTemplate) {
+//        if ((identifyingRunes.toSet -- predictedTypeByRune.keySet).isEmpty) {
+//          Some(TemplateTypeSR(identifyingRunes.map(predictedTypeByRune), KindTypeSR))
+//        } else {
+//          None
+//        }
+//      } else {
+//        Some(KindTypeSR)
+//      }
 
     val internalMethodsS = internalMethodsP.map(FunctionScout.scoutInterfaceMember(interfaceEnv, _))
 
     val weakable = attributesP.exists({ case w @ WeakableP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableP(_) => false case _ => true}))
 
-    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
+//    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
     val interfaceS =
       InterfaceS(
@@ -438,15 +436,15 @@ object Scout {
         interfaceFullName,
         attrsS,
         weakable,
-        mutabilityRune,
-        predictedMutability,
-        knowableValueRunes,
-        identifyingRunes,
-        localRunes,
-        maybePredictedType,
-        isTemplate,
-        world.rules,
-        runeSToCanonicalRune,
+//        knowableValueRunes,
+        explicitIdentifyingRunes,
+//        localRunes,
+//        maybePredictedType,
+        mutabilityRuneS,
+        maybePredictedMutability,
+//        isTemplate,
+        ruleBuilder.toArray,
+//        runeSToCanonicalRune,
         internalMethodsS)
 
     interfaceS

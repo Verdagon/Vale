@@ -19,14 +19,14 @@ object RuleFlattener {
 //    runeToCanonicalRune: Map[TentativeRune, Int],
 //    tentativeRuneToType: mutable.HashMap[TentativeRune, ITypeSR],
 //    world: World[Int, RangeS, ILiteralSR, ILookupSR]):
-////    knowableRunesFromAbove: Set[IRuneS],
+////
 ////    rulesS: Vector[IRulexSR]):
 //  (Map[IRuneS, Int], Map[IRuneS, ITypeSR], Map[IRuneS, Boolean], Int, Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]]) = {
 //
 //
 //  }
 
-//  def flattenAndOptimizeRules(knowableRunesFromAbove: Set[IRuneS], rulesS: Vector[IRulexSR]):
+//  def flattenAndOptimizeRules( rulesS: Vector[IRulexSR]):
 //  (
 //    mutable.HashMap[IRuneS, TentativeRune],
 //      Map[TentativeRune, Int],

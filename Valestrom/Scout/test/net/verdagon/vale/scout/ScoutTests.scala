@@ -3,11 +3,11 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vfail, vimpl, vwat}
+import net.verdagon.vale.{Collector, Err, FileCoordinate, Ok, vassert, vfail, vimpl, vwat}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import org.scalatest.{FunSuite, Matchers}
 
-class ScoutTests extends FunSuite with Matchers {
+class ScoutTests extends FunSuite with Matchers with Collector {
   private def compile(code: String): ProgramS = {
     Parser.runParser(code) match {
       case ParseFailure(err) => fail(err.toString)
@@ -52,31 +52,31 @@ class ScoutTests extends FunSuite with Matchers {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(FunctionCallSE(_, OutsideLoadSE(_, "+", _, _), _))) =>
+      case BlockSE(_, _, Vector(FunctionCallSE(_, OutsideLoadSE(_, _, "+", _, _), _))) =>
     }
   }
 
   test("Struct") {
-    vimpl()
-//    val program1 = compile("struct Moo { x int; }")
-//    val imoo = program1.lookupStruct("Moo")
-//
-//    val memberRune = MemberRuneS(0)
-//    imoo.rules match {
-//      case Vector(
-//      EqualsSR(_, TypedSR(_, memberRune, CoordTypeSR), NameSR(_, CodeTypeNameS("int"))),
-//      EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
-//    }
-//    imoo.members match {
-//      case Vector(StructMemberS(_, "x", FinalP, memberRune)) =>
-//    }
+    val program1 = compile("struct Moo { x int; }")
+    val imoo = program1.lookupStruct("Moo")
+
+    imoo.rules shouldHave {
+      case ValueLeafSR(_, r, MutabilityLiteralSR(MutableP)) => vassert(r == imoo.mutabilityRune)
+    }
+    imoo.rules shouldHave {
+      case ValueLeafSR(_, m, NameSR(CodeTypeNameS("int"))) => vassert(m == imoo.members(0).typeRune)
+    }
+    imoo.members match {
+      case Vector(StructMemberS(_, "x", FinalP, _)) =>
+    }
   }
 
   test("Lambda") {
     val program1 = compile("fn main() int export { {_ + _}!(4, 6) }")
 
     val CodeBodyS(BodySE(_, _, BlockSE(_, _, Vector(expr)))) = program1.lookupFunction("main").body
-    val FunctionCallSE(_, OwnershippedSE(_,FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _, _, _, _, _)), LendConstraintP(Some(ReadwriteP))), _) = expr
+    val FunctionCallSE(_, OwnershippedSE(_,FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _)), LendConstraintP(Some(ReadwriteP))), _) = expr
+    // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.identifyingRunes match {
       case Vector(MagicParamRuneS(mp1), MagicParamRuneS(mp2)) => {
         vassert(mp1 != mp2)
@@ -85,18 +85,17 @@ class ScoutTests extends FunSuite with Matchers {
   }
 
   test("Interface") {
-    vimpl()
-//    val program1 = compile("interface IMoo { fn blork(virtual this &IMoo, a bool)void; }")
-//    val imoo = program1.lookupInterface("IMoo")
-//
+    val program1 = compile("interface IMoo { fn blork(virtual this &IMoo, a bool)void; }")
+    val imoo = program1.lookupInterface("IMoo")
+
 //    imoo.rules match {
-//      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_, _)), MutabilitySR(_, MutableP))) =>
+//      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_)), MutabilitySR(_, MutableP))) =>
 //    }
-//
-//    val blork = imoo.internalMethods.head
-//    blork.name match {
-//      case FunctionNameS("blork", _) =>
-//    }
+
+    val blork = imoo.internalMethods.head
+    blork.name match {
+      case FunctionNameS("blork", _) =>
+    }
 //
 //    val (actualThisParamRune, actualBoolParamRune, retRune) =
 //      blork.templateRules match {
@@ -146,34 +145,32 @@ class ScoutTests extends FunSuite with Matchers {
 //    blork.identifyingRunes shouldEqual Vector.empty
   }
 
+  test("Generic interface") {
+    val program1 = compile("interface IMoo<T> { fn blork(virtual this &IMoo, a T)void; }")
+    val imoo = program1.lookupInterface("IMoo")
+
+    //    imoo.rules match {
+    //      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_)), MutabilitySR(_, MutableP))) =>
+    //    }
+
+    val blork = imoo.internalMethods.head
+    blork.name match {
+      case FunctionNameS("blork", _) =>
+    }
+
+    vassert(imoo.userSpecifiedIdentifyingRunes.contains(CodeRuneS("T")))
+    vassert(!blork.identifyingRunes.contains(CodeRuneS("T")))
+  }
+
   test("Impl") {
-    vimpl()
-//    val program1 = compile("impl IMoo for Moo;")
-//    val impl = program1.impls.head
-//    val structRune =
-//      impl.structKindRune match {
-//        case ir0@ImplicitRuneS(_, 0) => ir0
-//      }
-//    val interfaceRune =
-//      impl.interfaceKindRune match {
-//        case ir0@ImplicitRuneS(_, 1) => ir0
-//      }
-//    impl.rulesFromStructDirection match {
-//      case Vector(
-//      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo"))),
-//      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo")))) => {
-//        vassert(a == structRune)
-//        vassert(b == interfaceRune)
-//      }
-//    }
-//    impl.rulesFromInterfaceDirection match {
-//      case Vector(
-//      EqualsSR(_, TypedSR(_, b, KindTypeSR), NameSR(_, CodeTypeNameS("IMoo"))),
-//      EqualsSR(_, TypedSR(_, a, KindTypeSR), NameSR(_, CodeTypeNameS("Moo")))) => {
-//        vassert(a == structRune)
-//        vassert(b == interfaceRune)
-//      }
-//    }
+    val program1 = compile("impl IMoo for Moo;")
+    val impl = program1.impls.head
+    impl.rules shouldHave {
+      case ValueLeafSR(_, r, NameSR(CodeTypeNameS("Moo"))) => vassert(r == impl.structKindRune)
+    }
+    impl.rules shouldHave {
+      case ValueLeafSR(_, r, NameSR(CodeTypeNameS("IMoo"))) => vassert(r == impl.interfaceKindRune)
+    }
   }
 
   test("Method call") {
@@ -182,7 +179,7 @@ class ScoutTests extends FunSuite with Matchers {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, "shout", _, _), Vector(LocalLoadSE(_, name, LendConstraintP(Some(ReadonlyP))))))) => {
+      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, "shout", _, _), Vector(LocalLoadSE(_, name, LendConstraintP(Some(ReadonlyP))))))) => {
         name match {
           case CodeVarNameS("x") =>
         }
@@ -196,7 +193,7 @@ class ScoutTests extends FunSuite with Matchers {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, "shout", _, _),Vector(LocalLoadSE(_,CodeVarNameS("x"), UseP))))) =>
+      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, "shout", _, _),Vector(LocalLoadSE(_,CodeVarNameS("x"), UseP))))) =>
     }
   }
 
@@ -220,46 +217,41 @@ class ScoutTests extends FunSuite with Matchers {
       case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, MagicParamRuneS(_), None))) =>
     }
     lambda2.params match {
-      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS("a"))), None, ImplicitRuneS(_, _), None))) =>
+      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS("a"))), None, ImplicitRuneS(_), None))) =>
     }
   }
 
 
   test("Constructing members") {
-    vimpl()
-//    val program1 = compile(
-//      """fn MyStruct() {
-//        |  this.x = 4;
-//        |  this.y = true;
-//        |}
-//        |""".stripMargin)
-//    val main = program1.lookupFunction("MyStruct")
-//
-//    val CodeBodyS(BodySE(_, _, block)) = main.body
-//    block match {
-//      case BlockSE(_,
-//      Vector(
-//      LocalS(ConstructingMemberNameS("x"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed),
-//      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
-//      Vector(
-//      LetSE(_,
-//      _,
-//      _,
-//      _,
-//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
-//      ConstantIntSE(_, 4, _)),
-//      LetSE(_,
-//      _,
-//      _,
-//      _,
-//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
-//      ConstantBoolSE(_, true)),
-//      FunctionCallSE(_,
-//      OutsideLoadSE(_, "MyStruct", _, _),
-//      Vector(
-//      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
-//      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
-//    }
+    val program1 = compile(
+      """fn MyStruct() {
+        |  this.x = 4;
+        |  this.y = true;
+        |}
+        |""".stripMargin)
+    val main = program1.lookupFunction("MyStruct")
+
+    val CodeBodyS(BodySE(_, _, block)) = main.body
+    block match {
+      case BlockSE(_,
+      Vector(
+      LocalS(ConstructingMemberNameS("x"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed),
+      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
+      Vector(
+      LetSE(_,
+      _,
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
+      ConstantIntSE(_, 4, _)),
+      LetSE(_,
+      _,
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
+      ConstantBoolSE(_, true)),
+      FunctionCallSE(_,
+      OutsideLoadSE(_, _, "MyStruct", _, _),
+      Vector(
+      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
+      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
+    }
   }
 
   test("Forgetting set when changing") {
@@ -364,7 +356,7 @@ class ScoutTests extends FunSuite with Matchers {
       case BlockSE(
       _,Vector(),
       Vector(
-      DotSE(_,OutsideLoadSE(_,moo,None,LendConstraintP(None)),x,true))) =>
+      DotSE(_,OutsideLoadSE(_,_,"moo",None,LendConstraintP(None)),x,true))) =>
     }
 
   }
@@ -383,41 +375,39 @@ class ScoutTests extends FunSuite with Matchers {
       _,Vector(),
       Vector(
       OwnershippedSE(_,
-      DotSE(_,OutsideLoadSE(_,moo,None,LendConstraintP(None)),x,true),LendConstraintP(Some(ReadonlyP))))) =>
+      DotSE(_,OutsideLoadSE(_,_,"moo",None,LendConstraintP(None)),x,true),LendConstraintP(Some(ReadonlyP))))) =>
     }
 
   }
 
   test("Constructing members, borrowing another member") {
-    vimpl()
-//    val program1 = compile(
-//      """fn MyStruct() {
-//        |  this.x = 4;
-//        |  this.y = &this.x;
-//        |}
-//        |""".stripMargin)
-//    val main = program1.lookupFunction("MyStruct")
-//
-//    val CodeBodyS(BodySE(_, _, block)) = main.body
-//    block match {
-//      case BlockSE(_,
-//      Vector(
-//      LocalS(ConstructingMemberNameS("x"), Used, Used, NotUsed, NotUsed, NotUsed, NotUsed),
-//      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
-//      Vector(
-//      LetSE(_, _, _, _,
-//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
-//      ConstantIntSE(_, 4, _)),
-//      LetSE(_, _, _, _,
-//      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
-//      LocalLoadSE(_, ConstructingMemberNameS("x"), LendConstraintP(Some(ReadonlyP)))),
-//      FunctionCallSE(_,
-//      OutsideLoadSE(_, "MyStruct", _, _),
-//      Vector(
-//      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
-//      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
-//    }
+    val program1 = compile(
+      """fn MyStruct() {
+        |  this.x = 4;
+        |  this.y = &this.x;
+        |}
+        |""".stripMargin)
+    val main = program1.lookupFunction("MyStruct")
 
+    val CodeBodyS(BodySE(_, _, block)) = main.body
+    block match {
+      case BlockSE(_,
+      Vector(
+      LocalS(ConstructingMemberNameS("x"), Used, Used, NotUsed, NotUsed, NotUsed, NotUsed),
+      LocalS(ConstructingMemberNameS("y"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
+      Vector(
+      LetSE(_, _,
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("x"))), None, _, None),
+      ConstantIntSE(_, 4, _)),
+      LetSE(_, _,
+      AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
+      LocalLoadSE(_, ConstructingMemberNameS("x"), LendConstraintP(Some(ReadonlyP)))),
+      FunctionCallSE(_,
+      OutsideLoadSE(_, _, "MyStruct", _, _),
+      Vector(
+      LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
+      LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
+    }
   }
 
   test("this isnt special if was explicit param") {
@@ -435,7 +425,7 @@ class ScoutTests extends FunSuite with Matchers {
       Vector(LocalS(CodeVarNameS("this"), Used, NotUsed, NotUsed, NotUsed, NotUsed, NotUsed)),
       Vector(
       FunctionCallSE(_,
-      OutsideLoadSE(_, "println", _, _),
+      OutsideLoadSE(_, _, "println", _, _),
       Vector(DotSE(_, LocalLoadSE(_, CodeVarNameS("this"), LendConstraintP(None)), "x", true))),
       VoidSE(_))))) =>
     }

@@ -6,7 +6,6 @@ import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP}
 import net.verdagon.vale.scout.predictor.Conclusions
 import net.verdagon.vale.scout.rules.{EqualsSR, _}
 import net.verdagon.vale.scout.predictor.PredictorEvaluator
-import net.verdagon.vale.solver.{IRulexAR, Optimizer, TemplarPuzzler}
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -16,20 +15,22 @@ class RunePredictorTests extends FunSuite with Matchers {
   val tz = RangeS.testZero
 
   test("Predict doesnt crash for simple templex") {
-
-    val knowableRunesFromAbove = Set[IRuneS]()
-
-    val ruleBuilder = ScoutRuleBuilder()
-    ruleBuilder.translateRule(knowableRunesFromAbove, NameSR(tz, CodeTypeNameS("int")))
-
-    val (tentativeRuneToCanonicalRune, world) =
-      Optimizer.optimize(
-        ruleBuilder.builder,
-        (inputRule: IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]) => TemplarPuzzler.apply(inputRule))
-
-    val conclusions =
-      PredictorEvaluator.solve(tz, ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
-    conclusions shouldEqual Conclusions(Set(), Map())
+    vimpl()
+//    val knowableRunesFromAbove = Set[IRuneS]()
+//
+////    val rules =
+////      LookupAR[IRuneS, RangeS, ILiteralSR, ILookupSR](tz,
+////        ImplicitRuneS(FunctionNameS("f", CodeLocationS.testZero), 0),
+////        NameLookupSR(CodeTypeNameS("int")))
+//
+//    val (tentativeRuneToCanonicalRune, world) =
+//      Optimizer.optimize(
+//        ruleBuilder.builder,
+//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+//
+//    val conclusions =
+//      PredictorEvaluator.solve(tz, ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
+//    conclusions shouldEqual Conclusions(Set(), Map())
   }
 
   test("Can know rune from simple equals") {

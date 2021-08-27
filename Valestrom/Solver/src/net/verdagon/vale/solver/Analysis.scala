@@ -1,9 +1,7 @@
 package net.verdagon.vale.solver
 
 //start here, lets see if we can get rid of rules?
-case class World[RuneID, RuleID, Literal, Lookup](
-  rules: Array[IRulexAR[RuneID, RuleID, Literal, Lookup]],
-
+case class Analysis(
   // For each rule, what are all the runes involved in it
   ruleToRunes: Array[Array[Int]],
 
@@ -27,6 +25,9 @@ case class World[RuneID, RuleID, Literal, Lookup](
   // For every rune, this is which puzzles it participates in.
   runeToPuzzles: Array[Array[Int]],
 
-  // For every rune, which other rune might describe the interface that it must
-  // inherit from.
-  kindRuneToBoundingInterfaceRune: Array[Int])
+  // Rules that we don't need to execute (e.g. Equals rules)
+  noopRules: Array[Int])
+//
+//  // For every rune, which other rune might describe the interface that it must
+//  // inherit from.
+//  kindRuneToBoundingInterfaceRune: Array[Int])

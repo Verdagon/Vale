@@ -135,6 +135,8 @@ case class FunctionT(
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
 case class LocationInFunctionEnvironment(path: Vector[Int]) {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+
   def +(subLocation: Int): LocationInFunctionEnvironment = {
     LocationInFunctionEnvironment(path :+ subLocation)
   }
