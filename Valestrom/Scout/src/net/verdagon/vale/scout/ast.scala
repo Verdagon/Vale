@@ -101,7 +101,7 @@ case class StructS(
     //   struct ListNode<T> imm rules(T Ref) {
     //     tail ListNode<T>;
     //   }
-    maybePredictedMutability: Option[MutabilityP],
+//    maybePredictedMutability: Option[MutabilityP],
 //    knowableRunes: Set[IRuneS],
 //    identifyingRunes: Vector[IRuneS],
 //    localRunes: Set[IRuneS],
@@ -134,7 +134,7 @@ case class InterfaceS(
   //   struct ListNode<T> imm rules(T Ref) {
   //     tail ListNode<T>;
   //   }
-  maybePredictedMutability: Option[MutabilityP],
+//  maybePredictedMutability: Option[MutabilityP],
 //  knowableRunes: Set[IRuneS],
 //  identifyingRunes: Vector[IRuneS],
 //  localRunes: Set[IRuneS],
@@ -317,13 +317,6 @@ case class FunctionS(
 //      maybeRetCoordRune.toVector
 //    ).distinct
 //  }
-}
-
-case class BFunctionS(
-  origin: FunctionS,
-  name: String,
-  body: BodySE) {
-  override def hashCode(): Int = vcurious()
 }
 
 // A Denizen is a thing at the top level of a file, like structs, functions, impls, exports, etc.
