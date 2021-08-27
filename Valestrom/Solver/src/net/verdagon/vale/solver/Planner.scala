@@ -1,13 +1,172 @@
 package net.verdagon.vale.solver
 
-import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl}
+import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl, vpass}
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 object Planner {
+  def plan[Rule, RuneID, RuleID, Literal, Lookup](
+    rules: Iterable[Rule],
+    ruleToRunes: Rule => Array[RuneID],
+    ruleToPuzzles: Rule => Array[Array[RuneID]],
+    // Sometimes, we already know a rune up-front, such as if we inherit it from a containing interface,
+    // or if we're finally calling a generic function.
+    initiallyKnownRunes: Set[RuneID],
+    isEquals: PartialFunction[Rule, (RuneID, RuneID)]):
+  (Int, Map[RuneID, Int], Array[Int], Array[Boolean]) = {
+    val allUserRunes = rules.map(ruleToRunes).flatten.toSet.toVector
+    // allNonEqualsRuleMaybes is an Array[Option[Rule]], it has None where there used to be Equals
+    // rules. This is so the indexes still line up, but we dont consider them in the planning.
+    val equalsRules = rules.collect(isEquals)
+
+    val (numCanonicalRunes, userRuneToCanonicalRune) = canonicalizeRunes[RuneID](allUserRunes, equalsRules)
+
+    val world =
+      analyze(
+        rules,
+        (rule: Rule) => !isEquals.isDefinedAt(rule),
+        numCanonicalRunes,
+        (rule: Rule) => {
+          vpass()
+          ruleToRunes(rule).map(userRuneToCanonicalRune).distinct
+        },
+        (rule: Rule) => ruleToPuzzles(rule).map(_.map(userRuneToCanonicalRune).distinct))
+
+    val initiallyKnownCanonicalRunes = mutable.Set[Int]()
+    initiallyKnownRunes.foreach(knownRune => {
+      initiallyKnownCanonicalRunes += userRuneToCanonicalRune(knownRune)
+    })
+
+    val plannerState = makePlannerState(world)
+
+    val (ruleExecutionOrder, canonicalRuneToIsSolved) =
+      solve(plannerState, initiallyKnownCanonicalRunes)
+
+    (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved)
+  }
+
+  private[solver] def canonicalizeRunes[RuneID](allUserRunes: Iterable[RuneID], equalRunes: Iterable[(RuneID, RuneID)]):
+  (Int, Map[RuneID, Int]) = {
+    val userRuneToOrder = mutable.HashMap[RuneID, Int]()
+    allUserRunes.zipWithIndex.foreach({ case (userRune, index) =>
+      userRuneToOrder.put(userRune, index)
+    })
+
+    val userRuneToEarlierEqualUserRune = mutable.HashMap[RuneID, RuneID]()
+    equalRunes.foreach({ case (leftRune, rightRune) =>
+      if (leftRune != rightRune) {
+        if (userRuneToOrder(leftRune) < userRuneToOrder(rightRune)) {
+          userRuneToEarlierEqualUserRune.put(rightRune, leftRune)
+        } else {
+          userRuneToEarlierEqualUserRune.put(leftRune, rightRune)
+        }
+      }
+    })
+
+    val userRuneToEarliestEqualUserRune = mutable.HashMap[RuneID, RuneID]()
+    // The below two are inverses of each other
+    val earliestEqualUserRuneToIndex = mutable.HashMap[RuneID, Int]()
+    val earliestEqualUserRunes = mutable.ArrayBuffer[RuneID]()
+
+    // This function will recursively dive through the userRuneToEarlierEqualUserRune map to,
+    // for a given rune, find an equal earlier rune, and find an equal earlier rune to *that*,
+    // and so on, until it finds the earliest one.
+    // The AndUpdate is because this updates the userRuneToEarliestEqualUserRune map.
+    def getAndUpdateEarliestEqualUserRune(rune: RuneID): RuneID = {
+      userRuneToEarliestEqualUserRune.get(rune) match {
+        case Some(earliest) => earliest
+        case None => {
+          val earliest =
+            userRuneToEarlierEqualUserRune.get(rune) match {
+              case None => {
+                // We've never seen this before, and theres nothing earlier equal to it.
+                // It's an earliest! Let's add it to the list.
+                val earliestRuneIndex = earliestEqualUserRunes.size
+                earliestEqualUserRunes += rune
+                earliestEqualUserRuneToIndex.put(rune, earliestRuneIndex)
+                rune
+              }
+              case Some(equalPreexistingRune) => getAndUpdateEarliestEqualUserRune(equalPreexistingRune)
+            }
+          userRuneToEarliestEqualUserRune.put(rune, earliest)
+          earliest
+        }
+      }
+    }
+    allUserRunes.foreach(getAndUpdateEarliestEqualUserRune)
+
+    (earliestEqualUserRuneToIndex.size, userRuneToEarliestEqualUserRune.mapValues(earliestEqualUserRuneToIndex).toMap)
+  }
+
+  private[solver] def analyze[Rule, RuneID, RuleID, Literal, Lookup](
+    rules: Iterable[Rule],
+    considerRule: Rule => Boolean,
+    numCanonicalRunes: Int,
+    getRuleRunes: Rule => Array[Int],
+    getRulePuzzles: Rule => Array[Array[Int]]):
+  Analysis = {
+    val noopRules =
+      rules.zipWithIndex.filter({ case (rule, _) => !considerRule(rule) }).map(_._2).toArray
+
+    val ruleIndexToPuzzles =
+      rules.map(rule => {
+        if (considerRule(rule)) {
+          // Skip this rule (e.g. it's an Equals rule)
+          getRulePuzzles(rule)
+        } else {
+          Array[Array[Int]]()
+        }
+      })
+
+    // We cant just merge all the puzzles' runes because some runes are never part of a puzzle, for example
+    // in literal rules or lookup rules, the result rune is never part of a puzzle.
+    val ruleToRunes =
+      rules.map(rule => {
+        if (considerRule(rule)) {
+          // Skip this rule (e.g. it's an Equals rule)
+          getRuleRunes(rule)
+        } else {
+          Array[Int]()
+        }
+      })
+
+    val puzzlesToRuleAndUnknownRunes = ArrayBuffer[(Int, Array[Int])]()
+    val ruleToPuzzles = rules.map(_ => ArrayBuffer[Int]()).toArray
+    val runeToPuzzles = (0 until numCanonicalRunes).map(_ => ArrayBuffer[Int]()).toArray
+    ruleIndexToPuzzles.zipWithIndex.foreach({ case (puzzlesForRule, ruleIndex) =>
+      puzzlesForRule.foreach(puzzleUnknownRunes => {
+        val puzzle = puzzlesToRuleAndUnknownRunes.size
+
+        val thing = (ruleIndex, puzzleUnknownRunes)
+        puzzlesToRuleAndUnknownRunes += thing
+        ruleToPuzzles(ruleIndex) += puzzle
+        puzzleUnknownRunes.foreach(unknownRune => {
+          runeToPuzzles(unknownRune) += puzzle
+        })
+      })
+    })
+
+    val puzzleToRule = puzzlesToRuleAndUnknownRunes.map(_._1)
+    val puzzleToUnknownRunes = puzzlesToRuleAndUnknownRunes.map(_._2)
+
+    puzzleToUnknownRunes.foreach(unknownRunes => {
+      vassert(unknownRunes.length == unknownRunes.distinct.length)
+    })
+
+    Analysis(
+      ruleToRunes.toArray,
+      puzzleToRule.toArray,
+      puzzleToUnknownRunes.map(_.clone()).toArray,
+      ruleToPuzzles.map(_.toArray),
+      runeToPuzzles.map(_.toArray),
+      noopRules)
+  }
+
+
   private[solver] def makePlannerState[RuleID, Literal, Lookup](
-    world: World[Int, RuleID, Literal, Lookup]):
-  PlannerState[RuleID, Literal, Lookup] = {
+    world: Analysis):
+  PlannerState = {
     val numPuzzles = world.puzzleToRunes.length
 
     val puzzleToIndexInNumUnknowns: Array[Int] = world.puzzleToRule.indices.map(_ => -1).toArray
@@ -36,30 +195,35 @@ object Planner {
     val runeToIsSolved = world.runeToPuzzles.map(_ => false)
 
     val puzzleToSatisfied = world.puzzleToRule.indices.map(_ => false).toArray
-    PlannerState[RuleID, Literal, Lookup](
-      world,
-      puzzleToSatisfied.clone(),
-      world.puzzleToRunes.map(_.length),
-      world.puzzleToRunes.map(_.clone()),
-      puzzleToIndexInNumUnknowns,
-      numUnknownsToNumPuzzles,
-      numUnknownsToPuzzles,
-      runeToIsSolved.clone())
+    val state =
+      PlannerState(
+        world,
+        puzzleToSatisfied.clone(),
+        world.puzzleToRunes.map(_.length),
+        world.puzzleToRunes.map(_.clone()),
+        puzzleToIndexInNumUnknowns,
+        numUnknownsToNumPuzzles,
+        numUnknownsToPuzzles,
+        runeToIsSolved.clone())
+    world.noopRules.foreach(noopRule => {
+      state.markRuleSolved(noopRule)
+    })
+    state
   }
 
-  def solveAndReorder[RuneID, RuleID, Literal, Lookup](
-    world: World[Int, RuleID, Literal, Lookup],
-    suppliedCanonicalRunes: Iterable[Int]):
-  (Array[IRulexAR[Int, RuleID, Literal, Lookup]], Array[Boolean]) = {
-    val plannerState = makePlannerState(world)
-    suppliedCanonicalRunes.foreach(suppliedCanonicalRune => plannerState.markRuneKnown(suppliedCanonicalRune))
-    val (ruleExecutionOrder, canonicalRuneToIsSolved) = solve(plannerState)
-    val orderedRules = ruleExecutionOrder.map(ruleIndex => world.rules(ruleIndex))
-    (orderedRules, canonicalRuneToIsSolved)
-  }
+//  def solveAndReorder[RuneID, RuleID, Literal, Lookup](
+//    world: Analysis,
+//    suppliedCanonicalRunes: Iterable[Int]):
+//  (Array[Int], Array[Boolean]) = {
+//    val plannerState = makePlannerState(world)
+//    suppliedCanonicalRunes.foreach(suppliedCanonicalRune => plannerState.markRuneKnown(suppliedCanonicalRune))
+//    val (ruleExecutionOrder, canonicalRuneToIsSolved) = solve(plannerState)
+//    (ruleExecutionOrder, canonicalRuneToIsSolved)
+//  }
 
-  def solve[RuleID, Literal, Lookup](
-    originalPlannerState: PlannerState[RuleID, Literal, Lookup]
+  private[solver] def solve(
+    originalPlannerState: PlannerState,
+    initiallyKnownCanonicalRunes: Iterable[Int]
   ): (Array[Int], Array[Boolean]) = {
     val world = originalPlannerState.world
     val plannerState = originalPlannerState.deepClone()
@@ -67,7 +231,9 @@ object Planner {
     plannerState.sanityCheck()
 
     var numRulesExecuted = 0
-    val orderedRules: Array[Int] = plannerState.world.rules.map(_ => -1)
+    val orderedRules: Array[Int] = plannerState.world.ruleToRunes.map(_ => -1)
+
+    initiallyKnownCanonicalRunes.foreach(rune => plannerState.markRuneKnown(rune))
 
     while (plannerState.numUnknownsToNumPuzzles(0) > 0) {
       vassert(plannerState.numUnknownsToPuzzles(0)(0) >= 0)
@@ -93,13 +259,10 @@ object Planner {
       })
 
       ruleRunes.foreach({ case newlySolvedRune =>
-        if (!plannerState.runeToIsSolved(newlySolvedRune)) {
-          plannerState.runeToIsSolved(newlySolvedRune) = true
-          plannerState.markRuneKnown(newlySolvedRune)
-        }
+        plannerState.markRuneKnown(newlySolvedRune)
       })
 
-      markRuleSolved(plannerState, solvingRule)
+      plannerState.markRuleSolved(solvingRule)
 
       plannerState.sanityCheck()
     }
@@ -126,43 +289,10 @@ object Planner {
 //      IncompletePlan(runeToIsSolved, orderedRules.slice(0, numRulesExecuted))
 //    }
   }
-
-  def markRuleSolved[RuleID, Literal, Lookup](
-    plannerState: PlannerState[RuleID, Literal, Lookup],
-    rule: Int) = {
-    val puzzlesForRule = plannerState.world.ruleToPuzzles(rule)
-    puzzlesForRule.foreach(puzzle => {
-      val numUnknowns = plannerState.puzzleToNumUnknownRunes(puzzle)
-      vassert(numUnknowns == 0)
-      plannerState.puzzleToNumUnknownRunes(puzzle) = -1
-      val indexInNumUnknowns = plannerState.puzzleToIndexInNumUnknowns(puzzle)
-
-      val oldNumPuzzlesInNumUnknownsBucket = plannerState.numUnknownsToNumPuzzles(0)
-      val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-
-      // Swap the last one into this spot
-      val newPuzzleForThisSpot = plannerState.numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
-      plannerState.numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
-
-      // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
-      // where it is in the list.
-      plannerState.puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
-
-      // Mark our position as -1
-      plannerState.puzzleToIndexInNumUnknowns(puzzle) = -1
-
-      // Clear the last slot to -1
-      plannerState.numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
-
-      // Reduce the number of puzzles in that bucket by 1
-      val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-      plannerState.numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
-    })
-  }
 }
 
-case class PlannerState[RuleID, Literal, Lookup](
-  world: World[Int, RuleID, Literal, Lookup], // immutable
+case class PlannerState(
+  world: Analysis, // immutable
 
   // For each rule, whether it's been actually executed or not
   puzzleToExecuted: Array[Boolean],
@@ -191,7 +321,7 @@ case class PlannerState[RuleID, Literal, Lookup](
 ) {
   override def hashCode(): Int = vfail() // is mutable, should never be hashed
 
-  def deepClone(): PlannerState[RuleID, Literal, Lookup] = {
+  def deepClone(): PlannerState = {
     PlannerState(
       world,
       puzzleToExecuted.clone(),
@@ -203,7 +333,12 @@ case class PlannerState[RuleID, Literal, Lookup](
       runeToIsSolved.clone())
   }
 
-  def markRuneKnown(newlySolvedRune: Int) = {
+  def markRuneKnown(newlySolvedRune: Int): Unit = {
+    if (runeToIsSolved(newlySolvedRune)) {
+      return
+    }
+    runeToIsSolved(newlySolvedRune) = true
+
     val puzzlesWithNewlySolvedRune = world.runeToPuzzles(newlySolvedRune)
 
     puzzlesWithNewlySolvedRune.foreach(puzzle => {
@@ -258,6 +393,37 @@ case class PlannerState[RuleID, Literal, Lookup](
       newNumUnknownsBucket(indexOfPuzzleInNewNumUnknownsBucket) = puzzle
 
       puzzleToIndexInNumUnknowns(puzzle) = indexOfPuzzleInNewNumUnknownsBucket
+    })
+  }
+
+  def markRuleSolved(rule: Int) = {
+    val puzzlesForRule = world.ruleToPuzzles(rule)
+    puzzlesForRule.foreach(puzzle => {
+      val numUnknowns = puzzleToNumUnknownRunes(puzzle)
+      vassert(numUnknowns == 0)
+      puzzleToNumUnknownRunes(puzzle) = -1
+      val indexInNumUnknowns = puzzleToIndexInNumUnknowns(puzzle)
+
+      val oldNumPuzzlesInNumUnknownsBucket = numUnknownsToNumPuzzles(0)
+      val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+
+      // Swap the last one into this spot
+      val newPuzzleForThisSpot = numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
+      numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
+
+      // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
+      // where it is in the list.
+      puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
+
+      // Mark our position as -1
+      puzzleToIndexInNumUnknowns(puzzle) = -1
+
+      // Clear the last slot to -1
+      numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
+
+      // Reduce the number of puzzles in that bucket by 1
+      val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+      numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
     })
   }
 

@@ -2,8 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils, VirtualitySP}
-import net.verdagon.vale.scout.rules.{ILiteralSR, ILookupSR, IRulexSR, ITypeSR, RuleSUtils, TypedSR}
-import net.verdagon.vale.solver.{IRulexAR, World}
+import net.verdagon.vale.scout.rules.{IValueSR, IRulexSR, ITypeSR}
 import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -95,23 +94,25 @@ case class StructS(
     name: TopLevelCitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
+  userSpecifiedIdentifyingRunes: Vector[IRuneS],
     mutabilityRune: IRuneS,
-    // This is needed for recursive structures like
+
+  // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
     //     tail ListNode<T>;
     //   }
     maybePredictedMutability: Option[MutabilityP],
-    knowableRunes: Set[IRuneS],
-    identifyingRunes: Vector[IRuneS],
-    localRunes: Set[IRuneS],
-    maybePredictedType: Option[ITypeSR],
-    isTemplate: Boolean,
-    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
-    runeSToCanonicalRune: collection.Map[IRuneS, Int],
+//    knowableRunes: Set[IRuneS],
+//    identifyingRunes: Vector[IRuneS],
+//    localRunes: Set[IRuneS],
+//    maybePredictedType: Option[ITypeSR],
+//    isTemplate: Boolean,
+    rules: Array[IRulexSR],
+//    runeSToCanonicalRune: collection.Map[IRuneS, Int],
     members: Vector[StructMemberS]) {
   override def hashCode(): Int = vcurious()
 
-  vassert(isTemplate == identifyingRunes.nonEmpty)
+//  vassert(isTemplate == identifyingRunes.nonEmpty)
 }
 
 case class StructMemberS(
@@ -127,47 +128,50 @@ case class InterfaceS(
   name: TopLevelCitizenDeclarationNameS,
   attributes: Vector[ICitizenAttributeS],
   weakable: Boolean,
+  userSpecifiedIdentifyingRunes: Vector[IRuneS],
   mutabilityRune: IRuneS,
   // This is needed for recursive structures like
   //   struct ListNode<T> imm rules(T Ref) {
   //     tail ListNode<T>;
   //   }
   maybePredictedMutability: Option[MutabilityP],
-  knowableRunes: Set[IRuneS],
-  identifyingRunes: Vector[IRuneS],
-  localRunes: Set[IRuneS],
-  maybePredictedType: Option[ITypeSR],
-  isTemplate: Boolean,
-  rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
-  runeSToCanonicalRune: collection.Map[IRuneS, Int],
+//  knowableRunes: Set[IRuneS],
+//  identifyingRunes: Vector[IRuneS],
+//  localRunes: Set[IRuneS],
+//  maybePredictedType: Option[ITypeSR],
+//  isTemplate: Boolean,
+  rules: Array[IRulexSR],
+//  runeSToCanonicalRune: collection.Map[IRuneS, Int],
   // See IMRFDI
   internalMethods: Vector[FunctionS]) {
   override def hashCode(): Int = vcurious()
-  vassert(isTemplate == identifyingRunes.nonEmpty)
+//  vassert(isTemplate == identifyingRunes.nonEmpty)
 
-  internalMethods.foreach(internalMethod => {
-    vassert(!internalMethod.isTemplate)
-  })
+//  internalMethods.foreach(internalMethod => {
+//    vassert(!internalMethod.isTemplate)
+//  })
 }
 
 case class ImplS(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameS,
-    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
-    runeSToCanonicalRune: collection.Map[IRuneS, Int],
-    knowableRunes: Set[Int],
-    localRunes: Set[Int],
-    isTemplate: Boolean,
-    structKindRune: Int,
-    interfaceKindRune: Int) {
+    userSpecifiedIdentifyingRunes: Vector[IRuneS],
+    rules: Array[IRulexSR],
+//    runeSToCanonicalRune: collection.Map[IRuneS, Int],
+//    knowableRunes: Set[Int],
+//    localRunes: Set[Int],
+//    isTemplate: Boolean,
+    structKindRune: IRuneS,
+    interfaceKindRune: IRuneS) {
   override def hashCode(): Int = vcurious()
 }
 
 case class ExportAsS(
     range: RangeS,
+    rules: Array[IRulexSR],
     exportName: ExportAsNameS,
-    templexS: IRulexSR,
+    rune: IRuneS,
     exportedName: String) {
   override def hashCode(): Int = vcurious()
 }
@@ -239,24 +243,25 @@ case class FunctionS(
     name: IFunctionDeclarationNameS,
     attributes: Vector[IFunctionAttributeS],
 
-    // Runes that we can know without looking at args or template args.
-    knowableRunes: Set[IRuneS],
-    // This is not necessarily only what the user specified, the compiler can add
-    // things to the end here, see CCAUIR.
     identifyingRunes: Vector[IRuneS],
-    // Runes that we need the args or template args to indirectly figure out.
-//    localRunes: Set[IRuneS],
 
-    maybePredictedType: Option[ITypeSR],
+//    // Runes that we can know without looking at args or template args.
+//    knowableRunes: Set[IRuneS],
+//    // This is not necessarily only what the user specified, the compiler can add
+//    // things to the end here, see CCAUIR.
+//    identifyingRunes: Vector[IRuneS],
+//    // Runes that we need the args or template args to indirectly figure out.
+////    localRunes: Set[IRuneS],
+//
+//    maybePredictedType: Option[ITypeSR],
 
     params: Vector[ParameterS],
 
     // We need to leave it an option to signal that the compiler can infer the return type.
     maybeRetCoordRune: Option[IRuneS],
 
-    isTemplate: Boolean,
-    rules: Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]],
-    runeSToCanonicalRune: collection.Map[IRuneS, Int],
+//    isTemplate: Boolean,
+    rules: Array[IRulexSR],
     body: IBodyS
 ) {
   override def hashCode(): Int = vcurious()
@@ -264,7 +269,7 @@ case class FunctionS(
   // Make sure we have to solve all identifying runes
 //  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
 
-  vassert(isTemplate == identifyingRunes.nonEmpty)
+//  vassert(isTemplate == identifyingRunes.nonEmpty)
 
   body match {
     case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => {
@@ -321,3 +326,32 @@ case class BFunctionS(
   override def hashCode(): Int = vcurious()
 }
 
+// A Denizen is a thing at the top level of a file, like structs, functions, impls, exports, etc.
+// This is a class with a consumed boolean so that we're sure we don't use it twice.
+// Anyone that uses it should call the consume() method.
+// Move semantics would be nice here... alas.
+class LocationInDenizenBuilder(path: Vector[Int]) {
+  private var consumed: Boolean = false
+  private var nextChild: Int = 1
+
+  // Note how this is hashing `path`, not `this` like usual.
+  val hash = runtime.ScalaRunTime._hashCode(path.toList); override def hashCode(): Int = hash;
+
+  def child(): LocationInDenizenBuilder = {
+    val child = nextChild
+    nextChild = nextChild + 1
+    new LocationInDenizenBuilder(path :+ child)
+  }
+
+  def consume(): LocationInDenizen = {
+    assert(!consumed, "Location in denizen was already used for something, add a .child() somewhere.")
+    consumed = true
+    LocationInDenizen(path)
+  }
+
+  override def toString: String = path.mkString(".")
+}
+
+case class LocationInDenizen(path: Vector[Int]) {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}

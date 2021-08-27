@@ -3,10 +3,10 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vfail, vimpl}
+import net.verdagon.vale.{Collector, Err, FileCoordinate, Ok, vassert, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 
-class ScoutParametersTests extends FunSuite with Matchers {
+class ScoutParametersTests extends FunSuite with Matchers with Collector {
 
   private def compile(code: String): ProgramS = {
     Parser.runParser(code) match {
@@ -21,139 +21,97 @@ class ScoutParametersTests extends FunSuite with Matchers {
   }
 
   test("Simple rune rule") {
-    vimpl()
-//    val program1 = compile("""fn main<T>(moo T) infer-ret { }""")
-//    val main = program1.lookupFunction("main")
-//
-//    val runeInRules =
-//      main.templateRules match {
-//        case Vector(TypedSR(_, rune @ CodeRuneS("T"),CoordTypeSR)) => rune
-//      }
-//    RuleSUtils.getDistinctOrderedRunesForRulexes(main.templateRules) match {
-//      case Vector(runeFromFunc) => vassert(runeInRules == runeFromFunc)
-//    }
+    val program1 = compile("""fn main<T>(moo T) infer-ret { }""")
+    val main = program1.lookupFunction("main")
+
+    vassert(main.identifyingRunes == List(CodeRuneS("T")))
   }
 
   test("Borrowed rune") {
-    vimpl()
-//    val program1 = compile("""fn main<T>(moo &T) infer-ret { }""")
-//    val main = program1.lookupFunction("main")
-//    val Vector(param) = main.params
-//
-//    val tCoordRuneFromParams =
-//      param match {
-//        case ParameterS(
-//          AtomSP(_,
-//            Some(CaptureS(CodeVarNameS("moo"))),
-//            None,
-//            tcr @ ImplicitRuneS(_,_),
-//            None)) => tcr
-//      }
-//
-//    val tCoordRuneFromRules =
-//      main.templateRules match {
-//        case Vector(
-//          EqualsSR(_,
-//            TypedSR(_,tcr @ ImplicitRuneS(_,_),CoordTypeSR),
-//            InterpretedSR(_,ConstraintP,ReadonlyP,RuneSR(_,CodeRuneS("T"))))) => tcr
-//      }
-//
-//    tCoordRuneFromParams shouldEqual tCoordRuneFromRules
+    val program1 = compile("""fn main<T>(moo &T) infer-ret { }""")
+    val main = program1.lookupFunction("main")
+    val Vector(param) = main.params
+
+    val tCoordRuneFromParams =
+      param match {
+        case ParameterS(
+          AtomSP(_,
+            Some(CaptureS(CodeVarNameS("moo"))),
+            None,
+            tcr @ ImplicitRuneS(_),
+            None)) => tcr
+      }
+
+    val tCoordRuneFromRules =
+      main.rules shouldHave {
+        case AugmentSR(_, tcr, Vector(OwnershipLiteralSR(ConstraintP),PermissionLiteralSR(ReadonlyP)), CodeRuneS("T")) => tcr
+      }
+
+    tCoordRuneFromParams shouldEqual tCoordRuneFromRules
   }
 
   test("Anonymous typed param") {
-    vimpl()
-//    val program1 = compile("""fn main(_ int) infer-ret { }""")
-//    val main = program1.lookupFunction("main")
-//    val Vector(param) = main.params
-//    val paramRune =
-//      param match {
-//        case ParameterS(
-//          AtomSP(_,
-//          None,
-//            None,
-//            pr @ ImplicitRuneS(_, 0),
-//            None)) => pr
-//      }
-//
-//    main.templateRules match {
-//      case Vector(
-//        EqualsSR(_,
-//          TypedSR(_, pr,CoordTypeSR),
-//          NameSR(_, CodeTypeNameS("int")))) => {
-//        vassert(pr == paramRune)
-//      }
-//    }
-//
-//    RuleSUtils.getDistinctOrderedRunesForRulexes(main.templateRules) shouldEqual
-//      Vector(paramRune)
+    val program1 = compile("""fn main(_ int) infer-ret { }""")
+    val main = program1.lookupFunction("main")
+    val Vector(param) = main.params
+    val paramRune =
+      param match {
+        case ParameterS(
+          AtomSP(_,
+          None,
+            None,
+            pr @ ImplicitRuneS(_),
+            None)) => pr
+      }
+
+    main.rules shouldHave {
+      case ValueLeafSR(_, pr, NameSR(CodeTypeNameS("int"))) => vassert(pr == paramRune)
+    }
   }
 
   test("Anonymous untyped param") {
-    vimpl()
-//    val program1 = compile("""fn main(_) infer-ret { }""")
-//    val main = program1.lookupFunction("main")
-//    val Vector(param) = main.params
-//    val paramRune =
-//      param match {
-//        case ParameterS(
-//         AtomSP(_,
-//          None,
-//          None,
-//          pr @ ImplicitRuneS(_, 0),
-//          None)) => pr
-//      }
-//
-//    main.templateRules match {
-//      case Vector(TypedSR(_, pr,CoordTypeSR)) => {
-//        vassert(pr == paramRune)
-//      }
-//    }
-//
-//    RuleSUtils.getDistinctOrderedRunesForRulexes(main.templateRules) shouldEqual
-//      Vector(paramRune)
+    val program1 = compile("""fn main(_) infer-ret { }""")
+    val main = program1.lookupFunction("main")
+    val Vector(param) = main.params
+    param match {
+      case ParameterS(
+       AtomSP(_,
+        None,
+        None,
+        pr @ ImplicitRuneS(_),
+        None)) => pr
+    }
   }
 
   test("Rune destructure") {
-    vimpl()
-//    // This is an ambiguous case but we decided it should destructure a struct or sequence, see CSTODTS in docs.
-//    val program1 = compile("""fn main<T>(moo T(a int)) infer-ret { }""")
-//    val main = program1.lookupFunction("main")
-//
-//    val Vector(param) = main.params
-//
-//    val (aRune, tRune) =
-//      param match {
-//        case ParameterS(
-//            AtomSP(_,
-//            Some(CaptureS(CodeVarNameS("moo"))),
-//              None,
-//              tr @ CodeRuneS("T"),
-//              Some(
-//                Vector(
-//                  AtomSP(_,
-//                  Some(CaptureS(CodeVarNameS("a"))),
-//                    None,
-//                    ar @ ImplicitRuneS(_, 0),
-//                    None))))) => (ar, tr)
-//      }
-//
-//    main.templateRules match {
-//      case Vector(
-//        TypedSR(_, tr,CoordTypeSR),
-//        EqualsSR(_,
-//          TypedSR(_, ar,CoordTypeSR),
-//          NameSR(_, CodeTypeNameS("int")))) => {
-//        vassert(tr == tRune)
-//        vassert(ar == aRune)
-//      }
-//    }
-//
-//    RuleSUtils.getDistinctOrderedRunesForRulexes(main.templateRules) shouldEqual
-//      Vector(tRune, aRune)
-//
-//    // See CCAUIR.
-//    main.identifyingRunes shouldEqual Vector(tRune)
+    // This is an ambiguous case but we decided it should destructure a struct or sequence, see CSTODTS in docs.
+    val program1 = compile("""fn main<T>(moo T(a int)) infer-ret { }""")
+    val main = program1.lookupFunction("main")
+
+    val Vector(param) = main.params
+
+    val (aRune, tRune) =
+      param match {
+        case ParameterS(
+          AtomSP(_,
+            Some(CaptureS(CodeVarNameS("moo"))),
+            None,
+            tr,
+            Some(
+              Vector(
+                AtomSP(_,
+                  Some(CaptureS(CodeVarNameS("a"))),
+                  None,
+                  ar @ ImplicitRuneS(_),
+                None))))) => (ar, tr)
+      }
+
+    main.rules shouldHave {
+      case ValueLeafSR(_, air, NameSR(CodeTypeNameS("int"))) => vassert(air == aRune)
+    }
+
+    // See CCAUIR.
+    main.identifyingRunes shouldEqual Vector(tRune)
   }
 
   test("Regioned pure function") {
