@@ -85,8 +85,8 @@ object vwat {
   def apply(): Nothing = {
     vfail("wat")
   }
-  def apply(message: String): Nothing = {
-    vfail("wat: " + message)
+  def apply(message: Object): Nothing = {
+    vfail("wat: " + message.toString)
   }
 }
 

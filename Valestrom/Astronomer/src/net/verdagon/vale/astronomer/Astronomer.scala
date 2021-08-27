@@ -294,7 +294,7 @@ object Astronomer {
 //  }
 
   def translateStruct(astrouts: AstroutsBox, env: Environment, structS: StructS): StructA = {
-    val StructS(rangeS, nameS, attributesS, weakable, mutabilityRuneS, maybePredictedMutabilityS, knowableRunesS, identifyingRunesS, localRunesS, predictedTypeByRune, isTemplate, rules, members) = structS
+    val StructS(rangeS, nameS, attributesS, weakable, identifyingRunesS, mutabilityRuneS, rules, members) = structS
     val mutabilityRuneA = Astronomer.translateRune(mutabilityRuneS)
     val maybePredictedMutabilityA = maybePredictedMutabilityS
     val nameA = Astronomer.translateTopLevelCitizenDeclarationName(nameS)

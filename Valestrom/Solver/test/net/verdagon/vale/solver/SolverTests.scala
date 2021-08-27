@@ -3,37 +3,41 @@ package net.verdagon.vale.solver
 import net.verdagon.vale.{Collector, Err, Ok, Result, vassert, vassertSome, vfail, vimpl, vwat}
 import org.scalatest.{FunSuite, Matchers}
 
-sealed trait ISimpleRule {
+sealed trait IRule {
   def allRunes: Array[Long]
   def allPuzzles: Array[Array[Long]]
 }
-case class SimpleLiteral(rune: Long, value: String) extends ISimpleRule {
+case class Lookup(rune: Long, name: String) extends IRule {
   override def allRunes: Array[Long] = Array(rune)
   override def allPuzzles: Array[Array[Long]] = Array(Array())
 }
-case class Equals(leftRune: Long, rightRune: Long) extends ISimpleRule {
+case class Literal(rune: Long, value: String) extends IRule {
+  override def allRunes: Array[Long] = Array(rune)
+  override def allPuzzles: Array[Array[Long]] = Array(Array())
+}
+case class Equals(leftRune: Long, rightRune: Long) extends IRule {
   override def allRunes: Array[Long] = Array(leftRune, rightRune)
   override def allPuzzles: Array[Array[Long]] = Array(Array(leftRune), Array(rightRune))
 }
-case class CoordComponents(coordRune: Long, ownershipRune: Long, kindRune: Long) extends ISimpleRule {
+case class CoordComponents(coordRune: Long, ownershipRune: Long, kindRune: Long) extends IRule {
   override def allRunes: Array[Long] = Array(coordRune, ownershipRune, kindRune)
   override def allPuzzles: Array[Array[Long]] = Array(Array(coordRune), Array(ownershipRune, kindRune))
 }
-case class OneOf(coordRune: Long, possibleValues: Array[String]) extends ISimpleRule {
+case class OneOf(coordRune: Long, possibleValues: Array[String]) extends IRule {
   override def allRunes: Array[Long] = Array(coordRune)
   override def allPuzzles: Array[Array[Long]] = Array(Array(coordRune))
 }
-case class Call(resultRune: Long, name: String, argRune: Long) extends ISimpleRule {
-  override def allRunes: Array[Long] = Array(resultRune, argRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(resultRune), Array(argRune))
+case class Call(resultRune: Long, nameRune: Long, argRune: Long) extends IRule {
+  override def allRunes: Array[Long] = Array(resultRune, nameRune, argRune)
+  override def allPuzzles: Array[Array[Long]] = Array(Array(resultRune, nameRune), Array(nameRune, argRune))
 }
 
 class SolverTests extends FunSuite with Matchers with Collector {
   val complexRuleSet =
     Array(
-      SimpleLiteral(-3L, "1448"),
+      Literal(-3L, "1448"),
       CoordComponents(-6L, -5L, -5L),
-      SimpleLiteral(-2L, "1337"),
+      Literal(-2L, "1337"),
       Equals(-4L, -2L),
       OneOf(-4L, Array("1337", "73")),
       Equals(-1L, -5L),
@@ -49,12 +53,12 @@ class SolverTests extends FunSuite with Matchers with Collector {
   //    }
   //  }
 
-  object RuleSolver extends ISolveRule[ISimpleRule, Long, Unit, Unit, String, String] {
+  object RuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String] {
     override def solve(
       state: Unit,
       env: Unit,
       ruleIndex: Int,
-      rule: ISimpleRule,
+      rule: IRule,
       getConclusion: Long => Option[String],
       concludeRune: (Long, String) => Unit):
     Result[Unit, String] = {
@@ -64,7 +68,12 @@ class SolverTests extends FunSuite with Matchers with Collector {
           // by the planner
           vfail()
         }
-        case SimpleLiteral(rune, literal) => {
+        case Lookup(rune, name) => {
+          val value = name
+          concludeRune(rune, value)
+          Ok(())
+        }
+        case Literal(rune, literal) => {
           concludeRune(rune, literal)
           Ok(())
         }
@@ -93,6 +102,17 @@ class SolverTests extends FunSuite with Matchers with Collector {
           }
           Ok(())
         }
+        case Call(resultRune, nameRune, argRune) => {
+          val maybeResult = getConclusion(resultRune)
+          val maybeName = getConclusion(nameRune)
+          val maybeArg = getConclusion(argRune)
+          (maybeResult, maybeName, maybeArg) match {
+            case (Some(result), Some("Firefly"), _) => concludeRune(argRune, result.slice("Firefly:".length, result.length))
+            case (_, Some("Firefly"), Some(arg)) => concludeRune(resultRune, "Firefly:" + arg)
+            case other => vwat(other)
+          }
+          Ok(())
+        }
       }
     }
   }
@@ -113,7 +133,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
   test("Simple int rule") {
     val rules =
       Array(
-        SimpleLiteral(-1L, "1337"))
+        Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
 
@@ -121,7 +141,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val rules =
       Array(
         Equals(-2L, -1L),
-        SimpleLiteral(-1L, "1337"))
+        Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337", -2L -> "1337")
   }
@@ -138,7 +158,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val rules =
       Array(
         OneOf(-1L, Array("1448", "1337")),
-        SimpleLiteral(-2L, "1337"))
+        Literal(-2L, "1337"))
     getConclusions(rules, false) shouldEqual Map(-2L -> "1337")
   }
 
@@ -146,7 +166,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val rules =
       Array(
         OneOf(-1L, Array("1448", "1337")),
-        SimpleLiteral(-1L, "1337"))
+        Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
 
@@ -154,8 +174,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val rules =
       Array(
         CoordComponents(-1L, -2L, -3L),
-        SimpleLiteral(-2L, "1337"),
-        SimpleLiteral(-3L, "1448"))
+        Literal(-2L, "1337"),
+        Literal(-3L, "1448"))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
@@ -164,7 +184,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val rules =
       Array(
         CoordComponents(-1L, -2L, -3L),
-        SimpleLiteral(-1L, "1337/1448"))
+        Literal(-1L, "1337/1448"))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
@@ -186,11 +206,11 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         complexRuleSet.toIterable,
-        (rule: ISimpleRule) => rule.allRunes,
-        (rule: ISimpleRule) => rule.allPuzzles,
+        (rule: IRule) => rule.allRunes,
+        (rule: IRule) => rule.allPuzzles,
         Set(), {
           case Equals(a, b) => (a, b)
-        }: PartialFunction[ISimpleRule, (Long, Long)])
+        }: PartialFunction[IRule, (Long, Long)])
     // There's 7 runes up there, and 3 equals rules, so 3 of them are redundant,
     // we should end up with 4.
     vassert(numCanonicalRunes == 4)
@@ -205,7 +225,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val optimizedRules =
       ruleExecutionOrder.map(complexRuleSet).map({
         case Equals(_, _) => vfail() // Shouldnt execute these at all
-        case SimpleLiteral(unoptimizedRune, value) => SimpleLiteral(urtcr(unoptimizedRune), value)
+        case Literal(unoptimizedRune, value) => Literal(urtcr(unoptimizedRune), value)
         case CoordComponents(unoptimizedCoordRune, unoptimizedOwnershipRune, unoptimizedKindRune) => {
           CoordComponents(urtcr(unoptimizedCoordRune), urtcr(unoptimizedOwnershipRune), urtcr(unoptimizedKindRune))
         }
@@ -215,16 +235,71 @@ class SolverTests extends FunSuite with Matchers with Collector {
       })
 
     val conclusions =
-      Solver.solve[ISimpleRule, Long, Unit, Unit, String, String](
+      Solver.solve[IRule, Long, Unit, Unit, String, String](
         (), (), numCanonicalRunes, optimizedRules, optimizedRules.indices,
-        (rule: ISimpleRule) => rule.allRunes.toVector,
+        (rule: IRule) => rule.allRunes.toVector,
         l => l.toInt,
         (0 until numCanonicalRunes).map(_.toLong).toVector,
+        Map(),
         RuleSolver.solve) match {
         case Ok(c) => c
         case Err(e) => vfail(e)
       }
     conclusions.toMap.get(userRuneToCanonicalRune(-7L)) shouldEqual Some("1337/1448/1337/1448")
+  }
+
+  test("Predicting") {
+    // "Predicting" is when the rules arent completely solvable, but we can still run some of them
+    // to figure out what we can.
+    // For example, in:
+    //   #2 = 1337
+    //   #3 = #1<#2>
+    // we can figure out that #2 is 1337, even if we don't know #1 yet.
+    // This is useful for recursive types.
+    // See: Recursive Types Must Have Types Predicted (RTMHTP)
+
+    def solveWithPuzzler(puzzler: IRule => Array[Array[Long]]) = {
+      // Below, we're reporting that Lookup has no puzzles that can solve it.
+      val rules =
+        Vector(
+          Lookup(-1, "Firefly"),
+          Literal(-2, "1337"),
+          Call(-3, -1, -2)) // X = Firefly<A>
+      val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
+        Planner.plan(
+          rules,
+          (rule: IRule) => rule.allRunes,
+          puzzler,
+          Set(), {
+            case Equals(a, b) => (a, b)
+          }: PartialFunction[IRule, (Long, Long)])
+      val conclusions =
+        Solver.solve(
+          (), (), numCanonicalRunes, rules, ruleExecutionOrder,
+          (rule: IRule) => rule.allRunes.toVector,
+          userRuneToCanonicalRune,
+          userRuneToCanonicalRune.keys,
+          Map(),
+          RuleSolver.solve) match {
+          case Ok(c) => c.toMap
+          case Err(e) => vfail(e)
+        }
+      (ruleExecutionOrder, conclusions.toMap)
+    }
+
+    val (predictionRuleExecutionOrder, predictions) =
+      solveWithPuzzler({
+        // This Array() makes it unsolvable
+        case Lookup(rune, name) => Array()
+        case rule => rule.allPuzzles
+      })
+    vassert(predictionRuleExecutionOrder sameElements Array(1))
+    vassert(predictions.size == 1)
+    vassert(predictions(-2) == "1337")
+
+    val (ruleExecutionOrder, conclusions) = solveWithPuzzler(_.allPuzzles)
+    vassert(ruleExecutionOrder.length == 3)
+    conclusions shouldEqual Map(-1L -> "Firefly", -2L -> "1337", -3L -> "Firefly:1337")
   }
 
   test("Dive for template") {
@@ -238,26 +313,35 @@ class SolverTests extends FunSuite with Matchers with Collector {
     // we need to index by first argument's generic type (e.g. ISpaceship)
     //
     // In both cases, we need to dive into the rules.
+    // This test case shows how it can be done.
 
     val rules =
       Vector(
-        Call(-2, "Firefly", -1), // X = Firefly<A, B>
-        Call(-3, "ISpaceship", -1)) // Y = ISpaceship<A, B>
+        Literal(-4, "Firefly"),
+        Literal(-5, "ISpaceship"),
+        Call(-2, -4, -1), // X = Firefly<A, B>
+        Call(-3, -5, -1)) // Y = ISpaceship<A, B>
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules,
-        (rule: ISimpleRule) => rule.allRunes,
-        (rule: ISimpleRule) => rule.allPuzzles,
+        (rule: IRule) => rule.allRunes,
+        (rule: IRule) => rule.allPuzzles,
         Set(), {
           case Equals(a, b) => (a, b)
-        }: PartialFunction[ISimpleRule, (Long, Long)])
+        }: PartialFunction[IRule, (Long, Long)])
 
     val structRune = -2
-    val structCanonicalRune = userRuneToCanonicalRune(structRune)
     val foundGenericNames =
-      rules.collect({
-        case Call(resultRune, name, _)
-          if userRuneToCanonicalRune(resultRune) == structCanonicalRune => name
+      rules.flatMap({
+        case Call(resultRune, nameRune, _) if userRuneToCanonicalRune(resultRune) == userRuneToCanonicalRune(structRune) => {
+          rules.flatMap({
+            case Literal(nr, name) if userRuneToCanonicalRune(nr) == userRuneToCanonicalRune(nameRune) => {
+              List(name)
+            }
+            case _ => List()
+          })
+        }
+        case _ => List()
       })
     foundGenericNames.size shouldEqual 1
     val Vector(foundGenericName) = foundGenericNames
@@ -267,8 +351,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
   test("Test conflict") {
     val rules =
       Array(
-        SimpleLiteral(-1L, "1448"),
-        SimpleLiteral(-1L, "1337"))
+        Literal(-1L, "1448"),
+        Literal(-1L, "1337"))
     expectSolveFailure(rules) match {
       case FailedSolve(SolverConflict(_, _, conclusionA, conclusionB), _) => {
         Vector(conclusionA, conclusionB).sorted shouldEqual Vector("1337", "1448").sorted
@@ -276,21 +360,22 @@ class SolverTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  private def expectSolveFailure(rules: IndexedSeq[ISimpleRule]):
+  private def expectSolveFailure(rules: IndexedSeq[IRule]):
   FailedSolve[Long, String, String] = {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules.toIterable,
-        (rule: ISimpleRule) => rule.allRunes,
-        (rule: ISimpleRule) => rule.allPuzzles,
+        (rule: IRule) => rule.allRunes,
+        (rule: IRule) => rule.allPuzzles,
         Set(), {
           case Equals(a, b) => (a, b)
-        }: PartialFunction[ISimpleRule, (Long, Long)])
+        }: PartialFunction[IRule, (Long, Long)])
     Solver.solve(
       (), (), numCanonicalRunes, rules, ruleExecutionOrder,
-      (rule: ISimpleRule) => rule.allRunes.toVector,
+      (rule: IRule) => rule.allRunes.toVector,
       userRuneToCanonicalRune,
       userRuneToCanonicalRune.keys,
+      Map(),
       RuleSolver.solve) match {
       case Ok(c) => vfail(c)
       case Err(e) => e
@@ -298,22 +383,24 @@ class SolverTests extends FunSuite with Matchers with Collector {
   }
 
   private def getConclusions(
-    rules: IndexedSeq[ISimpleRule],
-    expectCompleteSolve: Boolean):
+    rules: IndexedSeq[IRule],
+    expectCompleteSolve: Boolean,
+    initiallyKnownRunes: Map[Long, String] = Map()):
   Map[Long, String] = {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules.toIterable,
-        (rule: ISimpleRule) => rule.allRunes,
-        (rule: ISimpleRule) => rule.allPuzzles,
-        Set(),
-        { case Equals(a, b) => (a, b)}: PartialFunction[ISimpleRule, (Long, Long)])
+        (rule: IRule) => rule.allRunes,
+        (rule: IRule) => rule.allPuzzles,
+        initiallyKnownRunes.keySet,
+        { case Equals(a, b) => (a, b)}: PartialFunction[IRule, (Long, Long)])
     val conclusions =
       Solver.solve(
         (), (), numCanonicalRunes, rules, ruleExecutionOrder,
-        (rule: ISimpleRule) => rule.allRunes.toVector,
+        (rule: IRule) => rule.allRunes.toVector,
         userRuneToCanonicalRune,
         userRuneToCanonicalRune.keys,
+        initiallyKnownRunes,
         RuleSolver.solve) match {
         case Ok(c) => c
         case Err(e) => vfail(e)

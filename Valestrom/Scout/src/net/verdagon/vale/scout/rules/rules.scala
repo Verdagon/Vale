@@ -9,17 +9,14 @@ import scala.collection.immutable.List
 // See PVSBUFI
 trait IRulexSR {
   def range: RangeS
-  def allRunes: Vector[IRuneS]
 }
 
 case class EqualsSR(range: RangeS, left: IRuneS, right: IRuneS) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(left, right)
 }
 
 case class IsaSR(range: RangeS, sub: IRuneS, suuper: IRuneS) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(sub, suuper)
 }
 
 case class KindComponentsSR(
@@ -28,7 +25,6 @@ case class KindComponentsSR(
   mutabilityRune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune, mutabilityRune)
 }
 
 case class CoordComponentsSR(
@@ -39,16 +35,14 @@ case class CoordComponentsSR(
   kindRune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune, ownershipRune, permissionRune, kindRune)
 }
 
 case class OneOfSR(
   range: RangeS,
-  resultRune: IRuneS,
+  rune: IRuneS,
   literals: Array[IValueSR]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune)
   vassert(literals.nonEmpty)
 }
 
@@ -57,7 +51,6 @@ case class IsConcreteSR(
   rune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(rune)
 }
 
 case class IsInterfaceSR(
@@ -65,7 +58,6 @@ case class IsInterfaceSR(
   rune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(rune)
 }
 
 case class IsStructSR(
@@ -73,7 +65,6 @@ case class IsStructSR(
   rune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(rune)
 }
 
 case class CoerceToCoord(
@@ -82,7 +73,6 @@ case class CoerceToCoord(
   kindRune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(coordRune, kindRune)
 }
 
 case class LiteralSR(
@@ -91,16 +81,14 @@ case class LiteralSR(
   literal: IValueSR
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(rune)
 }
 
 case class LookupSR(
   range: RangeS,
   rune: IRuneS,
-  literal: IValueSR
+  name: INameSR
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(rune)
 }
 
 // InterpretedAR will overwrite inner's permission and ownership to the given ones.
@@ -114,7 +102,6 @@ case class AugmentSR(
 ) extends IRulexSR {
   vpass()
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune, innerRune)
 }
 
 //case class NullableSR(
@@ -131,17 +118,15 @@ case class CallSR(
   args: Array[IRuneS]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune, templateRune) ++ args
 }
 
-case class CommonMutabilitySR(
-  range: RangeS,
-  resultRune: IRuneS,
-  args: Array[IRuneS]
-) extends IRulexSR {
-  override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune) ++ args
-}
+//case class CommonMutabilitySR(
+//  range: RangeS,
+//  resultRune: IRuneS,
+//  args: Array[IRuneS]
+//) extends IRulexSR {
+//  override def hashCode(): Int = vcurious()
+//}
 
 //case class FunctionSR(
 //  mutability: Option[IRulexAR],
@@ -158,7 +143,6 @@ case class PrototypeSR(
   returnTypeRune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
 }
 
 case class PackSR(
@@ -167,7 +151,6 @@ case class PackSR(
   members: Array[IRuneS]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune) ++ members
 }
 
 case class RepeaterSequenceSR(
@@ -179,7 +162,6 @@ case class RepeaterSequenceSR(
   elementRune: IRuneS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
 }
 
 case class ManualSequenceSR(
@@ -188,7 +170,6 @@ case class ManualSequenceSR(
   elements: Array[IRuneS]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune) ++ elements
 }
 
 case class CoordListSR(
@@ -197,7 +178,6 @@ case class CoordListSR(
   elements: Array[IRuneS]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector(resultRune) ++ elements
 }
 
 //case class RuneLeafSR(
@@ -205,44 +185,52 @@ case class CoordListSR(
 //  rune: IRuneS
 //) extends IRulexSR {
 //  override def hashCode(): Int = vcurious()
-//  override def allRunes: Vector[IRuneS] = Vector(rune)
+//}
+//
+//case class ValueLeafSR(
+//  range: RangeS,
+//  resultRune: IRuneS,
+//  value: IValueSR
+//) extends IRulexSR {
+//  override def hashCode(): Int = vcurious()
 //}
 
-case class ValueLeafSR(
-  range: RangeS,
-  resultRune: IRuneS,
-  value: IValueSR
-) extends IRulexSR {
-  override def hashCode(): Int = vcurious()
-  override def allRunes: Vector[IRuneS] = Vector()
+
+sealed trait IValueSR {
+  def getType(): ITypeSR
 }
-
-
-sealed trait IValueSR
 
 case class IntLiteralSR(value: Long) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = IntTypeSR
 }
 case class StringLiteralSR(value: String) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = StringTypeSR
 }
 case class BoolLiteralSR(value: Boolean) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = BoolTypeSR
 }
 case class MutabilityLiteralSR(mutability: MutabilityP) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = MutabilityTypeSR
 }
 case class PermissionLiteralSR(permission: PermissionP) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = PermissionTypeSR
 }
 case class LocationLiteralSR(location: LocationP) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = LocationTypeSR
 }
 case class OwnershipLiteralSR(ownership: OwnershipP) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = OwnershipTypeSR
 }
 case class VariabilityLiteralSR(variability: VariabilityP) extends IValueSR {
   override def hashCode(): Int = vcurious()
+  override def getType(): ITypeSR = VariabilityTypeSR
 }
 
 //// This is a rune that we know is defined, which came from the parent env
@@ -252,15 +240,17 @@ case class VariabilityLiteralSR(variability: VariabilityP) extends IValueSR {
 //  override def hashCode(): Int = vcurious()
 //}
 
+sealed trait INameSR
+
 case class NameSR(
   name: IImpreciseNameStepS
-) extends IValueSR {
+) extends INameSR {
   override def hashCode(): Int = vcurious()
 }
 
 case class AbsoluteNameSR(
   name: INameS
-) extends IValueSR {
+) extends INameSR {
   override def hashCode(): Int = vcurious()
 }
 

@@ -1,6 +1,6 @@
 package net.verdagon.vale.solver
 
-import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl}
+import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl, vpass}
 
 sealed trait ISolverOutcome[RuneID, Conclusion, ErrType] {
   def getOrDie(): Map[RuneID, Conclusion]
@@ -29,7 +29,9 @@ case class SolverConflict[RuneID, Conclusion, ErrType](
   rune: RuneID,
   previousConclusion: Conclusion,
   newConclusion: Conclusion
-) extends ISolverError[RuneID, Conclusion, ErrType]
+) extends ISolverError[RuneID, Conclusion, ErrType] {
+  vpass()
+}
 case class RuleError[RuneID, Conclusion, ErrType](
   ruleIndex: Int,
   err: ErrType
@@ -61,9 +63,14 @@ object Solver {
     ruleToRunes: Rule => Iterable[RuneID],
     userRuneToCanonicalRune: RuneID => Int,
     allUserRunes: Iterable[RuneID],
+    initiallyKnownRunes: Map[RuneID, Conclusion],
     solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
   ): Result[Stream[(RuneID, Conclusion)], FailedSolve[RuneID, Conclusion, ErrType]] = {
     val conclusions: Array[Option[Conclusion]] = (0 until numCanonicalRunes).map(_ => None).toArray
+    initiallyKnownRunes.foreach({ case (userRuneID, conclusion) =>
+      conclusions(userRuneToCanonicalRune(userRuneID)) = Some(conclusion)
+    })
+
     def userifyConclusions(conclusions: Array[Option[Conclusion]]): Stream[(RuneID, Conclusion)] = {
       allUserRunes.toStream.flatMap(userRune => {
         conclusions(userRuneToCanonicalRune(userRune)).map(userRune -> _)
