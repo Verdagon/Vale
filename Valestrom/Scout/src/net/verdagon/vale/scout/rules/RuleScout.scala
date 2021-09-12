@@ -103,7 +103,6 @@ object RuleScout {
         rune
       }
       case TypedPR(range, Some(NameP(_, runeName)), tyype) => {
-        vassert(!env.allDeclaredRunes().contains(CodeRuneS(runeName)))
         val rune = CodeRuneS(runeName)
         runeToExplicitType.put(rune, translateType(tyype))
         rune

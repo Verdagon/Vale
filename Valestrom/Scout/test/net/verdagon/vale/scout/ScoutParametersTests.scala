@@ -44,7 +44,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
 
     val tCoordRuneFromRules =
       main.rules shouldHave {
-        case AugmentSR(_, tcr, Vector(OwnershipLiteralSR(ConstraintP),PermissionLiteralSR(ReadonlyP)), CodeRuneS("T")) => tcr
+        case AugmentSR(_, tcr, Vector(OwnershipLiteralSL(ConstraintP),PermissionLiteralSL(ReadonlyP)), CodeRuneS("T")) => tcr
       }
 
     tCoordRuneFromParams shouldEqual tCoordRuneFromRules
@@ -65,7 +65,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case ValueLeafSR(_, pr, NameSR(CodeTypeNameS("int"))) => vassert(pr == paramRune)
+      case LookupSR(_, pr, ImpreciseNameSN(CodeTypeNameS("int"))) => vassert(pr == paramRune)
     }
   }
 
@@ -107,7 +107,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case ValueLeafSR(_, air, NameSR(CodeTypeNameS("int"))) => vassert(air == aRune)
+      case LookupSR(_, air, ImpreciseNameSN(CodeTypeNameS("int"))) => vassert(air == aRune)
     }
 
     // See CCAUIR.

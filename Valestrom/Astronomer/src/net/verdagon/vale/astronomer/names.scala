@@ -72,12 +72,16 @@ case class CodeRuneA(name: String) extends IRuneA {
   vassert(name != "str")
 }
 case class ImplicitRuneA(containerName: INameA, name: Int) extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImplicitRuneFromScoutA(scoutPath: Array[Int]) extends IRuneA {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def toString: String = "ImplicitRuneFromScoutA#([" + scoutPath.mkString(",") + "])"
+}
 case class ArraySizeImplicitRuneA() extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ArrayVariabilityImplicitRuneA() extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ArrayMutabilityImplicitRuneA() extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class LetImplicitRuneA(codeLocationS: CodeLocationS, name: Int) extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class MemberRuneA(memberIndex: Int) extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class MagicImplicitRuneA(codeLocationS: CodeLocationS) extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class MagicImplicitRuneA(scoutPath: Array[Int]) extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ReturnRuneA() extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 // Only made by templar, see if we can take these out
 case class AnonymousSubstructParentInterfaceRuneA() extends IRuneA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }

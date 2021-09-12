@@ -3,7 +3,7 @@ package net.verdagon.vale.scout.predictor
 import net.verdagon.vale.{Err, Ok, Result, vassertSome, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.{IRuneS, RangeS}
 import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils}
-import net.verdagon.vale.scout.rules.{IValueSR, IRulexSR, ITypeSR, RuleFlattener}
+import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR, ITypeSR, RuleFlattener}
 
 import scala.collection.mutable
 

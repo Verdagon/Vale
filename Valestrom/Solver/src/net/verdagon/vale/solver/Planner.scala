@@ -8,6 +8,7 @@ import scala.collection.mutable.ArrayBuffer
 object Planner {
   def plan[Rule, RuneID, RuleID, Literal, Lookup](
     rules: Iterable[Rule],
+    additionalRunes: Iterable[RuneID],
     ruleToRunes: Rule => Array[RuneID],
     ruleToPuzzles: Rule => Array[Array[RuneID]],
     // Sometimes, we already know a rune up-front, such as if we inherit it from a containing interface,
@@ -15,7 +16,7 @@ object Planner {
     initiallyKnownRunes: Set[RuneID],
     isEquals: PartialFunction[Rule, (RuneID, RuneID)]):
   (Int, Map[RuneID, Int], Array[Int], Array[Boolean]) = {
-    val allUserRunes = rules.map(ruleToRunes).flatten.toSet.toVector
+    val allUserRunes = (rules.map(ruleToRunes).flatten ++ initiallyKnownRunes ++ additionalRunes).toSet.toVector
     // allNonEqualsRuleMaybes is an Array[Option[Rule]], it has None where there used to be Equals
     // rules. This is so the indexes still line up, but we dont consider them in the planning.
     val equalsRules = rules.collect(isEquals)

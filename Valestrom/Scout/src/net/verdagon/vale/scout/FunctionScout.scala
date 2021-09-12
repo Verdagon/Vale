@@ -109,7 +109,7 @@ object FunctionScout {
           val rangeS = Scout.evalRange(file, retRange)
           val rune = ImplicitRuneS(lidb.child().consume())
           runeToExplicitType.put(rune, CoordTypeSR)
-          ruleBuilder += ValueLeafSR(rangeS, rune, NameSR(CodeTypeNameS("void")))
+          ruleBuilder += LookupSR(rangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
           Some(rune)
         }
         case (Some(_), None) => None // Infer the return
@@ -232,6 +232,7 @@ object FunctionScout {
       name,
       attrsS,
       userSpecifiedIdentifyingRunes,
+      runeToExplicitType.toMap,
 //      knowableValueRunes,
 //      identifyingRunes,
 //      localRunes,
@@ -333,14 +334,14 @@ object FunctionScout {
     val closureParamRange = Scout.evalRange(parentStackFrame.file, range)
     val closureStructRune = ImplicitRuneS(lidb.child().consume())
     ruleBuilder +=
-      ValueLeafSR(
-        closureParamRange, closureStructRune, AbsoluteNameSR(closureStructName))
+      LookupSR(
+        closureParamRange, closureStructRune, AbsoluteNameSN(closureStructName))
     val closureParamTypeRune = ImplicitRuneS(lidb.child().consume())
     ruleBuilder +=
       AugmentSR(
         closureParamRange,
         closureParamTypeRune,
-        Vector(OwnershipLiteralSR(ConstraintP),PermissionLiteralSR(ReadwriteP)),
+        Vector(OwnershipLiteralSL(ConstraintP),PermissionLiteralSL(ReadwriteP)),
         closureStructRune)
 
     val closureParamS =
@@ -454,8 +455,9 @@ object FunctionScout {
         lambdaName,
         translateFunctionAttributes(parentStackFrame.file, attrsP),
         identifyingRunes,
+        runeToExplicitType.toMap,
 //        knowableValueRunes,
-//        identifyingRunes,
+//        identifyingRunes,b
 //        localRunes,
 //        maybePredictedType,
         totalParams,
@@ -608,7 +610,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rune = ImplicitRuneS(lidb.child().consume())
           runeToExplicitType.put(rune, CoordTypeSR)
-          ruleBuilder += ValueLeafSR(retRangeS, rune, NameSR(CodeTypeNameS("void")))
+          ruleBuilder += LookupSR(retRangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
           Some(rune)
         }
         case (Some(_), None) => {
@@ -673,6 +675,7 @@ object FunctionScout {
       translateFunctionAttributes(functionEnv.file, attrsP),
 //      knowableValueRunes,
       userSpecifiedIdentifyingRunes,
+      runeToExplicitType.toMap,
 //      localRunes,
 //      maybePredictedType,
       paramsS,

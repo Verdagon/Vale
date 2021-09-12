@@ -5,7 +5,7 @@ import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.PatternScout
 import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
-import net.verdagon.vale.scout.rules.{ITypeSR, IValueSR, IntLiteralSR, MutabilityLiteralSR, TemplexScout, ValueLeafSR, VariabilityLiteralSR}
+import net.verdagon.vale.scout.rules.{ITypeSR, ILiteralSL, IntLiteralSL, LiteralSR, MutabilityLiteralSL, TemplexScout, VariabilityLiteralSL}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -257,7 +257,7 @@ object ExpressionScout {
           maybeMutabilityPT match {
             case None => {
               val rune = ImplicitRuneS(lidb.child().consume())
-              ruleBuilder += ValueLeafSR(rangeS, rune, MutabilityLiteralSR(MutableP))
+              ruleBuilder += LiteralSR(rangeS, rune, MutabilityLiteralSL(MutableP))
               rune
             }
             case Some(mutabilityPT) => {
@@ -269,7 +269,7 @@ object ExpressionScout {
           maybeVariabilityPT match {
             case None => {
               val rune = ImplicitRuneS(lidb.child().consume())
-              ruleBuilder += ValueLeafSR(rangeS, rune, VariabilityLiteralSR(FinalP))
+              ruleBuilder += LiteralSR(rangeS, rune, VariabilityLiteralSL(FinalP))
               rune
             }
             case Some(variabilityPT) => {
@@ -314,7 +314,7 @@ object ExpressionScout {
                     case Some(s) => s
                     case None => {
                       val runeS = ImplicitRuneS(lidb.child().consume())
-                      ruleBuilder += ValueLeafSR(rangeS, runeS, IntLiteralSR(argsSE.size))
+                      ruleBuilder += LiteralSR(rangeS, runeS, IntLiteralSL(argsSE.size))
                       runeS
                     }
                   }

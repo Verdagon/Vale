@@ -9,7 +9,7 @@ import net.verdagon.vale.solver.{ISolveRule, Planner, Solver}
 
 import scala.collection.immutable.List
 
-
+case class AstronomySolveError(unknownRunes: Iterable[IRuneS])
 object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITemplataType, ITemplataType]
   def getRunes(rule: IRulexSR): Array[IRuneS] = {
     rule match {
@@ -36,9 +36,17 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
 
   def getPuzzles(predicting: Boolean, rule: IRulexSR): Array[Array[IRuneS]] = {
     rule match {
-      // This Array() literally means nothing can solve this puzzle.
-      // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
-      case LookupSR(_, rune, literal) => if (predicting) Array() else Array(Array())
+      case LookupSR(_, rune, literal) => {
+        if (predicting) {
+          // This Array() literally means nothing can solve this puzzle.
+          // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
+          Array()
+        } else {
+          // Lookup rules get their type from their rune, which is either populated beforehand,
+          // or figured out from another rule, see AMPLR.
+          Array(Array(rune))
+        }
+      }
       // These rules might not be knowable when predicting; the templateRune is likely a LookupSR
       // which we can't really know at prediction time.
       case CallSR(range, resultRune, templateRune, args) => Array(Array(resultRune, templateRune), Array(templateRune) ++ args)
@@ -59,7 +67,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
     }
   }
 
-  def solveRule(
+  private def solveRule(
     state: AstroutsBox,
     env: Environment,
     ruleIndex: Int,
@@ -109,17 +117,19 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         concludeRune(rune, Astronomer.translateRuneType(literal.getType()))
         Ok(())
       }
-      case LookupSR(range, rune, AbsoluteNameSR(name)) => {
-        val tyype = Astronomer.lookupType(state, env, range, name)
-        concludeRune(rune, tyype)
+      case LookupSR(range, rune, AbsoluteNameSN(name)) => {
+        // Lookup rules get their type from their rune, which is either populated beforehand,
+        // or figured out from another rule, see AMPLR.
+        // So here, we do nothing.
         Ok(())
       }
-      case LookupSR(range, rune, NameSR(name @ CodeTypeNameS(_))) => {
-        val tyype = Astronomer.lookupType(state, env, range, name)
-        concludeRune(rune, tyype)
+      case LookupSR(range, rune, ImpreciseNameSN(name @ CodeTypeNameS(_))) => {
+        // Lookup rules get their type from their rune, which is either populated beforehand,
+        // or figured out from another rule, see AMPLR.
+        // So here, we do nothing.
         Ok(())
       }
-      case LookupSR(range, rune, NameSR(_)) => vimpl()
+      case LookupSR(range, rune, ImpreciseNameSN(_)) => vimpl()
       case AugmentSR(_, resultRune, literals, innerRune) => vimpl()
       case PackSR(_, resultRune, members) => vimpl()
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => vimpl()
@@ -128,17 +138,21 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
     }
   }
 
-  private def solve(
+  def solve(
     astrouts: AstroutsBox,
     env: Environment,
     predicting: Boolean,
     rules: IndexedSeq[IRulexSR],
+    // Some runes don't appear in the rules, for example if they are in the identifying runes,
+    // but not in any of the members or rules.
+    additionalRunes: Iterable[IRuneS],
     expectCompleteSolve: Boolean,
     initiallyKnownRunes: Map[IRuneS, ITemplataType]):
-  Map[IRuneS, ITemplataType] = {
+  Result[Map[IRuneS, ITemplataType], AstronomySolveError] = {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules,
+        additionalRunes,
         getRunes,
         (rule: IRulexSR) => getPuzzles(predicting, rule),
         initiallyKnownRunes.keySet,
@@ -155,7 +169,10 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         case Ok(c) => c.toMap
         case Err(e) => vfail(e)
       }
-    vassert(expectCompleteSolve == (conclusions.keySet == userRuneToCanonicalRune.keySet))
-    conclusions
+    if (expectCompleteSolve && (conclusions.keySet != userRuneToCanonicalRune.keySet)) {
+      Err(AstronomySolveError(userRuneToCanonicalRune.keySet -- conclusions.keySet))
+    } else {
+      Ok(conclusions)
+    }
   }
 }

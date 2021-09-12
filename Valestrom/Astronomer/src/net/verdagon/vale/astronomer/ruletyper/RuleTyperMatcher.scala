@@ -8,34 +8,34 @@ import net.verdagon.vale.astronomer._
 
 import scala.collection.immutable.List
 
-trait RuleTyperMatcherDelegate[Env, State] {
-  def lookupType(state: State, env: Env, range: RangeS, name: CodeTypeNameS): ITemplataType
-  def lookupType(state: State, env: Env, range: RangeS, name: INameS): ITemplataType
-}
-
-class RuleTyperMatcher[Env, State](
-    evaluate: (State, Env, ConclusionsBox, IRulexSR) => (IRuleTyperEvaluateResult[IRulexAR]),
-    delegate: RuleTyperMatcherDelegate[Env, State]) {
-  private def addConclusion(
-    conclusions: ConclusionsBox,
-    range: RangeS,
-    rune: IRuneA,
-    tyype: ITemplataType):
-  IRuleTyperMatchResult[Unit] = {
-    conclusions.typeByRune.get(rune) match {
-      case None => {
-        conclusions.addConclusion(rune, tyype)
-        RuleTyperMatchSuccess(())
-      }
-      case Some(existing) => {
-        if (existing == tyype) {
-          RuleTyperMatchSuccess(())
-        } else {
-          RuleTyperMatchConflict(conclusions.conclusions, range, "Disagreement about rune " + rune + "! " + existing + " and " + tyype, Vector.empty)
-        }
-      }
-    }
-  }
+//trait RuleTyperMatcherDelegate[Env, State] {
+//  def lookupType(state: State, env: Env, range: RangeS, name: CodeTypeNameS): ITemplataType
+//  def lookupType(state: State, env: Env, range: RangeS, name: INameS): ITemplataType
+//}
+//
+//class RuleTyperMatcher[Env, State](
+//    evaluate: (State, Env, ConclusionsBox, IRulexSR) => (IRuleTyperEvaluateResult[IRulexAR]),
+//    delegate: RuleTyperMatcherDelegate[Env, State]) {
+//  private def addConclusion(
+//    conclusions: ConclusionsBox,
+//    range: RangeS,
+//    rune: IRuneA,
+//    tyype: ITemplataType):
+//  IRuleTyperMatchResult[Unit] = {
+//    conclusions.typeByRune.get(rune) match {
+//      case None => {
+//        conclusions.addConclusion(rune, tyype)
+//        RuleTyperMatchSuccess(())
+//      }
+//      case Some(existing) => {
+//        if (existing == tyype) {
+//          RuleTyperMatchSuccess(())
+//        } else {
+//          RuleTyperMatchConflict(conclusions.conclusions, range, "Disagreement about rune " + rune + "! " + existing + " and " + tyype, Vector.empty)
+//        }
+//      }
+//    }
+//  }
 
 //  def matchAgainstDestructure(
 //    state: State,
@@ -726,4 +726,4 @@ class RuleTyperMatcher[Env, State](
 //      })
 //    (RuleTyperMatchSuccess(OrAR(range, possibilitiesT)))
 //  }
-}
+//}
