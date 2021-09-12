@@ -16,8 +16,7 @@ class ErrorTests extends FunSuite with Matchers  {
   test("Report type not found") {
     val compilation =
       AstronomerTestCompilation.test(
-        """fn main() export {
-          |  a Bork = 5;
+        """fn main(a Bork) export {
           |}
           |""".stripMargin)
 

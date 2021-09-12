@@ -206,6 +206,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         complexRuleSet.toIterable,
+        Set(),
         (rule: IRule) => rule.allRunes,
         (rule: IRule) => rule.allPuzzles,
         Set(), {
@@ -268,6 +269,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
         Planner.plan(
           rules,
+          Set(),
           (rule: IRule) => rule.allRunes,
           puzzler,
           Set(), {
@@ -324,6 +326,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules,
+        Set(),
         (rule: IRule) => rule.allRunes,
         (rule: IRule) => rule.allPuzzles,
         Set(), {
@@ -365,6 +368,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules.toIterable,
+        List(),
         (rule: IRule) => rule.allRunes,
         (rule: IRule) => rule.allPuzzles,
         Set(), {
@@ -390,6 +394,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules.toIterable,
+        List(),
         (rule: IRule) => rule.allRunes,
         (rule: IRule) => rule.allPuzzles,
         initiallyKnownRunes.keySet,

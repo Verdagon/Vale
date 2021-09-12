@@ -1,8 +1,8 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
+import net.verdagon.vale.astronomer.ruletyper.{RuleTyperSolveFailure, RuleTyperSolveSuccess}
 import net.verdagon.vale.parser.{ConstraintP, WeakP}
-import net.verdagon.vale.scout.rules.{EqualsSR, IntTypeSR, MutabilityTypeSR, RuleFlattener, TypedSR, VariabilityTypeSR}
+import net.verdagon.vale.scout.rules.{EqualsSR, IntTypeSR, MutabilityTypeSR, RuleFlattener, VariabilityTypeSR}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.{Err, Ok, Result, vassertSome, vfail, vimpl}
 
@@ -22,34 +22,10 @@ object ExpressionAstronomer {
 
   def translateExpression(env: Environment, astrouts: AstroutsBox, iexprS: IExpressionSE): IExpressionAE = {
     iexprS match {
-      case LetSE(range, rules, allRunesS, localRunesS, patternS, expr) => {
-        val allRunesA = allRunesS.map(Astronomer.translateRune)
-        val localRunesA = localRunesS.map(Astronomer.translateRune)
-
-
-        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
-        val conclusions =
-          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
-            case Err(e) => throw CompileErrorExceptionA(e)
-            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
-          }
-
-//        val (conclusions, rulesA) =
-//          Astronomer.makeRuleTyper().solve(astrouts, env, rules, range, Vector(patternS), Some(allRunesA)) match {
-//            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(RangedInternalErrorA(range, rtsf.toString))
-//            case (c, RuleTyperSolveSuccess(r)) => (c, r)
-//          }
+      case LetSE(range, rules, patternS, expr) => {
         val exprA = translateExpression(env, astrouts, expr)
-
         val patternA = Astronomer.translateAtom(env, patternS)
-
-        LetAE(
-          range,
-          rulesA,
-          conclusions,
-          localRunesA,
-          patternA,
-          exprA)
+        LetAE(range,rules, patternA, exprA)
       }
       case IfSE(range, conditionS, thenBodyS, elseBodyS) => {
         val conditionA = translateBlock(env, astrouts, conditionS)
@@ -102,105 +78,108 @@ object ExpressionAstronomer {
         val elementsA = elementsS.map(translateExpression(env, astrouts, _))
         TupleAE(range, elementsA)
       }
-      case StaticArrayFromValuesSE(range, maybeMutabilityST, maybeVariabilityST, maybeSizeST, elementsS) => {
-        val rules =
-          ((maybeMutabilityST.toVector.map(mutabilityST => {
-            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
-          })) ++
-          (maybeVariabilityST.toVector.map(variabilityST => {
-            EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
-          })) ++
-          (maybeSizeST.toVector.map(sizeST => {
-            EqualsSR(range, TypedSR(range, ArraySizeImplicitRuneS(), IntTypeSR), sizeST)
-          })))
-
-        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
-        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
-        val maybeSizeRuneA = maybeSizeST.map(_ => ArraySizeImplicitRuneA())
-        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector ++ maybeSizeRuneA.toVector
-
-
-        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
-        val conclusions =
-          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
-            case Err(e) => throw CompileErrorExceptionA(e)
-            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
-          }
-
-
-        //        val (conclusions, rulesA) =
-//          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
-//            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
-//            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+      case StaticArrayFromValuesSE(range, rules, maybeMutabilityST, maybeVariabilityST, maybeSizeST, elementsS) => {
+        vimpl()
+//        val rules =
+//          ((maybeMutabilityST.toVector.map(mutabilityST => {
+//            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
+//          })) ++
+//          (maybeVariabilityST.toVector.map(variabilityST => {
+//            EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
+//          })) ++
+//          (maybeSizeST.toVector.map(sizeST => {
+//            EqualsSR(range, TypedSR(range, ArraySizeImplicitRuneS(), IntTypeSR), sizeST)
+//          })))
+//
+//        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
+//        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
+//        val maybeSizeRuneA = maybeSizeST.map(_ => ArraySizeImplicitRuneA())
+//        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector ++ maybeSizeRuneA.toVector
+//
+//
+//        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
+//        val conclusions =
+//          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
+//            case Err(e) => throw CompileErrorExceptionA(e)
+//            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
 //          }
-
-        val elementsA = elementsS.map(translateExpression(env, astrouts, _))
-
-        StaticArrayFromValuesAE(range, rulesA, conclusions, maybeSizeRuneA, maybeMutabilityRuneA, maybeVariabilityRuneA, elementsA)
+//
+//
+//        //        val (conclusions, rulesA) =
+////          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
+////            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
+////            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+////          }
+//
+//        val elementsA = elementsS.map(translateExpression(env, astrouts, _))
+//
+//        StaticArrayFromValuesAE(range, rulesA, conclusions, maybeSizeRuneA, maybeMutabilityRuneA, maybeVariabilityRuneA, elementsA)
       }
-      case StaticArrayFromCallableSE(range, maybeMutabilityST, maybeVariabilityST, sizeST, callableSE) => {
-        val rules =
-          ((maybeMutabilityST.toVector.map(mutabilityST => {
-            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
-          })) ++
-            (maybeVariabilityST.toVector.map(variabilityST => {
-              EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
-            })) ++
-            Vector(EqualsSR(range, TypedSR(range, ArraySizeImplicitRuneS(), IntTypeSR), sizeST)))
-
-        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
-        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
-        val sizeRuneA = ArraySizeImplicitRuneA()
-        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector ++ Vector(sizeRuneA)
-
-
-        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
-        val conclusions =
-          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
-            case Err(e) => throw CompileErrorExceptionA(e)
-            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
-          }
-
-        //        val (conclusions, rulesA) =
-//          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
-//            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
-//            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+      case StaticArrayFromCallableSE(range, rules, maybeMutabilityST, maybeVariabilityST, sizeST, callableSE) => {
+        vimpl()
+//        val rules =
+//          ((maybeMutabilityST.toVector.map(mutabilityST => {
+//            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
+//          })) ++
+//            (maybeVariabilityST.toVector.map(variabilityST => {
+//              EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
+//            })) ++
+//            Vector(EqualsSR(range, TypedSR(range, ArraySizeImplicitRuneS(), IntTypeSR), sizeST)))
+//
+//        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
+//        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
+//        val sizeRuneA = ArraySizeImplicitRuneA()
+//        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector ++ Vector(sizeRuneA)
+//
+//
+//        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
+//        val conclusions =
+//          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
+//            case Err(e) => throw CompileErrorExceptionA(e)
+//            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
 //          }
-
-        val callableAE = translateExpression(env, astrouts, callableSE)
-
-        StaticArrayFromCallableAE(range, rulesA, conclusions, sizeRuneA, maybeMutabilityRuneA, maybeVariabilityRuneA, callableAE)
+//
+//        //        val (conclusions, rulesA) =
+////          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
+////            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
+////            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+////          }
+//
+//        val callableAE = translateExpression(env, astrouts, callableSE)
+//
+//        StaticArrayFromCallableAE(range, rulesA, conclusions, sizeRuneA, maybeMutabilityRuneA, maybeVariabilityRuneA, callableAE)
       }
-      case RuntimeArrayFromCallableSE(range, maybeMutabilityST, maybeVariabilityST, sizeSE, callableSE) => {
-        val rules =
-          ((maybeMutabilityST.toVector.map(mutabilityST => {
-            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
-          })) ++
-          (maybeVariabilityST.toVector.map(variabilityST => {
-            EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
-          })))
-
-        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
-        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
-        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector
-
-        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
-        val conclusions =
-          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
-            case Err(e) => throw CompileErrorExceptionA(e)
-            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
-          }
-
-        //        val (conclusions, rulesA) =
-//          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
-//            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
-//            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+      case RuntimeArrayFromCallableSE(range, rules, maybeMutabilityST, maybeVariabilityST, sizeSE, callableSE) => {
+        vimpl()
+//        val rules =
+//          ((maybeMutabilityST.toVector.map(mutabilityST => {
+//            EqualsSR(range, TypedSR(range, ArrayMutabilityImplicitRuneS(), MutabilityTypeSR), mutabilityST)
+//          })) ++
+//          (maybeVariabilityST.toVector.map(variabilityST => {
+//            EqualsSR(range, TypedSR(range, ArrayVariabilityImplicitRuneS(), VariabilityTypeSR), variabilityST)
+//          })))
+//
+//        val maybeMutabilityRuneA = maybeMutabilityST.map(_ => ArrayMutabilityImplicitRuneA())
+//        val maybeVariabilityRuneA = maybeVariabilityST.map(_ => ArrayVariabilityImplicitRuneA())
+//        val runesA = maybeMutabilityRuneA.toVector ++ maybeVariabilityRuneA.toVector
+//
+//        val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rules)
+//        val conclusions =
+//          Astronomer.makeRuleTyper().solve(astrouts, env, rulesA, range) match {
+//            case Err(e) => throw CompileErrorExceptionA(e)
+//            case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
 //          }
-
-        val sizeAE = translateExpression(env, astrouts, sizeSE)
-        val callableAE = translateExpression(env, astrouts, callableSE)
-
-        RuntimeArrayFromCallableAE(range, rulesA, conclusions, maybeMutabilityRuneA, maybeVariabilityRuneA, sizeAE, callableAE)
+//
+//        //        val (conclusions, rulesA) =
+////          makeRuleTyper().solve(astrouts, env, rules, range, Vector.empty, Some(runesA.toSet)) match {
+////            case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => vfail(rtsf.toString)
+////            case (c, RuleTyperSolveSuccess(r)) => (c, r)
+////          }
+//
+//        val sizeAE = translateExpression(env, astrouts, sizeSE)
+//        val callableAE = translateExpression(env, astrouts, callableSE)
+//
+//        RuntimeArrayFromCallableAE(range, rulesA, conclusions, maybeMutabilityRuneA, maybeVariabilityRuneA, sizeAE, callableAE)
       }
       case RepeaterPackSE(range, exprS) => {
         val elementsA = translateExpression(env, astrouts, exprS)
@@ -241,30 +220,30 @@ object ExpressionAstronomer {
       case LocalLoadSE(range, name, targetOwnership) => {
         LocalLoadAE(range, Astronomer.translateVarNameStep(name), targetOwnership)
       }
-      case OutsideLoadSE(range, name, None, targetOwnership) => {
+      case OutsideLoadSE(range, rules, name, None, targetOwnership) => {
         OutsideLoadAE(range, name, targetOwnership)
       }
-      case OutsideLoadSE(range, name, Some(templateArgsS), targetOwnership) => {
+      case OutsideLoadSE(range, rules, name, Some(templateArgRunesS), targetOwnership) => {
         // We don't translate the templexes, we can't until we know what the template expects.
-        TemplateSpecifiedLookupAE(range, name, templateArgsS, targetOwnership)
+        TemplateSpecifiedLookupAE(range, name, rules, templateArgRunesS, targetOwnership)
       }
       case UnletSE(range, name) => UnletAE(range, name)
     }
   }
 
-  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
-    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
-      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
-        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
-          vimpl()
-        }
-//        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {
-//          Astronomer.lookupType(state, env, range, name)
+//  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
+//    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
+//      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
+//        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
+//          vimpl()
 //        }
-//
-//        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: INameS): ITemplataType = {
-//          Astronomer.lookupType(state, env, range, name)
-//        }
-      })
-  }
+////        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {
+////          Astronomer.lookupType(state, env, range, name)
+////        }
+////
+////        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: INameS): ITemplataType = {
+////          Astronomer.lookupType(state, env, range, name)
+////        }
+//      })
+//  }
 }

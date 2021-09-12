@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils, VirtualitySP}
-import net.verdagon.vale.scout.rules.{IValueSR, IRulexSR, ITypeSR}
+import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR, ITypeSR}
 import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -244,6 +244,7 @@ case class FunctionS(
     attributes: Vector[IFunctionAttributeS],
 
     identifyingRunes: Vector[IRuneS],
+  runeToExplicitType: Map[IRuneS, ITypeSR],
 
 //    // Runes that we can know without looking at args or template args.
 //    knowableRunes: Set[IRuneS],

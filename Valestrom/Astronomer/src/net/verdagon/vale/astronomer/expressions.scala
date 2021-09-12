@@ -1,7 +1,7 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{ConstraintP, LendConstraintP, LendWeakP, LoadAsP, MoveP, MutabilityP, OwnershipP, VariabilityP, WeakP}
-import net.verdagon.vale.scout.{CodeLocationS, IVariableUseCertainty, LocalS, RangeS}
+import net.verdagon.vale.scout.{CodeLocationS, IRuneS, IVariableUseCertainty, LocalS, RangeS}
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.{vassert, vcurious, vimpl, vpass, vwat}
@@ -10,9 +10,7 @@ import net.verdagon.vale.{vassert, vcurious, vimpl, vpass, vwat}
 // collide with other things
 case class LetAE(
     range: RangeS,
-    rules: RuneWorldSolverState,
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
+    rules: Array[IRulexSR],
     pattern: AtomAP,
     expr: IExpressionAE) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 
@@ -97,7 +95,7 @@ case class VoidAE(range: RangeS) extends IExpressionAE {}
 case class TupleAE(range: RangeS, elements: Vector[IExpressionAE]) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 case class StaticArrayFromValuesAE(
   range: RangeS,
-  rules: RuneWorldSolverState,
+  rules: Array[IRulexSR],
   typeByRune: Map[IRuneA, ITemplataType],
   maybeSizeRune: Option[IRuneA],
   maybeMutabilityRune: Option[IRuneA],
@@ -106,7 +104,7 @@ case class StaticArrayFromValuesAE(
 ) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 case class StaticArrayFromCallableAE(
   range: RangeS,
-  rules: RuneWorldSolverState,
+  rules: Array[IRulexSR],
   typeByRune: Map[IRuneA, ITemplataType],
   sizeRune: IRuneA,
   maybeMutabilityRune: Option[IRuneA],
@@ -116,7 +114,7 @@ case class StaticArrayFromCallableAE(
 
 case class RuntimeArrayFromCallableAE(
   range: RangeS,
-  rules: RuneWorldSolverState,
+  rules: Array[IRulexSR],
   typeByRune: Map[IRuneA, ITemplataType],
   maybeMutabilityRune: Option[IRuneA],
   maybeVariabilityRune: Option[IRuneA],
@@ -151,7 +149,12 @@ case class FunctionCallAE(range: RangeS, callableExpr: IExpressionAE, argsExprs1
 
 //case class MethodCall0(callableExpr: Expression0, objectExpr: Expression0, argsExpr: Pack0) extends Expression0 { override def hashCode(): Int = vcurious() }
 
-case class TemplateSpecifiedLookupAE(range: RangeS, name: String, templateArgs: Vector[IRulexSR], targetOwnership: LoadAsP) extends IExpressionAE { override def hashCode(): Int = vcurious() }
+case class TemplateSpecifiedLookupAE(
+  range: RangeS,
+  name: String,
+  rules: Array[IRulexSR],
+  templateArgRunes: Array[IRuneS],
+  targetOwnership: LoadAsP) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 case class RuneLookupAE(range: RangeS, rune: IRuneA, tyype: ITemplataType) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 
 case class LocalLoadAE(range: RangeS, name: IVarNameA, targetOwnership: LoadAsP) extends IExpressionAE { override def hashCode(): Int = vcurious() }

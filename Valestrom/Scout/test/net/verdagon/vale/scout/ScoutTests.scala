@@ -61,10 +61,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val imoo = program1.lookupStruct("Moo")
 
     imoo.rules shouldHave {
-      case ValueLeafSR(_, r, MutabilityLiteralSR(MutableP)) => vassert(r == imoo.mutabilityRune)
+      case LiteralSR(_, r, MutabilityLiteralSL(MutableP)) => vassert(r == imoo.mutabilityRune)
     }
     imoo.rules shouldHave {
-      case ValueLeafSR(_, m, NameSR(CodeTypeNameS("int"))) => vassert(m == imoo.members(0).typeRune)
+      case LookupSR(_, m, ImpreciseNameSN(CodeTypeNameS("int"))) => vassert(m == imoo.members(0).typeRune)
     }
     imoo.members match {
       case Vector(StructMemberS(_, "x", FinalP, _)) =>
@@ -75,7 +75,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val program1 = compile("fn main() int export { {_ + _}!(4, 6) }")
 
     val CodeBodyS(BodySE(_, _, BlockSE(_, _, Vector(expr)))) = program1.lookupFunction("main").body
-    val FunctionCallSE(_, OwnershippedSE(_,FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _)), LendConstraintP(Some(ReadwriteP))), _) = expr
+    val FunctionCallSE(_, OwnershippedSE(_,FunctionSE(lambda@FunctionS(_, _, _, _, _, _, _, _, _)), LendConstraintP(Some(ReadwriteP))), _) = expr
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.identifyingRunes match {
       case Vector(MagicParamRuneS(mp1), MagicParamRuneS(mp2)) => {
@@ -166,10 +166,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
     impl.rules shouldHave {
-      case ValueLeafSR(_, r, NameSR(CodeTypeNameS("Moo"))) => vassert(r == impl.structKindRune)
+      case LookupSR(_, r, ImpreciseNameSN(CodeTypeNameS("Moo"))) => vassert(r == impl.structKindRune)
     }
     impl.rules shouldHave {
-      case ValueLeafSR(_, r, NameSR(CodeTypeNameS("IMoo"))) => vassert(r == impl.interfaceKindRune)
+      case LookupSR(_, r, ImpreciseNameSN(CodeTypeNameS("IMoo"))) => vassert(r == impl.interfaceKindRune)
     }
   }
 

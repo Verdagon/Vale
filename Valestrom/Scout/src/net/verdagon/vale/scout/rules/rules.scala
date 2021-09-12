@@ -40,7 +40,7 @@ case class CoordComponentsSR(
 case class OneOfSR(
   range: RangeS,
   rune: IRuneS,
-  literals: Array[IValueSR]
+  literals: Array[ILiteralSL]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vassert(literals.nonEmpty)
@@ -78,7 +78,7 @@ case class CoerceToCoord(
 case class LiteralSR(
   range: RangeS,
   rune: IRuneS,
-  literal: IValueSR
+  literal: ILiteralSL
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
 }
@@ -86,9 +86,10 @@ case class LiteralSR(
 case class LookupSR(
   range: RangeS,
   rune: IRuneS,
-  name: INameSR
+  name: INameSN
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  vpass()
 }
 
 // InterpretedAR will overwrite inner's permission and ownership to the given ones.
@@ -97,7 +98,7 @@ case class AugmentSR(
   range: RangeS,
   resultRune: IRuneS,
   // Lets try and figure out a way to only have one thing here instead of a Vector
-  literal: Vector[IValueSR],
+  literal: Vector[ILiteralSL],
   innerRune: IRuneS
 ) extends IRulexSR {
   vpass()
@@ -196,39 +197,39 @@ case class CoordListSR(
 //}
 
 
-sealed trait IValueSR {
+sealed trait ILiteralSL {
   def getType(): ITypeSR
 }
 
-case class IntLiteralSR(value: Long) extends IValueSR {
+case class IntLiteralSL(value: Long) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = IntTypeSR
 }
-case class StringLiteralSR(value: String) extends IValueSR {
+case class StringLiteralSL(value: String) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = StringTypeSR
 }
-case class BoolLiteralSR(value: Boolean) extends IValueSR {
+case class BoolLiteralSL(value: Boolean) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = BoolTypeSR
 }
-case class MutabilityLiteralSR(mutability: MutabilityP) extends IValueSR {
+case class MutabilityLiteralSL(mutability: MutabilityP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = MutabilityTypeSR
 }
-case class PermissionLiteralSR(permission: PermissionP) extends IValueSR {
+case class PermissionLiteralSL(permission: PermissionP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = PermissionTypeSR
 }
-case class LocationLiteralSR(location: LocationP) extends IValueSR {
+case class LocationLiteralSL(location: LocationP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = LocationTypeSR
 }
-case class OwnershipLiteralSR(ownership: OwnershipP) extends IValueSR {
+case class OwnershipLiteralSL(ownership: OwnershipP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = OwnershipTypeSR
 }
-case class VariabilityLiteralSR(variability: VariabilityP) extends IValueSR {
+case class VariabilityLiteralSL(variability: VariabilityP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITypeSR = VariabilityTypeSR
 }
@@ -240,17 +241,17 @@ case class VariabilityLiteralSR(variability: VariabilityP) extends IValueSR {
 //  override def hashCode(): Int = vcurious()
 //}
 
-sealed trait INameSR
+sealed trait INameSN
 
-case class NameSR(
+case class ImpreciseNameSN(
   name: IImpreciseNameStepS
-) extends INameSR {
+) extends INameSN {
   override def hashCode(): Int = vcurious()
 }
 
-case class AbsoluteNameSR(
+case class AbsoluteNameSN(
   name: INameS
-) extends INameSR {
+) extends INameSN {
   override def hashCode(): Int = vcurious()
 }
 

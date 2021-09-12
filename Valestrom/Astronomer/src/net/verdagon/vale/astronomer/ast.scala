@@ -1,6 +1,7 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser._
+import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vimpl, vwat}
 
@@ -20,6 +21,16 @@ case class ProgramA(
 
   def lookupFunction(name: INameA) = {
     val matches = functions.filter(_.name == name)
+    vassert(matches.size == 1)
+    matches.head
+  }
+  def lookupFunction(name: String) = {
+    val matches = functions.filter(function => {
+      function.name match {
+        case FunctionNameA(n, _) => n == name
+        case _ => false
+      }
+    })
     vassert(matches.size == 1)
     matches.head
   }
@@ -61,7 +72,7 @@ case class StructA(
     identifyingRunes: Vector[IRuneA],
     localRunes: Set[IRuneA],
     typeByRune: Map[IRuneA, ITemplataType],
-    rules: RuneWorldSolverState,
+    rules: Vector[IRulexSR],
     members: Vector[StructMemberA]
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
@@ -94,8 +105,7 @@ case class ImplA(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameA,
-    rulesFromStructDirection: Vector[IRulexAR],
-    rulesFromInterfaceDirection: Vector[IRulexAR],
+  rules: Vector[IRulexSR],
     typeByRune: Map[IRuneA, ITemplataType],
     localRunes: Set[IRuneA],
     structKindRune: IRuneA,
@@ -112,7 +122,7 @@ case class ImplA(
 case class ExportAsA(
     range: RangeS,
     exportedName: String,
-    rules: RuneWorldSolverState,
+  rules: Vector[IRulexSR],
     typeByRune: Map[IRuneA, ITemplataType],
     typeRune: IRuneA) {
   val hash = range.hashCode() + exportedName.hashCode
@@ -148,7 +158,7 @@ case class InterfaceA(
     identifyingRunes: Vector[IRuneA],
     localRunes: Set[IRuneA],
     typeByRune: Map[IRuneA, ITemplataType],
-    rules: RuneWorldSolverState,
+  rules: Vector[IRulexSR],
     // See IMRFDI
     internalMethods: Vector[FunctionA]) {
   val hash = range.hashCode() + name.hashCode()
@@ -216,11 +226,11 @@ case class FunctionA(
     attributes: Vector[IFunctionAttributeA],
 
     tyype: ITemplataType,
-    knowableRunes: Set[IRuneA],
+//    knowableRunes: Set[IRuneA],
     // This is not necessarily only what the user specified, the compiler can add
     // things to the end here, see CCAUIR.
     identifyingRunes: Vector[IRuneA],
-    localRunes: Set[IRuneA],
+//    localRunes: Set[IRuneA],
 
     typeByRune: Map[IRuneA, ITemplataType],
 
@@ -229,7 +239,7 @@ case class FunctionA(
     // We need to leave it an option to signal that the compiler can infer the return type.
     maybeRetCoordRune: Option[IRuneA],
 
-    templateRules: RuneWorldSolverState,
+  rules: Vector[IRulexSR],
     body: IBodyA
 ) {
   val hash = range.hashCode() + name.hashCode()
@@ -240,11 +250,11 @@ case class FunctionA(
     return range == that.range && name == that.name;
   }
 
-  // Make sure we have to solve all the identifying runes.
-  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
-
-  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  // Make sure we have to solve all the identifying runes.
+//  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
+//
+//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
+//  vassert((localRunes -- typeByRune.keySet).isEmpty)
 
   def isLight(): Boolean = {
     body match {
