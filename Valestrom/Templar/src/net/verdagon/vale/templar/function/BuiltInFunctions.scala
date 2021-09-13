@@ -55,15 +55,15 @@ object BuiltInFunctions {
             TemplexAR(RuneAR(RangeS.internal(-9113),CodeRuneA("I"), CoordTemplataType)),
             TemplexAR(NameAR(RangeS.internal(-9114),CodeTypeNameA("int"), CoordTemplataType)))),
         CodeBodyA(
-          BodyAE(
+          BodySE(
             RangeS.internal(-62),
             Vector.empty,
-            BlockAE(
+            BlockSE(
               RangeS.internal(-62),
               Vector(
-                ArrayLengthAE(
+                ArrayLengthSE(
                   RangeS.internal(-62),
-                  LocalLoadAE(RangeS.internal(-62),CodeVarNameA("arr"), UseP))))))),
+                  LocalLoadSE(RangeS.internal(-62),CodeVarNameA("arr"), UseP))))))),
       FunctionA(
         RangeS.internal(-62),
         FunctionNameA("len", s.CodeLocationS.internal(-21)),
@@ -102,10 +102,10 @@ object BuiltInFunctions {
             TemplexAR(RuneAR(RangeS.internal(-9123),CodeRuneA("I"), CoordTemplataType)),
             TemplexAR(NameAR(RangeS.internal(-9124),CodeTypeNameA("int"), CoordTemplataType)))),
         CodeBodyA(
-          BodyAE(
+          BodySE(
             RangeS.internal(-62),
             Vector.empty,
-            BlockAE(
+            BlockSE(
               RangeS.internal(-62),
               Vector(
                 RuneLookupAE(RangeS.internal(-62),CodeRuneA("N"), IntegerTemplataType)))))),
@@ -149,11 +149,11 @@ object BuiltInFunctions {
             TemplexAR(
               InterpretedAT(RangeS.internal(-9136),WeakP,ReadonlyP, RuneAR(RangeS.internal(-9137),CodeRuneA("OwningRune"), CoordTemplataType))))),
         CodeBodyA(
-          BodyAE(
+          BodySE(
             RangeS.internal(-62),
             Vector.empty,
-            BlockAE(
+            BlockSE(
               RangeS.internal(-62),
               Vector(
-                LockWeakAE(RangeS.internal(-9138), LocalLoadAE(RangeS.internal(-62),CodeVarNameA("weakRef"), LendWeakP(ReadonlyP)))))))))
+                LockWeakSE(RangeS.internal(-9138), LocalLoadSE(RangeS.internal(-62),CodeVarNameA("weakRef"), LendWeakP(ReadonlyP)))))))))
 }

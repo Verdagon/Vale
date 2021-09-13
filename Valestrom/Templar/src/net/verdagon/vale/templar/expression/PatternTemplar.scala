@@ -85,8 +85,8 @@ class PatternTemplar(
       fate: FunctionEnvironmentBox,
       life: LocationInFunctionEnvironment,
       rules: Vector[IRulexAR],
-      typeByRune: Map[IRuneA, ITemplataType],
-      localRunes: Set[IRuneA],
+      typeByRune: Map[IRuneS, ITemplataType],
+      localRunes: Set[IRuneS],
       pattern: AtomAP,
       inputExpr: ReferenceExpressionTE,
       // This would be a continuation-ish lambda that evaluates:

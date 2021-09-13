@@ -27,7 +27,7 @@ class FunctionTemplarCore(
       startingFate: FunctionEnvironment,
       fate: FunctionEnvironmentBox,
       life: LocationInFunctionEnvironment,
-      exprs: Vector[IExpressionAE]
+      exprs: Vector[IExpressionSE]
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       delegate.evaluateBlockStatements(temputs, startingFate, fate, life, exprs)
     }

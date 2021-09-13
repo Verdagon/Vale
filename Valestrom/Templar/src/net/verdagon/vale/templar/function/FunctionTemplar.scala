@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{AtomAP, BFunctionA, FunctionA, IExpressionAE, INameA, IVarNameA, LambdaNameA}
+import net.verdagon.vale.astronomer.{AtomAP, BFunctionA, FunctionA, IExpressionSE, INameA, IVarNameA, LambdaNameA}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser._
@@ -24,7 +24,7 @@ trait IFunctionTemplarDelegate {
     startingFate: FunctionEnvironment,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    exprs: Vector[IExpressionAE]):
+    exprs: Vector[IExpressionSE]):
   (ReferenceExpressionTE, Set[CoordT])
 
   def translatePatternList(

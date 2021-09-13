@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{AbstractAP, CodeBodyA, FunctionA, IRuneA, OverrideAP, ParameterA, VirtualityAP}
+import net.verdagon.vale.astronomer.{AbstractAP, CodeBodyA, FunctionA, IRuneS, OverrideAP, ParameterA, VirtualityAP}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
@@ -348,7 +348,7 @@ class FunctionTemplarMiddleLayer(
 
   private def getMaybeReturnType(
     nearEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
-    maybeRetCoordRune: Option[IRuneA]
+    maybeRetCoordRune: Option[IRuneS]
   ): Option[CoordT] = {
     maybeRetCoordRune.map(retCoordRuneA => {
       val retCoordRune = NameTranslator.translateRune(retCoordRuneA)

@@ -1,7 +1,8 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.astronomer.ruletyper.{AstronomySolveError, RuleTyperSolveFailure}
+//import net.verdagon.vale.astronomer.ruletyper.RuleTyperSolveFailure
 import net.verdagon.vale.scout.RangeS
+import net.verdagon.vale.scout.predictor.AstronomySolveError
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.{vcurious, vimpl, vpass}
 

@@ -3,6 +3,7 @@ package net.verdagon.vale.scout.rules
 import net.verdagon.vale.{vassert, vcurious, vimpl, vpass, vwat}
 import net.verdagon.vale.parser.{LocationP, MutabilityP, OwnershipP, PermissionP, VariabilityP}
 import net.verdagon.vale.scout._
+import net.verdagon.vale.templar.types._
 
 import scala.collection.immutable.List
 
@@ -198,40 +199,40 @@ case class CoordListSR(
 
 
 sealed trait ILiteralSL {
-  def getType(): ITypeSR
+  def getType(): ITemplataType
 }
 
 case class IntLiteralSL(value: Long) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = IntTypeSR
+  override def getType(): ITemplataType = IntegerTemplataType
 }
 case class StringLiteralSL(value: String) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = StringTypeSR
+  override def getType(): ITemplataType = StringTemplataType
 }
 case class BoolLiteralSL(value: Boolean) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = BoolTypeSR
+  override def getType(): ITemplataType = BooleanTemplataType
 }
 case class MutabilityLiteralSL(mutability: MutabilityP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = MutabilityTypeSR
+  override def getType(): ITemplataType = MutabilityTemplataType
 }
 case class PermissionLiteralSL(permission: PermissionP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = PermissionTypeSR
+  override def getType(): ITemplataType = PermissionTemplataType
 }
 case class LocationLiteralSL(location: LocationP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = LocationTypeSR
+  override def getType(): ITemplataType = LocationTemplataType
 }
 case class OwnershipLiteralSL(ownership: OwnershipP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = OwnershipTypeSR
+  override def getType(): ITemplataType = OwnershipTemplataType
 }
 case class VariabilityLiteralSL(variability: VariabilityP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
-  override def getType(): ITypeSR = VariabilityTypeSR
+  override def getType(): ITemplataType = VariabilityTemplataType
 }
 
 //// This is a rune that we know is defined, which came from the parent env
@@ -257,22 +258,23 @@ case class AbsoluteNameSN(
 
 
 
-sealed trait ITypeSR
-case object IntTypeSR extends ITypeSR
-case object StringTypeSR extends ITypeSR
-case object PrototypeTypeSR extends ITypeSR
-case object BoolTypeSR extends ITypeSR
-case object OwnershipTypeSR extends ITypeSR
-case object MutabilityTypeSR extends ITypeSR
-case object PermissionTypeSR extends ITypeSR
-case object LocationTypeSR extends ITypeSR
-case object CoordTypeSR extends ITypeSR
-case object KindTypeSR extends ITypeSR
-case object FunctionTypeSR extends ITypeSR
-case class TemplateTypeSR(params: Vector[ITypeSR], result: ITypeSR) extends ITypeSR {
-  override def hashCode(): Int = vcurious()
-}
-case object VariabilityTypeSR extends ITypeSR
+//sealed trait ITemplataType
+//case object IntegerTemplataType extends ITemplataType
+//case object StringTemplataType extends ITemplataType
+//case object PrototypeTemplataType extends ITemplataType
+//case object BooleanTemplataType extends ITemplataType
+//case object OwnershipTemplataType extends ITemplataType
+//case object MutabilityTemplataType extends ITemplataType
+//case object PermissionTemplataType extends ITemplataType
+//case object LocationTemplataType extends ITemplataType
+//case object CoordTemplataType extends ITemplataType
+//case object KindTemplataType extends ITemplataType
+//case object FunctionTemplataType extends ITemplataType
+//case class TemplateTemplataType(params: Vector[ITemplataType], result: ITemplataType) extends ITemplataType {
+//  override def hashCode(): Int = vcurious()
+//}
+//case object VariabilityTemplataType extends ITemplataType
+
 //case object StructTypeSR extends ITypeSR
 //case object SequenceTypeSR extends ITypeSR
 // We need PackTypeSR because we have a built-in templated destructor whose rules

@@ -1,13 +1,10 @@
-package net.verdagon.vale.astronomer.ruletyper
+package net.verdagon.vale.scout.predictor
 
-import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
-import net.verdagon.vale.scout.rules._
 import net.verdagon.vale._
-import net.verdagon.vale.astronomer._
-import net.verdagon.vale.solver.{ISolveRule, Planner, Solver}
-
-import scala.collection.immutable.List
+import net.verdagon.vale.scout.{CodeTypeNameS, IRuneS}
+import net.verdagon.vale.scout.rules._
+import net.verdagon.vale.solver.{Planner, Solver}
+import net.verdagon.vale.templar.types._
 
 case class AstronomySolveError(unknownRunes: Iterable[IRuneS])
 object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITemplataType, ITemplataType]
@@ -68,8 +65,8 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
   }
 
   private def solveRule(
-    state: AstroutsBox,
-    env: Environment,
+    state: Unit,
+    env: Unit,
     ruleIndex: Int,
     rule: IRulexSR,
     getConclusion: IRuneS => Option[ITemplataType],
@@ -89,7 +86,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         Ok(())
       }
       case OneOfSR(_, resultRune, literals) => {
-        val types = literals.map(_.getType()).map(Astronomer.translateRuneType).toSet
+        val types = literals.map(_.getType()).toSet
         if (types.size > 1) {
           vfail("OneOf rule's possibilities must all be the same type!")
         }
@@ -114,7 +111,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         Ok(())
       }
       case LiteralSR(_, rune, literal) => {
-        concludeRune(rune, Astronomer.translateRuneType(literal.getType()))
+        concludeRune(rune, literal.getType())
         Ok(())
       }
       case LookupSR(range, rune, AbsoluteNameSN(name)) => {
@@ -139,8 +136,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
   }
 
   def solve(
-    astrouts: AstroutsBox,
-    env: Environment,
+    env: Unit,
     predicting: Boolean,
     rules: IndexedSeq[IRulexSR],
     // Some runes don't appear in the rules, for example if they are in the identifying runes,
@@ -158,8 +154,8 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         initiallyKnownRunes.keySet,
         { case EqualsSR(_, a, b) => (a, b)}: PartialFunction[IRulexSR, (IRuneS, IRuneS)])
     val conclusions =
-      Solver.solve[IRulexSR, IRuneS, Environment, AstroutsBox, ITemplataType, Unit](
-        astrouts, env, numCanonicalRunes, rules, ruleExecutionOrder,
+      Solver.solve[IRulexSR, IRuneS, Unit, Unit, ITemplataType, Unit](
+        Unit, env, numCanonicalRunes, rules, ruleExecutionOrder,
         getRunes,
         userRuneToCanonicalRune,
         userRuneToCanonicalRune.keys,

@@ -3,6 +3,7 @@ package net.verdagon.vale.scout.patterns
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, _}
+import net.verdagon.vale.templar.types.ITemplataType
 import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -27,7 +28,7 @@ object PatternScout {
       stackFrame: StackFrame,
       lidb: LocationInDenizenBuilder,
       ruleBuilder: ArrayBuffer[IRulexSR],
-      runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+      runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
       params: Vector[PatternPP]):
   Vector[AtomSP] = {
     params.map(
@@ -42,7 +43,7 @@ object PatternScout {
     stackFrame: StackFrame,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     patternPP: PatternPP):
   AtomSP = {
     val PatternPP(range,_,maybeCaptureP, maybeTypeP, maybeDestructureP, maybeVirtualityP) = patternPP
@@ -118,7 +119,7 @@ object PatternScout {
       lidb: LocationInDenizenBuilder,
       range: RangeS,
       ruleBuilder: ArrayBuffer[IRulexSR],
-      runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+      runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
       maybeTypeP: Option[ITemplexPT],
       runeType: ITypePR,
       // Determines whether the rune is on the left or the right in the Equals rule, which
@@ -149,7 +150,7 @@ object PatternScout {
     lidb: LocationInDenizenBuilder,
     range: RangeS,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     maybeTypeP: Option[ITemplexPT],
     runeType: ITypePR,
     // Determines whether the rune is on the left or the right in the Equals rule, which

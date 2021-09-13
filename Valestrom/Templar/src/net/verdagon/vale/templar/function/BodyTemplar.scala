@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.function
 
 
-import net.verdagon.vale.astronomer.{AtomAP, BFunctionA, BodyAE, ExportA, IExpressionAE, IFunctionAttributeA, LocalA, ParameterA, PureA, UserFunctionA}
+import net.verdagon.vale.astronomer.{AtomAP, BFunctionA, BodySE, ExportA, IExpressionSE, IFunctionAttributeA, LocalA, ParameterA, PureA, UserFunctionA}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.CaptureP
@@ -20,7 +20,7 @@ trait IBodyTemplarDelegate {
     startingFate: FunctionEnvironment,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    exprs: Vector[IExpressionAE]):
+    exprs: Vector[IExpressionSE]):
   (ReferenceExpressionTE, Set[CoordT])
 
   def translatePatternList(
@@ -123,7 +123,7 @@ class BodyTemplar(
     life: LocationInFunctionEnvironment,
     params1: Vector[ParameterA],
     params2: Vector[ParameterT],
-    body1: BodyAE,
+    body1: BodySE,
     isDestructor: Boolean,
     maybeExpectedResultType: Option[CoordT]):
   Result[(BlockTE, Set[CoordT]), ResultTypeMismatchError] = {

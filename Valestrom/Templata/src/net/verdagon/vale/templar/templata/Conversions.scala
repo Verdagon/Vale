@@ -82,18 +82,18 @@ object Conversions {
     }
   }
 
-  def unevaluateTemplataType(tyype: ITemplataType): ITypeSR = {
+  def unevaluateTemplataType(tyype: ITemplataType): ITemplataType = {
     tyype match {
-      case CoordTemplataType => CoordTypeSR
-      case KindTemplataType => KindTypeSR
-      case IntegerTemplataType => IntTypeSR
-      case BooleanTemplataType => BoolTypeSR
-      case PrototypeTemplataType => PrototypeTypeSR
-      case MutabilityTemplataType => MutabilityTypeSR
-      case PermissionTemplataType => PermissionTypeSR
-      case LocationTemplataType => LocationTypeSR
-      case OwnershipTemplataType => OwnershipTypeSR
-      case VariabilityTemplataType => VariabilityTypeSR
+      case CoordTemplataType => CoordTemplataType
+      case KindTemplataType => KindTemplataType
+      case IntegerTemplataType => IntegerTemplataType
+      case BooleanTemplataType => BooleanTemplataType
+      case PrototypeTemplataType => PrototypeTemplataType
+      case MutabilityTemplataType => MutabilityTemplataType
+      case PermissionTemplataType => PermissionTemplataType
+      case LocationTemplataType => LocationTemplataType
+      case OwnershipTemplataType => OwnershipTemplataType
+      case VariabilityTemplataType => VariabilityTemplataType
       case TemplateTemplataType(_, _) => vimpl() // can we even specify template types in the syntax?
     }
   }

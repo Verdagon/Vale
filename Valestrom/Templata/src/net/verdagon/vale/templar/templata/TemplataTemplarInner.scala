@@ -2,6 +2,7 @@ package net.verdagon.vale.templar.templata
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser.ShareP
+import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.{AnonymousSubstructNameT, CitizenNameT, INameT, LambdaCitizenNameT, NameTranslator, TupleNameT}
 import net.verdagon.vale.templar.types._
@@ -25,7 +26,7 @@ case class TypeDistance(upcastDistance: Int, ownershipDistance: Int, permissionD
 
 trait ITemplataTemplarInnerDelegate[Env, State] {
   def lookupTemplata(env: Env, range: RangeS, name: INameT): ITemplata
-  def lookupTemplataImprecise(env: Env, range: RangeS, name: IImpreciseNameStepA): ITemplata
+  def lookupTemplataImprecise(env: Env, range: RangeS, name: IImpreciseNameStepS): ITemplata
 
   def getMutability(state: State, kind: KindT): MutabilityT
 
@@ -83,76 +84,77 @@ class TemplataTemplarInner[Env, State](delegate: ITemplataTemplarInnerDelegate[E
   def evaluateTemplex(
     env: Env,
     state: State,
-    type1: IRulexAR):
+    type1: IRulexSR):
   (ITemplata) = {
-    vassert(type1.isInstanceOf[IRulexAR])
-    type1 match {
-      case NameAR(range, name, tyype) => {
-        val thing = delegate.lookupTemplataImprecise(env, range, name)
-        coerce(state, range, thing, tyype)
-      }
-      case RuneAR(range, rune, resultType) => {
-        val thing = delegate.lookupTemplata(env, range, NameTranslator.translateRune(rune))
-        coerce(state, range, thing, resultType)
-      }
-      case RepeaterSequenceAT(range, mutabilityTemplexS, variabilityTemplexS, sizeTemplexS, elementTemplexS, tyype) => {
-        val MutabilityTemplata(mutability) = evaluateTemplex(env, state, mutabilityTemplexS)
-        val VariabilityTemplata(variability) = evaluateTemplex(env, state, variabilityTemplexS)
-        val IntegerTemplata(size) = evaluateTemplex(env, state, sizeTemplexS)
-
-        val CoordTemplata(elementType2) = evaluateTemplex(env, state, elementTemplexS)
-
-        val kind = KindTemplata(delegate.getStaticSizedArrayKind(env, state, mutability, variability, size.toInt, elementType2))
-        coerce(state, range, kind, tyype)
-      }
-      case InterpretedAT(range, ownershipS, permissionS, innerType1) => {
-        val ownership = Conversions.evaluateOwnership(ownershipS)
-        val permission = Conversions.evaluatePermission(permissionS)
-        val (KindTemplata(innerKind)) = evaluateTemplex(env, state, innerType1)
-        val mutability = delegate.getMutability(state, innerKind)
-        vassert((mutability == ImmutableT) == (ownership == ShareT))
-        (CoordTemplata(CoordT(ownership, permission, innerKind)))
-      }
-      case NullableAT(range, _) => {
-        //        val innerValueType2 = evaluateTemplex(env, state, innerType1)
-        //        val innerPointerType2 = ConvertHelper.pointify(innerValueType2)
-        //        env.lookupType("Option") match {
-        //          case TemplataStructTemplate(_) => {
-        //            StructTemplar.getStructRef(env.globalEnv, state, "Option", Vector(TemplataType(innerPointerType2)))
-        //          }
-        //        }
-        vfail("support unions kkthx")
-      }
-      case CallAT(range, templateTemplexS, templateArgTemplexesS, resultType) => {
-        val templateTemplata = evaluateTemplex(env, state, templateTemplexS)
-        val templateArgsTemplatas = evaluateTemplexes(env, state, templateArgTemplexesS)
-        templateTemplata match {
-          case st @ StructTemplata(_, _) => {
-            val kind = delegate.evaluateStructTemplata(state, range, st, templateArgsTemplatas)
-            coerce(state, range, KindTemplata(kind), resultType)
-          }
-          case it @ InterfaceTemplata(_, _) => {
-            val kind = delegate.evaluateInterfaceTemplata(state, range, it, templateArgsTemplatas)
-            coerce(state, range, KindTemplata(kind), resultType)
-          }
-          case ArrayTemplateTemplata() => {
-            val Vector(MutabilityTemplata(mutability), VariabilityTemplata(variability), CoordTemplata(elementCoord)) = templateArgsTemplatas
-            val result = RuntimeSizedArrayTT(RawArrayTT(elementCoord, mutability, variability))
-            vimpl() // we should be calling into arraytemplar for that ^
-            coerce(state, range, KindTemplata(result), resultType)
-          }
-        }
-      }
-      case x => {
-        vfail("not yet " + x)
-      }
-    }
+    vimpl()
+//    vassert(type1.isInstanceOf[IRulexSR])
+//    type1 match {
+//      case NameSR(range, name, tyype) => {
+//        val thing = delegate.lookupTemplataImprecise(env, range, name)
+//        coerce(state, range, thing, tyype)
+//      }
+//      case RuneSR(range, rune, resultType) => {
+//        val thing = delegate.lookupTemplata(env, range, NameTranslator.translateRune(rune))
+//        coerce(state, range, thing, resultType)
+//      }
+//      case RepeaterSequenceAT(range, mutabilityTemplexS, variabilityTemplexS, sizeTemplexS, elementTemplexS, tyype) => {
+//        val MutabilityTemplata(mutability) = evaluateTemplex(env, state, mutabilityTemplexS)
+//        val VariabilityTemplata(variability) = evaluateTemplex(env, state, variabilityTemplexS)
+//        val IntegerTemplata(size) = evaluateTemplex(env, state, sizeTemplexS)
+//
+//        val CoordTemplata(elementType2) = evaluateTemplex(env, state, elementTemplexS)
+//
+//        val kind = KindTemplata(delegate.getStaticSizedArrayKind(env, state, mutability, variability, size.toInt, elementType2))
+//        coerce(state, range, kind, tyype)
+//      }
+//      case InterpretedAT(range, ownershipS, permissionS, innerType1) => {
+//        val ownership = Conversions.evaluateOwnership(ownershipS)
+//        val permission = Conversions.evaluatePermission(permissionS)
+//        val (KindTemplata(innerKind)) = evaluateTemplex(env, state, innerType1)
+//        val mutability = delegate.getMutability(state, innerKind)
+//        vassert((mutability == ImmutableT) == (ownership == ShareT))
+//        (CoordTemplata(CoordT(ownership, permission, innerKind)))
+//      }
+//      case NullableAT(range, _) => {
+//        //        val innerValueType2 = evaluateTemplex(env, state, innerType1)
+//        //        val innerPointerType2 = ConvertHelper.pointify(innerValueType2)
+//        //        env.lookupType("Option") match {
+//        //          case TemplataStructTemplate(_) => {
+//        //            StructTemplar.getStructRef(env.globalEnv, state, "Option", Vector(TemplataType(innerPointerType2)))
+//        //          }
+//        //        }
+//        vfail("support unions kkthx")
+//      }
+//      case CallAT(range, templateTemplexS, templateArgTemplexesS, resultType) => {
+//        val templateTemplata = evaluateTemplex(env, state, templateTemplexS)
+//        val templateArgsTemplatas = evaluateTemplexes(env, state, templateArgTemplexesS)
+//        templateTemplata match {
+//          case st @ StructTemplata(_, _) => {
+//            val kind = delegate.evaluateStructTemplata(state, range, st, templateArgsTemplatas)
+//            coerce(state, range, KindTemplata(kind), resultType)
+//          }
+//          case it @ InterfaceTemplata(_, _) => {
+//            val kind = delegate.evaluateInterfaceTemplata(state, range, it, templateArgsTemplatas)
+//            coerce(state, range, KindTemplata(kind), resultType)
+//          }
+//          case ArrayTemplateTemplata() => {
+//            val Vector(MutabilityTemplata(mutability), VariabilityTemplata(variability), CoordTemplata(elementCoord)) = templateArgsTemplatas
+//            val result = RuntimeSizedArrayTT(RawArrayTT(elementCoord, mutability, variability))
+//            vimpl() // we should be calling into arraytemplar for that ^
+//            coerce(state, range, KindTemplata(result), resultType)
+//          }
+//        }
+//      }
+//      case x => {
+//        vfail("not yet " + x)
+//      }
+//    }
   }
 
   def evaluateTemplexes(
     env: Env,
     state: State,
-    types1: Vector[IRulexAR]):
+    types1: Vector[IRulexSR]):
   (Vector[ITemplata]) = {
     types1.map(evaluateTemplex(env, state, _))
   }
@@ -463,7 +465,7 @@ class TemplataTemplarInner[Env, State](delegate: ITemplataTemplarInnerDelegate[E
     env: Env,
     state: State,
     range: RangeS,
-    name: IImpreciseNameStepA,
+    name: IImpreciseNameStepS,
     expectedType: ITemplataType):
   (ITemplata) = {
     val uncoercedTemplata = delegate.lookupTemplataImprecise(env, range, name)

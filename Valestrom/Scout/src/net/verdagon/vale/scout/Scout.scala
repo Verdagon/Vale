@@ -1,10 +1,11 @@
 package net.verdagon.vale.scout
 
+//import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.PatternScout
-import net.verdagon.vale.scout.predictor.Conclusions
+import net.verdagon.vale.scout.predictor.{AstronomySolveError, AstronomySolver}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.scout.predictor.PredictorEvaluator
+import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -29,7 +30,7 @@ case class CantOverrideOwnershipped(range: RangeS) extends ICompileErrorS { over
 case class VariableNameAlreadyExists(range: RangeS, name: IVarNameS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class InterfaceMethodNeedsSelf(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class VirtualAndAbstractGoTogether(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
-
+case class CouldntSolveRulesS(range: RangeS, error: AstronomySolveError) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class RangedInternalErrorS(range: RangeS, message: String) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 
 sealed trait IEnvironment {
@@ -155,7 +156,7 @@ object Scout {
 
     val lidb = new LocationInDenizenBuilder(Vector())
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
     RuleScout.translateRulexes(implEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
@@ -241,12 +242,41 @@ object Scout {
     ImportS(Scout.evalRange(file, range), moduleName.str, packageNames.map(_.str), importeeName.str)
   }
 
+  private def predictRuneTypes(
+    rangeS: RangeS,
+    identifyingRunesS: Vector[IRuneS],
+    rulesS: Array[IRulexSR]):
+  Map[IRuneS, ITemplataType] = {
+    val runeSToLocallyPredictedTypes =
+      AstronomySolver.solve(Unit, true, rulesS, identifyingRunesS, false, Map()) match {
+        case Ok(t) => t
+        // This likely cannot happen because we aren't even asking for a complete solve.
+        case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
+      }
+    runeSToLocallyPredictedTypes
+  }
+
+  private def predictMutability(rangeS: RangeS, mutabilityRuneS: IRuneS, rulesS: Array[IRulexSR]):
+  Option[MutabilityP] = {
+    val predictedMutabilities =
+      rulesS.collect({
+        case LiteralSR(_, runeS, MutabilityLiteralSL(mutability)) if runeS == mutabilityRuneS => mutability
+      })
+    val predictedMutability =
+      predictedMutabilities.size match {
+        case 0 => None
+        case 1 => Some(predictedMutabilities.head)
+        case _ => throw CompileErrorExceptionS(RangedInternalErrorS(rangeS, "Too many mutabilities: " + predictedMutabilities.mkString("[", ", ", "]")))
+      }
+    predictedMutability
+  }
+
   private def scoutStruct(file: FileCoordinate, head: StructP): StructS = {
     val StructP(range, NameP(_, structHumanName), attributesP, mutabilityPT, maybeIdentifyingRunes, maybeTemplateRulesP, StructMembersP(_, members)) = head
     val codeLocation = Scout.evalPos(file, range.begin)
     val structName = TopLevelCitizenDeclarationNameS(structHumanName, codeLocation)
 
-    val structRangeS = Scout.evalRange(file, range)
+    val rangeS = Scout.evalRange(file, range)
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
@@ -263,13 +293,13 @@ object Scout {
     val structEnv = Environment(file, None, structName, userDeclaredRunes.toSet)
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
     val membersS =
       members.flatMap({
         case StructMemberP(range, name, variability, memberType) => {
           val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
-          runeToExplicitType.put(memberRune, CoordTypeSR)
+          runeToExplicitType.put(memberRune, CoordTemplataType)
           Vector(StructMemberS(Scout.evalRange(structEnv.file, range), name.str, variability, memberRune))
         }
         case StructMethodP(_) => {
@@ -280,55 +310,22 @@ object Scout {
 
     RuleScout.translateRulexes(structEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
-    val predictedMutability =
-      mutabilityPT match {
-        case MutabilityPT(_, mutability) => Some(mutability)
-        case _ => None
-      }
-
     val mutabilityRuneS = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, mutabilityPT)
-//
-//    val mutabilityRuneS = ImplicitRuneS(lidb.child().consume())
-//    val rulesS =
-//      rulesWithoutMutabilityS :+
-//        EqualsSR(
-//          structRangeS,
-//          RuneSR(structRangeS, mutabilityRuneS),
-//          mutabilityST)
 
-//    // We gather all the runes from the scouted rules to be consistent with the function scout.
-//    val allRunesS = PredictorEvaluator.getAllRunes(identifyingRunesS, rulesS, Vector.empty, None)
-//
-//    val knowableRunesFromAbove = Set[IRuneS]()
-//
-//    val ruleBuilder = ScoutRuleBuilder()
-//    rulesS.foreach(ruleBuilder.translateRule( _))
+    val rulesS = ruleBuilder.toArray
 
-//    val (tentativeRuneToCanonicalRune, world) =
-//      Optimizer.optimize(
-//        ruleBuilder.builder,
-//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
-//
-//    val Conclusions(knowableValueRunesS, predictedTypeByRune) =
-//      PredictorEvaluator.solve(
-//        evalRange(file, range),
-//        ruleBuilder.runeSToTentativeRune,
-//        tentativeRuneToCanonicalRune,
-//        ruleBuilder.tentativeRuneToType,
-//        world)
-//    val localRunesS = allRunesS
-//    val isTemplate = knowableValueRunesS != allRunesS
+    val runeToPredictedType = predictRuneTypes(rangeS, identifyingRunesS, rulesS)
 
-//    val maybePredictedType =
-//      if (isTemplate) {
-//        if ((identifyingRunesS.toSet -- predictedTypeByRune.keySet).isEmpty) {
-//          Some(TemplateTypeSR(identifyingRunesS.map(predictedTypeByRune), KindTypeSR))
-//        } else {
-//          None
-//        }
-//      } else {
-//        Some(KindTypeSR)
-//      }
+    val predictedMutability = predictMutability(rangeS, mutabilityRuneS, rulesS)
+
+    val maybePredictedType =
+      determineDenizenType(identifyingRunesS, runeToPredictedType) match {
+        case Ok(x) => Some(x)
+        case Err(e) => {
+          vassert(e.isInstanceOf[IRuneS])
+          None
+        }
+      }
 
     val weakable = attributesP.exists({ case w @ WeakableP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableP(_) => false case _ => true}))
@@ -341,14 +338,17 @@ object Scout {
       attrsS,
       weakable,
       identifyingRunesS,
+      runeToExplicitType.toMap,
       mutabilityRuneS,
-//      predictedMutability,
+      predictedMutability,
+      runeToPredictedType,
+      maybePredictedType,
 //      knowableValueRunesS,
 //      identifyingRunesS,
 //      localRunesS,
 //      maybePredictedType,
 //      isTemplate,
-      ruleBuilder.toArray,
+      rulesS,
 //      runeSToCanonicalRune,
       membersS)
   }
@@ -360,18 +360,41 @@ object Scout {
     })
   }
 
+  // Err is the missing rune
+  def determineDenizenType(
+    identifyingRunesS: Vector[IRuneS],
+    runeAToType: Map[IRuneS, ITemplataType]):
+  Result[ITemplataType, IRuneS] = {
+    val isTemplate = identifyingRunesS.nonEmpty
+
+    val tyype =
+      if (isTemplate) {
+        TemplateTemplataType(
+          identifyingRunesS.map(identifyingRuneA => {
+            runeAToType.get(identifyingRuneA) match {
+              case None => return Err(identifyingRuneA)
+              case Some(x) => x
+            }
+          }),
+          FunctionTemplataType)
+      } else {
+        FunctionTemplataType
+      }
+    Ok(tyype)
+  }
+
   private def scoutInterface(file: FileCoordinate, headP: InterfaceP): InterfaceS = {
     val InterfaceP(range, NameP(_, interfaceHumanName), attributesP, mutabilityPT, maybeIdentifyingRunes, maybeRulesP, internalMethodsP) = headP
     val codeLocation = Scout.evalPos(file, range.begin)
     val interfaceFullName = TopLevelCitizenDeclarationNameS(interfaceHumanName, codeLocation)
     val rulesP = maybeRulesP.toVector.flatMap(_.rules)
 
-    val interfaceRangeS = Scout.evalRange(file, range)
+    val rangeS = Scout.evalRange(file, range)
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
     val explicitIdentifyingRunes: Vector[IRuneS] =
       maybeIdentifyingRunes
@@ -385,50 +408,28 @@ object Scout {
 
     RuleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, rulesP)
 
-    val maybePredictedMutability =
-      mutabilityPT match {
-        case MutabilityPT(_, mutability) => Some(mutability)
-        case _ => None
-      }
-
     val mutabilityRuneS = TemplexScout.translateTemplex(interfaceEnv, lidb.child(), ruleBuilder, mutabilityPT)
 
-//    // We gather all the runes from the scouted rules to be consistent with the function scout.
-//    val allRunes = PredictorEvaluator.getAllRunes(identifyingRunes, rulesS, Vector.empty, None)
 
+    val rulesS = ruleBuilder.toArray
 
-//    val knowableRunesFromAbove = Set[IRuneS]()
+    val runeToPredictedType = predictRuneTypes(rangeS, explicitIdentifyingRunes, rulesS)
 
-//    val ruleBuilder = ScoutRuleBuilder()
-//    rulesS.foreach(ruleBuilder.translateRule( _))
+    val predictedMutability = predictMutability(rangeS, mutabilityRuneS, rulesS)
 
-//    val (tentativeRuneToCanonicalRune, world) =
-//      Optimizer.optimize(
-//        ruleBuilder.builder,
-//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
-
-//    val Conclusions(knowableValueRunes, predictedTypeByRune) =
-//      PredictorEvaluator.solve(Scout.evalRange(file, range), ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
-//    val localRunes = allRunes
-//    val isTemplate = knowableValueRunes != allRunes.toSet
-
-//    val maybePredictedType =
-//      if (isTemplate) {
-//        if ((identifyingRunes.toSet -- predictedTypeByRune.keySet).isEmpty) {
-//          Some(TemplateTypeSR(identifyingRunes.map(predictedTypeByRune), KindTypeSR))
-//        } else {
-//          None
-//        }
-//      } else {
-//        Some(KindTypeSR)
-//      }
+    val maybePredictedType =
+      determineDenizenType(explicitIdentifyingRunes, runeToPredictedType) match {
+        case Ok(x) => Some(x)
+        case Err(e) => {
+          vassert(e.isInstanceOf[IRuneS])
+          None
+        }
+      }
 
     val internalMethodsS = internalMethodsP.map(FunctionScout.scoutInterfaceMember(interfaceEnv, _))
 
     val weakable = attributesP.exists({ case w @ WeakableP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableP(_) => false case _ => true}))
-
-//    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
     val interfaceS =
       InterfaceS(
@@ -438,12 +439,15 @@ object Scout {
         weakable,
 //        knowableValueRunes,
         explicitIdentifyingRunes,
+        runeToExplicitType.toMap,
 //        localRunes,
 //        maybePredictedType,
         mutabilityRuneS,
-//        maybePredictedMutability,
+        predictedMutability,
+        runeToPredictedType,
+        maybePredictedType,
 //        isTemplate,
-        ruleBuilder.toArray,
+        rulesS,
 //        runeSToCanonicalRune,
         internalMethodsS)
 

@@ -2,6 +2,7 @@ package net.verdagon.vale.scout.rules
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{IEnvironment, Environment => _, FunctionEnvironment => _, _}
+import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
 
 import scala.collection.mutable
@@ -15,7 +16,7 @@ object RuleScout {
     env: IEnvironment,
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     rulesP: Vector[IRulexPR]):
   Vector[IRuneS] = {
     rulesP.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, _))
@@ -25,7 +26,7 @@ object RuleScout {
     env: IEnvironment,
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     rulex: IRulexPR):
   IRuneS = {
     val evalRange = (range: Range) => Scout.evalRange(env.file, range)
@@ -115,17 +116,17 @@ object RuleScout {
     }
   }
 
-  def translateType(tyype: ITypePR): ITypeSR = {
+  def translateType(tyype: ITypePR): ITemplataType = {
     tyype match {
-      case PrototypeTypePR => PrototypeTypeSR
-      case IntTypePR => IntTypeSR
-      case BoolTypePR => BoolTypeSR
-      case OwnershipTypePR => OwnershipTypeSR
-      case MutabilityTypePR => MutabilityTypeSR
-      case PermissionTypePR => PermissionTypeSR
-      case LocationTypePR => LocationTypeSR
-      case CoordTypePR => CoordTypeSR
-      case KindTypePR => KindTypeSR
+      case PrototypeTypePR => PrototypeTemplataType
+      case IntTypePR => IntegerTemplataType
+      case BoolTypePR => BooleanTemplataType
+      case OwnershipTypePR => OwnershipTemplataType
+      case MutabilityTypePR => MutabilityTemplataType
+      case PermissionTypePR => PermissionTemplataType
+      case LocationTypePR => LocationTemplataType
+      case CoordTypePR => CoordTemplataType
+      case KindTypePR => KindTemplataType
       //      case StructTypePR => KindTypeSR
       //      case SequenceTypePR => KindTypeSR
       //      case ArrayTypePR => KindTypeSR
@@ -136,7 +137,7 @@ object RuleScout {
 
   def collectAllRunesNonDistinct(
     destination: mutable.ArrayBuffer[IRuneS],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITypeSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     rulex: IRulexPR):
   Unit = {
     rulex match {

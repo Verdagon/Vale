@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.types
 
-import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, INameA}
+import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.IEnvironment
@@ -408,14 +408,14 @@ case class StructTT(fullName: FullNameT[ICitizenNameT]) extends CitizenRefT {
 // Lowers to an empty struct.
 case class OverloadSet(
     env: IEnvironment,
-    name: GlobalFunctionFamilyNameA,
+    name: GlobalFunctionFamilyNameS,
     voidStructRef: StructTT
 ) extends KindT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def order: Int = 19;
 
-  if (name == GlobalFunctionFamilyNameA("true")) {
+  if (name == GlobalFunctionFamilyNameS("true")) {
     vcurious()
   }
 
@@ -503,8 +503,8 @@ object FullNameComparator extends Ordering[FullNameT[INameT]] {
           humanNameDiff
         } else {
           (aSteps.head, bSteps.head) match {
-            case (ImplDeclareNameT(subCitizenHumanNameA, codeLocationA), ImplDeclareNameT(subCitizenHumanName2, codeLocationB)) => {
-              val nameDiff = subCitizenHumanNameA.compareTo(subCitizenHumanName2)
+            case (ImplDeclareNameT(subCitizenHumanNameS, codeLocationA), ImplDeclareNameT(subCitizenHumanName2, codeLocationB)) => {
+              val nameDiff = subCitizenHumanNameS.compareTo(subCitizenHumanName2)
               if (nameDiff != 0)
                 return nameDiff
               compare(codeLocationA, codeLocationB)
@@ -514,8 +514,8 @@ object FullNameComparator extends Ordering[FullNameT[INameT]] {
             case (ClosureParamNameT(), ClosureParamNameT()) => 0
             case (MagicParamNameT(codeLocationA), MagicParamNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
             case (CodeVarNameT(nameA), CodeVarNameT(nameB)) => nameA.compareTo(nameB)
-            case (FunctionNameT(humanNameA, templateArgsA, parametersA), FunctionNameT(humanNameB, templateArgsB, parametersB)) => {
-              val nameDiff = humanNameA.compareTo(humanNameB)
+            case (FunctionNameT(humanNameS, templateArgsA, parametersA), FunctionNameT(humanNameB, templateArgsB, parametersB)) => {
+              val nameDiff = humanNameS.compareTo(humanNameB)
               if (nameDiff != 0)
                 return nameDiff
               val templateArgsDiff = TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
@@ -523,8 +523,8 @@ object FullNameComparator extends Ordering[FullNameT[INameT]] {
                 return templateArgsDiff
               TemplataTypeListComparator.compare(parametersA.map(CoordTemplata), parametersB.map(CoordTemplata))
             }
-            case (CitizenNameT(humanNameA, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
-              val nameDiff = humanNameA.compareTo(humanNameB)
+            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
+              val nameDiff = humanNameS.compareTo(humanNameB)
               if (nameDiff != 0)
                 return nameDiff
               TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
@@ -535,8 +535,8 @@ object FullNameComparator extends Ordering[FullNameT[INameT]] {
             case (LambdaCitizenNameT(codeLocationA), LambdaCitizenNameT(codeLocationB)) => {
               compare(codeLocationA, codeLocationB)
             }
-            case (CitizenNameT(humanNameA, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
-              val nameDiff = humanNameA.compareTo(humanNameB)
+            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
+              val nameDiff = humanNameS.compareTo(humanNameB)
               if (nameDiff != 0)
                 return nameDiff
               TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
@@ -617,4 +617,29 @@ object TemplataTypeListComparator extends Ordering[Vector[ITemplata]] {
       }
     }
   }
+}
+
+
+sealed trait ITemplataType
+case object CoordTemplataType extends ITemplataType
+case object KindTemplataType extends ITemplataType
+case object FunctionTemplataType extends ITemplataType
+case object IntegerTemplataType extends ITemplataType
+case object BooleanTemplataType extends ITemplataType
+case object MutabilityTemplataType extends ITemplataType
+case object PrototypeTemplataType extends ITemplataType
+case object StringTemplataType extends ITemplataType
+case object PermissionTemplataType extends ITemplataType
+case object LocationTemplataType extends ITemplataType
+case object OwnershipTemplataType extends ITemplataType
+case object VariabilityTemplataType extends ITemplataType
+case class PackTemplataType(elementType: ITemplataType) extends ITemplataType { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+// This is CitizenTemplataType instead of separate ones for struct and interface
+// because the RuleTyper doesn't care whether something's a struct or an interface.
+case class TemplateTemplataType(
+  paramTypes: Vector[ITemplataType],
+  returnType: ITemplataType
+) extends ITemplataType {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  vassert(paramTypes.nonEmpty)
 }

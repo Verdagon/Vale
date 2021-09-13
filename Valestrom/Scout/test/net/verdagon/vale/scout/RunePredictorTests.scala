@@ -3,9 +3,6 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP}
-import net.verdagon.vale.scout.predictor.Conclusions
-import net.verdagon.vale.scout.rules.{EqualsSR, _}
-import net.verdagon.vale.scout.predictor.PredictorEvaluator
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 

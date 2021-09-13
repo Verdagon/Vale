@@ -1,6 +1,7 @@
 package net.verdagon.vale.templar.templata
 
 import net.verdagon.vale.astronomer._
+import net.verdagon.vale.scout.{FunctionNameS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImmConcreteDestructorNameT, ImmDropNameT, ImplDeclareNameT, NameTranslator, PackageTopLevelNameT}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.types._
@@ -69,7 +70,7 @@ case class FunctionTemplata(
 //  this match {
 //    case FunctionTemplata(
 //      env,
-//      FunctionA(_, ImmConcreteDestructorNameA(PackageCoordinate(_,Vector.empty)),_, _, _, _, _, _, _, _, _, _))
+//      FunctionA(_, ImmConcreteDestructorNameS(PackageCoordinate(_,Vector.empty)),_, _, _, _, _, _, _, _, _, _))
 //    if env.fullName == FullName2(PackageCoordinate.TEST_TLD,Vector.empty,PackageTopLevelName2()) => vfail()
 //    case _ =>
 //  }
@@ -84,7 +85,7 @@ case class FunctionTemplata(
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
   (outerEnv.fullName.last, function.name) match {
-    case (FunctionNameT(envFunctionName, _, _), FunctionNameA(sourceName, _)) => vassert(envFunctionName != sourceName)
+    case (FunctionNameT(envFunctionName, _, _), FunctionNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
 
@@ -157,7 +158,7 @@ case class StructTemplata(
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
   (env.fullName.last, originStruct.name) match {
-    case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameA(sourceName, _)) => vassert(envFunctionName != sourceName)
+    case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
 
@@ -204,7 +205,7 @@ case class InterfaceTemplata(
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
   (env.fullName.last, originInterface.name) match {
-    case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameA(sourceName, _)) => vassert(envFunctionName != sourceName)
+    case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
 

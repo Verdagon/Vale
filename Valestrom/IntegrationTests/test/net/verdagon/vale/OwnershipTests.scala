@@ -3,7 +3,7 @@ package net.verdagon.vale
 import net.verdagon.vale.parser.{CaptureP, FinalP, VaryingP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{CoordTypeSR, TypedSR}
+import net.verdagon.vale.scout.rules.{CoordTemplataType, TypedSR}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT}

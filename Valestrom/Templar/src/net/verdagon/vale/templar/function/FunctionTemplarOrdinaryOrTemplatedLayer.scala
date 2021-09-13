@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{CodeBodyA, FunctionA, IRulexAR, IRuneA, ITemplataType}
+import net.verdagon.vale.astronomer.{CodeBodyA, FunctionA, IRulexAR, IRuneS, ITemplataType}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
@@ -355,7 +355,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
   // IOW, add the necessary data to turn the near env into the runed env.
   private def addRunedDataToNearEnv(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
-    identifyingRunes: Vector[IRuneA],
+    identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneT, ITemplata]
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(parentEnv, fullName, function, variables, templatas) = nearEnv

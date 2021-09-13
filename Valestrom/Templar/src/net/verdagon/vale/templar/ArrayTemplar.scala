@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, IRulexAR, IRuneA, ITemplataType}
+import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, IRulexAR, IRuneS, ITemplataType}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
@@ -37,10 +37,10 @@ class ArrayTemplar(
     fate: FunctionEnvironmentBox,
     range: RangeS,
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    sizeRuneA: IRuneA,
-    maybeMutabilityRune: Option[IRuneA],
-    maybeVariabilityRune: Option[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    sizeRuneA: IRuneS,
+    maybeMutabilityRune: Option[IRuneS],
+    maybeVariabilityRune: Option[IRuneS],
     callableTE: ReferenceExpressionTE):
   StaticArrayFromCallableTE = {
     val templatas =
@@ -59,9 +59,9 @@ class ArrayTemplar(
     fate: FunctionEnvironmentBox,
     range: RangeS,
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    maybeMutabilityRune: Option[IRuneA],
-    maybeVariabilityRune: Option[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    maybeMutabilityRune: Option[IRuneS],
+    maybeVariabilityRune: Option[IRuneS],
     sizeTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE):
   ConstructArrayTE = {
@@ -80,10 +80,10 @@ class ArrayTemplar(
       fate: FunctionEnvironmentBox,
       range: RangeS,
       rules: Vector[IRulexAR],
-      typeByRune: Map[IRuneA, ITemplataType],
-      maybeSizeRuneA: Option[IRuneA],
-      maybeMutabilityRuneA: Option[IRuneA],
-      maybeVariabilityRuneA: Option[IRuneA],
+      typeByRune: Map[IRuneS, ITemplataType],
+      maybeSizeRuneA: Option[IRuneS],
+      maybeMutabilityRuneA: Option[IRuneS],
+      maybeVariabilityRuneA: Option[IRuneS],
       exprs2: Vector[ReferenceExpressionTE]):
    StaticArrayFromValuesTE = {
     val memberTypes = exprs2.map(_.resultRegister.reference).toSet
@@ -218,16 +218,16 @@ class ArrayTemplar(
     }
   }
 
-  private def getArrayVariability(templatas: Map[IRuneT, ITemplata], variabilityRuneA: IRuneA) = {
+  private def getArrayVariability(templatas: Map[IRuneT, ITemplata], variabilityRuneA: IRuneS) = {
     val VariabilityTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(variabilityRuneA)))
     m
   }
 
-  private def getArrayMutability(templatas: Map[IRuneT, ITemplata], mutabilityRuneA: IRuneA) = {
+  private def getArrayMutability(templatas: Map[IRuneT, ITemplata], mutabilityRuneA: IRuneS) = {
     val MutabilityTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(mutabilityRuneA)))
     m
   }
-  private def getArraySize(templatas: Map[IRuneT, ITemplata], sizeRuneA: IRuneA): Int = {
+  private def getArraySize(templatas: Map[IRuneT, ITemplata], sizeRuneA: IRuneS): Int = {
     val IntegerTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(sizeRuneA)))
     m.toInt
   }

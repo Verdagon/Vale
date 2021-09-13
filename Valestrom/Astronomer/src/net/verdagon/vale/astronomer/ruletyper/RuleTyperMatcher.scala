@@ -19,7 +19,7 @@ import scala.collection.immutable.List
 //  private def addConclusion(
 //    conclusions: ConclusionsBox,
 //    range: RangeS,
-//    rune: IRuneA,
+//    rune: IRuneS,
 //    tyype: ITemplataType):
 //  IRuleTyperMatchResult[Unit] = {
 //    conclusions.typeByRune.get(rune) match {
