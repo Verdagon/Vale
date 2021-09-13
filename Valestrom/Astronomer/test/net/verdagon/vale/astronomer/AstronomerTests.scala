@@ -1,8 +1,9 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{FileP, ParseFailure, ParseSuccess, Parser}
-import net.verdagon.vale.scout.{ProgramS, Scout}
+import net.verdagon.vale.scout.{CodeRuneS, ProgramS, Scout}
 import net.verdagon.vale._
+import net.verdagon.vale.templar.types.CoordTemplataType
 import org.scalatest.{FunSuite, Matchers}
 
 class AstronomerTests extends FunSuite with Matchers  {
@@ -40,7 +41,7 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
     val main = program.lookupFunction("moo")
-    main.typeByRune(CodeRuneA("T")) shouldEqual CoordTemplataType
+    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
 
   test("Type simple struct") {
@@ -62,6 +63,22 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
   }
 
+  test("Template call a struct") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """struct Moo<T> {
+          |  bork T;
+          |}
+          |struct Bork {
+          |  x Moo<int>;
+          |}
+          |""".stripMargin)
+    val astrouts = compilation.getAstrouts().getOrDie()
+    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
+    val main = program.lookupFunction("moo")
+    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
+  }
+
   test("Type simple interface") {
     val compilation =
       AstronomerTestCompilation.test(
@@ -74,8 +91,17 @@ class AstronomerTests extends FunSuite with Matchers  {
   test("Type simple generic interface") {
     val compilation =
       AstronomerTestCompilation.test(
-        """interface Moo<T> {
-          |  fn bork(x T);
+        """interface Moo<T> rules(T Ref) {
+          |}
+          |""".stripMargin)
+    val astrouts = compilation.getAstrouts().getOrDie()
+  }
+
+  test("Type simple generic interface method") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """interface Moo<T> rules(T Ref) {
+          |  fn bork(virtual self &Moo<T>) int;
           |}
           |""".stripMargin)
     val astrouts = compilation.getAstrouts().getOrDie()
@@ -93,6 +119,6 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
     val main = program.lookupFunction("moo")
-    main.typeByRune(CodeRuneA("T")) shouldEqual CoordTemplataType
+    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
 }

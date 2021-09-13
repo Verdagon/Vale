@@ -3,13 +3,14 @@ package net.verdagon.vale.astronomer
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
+import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
 
-trait IExpressionAE {
-  def range: RangeS
-}
+//trait IExpressionSE {
+//  def range: RangeS
+//}
 
 case class ProgramA(
     structs: Vector[StructA],
@@ -19,7 +20,7 @@ case class ProgramA(
     exports: Vector[ExportAsA]) {
   override def hashCode(): Int = vcurious()
 
-  def lookupFunction(name: INameA) = {
+  def lookupFunction(name: INameS) = {
     val matches = functions.filter(_.name == name)
     vassert(matches.size == 1)
     matches.head
@@ -27,40 +28,40 @@ case class ProgramA(
   def lookupFunction(name: String) = {
     val matches = functions.filter(function => {
       function.name match {
-        case FunctionNameA(n, _) => n == name
+        case FunctionNameS(n, _) => n == name
         case _ => false
       }
     })
     vassert(matches.size == 1)
     matches.head
   }
-  def lookupInterface(name: INameA) = {
+  def lookupInterface(name: INameS) = {
     val matches = interfaces.find(_.name == name)
     vassert(matches.size == 1)
     matches.head match {
-      case i @ InterfaceA(_, _, _, _, _, _, _, _, _, _, _, _, _) => i
+      case i @ InterfaceA(_, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
-  def lookupStruct(name: INameA) = {
+  def lookupStruct(name: INameS) = {
     val matches = structs.find(_.name == name)
     vassert(matches.size == 1)
     matches.head match {
-      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _, _, _) => i
+      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
 }
 
 
 trait TypeDefinitionA {
-  def name: INameA;
+  def name: INameS;
 }
 
 case class StructA(
     range: RangeS,
-    name: TopLevelCitizenDeclarationNameA,
-    attributes: Vector[ICitizenAttributeA],
+    name: TopLevelCitizenDeclarationNameS,
+    attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    mutabilityRune: IRuneA,
+    mutabilityRune: IRuneS,
 
     // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
@@ -68,12 +69,12 @@ case class StructA(
     //   }
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
-    knowableRunes: Set[IRuneA],
-    identifyingRunes: Vector[IRuneA],
-    localRunes: Set[IRuneA],
-    typeByRune: Map[IRuneA, ITemplataType],
+//    knowableRunes: Set[IRuneS],
+    identifyingRunes: Vector[IRuneS],
+//    localRunes: Set[IRuneS],
+    typeByRune: Map[IRuneS, ITemplataType],
     rules: Vector[IRulexSR],
-    members: Vector[StructMemberA]
+    members: Vector[StructMemberS]
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
@@ -83,8 +84,8 @@ case class StructA(
     return range == that.range && name == that.name;
   }
 
-  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
+//  vassert((localRunes -- typeByRune.keySet).isEmpty)
 
   def isTemplate: Boolean = tyype match {
     case KindTemplataType => false
@@ -93,23 +94,23 @@ case class StructA(
   }
 }
 
-case class StructMemberA(
-    range: RangeS,
-    name: String,
-    variability: VariabilityP,
-    typeRune: IRuneA) {
-  override def hashCode(): Int = vcurious()
-}
+//case class StructMemberA(
+//    range: RangeS,
+//    name: String,
+//    variability: VariabilityP,
+//    typeRune: IRuneS) {
+//  override def hashCode(): Int = vcurious()
+//}
 
 case class ImplA(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
-    name: ImplNameA,
+    name: ImplNameS,
   rules: Vector[IRulexSR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
-    structKindRune: IRuneA,
-    interfaceKindRune: IRuneA) {
+    typeByRune: Map[IRuneS, ITemplataType],
+    localRunes: Set[IRuneS],
+    structKindRune: IRuneS,
+    interfaceKindRune: IRuneS) {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -123,8 +124,8 @@ case class ExportAsA(
     range: RangeS,
     exportedName: String,
   rules: Vector[IRulexSR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    typeRune: IRuneA) {
+    typeByRune: Map[IRuneS, ITemplataType],
+    typeRune: IRuneS) {
   val hash = range.hashCode() + exportedName.hashCode
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -144,20 +145,20 @@ case class ExportAsA(
 
 case class InterfaceA(
     range: RangeS,
-    name: TopLevelCitizenDeclarationNameA,
-    attributes: Vector[ICitizenAttributeA],
+    name: TopLevelCitizenDeclarationNameS,
+    attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    mutabilityRune: IRuneA,
+    mutabilityRune: IRuneS,
     // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
     //     tail ListNode<T>;
     //   }
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
-    knowableRunes: Set[IRuneA],
-    identifyingRunes: Vector[IRuneA],
-    localRunes: Set[IRuneA],
-    typeByRune: Map[IRuneA, ITemplataType],
+//    knowableRunes: Set[IRuneS],
+    identifyingRunes: Vector[IRuneS],
+//    localRunes: Set[IRuneS],
+    typeByRune: Map[IRuneS, ITemplataType],
   rules: Vector[IRulexSR],
     // See IMRFDI
     internalMethods: Vector[FunctionA]) {
@@ -169,8 +170,8 @@ case class InterfaceA(
     return range == that.range && name == that.name;
   }
 
-  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
+//  vassert((localRunes -- typeByRune.keySet).isEmpty)
 
   internalMethods.foreach(internalMethod => {
     vassert(!internalMethod.isTemplate);
@@ -185,14 +186,14 @@ case class InterfaceA(
 
 object interfaceName {
   // The extraction method (mandatory)
-  def unapply(interfaceA: InterfaceA): Option[INameA] = {
+  def unapply(interfaceA: InterfaceA): Option[INameS] = {
     Some(interfaceA.name)
   }
 }
 
 object structName {
   // The extraction method (mandatory)
-  def unapply(structA: StructA): Option[INameA] = {
+  def unapply(structA: StructA): Option[INameS] = {
     Some(structA.name)
   }
 }
@@ -211,36 +212,36 @@ object structName {
 // Also remember, if a parameter has no name, it can't be varying.
 
 
-sealed trait ICitizenAttributeA
-sealed trait IFunctionAttributeA
-case class ExternA(packageCoord: PackageCoordinate) extends IFunctionAttributeA with ICitizenAttributeA { override def hashCode(): Int = vcurious() }
-case class ExportA(packageCoord: PackageCoordinate) extends IFunctionAttributeA with ICitizenAttributeA { override def hashCode(): Int = vcurious() }
-case object PureA extends IFunctionAttributeA with ICitizenAttributeA
-case object UserFunctionA extends IFunctionAttributeA // Whether it was written by a human. Mostly for tests right now.
+//sealed trait ICitizenAttributeA
+//sealed trait IFunctionAttributeA
+//case class ExternA(packageCoord: PackageCoordinate) extends IFunctionAttributeA with ICitizenAttributeA { override def hashCode(): Int = vcurious() }
+//case class ExportA(packageCoord: PackageCoordinate) extends IFunctionAttributeA with ICitizenAttributeA { override def hashCode(): Int = vcurious() }
+//case object PureA extends IFunctionAttributeA with ICitizenAttributeA
+//case object UserFunctionA extends IFunctionAttributeA // Whether it was written by a human. Mostly for tests right now.
 
 
 // Underlying class for all XYZFunctionS types
 case class FunctionA(
     range: RangeS,
-    name: IFunctionDeclarationNameA,
-    attributes: Vector[IFunctionAttributeA],
+    name: IFunctionDeclarationNameS,
+    attributes: Vector[IFunctionAttributeS],
 
     tyype: ITemplataType,
-//    knowableRunes: Set[IRuneA],
+//    knowableRunes: Set[IRuneS],
     // This is not necessarily only what the user specified, the compiler can add
     // things to the end here, see CCAUIR.
-    identifyingRunes: Vector[IRuneA],
-//    localRunes: Set[IRuneA],
+    identifyingRunes: Vector[IRuneS],
+//    localRunes: Set[IRuneS],
 
-    typeByRune: Map[IRuneA, ITemplataType],
+    typeByRune: Map[IRuneS, ITemplataType],
 
-    params: Vector[ParameterA],
+    params: Vector[ParameterS],
 
     // We need to leave it an option to signal that the compiler can infer the return type.
-    maybeRetCoordRune: Option[IRuneA],
+    maybeRetCoordRune: Option[IRuneS],
 
   rules: Vector[IRulexSR],
-    body: IBodyA
+    body: IBodyS
 ) {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
@@ -258,8 +259,8 @@ case class FunctionA(
 
   def isLight(): Boolean = {
     body match {
-      case ExternBodyA | AbstractBodyA | GeneratedBodyA(_) => true
-      case CodeBodyA(bodyA) => bodyA.closuredNames.isEmpty
+      case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => true
+      case CodeBodyS(bodyA) => bodyA.closuredNames.isEmpty
     }
   }
 
@@ -271,20 +272,20 @@ case class FunctionA(
 }
 
 
-case class ParameterA(
-    // Note the lack of a VariabilityP here. The only way to get a variability is with a Capture.
-    pattern: AtomAP) {
-  override def hashCode(): Int = vcurious()
-}
+//case class ParameterA(
+//    // Note the lack of a VariabilityP here. The only way to get a variability is with a Capture.
+//    pattern: AtomAP) {
+//  override def hashCode(): Int = vcurious()
+//}
 
-case class CaptureA(local: LocalA) { override def hashCode(): Int = vcurious() }
+//case class CaptureA(local: LocalA) { override def hashCode(): Int = vcurious() }
 
-sealed trait IBodyA
-case object ExternBodyA extends IBodyA
-case object AbstractBodyA extends IBodyA
-case class GeneratedBodyA(generatorId: String) extends IBodyA { override def hashCode(): Int = vcurious() }
-case class CodeBodyA(bodyA: BodyAE) extends IBodyA { override def hashCode(): Int = vcurious() }
-
-case class BFunctionA(
-  origin: FunctionA,
-  body: BodyAE) { override def hashCode(): Int = vcurious() }
+//sealed trait IBodyS
+//case object ExternBodyS extends IBodyS
+//case object AbstractBodyS extends IBodyS
+//case class GeneratedBodyS(generatorId: String) extends IBodyS { override def hashCode(): Int = vcurious() }
+//case class CodeBodyS(bodyA: BodySE) extends IBodyS { override def hashCode(): Int = vcurious() }
+//
+//case class BFunctionA(
+//  origin: FunctionA,
+//  body: BodySE) { override def hashCode(): Int = vcurious() }

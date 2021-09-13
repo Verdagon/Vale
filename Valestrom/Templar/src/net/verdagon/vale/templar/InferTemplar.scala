@@ -23,10 +23,10 @@ class InferTemplar(
     env: IEnvironment,
     state: Temputs,
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    localRunes: Set[IRuneS],
     invocationRange: RangeS,
-    directInputs: Map[IRuneA, ITemplata],
+    directInputs: Map[IRuneS, ITemplata],
     paramAtoms: Vector[AtomAP],
     maybeParamInputs: Option[Vector[ParamFilter]],
     checkAllRunesPresent: Boolean,
@@ -64,8 +64,8 @@ class InferTemplar(
     env0: IEnvironment,
     temputs: Temputs,
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    localRunes: Set[IRuneS],
   ): (Map[IRuneT, ITemplata]) = {
     profiler.childFrame("inferOrdinaryRules", () => {
       solve(env0, temputs, rules, typeByRune, localRunes, RangeS.internal(-13337), Map(), Vector.empty, None, true) match {
@@ -82,12 +82,12 @@ class InferTemplar(
   def inferFromExplicitTemplateArgs(
     env0: IEnvironment,
     temputs: Temputs,
-    identifyingRunes: Vector[IRuneA],
+    identifyingRunes: Vector[IRuneS],
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    localRunes: Set[IRuneS],
     patterns1: Vector[AtomAP],
-    maybeRetRune: Option[IRuneA],
+    maybeRetRune: Option[IRuneS],
     invocationRange: RangeS,
     explicits: Vector[ITemplata],
   ): (IInferSolveResult) = {
@@ -113,12 +113,12 @@ class InferTemplar(
   def inferFromArgCoords(
     env0: IEnvironment,
     temputs: Temputs,
-    identifyingRunes: Vector[IRuneA],
+    identifyingRunes: Vector[IRuneS],
     rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneA, ITemplataType],
-    localRunes: Set[IRuneA],
+    typeByRune: Map[IRuneS, ITemplataType],
+    localRunes: Set[IRuneS],
     patterns1: Vector[AtomAP],
-    maybeRetRune: Option[IRuneA],
+    maybeRetRune: Option[IRuneS],
     invocationRange: RangeS,
     alreadySpecifiedTemplateArgs: Vector[ITemplata],
     patternInputCoords: Vector[ParamFilter]

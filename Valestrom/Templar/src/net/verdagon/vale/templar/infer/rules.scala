@@ -25,7 +25,7 @@ case class RuneWorldTR(
 
   pieceToPuzzles: Array[Array[Int]])
 
-// These are different from IRulexA because those use IRuneA, not IRuneT which
+// These are different from IRulexA because those use IRuneS, not IRuneT which
 // has more possibilities.
 // See PVSBUFI
 sealed trait IRulexTR {

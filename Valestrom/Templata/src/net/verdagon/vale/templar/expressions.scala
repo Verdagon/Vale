@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.astronomer.IVarNameA
+//import net.verdagon.vale.astronomer.IVarNameA
 import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.env.{ILocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.templata._

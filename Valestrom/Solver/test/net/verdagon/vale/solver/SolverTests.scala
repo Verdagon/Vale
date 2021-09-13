@@ -117,11 +117,11 @@ class SolverTests extends FunSuite with Matchers with Collector {
     }
   }
 
-//  def solve(rulesSR: Vector[IRulexSR]): Map[IRuneA, String] = {
+//  def solve(rulesSR: Vector[IRulexSR]): Map[IRuneS, String] = {
 //    solveAndGetState(rulesSR)._1
 //  }
 //
-//  def solveAndGetState(rulesSR: Vector[IRulexSR]): (Map[IRuneA, String], PlannerState) = {
+//  def solveAndGetState(rulesSR: Vector[IRulexSR]): (Map[IRuneS, String], PlannerState) = {
 //    val solver = makeSolver()
 //    val (runeToIndex, runeToType, plannerState) = RuleFlattener.flattenAndCompileRules(rulesSR)
 //    val rawConclusions =

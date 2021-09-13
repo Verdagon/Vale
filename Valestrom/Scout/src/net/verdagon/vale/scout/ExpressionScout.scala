@@ -4,8 +4,9 @@ import net.verdagon.vale.parser.{RuntimeSizedP, _}
 import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.PatternScout
-import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
-import net.verdagon.vale.scout.rules.{ITypeSR, ILiteralSL, IntLiteralSL, LiteralSR, MutabilityLiteralSL, TemplexScout, VariabilityLiteralSL}
+//import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
+import net.verdagon.vale.scout.rules.{ILiteralSL, IntLiteralSL, LiteralSR, MutabilityLiteralSL, TemplexScout, VariabilityLiteralSL}
+import net.verdagon.vale.templar.types.ITemplataType
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -425,7 +426,7 @@ object ExpressionScout {
         val letFullName = LetNameS(codeLocation)
 
         val ruleBuilder = ArrayBuffer[IRulexSR]()
-        val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+        val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
         RuleScout.translateRulexes(
           stackFrame0.parentEnv, lidb.child(), ruleBuilder, runeToExplicitType, rulesP.toVector.flatMap(_.rules))

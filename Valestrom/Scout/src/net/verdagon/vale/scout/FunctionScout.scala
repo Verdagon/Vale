@@ -4,7 +4,8 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.ExpressionScout.NormalResult
 import net.verdagon.vale.scout.Scout.noDeclarations
 import net.verdagon.vale.scout.patterns._
-import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
+//import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
+import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -81,7 +82,7 @@ object FunctionScout {
     val functionEnv = FunctionEnvironment(file, name, None, userDeclaredRunes.toSet, paramsP.size)
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
     RuleScout.translateRulexes(
       functionEnv,
       lidb.child(),
@@ -108,7 +109,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rangeS = Scout.evalRange(file, retRange)
           val rune = ImplicitRuneS(lidb.child().consume())
-          runeToExplicitType.put(rune, CoordTypeSR)
+          runeToExplicitType.put(rune, CoordTemplataType)
           ruleBuilder += LookupSR(rangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
           Some(rune)
         }
@@ -286,7 +287,7 @@ object FunctionScout {
     val lidb = new LocationInDenizenBuilder(Vector())
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
     val explicitParamPatterns1 =
       PatternScout.scoutPatterns(
         myStackFrameWithoutParams,
@@ -355,7 +356,7 @@ object FunctionScout {
           case mpn @ MagicParamNameS(codeLocation) => {
             val magicParamRange = RangeS(codeLocation, codeLocation)
             val magicParamRune = MagicParamRuneS(lidb.child().consume())
-            runeToExplicitType.put(magicParamRune,CoordTypeSR)
+            runeToExplicitType.put(magicParamRune,CoordTemplataType)
             val paramS =
               ParameterS(
                 AtomSP(
@@ -593,7 +594,7 @@ object FunctionScout {
     val lidb = new LocationInDenizenBuilder(Vector())
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITypeSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
     RuleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP.toVector.flatMap(_.rules))
 
@@ -609,7 +610,7 @@ object FunctionScout {
         case (None, None) => {
           // If nothing's present, assume void
           val rune = ImplicitRuneS(lidb.child().consume())
-          runeToExplicitType.put(rune, CoordTypeSR)
+          runeToExplicitType.put(rune, CoordTemplataType)
           ruleBuilder += LookupSR(retRangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
           Some(rune)
         }

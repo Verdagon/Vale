@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.{vassert, vcheck, vcurious, vimpl, vpass, vwat}
+import net.verdagon.vale.{PackageCoordinate, vassert, vcheck, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
 import scala.runtime
@@ -17,12 +17,20 @@ import scala.util.hashing.MurmurHash3
 
 sealed trait INameS
 sealed trait IVarNameS extends INameS
-sealed trait IFunctionDeclarationNameS extends INameS
+sealed trait IFunctionDeclarationNameS extends INameS {
+  def packageCoordinate: PackageCoordinate
+}
 case class LambdaNameS(
 //  parentName: INameS,
   codeLocation: CodeLocationS
-) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class FunctionNameS(name: String, codeLocation: CodeLocationS) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+) extends IFunctionDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
+}
+case class FunctionNameS(name: String, codeLocation: CodeLocationS) extends IFunctionDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
+}
 case class TopLevelCitizenDeclarationNameS(name: String, codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class LambdaStructNameS(lambdaName: LambdaNameS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ImplNameS(subCitizenHumanName: String, codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
@@ -45,7 +53,7 @@ case class ConstructingMemberNameS(name: String) extends IVarNameS { val hash = 
 // containers. That's much easier for the scout, so thats a nice bonus.
 // We have all these subclasses instead of a string so we don't have to have
 // prefixes and names like __implicit_0, __paramRune_0, etc.
-sealed trait IRuneS
+trait IRuneS
 case class CodeRuneS(name: String) extends IRuneS {
   vpass()
 }
@@ -67,7 +75,7 @@ case class ReturnRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashC
 // These are only made by the templar
 case class ExplicitTemplateArgRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
-sealed trait IImpreciseNameStepS
+trait IImpreciseNameStepS
 case class CodeTypeNameS(name: String) extends IImpreciseNameStepS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 // When we're calling a function, we're addressing an overload set, not a specific function.
 // If we want a specific function, we use TopLevelDeclarationNameS.

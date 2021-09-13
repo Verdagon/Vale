@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.expression
 
-import net.verdagon.vale.astronomer.{BlockAE, IExpressionAE}
+import net.verdagon.vale.astronomer.{BlockSE, IExpressionSE}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
@@ -14,7 +14,7 @@ trait IBlockTemplarDelegate {
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    expr1: IExpressionAE):
+    expr1: IExpressionSE):
   (ReferenceExpressionTE, Set[CoordT])
 }
 
@@ -36,7 +36,7 @@ class BlockTemplar(
     parentFate: FunctionEnvironmentBox,
     temputs: Temputs,
     life: LocationInFunctionEnvironment,
-    block1: BlockAE):
+    block1: BlockSE):
   (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
     val fate = parentFate.makeChildEnvironment(newTemplataStore)
     val startingFate = fate.snapshot
@@ -55,7 +55,7 @@ class BlockTemplar(
     startingFate: FunctionEnvironment,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    exprs: Vector[IExpressionAE]):
+    exprs: Vector[IExpressionSE]):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedExpressions, returnsFromExprs) =
       evaluateBlockStatementsInner(temputs, fate, life + 0, exprs.toList);
@@ -143,7 +143,7 @@ class BlockTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    expr1: List[IExpressionAE]):
+    expr1: List[IExpressionSE]):
   (List[ReferenceExpressionTE], Set[CoordT]) = {
     expr1 match {
       case Nil => (Nil, Set())

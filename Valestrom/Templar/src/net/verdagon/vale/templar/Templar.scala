@@ -502,7 +502,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         startingFate: FunctionEnvironment,
         fate: FunctionEnvironmentBox,
         life: LocationInFunctionEnvironment,
-        exprs: Vector[IExpressionAE]
+        exprs: Vector[IExpressionSE]
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       expressionTemplar.evaluateBlockStatements(temputs, startingFate, fate, life, exprs)
     }
