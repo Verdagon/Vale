@@ -1,13 +1,13 @@
 package net.verdagon.vale.scout.predictor
 
 import net.verdagon.vale._
-import net.verdagon.vale.scout.{CodeTypeNameS, IRuneS}
+import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{Planner, Solver}
 import net.verdagon.vale.templar.types._
 
 case class AstronomySolveError(unknownRunes: Iterable[IRuneS])
-object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITemplataType, ITemplataType]
+object AstronomySolver {
   def getRunes(rule: IRulexSR): Array[IRuneS] = {
     rule match {
       case LookupSR(range, rune, literal) => Array(rune)
@@ -39,16 +39,17 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
           // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
           Array()
         } else {
-          // Lookup rules get their type from their rune, which is either populated beforehand,
-          // or figured out from another rule, see AMPLR.
-          Array(Array(rune))
+          // This means we can solve this puzzle and dont need anything to do it.
+          Array(Array())
         }
       }
-      // These rules might not be knowable when predicting; the templateRune is likely a LookupSR
-      // which we can't really know at prediction time.
-      case CallSR(range, resultRune, templateRune, args) => Array(Array(resultRune, templateRune), Array(templateRune) ++ args)
+      case CallSR(range, resultRune, templateRune, args) => {
+        Array(
+          Array(resultRune, templateRune),
+          Array(templateRune) ++ args,
+          Array(resultRune) ++ args)
+      }
       case PackSR(_, resultRune, members) => Array(Array(resultRune), members)
-      // Below here, all rules know exactly what types they operate on.
       case KindComponentsSR(_, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => Array(Array())
       case OneOfSR(_, rune, literals) => Array(Array())
@@ -66,7 +67,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
 
   private def solveRule(
     state: Unit,
-    env: Unit,
+    env: INameS => ITemplataType,
     ruleIndex: Int,
     rule: IRulexSR,
     getConclusion: IRuneS => Option[ITemplataType],
@@ -76,6 +77,31 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
         concludeRune(resultRune, KindTemplataType)
         concludeRune(mutabilityRune, MutabilityTemplataType)
+        Ok(())
+      }
+      case CallSR(range, resultRune, templateRune, argRunes) => {
+        getConclusion(templateRune) match {
+          case None => {
+
+          }
+          case Some(templateType) => {
+            templateType match {
+              case TemplateTemplataType(paramTypes, returnType) => {
+                val effectiveReturnType =
+                  returnType match {
+                    case KindTemplataType => CoordTemplataType
+                    case other => other
+                  }
+                concludeRune(resultRune, effectiveReturnType)
+
+                argRunes.zip(paramTypes).foreach({ case (argRune, paramType) =>
+                  concludeRune(argRune, paramType)
+                })
+              }
+              case _ => vimpl(); Err(())
+            }
+          }
+        }
         Ok(())
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => {
@@ -107,27 +133,27 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
       }
       case CoerceToCoord(_, coordRune, kindRune) => {
         concludeRune(kindRune, KindTemplataType)
-        concludeRune(coordRune, KindTemplataType)
+        concludeRune(coordRune, CoordTemplataType)
         Ok(())
       }
       case LiteralSR(_, rune, literal) => {
         concludeRune(rune, literal.getType())
         Ok(())
       }
-      case LookupSR(range, rune, AbsoluteNameSN(name)) => {
-        // Lookup rules get their type from their rune, which is either populated beforehand,
-        // or figured out from another rule, see AMPLR.
-        // So here, we do nothing.
+      case LookupSR(range, rune, name) => {
+        val actualType =
+          env(name) match {
+            case KindTemplataType => CoordTemplataType
+            case other => other
+          }
+        concludeRune(rune, actualType)
         Ok(())
       }
-      case LookupSR(range, rune, ImpreciseNameSN(name @ CodeTypeNameS(_))) => {
-        // Lookup rules get their type from their rune, which is either populated beforehand,
-        // or figured out from another rule, see AMPLR.
-        // So here, we do nothing.
+      case AugmentSR(_, resultRune, literals, innerRune) => {
+        concludeRune(resultRune, CoordTemplataType)
+        concludeRune(innerRune, CoordTemplataType)
         Ok(())
       }
-      case LookupSR(range, rune, ImpreciseNameSN(_)) => vimpl()
-      case AugmentSR(_, resultRune, literals, innerRune) => vimpl()
       case PackSR(_, resultRune, members) => vimpl()
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => vimpl()
       case ManualSequenceSR(_, resultRune, elements) => vimpl()
@@ -136,7 +162,7 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
   }
 
   def solve(
-    env: Unit,
+    env: INameS => ITemplataType,
     predicting: Boolean,
     rules: IndexedSeq[IRulexSR],
     // Some runes don't appear in the rules, for example if they are in the identifying runes,
@@ -154,8 +180,10 @@ object AstronomySolver { // extends ISolveRule[IRulexSR, IRuneS, Unit, Unit, ITe
         initiallyKnownRunes.keySet,
         { case EqualsSR(_, a, b) => (a, b)}: PartialFunction[IRulexSR, (IRuneS, IRuneS)])
     val conclusions =
-      Solver.solve[IRulexSR, IRuneS, Unit, Unit, ITemplataType, Unit](
-        Unit, env, numCanonicalRunes, rules, ruleExecutionOrder,
+      Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
+        Unit,
+        env,
+        numCanonicalRunes, rules, ruleExecutionOrder,
         getRunes,
         userRuneToCanonicalRune,
         userRuneToCanonicalRune.keys,

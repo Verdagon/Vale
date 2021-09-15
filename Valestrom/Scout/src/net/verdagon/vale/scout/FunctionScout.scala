@@ -110,7 +110,7 @@ object FunctionScout {
           val rangeS = Scout.evalRange(file, retRange)
           val rune = ImplicitRuneS(lidb.child().consume())
           runeToExplicitType.put(rune, CoordTemplataType)
-          ruleBuilder += LookupSR(rangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
+          ruleBuilder += LookupSR(rangeS, rune, CodeTypeNameS("void"))
           Some(rune)
         }
         case (Some(_), None) => None // Infer the return
@@ -336,7 +336,7 @@ object FunctionScout {
     val closureStructRune = ImplicitRuneS(lidb.child().consume())
     ruleBuilder +=
       LookupSR(
-        closureParamRange, closureStructRune, AbsoluteNameSN(closureStructName))
+        closureParamRange, closureStructRune, closureStructName)
     val closureParamTypeRune = ImplicitRuneS(lidb.child().consume())
     ruleBuilder +=
       AugmentSR(
@@ -611,7 +611,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rune = ImplicitRuneS(lidb.child().consume())
           runeToExplicitType.put(rune, CoordTemplataType)
-          ruleBuilder += LookupSR(retRangeS, rune, ImpreciseNameSN(CodeTypeNameS("void")))
+          ruleBuilder += LookupSR(retRangeS, rune, CodeTypeNameS("void"))
           Some(rune)
         }
         case (Some(_), None) => {

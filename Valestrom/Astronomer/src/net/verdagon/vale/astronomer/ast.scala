@@ -49,6 +49,16 @@ case class ProgramA(
       case i @ StructA(_, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
+  def lookupStruct(name: String) = {
+    val matches = structs.filter(struct => {
+      struct.name match {
+        case TopLevelCitizenDeclarationNameS(n, _) => n == name
+        case _ => false
+      }
+    })
+    vassert(matches.size == 1)
+    matches.head
+  }
 }
 
 

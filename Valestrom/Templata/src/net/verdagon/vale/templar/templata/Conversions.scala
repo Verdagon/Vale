@@ -81,20 +81,4 @@ object Conversions {
       case ImmutableT => ImmutableP
     }
   }
-
-  def unevaluateTemplataType(tyype: ITemplataType): ITemplataType = {
-    tyype match {
-      case CoordTemplataType => CoordTemplataType
-      case KindTemplataType => KindTemplataType
-      case IntegerTemplataType => IntegerTemplataType
-      case BooleanTemplataType => BooleanTemplataType
-      case PrototypeTemplataType => PrototypeTemplataType
-      case MutabilityTemplataType => MutabilityTemplataType
-      case PermissionTemplataType => PermissionTemplataType
-      case LocationTemplataType => LocationTemplataType
-      case OwnershipTemplataType => OwnershipTemplataType
-      case VariabilityTemplataType => VariabilityTemplataType
-      case TemplateTemplataType(_, _) => vimpl() // can we even specify template types in the syntax?
-    }
-  }
 }

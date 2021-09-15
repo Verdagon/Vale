@@ -64,7 +64,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       case LiteralSR(_, r, MutabilityLiteralSL(MutableP)) => vassert(r == imoo.mutabilityRune)
     }
     imoo.rules shouldHave {
-      case LookupSR(_, m, ImpreciseNameSN(CodeTypeNameS("int"))) => vassert(m == imoo.members(0).typeRune)
+      case LookupSR(_, m, CodeTypeNameS("int")) => vassert(m == imoo.members(0).typeRune)
     }
     imoo.members match {
       case Vector(StructMemberS(_, "x", FinalP, _)) =>
@@ -166,10 +166,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
     impl.rules shouldHave {
-      case LookupSR(_, r, ImpreciseNameSN(CodeTypeNameS("Moo"))) => vassert(r == impl.structKindRune)
+      case LookupSR(_, r, CodeTypeNameS("Moo")) => vassert(r == impl.structKindRune)
     }
     impl.rules shouldHave {
-      case LookupSR(_, r, ImpreciseNameSN(CodeTypeNameS("IMoo"))) => vassert(r == impl.interfaceKindRune)
+      case LookupSR(_, r, CodeTypeNameS("IMoo")) => vassert(r == impl.interfaceKindRune)
     }
   }
 

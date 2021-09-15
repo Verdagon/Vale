@@ -248,7 +248,7 @@ object Scout {
     rulesS: Array[IRulexSR]):
   Map[IRuneS, ITemplataType] = {
     val runeSToLocallyPredictedTypes =
-      AstronomySolver.solve(Unit, true, rulesS, identifyingRunesS, false, Map()) match {
+      AstronomySolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, Map()) match {
         case Ok(t) => t
         // This likely cannot happen because we aren't even asking for a complete solve.
         case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
@@ -319,7 +319,7 @@ object Scout {
     val predictedMutability = predictMutability(rangeS, mutabilityRuneS, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(identifyingRunesS, runeToPredictedType) match {
+      determineDenizenType(KindTemplataType, identifyingRunesS, runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
@@ -362,6 +362,7 @@ object Scout {
 
   // Err is the missing rune
   def determineDenizenType(
+    templateResultType: ITemplataType,
     identifyingRunesS: Vector[IRuneS],
     runeAToType: Map[IRuneS, ITemplataType]):
   Result[ITemplataType, IRuneS] = {
@@ -376,9 +377,9 @@ object Scout {
               case Some(x) => x
             }
           }),
-          FunctionTemplataType)
+          templateResultType)
       } else {
-        FunctionTemplataType
+        templateResultType
       }
     Ok(tyype)
   }
@@ -418,7 +419,7 @@ object Scout {
     val predictedMutability = predictMutability(rangeS, mutabilityRuneS, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(explicitIdentifyingRunes, runeToPredictedType) match {
+      determineDenizenType(KindTemplataType, explicitIdentifyingRunes, runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
