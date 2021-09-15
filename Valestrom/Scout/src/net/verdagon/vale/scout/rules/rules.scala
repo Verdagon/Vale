@@ -87,7 +87,7 @@ case class LiteralSR(
 case class LookupSR(
   range: RangeS,
   rune: IRuneS,
-  name: INameSN
+  name: INameS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vpass()
@@ -241,20 +241,6 @@ case class VariabilityLiteralSL(variability: VariabilityP) extends ILiteralSL {
 //) extends IValueSR {
 //  override def hashCode(): Int = vcurious()
 //}
-
-sealed trait INameSN
-
-case class ImpreciseNameSN(
-  name: IImpreciseNameStepS
-) extends INameSN {
-  override def hashCode(): Int = vcurious()
-}
-
-case class AbsoluteNameSN(
-  name: INameS
-) extends INameSN {
-  override def hashCode(): Int = vcurious()
-}
 
 
 

@@ -63,19 +63,19 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
   }
 
-  test("Template call a struct") {
+  test("Template call, recursively evaluate") {
     val compilation =
       AstronomerTestCompilation.test(
         """struct Moo<T> {
           |  bork T;
           |}
-          |struct Bork {
-          |  x Moo<int>;
+          |struct Bork<T> {
+          |  x Moo<T>;
           |}
           |""".stripMargin)
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
-    val main = program.lookupFunction("moo")
+    val main = program.lookupStruct("Bork")
     main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
 

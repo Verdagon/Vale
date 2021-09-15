@@ -41,7 +41,7 @@ case class Environment(
   // See MINAAN for what we're doing here.
   def impreciseNameMatchesAbsoluteName(
     absoluteName: INameS,
-    needleImpreciseNameS: IImpreciseNameStepS):
+    needleImpreciseNameS: INameS):
   Boolean = {
     (absoluteName, needleImpreciseNameS) match {
       case (TopLevelCitizenDeclarationNameS(humanNameA, _), CodeTypeNameS(humanNameB)) => humanNameA == humanNameB
@@ -68,7 +68,7 @@ case class Environment(
 //    }
   }
 
-  def lookupType(needleImpreciseNameS: IImpreciseNameStepS):
+  def lookupType(needleImpreciseNameS: INameS):
   (Option[ITemplataType], Vector[StructS], Vector[InterfaceS]) = {
     // See MINAAN for what we're doing here.
 
@@ -93,19 +93,18 @@ case class Environment(
     }
   }
 
-  def lookupType(name: INameS):
-  (Vector[StructS], Vector[InterfaceS]) = {
-    val nearStructs = structsS.filter(_.name == name)
-    val nearInterfaces = interfacesS.filter(_.name == name)
-
-    if (nearStructs.nonEmpty || nearInterfaces.nonEmpty) {
-      return (nearStructs.toVector, nearInterfaces.toVector)
-    }
-    maybeParentEnv match {
-      case None => (Vector.empty, Vector.empty)
-      case Some(parentEnv) => parentEnv.lookupType(name)
-    }
-  }
+//  def lookupSingle(range: RangeS, needleImpreciseNameS: INameS):
+//  (Option[ITemplataType], Vector[StructS], Vector[InterfaceS]) = {
+//    val (nearPrimitives, nearStructs, nearInterfaces) = lookupType(needleImpreciseNameS)
+//    val allTypes = nearPrimitives ++ nearStructs ++ nearInterfaces
+//    if (allTypes.isEmpty) {
+//      throw CompileErrorExceptionA(CouldntFindTypeA(range, needleImpreciseNameS.toString))
+//    } else if (allTypes.size > 1) {
+//      throw CompileErrorExceptionA(TooManyMatchingTypesA(range, needleImpreciseNameS.toString))
+//    } else {
+//      allTypes.head
+//    }
+//  }
 
   def lookupRune(name: IRuneS): ITemplataType = {
     typeByRune.get(name) match {
@@ -142,6 +141,7 @@ object Astronomer {
     name match {
       case LambdaNameS(_) =>
       case FunctionNameS(_, _) =>
+      case CodeTypeNameS(_) =>
       case TopLevelCitizenDeclarationNameS(_, _) =>
       case LambdaStructNameS(_) => return KindTemplataType
       case ImplNameS(_, _) => vwat()
@@ -152,16 +152,22 @@ object Astronomer {
       case CodeVarNameS(_) => vwat()
     }
 
-    val (structsS, interfacesS) = env.lookupType(name)
+    val (primitivesS, structsS, interfacesS) = env.lookupType(name)
 
-    if (structsS.isEmpty && interfacesS.isEmpty) {
+    if (primitivesS.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
       ErrorReporter.report(RangedInternalErrorA(range, "Nothing found with name " + name))
     }
-    if (structsS.size.signum + interfacesS.size.signum > 1) {
+    if (primitivesS.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
       ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
     }
 
-    if (structsS.nonEmpty) {
+    if (primitivesS.nonEmpty) {
+      if (primitivesS.toSet.size > 1) {
+        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + primitivesS.toSet))
+      }
+      val tyype = primitivesS.head
+      tyype
+    } else if (structsS.nonEmpty) {
       val types = structsS.map(getStructType(astrouts, env, _))
       if (types.toSet.size > 1) {
         ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
@@ -258,7 +264,7 @@ object Astronomer {
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, Vector(), rulesS, env)
 
     // Shouldnt fail because we got a complete solve earlier
-    val tyype = Scout.determineDenizenType(identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS, runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val structA =
@@ -319,7 +325,7 @@ object Astronomer {
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, Vector(), rulesS, env)
 
     // getOrDie because we should have gotten a complete solve
-    val tyype = Scout.determineDenizenType(identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS, runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val methodsEnv = env.addRunes(runeAToType)
@@ -436,7 +442,7 @@ object Astronomer {
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, paramsS, rulesS, env)
 
     // Shouldnt fail because we got a complete solve on the rules
-    val tyype = Scout.determineDenizenType(identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(FunctionTemplataType, identifyingRunesS, runeAToType).getOrDie()
 
     FunctionA(
       rangeS,
@@ -462,37 +468,15 @@ object Astronomer {
   Map[IRuneS, ITemplataType] = {
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.map(_.pattern.coordRune -> CoordTemplataType).toMap ++
-        // We manually figure out the types of runes from lookup rules beforehand, see AMPLR.
-        rulesS.flatMap({
-          case LookupSR(range, rune, name) => {
-            val tyype =
-              name match {
-                case AbsoluteNameSN(name) => {
-                  Astronomer.lookupType(astrouts, env, range, name)
-                }
-                case ImpreciseNameSN(name @ CodeTypeNameS(_)) => {
-                  Astronomer.lookupType(astrouts, env, range, name)
-                }
-              }
-            tyype match {
-              case KindTemplataType => List()
-              case _ => List(rune -> tyype)
-            }
-          }
-          case _ => List()
-        })
+        paramsS.map(_.pattern.coordRune -> CoordTemplataType).toMap
     val runeSToType =
-      AstronomySolver.solve(env, false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
+      AstronomySolver.solve(
+        (n) => Astronomer.lookupType(astrouts, env, rangeS, n),
+        false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
       }
-
-    val runeAToType =
-      runeSToType.map({ case (runeS, tyype) =>
-        (runeS) -> tyype
-      })
-    runeAToType
+    runeSToType
   }
 
   def translateProgram(

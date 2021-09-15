@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.env
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{IImpreciseNameStepS, LocalS}
+import net.verdagon.vale.scout.{INameS, LocalS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.templata.{ITemplata, QueriableT}
 import net.verdagon.vale.templar.types.{CoordT, StructTT, VariabilityT}
@@ -33,10 +33,10 @@ case class BuildingFunctionEnvironmentWithClosureds(
   override def getNearestTemplataWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithAbsoluteName2(this, name, lookupFilter)
   }
-  override def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
+  override def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
     templatas.getAllTemplatasWithName(profiler, this, name, lookupFilter)
   }
-  override def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
+  override def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithName(this, name, lookupFilter)
   }
 }
@@ -65,10 +65,10 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   override def getNearestTemplataWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithAbsoluteName2(this, name, lookupFilter)
   }
-  override def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
+  override def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
     templatas.getAllTemplatasWithName(profiler, this, name, lookupFilter)
   }
-  override def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
+  override def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithName(this, name, lookupFilter)
   }
 }
@@ -149,10 +149,10 @@ case class FunctionEnvironment(
   override def getNearestTemplataWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithAbsoluteName2(this, name, lookupFilter)
   }
-  override def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
+  override def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
     templatas.getAllTemplatasWithName(profiler, this, name, lookupFilter)
   }
-  override def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
+  override def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithName(this, name, lookupFilter)
   }
 
@@ -255,11 +255,11 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     functionEnvironment.getNearestTemplataWithAbsoluteName2(name, lookupFilter)
   }
 
-  override def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
+  override def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
     functionEnvironment.getAllTemplatasWithName(profiler, name, lookupFilter)
   }
 
-  override def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
+  override def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     functionEnvironment.getNearestTemplataWithName(name, lookupFilter)
   }
 

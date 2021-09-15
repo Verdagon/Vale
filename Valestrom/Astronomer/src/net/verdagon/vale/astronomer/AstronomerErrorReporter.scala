@@ -10,6 +10,7 @@ case class CompileErrorExceptionA(err: ICompileErrorA) extends RuntimeException 
 
 sealed trait ICompileErrorA { def range: RangeS }
 case class CouldntFindTypeA(range: RangeS, name: String) extends ICompileErrorA { override def hashCode(): Int = vcurious() }
+case class TooManyMatchingTypesA(range: RangeS, name: String) extends ICompileErrorA { override def hashCode(): Int = vcurious() }
 case class CouldntSolveRulesA(range: RangeS, error: AstronomySolveError) extends ICompileErrorA {
   override def hashCode(): Int = vcurious()
 }

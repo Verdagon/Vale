@@ -26,7 +26,7 @@ case class TypeDistance(upcastDistance: Int, ownershipDistance: Int, permissionD
 
 trait ITemplataTemplarInnerDelegate[Env, State] {
   def lookupTemplata(env: Env, range: RangeS, name: INameT): ITemplata
-  def lookupTemplataImprecise(env: Env, range: RangeS, name: IImpreciseNameStepS): ITemplata
+  def lookupTemplataImprecise(env: Env, range: RangeS, name: INameS): ITemplata
 
   def getMutability(state: State, kind: KindT): MutabilityT
 
@@ -465,7 +465,7 @@ class TemplataTemplarInner[Env, State](delegate: ITemplataTemplarInnerDelegate[E
     env: Env,
     state: State,
     range: RangeS,
-    name: IImpreciseNameStepS,
+    name: INameS,
     expectedType: ITemplataType):
   (ITemplata) = {
     val uncoercedTemplata = delegate.lookupTemplataImprecise(env, range, name)

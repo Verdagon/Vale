@@ -1,6 +1,6 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.scout.{CodeLocationS, IImpreciseNameStepS, IRuneS}
+import net.verdagon.vale.scout.{CodeLocationS, INameS, IRuneS}
 import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 
 //// An absolute name is one where we know *exactly* where it's defined; if parser and scout
@@ -94,7 +94,7 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 //// If we want a specific function, we use TopLevelDeclarationNameS.
 //case class GlobalFunctionFamilyNameA(name: String) extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ImpreciseCodeVarNameA(name: String) extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class ImplImpreciseNameS(subCitizenHumanName: String) extends IImpreciseNameStepS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImplImpreciseNameS(subCitizenHumanName: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ImmConcreteDestructorImpreciseNameA() extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ImmInterfaceDestructorImpreciseNameA() extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ImmDropImpreciseNameA() extends IImpreciseNameStepA

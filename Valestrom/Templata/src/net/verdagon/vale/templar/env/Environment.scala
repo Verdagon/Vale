@@ -17,8 +17,8 @@ trait IEnvironment {
   def globalEnv: PackageEnvironment[INameT]
   def getAllTemplatasWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
   def getNearestTemplataWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Option[ITemplata]
-  def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
-  def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata]
+  def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
+  def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata]
   def fullName: FullNameT[INameT]
 }
 
@@ -30,8 +30,8 @@ trait IEnvironmentBox {
   def globalEnv: PackageEnvironment[INameT]
   def getAllTemplatasWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
   def getNearestTemplataWithAbsoluteName2(name: INameT, lookupFilter: Set[ILookupContext]): Option[ITemplata]
-  def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
-  def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata]
+  def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata]
+  def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata]
   def fullName: FullNameT[INameT]
 }
 
@@ -79,11 +79,11 @@ case class PackageEnvironment[+T <: INameT](
     templatas.getNearestTemplataWithAbsoluteName2(this, name, lookupFilter)
   }
 
-  override def getAllTemplatasWithName(profiler: IProfiler, name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
+  override def getAllTemplatasWithName(profiler: IProfiler, name: INameS, lookupFilter: Set[ILookupContext]): Vector[ITemplata] = {
     templatas.getAllTemplatasWithName(profiler, this, name, lookupFilter)
   }
 
-  override def getNearestTemplataWithName(name: IImpreciseNameStepS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
+  override def getNearestTemplataWithName(name: INameS, lookupFilter: Set[ILookupContext]): Option[ITemplata] = {
     templatas.getNearestTemplataWithName(this, name, lookupFilter)
   }
 
@@ -116,7 +116,7 @@ case class PackageEnvironment[+T <: INameT](
 
 case class TemplatasStore(
   entriesByNameT: Map[INameT, Vector[IEnvEntry]],
-  entriesByImpreciseNameS: Map[IImpreciseNameStepS, Vector[IEnvEntry]]
+  entriesByImpreciseNameS: Map[INameS, Vector[IEnvEntry]]
 ) {
   override def hashCode(): Int = vcurious()
 
@@ -217,7 +217,7 @@ case class TemplatasStore(
     }
   }
 
-  def impreciseNamesMatch(nameA: IImpreciseNameStepS, name2: INameT): Boolean = {
+  def impreciseNamesMatch(nameA: INameS, name2: INameT): Boolean = {
     // If something's in these two switch statements, then we've factored them into the main one below.
     // When you add something to the main list, make sure you handle all its cases and add it to one of
     // these too.
@@ -270,7 +270,7 @@ case class TemplatasStore(
     }
   }
 
-  def getImpreciseName(useOptimization: Boolean, name2: INameT): Option[IImpreciseNameStepS] = {
+  def getImpreciseName(useOptimization: Boolean, name2: INameT): Option[INameS] = {
     name2 match {
       case CitizenTemplateNameT(humanName, _) => Some(CodeTypeNameS(humanName))
       case CitizenTemplateNameT(humanNameT, _) => Some(CodeTypeNameS(humanNameT))
@@ -344,7 +344,7 @@ case class TemplatasStore(
   def getAllTemplatasWithName(
     profiler: IProfiler,
     from: IEnvironment,
-    name: IImpreciseNameStepS,
+    name: INameS,
     lookupFilter: Set[ILookupContext]):
   Vector[ITemplata] = {
     profiler.childFrame("getAllTemplatasWithName", () => {
@@ -359,7 +359,7 @@ case class TemplatasStore(
 
   def getNearestTemplataWithName(
     from: IEnvironment,
-    name: IImpreciseNameStepS,
+    name: INameS,
     lookupFilter: Set[ILookupContext]):
   Option[ITemplata] = {
     entriesByImpreciseNameS

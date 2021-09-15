@@ -15,7 +15,7 @@ import scala.util.hashing.MurmurHash3
 // We have this INameS stuff so we don't have to have prefixes and names like
 // __magic_0 __magic_1 __Closure etc.
 
-sealed trait INameS
+trait INameS
 sealed trait IVarNameS extends INameS
 sealed trait IFunctionDeclarationNameS extends INameS {
   def packageCoordinate: PackageCoordinate
@@ -75,14 +75,16 @@ case class ReturnRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashC
 // These are only made by the templar
 case class ExplicitTemplateArgRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
-trait IImpreciseNameStepS
-case class CodeTypeNameS(name: String) extends IImpreciseNameStepS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class CodeTypeNameS(name: String) extends INameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  vpass()
+}
 // When we're calling a function, we're addressing an overload set, not a specific function.
 // If we want a specific function, we use TopLevelDeclarationNameS.
-case class GlobalFunctionFamilyNameS(name: String) extends IImpreciseNameStepS {
+case class GlobalFunctionFamilyNameS(name: String) extends INameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class ImpreciseCodeVarNameS(name: String) extends IImpreciseNameStepS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImpreciseCodeVarNameS(name: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 
 // See PVSBUFI
