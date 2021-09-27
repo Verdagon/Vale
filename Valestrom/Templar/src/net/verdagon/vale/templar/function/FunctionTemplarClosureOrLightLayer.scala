@@ -1,9 +1,9 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{AbstractBodyA, CodeBodyA, ExternBodyA, FunctionA, GeneratedBodyA, IFunctionDeclarationNameA}
+import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.scout.{CodeBodyS, RangeS}
+import net.verdagon.vale.scout.{AbstractBodyS, CodeBodyS, ExternBodyS, GeneratedBodyS, IFunctionDeclarationNameS, RangeS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
@@ -130,14 +130,25 @@ class FunctionTemplarClosureOrLightLayer(
   def evaluateOrdinaryLightFunctionFromNonCallForHeader(
       outerEnv: IEnvironment,
       temputs: Temputs,
-    callRange: RangeS,
     function: FunctionA):
   (FunctionHeaderT) = {
     vassert(!function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, temputs, callRange)
+      newEnv, temputs)
+  }
+
+  def evaluateTemplatedLightFunctionFromNonCallForHeader(
+    outerEnv: IEnvironment,
+    temputs: Temputs,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    vassert(function.isTemplate)
+
+    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
+      newEnv, temputs)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -177,7 +188,6 @@ class FunctionTemplarClosureOrLightLayer(
   def evaluateOrdinaryClosureFunctionFromNonCallForHeader(
       outerEnv: IEnvironment,
       temputs: Temputs,
-    callRange: RangeS,
       closureStructRef: StructTT,
     function: FunctionA):
   (FunctionHeaderT) = {
@@ -190,7 +200,25 @@ class FunctionTemplarClosureOrLightLayer(
     val (variables, entries) = makeClosureVariablesAndEntries(temputs, closureStructRef)
     val newEnv = BuildingFunctionEnvironmentWithClosureds(outerEnv, name, function, variables, newTemplataStore().addEntries(opts.useOptimization, entries))
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, temputs, callRange)
+      newEnv, temputs)
+  }
+
+  def evaluateTemplatedClosureFunctionFromNonCallForHeader(
+    outerEnv: IEnvironment,
+    temputs: Temputs,
+    closureStructRef: StructTT,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    // We dont here because it knows from how many variables
+    // it closures... but even lambdas without closured vars are still closures and are still
+    // backed by structs.
+    vassert(!function.isTemplate)
+
+    val name = makeNameWithClosureds(outerEnv, function.name)
+    val (variables, entries) = makeClosureVariablesAndEntries(temputs, closureStructRef)
+    val newEnv = BuildingFunctionEnvironmentWithClosureds(outerEnv, name, function, variables, newTemplataStore().addEntries(opts.useOptimization, entries))
+    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
+      newEnv, temputs)
   }
 
   // This is called while we're trying to figure out what function1s to call when there
@@ -251,7 +279,7 @@ class FunctionTemplarClosureOrLightLayer(
 
   private def makeNameWithClosureds(
     outerEnv: IEnvironment,
-    functionName: IFunctionDeclarationNameA
+    functionName: IFunctionDeclarationNameS
   ): FullNameT[BuildingFunctionNameWithClosuredsT] = {
     outerEnv.fullName.addStep(
       BuildingFunctionNameWithClosuredsT(
@@ -260,10 +288,10 @@ class FunctionTemplarClosureOrLightLayer(
 
   private def checkNotClosure(function: FunctionA) = {
     function.body match {
-      case CodeBodyA(body1) => vassert(body1.closuredNames.isEmpty)
-      case ExternBodyA =>
-      case GeneratedBodyA(_) =>
-      case AbstractBodyA =>
+      case CodeBodyS(body1) => vassert(body1.closuredNames.isEmpty)
+      case ExternBodyS =>
+      case GeneratedBodyS(_) =>
+      case AbstractBodyS =>
       case _ => vfail()
     }
   }

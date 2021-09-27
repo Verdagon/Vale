@@ -916,7 +916,7 @@ object VonHammer {
           Vector(
             VonMember("prototype", vonifyPrototype(FunctionHammer.translatePrototype(hinputs, hamuts, prototype)))))
       }
-      case ArrayTemplateTemplata() => VonObject("ArrayTemplateTemplata", None, Vector())
+      case RuntimeSizedArrayTemplateTemplata() => VonObject("ArrayTemplateTemplata", None, Vector())
       case ft @ FunctionTemplata(env, functionA) => {
         VonObject(
           "FunctionTemplata",
@@ -973,8 +973,8 @@ object VonHammer {
         VonMember("offset", VonInt(offset))))
   }
 
-  def vonifyCodeLocation2(codeLocation: CodeLocationT): IVonData = {
-    val CodeLocationT(file, offset) = codeLocation
+  def vonifyCodeLocation2(codeLocation: CodeLocationS): IVonData = {
+    val CodeLocationS(file, offset) = codeLocation
     VonObject(
       "CodeLocation",
       None,
@@ -1264,14 +1264,14 @@ object VonHammer {
           None,
           Vector())
       }
-      case CodeRuneT(name) => {
+      case CodeRuneS(name) => {
         VonObject(
           "CodeRune",
           None,
           Vector(
             VonMember("name", VonStr(name))))
       }
-      case ImplicitRuneT(parentName, name) => {
+      case ImplicitRuneS(parentName, name) => {
         VonObject(
           "ImplicitRune",
           None,
@@ -1279,48 +1279,48 @@ object VonHammer {
             VonMember("parentName", translateName(hinputs, hamuts, parentName)),
             VonMember("name", VonInt(name))))
       }
-      case LetImplicitRuneT(codeLocation, name) => {
+      case LetImplicitRuneS(codeLocation, name) => {
         VonObject(
           "LetImplicitRune",
           None,
           Vector(
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case MemberRuneT(memberIndex) => {
+      case MemberRuneS(memberIndex) => {
         VonObject(
           "MemberRune",
           None,
           Vector(
             VonMember("memberIndex", VonInt(memberIndex))))
       }
-      case MagicImplicitRuneT(codeLocation) => {
+      case MagicImplicitRuneS(codeLocation) => {
         VonObject(
           "MagicImplicitRune",
           None,
           Vector(
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case ReturnRuneT() => {
+      case ReturnRuneS() => {
         VonObject(
           "ReturnRune",
           None,
           Vector())
       }
-      case SolverKindRuneT(paramRune) => {
+      case SolverKindRuneS(paramRune) => {
         VonObject(
           "SolverKindRune",
           None,
           Vector(
             VonMember("paramRune", translateName(hinputs, hamuts, paramRune))))
       }
-      case ExplicitTemplateArgRuneT(index) => {
+      case ExplicitTemplateArgRuneS(index) => {
         VonObject(
           "ExplicitTemplateArgRune",
           None,
           Vector(
             VonMember("index", VonInt(index))))
       }
-      case AnonymousSubstructParentInterfaceRuneT() => {
+      case AnonymousSubstructParentInterfaceRuneS() => {
         VonObject(
           "AnonymousSubstructParentInterfaceRune",
           None,

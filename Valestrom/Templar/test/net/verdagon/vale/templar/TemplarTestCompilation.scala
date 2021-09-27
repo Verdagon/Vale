@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.FileP
-import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, IRulexSR, ProgramS, RangeS}
+import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, ProgramS, RangeS}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable

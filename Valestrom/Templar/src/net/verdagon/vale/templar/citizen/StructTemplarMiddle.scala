@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.citizen
 
-import net.verdagon.vale.astronomer.{FunctionA, InterfaceA, LambdaNameA, StructA}
+import net.verdagon.vale.astronomer.{FunctionA, InterfaceA, StructA}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
@@ -37,14 +37,14 @@ class StructTemplarMiddle(
     temputs: Temputs,
     callRange: RangeS,
     structS: StructA,
-    templatasByRune: Map[IRuneT, ITemplata]):
+    templatasByRune: Map[IRuneS, ITemplata]):
   (StructTT) = {
-    val coercedFinalTemplateArgs2 = structS.identifyingRunes.map(NameTranslator.translateRune).map(templatasByRune)
+    val coercedFinalTemplateArgs2 = structS.identifyingRunes.map(_.rune).map(templatasByRune)
 
     val localEnv =
       structOuterEnv.addEntries(
         opts.useOptimization,
-        templatasByRune.map({ case (rune, templata) => (rune, Vector(TemplataEnvEntry(templata))) }))
+        templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) }))
     val structDefinition2 =
       core.makeStruct(
         localEnv, temputs, structS, coercedFinalTemplateArgs2);
@@ -57,14 +57,14 @@ class StructTemplarMiddle(
     temputs: Temputs,
     callRange: RangeS,
     interfaceA: InterfaceA,
-    templatasByRune: Map[IRuneT, ITemplata]):
+    templatasByRune: Map[IRuneS, ITemplata]):
   (InterfaceTT) = {
-    val coercedFinalTemplateArgs2 = interfaceA.identifyingRunes.map(NameTranslator.translateRune).map(templatasByRune)
+    val coercedFinalTemplateArgs2 = interfaceA.identifyingRunes.map(_.rune).map(templatasByRune)
 
     val localEnv =
       interfaceOuterEnv.addEntries(
         opts.useOptimization,
-        templatasByRune.map({ case (rune, templata) => (rune, Vector(TemplataEnvEntry(templata))) }))
+        templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) }))
     val interfaceDefinition2 =
       core.makeInterface(
         localEnv, temputs, interfaceA, coercedFinalTemplateArgs2);
@@ -84,7 +84,7 @@ class StructTemplarMiddle(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     temputs: Temputs,
-    name: LambdaNameA,
+    name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {

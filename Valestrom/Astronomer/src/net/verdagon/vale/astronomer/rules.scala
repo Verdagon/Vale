@@ -34,7 +34,7 @@
 //sealed trait ILookupAR
 //
 //case class NameAR(
-//  name: IImpreciseNameStepA
+//  name: INameS
 //) extends ILookupAR {
 //  override def hashCode(): Int = vcurious()
 //  //  println("hi")

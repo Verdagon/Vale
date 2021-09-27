@@ -13,12 +13,12 @@ case class FinishedFrame(nanoseconds: Long, children: Map[String, Vector[Finishe
 }
 
 trait IProfiler {
-  def newProfile[T](profileName: String, args: String, profilee: () => T): T
+  def newProfile[T](profileName: String, args: => String, profilee: () => T): T
   def childFrame[T](frameName: String, profilee: () => T): T
 }
 
 class NullProfiler extends IProfiler {
-  override def newProfile[T](profileName: String, args: String, profilee: () => T): T = profilee()
+  override def newProfile[T](profileName: String, args: => String, profilee: () => T): T = profilee()
   override def childFrame[T](frameName: String, profilee: () => T): T = profilee()
 }
 
@@ -91,7 +91,7 @@ class Profiler extends IProfiler {
 
   var currentProfile: Option[InProgressProfile] = None
 
-  def newProfile[T](profileName: String, args: String, profilee: () => T): T = {
+  def newProfile[T](profileName: String, args: => String, profilee: () => T): T = {
     val parentProfile = currentProfile
     parentProfile.foreach(_.pause())
 

@@ -28,18 +28,18 @@ object NameHammer {
       case AnonymousSubstructImplNameT() => "AnonSubstructImplName"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
       case AnonymousSubstructNameT(callables) => "AnonSubstruct"
-      case AnonymousSubstructParentInterfaceRuneT() => "anonSubstructParentInterfaceRune"
+      case AnonymousSubstructParentInterfaceRuneS() => "anonSubstructParentInterfaceRune"
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
       case BuildingFunctionNameWithClosuredsAndTemplateArgsT(_, _) => vwat() // Shouldnt see this in hammer
       case CitizenNameT(humanName, templateArgs) => humanName
       case CitizenTemplateNameT(humanName, codeLocation) => humanName
       case ClosureParamNameT() => "closure"
-      case CodeRuneT(name) => name
+      case CodeRuneS(name) => name
       case CodeVarNameT(name) => name
       case ConstructingMemberNameT(name) => name
       case ConstructorNameT(params) => "constructor"
       case ConstructorTemplateNameT(codeLoc) => "constructorTemplate"
-      case ExplicitTemplateArgRuneT(index) => "rune" + index
+      case ExplicitTemplateArgRuneS(index) => "rune" + index
       case ExternFunctionNameT(humanName, params) => humanName
       case FunctionNameT(humanName, templateArgs, params) => humanName
       case FunctionTemplateNameT(humanName, codeLoc) => humanName
@@ -51,19 +51,19 @@ object NameHammer {
       case ImmInterfaceDestructorNameT(templateArgs, params) => "immInterfaceDestructor"
       case ImmInterfaceDestructorTemplateNameT() => "immInterfaceDestructorTemplate"
       case ImplDeclareNameT(subCitizenHumanName, codeLoc) => "impl" + subCitizenHumanName
-      case ImplicitRuneT(parentName, name) => "implicitRune" + name
+      case ImplicitRuneS(parentName, name) => "implicitRune" + name
       case StaticSizedArrayNameT(size, arr) => "ssa" + size
       case LambdaCitizenNameT(codeLoc) => "lam"
       case LambdaTemplateNameT(codeLoc) => "lamTemplate"
-      case LetImplicitRuneT(codeLoc, name) => "letImplicitRune" + name
+      case LetImplicitRuneS(codeLoc, name) => "letImplicitRune" + name
       case LetNameT(codeLoc) => "letName"
-      case MagicImplicitRuneT(codeLoc) => "magicRune"
+      case MagicImplicitRuneS(codeLoc) => "magicRune"
       case MagicParamNameT(codeLoc) => "magicParam"
-      case MemberRuneT(memberIndex) => "memberRune" + memberIndex
+      case MemberRuneS(memberIndex) => "memberRune" + memberIndex
       case PrimitiveNameT(humanName) => humanName
       case RawArrayNameT(mutability, elementType) => "rawArr"
-      case ReturnRuneT() => "retRune"
-      case SolverKindRuneT(paramRune) => "solverKindRune"
+      case ReturnRuneS() => "retRune"
+      case SolverKindRuneS(paramRune) => "solverKindRune"
       case TemplarBlockResultVarNameT(num) => "blockResult" + num
       case TemplarFunctionResultVarNameT() => "funcResult"
       case TemplarPatternDestructureeNameT(num) => "patDestrName" + num
@@ -104,8 +104,8 @@ object NameHammer {
     FullNameH(s, id, fullName.packageCoordinate, newNameParts)
   }
 
-  def translateCodeLocation(location: CodeLocationT): VonObject = {
-    val CodeLocationT(fileCoord, offset) = location
+  def translateCodeLocation(location: CodeLocationS): VonObject = {
+    val CodeLocationS(fileCoord, offset) = location
     VonObject(
       "CodeLocation",
       None,

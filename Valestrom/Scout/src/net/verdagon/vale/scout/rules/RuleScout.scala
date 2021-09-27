@@ -18,7 +18,7 @@ object RuleScout {
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     rulesP: Vector[IRulexPR]):
-  Vector[IRuneS] = {
+  Vector[RuneUsage] = {
     rulesP.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, _))
   }
 
@@ -28,7 +28,7 @@ object RuleScout {
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     rulex: IRulexPR):
-  IRuneS = {
+  RuneUsage = {
     val evalRange = (range: Range) => Scout.evalRange(env.file, range)
 
     rulex match {
@@ -37,11 +37,15 @@ object RuleScout {
       //      }
       case EqualsPR(range, leftP, rightP) => {
         val rune = ImplicitRuneS(lidb.child().consume())
-        builder += EqualsSR(evalRange(range), translateRulex(env, lidb.child(), builder, runeToExplicitType, leftP), translateRulex(env, lidb.child(), builder, runeToExplicitType, rightP))
-        rune
+        builder +=
+          EqualsSR(
+            evalRange(range),
+            translateRulex(env, lidb.child(), builder, runeToExplicitType, leftP),
+            translateRulex(env, lidb.child(), builder, runeToExplicitType, rightP))
+        RuneUsage(evalRange(range), rune)
       }
       case OrPR(range, possibilitiesP) => {
-        val rune = ImplicitRuneS(lidb.child().consume())
+        val rune = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
 
         val values =
           possibilitiesP
@@ -61,14 +65,14 @@ object RuleScout {
       case ComponentsPR(range, TypedPR(typeRange, maybeRune, tyype), componentsP) => {
         val rune =
           maybeRune match {
-            case None => ImplicitRuneS(lidb.child().consume())
-            case Some(r) => CodeRuneS(r.str)
+            case None => RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+            case Some(r) => RuneUsage(evalRange(r.range), CodeRuneS(r.str))
           }
-        runeToExplicitType.put(rune, translateType(tyype))
+        runeToExplicitType.put(rune.rune, translateType(tyype))
         tyype match {
           case CoordTypePR => {
             if (componentsP.size != 3) {
-              vfail("Ref rule should have three components! Fonud: " + componentsP.size)
+              vfail("Ref rule should have three components! Found: " + componentsP.size)
             }
             val Vector(ownershipRuneS, permissionRuneS, kindRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
@@ -82,7 +86,7 @@ object RuleScout {
           }
           case KindTypePR => {
             if (componentsP.size != 3) {
-              vfail("Kind rule should have one component! Fonud: " + componentsP.size)
+              vfail("Kind rule should have one component! Found: " + componentsP.size)
             }
             val Vector(mutabilityRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
@@ -91,6 +95,20 @@ object RuleScout {
                 Scout.evalRange(env.file, range),
                 rune,
                 mutabilityRuneS)
+          }
+          case PrototypeTypePR => {
+            if (componentsP.size != 3) {
+              vfail("Ref rule should have three components! Found: " + componentsP.size)
+            }
+            val Vector(nameRuneS, paramListRuneS, returnRuneS) =
+              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
+            builder +=
+              PrototypeComponentsSR(
+                Scout.evalRange(env.file, range),
+                rune,
+                nameRuneS,
+                paramListRuneS,
+                returnRuneS)
           }
           case _ => {
             vfail("Invalid type for compnents rule: " + tyype)
@@ -101,14 +119,14 @@ object RuleScout {
       case TypedPR(range, None, tyype) => {
         val rune = ImplicitRuneS(lidb.child().consume())
         runeToExplicitType.put(rune, translateType(tyype))
-        rune
+        RuneUsage(evalRange(range), rune)
       }
       case TypedPR(range, Some(NameP(_, runeName)), tyype) => {
         val rune = CodeRuneS(runeName)
         runeToExplicitType.put(rune, translateType(tyype))
-        rune
+        RuneUsage(evalRange(range), rune)
       }
-      case TemplexPR(templex) => TemplexScout.translateTemplex(env, lidb.child(), builder, templex)
+      case TemplexPR(templex) => TemplexScout.translateTemplex(env, lidb.child(), builder, templex, false)
       case BuiltinCallPR(range, NameP(_, name), args) => {
         vimpl()
         //        BuiltinCallSR(Scout.evalRange(env.file, range), name, args.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, _)))

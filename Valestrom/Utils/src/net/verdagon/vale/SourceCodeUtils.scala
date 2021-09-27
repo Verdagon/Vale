@@ -1,12 +1,22 @@
 package net.verdagon.vale
 
 object SourceCodeUtils {
+  def humanizeFile(coordinate: FileCoordinate): String = {
+    val FileCoordinate(module, packages, filepath) = coordinate
+    if (coordinate.isInternal) {
+      "(internal file)"
+    } else {
+      module + packages.map("." + _).mkString("") + ":" + filepath
+    }
+  }
+
   def humanizePos(
     filenamesAndSources: FileCoordinateMap[String],
     file: FileCoordinate,
-      pos: Int): String = {
+    pos: Int):
+  String = {
     if (file.isInternal) {
-      return "internal(" + file + ")"
+      return humanizeFile(file)
     }
     val source = filenamesAndSources(file)
 
@@ -20,7 +30,7 @@ object SourceCodeUtils {
       }
       i = i + 1
     }
-    file.filepath + ":" + (line + 1) + ":" + (i - lineBegin + 1)
+    humanizeFile(file) + ":" + (line + 1) + ":" + (i - lineBegin + 1)
   }
 
   def nextThingAndRestOfLine(
@@ -32,13 +42,13 @@ object SourceCodeUtils {
     text.slice(position, text.length).trim().split("\\n")(0).trim()
   }
 
-  def lineContaining(
-      filenamesAndSources: FileCoordinateMap[String],
-      file: FileCoordinate,
-      position: Int):
-  String = {
+  def lineRangeContaining(
+    filenamesAndSources: FileCoordinateMap[String],
+    file: FileCoordinate,
+    position: Int):
+  (Int, Int) = {
     if (file.isInternal) {
-      return "(internal(" + file + "))"
+      return (-1, 0)
     }
     val text = filenamesAndSources(file)
     // TODO: can optimize this perhaps
@@ -50,10 +60,23 @@ object SourceCodeUtils {
           case other => other
         }
       if (lineBegin <= position && position <= lineEnd) {
-        return text.substring(lineBegin, lineEnd)
+        return (lineBegin, lineEnd)
       }
       lineBegin = lineEnd + 1
     }
     vfail()
+  }
+
+  def lineContaining(
+      filenamesAndSources: FileCoordinateMap[String],
+      file: FileCoordinate,
+      position: Int):
+  String = {
+    if (file.isInternal) {
+      return humanizeFile(file)
+    }
+    val (lineBegin, lineEnd) = lineRangeContaining(filenamesAndSources, file, position)
+    val text = filenamesAndSources(file)
+    text.substring(lineBegin, lineEnd)
   }
 }

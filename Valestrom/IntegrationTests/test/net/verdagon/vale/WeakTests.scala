@@ -16,7 +16,7 @@ class WeakTests extends FunSuite with Matchers {
         Tests.loadExpected("programs/weaks/lockWhileLiveStruct.vale"))
 
     val main = compile.expectTemputs().lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case LetNormalTE(ReferenceLocalVariableT(FullNameT(_, _,CodeVarNameT("weakMuta")),FinalT,CoordT(WeakT, ReadonlyT, _)),refExpr) => {
         refExpr.resultRegister.reference match {
           case CoordT(WeakT, ReadonlyT, StructTT(simpleName("Muta"))) =>
@@ -78,7 +78,7 @@ class WeakTests extends FunSuite with Matchers {
           |""".stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    main.body.only({ case WeakAliasTE(_) => })
+    Collector.only(main.(body, { case WeakAliasTE(_) => })
     compile.evalForKind(Vector()) shouldEqual VonInt(7)
   }
 
@@ -145,7 +145,7 @@ class WeakTests extends FunSuite with Matchers {
         Tests.loadExpected("programs/weaks/lockWhileLiveInterface.vale"))
 
     val main = compile.expectTemputs().lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case LetNormalTE(ReferenceLocalVariableT(FullNameT(_, _,CodeVarNameT("weakUnit")),FinalT,CoordT(WeakT, _, _)),refExpr) => {
         refExpr.resultRegister.reference match {
           case CoordT(WeakT, ReadonlyT, InterfaceTT(simpleName("IUnit"))) =>

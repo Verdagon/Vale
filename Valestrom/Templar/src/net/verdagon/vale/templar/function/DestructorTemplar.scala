@@ -1,8 +1,11 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{AbstractAP, AtomAP, CallAR, CodeRuneA, CodeTypeNameA, CodeVarNameA, ComponentsAR, CoordTemplataType, EqualsAR, FunctionA, FunctionNameA, FunctionTemplataType, GeneratedBodyA, GlobalFunctionFamilyNameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmDropImpreciseNameA, ImmDropNameA, ImmInterfaceDestructorImpreciseNameA, ImmInterfaceDestructorNameA, KindTemplataType, LocalA, MutabilityAR, NameAR, OrAR, OverrideAP, OwnershipAR, OwnershipTemplataType, ParameterA, PermissionAR, PermissionTemplataType, RuneAR, TemplateTemplataType, TemplexAR, UserFunctionA}
+//import net.verdagon.vale.astronomer.{AbstractAP, CallAR, CodeRuneS, CodeTypeNameS, CodeVarNameS, ComponentsAR, EqualsAR, FunctionA, FunctionNameS, GeneratedBodyS, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmDropImpreciseNameS, ImmDropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS, LocalS, MutabilityAR, NameSR, OrAR, OverrideAP, OwnershipAR, ParameterS, PermissionAR, RuneSR, TemplexAR, UserFunctionA}
+import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmDropImpreciseNameS, ImmDropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
-import net.verdagon.vale.scout.{CodeLocationS, NotUsed, RangeS, Used}
+import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
+import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
+import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, RangeS, Used, UserFunctionS}
 import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
@@ -10,7 +13,7 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl}
+import net.verdagon.vale.{IProfiler, PackageCoordinate, vassert, vfail, vimpl}
 
 import scala.collection.immutable.List
 
@@ -30,9 +33,9 @@ class DestructorTemplar(
           temputs,
           RangeS.internal(-1663),
           if (type2.ownership == ShareT) {
-            ImmConcreteDestructorImpreciseNameA()
+            ImmConcreteDestructorImpreciseNameS()
           } else {
-            GlobalFunctionFamilyNameA(CallTemplar.MUT_DESTRUCTOR_NAME)
+            GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
           },
           Vector.empty,
           Vector(ParamFilter(type2, None)),
@@ -50,9 +53,9 @@ class DestructorTemplar(
           temputs,
           RangeS.internal(-1668),
           if (type2.ownership == ShareT) {
-            ImmInterfaceDestructorImpreciseNameA()
+            ImmInterfaceDestructorImpreciseNameS()
           } else {
-            GlobalFunctionFamilyNameA(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
+            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
           },
           Vector.empty,
           Vector(ParamFilter(type2, None)),
@@ -80,9 +83,9 @@ class DestructorTemplar(
       temputs,
       RangeS.internal(-16721),
       if (type2.ownership == ShareT) {
-        ImmConcreteDestructorImpreciseNameA()
+        ImmConcreteDestructorImpreciseNameS()
       } else {
-        GlobalFunctionFamilyNameA(CallTemplar.MUT_DESTRUCTOR_NAME)
+        GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
       },
       Vector.empty,
       Vector(ParamFilter(type2, None)),
@@ -107,9 +110,9 @@ class DestructorTemplar(
       temputs,
       RangeS.internal(-1676),
       if (type2.ownership == ShareT) {
-        ImmDropImpreciseNameA()
+        ImmDropImpreciseNameS()
       } else {
-        GlobalFunctionFamilyNameA(CallTemplar.MUT_DROP_FUNCTION_NAME)
+        GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
       },
       Vector.empty,
       Vector(ParamFilter(type2, None)),
@@ -314,7 +317,7 @@ class DestructorTemplar(
     val arrayBorrowOwnership = if (sequence.array.mutability == MutableT) ConstraintT else ShareT
     val arrayRefType = CoordT(arrayOwnership, arrayPermission, sequence)
 
-    val elementDropFunctionPrototype = getDropFunction(env, temputs, sequence.array.memberType)
+    val elementDropFunctionPrototype = getDropFunction(env, temputs, sequence.array.elementType)
 
     val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
       structTemplar.prototypeToAnonymousIFunctionSubstruct(
@@ -329,9 +332,9 @@ class DestructorTemplar(
     val consumerMethod2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
         env, temputs, RangeS.internal(-108),
-        GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME),
+        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
         Vector.empty,
-        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.memberType, None)),
+        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.elementType, None)),
         Vector.empty, true) match {
         case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
           vimpl()
@@ -373,7 +376,7 @@ class DestructorTemplar(
     val arrayOwnership = if (array.array.mutability == MutableT) OwnT else ShareT
     val arrayBorrowOwnership = if (array.array.mutability == MutableT) ConstraintT else ShareT
 
-    val elementDropFunctionPrototype = getDropFunction(env, temputs, array.array.memberType)
+    val elementDropFunctionPrototype = getDropFunction(env, temputs, array.array.elementType)
 
     val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
       structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, life, RangeS.internal(-1879), elementDropFunctionPrototype)
@@ -383,15 +386,16 @@ class DestructorTemplar(
         FunctionCallTE(constructorPrototype, Vector.empty),
         ifunction1InterfaceRef)
 
+    val range = RangeS.internal(-108)
     val consumerMethod2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, RangeS.internal(-108),
-        GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME),
+        env, temputs, range,
+        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
         Vector.empty,
-        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.memberType, None)),
+        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.elementType, None)),
         Vector.empty, true) match {
         case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-          vimpl(seff.toString)
+          throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
         }
         case ScoutExpectedFunctionSuccess(prototype) => prototype
       }
@@ -430,7 +434,7 @@ class DestructorTemplar(
       env,
       temputs,
       RangeS.internal(-1673),
-      ImmConcreteDestructorImpreciseNameA(),
+      ImmConcreteDestructorImpreciseNameS(),
       Vector.empty,
       Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), None)),
       Vector.empty,
@@ -454,7 +458,7 @@ class DestructorTemplar(
         env,
         temputs,
         RangeS.internal(-1677),
-        ImmInterfaceDestructorImpreciseNameA(),
+        ImmInterfaceDestructorImpreciseNameS(),
         Vector.empty,
         Vector(ParamFilter(CoordT(ShareT, ReadonlyT, interfaceTT), None)),
         Vector.empty,
@@ -481,7 +485,7 @@ class DestructorTemplar(
         env,
         temputs,
         RangeS.internal(-1674),
-        ImmInterfaceDestructorImpreciseNameA(),
+        ImmInterfaceDestructorImpreciseNameS(),
         Vector.empty,
         Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), Some(OverrideT(implementedInterfaceRefT)))),
         Vector.empty,
@@ -503,47 +507,43 @@ object DestructorTemplar {
     FunctionA(
       RangeS.internal(-68),
       if (mutability == MutableT) {
-        FunctionNameA(CallTemplar.MUT_DESTRUCTOR_NAME, CodeLocationS.internal(-16))
+        FunctionNameS(CallTemplar.MUT_DESTRUCTOR_NAME, CodeLocationS.internal(-16))
       } else {
-        ImmConcreteDestructorNameA(PackageCoordinate.internal)
+        ImmConcreteDestructorNameS(PackageCoordinate.internal)
       },
-      Vector(UserFunctionA),
+      Vector(UserFunctionS),
       TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
-      Set(CodeRuneA("V")),
-      Vector(CodeRuneA("T")),
-      Set(CodeRuneA("T"), CodeRuneA("XX"), CodeRuneA("V")),
+      Vector(RuneUsage(RangeS.internal(-68001), CodeRuneS("T"))),
       Map(
-        CodeRuneA("XX") -> KindTemplataType,
-        CodeRuneA("T") -> CoordTemplataType,
-        CodeRuneA("V") -> CoordTemplataType),
+        CodeRuneS("XX") -> KindTemplataType,
+        CodeRuneS("T") -> CoordTemplataType,
+        CodeRuneS("V") -> CoordTemplataType,
+        CodeRuneS("M") -> MutabilityTemplataType,
+        CodeRuneS("O") -> OwnershipTemplataType,
+        CodeRuneS("P") -> PermissionTemplataType),
       Vector(
-        ParameterA(AtomAP(RangeS.internal(-1339), Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)), None, CodeRuneA("T"), None))),
-      Some(CodeRuneA("V")),
+        ParameterS(AtomSP(RangeS.internal(-1339), Some(CaptureS(CodeVarNameS("this"))), None, RuneUsage(RangeS.internal(-68002), CodeRuneS("T")), None))),
+      Some(RuneUsage(RangeS.internal(-68002), CodeRuneS("V"))),
+      // RangeS.internal(-16725),
+      // RangeS.internal(-16726)
+      // RangeS.internal(-167210)
+      // RangeS.internal(-1672),
+      // RangeS.internal(-167212)
+      // EqualsSR(RangeS.internal(-167211),
       Vector(
-        EqualsAR(RangeS.internal(-16722),
-          TemplexAR(RuneAR(RangeS.internal(-16723),CodeRuneA("XX"), KindTemplataType)),
-          ComponentsAR(
-            RangeS.internal(-93),
-            KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-16724),Conversions.unevaluateMutability(mutability)))))),
-        EqualsAR(RangeS.internal(-16725),
-          TemplexAR(RuneAR(RangeS.internal(-16726),CodeRuneA("T"), CoordTemplataType)),
-          ComponentsAR(
-            RangeS.internal(-94),
-            CoordTemplataType,
-            Vector(
-              OrAR(RangeS.internal(-16727),Vector(TemplexAR(OwnershipAR(RangeS.internal(-1672),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-1672),ShareP)))),
-              OrAR(RangeS.internal(-16728),Vector(TemplexAR(PermissionAR(RangeS.internal(-1672),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-1672),ReadonlyP)))),
-              CallAR(RangeS.internal(-16729),
-                "passThroughIfConcrete",
-                Vector(TemplexAR(RuneAR(RangeS.internal(-167210),CodeRuneA("XX"), KindTemplataType))),
-                KindTemplataType)))),
-        EqualsAR(RangeS.internal(-167211),
-          TemplexAR(RuneAR(RangeS.internal(-167212),CodeRuneA("V"), CoordTemplataType)),
-          TemplexAR(NameAR(RangeS.internal(-167213),CodeTypeNameA("void"), CoordTemplataType)))),
-      GeneratedBodyA("concreteDestructorGenerator"))
+        KindComponentsSR(RangeS.internal(-93), RuneUsage(RangeS.internal(-68002), CodeRuneS("XX")), RuneUsage(RangeS.internal(-68002), CodeRuneS("M"))),
+        LiteralSR(RangeS.internal(-16724),RuneUsage(RangeS.internal(-68002), CodeRuneS("M")),MutabilityLiteralSL(Conversions.unevaluateMutability(mutability))),
+        CoordComponentsSR(
+          RangeS.internal(-94), RuneUsage(RangeS.internal(-68002), CodeRuneS("T")), RuneUsage(RangeS.internal(-68002), CodeRuneS("O")), RuneUsage(RangeS.internal(-68002), CodeRuneS("P")), RuneUsage(RangeS.internal(-68002), CodeRuneS("XX"))),
+        IsConcreteSR(RangeS.internal(-16729), RuneUsage(RangeS.internal(-68002), CodeRuneS("XX"))),
+        OneOfSR(RangeS.internal(-16727),RuneUsage(RangeS.internal(-68002), CodeRuneS("O")),Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
+        OneOfSR(RangeS.internal(-16728),RuneUsage(RangeS.internal(-68002), CodeRuneS("P")),Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
+        LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-68002), CodeRuneS("V")),CodeTypeNameS("void"))),
+      GeneratedBodyS("concreteDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
         override def generate(
+          profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -590,47 +590,36 @@ object DestructorTemplar {
       FunctionA(
         RangeS.internal(-64),
         if (mutability == MutableT) {
-          FunctionNameA(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-17))
+          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-17))
         } else {
-          ImmInterfaceDestructorNameA(PackageCoordinate.internal)
+          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
         },
-        Vector(UserFunctionA),
+        Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
-        Set(CodeRuneA("V")),
-        Vector(CodeRuneA("T")),
-        Set(CodeRuneA("T"), CodeRuneA("XX"), CodeRuneA("V")),
+//        Set(CodeRuneS("V")),
+        Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),
+//        Set(CodeRuneS("T"), CodeRuneS("XX"), CodeRuneS("V")),
         Map(
-          CodeRuneA("T") -> CoordTemplataType,
-          CodeRuneA("V") -> CoordTemplataType,
-          CodeRuneA("XX") -> KindTemplataType),
+          CodeRuneS("T") -> CoordTemplataType,
+          CodeRuneS("V") -> CoordTemplataType,
+          CodeRuneS("KM") -> KindTemplataType,
+          CodeRuneS("K") -> KindTemplataType),
         Vector(
-          ParameterA(AtomAP(RangeS.internal(-1340), Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)), Some(AbstractAP), CodeRuneA("T"), None))),
-        Some(CodeRuneA("V")),
+          ParameterS(AtomSP(RangeS.internal(-1340), Some(CaptureS(CodeVarNameS("this"))), Some(AbstractSP), RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), None))),
+        Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(
-          EqualsAR(RangeS.internal(-167214),
-            TemplexAR(RuneAR(RangeS.internal(-167215),CodeRuneA("XX"), KindTemplataType)),
-            ComponentsAR(
-              RangeS.internal(-95),
-              KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-167216),Conversions.unevaluateMutability(mutability)))))),
-          EqualsAR(RangeS.internal(-167217),
-            TemplexAR(RuneAR(RangeS.internal(-167218),CodeRuneA("T"), CoordTemplataType)),
-            ComponentsAR(
-              RangeS.internal(-96),
-              CoordTemplataType,
-              Vector(
-                OrAR(RangeS.internal(-167219),Vector(TemplexAR(OwnershipAR(RangeS.internal(-167220),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-167221),ShareP)))),
-                OrAR(RangeS.internal(-167222),Vector(TemplexAR(PermissionAR(RangeS.internal(-167223),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-167224),ReadonlyP)))),
-                CallAR(RangeS.internal(-167225),
-                  "passThroughIfInterface",
-                  Vector(TemplexAR(RuneAR(RangeS.internal(-167226),CodeRuneA("XX"), KindTemplataType))),
-                  KindTemplataType)))),
-          EqualsAR(RangeS.internal(-167227),
-            TemplexAR(RuneAR(RangeS.internal(-167228),CodeRuneA("V"), CoordTemplataType)),
-            TemplexAR(NameAR(RangeS.internal(-167229),CodeTypeNameA("void"), CoordTemplataType)))),
-        GeneratedBodyA("interfaceDestructorGenerator"))
+          KindComponentsSR(RangeS.internal(-95), RuneUsage(RangeS.internal(-64002), CodeRuneS("K")), RuneUsage(RangeS.internal(-64002), CodeRuneS("KM"))),
+          LiteralSR(RangeS.internal(-167216),RuneUsage(RangeS.internal(-64002), CodeRuneS("KM")),MutabilityLiteralSL(Conversions.unevaluateMutability(mutability))),
+          CoordComponentsSR(
+            RangeS.internal(-96), RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
+          OneOfSR(RangeS.internal(-167219), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
+          OneOfSR(RangeS.internal(-167222), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
+          IsInterfaceSR(RangeS.internal(-167225), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
+          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeTypeNameS("void"))),
+        GeneratedBodyS("interfaceDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -671,49 +660,37 @@ object DestructorTemplar {
       FunctionA(
         RangeS.internal(-65),
         if (mutability == MutableT) {
-          FunctionNameA(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-18))
+          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-18))
         } else {
-          ImmInterfaceDestructorNameA(PackageCoordinate.internal)
+          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
         },
-        Vector(UserFunctionA),
+        Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType, KindTemplataType), FunctionTemplataType),
-        Set(CodeRuneA("V")),
-        Vector(CodeRuneA("T"), CodeRuneA("I")),
-        Set(CodeRuneA("I"), CodeRuneA("T"), CodeRuneA("XX"), CodeRuneA("V")),
+        Vector(RuneUsage(RangeS.internal(-65002), CodeRuneS("SC")), RuneUsage(RangeS.internal(-65002), CodeRuneS("I"))),
         Map(
-          CodeRuneA("T") -> CoordTemplataType,
-          CodeRuneA("I") -> KindTemplataType,
-          CodeRuneA("V") -> CoordTemplataType,
-          CodeRuneA("XX") -> KindTemplataType),
+          CodeRuneS("SC") -> CoordTemplataType,
+          CodeRuneS("SO") -> OwnershipTemplataType,
+          CodeRuneS("SP") -> PermissionTemplataType,
+          CodeRuneS("SK") -> KindTemplataType,
+          CodeRuneS("SKM") -> MutabilityTemplataType,
+          CodeRuneS("I") -> KindTemplataType,
+          CodeRuneS("V") -> CoordTemplataType),
         Vector(
-          ParameterA(AtomAP(RangeS.internal(-1341), Some(LocalA(CodeVarNameA("this"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)), Some(OverrideAP(RangeS.internal(-1133), CodeRuneA("I"))), CodeRuneA("T"), None))),
-        Some(CodeRuneA("V")),
+          ParameterS(AtomSP(RangeS.internal(-1341), Some(CaptureS(CodeVarNameS("this"))), Some(OverrideSP(RangeS.internal(-1133), RuneUsage(RangeS.internal(-1133), CodeRuneS("I")))), RuneUsage(RangeS.internal(-64002), CodeRuneS("SC")), None))),
+        Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(
-          EqualsAR(RangeS.internal(-167230),
-            TemplexAR(RuneAR(RangeS.internal(-167231),CodeRuneA("XX"), KindTemplataType)),
-            ComponentsAR(
-              RangeS.internal(-97),
-              KindTemplataType, Vector(TemplexAR(MutabilityAR(RangeS.internal(-167232),Conversions.unevaluateMutability(mutability)))))),
-          EqualsAR(RangeS.internal(-167233),
-            TemplexAR(RuneAR(RangeS.internal(-167234),CodeRuneA("T"), CoordTemplataType)),
-            ComponentsAR(
-              RangeS.internal(-98),
-              CoordTemplataType,
-              Vector(
-                OrAR(RangeS.internal(-167235),Vector(TemplexAR(OwnershipAR(RangeS.internal(-167236),OwnP)), TemplexAR(OwnershipAR(RangeS.internal(-167237),ShareP)))),
-                OrAR(RangeS.internal(-167238),Vector(TemplexAR(PermissionAR(RangeS.internal(-167239),ReadwriteP)), TemplexAR(PermissionAR(RangeS.internal(-167240),ReadonlyP)))),
-                CallAR(RangeS.internal(-167241),
-                  "passThroughIfStruct",
-                  Vector(TemplexAR(RuneAR(RangeS.internal(-167242),CodeRuneA("XX"), KindTemplataType))),
-                  KindTemplataType)))),
-          CallAR(RangeS.internal(-167243),"passThroughIfInterface", Vector(TemplexAR(RuneAR(RangeS.internal(-167244),CodeRuneA("I"), KindTemplataType))), KindTemplataType),
-          EqualsAR(RangeS.internal(-167245),
-            TemplexAR(RuneAR(RangeS.internal(-167246),CodeRuneA("V"), CoordTemplataType)),
-            TemplexAR(NameAR(RangeS.internal(-167247),CodeTypeNameA("void"), CoordTemplataType)))),
-        GeneratedBodyA("implDestructorGenerator"))
+          CoordComponentsSR(RangeS.internal(-98), RuneUsage(RangeS.internal(-64002), CodeRuneS("SC")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SO")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SP")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK"))),
+          KindComponentsSR(RangeS.internal(-97), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM"))),
+          IsStructSR(RangeS.internal(-167241), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK"))),
+          OneOfSR(RangeS.internal(-167232), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM")), Array(MutabilityLiteralSL(Conversions.unevaluateMutability(mutability)))),
+          OneOfSR(RangeS.internal(-167235), RuneUsage(RangeS.internal(-64002), CodeRuneS("SO")), Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
+          OneOfSR(RangeS.internal(-167235), RuneUsage(RangeS.internal(-64002), CodeRuneS("SP")), Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
+          IsInterfaceSR(RangeS.internal(-167243),RuneUsage(RangeS.internal(-64002), CodeRuneS("I"))),
+          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeTypeNameS("void"))),
+        GeneratedBodyS("implDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -770,44 +747,33 @@ object DestructorTemplar {
     FunctionA(
       RangeS.internal(-66),
       if (mutability == MutableT) {
-        FunctionNameA(CallTemplar.MUT_DROP_FUNCTION_NAME, CodeLocationS.internal(-19))
+        FunctionNameS(CallTemplar.MUT_DROP_FUNCTION_NAME, CodeLocationS.internal(-19))
       } else {
-        ImmDropNameA(PackageCoordinate.internal)
+        ImmDropNameS(PackageCoordinate.internal)
       },
-      Vector(UserFunctionA),
+      Vector(UserFunctionS),
       TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
-      Set(CodeRuneA("V"), CodeRuneA("O")),
-      Vector(CodeRuneA("T")),
-      Set(CodeRuneA("T"), CodeRuneA("V"), CodeRuneA("O"), CodeRuneA("P")),
+      Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),
       Map(
-        CodeRuneA("T") -> CoordTemplataType,
-        CodeRuneA("V") -> CoordTemplataType,
-        CodeRuneA("O") -> OwnershipTemplataType,
-        CodeRuneA("P") -> PermissionTemplataType),
+        CodeRuneS("T") -> CoordTemplataType,
+        CodeRuneS("V") -> CoordTemplataType,
+        CodeRuneS("O") -> OwnershipTemplataType,
+        CodeRuneS("P") -> PermissionTemplataType),
       Vector(
-        ParameterA(AtomAP(RangeS.internal(-1342), Some(LocalA(CodeVarNameA("x"), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)), None, CodeRuneA("T"), None))),
-      Some(CodeRuneA("V")),
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), None))),
+      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
       Vector(
-        EqualsAR(RangeS.internal(-167248),
-          TemplexAR(RuneAR(RangeS.internal(-167249),CodeRuneA("T"), CoordTemplataType)),
-          ComponentsAR(
-            RangeS.internal(-98),
-            CoordTemplataType,
-            Vector(
-              TemplexAR(RuneAR(RangeS.internal(-167250),CodeRuneA("O"), OwnershipTemplataType)),
-              TemplexAR(RuneAR(RangeS.internal(-167260),CodeRuneA("P"), PermissionTemplataType)),
-              ComponentsAR(
-                RangeS.internal(-99),
-                KindTemplataType,
-                Vector(TemplexAR(MutabilityAR(RangeS.internal(-167251),Conversions.unevaluateMutability(mutability)))))))),
-        TemplexAR(RuneAR(RangeS.internal(-167252),CodeRuneA("T"), CoordTemplataType)),
-        EqualsAR(RangeS.internal(-167253),
-          TemplexAR(RuneAR(RangeS.internal(-167254),CodeRuneA("V"), CoordTemplataType)),
-          TemplexAR(NameAR(RangeS.internal(-167255),CodeTypeNameA("void"), CoordTemplataType)))),
-      GeneratedBodyA("dropGenerator"))
+        CoordComponentsSR(RangeS.internal(-98),
+          RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
+        KindComponentsSR(RangeS.internal(-99),
+          RuneUsage(RangeS.internal(-64002), CodeRuneS("K")), RuneUsage(RangeS.internal(-64002), CodeRuneS("KM"))),
+        LiteralSR(RangeS.internal(-167251),
+          RuneUsage(RangeS.internal(-64002), CodeRuneS("KM")), MutabilityLiteralSL(Conversions.unevaluateMutability(mutability))),
+        LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeTypeNameS("void"))),
+      GeneratedBodyS("dropGenerator"))
     val generator =
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,

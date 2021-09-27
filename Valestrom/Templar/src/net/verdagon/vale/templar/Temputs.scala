@@ -1,11 +1,10 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.astronomer.BFunctionA
 import net.verdagon.vale.scout.{CodeLocationS, RangeS}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
-import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vfail}
+import net.verdagon.vale.{Collector, PackageCoordinate, vassert, vassertSome, vfail}
 
 import scala.collection.immutable.{List, Map}
 import scala.collection.mutable
@@ -116,7 +115,7 @@ case class Temputs() {
     vassert(
       function.body.resultRegister.reference.kind == NeverT() ||
       function.body.resultRegister.reference == function.header.returnType)
-    function.all({
+    Collector.all(function, {
       case ReturnTE(innerExpr) => {
         vassert(
           innerExpr.resultRegister.reference.kind == NeverT() ||

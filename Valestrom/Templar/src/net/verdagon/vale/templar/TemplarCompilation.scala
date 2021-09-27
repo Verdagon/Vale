@@ -4,15 +4,13 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.{FailedParse, FileP}
-import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, IRulexSR, ProgramS, RangeS}
+import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, ProgramS, RangeS}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
 
 case class TemplarCompilationOptions(
-  debugOut: String => Unit = (x => {
-    println("##: " + x)
-  }),
+  debugOut: (=> String) => Unit = DefaultPrintyThing.print,
   verbose: Boolean = true,
   profiler: IProfiler = new NullProfiler(),
   useOptimization: Boolean = false,

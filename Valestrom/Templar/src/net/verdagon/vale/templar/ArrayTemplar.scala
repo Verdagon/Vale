@@ -1,18 +1,19 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, IRulexAR, IRuneS, ITemplataType}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
-import net.verdagon.vale.scout.RangeS
+import net.verdagon.vale.scout.predictor.AstronomySolver
+import net.verdagon.vale.scout.rules.IRulexSR
+import net.verdagon.vale.scout.{IRuneS, RangeS}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
-import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox}
+import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.{vassert, vassertSome}
+import net.verdagon.vale.{Err, IProfiler, Ok, vassert, vassertOne, vassertSome, vimpl}
 
 import scala.collection.immutable.{List, Set}
 
@@ -27,6 +28,7 @@ trait IArrayTemplarDelegate {
 class ArrayTemplar(
     opts: TemplarOptions,
     delegate: IArrayTemplarDelegate,
+    profiler: IProfiler,
     inferTemplar: InferTemplar,
     overloadTemplar: OverloadTemplar) {
 
@@ -36,18 +38,18 @@ class ArrayTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     range: RangeS,
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
+    rules: Vector[IRulexSR],
     sizeRuneA: IRuneS,
-    maybeMutabilityRune: Option[IRuneS],
-    maybeVariabilityRune: Option[IRuneS],
+    mutabilityRune: IRuneS,
+    variabilityRune: IRuneS,
     callableTE: ReferenceExpressionTE):
   StaticArrayFromCallableTE = {
+    val runeToType = vimpl()
     val templatas =
-      inferTemplar.inferOrdinaryRules(fate.snapshot, temputs, rules, typeByRune, Set(sizeRuneA) ++ maybeMutabilityRune ++ maybeVariabilityRune)
-    val IntegerTemplata(size) = vassertSome(templatas.get(NameTranslator.translateRune(sizeRuneA)))
-    val mutability = maybeMutabilityRune.map(getArrayMutability(templatas, _)).getOrElse(MutableT)
-    val variability = maybeVariabilityRune.map(getArrayVariability(templatas, _)).getOrElse(FinalT)
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rules, runeToType, range, Map())
+    val IntegerTemplata(size) = vassertSome(templatas.get(sizeRuneA))
+    val mutability = getArrayMutability(templatas, mutabilityRune)
+    val variability = getArrayVariability(templatas, variabilityRune)
     val prototype = overloadTemplar.getArrayGeneratorPrototype(temputs, fate, range, callableTE)
     val ssaMT = getStaticSizedArrayKind(fate.snapshot, temputs, mutability, variability, size.toInt, prototype.returnType)
     val expr2 = StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
@@ -58,17 +60,27 @@ class ArrayTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     range: RangeS,
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    maybeMutabilityRune: Option[IRuneS],
-    maybeVariabilityRune: Option[IRuneS],
+    rulesA: Vector[IRulexSR],
+    mutabilityRune: IRuneS,
+    variabilityRune: IRuneS,
     sizeTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE):
   ConstructArrayTE = {
+    val runeToType =
+      AstronomySolver.solve(
+        nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        false,
+        rulesA,
+        List(),
+        true,
+        Map()) match {
+        case Ok(r) => r
+        case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
+      }
     val templatas =
-      inferTemplar.inferOrdinaryRules(fate.snapshot, temputs, rules, typeByRune, Set() ++ maybeMutabilityRune ++ maybeVariabilityRune)
-    val mutability = maybeMutabilityRune.map(getArrayMutability(templatas, _)).getOrElse(MutableT)
-    val variability = maybeVariabilityRune.map(getArrayVariability(templatas, _)).getOrElse(FinalT)
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map())
+    val mutability = getArrayMutability(templatas, mutabilityRune)
+    val variability = getArrayVariability(templatas, variabilityRune)
     val prototype = overloadTemplar.getArrayGeneratorPrototype(temputs, fate, range, callableTE)
     val rsaMT = getRuntimeSizedArrayKind(fate.snapshot, temputs, prototype.returnType, mutability, variability)
     val expr2 = ConstructArrayTE(rsaMT, sizeTE, callableTE, prototype)
@@ -79,11 +91,11 @@ class ArrayTemplar(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       range: RangeS,
-      rules: Vector[IRulexAR],
-      typeByRune: Map[IRuneS, ITemplataType],
-      maybeSizeRuneA: Option[IRuneS],
-      maybeMutabilityRuneA: Option[IRuneS],
-      maybeVariabilityRuneA: Option[IRuneS],
+      rules: Vector[IRulexSR],
+      runeToType: Map[IRuneS, ITemplataType],
+    sizeRuneA: IRuneS,
+    mutabilityRuneA: IRuneS,
+    variabilityRuneA: IRuneS,
       exprs2: Vector[ReferenceExpressionTE]):
    StaticArrayFromValuesTE = {
     val memberTypes = exprs2.map(_.resultRegister.reference).toSet
@@ -93,20 +105,15 @@ class ArrayTemplar(
     val memberType = memberTypes.head
 
     val templatas =
-      inferTemplar.inferOrdinaryRules(
-        fate.snapshot, temputs, rules, typeByRune, Set() ++ maybeSizeRuneA ++ maybeMutabilityRuneA ++ maybeVariabilityRuneA)
-    val maybeSize = maybeSizeRuneA.map(getArraySize(templatas, _))
-    val mutability = maybeMutabilityRuneA.map(getArrayMutability(templatas, _)).getOrElse(MutableT)
-    val variability = maybeVariabilityRuneA.map(getArrayVariability(templatas, _)).getOrElse(FinalT)
+      inferTemplar.solveExpectComplete(
+        fate.snapshot, temputs, rules, runeToType, range, Map())
+    val size = getArraySize(templatas, sizeRuneA)
+    val mutability = getArrayMutability(templatas, mutabilityRuneA)
+    val variability = getArrayVariability(templatas, variabilityRuneA)
 
-    maybeSize match {
-      case None =>
-      case Some(size) => {
         if (size != exprs2.size) {
           throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
         }
-      }
-    }
 
     val staticSizedArrayType = getStaticSizedArrayKind(fate.snapshot, temputs, mutability, variability, exprs2.size, memberType)
     val ownership = if (staticSizedArrayType.array.mutability == MutableT) OwnT else ShareT
@@ -132,7 +139,7 @@ class ArrayTemplar(
 
     val prototype =
       overloadTemplar.getArrayConsumerPrototype(
-        temputs, fate, range, callableTE, arrayTT.array.memberType)
+        temputs, fate, range, callableTE, arrayTT.array.elementType)
 
     DestroyStaticSizedArrayIntoFunctionTE(
       arrTE,
@@ -158,7 +165,7 @@ class ArrayTemplar(
 
     val prototype =
       overloadTemplar.getArrayConsumerPrototype(
-        temputs, fate, range, callableTE, arrayTT.array.memberType)
+        temputs, fate, range, callableTE, arrayTT.array.elementType)
 
     DestroyRuntimeSizedArrayTE(
       arrTE,
@@ -218,17 +225,17 @@ class ArrayTemplar(
     }
   }
 
-  private def getArrayVariability(templatas: Map[IRuneT, ITemplata], variabilityRuneA: IRuneS) = {
-    val VariabilityTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(variabilityRuneA)))
+  private def getArrayVariability(templatas: Map[IRuneS, ITemplata], variabilityRuneA: IRuneS) = {
+    val VariabilityTemplata(m) = vassertSome(templatas.get(variabilityRuneA))
     m
   }
 
-  private def getArrayMutability(templatas: Map[IRuneT, ITemplata], mutabilityRuneA: IRuneS) = {
-    val MutabilityTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(mutabilityRuneA)))
+  private def getArrayMutability(templatas: Map[IRuneS, ITemplata], mutabilityRuneA: IRuneS) = {
+    val MutabilityTemplata(m) = vassertSome(templatas.get(mutabilityRuneA))
     m
   }
-  private def getArraySize(templatas: Map[IRuneT, ITemplata], sizeRuneA: IRuneS): Int = {
-    val IntegerTemplata(m) = vassertSome(templatas.get(NameTranslator.translateRune(sizeRuneA)))
+  private def getArraySize(templatas: Map[IRuneS, ITemplata], sizeRuneA: IRuneS): Int = {
+    val IntegerTemplata(m) = vassertSome(templatas.get(sizeRuneA))
     m.toInt
   }
 

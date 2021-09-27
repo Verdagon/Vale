@@ -31,6 +31,16 @@ case class Call(resultRune: Long, nameRune: Long, argRune: Long) extends IRule {
   override def allRunes: Array[Long] = Array(resultRune, nameRune, argRune)
   override def allPuzzles: Array[Array[Long]] = Array(Array(resultRune, nameRune), Array(nameRune, argRune))
 }
+case class Pack(resultRune: Long, memberRunes: Array[Long]) extends IRule {
+  override def allRunes: Array[Long] = Array(resultRune) ++ memberRunes
+  override def allPuzzles: Array[Array[Long]] = {
+    if (memberRunes.isEmpty) {
+      Array(Array(resultRune))
+    } else {
+      Array(Array(resultRune), memberRunes)
+    }
+  }
+}
 
 class SolverTests extends FunSuite with Matchers with Collector {
   val complexRuleSet =
@@ -47,7 +57,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   //  def makePuzzler() = {
   //    new IRunePuzzler[Unit, SimpleLiteral, SimpleLookup] {
-  //      override def getPuzzles(rulexAR: IRulexAR[Int, Unit, SimpleLiteral, SimpleLookup]): Array[Array[Int]] = {
+  //      override def getPuzzles(rulexAR: IRulexSR[Int, Unit, SimpleLiteral, SimpleLookup]): Array[Array[Int]] = {
   //        TemplarPuzzler.apply(rulexAR)
   //      }
   //    }
@@ -98,6 +108,19 @@ class SolverTests extends FunSuite with Matchers with Collector {
                 }
                 case _ => vfail()
               }
+            }
+          }
+          Ok(())
+        }
+        case Pack(resultRune, memberRunes) => {
+          getConclusion(resultRune) match {
+            case Some(result) => {
+              val parts = result.split(",")
+              memberRunes.zip(parts).foreach({ case (rune, part) => concludeRune(rune, part) })
+            }
+            case None => {
+              val result = memberRunes.map(getConclusion).map(_.get).mkString(",")
+              concludeRune(resultRune, result)
             }
           }
           Ok(())
@@ -187,6 +210,41 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-1L, "1337/1448"))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
+  }
+
+  test("Test infer Pack") {
+    val rules =
+      Array(
+        Literal(-1L, "1337"),
+        Literal(-2L, "1448"),
+        Pack(-3L, Array(-1L, -2L)))
+    getConclusions(rules, true) shouldEqual
+      Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
+  }
+
+  test("Test infer Pack from result") {
+    val rules =
+      Array(
+        Literal(-3L, "1337,1448"),
+        Pack(-3L, Array(-1L, -2L)))
+    getConclusions(rules, true) shouldEqual
+      Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
+  }
+
+  test("Test infer Pack from empty result") {
+    val rules =
+      Array(
+        Literal(-3L, ""),
+        Pack(-3L, Array()))
+    getConclusions(rules, true) shouldEqual
+      Map(-3L -> "")
+  }
+
+  test("Test cant solve empty Pack") {
+    val rules =
+      Array(
+        Pack(-3L, Array()))
+    getConclusions(rules, false) shouldEqual Map()
   }
 
   test("Complex rule set") {
@@ -357,14 +415,14 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-1L, "1448"),
         Literal(-1L, "1337"))
     expectSolveFailure(rules) match {
-      case FailedSolve(SolverConflict(_, _, conclusionA, conclusionB), _) => {
+      case FailedSolve(_, _, SolverConflict(_, _, conclusionA, conclusionB)) => {
         Vector(conclusionA, conclusionB).sorted shouldEqual Vector("1337", "1448").sorted
       }
     }
   }
 
   private def expectSolveFailure(rules: IndexedSeq[IRule]):
-  FailedSolve[Long, String, String] = {
+  FailedSolve[IRule, Long, String, String] = {
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules.toIterable,

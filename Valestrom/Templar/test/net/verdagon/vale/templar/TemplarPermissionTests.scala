@@ -6,7 +6,6 @@ import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale._
-import net.verdagon.vale.astronomer.{Astronomer, FunctionNameA, GlobalFunctionFamilyNameA, IFunctionDeclarationNameA, ProgramA}
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
 import org.scalatest.{FunSuite, Matchers, _}
@@ -34,8 +33,8 @@ class TemplarPermissionTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
 
     val main = temputs.lookupFunction("main")
-    main.only({
-      case FunctionHeaderT(simpleName("main"),Vector(UserFunction2),Vector(ParameterT(_, _, CoordT(ConstraintT, ReadonlyT, StructTT(_)))), _, _) => true
+    Collector.only(main, {
+      case FunctionHeaderT(simpleName("main"),Vector(UserFunctionT),Vector(ParameterT(_, _, CoordT(ConstraintT, ReadonlyT, StructTT(_)))), _, _) => true
     })
   }
 
@@ -49,8 +48,8 @@ class TemplarPermissionTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
 
     val main = temputs.lookupFunction("main")
-    main.only({
-      case FunctionHeaderT(simpleName("main"),Vector(UserFunction2),Vector(ParameterT(_, _, CoordT(ConstraintT, ReadwriteT, StructTT(_)))), _, _) => true
+    Collector.only(main, {
+      case FunctionHeaderT(simpleName("main"),Vector(UserFunctionT),Vector(ParameterT(_, _, CoordT(ConstraintT, ReadwriteT, StructTT(_)))), _, _) => true
     })
   }
 

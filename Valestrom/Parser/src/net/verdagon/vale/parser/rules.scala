@@ -48,11 +48,11 @@ case object CitizenTemplateTypePR extends ITypePR
 object RulePUtils {
 
   def getOrderedRuneDeclarationsFromRulexesWithDuplicates(rulexes: Vector[IRulexPR]):
-  Vector[String] = {
+  Vector[NameP] = {
     rulexes.flatMap(getOrderedRuneDeclarationsFromRulexWithDuplicates)
   }
 
-  def getOrderedRuneDeclarationsFromRulexWithDuplicates(rulex: IRulexPR): Vector[String] = {
+  def getOrderedRuneDeclarationsFromRulexWithDuplicates(rulex: IRulexPR): Vector[NameP] = {
     rulex match {
       case PackPR(range, elements) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(elements)
       case ResolveSignaturePR(range, nameStrRule, argsPackRule) =>getOrderedRuneDeclarationsFromRulexWithDuplicates(nameStrRule) ++ getOrderedRuneDeclarationsFromRulexWithDuplicates(argsPackRule)
@@ -60,17 +60,17 @@ object RulePUtils {
       case OrPR(range, possibilities) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(possibilities)
       case DotPR(range, container, memberName) => getOrderedRuneDeclarationsFromRulexWithDuplicates(container)
       case ComponentsPR(_, container, components) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(Vector(container) ++ components)
-      case TypedPR(range, maybeRune, tyype) => maybeRune.map(_.str).toVector
+      case TypedPR(range, maybeRune, tyype) => maybeRune.toVector
       case TemplexPR(templex) => getOrderedRuneDeclarationsFromTemplexWithDuplicates(templex)
       case BuiltinCallPR(range, name, args) => getOrderedRuneDeclarationsFromRulexesWithDuplicates(args)
     }
   }
 
-  def getOrderedRuneDeclarationsFromTemplexesWithDuplicates(templexes: Vector[ITemplexPT]): Vector[String] = {
+  def getOrderedRuneDeclarationsFromTemplexesWithDuplicates(templexes: Vector[ITemplexPT]): Vector[NameP] = {
     templexes.flatMap(getOrderedRuneDeclarationsFromTemplexWithDuplicates)
   }
 
-  def getOrderedRuneDeclarationsFromTemplexWithDuplicates(templex: ITemplexPT): Vector[String] = {
+  def getOrderedRuneDeclarationsFromTemplexWithDuplicates(templex: ITemplexPT): Vector[NameP] = {
     templex match {
       case BorrowPT(_, inner) => getOrderedRuneDeclarationsFromTemplexWithDuplicates(inner)
       case StringPT(_, value) => Vector.empty
@@ -82,7 +82,7 @@ object RulePUtils {
       case OwnershipPT(_, ownership) => Vector.empty
       case BoolPT(_, value) => Vector.empty
       case NameOrRunePT(name) => Vector.empty
-      case TypedRunePT(_, name, tyype) => Vector(name.str)
+      case TypedRunePT(_, name, tyype) => Vector(name)
       case AnonymousRunePT(_) => Vector.empty
       case CallPT(_, template, args) => getOrderedRuneDeclarationsFromTemplexesWithDuplicates((Vector(template) ++ args))
       case FunctionPT(range, mutability, parameters, returnType) => {

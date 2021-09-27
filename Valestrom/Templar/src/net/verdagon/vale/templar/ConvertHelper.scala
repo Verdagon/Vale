@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale._
-import net.verdagon.vale.astronomer.IRulexAR
+//import net.verdagon.vale.astronomer.IRulexSR
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, IEnvironmentBox}
 import net.verdagon.vale.templar.templata._

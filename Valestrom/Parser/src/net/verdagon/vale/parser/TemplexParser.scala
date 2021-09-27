@@ -48,7 +48,7 @@ trait TemplexParser extends RegexParsers with ParserUtils {
     pos ~ "xrw" ~ pos ^^ { case begin ~ _ ~ end => PermissionPT(Range(begin, end), ExclusiveReadwriteP) } |
     pos ~ "rw" ~ pos ^^ { case begin ~ _ ~ end => PermissionPT(Range(begin, end), ReadwriteP) } |
     pos ~ "ro" ~ pos ^^ { case begin ~ _ ~ end => PermissionPT(Range(begin, end), ReadonlyP) } |
-    pos ~ "_" ~ pos ^^ { case begin ~ _ ~ end => AnonymousRunePT(Range(begin, end)) } |
+    pos ~ ("_\\b".r) ~ pos ^^ { case begin ~ _ ~ end => AnonymousRunePT(Range(begin, end)) } |
     (typeIdentifier ^^ NameOrRunePT)
   }
 

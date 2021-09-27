@@ -4,7 +4,9 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.UseP
-import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, IRulexSR, ProgramS, RangeS}
+import net.verdagon.vale.scout.patterns.AtomSP
+import net.verdagon.vale.scout.rules.IRulexSR
+import net.verdagon.vale.scout.{CodeLocationS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, LambdaNameS, ProgramS, RangeS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
@@ -12,7 +14,7 @@ import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.{ExpressionTemplar, IExpressionTemplarDelegate, LocalHelper}
 import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.templar.function.{BuiltInFunctions, DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
+import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
@@ -24,6 +26,7 @@ trait IFunctionGenerator {
     // These serve as the API that a function generator can use.
     // TODO: Give a trait with a reduced API.
     // Maybe this functionTemplarCore can be a lambda we can use to finalize and add *this* function.
+    profiler: IProfiler,
     functionTemplarCore: FunctionTemplarCore,
     structTemplar: StructTemplar,
     destructorTemplar: DestructorTemplar,
@@ -39,11 +42,15 @@ trait IFunctionGenerator {
   (FunctionHeaderT)
 }
 
+object DefaultPrintyThing {
+  def print(x: => Object) = {
+//    println("###: " + x)
+  }
+}
+
 case class TemplarOptions(
   functionGeneratorByName: Map[String, IFunctionGenerator],
-  debugOut: String => Unit = (x => {
-    println("###: " + x)
-  }),
+  debugOut: (=> String) => Unit = DefaultPrintyThing.print,
   verboseErrors: Boolean = false,
   useOptimization: Boolean = false,
 ) {
@@ -52,7 +59,7 @@ case class TemplarOptions(
 
 
 
-class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler, useOptimization: Boolean) {
+class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfiler, useOptimization: Boolean) {
   val generatedFunctions =
     Vector(
       DestructorTemplar.addConcreteDestructor(MutableT),
@@ -68,14 +75,14 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
     generatedFunctions.map({ case (functionA, generator) =>
       val id =
         functionA.body match {
-          case GeneratedBodyA(generatorId) => generatorId
+          case GeneratedBodyS(generatorId) => generatorId
           case _ => vfail()
         }
       (id, generator)
     }).toMap +
     ("vale_same_instance" ->
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -100,7 +107,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       }) +
       ("vale_static_sized_array_drop_into" ->
         new IFunctionGenerator {
-          override def generate(
+          override def generate(profiler: IProfiler,
             functionTemplarCore: FunctionTemplarCore,
             structTemplar: StructTemplar,
             destructorTemplar: DestructorTemplar,
@@ -131,9 +138,37 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
             header
           }
         }) +
+      ("vale_runtime_sized_array_len" ->
+        new IFunctionGenerator {
+          override def generate(profiler: IProfiler,
+            functionTemplarCore: FunctionTemplarCore,
+            structTemplar: StructTemplar,
+            destructorTemplar: DestructorTemplar,
+            arrayTemplar: ArrayTemplar,
+            namedEnv: FunctionEnvironment,
+            temputs: Temputs,
+            life: LocationInFunctionEnvironment,
+            callRange: RangeS,
+            maybeOriginFunction1: Option[FunctionA],
+            paramCoords: Vector[ParameterT],
+            maybeReturnType2: Option[CoordT]):
+          (FunctionHeaderT) = {
+            val header =
+              FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            temputs.declareFunctionReturnType(header.toSignature, header.returnType)
+            temputs.addFunction(
+              FunctionT(
+                header,
+                BlockTE(
+                  ReturnTE(
+                    ArrayLengthTE(
+                      ArgLookupTE(0, paramCoords(0).tyype))))))
+            header
+          }
+        }) +
     ("vale_runtime_sized_array_drop_into" ->
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -166,7 +201,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       }) +
     ("vale_as_subtype" ->
       new IFunctionGenerator {
-        override def generate(
+        override def generate(profiler: IProfiler,
           functionTemplarCore: FunctionTemplarCore,
           structTemplar: StructTemplar,
           destructorTemplar: DestructorTemplar,
@@ -257,6 +292,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
   val templataTemplar =
     new TemplataTemplar(
       opts,
+      profiler,
       new ITemplataTemplarDelegate {
         override def getAncestorInterfaceDistance(temputs: Temputs, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): Option[Int] = {
           ancestorHelper.getAncestorInterfaceDistance(temputs, descendantCitizenRef, ancestorInterfaceRef)
@@ -295,14 +331,25 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       opts,
       profiler,
       new IInfererDelegate[IEnvironment, Temputs] {
-        override def evaluateType(
+        override def lookupTemplata(
           env: IEnvironment,
           temputs: Temputs,
-          type1: IRulexAR
-        ): (ITemplata) = {
-          profiler.childFrame("InferTemplarDelegate.evaluateType", () => {
-            templataTemplar.evaluateTemplex(env, temputs, type1)
-          })
+          range: RangeS,
+          name: INameT):
+        ITemplata = {
+          templataTemplar.lookupTemplata(env, temputs, range, name)
+        }
+
+        override def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata): Boolean = {
+          templataTemplar.citizenIsFromTemplate(actualCitizenRef, expectedCitizenTemplata)
+        }
+
+        def coerce(env: IEnvironment, state: Temputs, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata = {
+          templataTemplar.coerce(state, range, templata, toType)
+        }
+
+        override def lookupTemplataImprecise(env: IEnvironment, state: Temputs, range: RangeS, name: INameS): ITemplata = {
+          templataTemplar.lookupTemplata(env, state, range, name)
         }
 
         override def lookupMemberTypes(state: Temputs, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
@@ -323,27 +370,6 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
         override def getMutability(state: Temputs, kind: KindT): MutabilityT = {
           profiler.childFrame("InferTemplarDelegate.getMutability", () => {
             Templar.getMutability(state, kind)
-          })
-        }
-
-        override def lookupTemplata(env: IEnvironment, range: RangeS, name: INameT): ITemplata = {
-          profiler.childFrame("InferTemplarDelegate.lookupTemplata", () => {
-            // We can only ever lookup types by name in expression context,
-            // otherwise we have no idea what List<Str> means; it could
-            // mean a list of strings or a list of the Str(:Int)Str function.
-            env.getNearestTemplataWithAbsoluteName2(name, Set[ILookupContext](TemplataLookupContext)) match {
-              case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldn't find anything with name: " + name))
-              case Some(x) => x
-            }
-          })
-        }
-
-        override def lookupTemplataImprecise(env: IEnvironment, range: RangeS, name: IImpreciseNameStepA): ITemplata = {
-          profiler.childFrame("InferTemplarDelegate.lookupTemplataImprecise", () => {
-            env.getNearestTemplataWithName(name, Set[ILookupContext](TemplataLookupContext)) match {
-              case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldn't find anything with name: " + name))
-              case Some(x) => x
-            }
           })
         }
 
@@ -433,7 +459,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
 
         override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {
           profiler.childFrame("InferTemplarDelegate.resolveExactSignature", () => {
-            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameA(name), Vector.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
+            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
               case sef@ScoutExpectedFunctionFailure(humanName, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction) => {
                 throw new CompileErrorExceptionT(CouldntFindFunctionToCallT(range, sef))
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, sef.toString))
@@ -467,12 +493,16 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       inferTemplar,
       ancestorHelper,
       new IStructTemplarDelegate {
-        override def evaluateOrdinaryFunctionFromNonCallForHeader(temputs: Temputs, callRange: RangeS,functionTemplata: FunctionTemplata): FunctionHeaderT = {
-          functionTemplar.evaluateOrdinaryFunctionFromNonCallForHeader(temputs, callRange, functionTemplata)
+        override def evaluateOrdinaryFunctionFromNonCallForHeader(temputs: Temputs, functionTemplata: FunctionTemplata): FunctionHeaderT = {
+          functionTemplar.evaluateOrdinaryFunctionFromNonCallForHeader(temputs, functionTemplata)
+        }
+
+        override def evaluateTemplatedFunctionFromNonCallForHeader(temputs: Temputs, functionTemplata: FunctionTemplata): FunctionHeaderT = {
+          functionTemplar.evaluateTemplatedFunctionFromNonCallForHeader(temputs, functionTemplata)
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameStepA, explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
+          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: INameS, explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
         OverloadTemplar.IScoutExpectedFunctionResult = {
           overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName, explicitlySpecifiedTemplateArgTemplexesS, args, extraEnvsToLookIn, exact)
         }
@@ -511,7 +541,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       life: LocationInFunctionEnvironment,
-      patterns1: Vector[AtomAP],
+      patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
       expressionTemplar.translatePatternList(temputs, fate, life, patterns1, patternInputExprs2)
@@ -533,6 +563,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
       maybeRetCoord: Option[CoordT]):
     FunctionHeaderT = {
       generator.generate(
+        profiler,
         functionTemplarCore, structTemplar, destructorTemplar, arrayTemplar, fullEnv, temputs, life, callRange, originFunction, paramCoords, maybeRetCoord)
     }
   })
@@ -555,6 +586,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           destructorTemplar.getArrayDestructor(env, temputs, type2)
         }
       },
+      profiler,
       inferTemplar,
       overloadTemplar)
 
@@ -577,7 +609,7 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           functionTemplar.evaluateTemplatedFunctionFromCallForPrototype(temputs, callRange, functionTemplata, explicitTemplateArgs, args)
         }
 
-        override def evaluateClosureStruct(temputs: Temputs, containingFunctionEnv: FunctionEnvironment, callRange: RangeS, name: LambdaNameA, function1: BFunctionA): StructTT = {
+        override def evaluateClosureStruct(temputs: Temputs, containingFunctionEnv: FunctionEnvironment, callRange: RangeS, name: IFunctionDeclarationNameS, function1: FunctionA): StructTT = {
           functionTemplar.evaluateClosureStruct(temputs, containingFunctionEnv, callRange, name, function1)
         }
       })
@@ -603,18 +635,13 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
                   Map(
                     PrimitiveNameT("int") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i32))),
                     PrimitiveNameT("i64") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i64))),
-                    PrimitiveNameT("Array") -> Vector(TemplataEnvEntry(ArrayTemplateTemplata())),
+                    PrimitiveNameT("Array") -> Vector(TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata())),
                     PrimitiveNameT("bool") -> Vector(TemplataEnvEntry(KindTemplata(BoolT()))),
                     PrimitiveNameT("float") -> Vector(TemplataEnvEntry(KindTemplata(FloatT()))),
                     PrimitiveNameT("__Never") -> Vector(TemplataEnvEntry(KindTemplata(NeverT()))),
                     PrimitiveNameT("str") -> Vector(TemplataEnvEntry(KindTemplata(StrT()))),
                     PrimitiveNameT("void") -> Vector(TemplataEnvEntry(KindTemplata(VoidT()))))))
-        val env1b =
-          BuiltInFunctions.builtIns.foldLeft(env0)({
-            case (env1a, builtIn) => {
-              env1a.addUnevaluatedFunction(opts.useOptimization, builtIn)
-            }
-          })
+        val env1b = env0
         val env3 =
           generatedFunctions.foldLeft(env1b)({
             case (env2, (generatedFunction, generator)) => {
@@ -690,12 +717,12 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
           }
         })
 
-        exportsA.foreach({ case ExportAsA(range, exportedName, rules, typeByRune, typeRuneA) =>
-          val typeRuneT = NameTranslator.translateRune(typeRuneA)
+        exportsA.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
+          val typeRuneT = typeRuneA
           val templataByRune =
-            inferTemplar.inferOrdinaryRules(env11, temputs, rules, typeByRune, Set(typeRuneA))
+            inferTemplar.solveExpectComplete(env11, temputs, rules, runeToType, range, Map())
           val kind =
-            templataByRune.get(typeRuneT) match {
+            templataByRune.get(typeRuneT.rune) match {
               case Some(KindTemplata(kind)) => {
                 temputs.addKindExport(range, kind, range.file.packageCoordinate, exportedName)
               }
@@ -918,24 +945,24 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
   // Returns whether we should eagerly compile this and anything it depends on.
   def isRootFunction(functionA: FunctionA): Boolean = {
     functionA.name match {
-      case FunctionNameA("main", _) => return true
+      case FunctionNameS("main", _) => return true
       case _ =>
     }
     functionA.attributes.exists({
-      case ExportA(_) => true
-      case ExternA(_) => true
+      case ExportS(_) => true
+      case ExternS(_) => true
       case _ => false
     })
   }
 
   // Returns whether we should eagerly compile this and anything it depends on.
   def isRootStruct(structA: StructA): Boolean = {
-    structA.attributes.exists({ case ExportA(_) => true case _ => false })
+    structA.attributes.exists({ case ExportS(_) => true case _ => false })
   }
 
   // Returns whether we should eagerly compile this and anything it depends on.
   def isRootInterface(interfaceA: InterfaceA): Boolean = {
-    interfaceA.attributes.exists({ case ExportA(_) => true case _ => false })
+    interfaceA.attributes.exists({ case ExportS(_) => true case _ => false })
   }
 
   // (Once we add packages, this will probably change)
@@ -945,8 +972,8 @@ class Templar(debugOut: (String) => Unit, verbose: Boolean, profiler: IProfiler,
   ): PackageEnvironment[PackageTopLevelNameT] = {
     val interfaceEnvEntry = InterfaceEnvEntry(interfaceA)
 
-    val TopLevelCitizenDeclarationNameA(humanName, codeLocationS) = interfaceA.name
-    val name = CitizenTemplateNameT(humanName, NameTranslator.translateCodeLocation(codeLocationS))
+    val TopLevelCitizenDeclarationNameS(humanName, rangeS) = interfaceA.name
+    val name = CitizenTemplateNameT(humanName, NameTranslator.translateCodeLocation(rangeS.begin))
 
     val env1 = env0.addEntry(opts.useOptimization, name, interfaceEnvEntry)
     val env2 =

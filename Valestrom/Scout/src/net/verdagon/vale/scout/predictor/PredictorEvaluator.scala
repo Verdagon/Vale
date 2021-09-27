@@ -26,7 +26,7 @@
 ////  Solver[RangeS, IValueSR, IValueSR, Unit, Unit, Unit, String] = {
 ////    new Solver[RangeS, IValueSR, IValueSR, Unit, Unit, Unit, String](
 ////      new ISolverDelegate[RangeS, IValueSR, IValueSR, Unit, Unit, Unit, String] {
-////        override def solve(state: Unit, env: Unit, range: RangeS, rule: IRulexAR[Int, RangeS, IValueSR, IValueSR], runes: Int => Option[Unit]): Result[Map[Int, Unit], String] = {
+////        override def solve(state: Unit, env: Unit, range: RangeS, rule: IRulexSR[Int, RangeS, IValueSR, IValueSR], runes: Int => Option[Unit]): Result[Map[Int, Unit], String] = {
 ////          rule match {
 ////            case LookupAR(range, rune, _) => Ok(Map(rune -> Unit))
 ////            case LiteralAR(range, rune, _) => Ok(Map(rune -> Unit))

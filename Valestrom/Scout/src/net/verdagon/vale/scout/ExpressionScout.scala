@@ -4,6 +4,7 @@ import net.verdagon.vale.parser.{RuntimeSizedP, _}
 import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.PatternScout
+import net.verdagon.vale.scout.rules.RuneUsage
 //import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
 import net.verdagon.vale.scout.rules.{ILiteralSL, IntLiteralSL, LiteralSR, MutabilityLiteralSL, TemplexScout, VariabilityLiteralSL}
 import net.verdagon.vale.templar.types.ITemplataType
@@ -257,25 +258,25 @@ object ExpressionScout {
         val mutabilityRuneS =
           maybeMutabilityPT match {
             case None => {
-              val rune = ImplicitRuneS(lidb.child().consume())
+              val rune = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               ruleBuilder += LiteralSR(rangeS, rune, MutabilityLiteralSL(MutableP))
               rune
             }
             case Some(mutabilityPT) => {
               TemplexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, mutabilityPT)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, mutabilityPT, false)
             }
           }
         val variabilityRuneS =
           maybeVariabilityPT match {
             case None => {
-              val rune = ImplicitRuneS(lidb.child().consume())
+              val rune = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               ruleBuilder += LiteralSR(rangeS, rune, VariabilityLiteralSL(FinalP))
               rune
             }
             case Some(variabilityPT) => {
               TemplexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, variabilityPT)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, variabilityPT, false)
             }
           }
 
@@ -305,7 +306,7 @@ object ExpressionScout {
                         stackFrame0.parentEnv,
                         lidb.child(),
                         ruleBuilder,
-                        sizePT))
+                        sizePT, false))
                   }
                 }
 
@@ -314,7 +315,7 @@ object ExpressionScout {
                   maybeSizeRuneS match {
                     case Some(s) => s
                     case None => {
-                      val runeS = ImplicitRuneS(lidb.child().consume())
+                      val runeS = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
                       ruleBuilder += LiteralSR(rangeS, runeS, IntLiteralSL(argsSE.size))
                       runeS
                     }
@@ -441,9 +442,9 @@ object ExpressionScout {
 //        val (tentativeRuneToCanonicalRune, world) =
 //          Optimizer.optimize(
 //            ruleBuilder.builder,
-//            (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+//            (inputRule: IRulexSR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
 //
-//        val Conclusions(knowableValueRunesS, predictedTypeByRune) =
+//        val Conclusions(knowableValueRunesS, predictedruneToType) =
 //          PredictorEvaluator.solve(
 //            evalRange(range),
 //            ruleBuilder.runeSToTentativeRune,
@@ -508,7 +509,7 @@ object ExpressionScout {
           scoutExpressionAndCoerce(stackFrame0, lidb.child(), containerExprPE, LendConstraintP(None));
         val (stackFrame2, indexExpr1, indexSelfUses, indexChildUses) =
           scoutExpressionAndCoerce(stackFrame1, lidb.child(), indexExprPE, UseP);
-        val dot1 = DotCallSE(evalRange(range), containerExpr1, indexExpr1)
+        val dot1 = IndexSE(evalRange(range), containerExpr1, indexExpr1)
         (stackFrame2, NormalResult(evalRange(range), dot1), containerSelfUses.thenMerge(indexSelfUses), containerChildUses.thenMerge(indexChildUses))
       }
     }
@@ -540,7 +541,7 @@ object ExpressionScout {
             maybeTemplateArgs.map(templateArgs => {
               templateArgs.map(templateArgPT => {
                 TemplexScout.translateTemplex(
-                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT)
+                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT, false)
               })
             })
           val load = OutsideLoadSE(range, ruleBuilder.toArray, name, maybeTemplateArgRunes, targetOwnershipIfLookupResult)

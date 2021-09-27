@@ -21,7 +21,7 @@ object RuleFlattener {
 //    world: World[Int, RangeS, ILiteralSR, ILookupSR]):
 ////
 ////    rulesS: Vector[IRulexSR]):
-//  (Map[IRuneS, Int], Map[IRuneS, ITypeSR], Map[IRuneS, Boolean], Int, Array[IRulexAR[Int, RangeS, ILiteralSR, ILookupSR]]) = {
+//  (Map[IRuneS, Int], Map[IRuneS, ITypeSR], Map[IRuneS, Boolean], Int, Array[IRulexSR[Int, RangeS, ILiteralSR, ILookupSR]]) = {
 //
 //
 //  }

@@ -10,7 +10,7 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl}
 import scala.collection.immutable.List
 
 
-sealed trait ITemplata extends QueriableT {
+sealed trait ITemplata  {
   def order: Int;
   def tyype: ITemplataType
 }
@@ -20,28 +20,26 @@ case class CoordTemplata(reference: CoordT) extends ITemplata {
   override def order: Int = 1;
   override def tyype: ITemplataType = CoordTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ reference.all(func)
-  }
+
 }
 case class KindTemplata(kind: KindT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 2;
   override def tyype: ITemplataType = KindTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ kind.all(func)
-  }
+
 }
-case class ArrayTemplateTemplata() extends ITemplata {
+case class RuntimeSizedArrayTemplateTemplata() extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 3;
   override def tyype: ITemplataType = TemplateTemplataType(Vector(MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType)
-
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
 }
+case class StaticSizedArrayTemplateTemplata() extends ITemplata {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def order: Int = 3;
+  override def tyype: ITemplataType = TemplateTemplataType(Vector(IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType)
+}
+
 
 
 case class FunctionTemplata(
@@ -89,9 +87,7 @@ case class FunctionTemplata(
     case _ =>
   }
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 
   def getTemplateName(): INameT = {
     NameTranslator.translateFunctionNameToTemplateName(function.name)
@@ -162,12 +158,10 @@ case class StructTemplata(
     case _ =>
   }
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 
   def getTemplateName(): INameT = {
-    CitizenTemplateNameT(originStruct.name.name, NameTranslator.translateCodeLocation(originStruct.name.codeLocation))
+    CitizenTemplateNameT(originStruct.name.name, NameTranslator.translateCodeLocation(originStruct.name.range.begin))
   }
 
   def debugString: String = env.fullName + ":" + originStruct.name
@@ -209,12 +203,10 @@ case class InterfaceTemplata(
     case _ =>
   }
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 
   def getTemplateName(): INameT = {
-    CitizenTemplateNameT(originInterface.name.name, NameTranslator.translateCodeLocation(originInterface.name.codeLocation))
+    CitizenTemplateNameT(originInterface.name.name, NameTranslator.translateCodeLocation(originInterface.name.range.begin))
   }
 
   def debugString: String = env.fullName + ":" + originInterface.name
@@ -239,9 +231,7 @@ case class ImplTemplata(
   override def order: Int = 9
   override def tyype: ITemplataType = vfail()
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 
 case class OwnershipTemplata(ownership: OwnershipT) extends ITemplata {
@@ -249,45 +239,35 @@ case class OwnershipTemplata(ownership: OwnershipT) extends ITemplata {
   override def order: Int = 10;
   override def tyype: ITemplataType = OwnershipTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ ownership.all(func)
-  }
+
 }
 case class VariabilityTemplata(variability: VariabilityT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 11;
   override def tyype: ITemplataType = VariabilityTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ variability.all(func)
-  }
+
 }
 case class MutabilityTemplata(mutability: MutabilityT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 12;
   override def tyype: ITemplataType = MutabilityTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ mutability.all(func)
-  }
+
 }
 case class PermissionTemplata(mutability: PermissionT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 13;
   override def tyype: ITemplataType = PermissionTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ mutability.all(func)
-  }
+
 }
 case class LocationTemplata(mutability: LocationT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 14;
   override def tyype: ITemplataType = LocationTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ mutability.all(func)
-  }
+
 }
 
 case class BooleanTemplata(value: Boolean) extends ITemplata {
@@ -295,45 +275,35 @@ case class BooleanTemplata(value: Boolean) extends ITemplata {
   override def order: Int = 15;
   override def tyype: ITemplataType = BooleanTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class IntegerTemplata(value: Long) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 16;
   override def tyype: ITemplataType = IntegerTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class StringTemplata(value: String) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 17;
   override def tyype: ITemplataType = StringTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class PrototypeTemplata(value: PrototypeT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 18;
   override def tyype: ITemplataType = PrototypeTemplataType
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class CoordListTemplata(value: Vector[CoordT]) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 18;
   override def tyype: ITemplataType = PackTemplataType(CoordTemplataType)
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 
 // ExternFunction/ImplTemplata are here because for example when we create an anonymous interface
@@ -348,9 +318,7 @@ case class ExternFunctionTemplata(header: FunctionHeaderT) extends ITemplata {
   override def order: Int = 1337
   override def tyype: ITemplataType = vfail()
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ header.all(func)
-  }
+
 }
 
 case class ExternImplTemplata(struct: StructTT, interface: InterfaceTT) extends ITemplata {
@@ -358,7 +326,5 @@ case class ExternImplTemplata(struct: StructTT, interface: InterfaceTT) extends 
   override def order: Int = 1338
   override def tyype: ITemplataType = vfail()
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ struct.all(func) ++ interface.all(func)
-  }
+
 }

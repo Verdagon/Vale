@@ -6,62 +6,21 @@ import net.verdagon.vale.templar.{FullNameT, FunctionNameT, IFunctionNameT, IVar
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vassertSome, vfail, vimpl}
 
-trait QueriableT {
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T];
+trait VirtualityT
+case object AbstractT extends VirtualityT {
 
-  def allOf[T](classs: Class[T]): Vector[T] = {
-    all({
-      case x if classs.isInstance(x) => classs.cast(x)
-    })
-  }
-
-  def only[T](func: PartialFunction[QueriableT, T]): T = {
-    val list = all(func)
-    if (list.size > 1) {
-      vfail("More than one!");
-    } else if (list.isEmpty) {
-      vfail("Not found!");
-    }
-    list.head
-  }
-
-  def onlyOf[T](classs: Class[T]): T = {
-    val list =
-      all({
-        case x if classs.isInstance(x) => classs.cast(x)
-      })
-    if (list.size > 1) {
-      vfail("More than one!");
-    } else if (list.isEmpty) {
-      vfail("Not found!");
-    }
-    list.head
-  }
-}
-
-trait VirtualityT extends QueriableT {
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T];
-}
-case object AbstractT$ extends VirtualityT {
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
 }
 case class OverrideT(interface: InterfaceTT) extends VirtualityT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ interface.all(func)
-  }
+
 }
 
 case class ParameterT(
     name: IVarNameT,
     virtuality: Option[VirtualityT],
-    tyype: CoordT) extends QueriableT {
+    tyype: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ virtuality.toVector.flatMap(_.all(func)) ++ tyype.all(func)
-  }
+
 }
 
 sealed trait IPotentialBanner {
@@ -100,7 +59,7 @@ case class SignatureT(fullName: FullNameT[IFunctionNameT]) {
 case class FunctionBannerT(
     originFunction: Option[FunctionA],
     fullName: FullNameT[IFunctionNameT],
-    params: Vector[ParameterT]) extends QueriableT  {
+    params: Vector[ParameterT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   vassert(fullName.last.parameters == params.map(_.tyype))
@@ -111,7 +70,7 @@ case class FunctionBannerT(
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterT(_, Some(AbstractT$), CoordT(_, _, ir @ InterfaceTT(_))) => ir
+        case ParameterT(_, Some(AbstractT), CoordT(_, _, ir @ InterfaceTT(_))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption
@@ -130,15 +89,13 @@ case class FunctionBannerT(
     val indices =
       params.zipWithIndex.collect({
         case (ParameterT(_, Some(OverrideT(_)), _), index) => index
-        case (ParameterT(_, Some(AbstractT$), _), index) => index
+        case (ParameterT(_, Some(AbstractT), _), index) => index
       })
     vassert(indices.size <= 1)
     indices.headOption
   }
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ params.flatMap(_.all(func))
-  }
+
 
   def unapply(arg: FunctionBannerT):
   Option[(FullNameT[IFunctionNameT], Vector[ParameterT])] =
@@ -157,15 +114,15 @@ case class Extern2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 
 }
 // There's no Export2 here, we use separate KindExport and FunctionExport constructs.
 //case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
-case object Pure2 extends IFunctionAttribute2 with ICitizenAttribute2
-case object UserFunction2 extends IFunctionAttribute2 // Whether it was written by a human. Mostly for tests right now.
+case object PureT extends IFunctionAttribute2 with ICitizenAttribute2
+case object UserFunctionT extends IFunctionAttribute2 // Whether it was written by a human. Mostly for tests right now.
 
 case class FunctionHeaderT(
     fullName: FullNameT[IFunctionNameT],
     attributes: Vector[IFunctionAttribute2],
     params: Vector[ParameterT],
     returnType: CoordT,
-    maybeOriginFunction: Option[FunctionA]) extends QueriableT {
+    maybeOriginFunction: Option[FunctionA])  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Make sure there's no duplicate names
@@ -175,7 +132,7 @@ case class FunctionHeaderT(
 
   def isExtern = attributes.exists({ case Extern2(_) => true case _ => false })
 //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
-  def isUserFunction = attributes.contains(UserFunction2)
+  def isUserFunction = attributes.contains(UserFunctionT)
   def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface
   def getOverride: Option[(StructTT, InterfaceTT)] = toBanner.getOverride
   def getVirtualIndex: Option[Int] = toBanner.getVirtualIndex
@@ -192,9 +149,7 @@ case class FunctionHeaderT(
 
   def paramTypes: Vector[CoordT] = params.map(_.tyype)
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ params.flatMap(_.all(func)) ++ returnType.all(func)
-  }
+
 
   def unapply(arg: FunctionHeaderT): Option[(FullNameT[IFunctionNameT], Vector[ParameterT], CoordT)] =
     Some(fullName, params, returnType)
@@ -202,33 +157,10 @@ case class FunctionHeaderT(
 
 case class PrototypeT(
     fullName: FullNameT[IFunctionNameT],
-    returnType: CoordT) extends QueriableT {
+    returnType: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordT] = fullName.last.parameters
   def toSignature: SignatureT = SignatureT(fullName)
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ paramTypes.flatMap(_.all(func)) ++ returnType.all(func)
-  }
-}
 
-case class CodeLocationT(
-  file: FileCoordinate,
-  offset: Int
-) extends QueriableT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
-
-  override def toString: String = file + ":" + offset
-}
-
-object CodeLocationT {
-  // Keep in sync with CodeLocationS
-  val zero = CodeLocationT.internal(-1)
-  def internal(internalNum: Int): CodeLocationT = {
-    vassert(internalNum < 0)
-    CodeLocationT(FileCoordinate("", Vector.empty, "internal"), internalNum)
-  }
 }

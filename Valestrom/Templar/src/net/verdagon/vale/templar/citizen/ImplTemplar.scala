@@ -1,13 +1,12 @@
 package net.verdagon.vale.templar.citizen
 
-import net.verdagon.vale.astronomer.{ImplA, ImplImpreciseNameA, ImplNameA}
+import net.verdagon.vale.astronomer.ImplA
 import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
-import net.verdagon.vale.templar.infer.infer.{InferSolveFailure, InferSolveSuccess}
-import net.verdagon.vale.{IProfiler, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.{Err, IProfiler, Ok, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 
@@ -34,34 +33,26 @@ class AncestorHelper(
     implTemplata: ImplTemplata):
   (Option[InterfaceTT]) = {
     val ImplTemplata(env, impl) = implTemplata
-    val ImplA(range, codeLocation, rulesFromStructDirection, rulesFromInterfaceDirection, typeByRune, localRunes, structKindRune, interfaceKindRune) = impl
-
-    // We use the rules from the struct direction because they'll fail faster, and we won't accidentally evaluate a ton
-    // of things we would otherwise. See NMORFI for more.
-    val rules = rulesFromStructDirection
+    val ImplA(range, codeLocation, rules, runeToType, structKindRune, interfaceKindRune) = impl
 
     val result =
       profiler.childFrame("getMaybeImplementedInterface", () => {
-        inferTemplar.inferFromExplicitTemplateArgs(
+        inferTemplar.solveComplete(
           env,
           temputs,
-          Vector(structKindRune),
           rules,
-          typeByRune,
-          localRunes,
-          Vector.empty,
-          None,
+          runeToType,
           RangeS.internal(-1875),
-          Vector(KindTemplata(childCitizenRef)))
+          Map(structKindRune.rune -> KindTemplata(childCitizenRef)))
       })
 
     result match {
-      case isf @ InferSolveFailure(_, _, _, _, _, _, _) => {
-        val _ = isf
+      case Err(e) => {
+        val _ = e
         (None)
       }
-      case InferSolveSuccess(inferences) => {
-        inferences.templatasByRune(NameTranslator.translateRune(interfaceKindRune)) match {
+      case Ok(inferences) => {
+        inferences(interfaceKindRune.rune) match {
           case KindTemplata(interfaceTT @ InterfaceTT(_)) => {
             (Some(interfaceTT))
           }
@@ -93,12 +84,13 @@ class AncestorHelper(
         case sr @ StructTT(_) => temputs.getEnvForStructRef(sr)
         case ir @ InterfaceTT(_) => temputs.getEnvForInterfaceRef(ir)
       }
-    citizenEnv.getAllTemplatasWithName(profiler, needleImplName, Set(TemplataLookupContext, ExpressionLookupContext))
+    citizenEnv.lookupWithImpreciseName(profiler, needleImplName, Set(TemplataLookupContext, ExpressionLookupContext), false)
       .flatMap({
         case it @ ImplTemplata(_, _) => getMaybeImplementedInterface(temputs, childCitizenRef, it).toVector
         case ExternImplTemplata(structTT, interfaceTT) => if (structTT == childCitizenRef) Vector(interfaceTT) else Vector.empty
         case other => vwat(other.toString)
       })
+      .toVector
   }
 
   def getAncestorInterfaces(

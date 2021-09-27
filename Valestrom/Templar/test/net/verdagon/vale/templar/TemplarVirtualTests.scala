@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types.{ConstraintT, CoordT, InterfaceTT, OwnT, ReadonlyT, ReadwriteT, StructTT}
-import net.verdagon.vale.{vassert, vimpl}
+import net.verdagon.vale.{Collector, vassert, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.Set
@@ -38,7 +38,7 @@ class TemplarVirtualTests extends FunSuite with Matchers {
         |""".stripMargin)
     val temputs = compile.expectTemputs()
 
-    temputs.lookupFunction("as").only({
+    Collector.only(temputs.lookupFunction("as"), {
       case as @ AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor) => {
         sourceExpr.resultRegister.reference match {
           case CoordT(ConstraintT,ReadonlyT,InterfaceTT(FullNameT(_, Vector(),CitizenNameT("IShip",Vector())))) =>

@@ -266,7 +266,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case ConstructArrayTE(RuntimeSizedArrayTT(RawArrayTT(CoordT(ShareT, ReadonlyT, IntT(_)), ImmutableT, _)), _, _, _) =>
     })
 
@@ -289,7 +289,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case ConstructArrayTE(RuntimeSizedArrayTT(RawArrayTT(CoordT(ShareT, ReadonlyT, IntT(_)), ImmutableT, _)), _, _, _) =>
     })
 
@@ -337,7 +337,7 @@ class ArrayTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("MakeImmArray")
-    main.only({
+    Collector.only(main, {
       case ConstructArrayTE(RuntimeSizedArrayTT(RawArrayTT(CoordT(ShareT, ReadonlyT, IntT(_)), ImmutableT, _)), _, _, _) =>
     })
 

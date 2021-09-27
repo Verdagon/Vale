@@ -1,15 +1,17 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{IRulexSR, RangeS}
+import net.verdagon.vale.scout.patterns.AtomSP
+import net.verdagon.vale.scout.rules.IRulexSR
+import net.verdagon.vale.scout.{IRuneS, RangeS}
+import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, ILookupContext, TemplataLookupContext}
 import net.verdagon.vale.templar.infer.{IInfererDelegate, _}
-import net.verdagon.vale.templar.infer.infer.{IInferSolveResult, InferSolveFailure, InferSolveSuccess}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{IProfiler, vassert, vassertSome, vfail, vimpl}
+import net.verdagon.vale.{Err, IProfiler, Ok, Result, vassert, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -19,123 +21,60 @@ class InferTemplar(
     opts: TemplarOptions,
     profiler: IProfiler,
     delegate: IInfererDelegate[IEnvironment, Temputs]) {
-  private def solve(
+  def solveComplete(
+    env: IEnvironment,
+    temputs: Temputs,
+    rules: Vector[IRulexSR],
+    runeToType: Map[IRuneS, ITemplataType],
+    invocationRange: RangeS,
+    alreadyKnown: Map[IRuneS, ITemplata]):
+  Result[Map[IRuneS, ITemplata], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]] = {
+    solve(env, temputs, rules, runeToType, invocationRange, alreadyKnown) match {
+      case f @ FailedSolve(_, _, _) => Err(f)
+      case i @ IncompleteSolve(_, _, _) => Err(i)
+      case CompleteSolve(conclusions) => Ok(conclusions)
+    }
+  }
+
+  def solveExpectComplete(
+    env: IEnvironment,
+    temputs: Temputs,
+    rules: Vector[IRulexSR],
+    runeToType: Map[IRuneS, ITemplataType],
+    invocationRange: RangeS,
+    alreadyKnown: Map[IRuneS, ITemplata]):
+  Map[IRuneS, ITemplata] = {
+    solve(env, temputs, rules, runeToType, invocationRange, alreadyKnown) match {
+      case f @ FailedSolve(_, _, err) => {
+        throw CompileErrorExceptionT(TemplarSolverError(invocationRange, f))
+      }
+      case i @ IncompleteSolve(_, _, _) => {
+        throw CompileErrorExceptionT(TemplarSolverError(invocationRange, i))
+      }
+      case CompleteSolve(conclusions) => conclusions
+    }
+  }
+
+  def solve(
     env: IEnvironment,
     state: Temputs,
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    localRunes: Set[IRuneS],
+    rules: Vector[IRulexSR],
+    runeToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
-    directInputs: Map[IRuneS, ITemplata],
-    paramAtoms: Vector[AtomAP],
-    maybeParamInputs: Option[Vector[ParamFilter]],
-    checkAllRunesPresent: Boolean,
-  ): (IInferSolveResult) = {
+    alreadyKnown: Map[IRuneS, ITemplata]
+  ): ISolverOutcome[IRulexSR, IRuneS, ITemplata, ITemplarSolverError] = {
     profiler.newProfile("infer", "", () => {
-      val output = ConstructingRuneWorldTR(ArrayBuffer(), mutable.HashMap(), ArrayBuffer(), ArrayBuffer(), ArrayBuffer())
-      rules.map(translateRule(output, _))
-      val rulesTR = output.build()
+//      val output = ConstructingRuneWorldTR(ArrayBuffer(), mutable.HashMap(), ArrayBuffer(), ArrayBuffer(), ArrayBuffer())
+//      rules.map(translateRule(output, _))
+//      val rulesTR = output.build()
 
-
-      Inferer.solve[IEnvironment, Temputs](
-        profiler,
-        delegate,
-        env,
-        state,
-        rulesTR,
-        typeByRune.map({ case (key, value) => NameTranslator.translateRune(key) -> value }),
-        localRunes.map(NameTranslator.translateRune),
-        invocationRange,
-        directInputs.map({ case (key, value) => NameTranslator.translateRune(key) -> value }),
-        paramAtoms,
-        maybeParamInputs,
-        checkAllRunesPresent)
-    })
-  }
-
-  // No incoming types needed (like manually specified template args, or argument coords from a call).
-  // This is for when we want to figure out the types for an ordinary function like
-  //   fn sum(a: Int, b: Int)Int { }
-  // which, remember, actually *does* have rules:
-  //   fn sum
-  //   rules(#1 = Int, #2 = Int, #3 = Int)
-  //   (a: #1, b: #2) #3 { ...}
-  def inferOrdinaryRules(
-    env0: IEnvironment,
-    temputs: Temputs,
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    localRunes: Set[IRuneS],
-  ): (Map[IRuneT, ITemplata]) = {
-    profiler.childFrame("inferOrdinaryRules", () => {
-      solve(env0, temputs, rules, typeByRune, localRunes, RangeS.internal(-13337), Map(), Vector.empty, None, true) match {
-        case (InferSolveSuccess(inferences)) => {
-          (inferences.templatasByRune)
-        }
-        case (isf@InferSolveFailure(_, _, _, _, range, _, _)) => {
-          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Conflict in determining ordinary rules' runes: " + isf))
-        }
-      }
-    })
-  }
-
-  def inferFromExplicitTemplateArgs(
-    env0: IEnvironment,
-    temputs: Temputs,
-    identifyingRunes: Vector[IRuneS],
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    localRunes: Set[IRuneS],
-    patterns1: Vector[AtomAP],
-    maybeRetRune: Option[IRuneS],
-    invocationRange: RangeS,
-    explicits: Vector[ITemplata],
-  ): (IInferSolveResult) = {
-    profiler.childFrame("inferFromExplicitTemplateArgs", () => {
-      if (identifyingRunes.size != explicits.size) {
-        throw CompileErrorExceptionT(RangedInternalErrorT(invocationRange, "Wrong number of template args!"))
-      }
-
-      solve(
-        env0,
-        temputs,
-        rules,
-        typeByRune,
-        localRunes,
-        invocationRange,
-        identifyingRunes.zip(explicits).toMap,
-        patterns1,
-        None,
-        true)
-    })
-  }
-
-  def inferFromArgCoords(
-    env0: IEnvironment,
-    temputs: Temputs,
-    identifyingRunes: Vector[IRuneS],
-    rules: Vector[IRulexAR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    localRunes: Set[IRuneS],
-    patterns1: Vector[AtomAP],
-    maybeRetRune: Option[IRuneS],
-    invocationRange: RangeS,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
-    patternInputCoords: Vector[ParamFilter]
-  ): (IInferSolveResult) = {
-    profiler.childFrame("inferFromArgCoords", () => {
-      solve(
-        env0,
-        temputs,
-        rules,
-        typeByRune,
-        localRunes,
-        invocationRange,
-        // Note: this two things we're zipping are of different length, that's fine.
-        identifyingRunes.zip(alreadySpecifiedTemplateArgs).toMap,
-        patterns1,
-        Some(patternInputCoords),
-        true)
+      new TemplarSolver[IEnvironment, Temputs](delegate).solve(
+          invocationRange,
+          env,
+          state,
+          rules,
+          runeToType,
+          alreadyKnown)
     })
   }
 }

@@ -3,3 +3,6 @@ fn drop_into<M, V, S, E, F>(arr [<M, V> S * E], consumer &!F) void extern(vale_s
 
 fn drop_into<M, V, E, F>(arr Array<M, V, E>, consumer &!F) void extern(vale_runtime_sized_array_drop_into);
 
+fn len<M, V, S, E>(arr &[<M, V> S * E]) int extern(vale_static_sized_array_len);
+
+fn len<M, V, E>(arr &Array<M, V, E>) int extern(vale_runtime_sized_array_len);

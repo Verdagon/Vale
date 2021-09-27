@@ -23,7 +23,7 @@ class RunePredictorTests extends FunSuite with Matchers {
 //    val (tentativeRuneToCanonicalRune, world) =
 //      Optimizer.optimize(
 //        ruleBuilder.builder,
-//        (inputRule: IRulexAR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+//        (inputRule: IRulexSR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
 //
 //    val conclusions =
 //      PredictorEvaluator.solve(tz, ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)

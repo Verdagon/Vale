@@ -23,7 +23,7 @@ case class Environment(
     maybeParentEnv: Option[Environment],
     primitives: Map[String, ITemplataType],
     codeMap: PackageCoordinateMap[ProgramS],
-    typeByRune: Map[IRuneS, ITemplataType]) {
+    runeToType: Map[IRuneS, ITemplataType]) {
   override def hashCode(): Int = vcurious()
 
   val structsS: Vector[StructS] = codeMap.moduleToPackagesToContents.values.flatMap(_.values.flatMap(_.structs)).toVector
@@ -33,8 +33,8 @@ case class Environment(
   val exportsS: Vector[ExportAsS] = codeMap.moduleToPackagesToContents.values.flatMap(_.values.flatMap(_.exports)).toVector
   val imports: Vector[ImportS] = codeMap.moduleToPackagesToContents.values.flatMap(_.values.flatMap(_.imports)).toVector
 
-  def addRunes(newTypeByRune: Map[IRuneS, ITemplataType]): Environment = {
-    Environment(maybeName, maybeParentEnv, primitives, codeMap, typeByRune ++ newTypeByRune)
+  def addRunes(newruneToType: Map[IRuneS, ITemplataType]): Environment = {
+    Environment(maybeName, maybeParentEnv, primitives, codeMap, runeToType ++ newruneToType)
   }
 
   // Returns whether the imprecise name could be referring to the absolute name.
@@ -107,7 +107,7 @@ case class Environment(
 //  }
 
   def lookupRune(name: IRuneS): ITemplataType = {
-    typeByRune.get(name) match {
+    runeToType.get(name) match {
       case Some(tyype) => tyype
       case None => {
         maybeParentEnv match {
@@ -128,6 +128,7 @@ object Astronomer {
       "bool" -> KindTemplataType,
       "float" -> KindTemplataType,
       "void" -> KindTemplataType,
+      "__Never" -> KindTemplataType,
 //      "IFunction1" -> TemplateTypeSR(Vector(MutabilityTypeSR, CoordTypeSR, CoordTypeSR), KindTypeSR),
       "Array" -> TemplateTemplataType(Vector(MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType))
 
@@ -261,10 +262,10 @@ object Astronomer {
     astrouts.codeLocationToMaybeType.put(rangeS.begin, None)
 
     val runeAToType =
-      calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, Vector(), rulesS, env)
+      calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, Vector(), rulesS, env)
 
     // Shouldnt fail because we got a complete solve earlier
-    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val structA =
@@ -322,10 +323,10 @@ object Astronomer {
     astrouts.codeLocationToMaybeType.put(rangeS.begin, None)
 
     val runeAToType =
-      calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, Vector(), rulesS, env)
+      calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, Vector(), rulesS, env)
 
     // getOrDie because we should have gotten a complete solve
-    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val methodsEnv = env.addRunes(runeAToType)
@@ -352,39 +353,29 @@ object Astronomer {
   }
 
   def translateImpl(astrouts: Astrouts,  env: Environment, implS: ImplS): ImplA = {
-    vimpl()
-//    val ImplS(range, nameS, rulesFromStructDirection, rulesFromInterfaceDirection, knowableRunesS, localRunesS, isTemplate, structKindRuneS, interfaceKindRuneS) = implS
-//    val nameA = translateImplName(nameS)
-//    val localRunesS = localRunesS.map()
-//    val knowableRunesS = knowableRunesS.map()
-//
-//    astrouts.getImpl(nameA) match {
-//      case Some(existingImplA) => return existingImplA
-//      case _ =>
-//    }
-//
-//    val (conclusionsForRulesFromStructDirection, rulesFromStructDirectionA) = (vimpl(), vimpl())
-////      makeRuleTyper().solve(astrouts, env, rulesFromStructDirection, range, Vector.empty, Some(knowableRunesS ++ localRunesS)) match {
-////        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-////        case (c, RuleTyperSolveSuccess(r)) => (c, r)
-////      }
-//    val (conclusionsForRulesFromInterfaceDirection, rulesFromInterfaceDirectionA) = (vimpl(), vimpl())
-////      makeRuleTyper().solve(astrouts, env, rulesFromInterfaceDirection, range, Vector.empty, Some(knowableRunesS ++ localRunesS)) match {
-////        case (_, rtsf @ RuleTyperSolveFailure(_, _, _, _)) => throw CompileErrorExceptionA(CouldntSolveRulesA(range, rtsf))
-////        case (c, RuleTyperSolveSuccess(r)) => (c, r)
-////      }
-//    vimpl()//vassert(conclusionsForRulesFromStructDirection == conclusionsForRulesFromInterfaceDirection)
-//    val conclusions = conclusionsForRulesFromStructDirection
-//
-//    ImplA(
-//      range,
-//      nameA,
-//      rulesFromStructDirectionA,
-//      rulesFromInterfaceDirectionA,
-//      vimpl(),//conclusions,
-//      localRunesS,
-//      structKindRuneS),
-//      interfaceKindRuneS))
+    val ImplS(rangeS, nameS, identifyingRunesS, rulesS, runeToExplicitType, structKindRuneS, interfaceKindRuneS) = implS
+
+    val runeSToType =
+      calculateRuneTypes(
+        astrouts,
+        rangeS,
+        identifyingRunesS.map(_.rune),
+        runeToExplicitType + (structKindRuneS.rune -> KindTemplataType, interfaceKindRuneS.rune -> KindTemplataType),
+        Vector(),
+        rulesS,
+        env)
+
+    // getOrDie because we should have gotten a complete solve
+    val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+    astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
+
+    ImplA(
+      rangeS,
+      nameS,
+      rulesS.toVector,
+      runeSToType,
+      structKindRuneS,
+      interfaceKindRuneS)
   }
 
   def translateExport(astrouts: Astrouts,  env: Environment, exportS: ExportAsS): ExportAsA = {
@@ -411,7 +402,7 @@ object Astronomer {
 //    ParameterA(translateAtom(astrouts, env, atomS))
 //  }
 
-//  def translateAtom(env: Environment, atomS: AtomSP): AtomAP = {
+//  def translateAtom(env: Environment, atomS: AtomSP): AtomSP = {
 //    val AtomSP(range, maybeCaptureS, virtualityS, coordRuneS, destructureS) = atomS
 //
 //    val virtualityA =
@@ -432,17 +423,17 @@ object Astronomer {
 //        }
 //      }
 //
-//    AtomAP(range, maybeCaptureA, virtualityA, coordRuneS, destructureA)
+//    AtomSP(range, maybeCaptureA, virtualityA, coordRuneS, destructureA)
 //  }
 
   def translateFunction(astrouts: Astrouts, env: Environment, functionS: FunctionS): FunctionA = {
     val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, paramsS, maybeRetCoordRune, rulesS, bodyS) = functionS
 
     val runeAToType =
-      calculateRuneTypes(astrouts, rangeS, identifyingRunesS, runeToExplicitType, paramsS, rulesS, env)
+      calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, paramsS, rulesS, env)
 
     // Shouldnt fail because we got a complete solve on the rules
-    val tyype = Scout.determineDenizenType(FunctionTemplataType, identifyingRunesS, runeAToType).getOrDie()
+    val tyype = Scout.determineDenizenType(FunctionTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
 
     FunctionA(
       rangeS,
@@ -450,7 +441,7 @@ object Astronomer {
       attributesS ++ Vector(UserFunctionS),
       tyype,
       identifyingRunesS,
-      runeAToType ++ env.typeByRune,
+      runeAToType ++ env.runeToType,
       paramsS,
       maybeRetCoordRune,
       rulesS.toVector,
@@ -468,7 +459,7 @@ object Astronomer {
   Map[IRuneS, ITemplataType] = {
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.map(_.pattern.coordRune -> CoordTemplataType).toMap
+        paramsS.map(_.pattern.coordRune.rune -> CoordTemplataType).toMap
     val runeSToType =
       AstronomySolver.solve(
         (n) => Astronomer.lookupType(astrouts, env, rangeS, n),
@@ -549,8 +540,8 @@ object Astronomer {
         Astronomer.translateProgram(
           mergedProgramS, primitives, suppliedFunctions, suppliedInterfaces)
 
-      val packageToStructsA = structsA.groupBy(_.name.codeLocation.file.packageCoordinate)
-      val packageToInterfacesA = interfacesA.groupBy(_.name.codeLocation.file.packageCoordinate)
+      val packageToStructsA = structsA.groupBy(_.name.range.begin.file.packageCoordinate)
+      val packageToInterfacesA = interfacesA.groupBy(_.name.range.begin.file.packageCoordinate)
       val packageToFunctionsA = functionsA.groupBy(_.name.packageCoordinate)
       val packageToImplsA = implsA.groupBy(_.name.codeLocation.file.packageCoordinate)
       val packageToExportsA = exportsA.groupBy(_.range.file.packageCoordinate)

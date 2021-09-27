@@ -200,7 +200,7 @@
 ////      case ConstantFloatSE(range, value) => ConstantFloatAE(range, value)
 ////      case FunctionSE(functionS) => {
 ////        val functionA = Astronomer.translateFunction(astrouts, env, functionS)
-////        val lambdaName = functionA.name match { case n @ LambdaNameA(_) => n }
+////        val lambdaName = functionA.name match { case n @ LambdaNameS(_) => n }
 ////        FunctionAE(lambdaName, functionA)
 ////      }
 ////      case DotSE(range, leftS, member, borrowContainer) => {
@@ -234,7 +234,7 @@
 //////  def makeRuleTyper(): RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA] = {
 //////    new RuleTyperEvaluator[Environment, AstroutsBox, ITemplataType, ICompileErrorA](
 //////      new IRuleTyperEvaluatorDelegate[Environment, AstroutsBox, ITemplataType, ICompileErrorA] {
-//////        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexAR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
+//////        override def solve(state: AstroutsBox, env: Environment, range: RangeS, rule: IRulexSR, runes: Map[Int, ITemplataType]): Result[Map[Int, ITemplataType], ICompileErrorA] = {
 //////          vimpl()
 //////        }
 ////////        override def lookupType(state: AstroutsBox, env: Environment, range: RangeS, name: CodeTypeNameS): (ITemplataType) = {

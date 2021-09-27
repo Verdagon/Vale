@@ -1,7 +1,7 @@
 package net.verdagon.vale.scout.rules
 
 //import net.verdagon.vale.scout.{AbsoluteNameSR, CallSR, IRuneS, IntSR, InterpretedSR, ManualSequenceSR, MutabilitySR, NameSR, OwnershipSR, PermissionSR, RangeS, RepeaterSequenceSR, RuneSR, StringSR, VariabilitySR}
-//import net.verdagon.vale.solver.{AugmentAR, Builder, CallAR, CoerceToCoord, CoordComponentsAR, IRulexAR, IsConcreteAR, IsInterfaceAR, IsStructAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OneOfAR, RepeaterSequenceAR, TentativeRune, Analysis}
+//import net.verdagon.vale.solver.{AugmentAR, Builder, CallAR, CoerceToCoord, CoordComponentsAR, IRulexSR, IsConcreteAR, IsInterfaceAR, IsStructAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OneOfAR, RepeaterSequenceAR, TentativeRune, Analysis}
 //import net.verdagon.vale.{vfail, vimpl}
 
 import scala.collection.mutable
@@ -20,7 +20,7 @@ import scala.collection.mutable.ArrayBuffer
 //      mutable.HashMap[IRuneS, TentativeRune](),
 //      mutable.HashMap[TentativeRune, ITypeSR](),
 //      Builder[RangeS, ILiteralSR, ILookupSR](
-//        ArrayBuffer[IRulexAR[TentativeRune, RangeS, ILiteralSR, ILookupSR]](),
+//        ArrayBuffer[IRulexSR[TentativeRune, RangeS, ILiteralSR, ILookupSR]](),
 //        0,
 //        mutable.HashMap[TentativeRune, TentativeRune]()))
 //  }

@@ -14,7 +14,7 @@
 ////    override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 ////
 ////    def knowableValueRunes: Set[IRuneS] = conclusions.knowableValueRunes
-////    def predictedTypeByRune: Map[IRuneS, ITypeSR] = conclusions.predictedTypeByRune
+////    def predictedruneToType: Map[IRuneS, ITypeSR] = conclusions.predictedruneToType
 ////    def markRuneValueKnowable(rune: IRuneS): Unit = {
 ////      conclusions = conclusions.markRuneValueKnowable(rune)
 ////    }
@@ -25,18 +25,18 @@
 //
 //  case class Conclusions(
 //      knowableValueRunes: Set[IRuneS],
-//      predictedTypeByRune: Map[IRuneS, ITemplataType]) {
+//      predictedruneToType: Map[IRuneS, ITemplataType]) {
 //    override def hashCode(): Int = vcurious()
 //
 //    def markRuneValueKnowable(rune: IRuneS): Conclusions = {
 //      Conclusions(
 //        knowableValueRunes + rune,
-//        predictedTypeByRune)
+//        predictedruneToType)
 //    }
 //    def markRuneTypeKnown(rune: IRuneS, tyype: ITemplataType): Conclusions = {
 //      Conclusions(
 //        knowableValueRunes,
-//        predictedTypeByRune + (rune -> tyype))
+//        predictedruneToType + (rune -> tyype))
 //    }
 //  }
 //}

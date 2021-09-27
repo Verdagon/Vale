@@ -1,10 +1,10 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.rules.IRulexSR
+import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vimpl, vwat}
+import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
 
@@ -71,7 +71,7 @@ case class StructA(
     name: TopLevelCitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    mutabilityRune: IRuneS,
+    mutabilityRune: RuneUsage,
 
     // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
@@ -80,9 +80,9 @@ case class StructA(
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
 //    knowableRunes: Set[IRuneS],
-    identifyingRunes: Vector[IRuneS],
+    identifyingRunes: Vector[RuneUsage],
 //    localRunes: Set[IRuneS],
-    typeByRune: Map[IRuneS, ITemplataType],
+    runeToType: Map[IRuneS, ITemplataType],
     rules: Vector[IRulexSR],
     members: Vector[StructMemberS]
 ) extends TypeDefinitionA {
@@ -94,8 +94,8 @@ case class StructA(
     return range == that.range && name == that.name;
   }
 
-//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-//  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  vassert((knowableRunes -- runeToType.keySet).isEmpty)
+//  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   def isTemplate: Boolean = tyype match {
     case KindTemplataType => false
@@ -108,7 +108,7 @@ case class StructA(
 //    range: RangeS,
 //    name: String,
 //    variability: VariabilityP,
-//    typeRune: IRuneS) {
+//    typeRune: RuneUsage) {
 //  override def hashCode(): Int = vcurious()
 //}
 
@@ -117,10 +117,9 @@ case class ImplA(
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameS,
   rules: Vector[IRulexSR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    localRunes: Set[IRuneS],
-    structKindRune: IRuneS,
-    interfaceKindRune: IRuneS) {
+    runeToType: Map[IRuneS, ITemplataType],
+    structKindRune: RuneUsage,
+    interfaceKindRune: RuneUsage) {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -134,8 +133,8 @@ case class ExportAsA(
     range: RangeS,
     exportedName: String,
   rules: Vector[IRulexSR],
-    typeByRune: Map[IRuneS, ITemplataType],
-    typeRune: IRuneS) {
+    runeToType: Map[IRuneS, ITemplataType],
+    typeRune: RuneUsage) {
   val hash = range.hashCode() + exportedName.hashCode
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -148,7 +147,7 @@ case class ExportAsA(
 //case class AliasA(
 //  codeLocation: CodeLocation,
 //  rules: RuneWorldSolverState,
-//  typeByRune: Map[String, ITemplataType],
+//  runeToType: Map[String, ITemplataType],
 //  aliasRune: String,
 //  aliaseeRune: String) { override def hashCode(): Int = vcurious() }
 
@@ -158,7 +157,7 @@ case class InterfaceA(
     name: TopLevelCitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    mutabilityRune: IRuneS,
+    mutabilityRune: RuneUsage,
     // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
     //     tail ListNode<T>;
@@ -166,9 +165,9 @@ case class InterfaceA(
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
 //    knowableRunes: Set[IRuneS],
-    identifyingRunes: Vector[IRuneS],
+    identifyingRunes: Vector[RuneUsage],
 //    localRunes: Set[IRuneS],
-    typeByRune: Map[IRuneS, ITemplataType],
+    runeToType: Map[IRuneS, ITemplataType],
   rules: Vector[IRulexSR],
     // See IMRFDI
     internalMethods: Vector[FunctionA]) {
@@ -180,11 +179,12 @@ case class InterfaceA(
     return range == that.range && name == that.name;
   }
 
-//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-//  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  vassert((knowableRunes -- runeToType.keySet).isEmpty)
+//  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   internalMethods.foreach(internalMethod => {
-    vassert(!internalMethod.isTemplate);
+    vassert(identifyingRunes == internalMethod.identifyingRunes)
+    vassert(isTemplate == internalMethod.isTemplate);
   })
 
   def isTemplate: Boolean = tyype match {
@@ -237,23 +237,23 @@ case class FunctionA(
     attributes: Vector[IFunctionAttributeS],
 
     tyype: ITemplataType,
-//    knowableRunes: Set[IRuneS],
     // This is not necessarily only what the user specified, the compiler can add
     // things to the end here, see CCAUIR.
-    identifyingRunes: Vector[IRuneS],
-//    localRunes: Set[IRuneS],
+    identifyingRunes: Vector[RuneUsage],
 
-    typeByRune: Map[IRuneS, ITemplataType],
+    runeToType: Map[IRuneS, ITemplataType],
 
     params: Vector[ParameterS],
 
     // We need to leave it an option to signal that the compiler can infer the return type.
-    maybeRetCoordRune: Option[IRuneS],
+    maybeRetCoordRune: Option[RuneUsage],
 
-  rules: Vector[IRulexSR],
+    rules: Vector[IRulexSR],
     body: IBodyS
 ) {
   val hash = range.hashCode() + name.hashCode()
+  vpass()
+
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[FunctionA]) { return false }
@@ -261,11 +261,15 @@ case class FunctionA(
     return range == that.range && name == that.name;
   }
 
+  params.foreach(param => {
+    vassert(runeToType.contains(param.pattern.coordRune.rune))
+  })
+
 //  // Make sure we have to solve all the identifying runes.
 //  vassert((identifyingRunes.toSet -- localRunes).isEmpty)
 //
-//  vassert((knowableRunes -- typeByRune.keySet).isEmpty)
-//  vassert((localRunes -- typeByRune.keySet).isEmpty)
+//  vassert((knowableRunes -- runeToType.keySet).isEmpty)
+//  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   def isLight(): Boolean = {
     body match {
@@ -284,7 +288,7 @@ case class FunctionA(
 
 //case class ParameterA(
 //    // Note the lack of a VariabilityP here. The only way to get a variability is with a Capture.
-//    pattern: AtomAP) {
+//    pattern: AtomSP) {
 //  override def hashCode(): Int = vcurious()
 //}
 
