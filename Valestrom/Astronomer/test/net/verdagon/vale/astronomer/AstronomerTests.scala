@@ -3,7 +3,9 @@ package net.verdagon.vale.astronomer
 import net.verdagon.vale.parser.{FileP, ParseFailure, ParseSuccess, Parser}
 import net.verdagon.vale.scout.{CodeRuneS, ProgramS, Scout}
 import net.verdagon.vale._
-import net.verdagon.vale.templar.types.CoordTemplataType
+import net.verdagon.vale.scout.predictor.AstronomySolveError
+import net.verdagon.vale.scout.rules.{LiteralSR, PackSR}
+import net.verdagon.vale.templar.types.{CoordTemplataType, PackTemplataType, PrototypeTemplataType}
 import org.scalatest.{FunSuite, Matchers}
 
 class AstronomerTests extends FunSuite with Matchers  {
@@ -41,7 +43,7 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
     val main = program.lookupFunction("moo")
-    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
 
   test("Type simple struct") {
@@ -76,7 +78,7 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
     val main = program.lookupStruct("Bork")
-    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
 
   test("Type simple interface") {
@@ -119,6 +121,64 @@ class AstronomerTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
     val main = program.lookupFunction("moo")
-    main.typeByRune(CodeRuneS("T")) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS("T")) shouldEqual CoordTemplataType
   }
+
+  test("Test evaluate Pack") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """fn moo<T>()
+          |rules(T = (int, bool))
+          |{
+          |}
+          |""".stripMargin)
+    val astrouts = compilation.getAstrouts().getOrDie()
+    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
+    val main = program.lookupFunction("moo")
+    main.runeToType(CodeRuneS("T")) shouldEqual PackTemplataType(CoordTemplataType)
+  }
+
+  test("Test infer Pack from result") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """fn moo<T>()
+          |rules(Prot("moo", (T, bool), str))
+          |{
+          |}
+          |""".stripMargin)
+    val astrouts = compilation.getAstrouts().getOrDie()
+    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
+    val main = program.lookupFunction("moo")
+    main.runeToType(CodeRuneS("T")) shouldEqual CoordTemplataType
+  }
+
+  test("Test infer Pack from empty result") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """fn moo<P>()
+          |rules(P = (), Prot("moo", P, str))
+          |{
+          |}
+          |""".stripMargin)
+    val astrouts = compilation.getAstrouts().getOrDie()
+    val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD))
+    val main = program.lookupFunction("moo")
+    main.runeToType(CodeRuneS("P")) shouldEqual PackTemplataType(CoordTemplataType)
+  }
+
+  test("Test cant solve empty Pack") {
+    val compilation =
+      AstronomerTestCompilation.test(
+        """fn moo<P>()
+          |rules(P = ())
+          |{
+          |}
+          |""".stripMargin)
+    compilation.getAstrouts() match {
+      case Err(CouldntSolveRulesA(_, AstronomySolveError(unknownRunes))) => {
+        vassert(unknownRunes.toList.contains(CodeRuneS("P")))
+      }
+    }
+  }
+
 }

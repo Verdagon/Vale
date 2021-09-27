@@ -1,10 +1,10 @@
 package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.patterns.{AtomSP, PatternSUtils, VirtualitySP}
+import net.verdagon.vale.scout.patterns.{AtomSP, VirtualitySP}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types.ITemplataType
-import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vwat}
+import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
 
@@ -95,9 +95,9 @@ case class StructS(
     name: TopLevelCitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    userSpecifiedIdentifyingRunes: Vector[IRuneS],
+    userSpecifiedIdentifyingRunes: Vector[RuneUsage],
     runeToExplicitType: Map[IRuneS, ITemplataType],
-    mutabilityRune: IRuneS,
+    mutabilityRune: RuneUsage,
 
     // This is needed for recursive structures like
     //   struct ListNode<T> imm rules(T Ref) {
@@ -124,7 +124,7 @@ case class StructMemberS(
     range: RangeS,
     name: String,
     variability: VariabilityP,
-    typeRune: IRuneS) {
+    typeRune: RuneUsage) {
   override def hashCode(): Int = vcurious()
 }
 
@@ -133,9 +133,9 @@ case class InterfaceS(
   name: TopLevelCitizenDeclarationNameS,
   attributes: Vector[ICitizenAttributeS],
   weakable: Boolean,
-  userSpecifiedIdentifyingRunes: Vector[IRuneS],
+  userSpecifiedIdentifyingRunes: Vector[RuneUsage],
   runeToExplicitType: Map[IRuneS, ITemplataType],
-  mutabilityRune: IRuneS,
+  mutabilityRune: RuneUsage,
 
   // This is needed for recursive structures like
   //   struct ListNode<T> imm rules(T Ref) {
@@ -165,14 +165,15 @@ case class ImplS(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameS,
-    userSpecifiedIdentifyingRunes: Vector[IRuneS],
+    userSpecifiedIdentifyingRunes: Vector[RuneUsage],
     rules: Array[IRulexSR],
 //    runeSToCanonicalRune: collection.Map[IRuneS, Int],
 //    knowableRunes: Set[Int],
 //    localRunes: Set[Int],
 //    isTemplate: Boolean,
-    structKindRune: IRuneS,
-    interfaceKindRune: IRuneS) {
+  runeToExplicitType: Map[IRuneS, ITemplataType],
+    structKindRune: RuneUsage,
+    interfaceKindRune: RuneUsage) {
   override def hashCode(): Int = vcurious()
 }
 
@@ -180,7 +181,7 @@ case class ExportAsS(
     range: RangeS,
     rules: Array[IRulexSR],
     exportName: ExportAsNameS,
-    rune: IRuneS,
+    rune: RuneUsage,
     exportedName: String) {
   override def hashCode(): Int = vcurious()
 }
@@ -252,7 +253,7 @@ case class FunctionS(
     name: IFunctionDeclarationNameS,
     attributes: Vector[IFunctionAttributeS],
 
-    identifyingRunes: Vector[IRuneS],
+    identifyingRunes: Vector[RuneUsage],
   runeToExplicitType: Map[IRuneS, ITemplataType],
 
 //    // Runes that we can know without looking at args or template args.
@@ -268,13 +269,14 @@ case class FunctionS(
     params: Vector[ParameterS],
 
     // We need to leave it an option to signal that the compiler can infer the return type.
-    maybeRetCoordRune: Option[IRuneS],
+    maybeRetCoordRune: Option[RuneUsage],
 
 //    isTemplate: Boolean,
     rules: Array[IRulexSR],
     body: IBodyS
 ) {
   override def hashCode(): Int = vcurious()
+  vpass()
 
   // Make sure we have to solve all identifying runes
 //  vassert((identifyingRunes.toSet -- localRunes).isEmpty)

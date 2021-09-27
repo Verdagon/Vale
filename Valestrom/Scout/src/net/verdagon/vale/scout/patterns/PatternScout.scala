@@ -3,7 +3,7 @@ package net.verdagon.vale.scout.patterns
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, _}
-import net.verdagon.vale.templar.types.ITemplataType
+import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType, KindTemplataType}
 import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -68,7 +68,7 @@ object PatternScout {
               ruleBuilder,
               runeToExplicitType,
               Some(typeP),
-              KindTypePR)
+              true)
           Some(OverrideSP(Scout.evalRange(stackFrame.file, range), runeS))
         }
       }
@@ -81,7 +81,7 @@ object PatternScout {
         ruleBuilder,
         runeToExplicitType,
         maybeTypeP,
-        CoordTypePR)
+        false)
 
     val maybePatternsS =
       maybeDestructureP match {
@@ -121,27 +121,27 @@ object PatternScout {
       ruleBuilder: ArrayBuffer[IRulexSR],
       runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
       maybeTypeP: Option[ITemplexPT],
-      runeType: ITypePR,
+      askingForKind: Boolean,
       // Determines whether the rune is on the left or the right in the Equals rule, which
       // can (unfortunately) affect the order in which the generics engine evaluates things.
       // This is a temporary solution, see DCRC, option A.
       runeOnLeft: Boolean = true):
-  IRuneS = {
+  RuneUsage = {
     maybeTypeP match {
       case None => {
-        val resultRuneS = ImplicitRuneS(lidb.child().consume())
-        runeToExplicitType.put(resultRuneS, RuleScout.translateType(runeType))
+        val resultRuneS = RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
+        runeToExplicitType.put(resultRuneS.rune, if (askingForKind) KindTemplataType else CoordTemplataType)
         resultRuneS
       }
-      case Some(NameOrRunePT(NameP(_, nameOrRune))) if env.allDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
-        val resultRuneS = ImplicitRuneS(lidb.child().consume())
-        runeToExplicitType.put(resultRuneS, RuleScout.translateType(runeType))
+      case Some(NameOrRunePT(NameP(range, nameOrRune))) if env.allDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
+        val resultRuneS = RuneUsage(Scout.evalRange(env.file, range), CodeRuneS(nameOrRune))
+        runeToExplicitType.put(resultRuneS.rune, if (askingForKind) KindTemplataType else CoordTemplataType)
 //        ruleBuilder += ValueLeafSR(range, resultRuneS, EnvRuneLookupSR(CodeRuneS(nameOrRune)))
 //        resultRuneS
-        CodeRuneS(nameOrRune)
+        resultRuneS
       }
       case Some(nonRuneTemplexP) => {
-        TemplexScout.translateTemplex(env, lidb.child(), ruleBuilder, nonRuneTemplexP)
+        TemplexScout.translateTemplex(env, lidb.child(), ruleBuilder, nonRuneTemplexP, askingForKind)
       }
     }
   }
@@ -152,18 +152,18 @@ object PatternScout {
     ruleBuilder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
     maybeTypeP: Option[ITemplexPT],
-    runeType: ITypePR,
+    askingForKind: Boolean,
     // Determines whether the rune is on the left or the right in the Equals rule, which
     // can (unfortunately) affect the order in which the generics engine evaluates things.
     // This is a temporary solution, see DCRC, option A.
     runeOnLeft: Boolean = true):
-  Option[IRuneS] = {
+  Option[RuneUsage] = {
     if (maybeTypeP.isEmpty) {
       None
     } else {
       Some(
         translateMaybeTypeIntoRune(
-          env, lidb.child(), range, ruleBuilder, runeToExplicitType, maybeTypeP, runeType, runeOnLeft))
+          env, lidb.child(), range, ruleBuilder, runeToExplicitType, maybeTypeP, askingForKind, runeOnLeft))
     }
   }
 }

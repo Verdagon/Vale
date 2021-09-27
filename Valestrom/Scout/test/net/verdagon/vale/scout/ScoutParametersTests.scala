@@ -24,7 +24,19 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""fn main<T>(moo T) infer-ret { }""")
     val main = program1.lookupFunction("main")
 
+    vassert(main.runeToExplicitType.size == 1)
+
     vassert(main.identifyingRunes == List(CodeRuneS("T")))
+  }
+
+  test("Returned rune") {
+    val program1 = compile("""fn main<T>(moo T) T { moo }""")
+    val main = program1.lookupFunction("main")
+
+    vassert(main.runeToExplicitType.size == 1)
+
+    vassert(main.identifyingRunes == List(CodeRuneS("T")))
+    vassert(main.maybeRetCoordRune == Some(CodeRuneS("T")))
   }
 
   test("Borrowed rune") {
@@ -38,13 +50,13 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
           AtomSP(_,
             Some(CaptureS(CodeVarNameS("moo"))),
             None,
-            tcr @ ImplicitRuneS(_),
+            RuneUsage(_, tcr @ ImplicitRuneS(_)),
             None)) => tcr
       }
 
     val tCoordRuneFromRules =
       main.rules shouldHave {
-        case AugmentSR(_, tcr, Vector(OwnershipLiteralSL(ConstraintP),PermissionLiteralSL(ReadonlyP)), CodeRuneS("T")) => tcr
+        case AugmentSR(_, tcr, Vector(OwnershipLiteralSL(ConstraintP),PermissionLiteralSL(ReadonlyP)), RuneUsage(_, CodeRuneS("T"))) => tcr
       }
 
     tCoordRuneFromParams shouldEqual tCoordRuneFromRules
@@ -60,7 +72,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
           AtomSP(_,
           None,
             None,
-            pr @ ImplicitRuneS(_),
+            RuneUsage(_, pr @ ImplicitRuneS(_)),
             None)) => pr
       }
 
@@ -78,7 +90,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
        AtomSP(_,
         None,
         None,
-        pr @ ImplicitRuneS(_),
+        RuneUsage(_, pr @ ImplicitRuneS(_)),
         None)) => pr
     }
   }
@@ -102,7 +114,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
                 AtomSP(_,
                   Some(CaptureS(CodeVarNameS("a"))),
                   None,
-                  ar @ ImplicitRuneS(_),
+                  RuneUsage(_, ar @ ImplicitRuneS(_)),
                 None))))) => (ar, tr)
       }
 
@@ -121,4 +133,31 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     // We dont support regions yet, so scout should filter them out.
     main.identifyingRunes.size shouldEqual 0
   }
+
+  test("Test param-less lambda identifying runes") {
+    val bork = compile(
+      """
+        |fn main() int export {do({ 3 })}
+        |""".stripMargin)
+
+    val main = bork.lookupFunction("main")
+    // We dont support regions yet, so scout should filter them out.
+    main.identifyingRunes.size shouldEqual 0
+    val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
+    lambda.function.identifyingRunes.size shouldEqual 0
+  }
+
+  test("Test one-param lambda identifying runes") {
+    val bork = compile(
+      """
+        |fn main() int export {do({ _ })}
+        |""".stripMargin)
+
+    val main = bork.lookupFunction("main")
+    // We dont support regions yet, so scout should filter them out.
+    main.identifyingRunes.size shouldEqual 0
+    val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
+    lambda.function.identifyingRunes.size shouldEqual 1
+  }
+
 }

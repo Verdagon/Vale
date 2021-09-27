@@ -6,41 +6,41 @@ import net.verdagon.vale.vcurious
 import scala.collection.immutable.List
 
 //// See PVSBUFI
-//sealed trait IRulexAR
-//case class IntAR(value: Int) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class MutabilityAR(mutability: MutabilityP) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class PermissionAR(permission: PermissionP) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class LocationAR(location: LocationP) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class OwnershipAR(ownership: OwnershipP) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class VariabilityAR(variability: VariabilityP) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class BoolAR(value: Boolean) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class NameAR(name: String) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class RuneAR(rune: String) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class AnonymousRuneAT() extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class InterpretedAT(ownership: OwnershipP, inner: IRulexAR) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class NullableAT(inner: IRulexAR) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//sealed trait IRulexSR
+//case class IntAR(value: Int) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class MutabilityAR(mutability: MutabilityP) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class PermissionAR(permission: PermissionP) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class LocationAR(location: LocationP) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class OwnershipAR(ownership: OwnershipP) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class VariabilityAR(variability: VariabilityP) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class BoolAR(value: Boolean) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class NameAR(name: String) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class RuneAR(rune: String) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class AnonymousRuneAT() extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class InterpretedAT(ownership: OwnershipP, inner: IRulexSR) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class NullableAT(inner: IRulexSR) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class CallAT(
-//    template: IRulexAR,
-//    args: Vector[IRulexAR]) extends IRulexAR {
+//    template: IRulexSR,
+//    args: Vector[IRulexSR]) extends IRulexSR {
 //}
 //case class PrototypeAT(
 //  name: String,
-//  parameters: Vector[IRulexAR],
-//  returnType: IRulexAR
-//) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//  parameters: Vector[IRulexSR],
+//  returnType: IRulexSR
+//) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class PackAT(
-//  members: Vector[IRulexAR]
-//) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//  members: Vector[IRulexSR]
+//) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class RepeaterSequenceAT(
-//  size: IRulexAR,
-//  element: IRulexAR
-//) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//  size: IRulexSR,
+//  element: IRulexSR
+//) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ManualSequenceAT(
-//  elements: Vector[IRulexAR]
-//) extends IRulexAR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//  elements: Vector[IRulexSR]
+//) extends IRulexSR { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //
 //object TemplexSUtils {
-//  def getDistinctOrderedRunesForTemplex(templex: IRulexAR): Vector[String] = {
+//  def getDistinctOrderedRunesForTemplex(templex: IRulexSR): Vector[String] = {
 //    templex match {
 //      case IntAR(value) => Vector.empty
 //      case MutabilityAR(mutability) => Vector.empty
@@ -73,7 +73,7 @@ import scala.collection.immutable.List
 //
 //  // DO NOT COPY this without considering using a traverse pattern like
 //  // we do elsewhere.
-//  def templexNamesToRunes(runes: Set[String])(templex: IRulexAR): IRulexAR = {
+//  def templexNamesToRunes(runes: Set[String])(templex: IRulexSR): IRulexSR = {
 //    templex match {
 //      case IntAR(value) => IntAR(value)
 //      case MutabilityAR(mutability) => MutabilityAR(mutability)

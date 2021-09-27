@@ -260,7 +260,7 @@ object LetHammer {
       destinationReferenceLocalVariables
         .map(destinationReferenceLocalVariable => {
           val (memberRefTypeH) =
-            TypeHammer.translateReference(hinputs, hamuts, arrSeqT.array.memberType)
+            TypeHammer.translateReference(hinputs, hamuts, arrSeqT.array.elementType)
           val localIndex =
             locals.addTemplarLocal(
               hinputs, hamuts, destinationReferenceLocalVariable.id, Conversions.evaluateVariability(destinationReferenceLocalVariable.variability), memberRefTypeH)

@@ -7,179 +7,226 @@ import net.verdagon.vale.templar.types._
 
 import scala.collection.immutable.List
 
-// See PVSBUFI
+case class RuneUsage(range: RangeS, rune: IRuneS)
+
+// This isn't generic over e.g.  because we shouldnt reuse
+// this between layers. The generics solver doesn't even know about IRulexSR, doesn't
+// need to, it relies on delegates to do any rule-specific things.
+// Different stages will likely need different kinds of rules, so best not prematurely
+// combine them.
 trait IRulexSR {
   def range: RangeS
+  def runeUsages: Array[RuneUsage]
 }
 
-case class EqualsSR(range: RangeS, left: IRuneS, right: IRuneS) extends IRulexSR {
+case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(left, right)
 }
 
-case class IsaSR(range: RangeS, sub: IRuneS, suuper: IRuneS) extends IRulexSR {
+case class IsaSR(range: RangeS, sub: RuneUsage, suuper: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(sub, suuper)
 }
 
 case class KindComponentsSR(
   range: RangeS,
-  resultRune: IRuneS,
-  mutabilityRune: IRuneS
+  kindRune: RuneUsage,
+  mutabilityRune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(kindRune, mutabilityRune)
 }
 
 case class CoordComponentsSR(
   range: RangeS,
-  resultRune: IRuneS,
-  ownershipRune: IRuneS,
-  permissionRune: IRuneS,
-  kindRune: IRuneS
+  resultRune: RuneUsage,
+  ownershipRune: RuneUsage,
+  permissionRune: RuneUsage,
+  kindRune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, ownershipRune, permissionRune, kindRune)
 }
 
+case class PrototypeComponentsSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  nameRune: RuneUsage,
+  paramsListRune: RuneUsage,
+  returnRune: RuneUsage
+) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, nameRune, paramsListRune, returnRune)
+}
+
+// See Possible Values Shouldnt Be Used For Inference (PVSBUFI)
 case class OneOfSR(
   range: RangeS,
-  rune: IRuneS,
+  rune: RuneUsage,
   literals: Array[ILiteralSL]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vassert(literals.nonEmpty)
+  override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
 case class IsConcreteSR(
   range: RangeS,
-  rune: IRuneS
+  rune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
 case class IsInterfaceSR(
   range: RangeS,
-  rune: IRuneS
+  rune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
 case class IsStructSR(
   range: RangeS,
-  rune: IRuneS
+  rune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-}
+  override def runeUsages: Array[RuneUsage] = Array(rune)
+4}
 
 case class CoerceToCoord(
   range: RangeS,
-  coordRune: IRuneS,
-  kindRune: IRuneS
+  coordRune: RuneUsage,
+  kindRune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(coordRune, kindRune)
 }
 
 case class LiteralSR(
   range: RangeS,
-  rune: IRuneS,
+  rune: RuneUsage,
   literal: ILiteralSL
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
 case class LookupSR(
   range: RangeS,
-  rune: IRuneS,
+  rune: RuneUsage,
   name: INameS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vpass()
+  override def runeUsages: Array[RuneUsage] = Array(rune)
+}
+
+case class KindLookupSR(
+  range: RangeS,
+  rune: RuneUsage,
+  name: INameS
+) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  vpass()
+  override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
 // InterpretedAR will overwrite inner's permission and ownership to the given ones.
 // We turned InterpretedAR into this
 case class AugmentSR(
   range: RangeS,
-  resultRune: IRuneS,
+  resultRune: RuneUsage,
   // Lets try and figure out a way to only have one thing here instead of a Vector
   literal: Vector[ILiteralSL],
-  innerRune: IRuneS
+  innerRune: RuneUsage
 ) extends IRulexSR {
   vpass()
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, innerRune)
 }
 
 //case class NullableSR(
 //  range: RangeS,
-//  resultRune: IRuneS,
+//  resultRune: RuneUsage,
 //  inner: Int) extends IRulexSR {
 //  override def hashCode(): Int = vcurious()
 //}
 
 case class CallSR(
   range: RangeS,
-  resultRune: IRuneS,
-  templateRune: IRuneS,
-  args: Array[IRuneS]
+  resultRune: RuneUsage,
+  templateRune: RuneUsage,
+  args: Array[RuneUsage]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, templateRune) ++ args
 }
 
 //case class CommonMutabilitySR(
 //  range: RangeS,
-//  resultRune: IRuneS,
-//  args: Array[IRuneS]
+//  resultRune: RuneUsage,
+//  args: Array[RuneUsage]
 //) extends IRulexSR {
 //  override def hashCode(): Int = vcurious()
 //}
 
 //case class FunctionSR(
-//  mutability: Option[IRulexAR],
-//  parameters: Array[Option[IRulexAR]],
-//  returnType: Option[IRulexAR]
+//  mutability: Option[IRulexSR],
+//  parameters: Array[Option[IRulexSR]],
+//  returnType: Option[IRulexSR]
 //) extends IRulexSR {
 // override def hashCode(): Int = vcurious()}
 
 case class PrototypeSR(
   range: RangeS,
-  resultRune: IRuneS,
+  resultRune: RuneUsage,
   name: String,
-  parameters: Array[IRuneS],
-  returnTypeRune: IRuneS
+  parameters: Array[RuneUsage],
+  returnTypeRune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, returnTypeRune) ++ parameters
 }
 
 case class PackSR(
   range: RangeS,
-  resultRune: IRuneS,
-  members: Array[IRuneS]
+  resultRune: RuneUsage,
+  members: Array[RuneUsage]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ members
 }
 
 case class RepeaterSequenceSR(
   range: RangeS,
-  resultRune: IRuneS,
-  mutabilityRune: IRuneS,
-  variabilityRune: IRuneS,
-  sizeRune: IRuneS,
-  elementRune: IRuneS
+  resultRune: RuneUsage,
+  mutabilityRune: RuneUsage,
+  variabilityRune: RuneUsage,
+  sizeRune: RuneUsage,
+  elementRune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
 }
 
 case class ManualSequenceSR(
   range: RangeS,
-  resultRune: IRuneS,
-  elements: Array[IRuneS]
+  resultRune: RuneUsage,
+  elements: Array[RuneUsage]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
 }
 
 case class CoordListSR(
   range: RangeS,
-  resultRune: IRuneS,
-  elements: Array[IRuneS]
+  resultRune: RuneUsage,
+  elements: Array[RuneUsage]
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
 }
 
 //case class RuneLeafSR(

@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.expression
 
-import net.verdagon.vale.astronomer.GlobalFunctionFamilyNameA
-import net.verdagon.vale.scout.{IRulexSR, RangeS}
+import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS, RangeS}
+import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import net.verdagon.vale.templar.templata._
@@ -112,7 +112,7 @@ class CallTemplar(
     temputs: Temputs,
     fate: FunctionEnvironment,
     range: RangeS,
-    functionName: GlobalFunctionFamilyNameA,
+    functionName: GlobalFunctionFamilyNameS,
     explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
     givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
@@ -207,7 +207,7 @@ class CallTemplar(
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, range, GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME), explicitlySpecifiedTemplateArgTemplexesS, paramFilters, Vector.empty, false) match {
+        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitlySpecifiedTemplateArgTemplexesS, paramFilters, Vector.empty, false) match {
         case ScoutExpectedFunctionSuccess(p) => p
         case seff @ ScoutExpectedFunctionFailure(_, _, _, _, _) => {
           throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
@@ -280,7 +280,8 @@ class CallTemplar(
     range: RangeS,
       callableReferenceExpr2: ReferenceExpressionTE,
       explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
-      argsExprs2: Vector[ReferenceExpressionTE]):
+    maybeTemplateArgs: Option[Array[IRuneS]],
+    argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val callExpr =
       evaluateCall(temputs, fate, life, range, callableReferenceExpr2, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
@@ -291,10 +292,11 @@ class CallTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     rangeS: RangeS,
-    functionName: GlobalFunctionFamilyNameA,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
+    functionName: GlobalFunctionFamilyNameS,
+    rules: Vector[IRulexSR],
+    templateArgs: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
-    evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
+    evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, rules, argsExprs2)
   }
 }

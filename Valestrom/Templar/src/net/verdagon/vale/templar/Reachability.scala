@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.templar.templata.{CoordTemplata, SignatureT}
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{PackageCoordinate, vassertSome, vcurious}
+import net.verdagon.vale.{Collector, PackageCoordinate, vassertSome, vcurious, vpass}
 
 import scala.collection.mutable
 
@@ -53,8 +53,12 @@ object Reachability {
     }
     reachables.functions.add(calleeSignature)
     val function = vassertSome(program.lookupFunction(calleeSignature))
-    function.all({
-      case FunctionCallTE(calleePrototype, _) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+    Collector.all(function, {
+      case FunctionCallTE(calleePrototype, _) => {
+        vpass()
+        vpass()
+        visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      }
       case ConstructArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       case StaticArrayFromCallableTE(_, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       case DestroyStaticSizedArrayIntoFunctionTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
@@ -86,7 +90,7 @@ object Reachability {
       val destructorSignature = program.getDestructor(structTT).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
-    structDef.all({
+    Collector.all(structDef, {
       case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
       case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
     })
@@ -105,7 +109,7 @@ object Reachability {
       val destructorSignature = program.getDestructor(interfaceTT).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
-    interfaceDef.all({
+    Collector.all(interfaceDef, {
       case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
       case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
     })

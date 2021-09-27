@@ -14,7 +14,7 @@ import scala.collection.immutable.List
 //}
 //
 //class RuleTyperMatcher[Env, State](
-//    evaluate: (State, Env, ConclusionsBox, IRulexSR) => (IRuleTyperEvaluateResult[IRulexAR]),
+//    evaluate: (State, Env, ConclusionsBox, IRulexSR) => (IRuleTyperEvaluateResult[IRulexSR]),
 //    delegate: RuleTyperMatcherDelegate[Env, State]) {
 //  private def addConclusion(
 //    conclusions: ConclusionsBox,
@@ -22,7 +22,7 @@ import scala.collection.immutable.List
 //    rune: IRuneS,
 //    tyype: ITemplataType):
 //  IRuleTyperMatchResult[Unit] = {
-//    conclusions.typeByRune.get(rune) match {
+//    conclusions.runeToType.get(rune) match {
 //      case None => {
 //        conclusions.addConclusion(rune, tyype)
 //        RuleTyperMatchSuccess(())
@@ -130,7 +130,7 @@ import scala.collection.immutable.List
 //    range: RangeS,
 //    expectedTypes: Vector[ITemplataType],
 //    rules: Vector[IRulexSR]):
-//  (IRuleTyperMatchResult[Vector[IRulexAR]]) = {
+//  (IRuleTyperMatchResult[Vector[IRulexSR]]) = {
 //    if (expectedTypes.size != rules.size) {
 //      throw CompileErrorExceptionA(WrongNumArgsForTemplateA(range, expectedTypes.size, rules.size));
 //    }
@@ -157,7 +157,7 @@ import scala.collection.immutable.List
 //      conclusions: ConclusionsBox,
 //      expectedType: ITemplataType,
 //      rule: IRulexSR):
-//  IRuleTyperMatchResult[IRulexAR] = {
+//  IRuleTyperMatchResult[IRulexSR] = {
 //    (rule, expectedType) match {
 //      case (IntSR(range, value), IntegerTemplataType) => (RuleTyperMatchSuccess(IntAR(range, value)))
 //      case (BoolSR(range, value), BooleanTemplataType) => (RuleTyperMatchSuccess(BoolAR(range, value)))
@@ -453,7 +453,7 @@ import scala.collection.immutable.List
 //    conclusions: ConclusionsBox,
 //    expectedType: ITemplataType,
 //    irule: IRulexSR):
-//  (IRuleTyperMatchResult[IRulexAR]) = {
+//  (IRuleTyperMatchResult[IRulexSR]) = {
 //    irule match {
 ////      case rule @ PackSR(_) => {
 ////        matchTypeAgainstPackSR(state, env, conclusions, range, expectedType, rule)

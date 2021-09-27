@@ -2,8 +2,9 @@ package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.RangeS
-import net.verdagon.vale.templar.{INameT, IRuneT}
+import net.verdagon.vale.scout.{INameS, RangeS}
+import net.verdagon.vale.templar.types.ITemplataType
+//import net.verdagon.vale.templar.{INameT, IRuneS}
 import net.verdagon.vale.{vassert, vcurious, vimpl, vwat}
 
 import scala.collection.immutable.List
@@ -108,7 +109,7 @@ case class VariabilityTR(range: RangeS, rune: Int, variability: VariabilityP) ex
 case class NameTR(
   range: RangeS,
   rune: Int,
-  name: IImpreciseNameStepA,
+  name: INameS,
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()
@@ -118,7 +119,7 @@ case class NameTR(
 case class AbsoluteNameTR(
   range: RangeS,
   rune: Int,
-  name: INameA,
+  name: INameS,
   resultType: ITemplataType
 ) extends IRulexTR {
   override def hashCode(): Int = vcurious()

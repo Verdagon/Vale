@@ -2,24 +2,33 @@ package net.verdagon.vale.solver
 
 import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl, vpass}
 
-sealed trait ISolverOutcome[RuneID, Conclusion, ErrType] {
+sealed trait ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
   def getOrDie(): Map[RuneID, Conclusion]
 }
-case class CompleteSolve[RuneID, Conclusion, ErrType](
+sealed trait IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] extends ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
+  def unsolvedRules: Vector[Rule]
+  def incompleteConclusions: Map[RuneID, Conclusion]
+}
+case class CompleteSolve[Rule, RuneID, Conclusion, ErrType](
   conclusions: Map[RuneID, Conclusion]
-) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+) extends ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
   override def getOrDie(): Map[RuneID, Conclusion] = conclusions
 }
-case class IncompleteSolve[RuneID, Conclusion, ErrType](
-  conclusions: Map[RuneID, Conclusion]
-) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+case class IncompleteSolve[Rule, RuneID, Conclusion, ErrType](
+  incompleteConclusions: Map[RuneID, Conclusion],
+  unsolvedRules: Vector[Rule],
+  unknownRunes: Set[RuneID]
+) extends IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] {
+  vassert(unknownRunes.nonEmpty)
+  vpass()
   override def getOrDie(): Map[RuneID, Conclusion] = vfail()
 }
 
-case class FailedSolve[RuneID, Conclusion, ErrType](
-  error: ISolverError[RuneID, Conclusion, ErrType],
-  conclusions: Map[RuneID, Conclusion]
-) extends ISolverOutcome[RuneID, Conclusion, ErrType] {
+case class FailedSolve[Rule, RuneID, Conclusion, ErrType](
+  incompleteConclusions: Map[RuneID, Conclusion],
+  unsolvedRules: Vector[Rule],
+  error: ISolverError[RuneID, Conclusion, ErrType]
+) extends IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] {
   override def getOrDie(): Map[RuneID, Conclusion] = vfail()
 }
 
@@ -65,7 +74,7 @@ object Solver {
     allUserRunes: Iterable[RuneID],
     initiallyKnownRunes: Map[RuneID, Conclusion],
     solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
-  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[RuneID, Conclusion, ErrType]] = {
+  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
     val conclusions: Array[Option[Conclusion]] = (0 until numCanonicalRunes).map(_ => None).toArray
     initiallyKnownRunes.foreach({ case (userRuneID, conclusion) =>
       conclusions(userRuneToCanonicalRune(userRuneID)) = Some(conclusion)
@@ -77,24 +86,27 @@ object Solver {
       })
     }
 
-    ruleExecutionOrder.map(rules).zipWithIndex.foreach({ case (solvingRule, solvingRuleIndex) =>
-      val ruleCanonicalRunes = ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray
-
+    val orderedRules = ruleExecutionOrder.map(rules)
+    orderedRules.zipWithIndex.foreach({ case (solvingRule, solvingRuleIndex) =>
       val getConclusion =
         (requestedUserRune: RuneID) => {
           val requestedCanonicalRune = userRuneToCanonicalRune(requestedUserRune)
-          vassert(ruleCanonicalRunes.contains(requestedCanonicalRune))
+          vassert(ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.contains(requestedCanonicalRune))
           conclusions(requestedCanonicalRune)
         }
       val concludeRune =
         (newlySolvedRune: RuneID, newConclusion: Conclusion) => {
           val newlySolvedCanonicalRune = userRuneToCanonicalRune(newlySolvedRune)
-          vassert(ruleCanonicalRunes.contains(newlySolvedCanonicalRune))
+          vassert(ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.contains(newlySolvedCanonicalRune))
           conclusions(newlySolvedCanonicalRune) match {
             case None => conclusions(newlySolvedCanonicalRune) = Some(newConclusion)
             case Some(existingConclusion) => {
               if (existingConclusion != newConclusion) {
-                return Err(FailedSolve(SolverConflict(solvingRuleIndex, newlySolvedRune, existingConclusion, newConclusion), userifyConclusions(conclusions).toMap))
+                return Err(
+                  FailedSolve(
+                    userifyConclusions(conclusions).toMap,
+                    orderedRules.slice(solvingRuleIndex, orderedRules.size).toVector,
+                    SolverConflict(solvingRuleIndex, newlySolvedRune, existingConclusion, newConclusion)))
               }
             }
           }
@@ -102,8 +114,15 @@ object Solver {
         }
       solveRule.solve(state, env, solvingRuleIndex, solvingRule, getConclusion, concludeRune) match {
         case Ok(_) =>
-        case Err(e) => return Err(FailedSolve(RuleError(solvingRuleIndex, e), userifyConclusions(conclusions).toMap))
+        case Err(e) => return Err(
+          FailedSolve(
+            userifyConclusions(conclusions).toMap,
+            orderedRules.slice(solvingRuleIndex, orderedRules.size).toVector,
+            RuleError(solvingRuleIndex, e)))
       }
+      ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.foreach(canonicalRune => {
+        vassert(conclusions(canonicalRune).nonEmpty, "Didn't conclude a rune!")
+      })
     })
 
     Ok(userifyConclusions(conclusions))

@@ -480,7 +480,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val doIt = temputs.lookupFunction("doIt")
-    doIt.only({
+    Collector.only(doIt, {
       case StructToInterfaceUpcastTE(_, _) =>
     })
 
@@ -492,7 +492,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val doIt = temputs.lookupFunction("doIt")
-    doIt.only({
+    Collector.only(doIt, {
       case StructToInterfaceUpcastTE(_, _) =>
     })
 

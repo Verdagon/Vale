@@ -2,10 +2,11 @@ package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser.{LendConstraintP, UseP}
+import net.verdagon.vale.scout.patterns.AtomSP
+import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
-import net.verdagon.vale.templar.infer.infer.{InferSolveFailure, InferSolveSuccess}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar._
@@ -32,7 +33,7 @@ class PatternTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    patternsA: Vector[AtomAP],
+    patternsA: Vector[AtomSP],
     patternInputsTE: Vector[ReferenceExpressionTE],
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
@@ -52,7 +53,7 @@ class PatternTemplar(
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
     liveCaptureLocals: Vector[ILocalVariableT],
-    patternsA: List[AtomAP],
+    patternsA: List[AtomSP],
     patternInputsTE: List[ReferenceExpressionTE],
     // This would be a continuation-ish lambda that evaluates:
     // - The body of an if-let statement
@@ -84,10 +85,9 @@ class PatternTemplar(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       life: LocationInFunctionEnvironment,
-      rules: Vector[IRulexAR],
-      typeByRune: Map[IRuneS, ITemplataType],
-      localRunes: Set[IRuneS],
-      pattern: AtomAP,
+      rules: Vector[IRulexSR],
+      runeToType: Map[IRuneS, ITemplataType],
+      pattern: AtomSP,
       inputExpr: ReferenceExpressionTE,
       // This would be a continuation-ish lambda that evaluates:
       // - The body of an if-let statement
@@ -97,28 +97,28 @@ class PatternTemplar(
       afterPatternsSuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE):
   ReferenceExpressionTE = {
     profiler.newProfile("inferAndTranslatePattern", fate.fullName.toString, () => {
-      val templatasByRune =
-        inferTemplar.inferFromArgCoords(fate.snapshot, temputs, Vector.empty, rules, typeByRune, localRunes, Vector(pattern), None, pattern.range, Vector.empty, Vector(ParamFilter(inputExpr.resultRegister.reference, None))) match {
-          case isf @ InferSolveFailure(_, _, _, _, range, _, _) => {
-            throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldn't figure out runes for pattern!\n" + isf))
-          }
-          case InferSolveSuccess(tbr) => (tbr.templatasByRune.mapValues(v => Vector(TemplataEnvEntry(v))))
-        }
 
-      fate.addEntries(opts.useOptimization, templatasByRune.map({ case (key, value) => (key, value) }).toMap)
+      val templatasByRune =
+        inferTemplar.solveExpectComplete(
+          fate.snapshot,
+          temputs,
+          rules,
+          runeToType,
+          pattern.range,
+          Map(pattern.coordRune.rune -> CoordTemplata(inputExpr.resultRegister.reference)))
+        .mapValues(v => Vector(TemplataEnvEntry(v)))
+
+      fate.addEntries(opts.useOptimization, templatasByRune.map({ case (key, value) => (RuneNameT(key), value) }).toMap)
 
       innerTranslateSubPatternAndMaybeContinue(temputs, fate, life, pattern, Vector(), inputExpr, afterPatternsSuccessContinuation)
     })
   }
 
-  // returns:
-  // - All captures that have happened so far. We'll drop these if a subsequent pattern match fails.
-  // -
   private def innerTranslateSubPatternAndMaybeContinue(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       life: LocationInFunctionEnvironment,
-      pattern: AtomAP,
+      pattern: AtomSP,
       previousLiveCaptureLocals: Vector[ILocalVariableT],
       unconvertedInputExpr: ReferenceExpressionTE,
       // This would be a continuation-ish lambda that evaluates:
@@ -130,19 +130,19 @@ class PatternTemplar(
   ReferenceExpressionTE = {
     vassert(previousLiveCaptureLocals == previousLiveCaptureLocals.distinct)
 
-    val AtomAP(range, maybeCaptureLocalVarA, maybeVirtuality, coordRuneA, maybeDestructure) = pattern
+    val AtomSP(range, maybeCaptureLocalVarA, maybeVirtuality, coordRuneA, maybeDestructure) = pattern
 
     if (maybeVirtuality.nonEmpty) {
       // This is actually to be expected for when we translate the patterns from the
       // function's parameters. Ignore them.
     }
 
-    val expectedTemplata = fate.getNearestTemplataWithAbsoluteName2(NameTranslator.translateRune(coordRuneA), Set(TemplataLookupContext))
+    val expectedTemplata = fate.lookupWithImpreciseName(profiler, RuneNameS(coordRuneA.rune), Set(TemplataLookupContext), true).toList
     val expectedCoord =
       expectedTemplata match {
-        case Some(CoordTemplata(coord)) => coord
-        case Some(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not a coord!"))
-        case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not found!"))
+        case List(CoordTemplata(coord)) => coord
+        case List(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not a coord!"))
+        case List() => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not found!"))
       }
 
     // Now we convert m to a Marine. This also checks that it *can* be
@@ -159,8 +159,9 @@ class PatternTemplar(
     val (maybeCaptureLocalVarT, exprToDestructureOrDropOrPassTE) =
       maybeCaptureLocalVarA match {
         case None => (None, inputExpr)
-        case Some(captureLocalVar) => {
-          val localT = localHelper.makeUserLocalVariable(temputs, fate, range, captureLocalVar, expectedCoord)
+        case Some(captureS) => {
+          val localS = vassertSome(vassertSome(fate.containingBlockS).locals.find(_.varName == captureS.name))
+          val localT = localHelper.makeUserLocalVariable(temputs, fate, range, localS, expectedCoord)
           currentInstructions = currentInstructions :+ LetNormalTE(localT, inputExpr)
           val capturedLocalAliasTE =
             localHelper.softLoad(fate, range, LocalLookupTE(range, localT, localT.reference, FinalT), LendConstraintP(None))
@@ -206,7 +207,7 @@ class PatternTemplar(
       initialLiveCaptureLocals: Vector[ILocalVariableT],
       expectedCoord: CoordT,
       inputExpr: ReferenceExpressionTE,
-      listOfMaybeDestructureMemberPatterns: Vector[AtomAP],
+      listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
       afterDestructureSuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals == initialLiveCaptureLocals.distinct)
@@ -261,7 +262,7 @@ class PatternTemplar(
       liveCaptureLocals: Vector[ILocalVariableT],
       expectedCoord: CoordT,
       containerTE: ReferenceExpressionTE,
-      listOfMaybeDestructureMemberPatterns: Vector[AtomAP],
+      listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
       afterDestructureSuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals == liveCaptureLocals.distinct)
@@ -287,7 +288,7 @@ class PatternTemplar(
     expectedContainerCoord: CoordT,
     containerAliasingExprTE: ReferenceExpressionTE,
     memberIndex: Int,
-    listOfMaybeDestructureMemberPatterns: List[AtomAP],
+    listOfMaybeDestructureMemberPatterns: List[AtomSP],
     afterDestructureSuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals == liveCaptureLocals.distinct)
@@ -359,7 +360,7 @@ class PatternTemplar(
     life: LocationInFunctionEnvironment,
     range: RangeS,
     initialLiveCaptureLocals: Vector[ILocalVariableT],
-    innerPatternMaybes: Vector[AtomAP],
+    innerPatternMaybes: Vector[AtomSP],
     structType2: CoordT,
     inputStructExpr: ReferenceExpressionTE,
     afterDestroySuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
@@ -397,7 +398,7 @@ class PatternTemplar(
     life: LocationInFunctionEnvironment,
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     memberLocalVariables: List[ILocalVariableT],
-    innerPatternMaybes: List[AtomAP],
+    innerPatternMaybes: List[AtomSP],
     afterLetsSuccessContinuation: (Temputs, FunctionEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals == initialLiveCaptureLocals.distinct)

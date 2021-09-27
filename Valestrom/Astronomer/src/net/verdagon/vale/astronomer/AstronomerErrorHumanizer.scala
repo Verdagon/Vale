@@ -2,13 +2,34 @@ package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.FileCoordinateMap
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
+import net.verdagon.vale.scout.RangeS
+import net.verdagon.vale.scout.predictor.AstronomySolveError
 
 object AstronomerErrorHumanizer {
+  def assembleError(
+    filenamesAndSources: FileCoordinateMap[String],
+    range: RangeS,
+    errorStrBody: String) = {
+    val posStr = humanizePos(filenamesAndSources, range.file, range.begin.offset)
+    val nextStuff = lineContaining(filenamesAndSources, range.file, range.begin.offset)
+    val errorId = "A"
+    f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
+  }
+
+  def humanize(
+    filenamesAndSources: FileCoordinateMap[String],
+    range: RangeS,
+    err: AstronomySolveError):
+  String = {
+    val AstronomySolveError(rules) = err
+    ": Couldn't solve generics rules:\n" + lineContaining(filenamesAndSources, range.file, range.begin.offset) + "\n" + rules.toString
+  }
+
   def humanize(
       filenamesAndSources: FileCoordinateMap[String],
       err: ICompileErrorA):
   String = {
-    var errorStrBody =
+    val errorStrBody =
       err match {
         case RangedInternalErrorA(range, message) => {
           ": internal error: " + message
@@ -23,10 +44,6 @@ object AstronomerErrorHumanizer {
           ": Expected " + expectedNumArgs + " template args but received " + actualNumArgs + "\n"
         }
       }
-
-    val posStr = humanizePos(filenamesAndSources, err.range.file, err.range.begin.offset)
-    val nextStuff = lineContaining(filenamesAndSources, err.range.file, err.range.begin.offset)
-    val errorId = "A"
-    f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
+    assembleError(filenamesAndSources, err.range, errorStrBody)
   }
 }

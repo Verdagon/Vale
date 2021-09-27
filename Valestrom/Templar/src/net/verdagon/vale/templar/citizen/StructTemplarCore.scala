@@ -41,17 +41,17 @@ class StructTemplarCore(
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata]):
   (StructDefinitionT) = {
-    val TopLevelCitizenDeclarationNameA(humanName, codeLocation) = structA.name
+    val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = structA.name
     val fullName = structRunesEnv.fullName.addStep(CitizenNameT(humanName, coercedFinalTemplateArgs))
     val temporaryStructRef = StructTT(fullName)
 
     val attributesWithoutExport =
       structA.attributes.filter({
-        case ExportA(_) => false
+        case ExportS(_) => false
         case _ => true
       })
     val maybeExport =
-      structA.attributes.collectFirst { case e@ExportA(_) => e }
+      structA.attributes.collectFirst { case e@ExportS(_) => e }
 
     val structInnerEnv =
       PackageEnvironment(
@@ -73,12 +73,13 @@ class StructTemplarCore(
     val members = makeStructMembers(structInnerEnv, temputs, structA.members)
 
     val mutability =
-      structInnerEnv.getNearestTemplataWithAbsoluteName2(
-        NameTranslator.translateRune(structA.mutabilityRune),
-        Set(TemplataLookupContext)) match {
-        case Some(MutabilityTemplata(m)) => m
-        case Some(_) => vwat()
-        case None => vwat()
+      structInnerEnv.lookupWithImpreciseName(
+        profiler,
+        RuneNameS(structA.mutabilityRune.rune),
+        Set(TemplataLookupContext),
+        true).toList match {
+        case List(MutabilityTemplata(m)) => m
+        case _ => vwat()
       }
 
     if (mutability == ImmutableT) {
@@ -115,7 +116,7 @@ class StructTemplarCore(
         temputs.addKindExport(
           structA.range,
           structDefT.getRef,
-          exportPackageCoord.packageCoord,
+          exportPackageCoord.packageCoordinate,
           exportedName)
       }
     }
@@ -140,7 +141,7 @@ class StructTemplarCore(
                   structInnerEnv,
                   temputs,
                   structA.range,
-                  GlobalFunctionFamilyNameA(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
+                  GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
                   Vector.empty,
                   Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
                   Vector.empty,
@@ -177,7 +178,7 @@ class StructTemplarCore(
     })
   }
 
-  def translateCitizenAttributes(attrs: Vector[ICitizenAttributeA]): Vector[ICitizenAttribute2] = {
+  def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttribute2] = {
     attrs.map({
       case x => vimpl(x.toString)
     })
@@ -194,17 +195,17 @@ class StructTemplarCore(
     interfaceA: InterfaceA,
     coercedFinalTemplateArgs2: Vector[ITemplata]):
   (InterfaceDefinitionT) = {
-    val TopLevelCitizenDeclarationNameA(humanName, codeLocation) = interfaceA.name
+    val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
     val fullName = interfaceRunesEnv.fullName.addStep(CitizenNameT(humanName, coercedFinalTemplateArgs2))
     val temporaryInferfaceRef = InterfaceTT(fullName)
 
     val attributesWithoutExport =
       interfaceA.attributes.filter({
-        case ExportA(_) => false
+        case ExportS(_) => false
         case _ => true
       })
     val maybeExport =
-      interfaceA.attributes.collectFirst { case e@ExportA(_) => e }
+      interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
     val interfaceInnerEnv0 =
       PackageEnvironment(
@@ -215,7 +216,7 @@ class StructTemplarCore(
       interfaceInnerEnv0.addEntries(
         opts.useOptimization,
         interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
-          .map({ case (rune, templata) => (NameTranslator.translateRune(rune), Vector(TemplataEnvEntry(templata))) })
+          .map({ case (rune, templata) => (RuneNameT(rune.rune), Vector(TemplataEnvEntry(templata))) })
           .toMap)
     val interfaceInnerEnv2 =
       interfaceInnerEnv1.addEntries(
@@ -235,21 +236,29 @@ class StructTemplarCore(
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
-        delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
-          temputs,
-          internalMethod.range,
-          FunctionTemplata(
-            interfaceInnerEnv,
-            internalMethod))
+        if (internalMethod.isTemplate) {
+          delegate.evaluateTemplatedFunctionFromNonCallForHeader(
+            temputs,
+            FunctionTemplata(
+              interfaceInnerEnv,
+              internalMethod))
+        } else {
+          delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+            temputs,
+            FunctionTemplata(
+              interfaceInnerEnv,
+              internalMethod))
+        }
       })
 
     val mutability =
-      interfaceInnerEnv.getNearestTemplataWithAbsoluteName2(
-        NameTranslator.translateRune(interfaceA.mutabilityRune),
-        Set(TemplataLookupContext)) match {
-        case Some(MutabilityTemplata(m)) => m
-        case Some(_) => vwat()
-        case None => vwat()
+      interfaceInnerEnv.lookupWithImpreciseName(
+        profiler,
+        RuneNameS(interfaceA.mutabilityRune.rune),
+        Set(TemplataLookupContext),
+        true).toList match {
+        case List(MutabilityTemplata(m)) => m
+        case _ => vwat()
       }
 
     val interfaceDef2 =
@@ -272,7 +281,7 @@ class StructTemplarCore(
         temputs.addKindExport(
           interfaceA.range,
           interfaceDef2.getRef,
-          exportPackageCoord.packageCoord,
+          exportPackageCoord.packageCoordinate,
           exportedName)
       }
     }
@@ -305,16 +314,16 @@ class StructTemplarCore(
     (interfaceDef2)
   }
 
-  private def makeStructMembers(env: IEnvironment, temputs: Temputs, members: Vector[StructMemberA]): (Vector[StructMemberT]) = {
+  private def makeStructMembers(env: IEnvironment, temputs: Temputs, members: Vector[StructMemberS]): (Vector[StructMemberT]) = {
     members.map(makeStructMember(env, temputs, _))
   }
 
   private def makeStructMember(
     env: IEnvironment,
     temputs: Temputs,
-    member: StructMemberA):
+    member: StructMemberS):
   (StructMemberT) = {
-    val CoordTemplata(coord) = vassertSome(env.getNearestTemplataWithAbsoluteName2(NameTranslator.translateRune(member.typeRune), Set(TemplataLookupContext)))
+    val CoordTemplata(coord) = vassertOne(env.lookupWithImpreciseName(profiler, RuneNameS(member.typeRune.rune), Set(TemplataLookupContext), true))
     (StructMemberT(CodeVarNameT(member.name), Conversions.evaluateVariability(member.variability), ReferenceMemberTypeT(coord)))
   }
 
@@ -360,7 +369,7 @@ class StructTemplarCore(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     temputs: Temputs,
-    name: LambdaNameA,
+    name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
@@ -382,7 +391,7 @@ class StructTemplarCore(
       })
     val mutability = if (isMutable) MutableT else ImmutableT
 
-    val nearName = LambdaCitizenNameT(NameTranslator.translateCodeLocation(name.codeLocation))
+    val nearName = LambdaCitizenNameT(NameTranslator.translateCodeLocation(functionA.range.begin))
     val fullName = containingFunctionEnv.fullName.addStep(nearName)
 
     val structTT = StructTT(fullName)
@@ -399,7 +408,7 @@ class StructTemplarCore(
           .addEntries(
             opts.useOptimization,
             Map(
-              FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationT.internal(-14)) -> Vector(FunctionEnvEntry(functionA)),
+              FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationS.internal(-14)) -> Vector(FunctionEnvEntry(functionA)),
               nearName -> Vector(TemplataEnvEntry(KindTemplata(structTT))),
               ClosureParamNameT() -> Vector(TemplataEnvEntry(KindTemplata(structTT))))))
     // We return this from the function in case we want to eagerly compile it (which we do
@@ -509,7 +518,7 @@ class StructTemplarCore(
         case (FunctionHeaderT(superFunctionName, _, superParams, superReturnType, _), index) => {
           val params =
             superParams.map({
-              case ParameterT(name, Some(AbstractT$), CoordT(ownership, permission, ir)) => {
+              case ParameterT(name, Some(AbstractT), CoordT(ownership, permission, ir)) => {
                 vassert(ir == interfaceTT)
                 ParameterT(name, Some(OverrideT(interfaceTT)), CoordT(ownership, permission, structTT))
               }
@@ -541,9 +550,9 @@ class StructTemplarCore(
         .mapValues(_.map(_._2))
         .toMap ++
       Map(
-        ImplDeclareNameT(NameTranslator.getImplNameForName(opts.useOptimization, interfaceTT).get.subCitizenHumanName, CodeLocationT.internal(-15)) -> Vector(TemplataEnvEntry(ExternImplTemplata(structTT, interfaceTT))),
+        ImplDeclareNameT(NameTranslator.getImplNameForName(opts.useOptimization, interfaceTT).get.subCitizenHumanName, CodeLocationS.internal(-15)) -> Vector(TemplataEnvEntry(ExternImplTemplata(structTT, interfaceTT))),
         // This is used later by the interface constructor generator to know what interface to impl.
-        AnonymousSubstructParentInterfaceRuneT() -> Vector(TemplataEnvEntry(KindTemplata(interfaceTT))),
+        RuneNameT(AnonymousSubstructParentInterfaceRuneS()) -> Vector(TemplataEnvEntry(KindTemplata(interfaceTT))),
         AnonymousSubstructImplNameT() -> Vector(TemplataEnvEntry(ExternImplTemplata(structTT, interfaceTT))))
     val structInnerEnv =
       PackageEnvironment(
@@ -600,7 +609,7 @@ class StructTemplarCore(
             interfaceEnv, // Shouldnt matter here, because the callables themselves should have a __call
             temputs,
             range,
-            GlobalFunctionFamilyNameA(CallTemplar.CALL_FUNCTION_NAME),
+            GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
             Vector.empty,
             forwardedCallArgs,
             Vector.empty,

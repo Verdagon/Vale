@@ -1,10 +1,10 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale._
-import net.verdagon.vale.astronomer.{Astronomer, FunctionNameA, GlobalFunctionFamilyNameA, ProgramA}
+import net.verdagon.vale.astronomer.{Astronomer, ProgramA}
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.{CodeLocationS, ProgramS, RangeS, Scout}
+import net.verdagon.vale.scout.{CodeLocationS, FunctionNameS, GlobalFunctionFamilyNameS, ProgramS, RangeS, Scout}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._
@@ -27,9 +27,9 @@ class TemplarMutateTests extends FunSuite with Matchers {
     val compile = TemplarTestCompilation.test("fn main() export {a! = 3; set a = 4; }")
     val temputs = compile.expectTemputs();
     val main = temputs.lookupFunction("main")
-    main.only({ case MutateTE(LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_,_, CodeVarNameT("a")), VaryingT, _), _, VaryingT), ConstantIntTE(4, _)) => })
+    Collector.only(main, { case MutateTE(LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_,_, CodeVarNameT("a")), VaryingT, _), _, VaryingT), ConstantIntTE(4, _)) => })
 
-    val lookup = main.only({ case l @ LocalLookupTE(range, localVariable, reference, variability) => l })
+    val lookup = Collector.only(main, { case l @ LocalLookupTE(range, localVariable, reference, variability) => l })
     val resultCoord = lookup.resultRegister.reference
     resultCoord shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32)
   }
@@ -48,7 +48,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs();
     val main = temputs.lookupFunction("main")
 
-    val lookup = main.only({ case l @ ReferenceMemberLookupTE(_, _, _, _, _, _) => l })
+    val lookup = Collector.only(main, { case l @ ReferenceMemberLookupTE(_, _, _, _, _, _) => l })
     val resultCoord = lookup.resultRegister.reference
     // See RMLRMO, it should result in the same type as the member.
     resultCoord match {
@@ -74,7 +74,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case MutateTE(_, StructToInterfaceUpcastTE(_, _)) =>
     })
   }
@@ -99,7 +99,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case MutateTE(_, StructToInterfaceUpcastTE(_, _)) =>
     })
   }
@@ -211,7 +211,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         RangeS.testZero,
-        ScoutExpectedFunctionFailure(GlobalFunctionFamilyNameA(""), Vector.empty, Map(), Map(), Map())))
+        ScoutExpectedFunctionFailure(GlobalFunctionFamilyNameS(""), Vector.empty, Map(), Map(), Map())))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CannotSubscriptT(
@@ -231,7 +231,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       BodyResultDoesntMatch(
         RangeS.testZero,
-        FunctionNameA("myFunc", CodeLocationS.testZero), fireflyCoord, serenityCoord))
+        FunctionNameS("myFunc", CodeLocationS.testZero), fireflyCoord, serenityCoord))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntConvertForReturnT(

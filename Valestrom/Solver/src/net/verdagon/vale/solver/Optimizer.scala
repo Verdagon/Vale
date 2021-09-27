@@ -72,9 +72,9 @@ import scala.collection.mutable.ArrayBuffer
 
 //object Optimizer {
 //  def canonicalizeRule[RuneID, RuleID, Literal, Lookup](
-//    inputRule: IRulexAR[TentativeRune, RuleID, Literal, Lookup],
+//    inputRule: IRulexSR[TentativeRune, RuleID, Literal, Lookup],
 //    runeToCanonicalRune: TentativeRune => Int
-//  ): IRulexAR[Int, RuleID, Literal, Lookup] = {
+//  ): IRulexSR[Int, RuleID, Literal, Lookup] = {
 //    inputRule match {
 //      case LiteralAR(range, uncanonicalResultRune, value) => {
 //        val canonicalResultRune = runeToCanonicalRune(uncanonicalResultRune)

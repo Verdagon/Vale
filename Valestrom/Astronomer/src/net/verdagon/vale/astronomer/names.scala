@@ -1,6 +1,6 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.scout.{CodeLocationS, INameS, IRuneS}
+import net.verdagon.vale.scout.{CodeLocationS, IFunctionDeclarationNameS, INameS, IRuneS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 
 //// An absolute name is one where we know *exactly* where it's defined; if parser and scout
@@ -17,8 +17,8 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 ////   }
 //// we don't know exactly where doStuff was defined, that depends on what overload the
 //// typing stage decides.
-//case class ImpreciseNameA[+T <: IImpreciseNameStepA](init: Vector[IImpreciseNameStepA], last: T) {//extends IImpreciseNameS[T] {
-//def addStep[Y <: IImpreciseNameStepA](newLast: Y): ImpreciseNameA[Y] = ImpreciseNameA[Y](init :+ last, newLast)
+//case class ImpreciseNameA[+T <: INameS](init: Vector[INameS], last: T) {//extends IImpreciseNameS[T] {
+//def addStep[Y <: INameS](newLast: Y): ImpreciseNameA[Y] = ImpreciseNameA[Y](init :+ last, newLast)
 //}
 
 //sealed trait INameA
@@ -26,10 +26,10 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 //sealed trait ITypeDeclarationNameA extends INameA {
 //  def packageCoordinate: PackageCoordinate
 //}
-//sealed trait IFunctionDeclarationNameA extends INameA {
+//sealed trait IFunctionDeclarationNameS extends INameS {
 //  def packageCoordinate: PackageCoordinate
 //}
-//case class LambdaNameA(codeLocation: CodeLocationS) extends IFunctionDeclarationNameA {
+//case class LambdaNameS(codeLocation: CodeLocationS) extends IFunctionDeclarationNameA {
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 //}
@@ -37,11 +37,11 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 //}
-//case class TopLevelCitizenDeclarationNameA(name: String, codeLocation: CodeLocationS) extends ITypeDeclarationNameA {
+//case class TopLevelCitizenDeclarationNameS(name: String, codeLocation: CodeLocationS) extends ITypeDeclarationNameA {
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 //}
-//case class LambdaStructNameA(lambdaName: LambdaNameA) extends ITypeDeclarationNameA {
+//case class LambdaStructNameA(lambdaName: LambdaNameS) extends ITypeDeclarationNameA {
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  override def packageCoordinate: PackageCoordinate = lambdaName.codeLocation.file.packageCoordinate
 //}
@@ -58,13 +58,15 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 //case class ExportAsNameA(codeLocation: CodeLocationS) extends IVarNameA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class CodeVarNameA(name: String) extends IVarNameA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //// Only made by templar, see if we can take these out
-//case class ConstructorNameA(tlcd: TopLevelCitizenDeclarationNameA) extends IFunctionDeclarationNameA {
-//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-//  override def packageCoordinate: PackageCoordinate = tlcd.codeLocation.file.packageCoordinate
-//}
-//case class ImmConcreteDestructorNameA(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImmInterfaceDestructorNameA(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImmDropNameA(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ConstructorNameS(tlcd: TopLevelCitizenDeclarationNameS) extends IFunctionDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def packageCoordinate: PackageCoordinate = tlcd.range.begin.file.packageCoordinate
+}
+case class ImmConcreteDestructorNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
+case class ImmInterfaceDestructorNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImmDropNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //
 //sealed trait IRuneS extends INameA with IRuneS
 
@@ -88,13 +90,13 @@ import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 //case class AnonymousSubstructParentInterfaceRuneA() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class ExplicitTemplateArgRuneA(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
-//sealed trait IImpreciseNameStepA
-//case class CodeTypeNameA(name: String) extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//sealed trait INameS
+//case class CodeTypeNameA(name: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //// When we're calling a function, we're addressing an overload set, not a specific function.
 //// If we want a specific function, we use TopLevelDeclarationNameS.
-//case class GlobalFunctionFamilyNameA(name: String) extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImpreciseCodeVarNameA(name: String) extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class GlobalFunctionFamilyNameS(name: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class ImpreciseCodeVarNameA(name: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ImplImpreciseNameS(subCitizenHumanName: String) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImmConcreteDestructorImpreciseNameA() extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImmInterfaceDestructorImpreciseNameA() extends IImpreciseNameStepA { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-//case class ImmDropImpreciseNameA() extends IImpreciseNameStepA
+case class ImmConcreteDestructorImpreciseNameS() extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImmInterfaceDestructorImpreciseNameS() extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImmDropImpreciseNameS() extends INameS

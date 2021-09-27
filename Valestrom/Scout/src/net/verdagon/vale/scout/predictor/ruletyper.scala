@@ -6,7 +6,7 @@ import net.verdagon.vale.{vassert, vcurious}
 
 package object ruletyper {
   case class ConclusionsBox(var conclusions: Conclusions) {
-    def typeByRune = conclusions.typeByRune
+    def runeToType = conclusions.runeToType
 
     def addConclusion(rune: IRuneS, tyype: ITemplataType): Unit = {
       conclusions = conclusions.addConclusion(rune, tyype)
@@ -14,12 +14,12 @@ package object ruletyper {
   }
 
   case class Conclusions(
-    typeByRune: Map[IRuneS, ITemplataType]) {
+    runeToType: Map[IRuneS, ITemplataType]) {
     override def hashCode(): Int = vcurious();
 
     def addConclusion(rune: IRuneS, tyype: ITemplataType): Conclusions = {
-      vassert(!typeByRune.contains(rune))
-      Conclusions(typeByRune + (rune -> tyype))
+      vassert(!runeToType.contains(rune))
+      Conclusions(runeToType + (rune -> tyype))
     }
   }
 

@@ -1,7 +1,7 @@
 package net.verdagon.vale
 
 import net.verdagon.vale.templar.{CitizenNameT, FullNameT, FunctionNameT, simpleName}
-import net.verdagon.vale.templar.templata.{AbstractT$, SignatureT}
+import net.verdagon.vale.templar.templata.{AbstractT, SignatureT}
 import net.verdagon.vale.templar.types._
 import org.scalatest.{FunSuite, Matchers}
 import net.verdagon.vale.vivem.IntV
@@ -39,7 +39,7 @@ class VirtualTests extends FunSuite with Matchers {
                       ReadwriteT,
                       InterfaceTT(
                         FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, CitizenNameT("I", Vector.empty))))))))))
-      vassert(doThing.header.params(0).virtuality.get == AbstractT$)
+      vassert(doThing.header.params(0).virtuality.get == AbstractT)
     }
 
   test("Can call virtual function") {
@@ -73,7 +73,7 @@ class VirtualTests extends FunSuite with Matchers {
                     ReadwriteT,
                     InterfaceTT(
                       FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, CitizenNameT("I", Vector.empty))))))))))
-    vassert(doThing.header.params(0).virtuality.get == AbstractT$)
+    vassert(doThing.header.params(0).virtuality.get == AbstractT)
   }
 
   test("Can call interface env's function from outside") {
@@ -97,7 +97,7 @@ class VirtualTests extends FunSuite with Matchers {
         temputs.lookupFunction(
           SignatureT(
             FullNameT(PackageCoordinate.TEST_TLD, Vector(CitizenNameT("I",Vector.empty)),FunctionNameT("doThing",Vector.empty,Vector(CoordT(OwnT,ReadwriteT,InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty,CitizenNameT("I",Vector.empty))))))))))
-    vassert(doThing.header.params(0).virtuality.get == AbstractT$)
+    vassert(doThing.header.params(0).virtuality.get == AbstractT)
   }
 
 

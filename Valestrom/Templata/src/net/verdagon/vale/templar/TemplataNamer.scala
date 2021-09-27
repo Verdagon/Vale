@@ -73,8 +73,8 @@ object TemplataNamer {
       case VoidT() => "void" // "∅"
       case TupleTT(_, _) => "tup"
       case NeverT() => "never"
-      case RuntimeSizedArrayTT(array) => "𝔸" + getReferenceIdentifierName(array.memberType)
-      case StaticSizedArrayTT(size, arrayT2) => "𝔸" + size + getReferenceIdentifierName(arrayT2.memberType)
+      case RuntimeSizedArrayTT(array) => "𝔸" + getReferenceIdentifierName(array.elementType)
+      case StaticSizedArrayTT(size, arrayT2) => "𝔸" + size + getReferenceIdentifierName(arrayT2.elementType)
       case PackTT(_, underlyingStruct) => {
         getKindIdentifierName(underlyingStruct)
       }
@@ -109,7 +109,7 @@ object TemplataNamer {
     getReferenceIdentifierName(tyype) +
       (virtuality match {
         case None => ""
-        case Some(AbstractT$) => " abstract"
+        case Some(AbstractT) => " abstract"
         case Some(OverrideT(kind)) => " impl " + getKindIdentifierName(kind)
       })
   }

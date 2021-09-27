@@ -1,11 +1,11 @@
 package net.verdagon.vale.scout.predictor
 
-//import net.verdagon.vale.solver.{AugmentAR, BuiltinCallAR, CallAR, CoordComponentsAR, CoordListAR, IRulexAR, IsaAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OrAR, PrototypeAR, RepeaterSequenceAR}
+//import net.verdagon.vale.solver.{AugmentAR, BuiltinCallAR, CallAR, CoordComponentsAR, CoordListAR, IRulexSR, IsaAR, KindComponentsAR, LiteralAR, LookupAR, ManualSequenceAR, OrAR, PrototypeAR, RepeaterSequenceAR}
 //import net.verdagon.vale.{vfail, vimpl}
 
 //object ScoutPuzzler {
 //  def apply[RuneID, RuleID, Literal, Lookup](
-//    inputRule: IRulexAR[Int, RuleID, Literal, Lookup]
+//    inputRule: IRulexSR[Int, RuleID, Literal, Lookup]
 //  ): Array[Array[Int]] = {
 //    inputRule match {
 //      case LiteralAR(range, canonicalResultRune, value) => {

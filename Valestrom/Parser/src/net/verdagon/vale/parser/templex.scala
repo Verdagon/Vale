@@ -1,6 +1,6 @@
 package net.verdagon.vale.parser
 
-import net.verdagon.vale.{vcurious, vimpl}
+import net.verdagon.vale.{vassert, vcurious, vimpl, vpass}
 
 import scala.collection.immutable.List
 
@@ -10,7 +10,10 @@ sealed trait ITemplexPT {
   def range: Range
 }
 
-case class AnonymousRunePT(range: Range) extends ITemplexPT { override def hashCode(): Int = vcurious() }
+case class AnonymousRunePT(range: Range) extends ITemplexPT {
+  override def hashCode(): Int = vcurious()
+  vpass()
+}
 case class BoolPT(range: Range, value: Boolean) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class BorrowPT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 // This is for example fn(Int)Bool, fn:imm(Int, Int)Str, fn:mut()(Str, Bool)
@@ -26,6 +29,7 @@ case class MutabilityPT(range: Range, mutability: MutabilityP) extends ITemplexP
 case class NameOrRunePT(name: NameP) extends ITemplexPT {
   override def hashCode(): Int = vcurious()
   def range = name.range
+  vassert(name.str != "_")
 }
 //case class NullablePT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class InterpretedPT(range: Range, ownership: OwnershipP, permission: PermissionP, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }

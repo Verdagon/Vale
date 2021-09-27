@@ -1,8 +1,8 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.scout.CodeLocationS
-import net.verdagon.vale.templar.templata.{CodeLocationT, CoordTemplata, ITemplata, QueriableT}
-import net.verdagon.vale.templar.types.{CoordT, IntT, InterfaceTT, KindT, StaticSizedArrayTT, MutabilityT, ReadonlyT, ShareT, StructTT, RuntimeSizedArrayTT}
+import net.verdagon.vale.scout.{CodeLocationS, IRuneS}
+import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata}
+import net.verdagon.vale.templar.types.{CoordT, IntT, InterfaceTT, KindT, MutabilityT, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT}
 import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vpass, vwat}
 
 import scala.collection.immutable.List
@@ -15,7 +15,7 @@ case class FullNameT[+T <: INameT](
   packageCoord: PackageCoordinate,
   initSteps: Vector[INameT],
   last: T
-) extends QueriableT {
+)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   // PackageTopLevelName2 is just here because names have to have a last step.
   vassert(!initSteps.contains(PackageTopLevelNameT()))
@@ -35,10 +35,6 @@ case class FullNameT[+T <: INameT](
     FullNameT[Y](packageCoord, steps, newLast)
   }
   def init: FullNameT[INameT] = FullNameT[INameT](packageCoord, initSteps.init, initSteps.last)
-
-  def all[X](func: PartialFunction[QueriableT, X]): Vector[X] = {
-    Vector(this).collect(func) ++ initSteps.flatMap(_.all(func)) ++ last.all(func)
-  }
 }
 // not sure if we need imprecise names in templar
 //// An imprecise name is one where we don't know exactly where the thing is defined.
@@ -52,7 +48,7 @@ case class FullNameT[+T <: INameT](
 //  def addStep[Y <: IImpreciseNameStep2](newLast: Y): ImpreciseName2[Y] = ImpreciseName2[Y](init :+ last, newLast)
 //}
 
-sealed trait INameT extends QueriableT {
+sealed trait INameT  {
   def order: Int
 }
 sealed trait IFunctionNameT extends INameT {
@@ -62,32 +58,33 @@ sealed trait IFunctionNameT extends INameT {
 sealed trait ICitizenNameT extends INameT {
   def templateArgs: Vector[ITemplata]
 }
-case class ImplDeclareNameT(subCitizenHumanName: String, codeLocation: CodeLocationT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 1; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ codeLocation.all(func) } }
-case class LetNameT(codeLocation: CodeLocationT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ codeLocation.all(func) } }
-case class ExportAsNameT(codeLocation: CodeLocationT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ codeLocation.all(func) } }
+case class ImplDeclareNameT(subCitizenHumanName: String, codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 1;  }
+case class LetNameT(codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2;  }
+case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2;  }
 
-case class RawArrayNameT(mutability: MutabilityT, elementType: CoordT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 40; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ elementType.all(func) } }
-case class StaticSizedArrayNameT(size: Int, arr: RawArrayNameT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 42; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ arr.all(func) } }
-case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 47; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ arr.all(func) } }
+case class RawArrayNameT(mutability: MutabilityT, elementType: CoordT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 40;  }
+case class StaticSizedArrayNameT(size: Int, arr: RawArrayNameT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 42;  }
+case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 47;  }
 sealed trait IVarNameT extends INameT
-case class TemplarBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 18; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class TemplarFunctionResultVarNameT() extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 19; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class TemplarTemporaryVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 20; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class TemplarPatternMemberNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 23; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class TemplarIgnoredParamNameT(num: Int) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 53; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class TemplarPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 23; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class UnnamedLocalNameT(codeLocation: CodeLocationT) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 3; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ codeLocation.all(func) } }
-case class ClosureParamNameT() extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 41; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ConstructingMemberNameT(name: String) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 4; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class MagicParamNameT(codeLocation2: CodeLocationT) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 5; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class CodeVarNameT(name: String) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 6; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
+case class TemplarBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 18;  }
+case class TemplarFunctionResultVarNameT() extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 19;  }
+case class TemplarTemporaryVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 20;  }
+case class TemplarPatternMemberNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 23;  }
+case class TemplarIgnoredParamNameT(num: Int) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 53;  }
+case class TemplarPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 23;  }
+case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 3;  }
+case class ClosureParamNameT() extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 41;  }
+case class ConstructingMemberNameT(name: String) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 4;  }
+case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 5;  }
+case class CodeVarNameT(name: String) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 6;  }
 // We dont use CodeVarName2(0), CodeVarName2(1) etc because we dont want the user to address these members directly.
-case class AnonymousSubstructMemberNameT(index: Int) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 24; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class PrimitiveNameT(humanName: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 26; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
+case class AnonymousSubstructMemberNameT(index: Int) extends IVarNameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 24;  }
+case class PrimitiveNameT(humanName: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 26;  }
 // Only made in templar
-case class PackageTopLevelNameT() extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 25; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ProjectNameT(name: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 51; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class PackageNameT(name: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 52; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
+case class PackageTopLevelNameT() extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 25;  }
+case class ProjectNameT(name: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 51;  }
+case class PackageNameT(name: String) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 52;  }
+case class RuneNameT(rune: IRuneS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 52;  }
 
 // We use this one to look for impls, which are disambiguated by the above ImplDeclareName2
 //case class ImplImpreciseName2() extends IName2 { def order = 22; def all[T](func: PartialFunction[Queriable2, T]): Vector[T] = { Vector(this).collect(func) } }
@@ -99,9 +96,7 @@ case class BuildingFunctionNameWithClosuredsT(
 ) extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 33;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateName.all(func)
-  }
+
 }
 // This is the name of a function that we're still figuring out in the function templar.
 // We have its closured variables and template args, but are still figuring out its params.
@@ -111,9 +106,7 @@ case class BuildingFunctionNameWithClosuredsAndTemplateArgsT(
 ) extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 37;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateName.all(func) ++ templateArgs.flatMap(_.all(func))
-  }
+
 }
 
 // We dont just use "destructor" as the name because we don't want the user to override it.
@@ -128,9 +121,7 @@ case class ImmConcreteDestructorNameT(kind: KindT) extends IFunctionNameT {
   }
 
   def order = 38;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func)) ++ parameters.flatMap(_.all(func))
-  }
+
 }
 // We dont just use "idestructor" as the name because we don't want the user to override it.
 case class ImmInterfaceDestructorNameT(
@@ -139,9 +130,7 @@ case class ImmInterfaceDestructorNameT(
 ) extends IFunctionNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 38;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func)) ++ parameters.flatMap(_.all(func))
-  }
+
 }
 // We dont just use "drop" as the name because we don't want the user to override it.
 case class ImmDropNameT(kind: KindT) extends IFunctionNameT {
@@ -150,9 +139,7 @@ case class ImmDropNameT(kind: KindT) extends IFunctionNameT {
   override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, kind))
 
   def order = 39;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func)) ++ parameters.flatMap(_.all(func))
-  }
+
 }
 
 
@@ -164,9 +151,7 @@ case class ExternFunctionNameT(
   override def templateArgs: Vector[ITemplata] = Vector.empty
 
   def order = 46;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func)) ++ parameters.flatMap(_.all(func))
-  }
+
 }
 
 case class FunctionNameT(
@@ -177,60 +162,46 @@ case class FunctionNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   def order = 13;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func)) ++ parameters.flatMap(_.all(func))
-  }
+
 }
 sealed trait IFunctionTemplateNameT extends INameT
 
 case class FunctionTemplateNameT(
     humanName: String,
-    codeLocation: CodeLocationT
+    codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 31;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ codeLocation.all(func)
-  }
+
 }
 case class LambdaTemplateNameT(
-  codeLocation: CodeLocationT
+  codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 36;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ codeLocation.all(func)
-  }
+
 }
 case class ConstructorTemplateNameT(
-  codeLocation: CodeLocationT
+  codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 35;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ codeLocation.all(func)
-  }
+
 }
 case class ImmConcreteDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 43;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class ImmInterfaceDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 44;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class ImmDropTemplateNameT() extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 45;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 case class ConstructorNameT(
   parameters: Vector[CoordT]
@@ -238,9 +209,7 @@ case class ConstructorNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 21;
   def templateArgs: Vector[ITemplata] = Vector.empty
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 //// We have this and LambdaCitizenName2 both because sometimes lambdas dont come with
 //// a struct, like if they capture nothing. When they do come with structs, theyll both
@@ -270,9 +239,7 @@ case class CitizenNameT(
 ) extends ICitizenNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 15;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.flatMap(_.all(func))
-  }
+
 }
 case class TupleNameT(
   members: Vector[CoordT]
@@ -281,31 +248,35 @@ case class TupleNameT(
   vpass()
   override def templateArgs: Vector[ITemplata] = members.map(CoordTemplata)
   def order = 16;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ members.flatMap(_.all(func))
-  }
+
 }
 case class LambdaCitizenNameT(
-  codeLocation: CodeLocationT,
+  codeLocation: CodeLocationS
 ) extends ICitizenNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
 
   def templateArgs: Vector[ITemplata] = Vector.empty
   def order = 17;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.toVector.flatMap(_.all(func))
-  }
+
+}
+case class AnonymousSubstructLambdaNameT(
+  codeLocation: CodeLocationS
+) extends ICitizenNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  vpass()
+
+  def templateArgs: Vector[ITemplata] = Vector.empty
+  def order = 54;
+
 }
 case class CitizenTemplateNameT(
   humanName: String,
-  codeLocation: CodeLocationT
+  codeLocation: CodeLocationS
 ) extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 30;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ codeLocation.all(func)
-  }
+
 
   def makeCitizenName(templateArgs: Vector[ITemplata]): CitizenNameT = {
     CitizenNameT(humanName, templateArgs)
@@ -315,16 +286,12 @@ case class AnonymousSubstructNameT(callables: Vector[CoordT]) extends ICitizenNa
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 27;
   def templateArgs: Vector[ITemplata] = callables.map(CoordTemplata)
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ templateArgs.toVector.flatMap(_.all(func))
-  }
+
 }
 case class AnonymousSubstructImplNameT() extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 29;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
+
 }
 //// This one is probably only used by the templar, so we can have a way to
 //// figure out the closure struct for a certain environment.
@@ -337,26 +304,23 @@ case class AnonymousSubstructImplNameT() extends INameT {
 
 // This is an IName2 because we put these into the environment.
 // We don't just reuse INameA because there are some templar-specific ones.
-sealed trait IRuneT extends INameT
-case class CodeRuneT(name: String) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 7; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ImplicitRuneT(parentName: INameT, name: Int) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 8; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class LetImplicitRuneT(codeLocation: CodeLocationT, name: Int) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 34; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ArraySizeImplicitRuneT() extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 48; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ArrayVariabilityImplicitRuneT() extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 49; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ArrayMutabilityImplicitRuneT() extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 50; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class MemberRuneT(memberIndex: Int) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 9; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class MagicImplicitRuneT(scoutPath: Array[Int]) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 10; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class ReturnRuneT() extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 11; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-case class SolverKindRuneT(paramRune: IRuneT) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 12; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) ++ paramRune.all(func) } }
-case class ExplicitTemplateArgRuneT(index: Int) extends IRuneT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 34; def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = { Vector(this).collect(func) } }
-
-case class AnonymousSubstructParentInterfaceRuneT() extends IRuneT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def order = 28;
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func)
-  }
-}
+//case class CodeRuneS(name: String) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 7;  }
+//case class ImplicitRuneS(parentName: INameT, name: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 8;  }
+//case class LetImplicitRuneS(codeLocation: CodeLocationT, name: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 34;  }
+//case class ArraySizeImplicitRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 48;  }
+//case class ArrayVariabilityImplicitRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 49;  }
+//case class ArrayMutabilityImplicitRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 50;  }
+//case class MemberRuneS(memberIndex: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 9;  }
+//case class MagicImplicitRuneS(scoutPath: Array[Int]) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 10;  }
+//case class ReturnRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 11;  }
+//case class SolverKindRuneS(paramRune: IRuneS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 12;  }
+//case class ExplicitTemplateArgRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 34;  }
+//
+//case class AnonymousSubstructParentInterfaceRuneS() extends IRuneS {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 28;
+//
+//}
 
 //
 //sealed trait IImpreciseNameStep2

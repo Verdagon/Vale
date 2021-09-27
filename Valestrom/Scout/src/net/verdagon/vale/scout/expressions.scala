@@ -2,7 +2,8 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser.{ConstraintP, LendConstraintP, LendWeakP, LoadAsP, MoveP, MutabilityP, OwnershipP, PermissionP, VariabilityP, WeakP}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR}
+import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR, RuneUsage}
+import net.verdagon.vale.templar.types.ITemplataType
 import net.verdagon.vale.{vassert, vcurious, vimpl, vpass}
 
 // patternId is a unique number, can be used to make temporary variables that wont
@@ -131,9 +132,9 @@ case class TupleSE(range: RangeS, elements: Vector[IExpressionSE]) extends IExpr
 case class StaticArrayFromValuesSE(
   range: RangeS,
   rules: Array[IRulexSR],
-  mutabilityST: IRuneS,
-  variabilityST: IRuneS,
-  sizeST: IRuneS,
+  mutabilityST: RuneUsage,
+  variabilityST: RuneUsage,
+  sizeST: RuneUsage,
   elements: Vector[IExpressionSE]
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
@@ -141,9 +142,9 @@ case class StaticArrayFromValuesSE(
 case class StaticArrayFromCallableSE(
   range: RangeS,
   rules: Array[IRulexSR],
-  mutabilityST: IRuneS,
-  variabilityST: IRuneS,
-  sizeST: IRuneS,
+  mutabilityST: RuneUsage,
+  variabilityST: RuneUsage,
+  sizeST: RuneUsage,
   callable: IExpressionSE
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
@@ -151,8 +152,8 @@ case class StaticArrayFromCallableSE(
 case class RuntimeArrayFromCallableSE(
   range: RangeS,
   rules: Array[IRulexSR],
-  mutabilityST: IRuneS,
-  variabilityST: IRuneS,
+  mutabilityST: RuneUsage,
+  variabilityST: RuneUsage,
   sizeSE: IExpressionSE,
   callable: IExpressionSE
 ) extends IExpressionSE {
@@ -197,7 +198,7 @@ case class DotSE(range: RangeS, left: IExpressionSE, member: String, borrowConta
   override def hashCode(): Int = vcurious()
 }
 
-case class DotCallSE(range: RangeS, left: IExpressionSE, indexExpr: IExpressionSE) extends IExpressionSE {
+case class IndexSE(range: RangeS, left: IExpressionSE, indexExpr: IExpressionSE) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
 }
 
@@ -215,7 +216,7 @@ case class OutsideLoadSE(
   range: RangeS,
   rules: Array[IRulexSR],
   name: String,
-  maybeTemplateArgs: Option[Array[IRuneS]],
+  maybeTemplateArgs: Option[Array[RuneUsage]],
   targetOwnership: LoadAsP
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()

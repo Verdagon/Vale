@@ -10,6 +10,8 @@ case class FileCoordinate(module: String, packages: Vector[String], filepath: St
   def packageCoordinate = PackageCoordinate(module, packages)
 
   def compareTo(that: FileCoordinate) = FileCoordinate.compare(this, that)
+
+//  override def toString: String = vcurious()
 }
 
 object FileCoordinate extends Ordering[FileCoordinate] {

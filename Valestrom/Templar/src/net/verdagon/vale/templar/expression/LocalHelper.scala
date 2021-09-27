@@ -1,14 +1,13 @@
 package net.verdagon.vale.templar.expression
 
-import net.verdagon.vale.astronomer.LocalA
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.{MaybeUsed, NotUsed, RangeS}
+import net.verdagon.vale.scout.{LocalS, NotUsed, RangeS}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, FunctionEnvironmentBox, ILocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.templata.Conversions
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar._
-import net.verdagon.vale.{vassert, vfail}
+import net.verdagon.vale.{vassert, vfail, vimpl}
 
 import scala.collection.immutable.List
 
@@ -76,7 +75,7 @@ class LocalHelper(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     range: RangeS,
-    localVariableA: LocalA,
+    localVariableA: LocalS,
     referenceType2: CoordT):
   ILocalVariableT = {
     val varId = NameTranslator.translateVarNameStep(localVariableA.varName)
@@ -242,15 +241,15 @@ class LocalHelper(
 
 object LocalHelper {
   // See ClosureTests for requirements here
-  def determineIfLocalIsAddressible(mutability: MutabilityT, localA: LocalA): Boolean = {
+  def determineIfLocalIsAddressible(mutability: MutabilityT, localA: LocalS): Boolean = {
     if (mutability == MutableT) {
-      localA.childMutated != NotUsed || localA.selfMoved == MaybeUsed || localA.childMoved != NotUsed
+      localA.childMutated != NotUsed || localA.childMoved != NotUsed
     } else {
       localA.childMutated != NotUsed
     }
   }
 
-  def determineLocalVariability(localA: LocalA): VariabilityT = {
+  def determineLocalVariability(localA: LocalS): VariabilityT = {
     if (localA.selfMutated != NotUsed || localA.childMutated != NotUsed) {
       VaryingT
     } else {

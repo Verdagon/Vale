@@ -11,7 +11,7 @@
 //case class LetSE(
 //    range: RangeS,
 //    rules: Array[IRulexSR],
-//    pattern: AtomAP,
+//    pattern: AtomSP,
 //    expr: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
 //
 //case class DestructSE(range: RangeS, inner: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
@@ -21,7 +21,7 @@
 //case class WhileSE(range: RangeS, condition: IExpressionSE, body: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
 //
 //case class ExprMutateSE(range: RangeS, mutatee: IExpressionSE, expr: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
-//case class GlobalMutateSE(range: RangeS, name: IImpreciseNameStepA, expr: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
+//case class GlobalMutateSE(range: RangeS, name: INameS, expr: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
 //case class LocalMutateSE(range: RangeS, name: IVarNameA, expr: IExpressionSE) extends IExpressionSE { override def hashCode(): Int = vcurious() }
 //
 //case class LendSE(range: RangeS, innerExpr1: IExpressionSE, targetOwnership: LoadAsP) extends IExpressionSE {
@@ -75,10 +75,10 @@
 //
 ////case class StaticSizedArrayFromCallableAE(
 ////    range: RangeS,
-////    typeTemplex: IRulexAR,
-////    mutabilityTemplex: IRulexAR,
-////    variabilityTemplex: IRulexAR,
-////    generatorPrototypeTemplex: IRulexAR,
+////    typeTemplex: IRulexSR,
+////    mutabilityTemplex: IRulexSR,
+////    variabilityTemplex: IRulexSR,
+////    generatorPrototypeTemplex: IRulexSR,
 ////    sizeExpr: IExpressionAE,
 ////    generatorExpr: IExpressionAE) extends IExpressionAE { override def hashCode(): Int = vcurious() }
 //
@@ -96,7 +96,7 @@
 //case class StaticArrayFromValuesSE(
 //  range: RangeS,
 //  rules: Array[IRulexSR],
-//  typeByRune: Map[IRuneS, ITemplataType],
+//  runeToType: Map[IRuneS, ITemplataType],
 //  maybeSizeRune: Option[IRuneS],
 //  maybeMutabilityRune: Option[IRuneS],
 //  maybeVariabilityRune: Option[IRuneS],
@@ -105,7 +105,7 @@
 //case class StaticArrayFromCallableSE(
 //  range: RangeS,
 //  rules: Array[IRulexSR],
-//  typeByRune: Map[IRuneS, ITemplataType],
+//  runeToType: Map[IRuneS, ITemplataType],
 //  sizeRune: IRuneS,
 //  maybeMutabilityRune: Option[IRuneS],
 //  maybeVariabilityRune: Option[IRuneS],
@@ -115,7 +115,7 @@
 //case class RuntimeArrayFromCallableSE(
 //  range: RangeS,
 //  rules: Array[IRulexSR],
-//  typeByRune: Map[IRuneS, ITemplataType],
+//  runeToType: Map[IRuneS, ITemplataType],
 //  maybeMutabilityRune: Option[IRuneS],
 //  maybeVariabilityRune: Option[IRuneS],
 //  size: IExpressionSE,
@@ -136,7 +136,7 @@
 //
 //case class ConstantFloatSE(range: RangeS, value: Double) extends IExpressionSE { override def hashCode(): Int = vcurious() }
 //
-//case class FunctionSE(name: LambdaNameA, function: FunctionA) extends IExpressionSE {
+//case class FunctionSE(name: LambdaNameS, function: FunctionA) extends IExpressionSE {
 //  override def hashCode(): Int = vcurious()
 //  override def range: RangeS = function.range
 //}

@@ -11,16 +11,16 @@ import scala.collection.mutable.ArrayBuffer
 //  def apply[RuleID, Literal, Lookup]():
 //  Builder[RuleID, Literal, Lookup] = {
 //    Builder[RuleID, Literal, Lookup](
-//      mutable.ArrayBuffer[IRulexAR[TentativeRune, RuleID, Literal, Lookup]](),
+//      mutable.ArrayBuffer[IRulexSR[TentativeRune, RuleID, Literal, Lookup]](),
 //      0,
 //      mutable.HashMap[TentativeRune, TentativeRune]())
 //  }
 //}
 
 //case class Builder[RuleID, Literal, Lookup](
-//  rules: mutable.ArrayBuffer[IRulexAR[TentativeRune, RuleID, Literal, Lookup]]) {
+//  rules: mutable.ArrayBuffer[IRulexSR[TentativeRune, RuleID, Literal, Lookup]]) {
 //
-//  def addRule(rule: IRulexAR[TentativeRune, RuleID, Literal, Lookup]): Int = {
+//  def addRule(rule: IRulexSR[TentativeRune, RuleID, Literal, Lookup]): Int = {
 //    val ruleIndex = rules.size
 //    rules += rule
 //    ruleIndex

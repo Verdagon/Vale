@@ -1,12 +1,14 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining}
-import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, CodeVarNameA, ConstructorNameA, FunctionA, FunctionNameA, GlobalFunctionFamilyNameA, IFunctionDeclarationNameA, INameA, ImmConcreteDestructorNameA, ImmDropNameA, ImmInterfaceDestructorNameA, LambdaNameA, TopLevelCitizenDeclarationNameA}
-import net.verdagon.vale.scout.RangeS
+import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, lineRangeContaining}
+import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmDropNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
+import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, RangeS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
-import net.verdagon.vale.templar.infer.infer.{IConflictCause, InferSolveFailure}
-import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, IPotentialBanner}
-import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FloatT, IntT, KindT, OwnT, ParamFilter, ReadonlyT, ReadwriteT, ShareT, StrT, StructTT, WeakT}
+import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
+import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, IPotentialBanner, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{FileCoordinate, FileCoordinateMap, repeatStr, vimpl}
 
 object TemplarErrorHumanizer {
@@ -98,7 +100,7 @@ object TemplarErrorHumanizer {
         case CouldntFindFunctionToCallT(range, ScoutExpectedFunctionFailure(name, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction)) => {
             ": Couldn't find a suitable function named `" +
             (name match {
-              case GlobalFunctionFamilyNameA(humanName) => humanName
+              case GlobalFunctionFamilyNameS(humanName) => humanName
               case other => other.toString
             }) +
             "` with args (" +
@@ -116,9 +118,9 @@ object TemplarErrorHumanizer {
                   case (potentialBanner, outscoredReason) => {
                     "  " + TemplataNamer.getFullNameIdentifierName(potentialBanner.banner.fullName) + ":\n" +
                       humanizeRejectionReason(
-                        2,
                         verbose,
                         codeMap,
+                        range,
                         outscoredReason)
                   }
                 }).mkString("\n")
@@ -130,13 +132,13 @@ object TemplarErrorHumanizer {
                     (rejectedReasonByBanner.map({
                       case (banner, rejectedReason) => {
                         "  " + humanizeBanner(codeMap, banner) + "\n" +
-                          humanizeRejectionReason(2, verbose, codeMap, rejectedReason)
+                          humanizeRejectionReason(verbose, codeMap, range, rejectedReason)
                       }
                     }) ++
                       rejectedReasonByFunction.map({
                         case (functionA, rejectedReason) => {
                           "  " + printableName(codeMap, functionA.name) + ":\n" +
-                            humanizeRejectionReason(2, verbose, codeMap, rejectedReason)
+                            humanizeRejectionReason(verbose, codeMap, range, rejectedReason)
                         }
                       })).mkString("\n") + "\n"
                 } else {
@@ -157,8 +159,15 @@ object TemplarErrorHumanizer {
         case CantImplStruct(range, struct) => {
             ": Can't extend a struct: (" + struct + ")"
         }
-        case InferAstronomerError(err) => {
-          AstronomerErrorHumanizer.humanize(codeMap, err)
+//        case NotEnoughToSolveError(range, conclusions, unknownRunes) => {
+//          humanizeFailedSolve(codeMap, range, IncompleteSolve(conclusions, unknownRunes.toSet))
+////          ": Couldn't solve unknowns: " + unknownRunes.toVector.sortBy({ case CodeRuneS(_) => 0 case _ => 1 }) + " but do know:\n" + conclusions.map({ case (k, v) => "  " + k + ": " + v + "\n" }).mkString("")
+//        }
+        case TemplarSolverError(range, failedSolve) => {
+          humanizeFailedSolve(codeMap, range, failedSolve)
+        }
+        case InferAstronomerError(range, err) => {
+          AstronomerErrorHumanizer.humanize(codeMap, range, err)
         }
       }
 
@@ -180,17 +189,17 @@ object TemplarErrorHumanizer {
 
   private def printableName(
     codeMap: FileCoordinateMap[String],
-    name: INameA):
+    name: INameS):
   String = {
     name match {
-      case CodeVarNameA(name) => name
-      case TopLevelCitizenDeclarationNameA(name, codeLocation) => name
-      case LambdaNameA(codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + "(lambda)"
-      case FunctionNameA(name, codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + name
-      case ConstructorNameA(TopLevelCitizenDeclarationNameA(name, codeLocation)) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + name
-      case ImmConcreteDestructorNameA(_) => vimpl()
-      case ImmInterfaceDestructorNameA(_) => vimpl()
-      case ImmDropNameA(_) => vimpl()
+      case CodeVarNameS(name) => name
+      case TopLevelCitizenDeclarationNameS(name, codeLocation) => name
+      case LambdaNameS(codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + "(lambda)"
+      case FunctionNameS(name, codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + name
+      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => humanizePos(codeMap, range.file, range.begin.offset) + ": " + name
+      case ImmConcreteDestructorNameS(_) => vimpl()
+      case ImmInterfaceDestructorNameS(_) => vimpl()
+      case ImmDropNameS(_) => vimpl()
     }
   }
 
@@ -246,25 +255,24 @@ object TemplarErrorHumanizer {
   }
 
   private def humanizeRejectionReason(
-      indentations: Int,
       verbose: Boolean,
       codeMap: FileCoordinateMap[String],
+      invocationRange: RangeS,
       reason: IScoutExpectedFunctionFailureReason): String = {
     reason match {
       case WrongNumberOfArguments(supplied, expected) => {
-        repeatStr("  ", indentations) + "Number of params doesn't match! Supplied " + supplied + " but function takes " + expected
+        "Number of params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
       case WrongNumberOfTemplateArguments(supplied, expected) => {
-        repeatStr("  ", indentations) + "Number of template params doesn't match! Supplied " + supplied + " but function takes " + expected
+        "Number of template params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
-      case SpecificParamDoesntMatch(index, reason) => repeatStr("  ", indentations) + "Param at index " + index + " doesn't match: " + reason
-      case SpecificParamVirtualityDoesntMatch(index) => repeatStr("  ", indentations) + "Virtualities don't match at index " + index
-      case Outscored() => repeatStr("  ", indentations) + "Outscored!"
+      case SpecificParamDoesntMatch(index, reason) => "Param at index " + index + " doesn't match: " + reason
+      case SpecificParamVirtualityDoesntMatch(index) => "Virtualities don't match at index " + index
+      case Outscored() => "Outscored!"
       case InferFailure(reason) => {
         if (verbose) {
-          repeatStr("  ", indentations) +
             "Failed to infer:\n" +
-            humanizeConflictCause(indentations + 1, codeMap, reason)
+            humanizeFailedSolve(codeMap, invocationRange, reason)
         } else {
           "(run with --verbose to see some incomprehensible details)"
         }
@@ -272,18 +280,186 @@ object TemplarErrorHumanizer {
     }
   }
 
-  def humanizeConflictCause(
-    indentations: Int,
+  def humanizeRuleError(
     codeMap: FileCoordinateMap[String],
-    reason: IConflictCause):
+    error: ITemplarSolverError
+  ): String = {
+    error match {
+      case KindIsNotConcrete(kind) => {
+        "Expected kind to be concrete, but was not. Kind: " + kind
+      }
+      case KindIsNotInterface(kind) => {
+        "Expected kind to be interface, but was not. Kind: " + kind
+      }
+      case CallResultWasntExpectedType(expected, actual) => {
+        "Expected an instantiation of " + humanizeTemplata(codeMap, expected) + " but got " + humanizeTemplata(codeMap, actual)
+      }
+    }
+  }
+
+  def humanizeFailedSolve(
+    codeMap: FileCoordinateMap[String],
+    invocationRange: RangeS,
+    result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]):
   String = {
-    repeatStr("  ", indentations) +
-    humanizePos(codeMap, reason.range.file, reason.range.begin.offset) + ": " +
-    reason.message + "\n" +
-      reason.inferences.templatasByRune.map({ case (key, value) => repeatStr("  ", indentations) + "- " + key + " = " + value + "\n" }).mkString("") +
-      reason.inferences.typeByRune
-        .filter(x => !reason.inferences.templatasByRune.contains(x._1))
-        .map({ case (rune, _) => repeatStr("  ", indentations) + "- " + rune + " = unknown" + "\n" }).mkString("") +
-      reason.causes.map(humanizeConflictCause(indentations + 1, codeMap, _)).mkString("")
+    val errorBody =
+      (result match {
+        case IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes) => {
+          "Couldn't solve some runes."//  + unknownRunes.toVector.sortBy({ case CodeRuneS(_) => 0 case _ => 1 }).map(humanizeRune).mkString(", ")
+        }
+        case FailedSolve(incompleteConclusions, unsolvedRules, error) => {
+          error match {
+            case SolverConflict(rule, rune, previousConclusion, newConclusion) => {
+              "Conflict, thought rune " + rune + " was " + previousConclusion + " but now concluding it's " + newConclusion
+            }
+            case RuleError(ruleIndex, err) => {
+              humanizeRuleError(codeMap, err) + "\n"
+            }
+          }
+        }
+      })
+
+    val unsolvedRules = result.unsolvedRules
+    val allLineBeginLocs =
+      unsolvedRules.flatMap(rule => {
+        val ruleBeginLineBegin = lineRangeContaining(codeMap, rule.range.file, rule.range.begin.offset)._1
+        val ruleEndLineBegin = lineRangeContaining(codeMap, rule.range.file, rule.range.end.offset)._1
+        ruleBeginLineBegin.to(ruleEndLineBegin).map(lineBegin => CodeLocationS(rule.range.file, lineBegin))
+      })
+        .distinct
+    val allRuneUsages = unsolvedRules.flatMap(_.runeUsages).distinct
+    val lineBeginLocToRuneUsage =
+      allRuneUsages
+        .map(runeUsage => {
+          val usageBeginLine = lineRangeContaining(codeMap, runeUsage.range.file, runeUsage.range.begin.offset)._1
+          (usageBeginLine, runeUsage)
+        })
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
+
+    errorBody + "\n" +
+      allLineBeginLocs
+        // Show the lines in order
+        .sortBy(_.offset)
+        .map({ case CodeLocationS(file, lineBegin) =>
+          lineContaining(codeMap, file, lineBegin) + "\n" +
+          lineBeginLocToRuneUsage
+            .getOrElse(lineBegin, Vector())
+            // Show the runes from right to left
+            .sortBy(-_.range.begin.offset)
+            .map({ case RuneUsage(range, rune) =>
+              val numSpaces = range.begin.offset - lineBegin
+              val numArrows = range.end.offset - range.begin.offset
+              repeatStr(" ", numSpaces) + repeatStr("^", numArrows) + " " +
+                result.incompleteConclusions.get(rune).map(humanizeTemplata(codeMap, _)).getOrElse("(unknown)") +
+                " (" + humanizeRune(rune) + ")" +
+                "\n"
+            }).mkString("")
+        }).mkString("")
+  }
+
+  def humanizeRune(rune: IRuneS) = {
+    rune match {
+      case ImplicitRuneS(lid) => "_" + lid.path.mkString("")
+      case CodeRuneS(name) => name
+      case other => vimpl(other)
+    }
+  }
+
+  def humanizeTemplata(
+    codeMap: FileCoordinateMap[String],
+    templata: ITemplata):
+  String = {
+    templata match {
+      case RuntimeSizedArrayTemplateTemplata() => "[*]"
+      case StaticSizedArrayTemplateTemplata() => "[]"
+      case InterfaceTemplata(env, originInterface) => originInterface.name.name
+      case StructTemplata(env, originStruct) => originStruct.name.name
+      case VariabilityTemplata(variability) => {
+        variability match {
+          case FinalT => "final"
+          case VaryingT => "vary"
+        }
+      }
+      case MutabilityTemplata(mutability) => {
+        mutability match {
+          case MutableT => "mut"
+          case ImmutableT => "imm"
+        }
+      }
+      case OwnershipTemplata(ownership) => {
+        ownership match {
+          case OwnT => "own"
+          case ConstraintT => "constraint"
+          case WeakT => "weak"
+          case ShareT => "share"
+        }
+      }
+      case PrototypeTemplata(PrototypeT(name, returnType)) => {
+        humanizeName(codeMap, name)
+      }
+      case CoordTemplata(CoordT(ownership, permission, kind)) => {
+        (ownership match {
+          case OwnT => ""
+          case ShareT => ""
+          case ConstraintT => "&"
+          case WeakT => "&&"
+        }) +
+        (permission match {
+          case ReadonlyT => ""
+          case ReadwriteT => "!"
+        }) +
+          humanizeTemplata(codeMap, KindTemplata(kind))
+      }
+      case KindTemplata(kind) => {
+        kind match {
+          case IntT(bits) => "i" + bits
+          case BoolT() => "bool"
+          case StrT() => "str"
+          case VoidT() => "void"
+          case InterfaceTT(name) => humanizeName(codeMap, name)
+          case StructTT(name) => humanizeName(codeMap, name)
+          case RuntimeSizedArrayTT(RawArrayTT(elementType, mutability, variability)) => {
+            "Array<" +
+              humanizeTemplata(codeMap, MutabilityTemplata(mutability)) + ", " +
+              humanizeTemplata(codeMap, VariabilityTemplata(variability)) + ", " +
+              humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
+          }
+        }
+      }
+      case other => vimpl(other)
+    }
+  }
+
+  def humanizeName[T <: INameT](
+    codeMap: FileCoordinateMap[String],
+    name: FullNameT[T]):
+  String = {
+    name.last match {
+      case LambdaCitizenNameT(codeLocation) => {
+        "λ:" + humanizePos(codeMap, codeLocation.file, codeLocation.offset)
+      }
+      case FunctionNameT(humanName, templateArgs, parameters) => {
+        humanName +
+          (if (templateArgs.nonEmpty) {
+            "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+          } else {
+            ""
+          }) +
+          (if (parameters.nonEmpty) {
+            "(" + parameters.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+          } else {
+            ""
+          })
+      }
+      case CitizenNameT(humanName, templateArgs) => {
+        humanName +
+          (if (templateArgs.nonEmpty) {
+            "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+          } else {
+            ""
+          })
+      }
+    }
   }
 }

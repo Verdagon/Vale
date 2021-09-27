@@ -3,6 +3,8 @@ package net.verdagon.vale.templar.expression
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser._
+import net.verdagon.vale.scout.patterns.AtomSP
+import net.verdagon.vale.scout.predictor.AstronomySolver
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar._
@@ -10,7 +12,7 @@ import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.function.FunctionTemplar.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
-import net.verdagon.vale.templar.templata.{TemplataTemplar, _}
+import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 
 import scala.collection.immutable.{List, Nil, Set}
@@ -30,8 +32,8 @@ trait IExpressionTemplarDelegate {
     temputs: Temputs,
     containingFunctionEnv: FunctionEnvironment,
     callRange: RangeS,
-    name: LambdaNameA,
-    function1: BFunctionA):
+    name: IFunctionDeclarationNameS,
+    function1: FunctionA):
   StructTT
 }
 
@@ -89,10 +91,10 @@ class ExpressionTemplar(
         (Some(thing))
       }
       case None => {
-        fate.getNearestTemplataWithAbsoluteName2(name, Set(TemplataLookupContext)) match {
-          case Some(IntegerTemplata(num)) => (Some(ConstantIntTE(num, 32)))
-          case Some(BooleanTemplata(bool)) => (Some(ConstantBoolTE(bool)))
-          case None => (None)
+        fate.lookupWithName(profiler, name, Set(TemplataLookupContext), true) match {
+          case List(IntegerTemplata(num)) => (Some(ConstantIntTE(num, 32)))
+          case List(BooleanTemplata(bool)) => (Some(ConstantBoolTE(bool)))
+          case List() => (None)
           case _ => vwat()
         }
       }
@@ -103,7 +105,7 @@ class ExpressionTemplar(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       range: RangeS,
-      nameA: IVarNameA):
+      nameA: IVarNameS):
   Option[AddressExpressionTE] = {
     fate.getVariable(NameTranslator.translateVarNameStep(nameA)) match {
       case Some(alv @ AddressibleLocalVariableT(_, _, reference)) => {
@@ -331,14 +333,13 @@ class ExpressionTemplar(
         case ConstantStrSE(range, s) => (ConstantStrTE(s), Set())
         case ConstantFloatSE(range, f) => (ConstantFloatTE(f), Set())
         case ArgLookupSE(range, index) => {
-          val paramCoordRuneA = fate.function.params(index).pattern.coordRune
-          val paramCoordRune = NameTranslator.translateRune(paramCoordRuneA)
-          val paramCoordTemplata = fate.getNearestTemplataWithAbsoluteName2(paramCoordRune, Set(TemplataLookupContext)).get
+          val paramCoordRune = fate.function.params(index).pattern.coordRune
+          val paramCoordTemplata = vassertOne(fate.lookupWithImpreciseName(profiler, RuneNameS(paramCoordRune.rune), Set(TemplataLookupContext), true))
           val CoordTemplata(paramCoord) = paramCoordTemplata
           vassert(fate.functionEnvironment.fullName.last.parameters(index) == paramCoord)
           (ArgLookupTE(index, paramCoord), Set())
         }
-        case FunctionCallSE(range, TemplateSpecifiedLookupSE(_, name, templateArgTemplexesS, callableTargetOwnership), argsExprs1) => {
+        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, maybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
 //          vassert(callableTargetOwnership == LendConstraintP(Some(ReadonlyP)))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life + 0, argsExprs1)
@@ -348,12 +349,13 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameA(name)),
-              templateArgTemplexesS,
+              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
+              rules.toVector,
+              maybeTemplateArgs.map(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
-        case FunctionCallSE(range, TemplateSpecifiedLookupSE(_, name, templateArgTemplexesS, callableTargetOwnership), argsExprs1) => {
+        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgTemplexesS, callableTargetOwnership), argsExprs1) => {
 //          vassert(callableTargetOwnership == LendConstraintP(None))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life + 0, argsExprs1)
@@ -363,25 +365,26 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameA(name)),
-              templateArgTemplexesS,
+              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
+              rules.toVector,
+              templateArgTemplexesS.map(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
-        case FunctionCallSE(range, TemplateSpecifiedLookupSE(_, name, templateArgTemplexesS, callableTargetOwnership), argsExprs1) => {
+        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsExprs1) => {
           vassert(callableTargetOwnership == LendConstraintP(None))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life, argsExprs1)
           val callExpr2 =
-            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameA(name), templateArgTemplexesS, argsExprs2)
+            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameS(name), rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
-        case FunctionCallSE(range, OutsideLoadSE(_, name, callableTargetOwnership), argsPackExpr1) => {
+        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsPackExpr1) => {
 //          vassert(callableTargetOwnership == LendConstraintP(Some(ReadonlyP)))
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life, argsPackExpr1)
           val callExpr2 =
-            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameA(name), Vector(), argsExprs2)
+            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameS(name), rules.toVector, Vector(), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, callableExpr1, argsExprs1) => {
@@ -394,11 +397,11 @@ class ExpressionTemplar(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life + 1, argsExprs1)
           val functionPointerCall2 =
-            callTemplar.evaluatePrefixCall(temputs, fate, life + 2, range, decayedCallableReferenceExpr2, Vector(), argsExprs2)
+            callTemplar.evaluatePrefixCall(temputs, fate, life + 2, range, decayedCallableReferenceExpr2, Vector(), None, argsExprs2)
           (functionPointerCall2, returnsFromCallable ++ returnsFromArgs)
         }
 
-        case LendSE(range, innerExpr1, loadAsP) => {
+        case OwnershippedSE(range, innerExpr1, loadAsP) => {
           val (innerExpr2, returnsFromInner) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, innerExpr1);
           val resultExpr2 =
@@ -457,19 +460,19 @@ class ExpressionTemplar(
             }
           (resultExpr2, returnsFromInner)
         }
-        case LockWeakSE(range, innerExpr1) => {
-          val (innerExpr2, returnsFromInner) =
-            evaluateAndCoerceToReferenceExpression(temputs, fate, life, innerExpr1);
-          vcheck(innerExpr2.resultRegister.reference.ownership == WeakT, "Can only lock a weak")
-
-          val borrowCoord = CoordT(ConstraintT, ReadonlyT, innerExpr2.kind)
-
-          val (optCoord, someConstructor, noneConstructor) =
-            getOption(temputs, fate.snapshot, range, borrowCoord)
-
-          val resultExpr2 = LockWeakTE(innerExpr2, optCoord, someConstructor, noneConstructor)
-          (resultExpr2, returnsFromInner)
-        }
+//        case LockWeakSE(range, innerExpr1) => {
+//          val (innerExpr2, returnsFromInner) =
+//            evaluateAndCoerceToReferenceExpression(temputs, fate, life, innerExpr1);
+//          vcheck(innerExpr2.resultRegister.reference.ownership == WeakT, "Can only lock a weak")
+//
+//          val borrowCoord = CoordT(ConstraintT, ReadonlyT, innerExpr2.kind)
+//
+//          val (optCoord, someConstructor, noneConstructor) =
+//            getOption(temputs, fate.snapshot, range, borrowCoord)
+//
+//          val resultExpr2 = LockWeakTE(innerExpr2, optCoord, someConstructor, noneConstructor)
+//          (resultExpr2, returnsFromInner)
+//        }
         case LocalLoadSE(range, nameA, targetOwnership) => {
           val name = NameTranslator.translateVarNameStep(nameA)
           val lookupExpr1 =
@@ -479,7 +482,7 @@ class ExpressionTemplar(
             }
           (lookupExpr1, Set())
         }
-        case OutsideLoadSE(range, name, targetOwnership) => {
+        case OutsideLoadSE(range, rules, name, templateArgs, targetOwnership) => {
           // Note, we don't get here if we're about to call something with this, that's handled
           // by a different case.
 
@@ -487,14 +490,14 @@ class ExpressionTemplar(
           // not in templata context.
 
           val templataFromEnv =
-            fate.getAllTemplatasWithName(profiler, GlobalFunctionFamilyNameA(name), Set(ExpressionLookupContext)) match {
+            fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS(name), Set(ExpressionLookupContext), false) match {
               case Vector(BooleanTemplata(value)) => ConstantBoolTE(value)
               case Vector(IntegerTemplata(value)) => ConstantIntTE(value, 32)
               case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplata(_, _) => case ExternFunctionTemplata(_) => }).size == templatas.size => {
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range, "Can't move from globals. Name: " + name))
                 }
-                newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameA(name))
+                newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name))
               }
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, "Found too many different things named \"" + name + "\" in env:\n" + things.map("\n" + _)))
@@ -590,7 +593,7 @@ class ExpressionTemplar(
           val mutate2 = MutateTE(destinationExpr2, convertedSourceExpr2);
           (mutate2, returnsFromSource ++ returnsFromDestination)
         }
-        case TemplateSpecifiedLookupSE(range, name, templateArgs1, targetOwnership) => {
+        case OutsideLoadSE(range, rules, name, templateArgs1, targetOwnership) => {
           // So far, we only allow these when they're immediately called like functions
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Raw template specified lookups unimplemented!"))
         }
@@ -710,8 +713,8 @@ class ExpressionTemplar(
 
           (expr2, returnsFromContainerExpr)
         }
-        case FunctionSE(name, function1@FunctionA(range, _, _, _, _, _, _, _, _, _, _, CodeBodyA(body))) => {
-          val callExpr2 = evaluateClosure(temputs, fate, range, name, BFunctionA(function1, body))
+        case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _)) => {
+          val callExpr2 = evaluateClosure(temputs, fate, range, name, functionS)
           (callExpr2, Set())
         }
         case TupleSE(range, elements1) => {
@@ -723,24 +726,24 @@ class ExpressionTemplar(
             sequenceTemplar.evaluate(fate, temputs, exprs2)
           (expr2, returnsFromElements)
         }
-        case StaticArrayFromValuesSE(range, rules, typeByRune, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, elements1) => {
+        case StaticArrayFromValuesSE(range, rules, mutabilityRune, variabilityRune, sizeRuneA, elements1) => {
           val (exprs2, returnsFromElements) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life, elements1);
           // would we need a sequence templata? probably right?
           val expr2 =
             arrayTemplar.evaluateStaticSizedArrayFromValues(
-              temputs, fate, range, rules, typeByRune, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, exprs2)
+              temputs, fate, range, rules.toVector, vimpl(), sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2)
           (expr2, returnsFromElements)
         }
-        case StaticArrayFromCallableSE(range, rules, typeByRune, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, callableAE) => {
+        case StaticArrayFromCallableSE(range, rules, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, callableAE) => {
           val (callableTE, returnsFromCallable) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life, callableAE);
           val expr2 =
             arrayTemplar.evaluateStaticSizedArrayFromCallable(
-              temputs, fate, range, rules, typeByRune, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, callableTE)
+              temputs, fate, range, rules.toVector, sizeRuneA.rune, maybeMutabilityRune.rune, maybeVariabilityRune.rune, callableTE)
           (expr2, returnsFromCallable)
         }
-        case RuntimeArrayFromCallableSE(range, rules, typeByRune, maybeMutabilityRune, maybeVariabilityRune, sizeAE, callableAE) => {
+        case RuntimeArrayFromCallableSE(range, rulesA, mutabilityRune, variabilityRune, sizeAE, callableAE) => {
           val (sizeTE, returnsFromSize) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, sizeAE);
           val (callableTE, returnsFromCallable) =
@@ -748,7 +751,7 @@ class ExpressionTemplar(
 
           val expr2 =
             arrayTemplar.evaluateRuntimeSizedArrayFromCallable(
-              temputs, fate, range, rules, typeByRune, maybeMutabilityRune, maybeVariabilityRune, sizeTE, callableTE)
+              temputs, fate, range, rulesA.toVector, mutabilityRune.rune, variabilityRune.rune, sizeTE, callableTE)
           (expr2, returnsFromSize ++ returnsFromCallable)
         }
 //        case StaticSizedArrayFromCallableAE(range, mutabilityTemplex, variabilityTemplex, elementCoordTemplex, generatorPrototypeTemplex, sizeExpr1, generatorExpr1) => {
@@ -779,21 +782,32 @@ class ExpressionTemplar(
 //              generatorMethod2)
 //          (constructExpr2, returnsFromSize ++ returnsFromGenerator)
 //        }
-        case LetSE(range, rulesA, typeByRune, localRunesA, pattern, sourceExpr1) => {
+        case LetSE(range, rulesA, pattern, sourceExpr1) => {
           val (sourceExpr2, returnsFromSource) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, sourceExpr1)
 
+          val runeToType =
+            AstronomySolver.solve(
+                nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+                false,
+                rulesA,
+                List(),
+                true,
+                Map()) match {
+              case Ok(r) => r
+              case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
+            }
           val resultTE =
             patternTemplar.inferAndTranslatePattern(
-              temputs, fate, life + 1, rulesA, typeByRune, localRunesA, pattern, sourceExpr2,
+              temputs, fate, life + 1, rulesA.toVector, runeToType, pattern, sourceExpr2,
               (temputs, fate, life, liveCaptureLocals) => VoidLiteralTE())
 
           (resultTE, returnsFromSource)
         }
-        case RuneLookupSE(range, runeA, tyype) => {
-          val templata = vassertSome(fate.getNearestTemplataWithAbsoluteName2(NameTranslator.translateRune(runeA), Set(TemplataLookupContext)))
-          (tyype, templata) match {
-            case (IntegerTemplataType, IntegerTemplata(value)) => (ConstantIntTE(value, 32), Set())
+        case RuneLookupSE(range, runeA) => {
+          val templata = vassertOne(fate.lookupWithImpreciseName(profiler, RuneNameS(runeA), Set(TemplataLookupContext), true))
+          templata match {
+            case IntegerTemplata(value) => (ConstantIntTE(value, 32), Set())
           }
         }
         case IfSE(range, conditionSE, thenBody1, elseBody1) => {
@@ -802,7 +816,7 @@ class ExpressionTemplar(
           // The then and else blocks are children of the block which contains the condition
           // so they can access any locals declared by the condition.
 
-          val ifBlockFate = fate.makeChildEnvironment(newTemplataStore)
+          val ifBlockFate = fate.makeChildEnvironment(newTemplataStore, None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, ifBlockFate, life + 1, conditionSE)
@@ -811,7 +825,7 @@ class ExpressionTemplar(
           }
 
 
-          val thenFate = ifBlockFate.makeChildEnvironment(newTemplataStore)
+          val thenFate = ifBlockFate.makeChildEnvironment(newTemplataStore, Some(thenBody1))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(temputs, thenFate.snapshot, thenFate, life + 2, thenBody1.exprs)
@@ -820,7 +834,7 @@ class ExpressionTemplar(
           val thenUnstackifiedAncestorLocals = thenFate.getEffects()
           val thenContinues = uncoercedThenBlock2.resultRegister.reference.kind != NeverT()
 
-          val elseFate = ifBlockFate.makeChildEnvironment(newTemplataStore)
+          val elseFate = ifBlockFate.makeChildEnvironment(newTemplataStore, Some(elseBody1))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(temputs, elseFate.snapshot, elseFate, life + 3, elseBody1.exprs)
@@ -890,7 +904,7 @@ class ExpressionTemplar(
           // We make a block for the while-statement which contains its condition (the "if block"),
           // and the body block, so they can access any locals declared by the condition.
 
-          val whileBlockFate = fate.makeChildEnvironment(newTemplataStore)
+          val whileBlockFate = fate.makeChildEnvironment(newTemplataStore, None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, whileBlockFate, life + 0, conditionSE)
@@ -927,8 +941,8 @@ class ExpressionTemplar(
           val whileExpr2 = WhileTE(BlockTE(ifExpr2))
           (whileExpr2, returnsFromCondition ++ bodyReturnsFromExprs)
         }
-        case BlockSE(range, blockExprs) => {
-          val childEnvironment = fate.makeChildEnvironment(newTemplataStore)
+        case b @ BlockSE(range, locals, blockExprs) => {
+          val childEnvironment = fate.makeChildEnvironment(newTemplataStore, Some(b))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(temputs, childEnvironment.functionEnvironment, childEnvironment, life, blockExprs)
@@ -939,11 +953,11 @@ class ExpressionTemplar(
 
           (block2, returnsFromExprs)
         }
-        case ArrayLengthSE(range, arrayExprA) => {
-          val (arrayExpr2, returnsFromArrayExpr) =
-            evaluateAndCoerceToReferenceExpression(temputs, fate, life, arrayExprA);
-          (ArrayLengthTE(arrayExpr2), returnsFromArrayExpr)
-        }
+//        case ArrayLengthSE(range, arrayExprA) => {
+//          val (arrayExpr2, returnsFromArrayExpr) =
+//            evaluateAndCoerceToReferenceExpression(temputs, fate, life, arrayExprA);
+//          (ArrayLengthTE(arrayExpr2), returnsFromArrayExpr)
+//        }
         case DestructSE(range, innerAE) => {
           val (innerExpr2, returnsFromArrayExpr) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, innerAE);
@@ -1053,8 +1067,8 @@ class ExpressionTemplar(
   def getOption(temputs: Temputs, fate: FunctionEnvironment, range: RangeS, containedCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
-      fate.getNearestTemplataWithName(CodeTypeNameA("Opt"), Set(TemplataLookupContext)) match {
-        case Some(it@InterfaceTemplata(_, _)) => it
+      fate.lookupWithImpreciseName(profiler, CodeTypeNameS("Opt"), Set(TemplataLookupContext), true).toList match {
+        case List(it@InterfaceTemplata(_, _)) => it
         case _ => vfail()
       }
     val optInterfaceRef =
@@ -1062,8 +1076,8 @@ class ExpressionTemplar(
     val ownOptCoord = CoordT(OwnT, ReadwriteT, optInterfaceRef)
 
     val someConstructorTemplata =
-      fate.getNearestTemplataWithName(GlobalFunctionFamilyNameA("Some"), Set(ExpressionLookupContext)) match {
-        case Some(ft@FunctionTemplata(_, _)) => ft
+      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Some"), Set(ExpressionLookupContext), true).toList match {
+        case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
     val someConstructor =
@@ -1074,8 +1088,8 @@ class ExpressionTemplar(
       }
 
     val noneConstructorTemplata =
-      fate.getNearestTemplataWithName(GlobalFunctionFamilyNameA("None"), Set(ExpressionLookupContext)) match {
-        case Some(ft@FunctionTemplata(_, _)) => ft
+      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("None"), Set(ExpressionLookupContext), true).toList match {
+        case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
     val noneConstructor =
@@ -1090,8 +1104,8 @@ class ExpressionTemplar(
   def getResult(temputs: Temputs, fate: FunctionEnvironment, range: RangeS, containedSuccessCoord: CoordT, containedFailCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
-      fate.getNearestTemplataWithName(CodeTypeNameA("Result"), Set(TemplataLookupContext)) match {
-        case Some(it@InterfaceTemplata(_, _)) => it
+      fate.lookupWithImpreciseName(profiler, CodeTypeNameS("Result"), Set(TemplataLookupContext), true).toList match {
+        case List(it@InterfaceTemplata(_, _)) => it
         case _ => vfail()
       }
     val resultInterfaceRef =
@@ -1099,8 +1113,8 @@ class ExpressionTemplar(
     val ownResultCoord = CoordT(OwnT, ReadwriteT, resultInterfaceRef)
 
     val okConstructorTemplata =
-      fate.getNearestTemplataWithName(GlobalFunctionFamilyNameA("Ok"), Set(ExpressionLookupContext)) match {
-        case Some(ft@FunctionTemplata(_, _)) => ft
+      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Ok"), Set(ExpressionLookupContext), true).toList match {
+        case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
     val okConstructor =
@@ -1111,8 +1125,8 @@ class ExpressionTemplar(
       }
 
     val errConstructorTemplata =
-      fate.getNearestTemplataWithName(GlobalFunctionFamilyNameA("Err"), Set(ExpressionLookupContext)) match {
-        case Some(ft@FunctionTemplata(_, _)) => ft
+      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Err"), Set(ExpressionLookupContext), true).toList match {
+        case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
     val errConstructor =
@@ -1202,16 +1216,18 @@ class ExpressionTemplar(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       range: RangeS,
-      name: LambdaNameA,
-      function1: BFunctionA):
+      name: IFunctionDeclarationNameS,
+      functionS: FunctionS):
   (ReferenceExpressionTE) = {
 
+    val functionA = astronomizeLambda(temputs, fate, functionS)
+
     val closurestructTT =
-      delegate.evaluateClosureStruct(temputs, fate.snapshot, range, name, function1);
+      delegate.evaluateClosureStruct(temputs, fate.snapshot, range, name, functionA);
     val closureCoord =
       templataTemplar.pointifyKind(temputs, closurestructTT, OwnT)
 
-    val constructExpr2 = makeClosureStructConstructExpression(temputs, fate, function1.origin.range, closurestructTT)
+    val constructExpr2 = makeClosureStructConstructExpression(temputs, fate, functionA.range, closurestructTT)
     vassert(constructExpr2.resultRegister.reference == closureCoord)
     // The result of a constructor is always an own or a share.
 
@@ -1229,7 +1245,7 @@ class ExpressionTemplar(
     constructExpr2
   }
 
-  private def newGlobalFunctionGroupExpression(env: IEnvironmentBox, name: GlobalFunctionFamilyNameA): ReferenceExpressionTE = {
+  private def newGlobalFunctionGroupExpression(env: IEnvironmentBox, name: GlobalFunctionFamilyNameS): ReferenceExpressionTE = {
     TemplarReinterpretTE(
       Program2.emptyPackExpression,
       CoordT(
@@ -1255,11 +1271,56 @@ class ExpressionTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    patterns1: Vector[AtomAP],
+    patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]
   ): ReferenceExpressionTE = {
     patternTemplar.translatePatternList(
       temputs, fate, life, patterns1, patternInputExprs2,
       (temputs, fate, liveCaptureLocals) => VoidLiteralTE())
+  }
+
+  def astronomizeLambda(
+    temputs: Temputs,
+    fate: FunctionEnvironmentBox,
+    functionS: FunctionS):
+  FunctionA = {
+    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, paramsS, maybeRetCoordRune, rulesS, bodyS) = functionS
+
+    val runeSToPreKnownTypeA =
+      runeToExplicitType ++
+        paramsS.map(_.pattern.coordRune.rune -> CoordTemplataType).toMap
+    val runeSToType =
+      AstronomySolver.solve(
+        {
+          // This is here because if we tried to look up this lambda struct, it wouldn't exist yet.
+          // It's not an insurmountable problem, it will exist slightly later when we're inside StructTemplar,
+          // but this workaround makes for a cleaner separation between FunctionTemplar and StructTemplar
+          // at least for now.
+          // If this proves irksome, consider rearranging FunctionTemplar and StructTemplar's steps in
+          // evaluating lambdas.
+          case LambdaStructNameS(_) => CoordTemplataType
+          case n => {
+            vassertSome(fate.lookupNearestWithImpreciseName(profiler, n, Set(TemplataLookupContext))).tyype
+          }
+        },
+        false, rulesS, identifyingRunesS.map(_.rune), true, runeSToPreKnownTypeA) match {
+        case Ok(t) => t
+        case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
+      }
+
+    // Shouldnt fail because we got a complete solve on the rules
+    val tyype = Scout.determineDenizenType(FunctionTemplataType, identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+
+    FunctionA(
+      rangeS,
+      nameS,
+      attributesS ++ Vector(UserFunctionS),
+      tyype,
+      identifyingRunesS,
+      runeSToType ++ fate.function.runeToType,
+      paramsS,
+      maybeRetCoordRune,
+      rulesS.toVector,
+      bodyS)
   }
 }

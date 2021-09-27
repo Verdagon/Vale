@@ -1,6 +1,8 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, IImpreciseNameStepA, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameA}
+//import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
+import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
+import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, INameS}
 import net.verdagon.vale.templar.templata.{FunctionBannerT, OverrideT, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
@@ -8,7 +10,7 @@ import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
 object EdgeTemplar {
   sealed trait IMethod
   case class NeededOverride(
-    name: IImpreciseNameStepA,
+    name: INameS,
     paramFilters: Vector[ParamFilter]
   ) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
   case class FoundFunction(prototype: PrototypeT) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
@@ -42,8 +44,8 @@ object EdgeTemplar {
                       case (tyype, _) => ParamFilter(tyype, None)
                     })
                   superFunction.fullName.last match {
-                    case FunctionNameT(humanName, _, _) => NeededOverride(GlobalFunctionFamilyNameA(humanName), overrideParamFilters)
-                    case ImmInterfaceDestructorNameT(_, _) => NeededOverride(ImmInterfaceDestructorImpreciseNameA(), overrideParamFilters)
+                    case FunctionNameT(humanName, _, _) => NeededOverride(GlobalFunctionFamilyNameS(humanName), overrideParamFilters)
+                    case ImmInterfaceDestructorNameT(_, _) => NeededOverride(ImmInterfaceDestructorImpreciseNameS(), overrideParamFilters)
                     case _ => vwat()
                   }
                 }

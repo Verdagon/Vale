@@ -1,6 +1,7 @@
 package net.verdagon.vale.templar.expression
 
-import net.verdagon.vale.astronomer.{BlockSE, IExpressionSE}
+//import net.verdagon.vale.astronomer.{BlockSE, IExpressionSE}
+import net.verdagon.vale.scout.{BlockSE, IExpressionSE}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
@@ -38,7 +39,7 @@ class BlockTemplar(
     life: LocationInFunctionEnvironment,
     block1: BlockSE):
   (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
-    val fate = parentFate.makeChildEnvironment(newTemplataStore)
+    val fate = parentFate.makeChildEnvironment(newTemplataStore, Some(block1))
     val startingFate = fate.snapshot
 
     val (expressionsWithResult, returnsFromExprs) =
@@ -101,12 +102,12 @@ class BlockTemplar(
     currentFate: FunctionEnvironmentBox):
   Vector[ILocalVariableT] = {
     val localsAsOfThen =
-      sinceFate.locals.collect({
+      sinceFate.liveLocals.collect({
         case x @ ReferenceLocalVariableT(_, _, _) => x
         case x @ AddressibleLocalVariableT(_, _, _) => x
       })
     val localsAsOfNow =
-      currentFate.locals.collect({
+      currentFate.liveLocals.collect({
         case x @ ReferenceLocalVariableT(_, _, _) => x
         case x @ AddressibleLocalVariableT(_, _, _) => x
       })

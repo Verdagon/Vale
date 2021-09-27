@@ -111,13 +111,13 @@ class ClosureTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
 
     val main = temputs.lookupLambdaIn("main")
-    main.only({
+    Collector.only(main, {
       case ReferenceLocalVariableT(
         FullNameT(_, Vector(FunctionNameT("main", _, _), LambdaCitizenNameT(_), FunctionNameT("__call", _, _)), ClosureParamNameT()),
         FinalT,
         CoordT(ShareT, ReadonlyT, StructTT(FullNameT(_, Vector(FunctionNameT("main", Vector(), Vector())), LambdaCitizenNameT(_))))) =>
     })
-    main.only({
+    Collector.only(main, {
       case ReferenceLocalVariableT(
           FullNameT(_, Vector(FunctionNameT("main",_,_), LambdaCitizenNameT(_), FunctionNameT("__call",_,_)),TemplarBlockResultVarNameT(_)),
           FinalT,
@@ -142,7 +142,7 @@ class ClosureTests extends FunSuite with Matchers {
     val lambda = temputs.lookupLambdaIn("main")
     // Make sure we're doing a referencememberlookup, since it's a reference member
     // in the closure struct.
-    lambda.only({
+    Collector.only(lambda, {
       case ReferenceMemberLookupTE(_,_, FullNameT(_, _, CodeVarNameT("x")), _, _, _) =>
     })
 
@@ -162,14 +162,14 @@ class ClosureTests extends FunSuite with Matchers {
 
     // Make sure we make it with a function pointer and a constructed vars struct
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case ConstructTE(StructTT(FullNameT(_, Vector(FunctionNameT("main",Vector(),Vector())),LambdaCitizenNameT(_))), _, _) =>
     })
 
     // Make sure we call the function somewhere
     main.onlyOf(classOf[FunctionCallTE])
 
-    lambda.only({
+    Collector.only(lambda, {
       case LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_, _,ClosureParamNameT()),FinalT,_),_, _) =>
     })
 
@@ -193,17 +193,17 @@ class ClosureTests extends FunSuite with Matchers {
     vassert(closuredVarsStruct.members == expectedMembers)
 
     val lambda = temputs.lookupLambdaIn("main")
-    lambda.only({
+    Collector.only(lambda, {
       case MutateTE(
         AddressMemberLookupTE(_,_,FullNameT(_, Vector(FunctionNameT("main",Vector(),Vector()), LambdaCitizenNameT(_)),CodeVarNameT("x")),CoordT(ShareT,ReadonlyT, IntT.i32), _),
         _) =>
     })
 
     val main = temputs.lookupFunction("main")
-    main.only({
+    Collector.only(main, {
       case LetNormalTE(AddressibleLocalVariableT(_, VaryingT, _), _) =>
     })
-    main.only({
+    Collector.only(main, {
       case AddressibleLocalVariableT(_, VaryingT, _) =>
     })
 

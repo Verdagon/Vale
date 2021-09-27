@@ -1,16 +1,16 @@
 package net.verdagon.vale.templar.function
 
 
-import net.verdagon.vale.astronomer.{AtomAP, BFunctionA, BodySE, ExportA, IExpressionSE, IFunctionAttributeA, LocalA, ParameterA, PureA, UserFunctionA}
+//import net.verdagon.vale.astronomer.{AtomSP, FunctionA, BodySE, ExportA, IExpressionSE, IFunctionAttributeA, LocalA, ParameterS, PureA, UserFunctionA}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.CaptureP
 import net.verdagon.vale._
+import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
-import net.verdagon.vale.templar.templata.TemplataTemplar
 
 import scala.collection.immutable.{List, Set}
 
@@ -27,7 +27,7 @@ trait IBodyTemplarDelegate {
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     life: LocationInFunctionEnvironment,
-    patterns1: Vector[AtomAP],
+    patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
 }
@@ -46,22 +46,26 @@ class BodyTemplar(
   def declareAndEvaluateFunctionBody(
       funcOuterEnv: FunctionEnvironmentBox,
       temputs: Temputs,
-    life: LocationInFunctionEnvironment,
-      bfunction1: BFunctionA,
+      life: LocationInFunctionEnvironment,
+      function1: FunctionA,
       maybeExplicitReturnCoord: Option[CoordT],
       params2: Vector[ParameterT],
       isDestructor: Boolean):
   (Option[CoordT], BlockTE) = {
-    val BFunctionA(function1, _) = bfunction1;
+    val bodyS =
+      function1.body match {
+        case CodeBodyS(b) => b
+        case _ => vwat()
+      }
 
     profiler.childFrame("evaluate body", () => {
       maybeExplicitReturnCoord match {
         case None => {
           val (body2, returns) =
             evaluateFunctionBody(
-                funcOuterEnv, temputs, life, bfunction1.origin.params, params2, bfunction1.body, isDestructor, None) match {
+                funcOuterEnv, temputs, life, function1.params, params2, bodyS, isDestructor, None) match {
               case Err(ResultTypeMismatchError(expectedType, actualType)) => {
-                throw CompileErrorExceptionT(BodyResultDoesntMatch(bfunction1.origin.range, function1.name, expectedType, actualType))
+                throw CompileErrorExceptionT(BodyResultDoesntMatch(function1.range, function1.name, expectedType, actualType))
 
               }
               case Ok((body, returns)) => (body, returns)
@@ -74,7 +78,7 @@ class BodyTemplar(
             } else {
               vassert(returns.nonEmpty)
               if (returns.size > 1) {
-                throw CompileErrorExceptionT(RangedInternalErrorT(bfunction1.body.range, "Can't infer return type because " + returns.size + " types are returned:" + returns.map("\n" + _)))
+                throw CompileErrorExceptionT(RangedInternalErrorT(bodyS.range, "Can't infer return type because " + returns.size + " types are returned:" + returns.map("\n" + _)))
               }
               returns.head
             }
@@ -87,13 +91,13 @@ class BodyTemplar(
                 funcOuterEnv,
                 temputs,
                 life,
-                bfunction1.origin.params,
+                function1.params,
                 params2,
-                bfunction1.body,
+                bodyS,
                 isDestructor,
                 Some(explicitRetCoord)) match {
               case Err(ResultTypeMismatchError(expectedType, actualType)) => {
-                throw CompileErrorExceptionT(BodyResultDoesntMatch(bfunction1.origin.range, bfunction1.origin.name, expectedType, actualType))
+                throw CompileErrorExceptionT(BodyResultDoesntMatch(function1.range, function1.name, expectedType, actualType))
               }
               case Ok((body, returns)) => (body, returns)
             }
@@ -106,7 +110,7 @@ class BodyTemplar(
             // Let it through, it doesn't return anything yet it results in a never, which means
             // we called panic or something from inside.
           } else {
-            throw CompileErrorExceptionT(CouldntConvertForReturnT(bfunction1.body.range, explicitRetCoord, returns.head))
+            throw CompileErrorExceptionT(CouldntConvertForReturnT(bodyS.range, explicitRetCoord, returns.head))
           }
 
           (None, body2)
@@ -121,20 +125,20 @@ class BodyTemplar(
     funcOuterEnv: FunctionEnvironmentBox,
     temputs: Temputs,
     life: LocationInFunctionEnvironment,
-    params1: Vector[ParameterA],
+    params1: Vector[ParameterS],
     params2: Vector[ParameterT],
     body1: BodySE,
     isDestructor: Boolean,
     maybeExpectedResultType: Option[CoordT]):
   Result[(BlockTE, Set[CoordT]), ResultTypeMismatchError] = {
-    val env = funcOuterEnv.makeChildEnvironment(newTemplataStore)
+    val env = funcOuterEnv.makeChildEnvironment(newTemplataStore, Some(body1.block))
     val startingEnv = env.functionEnvironment
 
     val patternsTE =
-      evaluateLets(funcOuterEnv, temputs, life + 0, body1.range, params1, params2);
+      evaluateLets(env, temputs, life + 0, body1.range, params1, params2);
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
-      delegate.evaluateBlockStatements(temputs, startingEnv, funcOuterEnv, life + 1, body1.block.exprs);
+      delegate.evaluateBlockStatements(temputs, startingEnv, env, life + 1, body1.block.exprs);
 
     val unconvertedBodyWithoutReturn = Templar.consecutive(Vector(patternsTE, statementsFromBlock))
 
@@ -194,7 +198,7 @@ class BodyTemplar(
       temputs: Temputs,
     life: LocationInFunctionEnvironment,
     range: RangeS,
-      params1: Vector[ParameterA],
+      params1: Vector[ParameterS],
       params2: Vector[ParameterT]):
   ReferenceExpressionTE = {
     val paramLookups2 =
@@ -207,8 +211,8 @@ class BodyTemplar(
     // for everything inside the body to use
 
     params1.foreach({
-      case ParameterA(AtomAP(_, Some(LocalA(name, _, _, _, _, _, _)), _, _, _)) => {
-        if (!fate.locals.exists(_.id.last == NameTranslator.translateVarNameStep(name))) {
+      case ParameterS(AtomSP(_, Some(CaptureS(name)), _, _, _)) => {
+        if (!fate.liveLocals.exists(_.id.last == NameTranslator.translateVarNameStep(name))) {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot couldnt find " + name))
         }
       }

@@ -23,11 +23,9 @@ import scala.collection.mutable
 case class ImplT(
   struct: StructTT,
   interface: InterfaceTT
-) extends QueriableT {
+)  {
   override def hashCode(): Int = vcurious()
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    struct.all(func) ++ interface.all(func)
-  }
+
 }
 
 case class KindExportT(
@@ -35,11 +33,9 @@ case class KindExportT(
   tyype: KindT,
   packageCoordinate: PackageCoordinate,
   exportedName: String
-) extends QueriableT {
+)  {
   override def hashCode(): Int = vcurious()
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    tyype.all(func)
-  }
+
 }
 
 case class FunctionExportT(
@@ -47,22 +43,18 @@ case class FunctionExportT(
   prototype: PrototypeT,
   packageCoordinate: PackageCoordinate,
   exportedName: String
-) extends QueriableT {
+)  {
   override def hashCode(): Int = vcurious()
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    prototype.all(func)
-  }
+
 }
 
 case class KindExternT(
   tyype: KindT,
   packageCoordinate: PackageCoordinate,
   externName: String
-) extends QueriableT {
+)  {
   override def hashCode(): Int = vcurious()
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    tyype.all(func)
-  }
+
 }
 
 case class FunctionExternT(
@@ -70,11 +62,9 @@ case class FunctionExternT(
   prototype: PrototypeT,
   packageCoordinate: PackageCoordinate,
   externName: String
-) extends QueriableT {
+)  {
   override def hashCode(): Int = vcurious()
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    prototype.all(func)
-  }
+
 }
 
 case class InterfaceEdgeBlueprint(
@@ -122,15 +112,13 @@ case class FunctionT(
   header: FunctionHeaderT,
 //  // Used for testing
 //  variables: Vector[ILocalVariableT],
-  body: ReferenceExpressionTE) extends QueriableT {
+  body: ReferenceExpressionTE)  {
   override def hashCode(): Int = vcurious()
 
   // We always end a function with a return, whose result is a Never.
   vassert(body.resultRegister.kind == NeverT())
 
-  def all[T](func: PartialFunction[QueriableT, T]): Vector[T] = {
-    Vector(this).collect(func) ++ header.all(func) ++ body.all(func)// ++ variables.flatMap(_.all(func))
-  }
+
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!

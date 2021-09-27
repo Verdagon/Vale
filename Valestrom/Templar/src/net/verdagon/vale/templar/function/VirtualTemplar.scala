@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameA, ImmInterfaceDestructorImpreciseNameA}
-import net.verdagon.vale.scout.RangeS
+import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
+import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, RangeS}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
@@ -43,14 +43,14 @@ class VirtualTemplar(opts: TemplarOptions, overloadTemplar: OverloadTemplar) {
         val needleSuperFunctionParamFilters =
           needleSuperFunctionParamTypes.zipWithIndex.map({
             case (needleSuperFunctionParamType, index) => {
-              ParamFilter(needleSuperFunctionParamType, if (index == virtualIndex) Some(AbstractT$) else None)
+              ParamFilter(needleSuperFunctionParamType, if (index == virtualIndex) Some(AbstractT) else None)
             }
           })
 
         val nameToScoutFor =
           sparkHeader.fullName.last match {
-            case FunctionNameT(humanName, _, _) => GlobalFunctionFamilyNameA(humanName)
-            case ImmInterfaceDestructorNameT(_, _) => ImmInterfaceDestructorImpreciseNameA()
+            case FunctionNameT(humanName, _, _) => GlobalFunctionFamilyNameS(humanName)
+            case ImmInterfaceDestructorNameT(_, _) => ImmInterfaceDestructorImpreciseNameS()
             case _ => vcurious()
           }
 

@@ -1,14 +1,14 @@
-package net.verdagon.vale.templar.citizen
+package net.verdagon.vale.templar.citize
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.citizen.{AncestorHelper, IStructTemplarDelegate, StructTemplarMiddle}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar
-import net.verdagon.vale.templar.infer.infer.{InferSolveFailure, InferSolveSuccess}
-import net.verdagon.vale.{IProfiler, vfail, vimpl, vwat}
+import net.verdagon.vale.{IProfiler, vassert, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 
@@ -42,7 +42,7 @@ class StructTemplarTemplateArgsLayer(
   (StructTT) = {
     profiler.newProfile("getStructRef", structTemplata.debugString + "<" + templateArgs.map(_.toString).mkString(", ") + ">", () => {
       val StructTemplata(env, structA) = structTemplata
-      val TopLevelCitizenDeclarationNameA(humanName, codeLocation) = structA.name
+      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = structA.name
       val structTemplateName = NameTranslator.translateCitizenName(structA.name)
       val structLastName = structTemplateName.makeCitizenName(templateArgs)
       val fullName = env.fullName.addStep(structLastName)
@@ -63,36 +63,25 @@ class StructTemplarTemplateArgsLayer(
             case None =>
             case Some(predictedMutability) => temputs.declareStructMutability(temporaryStructRef, Conversions.evaluateMutability(predictedMutability))
           }
-          val result =
-            inferTemplar.inferFromExplicitTemplateArgs(
+          vassert(structA.identifyingRunes.size == templateArgs.size)
+          val inferences =
+            inferTemplar.solveExpectComplete(
               env,
               temputs,
-              structA.identifyingRunes,
               structA.rules,
-              structA.typeByRune,
-              structA.localRunes,
-              Vector.empty,
-              None,
+              structA.runeToType,
               callRange,
-              templateArgs)
-
-          val inferences =
-            result match {
-              case isf@InferSolveFailure(_, _, _, _, _, _, _) => {
-                throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Couldnt figure out template args! Cause:\n" + isf))
-              }
-              case InferSolveSuccess(i) => i
-            }
+              structA.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
 
           structA.maybePredictedMutability match {
             case None => {
-              val MutabilityTemplata(mutability) = inferences.templatasByRune(NameTranslator.translateRune(structA.mutabilityRune))
+              val MutabilityTemplata(mutability) = inferences(structA.mutabilityRune.rune)
               temputs.declareStructMutability(temporaryStructRef, mutability)
             }
             case Some(_) =>
           }
 
-          middle.getStructRef(env, temputs, callRange, structA, inferences.templatasByRune)
+          middle.getStructRef(env, temputs, callRange, structA, inferences)
         }
       }
     })
@@ -106,7 +95,7 @@ class StructTemplarTemplateArgsLayer(
   (InterfaceTT) = {
     profiler.newProfile("getInterfaceRef", interfaceTemplata.debugString + "<" + templateArgs.map(_.toString).mkString(", ") + ">", () => {
       val InterfaceTemplata(env, interfaceS) = interfaceTemplata
-      val TopLevelCitizenDeclarationNameA(humanName, codeLocation) = interfaceS.name
+      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceS.name
       val interfaceTemplateName = NameTranslator.translateCitizenName(interfaceS.name)
       val interfaceLastName = interfaceTemplateName.makeCitizenName(templateArgs)
       val fullName = env.fullName.addStep(interfaceLastName)
@@ -128,37 +117,26 @@ class StructTemplarTemplateArgsLayer(
             case None =>
             case Some(predictedMutability) => temputs.declareInterfaceMutability(temporaryInterfaceRef, Conversions.evaluateMutability(predictedMutability))
           }
+          vassert(interfaceS.identifyingRunes.size == templateArgs.size)
 
-          val result =
-            inferTemplar.inferFromExplicitTemplateArgs(
+          val inferences =
+            inferTemplar.solveExpectComplete(
               env,
               temputs,
-              interfaceS.identifyingRunes,
               interfaceS.rules,
-              interfaceS.typeByRune,
-              interfaceS.localRunes,
-              Vector.empty,
-              None,
+              interfaceS.runeToType,
               callRange,
-              templateArgs)
-          val inferences =
-            result match {
-              case isf@InferSolveFailure(_, _, _, _, _, _, _) => {
-                throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Couldnt figure out template args! Cause:\n" + isf))
-              }
-              case InferSolveSuccess(i) => i
-            }
-
+              interfaceS.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
 
           interfaceS.maybePredictedMutability match {
             case None => {
-              val MutabilityTemplata(mutability) = inferences.templatasByRune(NameTranslator.translateRune(interfaceS.mutabilityRune))
+              val MutabilityTemplata(mutability) = inferences(interfaceS.mutabilityRune.rune)
               temputs.declareInterfaceMutability(temporaryInterfaceRef, mutability)
             }
             case Some(_) =>
           }
 
-          middle.getInterfaceRef(env, temputs, callRange, interfaceS, inferences.templatasByRune)
+          middle.getInterfaceRef(env, temputs, callRange, interfaceS, inferences)
         }
       }
     })
@@ -168,7 +146,7 @@ class StructTemplarTemplateArgsLayer(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     temputs: Temputs,
-    name: LambdaNameA,
+    name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
