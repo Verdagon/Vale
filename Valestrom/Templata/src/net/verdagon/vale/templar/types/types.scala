@@ -575,5 +575,4 @@ case class TemplateTemplataType(
   returnType: ITemplataType
 ) extends ITemplataType {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  vassert(paramTypes.nonEmpty)
 }

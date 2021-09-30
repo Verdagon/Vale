@@ -1,7 +1,10 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{CaptureP, VariabilityP}
-import net.verdagon.vale.scout.{LocalS, RangeS}
+import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
+import net.verdagon.vale.scout.{IRuneS, LocalS, RangeS}
+import net.verdagon.vale.templar.templata.KindTemplata
+import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType, KindTemplataType}
 import net.verdagon.vale.{vcurious, vimpl}
 
 import scala.collection.immutable.List
@@ -18,7 +21,19 @@ import scala.collection.immutable.List
 //case object AbstractAP extends VirtualityAP
 //case class OverrideAP(range: RangeS, kindRune: IRuneS) extends VirtualityAP { override def hashCode(): Int = vcurious() }
 
-//object PatternSUtils {
+object PatternSUtils {
+  def getRuneTypesFromPattern(pattern: AtomSP): Iterable[(IRuneS, ITemplataType)] = {
+    val runesFromVirtuality =
+      pattern.virtuality match {
+        case None => Vector.empty
+        case Some(AbstractSP) => Vector.empty
+        case Some(OverrideSP(range, kindRune)) => Vector((kindRune.rune -> KindTemplataType))
+      }
+    val runesFromDestructures =
+      pattern.destructure.toVector.flatten.flatMap(getRuneTypesFromPattern)
+    (runesFromVirtuality ++ runesFromDestructures :+ (pattern.coordRune.rune -> CoordTemplataType)).distinct
+  }
+
 //  def getDistinctOrderedRunesForPattern(pattern: AtomSP): Vector[IRuneS] = {
 //    val runesFromVirtuality =
 //      pattern.virtuality match {
@@ -30,5 +45,5 @@ import scala.collection.immutable.List
 //      pattern.destructure.toVector.flatten.flatMap(getDistinctOrderedRunesForPattern)
 //    (runesFromVirtuality ++ runesFromDestructures :+ pattern.coordRune).distinct
 //  }
-//
-//}
+
+}

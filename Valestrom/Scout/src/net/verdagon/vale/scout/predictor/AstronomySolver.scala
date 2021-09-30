@@ -177,6 +177,8 @@ object AstronomySolver {
         val actualType =
           env(name) match {
             case KindTemplataType => CoordTemplataType
+            case TemplateTemplataType(Vector(), KindTemplataType) => CoordTemplataType
+            case TemplateTemplataType(Vector(), CoordTemplataType) => CoordTemplataType
             case other => other
           }
         concludeRune(rune.rune, actualType)

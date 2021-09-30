@@ -3,6 +3,7 @@ package net.verdagon.vale.hammer
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.metal._
 import net.verdagon.vale.scout.rules._
+import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{types => t}
 import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.{vimpl, scout => s}
