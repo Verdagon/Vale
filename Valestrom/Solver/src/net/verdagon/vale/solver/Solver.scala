@@ -30,6 +30,7 @@ case class FailedSolve[Rule, RuneID, Conclusion, ErrType](
   error: ISolverError[RuneID, Conclusion, ErrType]
 ) extends IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] {
   override def getOrDie(): Map[RuneID, Conclusion] = vfail()
+  vpass()
 }
 
 sealed trait ISolverError[RuneID, Conclusion, ErrType]

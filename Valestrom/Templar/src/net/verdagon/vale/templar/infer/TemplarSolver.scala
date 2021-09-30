@@ -205,7 +205,7 @@ class TemplarSolver[Env, State](
       case KindLookupSR(range, rune, name) => {
         vassert(getRuneType(rune.rune) == KindTemplataType)
         val result = delegate.lookupTemplataImprecise(env, state, range, name)
-        concludeRune(rune.rune, result)
+        concludeRune(rune.rune, delegate.coerce(env, state, range, getRuneType(rune.rune), result))
         Ok(())
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
@@ -425,6 +425,8 @@ class TemplarSolver[Env, State](
     initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata]):
   ISolverOutcome[IRulexSR, IRuneS, ITemplata, ITemplarSolverError] = {
 
+    rules.flatMap(_.runeUsages.map(_.rune)).foreach(rune => vassert(runeToType.contains(rune)))
+
     val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
       Planner.plan(
         rules,
@@ -450,7 +452,12 @@ class TemplarSolver[Env, State](
         concludeRune: (IRuneS, ITemplata) => Unit) =>
       {
         solveRule(
-          state, env, ruleIndex, rule, getConclusion, concludeRune,
+          state, env, ruleIndex, rule,
+          getConclusion,
+          (rune: IRuneS, conclusion: ITemplata) => {
+            vassert(conclusion.tyype == vassertSome(runeToType.get(rune)))
+            concludeRune(rune, conclusion)
+          },
           runeS => vassertSome(runeToType.get(runeS)))
       }
     ) match {

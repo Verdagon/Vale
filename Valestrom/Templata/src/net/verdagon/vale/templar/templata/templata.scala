@@ -146,7 +146,11 @@ case class StructTemplata(
 ) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 7
-  override def tyype: ITemplataType = originStruct.tyype
+  override def tyype: ITemplataType = {
+    // Note that this might disagree with originStruct.tyype, which might not be a TemplateTemplataType.
+    // In Templar, StructTemplatas are templates, even if they have zero arguments.
+    TemplateTemplataType(originStruct.identifyingRunes.map(_.rune).map(originStruct.runeToType), KindTemplataType)
+  }
 
   // Make sure we didn't accidentally code something to include the structs's name as
   // the last step.
@@ -191,7 +195,11 @@ case class InterfaceTemplata(
 ) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 8
-  override def tyype: ITemplataType = originInterface.tyype
+  override def tyype: ITemplataType = {
+    // Note that this might disagree with originStruct.tyype, which might not be a TemplateTemplataType.
+    // In Templar, StructTemplatas are templates, even if they have zero arguments.
+    TemplateTemplataType(originInterface.identifyingRunes.map(_.rune).map(originInterface.runeToType), KindTemplataType)
+  }
 
   // Make sure we didn't accidentally code something to include the interface's name as
   // the last step.

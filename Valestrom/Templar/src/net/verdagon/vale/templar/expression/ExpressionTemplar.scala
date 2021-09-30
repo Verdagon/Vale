@@ -786,6 +786,7 @@ class ExpressionTemplar(
           val (sourceExpr2, returnsFromSource) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life + 0, sourceExpr1)
 
+          val runeToInitiallyKnownType = PatternSUtils.getRuneTypesFromPattern(pattern)
           val runeToType =
             AstronomySolver.solve(
                 nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
@@ -793,7 +794,7 @@ class ExpressionTemplar(
                 rulesA,
                 List(),
                 true,
-                Map()) match {
+                runeToInitiallyKnownType.toMap) match {
               case Ok(r) => r
               case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
             }

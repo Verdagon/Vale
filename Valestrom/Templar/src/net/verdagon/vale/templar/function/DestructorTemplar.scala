@@ -602,7 +602,9 @@ object DestructorTemplar {
         Map(
           CodeRuneS("T") -> CoordTemplataType,
           CodeRuneS("V") -> CoordTemplataType,
-          CodeRuneS("KM") -> KindTemplataType,
+          CodeRuneS("KM") -> MutabilityTemplataType,
+          CodeRuneS("O") -> OwnershipTemplataType,
+          CodeRuneS("P") -> PermissionTemplataType,
           CodeRuneS("K") -> KindTemplataType),
         Vector(
           ParameterS(AtomSP(RangeS.internal(-1340), Some(CaptureS(CodeVarNameS("this"))), Some(AbstractSP), RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), None))),
@@ -611,7 +613,11 @@ object DestructorTemplar {
           KindComponentsSR(RangeS.internal(-95), RuneUsage(RangeS.internal(-64002), CodeRuneS("K")), RuneUsage(RangeS.internal(-64002), CodeRuneS("KM"))),
           LiteralSR(RangeS.internal(-167216),RuneUsage(RangeS.internal(-64002), CodeRuneS("KM")),MutabilityLiteralSL(Conversions.unevaluateMutability(mutability))),
           CoordComponentsSR(
-            RangeS.internal(-96), RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
+            RangeS.internal(-96),
+            RuneUsage(RangeS.internal(-64002), CodeRuneS("T")),
+            RuneUsage(RangeS.internal(-64002), CodeRuneS("O")),
+            RuneUsage(RangeS.internal(-64002), CodeRuneS("P")),
+            RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
           OneOfSR(RangeS.internal(-167219), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
           OneOfSR(RangeS.internal(-167222), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
           IsInterfaceSR(RangeS.internal(-167225), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),

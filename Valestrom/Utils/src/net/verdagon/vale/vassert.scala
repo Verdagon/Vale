@@ -22,10 +22,10 @@ object vcheck {
 
 // A condition that reflects a programmer error.
 object vassert {
-  def apply(condition: Boolean): Unit = {
+  def apply(condition: => Boolean): Unit = {
     vassert(condition, "Assertion failed!")
   }
-  def apply(condition: Boolean, message: String): Unit = {
+  def apply(condition: => Boolean, message: => String): Unit = {
     if (!condition) {
       vfail(message)
     }

@@ -310,7 +310,7 @@ object TemplarErrorHumanizer {
         case FailedSolve(incompleteConclusions, unsolvedRules, error) => {
           error match {
             case SolverConflict(rule, rune, previousConclusion, newConclusion) => {
-              "Conflict, thought rune " + rune + " was " + previousConclusion + " but now concluding it's " + newConclusion
+              "Conflict, thought rune " + humanizeRune(rune) + " was " + humanizeTemplata(codeMap, previousConclusion) + " but now concluding it's " + humanizeTemplata(codeMap, newConclusion)
             }
             case RuleError(ruleIndex, err) => {
               humanizeRuleError(codeMap, err) + "\n"
@@ -402,12 +402,18 @@ object TemplarErrorHumanizer {
         (ownership match {
           case OwnT => ""
           case ShareT => ""
-          case ConstraintT => "&"
-          case WeakT => "&&"
-        }) +
-        (permission match {
-          case ReadonlyT => ""
-          case ReadwriteT => "!"
+          case ConstraintT => {
+            (permission match {
+              case ReadonlyT => "&"
+              case ReadwriteT => "&!"
+            })
+          }
+          case WeakT => {
+            (permission match {
+              case ReadonlyT => "&&"
+              case ReadwriteT => "&&!"
+            })
+          }
         }) +
           humanizeTemplata(codeMap, KindTemplata(kind))
       }

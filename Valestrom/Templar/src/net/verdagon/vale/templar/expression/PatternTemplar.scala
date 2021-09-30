@@ -98,6 +98,18 @@ class PatternTemplar(
   ReferenceExpressionTE = {
     profiler.newProfile("inferAndTranslatePattern", fate.fullName.toString, () => {
 
+      // The rules are different depending on the incoming type.
+      // See Impl Rule For Upcasts (IRFU).
+      val incomingTemplatas = Map[IRuneS, ITemplata]()
+//        inputExpr.resultRegister.reference.kind match {
+//          case InterfaceTT(_) => {
+//            Map[IRuneS, ITemplata]()
+//          }
+//          case _ => {
+//            Map(pattern.coordRune.rune -> CoordTemplata(inputExpr.resultRegister.reference))
+//          }
+//        }
+
       val templatasByRune =
         inferTemplar.solveExpectComplete(
           fate.snapshot,
@@ -105,7 +117,7 @@ class PatternTemplar(
           rules,
           runeToType,
           pattern.range,
-          Map(pattern.coordRune.rune -> CoordTemplata(inputExpr.resultRegister.reference)))
+          incomingTemplatas)
         .mapValues(v => Vector(TemplataEnvEntry(v)))
 
       fate.addEntries(opts.useOptimization, templatasByRune.map({ case (key, value) => (RuneNameT(key), value) }).toMap)
@@ -137,12 +149,13 @@ class PatternTemplar(
       // function's parameters. Ignore them.
     }
 
-    val expectedTemplata = fate.lookupWithImpreciseName(profiler, RuneNameS(coordRuneA.rune), Set(TemplataLookupContext), true).toList
+    val expectedTemplata =
+      fate.lookupWithImpreciseName(profiler, RuneNameS(coordRuneA.rune), Set(TemplataLookupContext), true).toList
     val expectedCoord =
       expectedTemplata match {
         case List(CoordTemplata(coord)) => coord
-        case List(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not a coord!"))
-        case List() => throw CompileErrorExceptionT(RangedInternalErrorT(range, "not found!"))
+        case List(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, expectedTemplata + " not a coord!"))
+        case List() => throw CompileErrorExceptionT(RangedInternalErrorT(range, coordRuneA + " not found!"))
       }
 
     // Now we convert m to a Marine. This also checks that it *can* be
