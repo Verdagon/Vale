@@ -4,8 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.predictor.AstronomySolver
-import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
+import net.verdagon.vale.scout.{RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
@@ -788,7 +787,7 @@ class ExpressionTemplar(
 
           val runeToInitiallyKnownType = PatternSUtils.getRuneTypesFromPattern(pattern)
           val runeToType =
-            AstronomySolver.solve(
+            RuneTypeSolver.solve(
                 nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
                 false,
                 rulesA,
@@ -1291,7 +1290,7 @@ class ExpressionTemplar(
       runeToExplicitType ++
         paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType).toMap
     val runeSToType =
-      AstronomySolver.solve(
+      RuneTypeSolver.solve(
         {
           // This is here because if we tried to look up this lambda struct, it wouldn't exist yet.
           // It's not an insurmountable problem, it will exist slightly later when we're inside StructTemplar,

@@ -133,7 +133,7 @@ case class InterfaceS(
   name: TopLevelCitizenDeclarationNameS,
   attributes: Vector[ICitizenAttributeS],
   weakable: Boolean,
-  userSpecifiedIdentifyingRunes: Vector[RuneUsage],
+  identifyingRunes: Vector[RuneUsage],
   runeToExplicitType: Map[IRuneS, ITemplataType],
   mutabilityRune: RuneUsage,
 

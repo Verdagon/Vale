@@ -5,9 +5,8 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser._
 import net.verdagon.vale.{Err, IProfiler, Ok, Profiler, scout, vassert, vassertOne, vassertSome, vimpl, vwat}
-import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
+import net.verdagon.vale.scout.{RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
-import net.verdagon.vale.scout.predictor.AstronomySolver
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.OverloadTemplar.IScoutExpectedFunctionFailureReason
 import net.verdagon.vale.templar._

@@ -3,7 +3,8 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP}
-import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
+import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.von.{JsonSyntax, VonPrinter}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.List
@@ -11,23 +12,62 @@ import scala.collection.immutable.List
 class RunePredictorTests extends FunSuite with Matchers {
   val tz = RangeS.testZero
 
+  private def compile(code: String): ProgramS = {
+    Parser.runParser(code) match {
+      case ParseFailure(err) => fail(err.toString)
+      case ParseSuccess(firstProgram0) => {
+        val von = ParserVonifier.vonifyFile(firstProgram0)
+        val vpstJson = new VonPrinter(JsonSyntax, 120).print(von)
+        val program0 =
+          ParsedLoader.load(vpstJson) match {
+            case ParseFailure(error) => vwat(error.toString)
+            case ParseSuccess(program0) => program0
+          }
+        Scout.scoutProgram(FileCoordinate.test, program0) match {
+          case Err(e) => vfail(e.toString)
+          case Ok(t) => t
+        }
+      }
+    }
+  }
+
+  private def compileForError(code: String): ICompileErrorS = {
+    Parser.runParser(code) match {
+      case ParseFailure(err) => fail(err.toString)
+      case ParseSuccess(firstProgram0) => {
+        val von = ParserVonifier.vonifyFile(firstProgram0)
+        val vpstJson = new VonPrinter(JsonSyntax, 120).print(von)
+        val program0 =
+          ParsedLoader.load(vpstJson) match {
+            case ParseFailure(error) => vwat(error.toString)
+            case ParseSuccess(program0) => program0
+          }
+        Scout.scoutProgram(FileCoordinate.test, program0) match {
+          case Err(e) => e
+          case Ok(t) => vfail("Successfully compiled!\n" + t.toString)
+        }
+      }
+    }
+  }
+
   test("Predict doesnt crash for simple templex") {
-    vimpl()
-//    val knowableRunesFromAbove = Set[IRuneS]()
-//
-////    val rules =
-////      LookupAR[IRuneS, RangeS, ILiteralSR, ILookupSR](tz,
-////        ImplicitRuneS(FunctionNameS("f", CodeLocationS.testZero), 0),
-////        NameLookupSR(CodeTypeNameS("int")))
-//
-//    val (tentativeRuneToCanonicalRune, world) =
-//      Optimizer.optimize(
-//        ruleBuilder.builder,
-//        (inputRule: IRulexSR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
-//
-//    val conclusions =
-//      PredictorEvaluator.solve(tz, ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
-//    conclusions shouldEqual Conclusions(Set(), Map())
+
+
+    val knowableRunesFromAbove = Set[IRuneS]()
+
+//    val rules =
+//      LookupAR[IRuneS, RangeS, ILiteralSR, ILookupSR](tz,
+//        ImplicitRuneS(FunctionNameS("f", CodeLocationS.testZero), 0),
+//        NameLookupSR(CodeTypeNameS("int")))
+
+    val (tentativeRuneToCanonicalRune, world) =
+      Optimizer.optimize(
+        ruleBuilder.builder,
+        (inputRule: IRulexSR[Int, RangeS, IValueSR, IValueSR]) => TemplarPuzzler.apply(inputRule))
+
+    val conclusions =
+      PredictorEvaluator.solve(tz, ruleBuilder.runeSToTentativeRune, tentativeRuneToCanonicalRune, ruleBuilder.tentativeRuneToType, world)
+    conclusions shouldEqual Conclusions(Set(), Map())
   }
 
   test("Can know rune from simple equals") {

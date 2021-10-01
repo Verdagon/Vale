@@ -1,9 +1,8 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.scout.predictor.AstronomySolver
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.parser.{CaptureP, FailedParse, FileP, ImmutableP, MutabilityP, MutableP}
-import net.verdagon.vale.scout.{ExportS, ExternS, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
+import net.verdagon.vale.scout.{ExportS, ExternS, RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.{Err, FileCoordinateMap, IPackageResolver, Ok, PackageCoordinate, PackageCoordinateMap, Result, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -461,7 +460,7 @@ object Astronomer {
       runeToExplicitType ++
         paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType)).toMap
     val runeSToType =
-      AstronomySolver.solve(
+      RuneTypeSolver.solve(
         (n) => Astronomer.lookupType(astrouts, env, rangeS, n),
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t

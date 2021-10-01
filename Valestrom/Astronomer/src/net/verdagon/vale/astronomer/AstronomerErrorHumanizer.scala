@@ -2,8 +2,7 @@ package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.FileCoordinateMap
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
-import net.verdagon.vale.scout.RangeS
-import net.verdagon.vale.scout.predictor.AstronomySolveError
+import net.verdagon.vale.scout.{RangeS, RuneTypeSolveError}
 
 object AstronomerErrorHumanizer {
   def assembleError(
@@ -19,9 +18,9 @@ object AstronomerErrorHumanizer {
   def humanize(
     filenamesAndSources: FileCoordinateMap[String],
     range: RangeS,
-    err: AstronomySolveError):
+    err: RuneTypeSolveError):
   String = {
-    val AstronomySolveError(rules) = err
+    val RuneTypeSolveError(rules) = err
     ": Couldn't solve generics rules:\n" + lineContaining(filenamesAndSources, range.file, range.begin.offset) + "\n" + rules.toString
   }
 

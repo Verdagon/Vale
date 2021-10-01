@@ -152,13 +152,6 @@ case class AugmentSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune, innerRune)
 }
 
-//case class NullableSR(
-//  range: RangeS,
-//  resultRune: RuneUsage,
-//  inner: Int) extends IRulexSR {
-//  override def hashCode(): Int = vcurious()
-//}
-
 case class CallSR(
   range: RangeS,
   resultRune: RuneUsage,
@@ -168,21 +161,6 @@ case class CallSR(
   override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(resultRune, templateRune) ++ args
 }
-
-//case class CommonMutabilitySR(
-//  range: RangeS,
-//  resultRune: RuneUsage,
-//  args: Array[RuneUsage]
-//) extends IRulexSR {
-//  override def hashCode(): Int = vcurious()
-//}
-
-//case class FunctionSR(
-//  mutability: Option[IRulexSR],
-//  parameters: Array[Option[IRulexSR]],
-//  returnType: Option[IRulexSR]
-//) extends IRulexSR {
-// override def hashCode(): Int = vcurious()}
 
 case class PrototypeSR(
   range: RangeS,
@@ -234,21 +212,6 @@ case class CoordListSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
 }
 
-//case class RuneLeafSR(
-//  range: RangeS,
-//  rune: IRuneS
-//) extends IRulexSR {
-//  override def hashCode(): Int = vcurious()
-//}
-//
-//case class ValueLeafSR(
-//  range: RangeS,
-//  resultRune: IRuneS,
-//  value: IValueSR
-//) extends IRulexSR {
-//  override def hashCode(): Int = vcurious()
-//}
-
 
 sealed trait ILiteralSL {
   def getType(): ITemplataType
@@ -286,62 +249,3 @@ case class VariabilityLiteralSL(variability: VariabilityP) extends ILiteralSL {
   override def hashCode(): Int = vcurious()
   override def getType(): ITemplataType = VariabilityTemplataType
 }
-
-//// This is a rune that we know is defined, which came from the parent env
-//case class EnvRuneLookupSR(
-//  rune: IRuneS
-//) extends IValueSR {
-//  override def hashCode(): Int = vcurious()
-//}
-
-
-
-//sealed trait ITemplataType
-//case object IntegerTemplataType extends ITemplataType
-//case object StringTemplataType extends ITemplataType
-//case object PrototypeTemplataType extends ITemplataType
-//case object BooleanTemplataType extends ITemplataType
-//case object OwnershipTemplataType extends ITemplataType
-//case object MutabilityTemplataType extends ITemplataType
-//case object PermissionTemplataType extends ITemplataType
-//case object LocationTemplataType extends ITemplataType
-//case object CoordTemplataType extends ITemplataType
-//case object KindTemplataType extends ITemplataType
-//case object FunctionTemplataType extends ITemplataType
-//case class TemplateTemplataType(params: Vector[ITemplataType], result: ITemplataType) extends ITemplataType {
-//  override def hashCode(): Int = vcurious()
-//}
-//case object VariabilityTemplataType extends ITemplataType
-
-//case object StructTypeSR extends ITypeSR
-//case object SequenceTypeSR extends ITypeSR
-// We need PackTypeSR because we have a built-in templated destructor whose rules
-// only match packs... PackTypeSR is how it does that.
-//case object PackTypeSR extends ITypeSR
-//case object ArrayTypeSR extends ITypeSR
-//case object CallableTypeSR extends ITypeSR
-//case object InterfaceTypeSR extends ITypeSR
-
-
-//object RuleSUtils {
-//
-//  def getDistinctOrderedRunesForRulex(rulex: IRulexSR): Vector[IRuneS] = {
-//    rulex match {
-////      case PackSR(elements) => getDistinctOrderedRunesForRulexes(elements)
-//      case EqualsSR(range, left, right) => Vector(left, right).distinct
-//      case IsaSR(range, left, right) => Vector(left, right).distinct
-//      case OrSR(range, rune, possibilities) => Vector(rune)
-//      case KindComponentsSR(_, kindRune, mutabilityRune) => {
-//        getDistinctOrderedRunesForRulex(container) ++ components.flatMap(getDistinctOrderedRunesForRulex).toSet
-//      }
-//      case TypedSR(_, rune, tyype) => Vector(rune)
-//      case NameSR(_, name) => Vector()
-////      case templex => TemplexSUtils.getDistinctOrderedRunesForTemplex(templex)
-//      case CallSR(_, name, args) => args.flatMap(getDistinctOrderedRunesForRulex).distinct
-//    }
-//  }
-//
-//  def getDistinctOrderedRunesForRulexes(rulexes: Vector[IRulexSR]): Vector[IRuneS] = {
-//    rulexes.flatMap(getDistinctOrderedRunesForRulex).distinct
-//  }
-//}

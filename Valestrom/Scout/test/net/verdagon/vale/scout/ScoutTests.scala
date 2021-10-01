@@ -158,18 +158,20 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       case FunctionNameS("blork", _) =>
     }
 
-    vassert(imoo.userSpecifiedIdentifyingRunes.map(_.rune).contains(CodeRuneS("T")))
-    vassert(!blork.identifyingRunes.map(_.rune).contains(CodeRuneS("T")))
+    vassert(imoo.identifyingRunes.map(_.rune).contains(CodeRuneS("T")))
+    // Interface methods of generic interfaces will have the same identifying runes of their
+    // generic interfaces, see IMCBT.
+    vassert(blork.identifyingRunes.map(_.rune).contains(CodeRuneS("T")))
   }
 
   test("Impl") {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
     impl.rules shouldHave {
-      case LookupSR(_, r, CodeTypeNameS("Moo")) => vassert(r == impl.structKindRune)
+      case KindLookupSR(_, r, CodeTypeNameS("Moo")) => vassert(r == impl.structKindRune)
     }
     impl.rules shouldHave {
-      case LookupSR(_, r, CodeTypeNameS("IMoo")) => vassert(r == impl.interfaceKindRune)
+      case KindLookupSR(_, r, CodeTypeNameS("IMoo")) => vassert(r == impl.interfaceKindRune)
     }
   }
 
@@ -218,6 +220,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     }
     lambda2.params match {
       case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS("a"))), None, Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
+//      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS(a))), None, None, None))) =>
     }
   }
 

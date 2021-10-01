@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 //import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.PatternScout
-import net.verdagon.vale.scout.predictor.{AstronomySolveError, AstronomySolver}
+import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
@@ -30,7 +30,7 @@ case class CantOverrideOwnershipped(range: RangeS) extends ICompileErrorS { over
 case class VariableNameAlreadyExists(range: RangeS, name: IVarNameS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class InterfaceMethodNeedsSelf(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class VirtualAndAbstractGoTogether(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
-case class CouldntSolveRulesS(range: RangeS, error: AstronomySolveError) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
+case class CouldntSolveRulesS(range: RangeS, error: RuneTypeSolveError) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class RangedInternalErrorS(range: RangeS, message: String) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class LightFunctionMustHaveParamTypes(range: RangeS, paramIndex: Int) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 
@@ -250,7 +250,7 @@ object Scout {
     rulesS: Array[IRulexSR]):
   Map[IRuneS, ITemplataType] = {
     val runeSToLocallyPredictedTypes =
-      AstronomySolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, Map()) match {
+      RuneTypeSolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, Map()) match {
         case Ok(t) => t
         // This likely cannot happen because we aren't even asking for a complete solve.
         case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))

@@ -32,17 +32,3 @@ case object AbstractSP extends VirtualitySP
 case class OverrideSP(range: RangeS, kindRune: RuneUsage) extends VirtualitySP {
   override def hashCode(): Int = vcurious()
 }
-
-//object PatternSUtils {
-//  def getDistinctOrderedRunesForPattern(pattern: AtomSP): Vector[IRuneS] = {
-//    val runesFromVirtuality =
-//      pattern.virtuality match {
-//        case None => Vector.empty
-//        case Some(AbstractSP) => Vector.empty
-//        case Some(OverrideSP(range, kindRune)) => Vector(kindRune)
-//      }
-//    val runesFromDestructures =
-//      pattern.destructure.toVector.flatten.flatMap(getDistinctOrderedRunesForPattern)
-//    (runesFromVirtuality ++ runesFromDestructures :+ pattern.coordRune.rune).distinct
-//  }
-//}

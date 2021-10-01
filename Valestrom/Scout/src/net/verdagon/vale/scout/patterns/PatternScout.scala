@@ -74,16 +74,15 @@ object PatternScout {
       }
 
     val coordRuneS =
-      maybeTypeP.map(typeP => {
-        translateTypeIntoRune(
+      Some(
+        translateMaybeTypeIntoRune(
           stackFrame.parentEnv,
           lidb.child(),
           Scout.evalRange(stackFrame.file, range),
           ruleBuilder,
           runeToExplicitType,
-          typeP,
-          false)
-      })
+          maybeTypeP,
+          false))
 
     val maybePatternsS =
       maybeDestructureP match {
