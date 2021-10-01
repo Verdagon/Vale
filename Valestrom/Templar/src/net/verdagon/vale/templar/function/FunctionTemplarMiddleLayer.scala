@@ -249,7 +249,7 @@ class FunctionTemplarMiddleLayer(
       val CoordTemplata(coord) =
         env
           .lookupNearestWithImpreciseName(profiler,
-            RuneNameS(param1.pattern.coordRune.rune),
+            RuneNameS(param1.pattern.coordRune.get.rune),
             Set(TemplataLookupContext))
           .get
       coord
@@ -267,7 +267,7 @@ class FunctionTemplarMiddleLayer(
             env
               .lookupNearestWithImpreciseName(
                 profiler,
-                RuneNameS(param1.pattern.coordRune.rune),
+                RuneNameS(param1.pattern.coordRune.get.rune),
                 Set(TemplataLookupContext)))
         val maybeVirtuality = evaluateMaybeVirtuality(env, temputs, param1.pattern.virtuality)
         val nameT =

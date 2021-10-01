@@ -22,7 +22,7 @@ case class AtomSP(
   // etc up-front to include in the pattern.
   name: Option[CaptureS],
   virtuality: Option[VirtualitySP],
-  coordRune: RuneUsage,
+  coordRune: Option[RuneUsage],
   destructure: Option[Vector[AtomSP]]) {
   override def hashCode(): Int = vcurious()
 }

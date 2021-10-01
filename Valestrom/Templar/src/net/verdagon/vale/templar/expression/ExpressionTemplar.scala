@@ -333,7 +333,7 @@ class ExpressionTemplar(
         case ConstantStrSE(range, s) => (ConstantStrTE(s), Set())
         case ConstantFloatSE(range, f) => (ConstantFloatTE(f), Set())
         case ArgLookupSE(range, index) => {
-          val paramCoordRune = fate.function.params(index).pattern.coordRune
+          val paramCoordRune = fate.function.params(index).pattern.coordRune.get
           val paramCoordTemplata = vassertOne(fate.lookupWithImpreciseName(profiler, RuneNameS(paramCoordRune.rune), Set(TemplataLookupContext), true))
           val CoordTemplata(paramCoord) = paramCoordTemplata
           vassert(fate.functionEnvironment.fullName.last.parameters(index) == paramCoord)
@@ -1289,7 +1289,7 @@ class ExpressionTemplar(
 
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.map(_.pattern.coordRune.rune -> CoordTemplataType).toMap
+        paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType).toMap
     val runeSToType =
       AstronomySolver.solve(
         {

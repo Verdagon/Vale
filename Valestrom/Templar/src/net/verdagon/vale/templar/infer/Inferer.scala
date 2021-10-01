@@ -4,7 +4,6 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.{INameS, IRuneS, RangeS}
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.solver.Solver
 import net.verdagon.vale.templar.INameT
 //import net.verdagon.vale.templar.infer.TemplarSolver.TemplarSolverEnv
 import net.verdagon.vale.templar.templata._
@@ -94,7 +93,7 @@ trait IInfererDelegate[Env, State] {
 //
 //      )
 //
-//    TemplarSolver.solve(env, rules) match {
+//    TemplarPlanner.solve(env, rules) match {
 //      case Ok(t) => InferSolveSuccess(t)
 //    }
 //

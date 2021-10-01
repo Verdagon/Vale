@@ -107,7 +107,7 @@
 ////
 ////    val solver = makeSolver()
 ////    val conclusions =
-////      solver.solve(Unit, Unit, orderedCanonicalRules, numCanonicalRunes, invocationRange) match {
+////      Planner.solve(Unit, Unit, orderedCanonicalRules, numCanonicalRunes, invocationRange) match {
 ////        case Ok(rawConclusions) => {
 ////          if (rawConclusions.contains(None)) {
 ////            runeSToRune

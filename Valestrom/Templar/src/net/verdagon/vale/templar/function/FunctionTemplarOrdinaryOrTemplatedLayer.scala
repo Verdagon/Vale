@@ -357,7 +357,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     function.params.flatMap(_.pattern.virtuality).collect({ case OverrideSP(_, rune) => rune.rune })
       .zip(args.flatMap(_.virtuality).collect({ case OverrideT(i) => i }).map(KindTemplata)).toMap ++
       function.identifyingRunes.map(_.rune).zip(explicitTemplateArgs).toMap ++
-      function.params.map(_.pattern.coordRune.rune).zip(args.map(_.tyype).map(CoordTemplata)).toMap
+      function.params.map(_.pattern.coordRune.get.rune).zip(args.map(_.tyype).map(CoordTemplata)).toMap
   }
 
   private def checkClosureConcernsHandled(

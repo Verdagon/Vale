@@ -50,7 +50,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
           AtomSP(_,
             Some(CaptureS(CodeVarNameS("moo"))),
             None,
-            RuneUsage(_, tcr @ ImplicitRuneS(_)),
+            Some(RuneUsage(_, tcr @ ImplicitRuneS(_))),
             None)) => tcr
       }
 
@@ -72,7 +72,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
           AtomSP(_,
           None,
             None,
-            RuneUsage(_, pr @ ImplicitRuneS(_)),
+            Some(RuneUsage(_, pr @ ImplicitRuneS(_))),
             None)) => pr
       }
 
@@ -90,7 +90,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
        AtomSP(_,
         None,
         None,
-        RuneUsage(_, pr @ ImplicitRuneS(_)),
+        Some(RuneUsage(_, pr @ ImplicitRuneS(_))),
         None)) => pr
     }
   }
@@ -114,7 +114,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
                 AtomSP(_,
                   Some(CaptureS(CodeVarNameS("a"))),
                   None,
-                  RuneUsage(_, ar @ ImplicitRuneS(_)),
+                  Some(RuneUsage(_, ar @ ImplicitRuneS(_))),
                 None))))) => (ar, tr)
       }
 

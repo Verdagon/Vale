@@ -214,7 +214,7 @@ object Planner {
 //    (ruleExecutionOrder, canonicalRuneToIsSolved)
 //  }
 
-  private[solver] def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
+  def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
     state: State,
     env: Env,
     solverState: SolverState[Rule, RuneID, Conclusion],
@@ -246,7 +246,7 @@ object Planner {
           case Err(e) => return Err(
             FailedSolve(
               solverState.userifyConclusions().toMap,
-              vimpl(),
+              solverState.getUnsolvedRules(),
               RuleError(solvingRuleIndex, e)))
         }
 

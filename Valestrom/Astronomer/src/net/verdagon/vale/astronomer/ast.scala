@@ -261,8 +261,8 @@ case class FunctionA(
     return range == that.range && name == that.name;
   }
 
-  params.foreach(param => {
-    vassert(runeToType.contains(param.pattern.coordRune.rune))
+  params.flatMap(_.pattern.coordRune).foreach(runeUsage => {
+    vassert(runeToType.contains(runeUsage.rune))
   })
 
 //  // Make sure we have to solve all the identifying runes.

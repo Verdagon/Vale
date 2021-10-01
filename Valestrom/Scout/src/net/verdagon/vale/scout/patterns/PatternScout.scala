@@ -74,14 +74,16 @@ object PatternScout {
       }
 
     val coordRuneS =
-      translateMaybeTypeIntoRune(
-        stackFrame.parentEnv,
-        lidb.child(),
-        Scout.evalRange(stackFrame.file, range),
-        ruleBuilder,
-        runeToExplicitType,
-        maybeTypeP,
-        false)
+      maybeTypeP.map(typeP => {
+        translateTypeIntoRune(
+          stackFrame.parentEnv,
+          lidb.child(),
+          Scout.evalRange(stackFrame.file, range),
+          ruleBuilder,
+          runeToExplicitType,
+          typeP,
+          false)
+      })
 
     val maybePatternsS =
       maybeDestructureP match {
@@ -114,6 +116,32 @@ object PatternScout {
     AtomSP(Scout.evalRange(stackFrame.file, range), captureS, maybeVirtualityS, coordRuneS, maybePatternsS)
   }
 
+  def translateTypeIntoRune(
+    env: IEnvironment,
+    lidb: LocationInDenizenBuilder,
+    range: RangeS,
+    ruleBuilder: ArrayBuffer[IRulexSR],
+    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
+    typeP: ITemplexPT,
+    askingForKind: Boolean,
+    // Determines whether the rune is on the left or the right in the Equals rule, which
+    // can (unfortunately) affect the order in which the generics engine evaluates things.
+    // This is a temporary solution, see DCRC, option A.
+    runeOnLeft: Boolean = true):
+  RuneUsage = {
+    typeP match {
+      case NameOrRunePT(NameP(range, nameOrRune)) if env.allDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
+        val resultRuneS = RuneUsage(Scout.evalRange(env.file, range), CodeRuneS(nameOrRune))
+        runeToExplicitType.put(resultRuneS.rune, if (askingForKind) KindTemplataType else CoordTemplataType)
+        //        ruleBuilder += ValueLeafSR(range, resultRuneS, EnvRuneLookupSR(CodeRuneS(nameOrRune)))
+        //        resultRuneS
+        resultRuneS
+      }
+      case nonRuneTemplexP => {
+        TemplexScout.translateTemplex(env, lidb.child(), ruleBuilder, nonRuneTemplexP, askingForKind)
+      }
+    }
+  }
   def translateMaybeTypeIntoRune(
       env: IEnvironment,
       lidb: LocationInDenizenBuilder,
@@ -133,15 +161,8 @@ object PatternScout {
         runeToExplicitType.put(resultRuneS.rune, if (askingForKind) KindTemplataType else CoordTemplataType)
         resultRuneS
       }
-      case Some(NameOrRunePT(NameP(range, nameOrRune))) if env.allDeclaredRunes().contains(CodeRuneS(nameOrRune)) => {
-        val resultRuneS = RuneUsage(Scout.evalRange(env.file, range), CodeRuneS(nameOrRune))
-        runeToExplicitType.put(resultRuneS.rune, if (askingForKind) KindTemplataType else CoordTemplataType)
-//        ruleBuilder += ValueLeafSR(range, resultRuneS, EnvRuneLookupSR(CodeRuneS(nameOrRune)))
-//        resultRuneS
-        resultRuneS
-      }
-      case Some(nonRuneTemplexP) => {
-        TemplexScout.translateTemplex(env, lidb.child(), ruleBuilder, nonRuneTemplexP, askingForKind)
+      case Some(typeP) => {
+        translateTypeIntoRune(env, lidb, range, ruleBuilder, runeToExplicitType, typeP, askingForKind, runeOnLeft)
       }
     }
   }
