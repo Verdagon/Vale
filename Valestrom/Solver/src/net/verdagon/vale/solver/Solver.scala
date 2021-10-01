@@ -58,74 +58,22 @@ trait ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType] {
     env: Env,
     ruleIndex: Int,
     rule: Rule,
-    getConclusion: RuneID => Option[Conclusion],
-    concludeRune: (RuneID, Conclusion) => Unit):
-  Result[Unit, ErrType]
+    solverState: ISolverStateForRule[Rule, RuneID, Conclusion]):
+  Result[Map[RuneID, Conclusion], ErrType]
 }
 
-object Solver {
-  def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
-    state: State,
-    env: Env,
-    numCanonicalRunes: Int,
-    rules: IndexedSeq[Rule],
-    ruleExecutionOrder: Iterable[Int],
-    ruleToRunes: Rule => Iterable[RuneID],
-    userRuneToCanonicalRune: RuneID => Int,
-    allUserRunes: Iterable[RuneID],
-    initiallyKnownRunes: Map[RuneID, Conclusion],
-    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
-  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
-    val conclusions: Array[Option[Conclusion]] = (0 until numCanonicalRunes).map(_ => None).toArray
-    initiallyKnownRunes.foreach({ case (userRuneID, conclusion) =>
-      conclusions(userRuneToCanonicalRune(userRuneID)) = Some(conclusion)
-    })
-
-    def userifyConclusions(conclusions: Array[Option[Conclusion]]): Stream[(RuneID, Conclusion)] = {
-      allUserRunes.toStream.flatMap(userRune => {
-        conclusions(userRuneToCanonicalRune(userRune)).map(userRune -> _)
-      })
-    }
-
-    val orderedRules = ruleExecutionOrder.map(rules)
-    orderedRules.zipWithIndex.foreach({ case (solvingRule, solvingRuleIndex) =>
-      val getConclusion =
-        (requestedUserRune: RuneID) => {
-          val requestedCanonicalRune = userRuneToCanonicalRune(requestedUserRune)
-          vassert(ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.contains(requestedCanonicalRune))
-          conclusions(requestedCanonicalRune)
-        }
-      val concludeRune =
-        (newlySolvedRune: RuneID, newConclusion: Conclusion) => {
-          val newlySolvedCanonicalRune = userRuneToCanonicalRune(newlySolvedRune)
-          vassert(ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.contains(newlySolvedCanonicalRune))
-          conclusions(newlySolvedCanonicalRune) match {
-            case None => conclusions(newlySolvedCanonicalRune) = Some(newConclusion)
-            case Some(existingConclusion) => {
-              if (existingConclusion != newConclusion) {
-                return Err(
-                  FailedSolve(
-                    userifyConclusions(conclusions).toMap,
-                    orderedRules.slice(solvingRuleIndex, orderedRules.size).toVector,
-                    SolverConflict(solvingRuleIndex, newlySolvedRune, existingConclusion, newConclusion)))
-              }
-            }
-          }
-          ()
-        }
-      solveRule.solve(state, env, solvingRuleIndex, solvingRule, getConclusion, concludeRune) match {
-        case Ok(_) =>
-        case Err(e) => return Err(
-          FailedSolve(
-            userifyConclusions(conclusions).toMap,
-            orderedRules.slice(solvingRuleIndex, orderedRules.size).toVector,
-            RuleError(solvingRuleIndex, e)))
-      }
-      ruleToRunes(solvingRule).map(userRuneToCanonicalRune).toArray.foreach(canonicalRune => {
-        vassert(conclusions(canonicalRune).nonEmpty, "Didn't conclude a rune!")
-      })
-    })
-
-    Ok(userifyConclusions(conclusions))
-  }
-}
+//object Solver {
+//  def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
+//    state: State,
+//    env: Env,
+//    numCanonicalRunes: Int,
+//    rules: IndexedSeq[Rule],
+//    ruleExecutionOrder: Iterable[Int],
+//    ruleToRunes: Rule => Iterable[RuneID],
+//    userRuneToCanonicalRune: RuneID => Int,
+//    allUserRunes: Iterable[RuneID],
+//    initiallyKnownRunes: Map[RuneID, Conclusion],
+//    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
+//  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
+//  }
+//}
