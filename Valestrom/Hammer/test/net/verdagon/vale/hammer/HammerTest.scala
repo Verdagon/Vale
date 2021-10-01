@@ -39,7 +39,7 @@ class HammerTest extends FunSuite with Matchers with Collector {
     vassert(paackage.exportNameToFunction.exists(_._2 == main.prototype))
 
     val stackifies = recursiveCollect(main, { case s @ StackifyH(_, _, _) => s })
-    val localIds = stackifies.map(_.local.id.number).sorted
+    val localIds = stackifies.map(_.local.id.number).toVector.sorted
     localIds shouldEqual localIds.distinct.toVector
     vassert(localIds.size >= 6)
   }

@@ -1,8 +1,7 @@
 package net.verdagon.vale.astronomer
 
 //import net.verdagon.vale.astronomer.ruletyper.RuleTyperSolveFailure
-import net.verdagon.vale.scout.RangeS
-import net.verdagon.vale.scout.predictor.AstronomySolveError
+import net.verdagon.vale.scout.{RangeS, RuneTypeSolveError}
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.{vcurious, vimpl, vpass}
 
@@ -11,7 +10,7 @@ case class CompileErrorExceptionA(err: ICompileErrorA) extends RuntimeException 
 sealed trait ICompileErrorA { def range: RangeS }
 case class CouldntFindTypeA(range: RangeS, name: String) extends ICompileErrorA { override def hashCode(): Int = vcurious() }
 case class TooManyMatchingTypesA(range: RangeS, name: String) extends ICompileErrorA { override def hashCode(): Int = vcurious() }
-case class CouldntSolveRulesA(range: RangeS, error: AstronomySolveError) extends ICompileErrorA {
+case class CouldntSolveRulesA(range: RangeS, error: RuneTypeSolveError) extends ICompileErrorA {
   override def hashCode(): Int = vcurious()
 }
 case class CircularModuleDependency(range: RangeS, modules: Set[String]) extends ICompileErrorA { override def hashCode(): Int = vcurious() }

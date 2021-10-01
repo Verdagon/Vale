@@ -1,13 +1,12 @@
-package net.verdagon.vale.scout.predictor
+package net.verdagon.vale.scout
 
 import net.verdagon.vale._
-import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{ISolverStateForRule, Planner}
 import net.verdagon.vale.templar.types._
 
-case class AstronomySolveError(unknownRunes: Iterable[IRuneS])
-object AstronomySolver {
+case class RuneTypeSolveError(unknownRunes: Iterable[IRuneS])
+object RuneTypeSolver {
   def getRunes(rule: IRulexSR): Array[IRuneS] = {
     val sanityCheck =
       rule match {
@@ -228,7 +227,7 @@ object AstronomySolver {
     additionalRunes: Iterable[IRuneS],
     expectCompleteSolve: Boolean,
     initiallyKnownRunes: Map[IRuneS, ITemplataType]):
-  Result[Map[IRuneS, ITemplataType], AstronomySolveError] = {
+  Result[Map[IRuneS, ITemplataType], RuneTypeSolveError] = {
     val solverState =
       Planner.makeInitialSolverState(
         rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
@@ -243,7 +242,7 @@ object AstronomySolver {
         case Err(e) => vfail(e)
       }
     if (expectCompleteSolve && (conclusions.keySet != solverState.getAllRunes())) {
-      Err(AstronomySolveError(solverState.getAllRunes() -- conclusions.keySet))
+      Err(RuneTypeSolveError(solverState.getAllRunes() -- conclusions.keySet))
     } else {
       Ok(conclusions)
     }

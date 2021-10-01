@@ -1,9 +1,8 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{FileP, ParseFailure, ParseSuccess, Parser}
-import net.verdagon.vale.scout.{CodeRuneS, ProgramS, Scout}
+import net.verdagon.vale.scout.{CodeRuneS, ProgramS, RuneTypeSolveError, Scout}
 import net.verdagon.vale._
-import net.verdagon.vale.scout.predictor.AstronomySolveError
 import net.verdagon.vale.scout.rules.{LiteralSR, PackSR}
 import net.verdagon.vale.templar.types.{CoordTemplataType, PackTemplataType, PrototypeTemplataType}
 import org.scalatest.{FunSuite, Matchers}
@@ -175,7 +174,7 @@ class AstronomerTests extends FunSuite with Matchers  {
           |}
           |""".stripMargin)
     compilation.getAstrouts() match {
-      case Err(CouldntSolveRulesA(_, AstronomySolveError(unknownRunes))) => {
+      case Err(CouldntSolveRulesA(_, RuneTypeSolveError(unknownRunes))) => {
         vassert(unknownRunes.toList.contains(CodeRuneS("P")))
       }
     }

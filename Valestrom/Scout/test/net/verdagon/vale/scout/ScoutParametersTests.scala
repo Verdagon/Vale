@@ -26,17 +26,17 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
 
     vassert(main.runeToExplicitType.size == 1)
 
-    vassert(main.identifyingRunes == List(CodeRuneS("T")))
+    main.identifyingRunes match {
+      case Vector(RuneUsage(_, CodeRuneS("T"))) =>
+    }
   }
 
   test("Returned rune") {
     val program1 = compile("""fn main<T>(moo T) T { moo }""")
     val main = program1.lookupFunction("main")
 
-    vassert(main.runeToExplicitType.size == 1)
-
-    vassert(main.identifyingRunes == List(CodeRuneS("T")))
-    vassert(main.maybeRetCoordRune == Some(CodeRuneS("T")))
+    vassert(main.identifyingRunes.map(_.rune).contains(CodeRuneS("T")))
+    main.maybeRetCoordRune match { case Some(RuneUsage(_, CodeRuneS("T"))) => }
   }
 
   test("Borrowed rune") {
@@ -59,7 +59,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
         case AugmentSR(_, tcr, Vector(OwnershipLiteralSL(ConstraintP),PermissionLiteralSL(ReadonlyP)), RuneUsage(_, CodeRuneS("T"))) => tcr
       }
 
-    tCoordRuneFromParams shouldEqual tCoordRuneFromRules
+    tCoordRuneFromParams shouldEqual tCoordRuneFromRules.rune
   }
 
   test("Anonymous typed param") {
@@ -77,21 +77,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case LookupSR(_, pr, CodeTypeNameS("int")) => vassert(pr == paramRune)
-    }
-  }
-
-  test("Anonymous untyped param") {
-    val program1 = compile("""fn main(_) infer-ret { }""")
-    val main = program1.lookupFunction("main")
-    val Vector(param) = main.params
-    param match {
-      case ParameterS(
-       AtomSP(_,
-        None,
-        None,
-        Some(RuneUsage(_, pr @ ImplicitRuneS(_))),
-        None)) => pr
+      case LookupSR(_, pr, CodeTypeNameS("int")) => vassert(pr.rune == paramRune)
     }
   }
 
@@ -108,7 +94,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
           AtomSP(_,
             Some(CaptureS(CodeVarNameS("moo"))),
             None,
-            tr,
+            Some(tr),
             Some(
               Vector(
                 AtomSP(_,
@@ -119,11 +105,11 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case LookupSR(_, air, CodeTypeNameS("int")) => vassert(air == aRune)
+      case LookupSR(_, air, CodeTypeNameS("int")) => vassert(air.rune == aRune)
     }
 
     // See CCAUIR.
-    main.identifyingRunes shouldEqual Vector(tRune)
+    main.identifyingRunes.map(_.rune) shouldEqual Vector(tRune.rune)
   }
 
   test("Regioned pure function") {

@@ -3,9 +3,8 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
-import net.verdagon.vale.scout.predictor.AstronomySolver
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RangeS}
+import net.verdagon.vale.scout.{IRuneS, RangeS, RuneTypeSolver}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
@@ -67,7 +66,7 @@ class ArrayTemplar(
     callableTE: ReferenceExpressionTE):
   ConstructArrayTE = {
     val runeToType =
-      AstronomySolver.solve(
+      RuneTypeSolver.solve(
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         false,
         rulesA,

@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.{ICompileErrorT, TemplarCompilation, TemplarCom
 import scala.collection.immutable.List
 
 case class HammerCompilationOptions(
-  debugOut: String => Unit = (x => {
+  debugOut: (=> String) => Unit = (x => {
     println("##: " + x)
   }),
   verbose: Boolean = true,

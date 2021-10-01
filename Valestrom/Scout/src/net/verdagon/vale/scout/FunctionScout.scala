@@ -228,7 +228,7 @@ object FunctionScout {
         lidb.child(),
         ruleBuilder,
         runeToExplicitType,
-        paramsP.toVector.flatMap(_.patterns));
+        paramsP.toVector.flatMap(_.patterns))
     val explicitParams1 = explicitParamPatterns1.map(ParameterS)
 //    vassert(exportedTemplateParamNames.size == exportedTemplateParamNames.toSet.size)
 
@@ -324,68 +324,6 @@ object FunctionScout {
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(parentStackFrame.file, range), "Can't have return type and infer-ret at the same time"))
       }
-//
-//    val allRunes =
-//      PredictorEvaluator.getAllRunes(
-//        userSpecifiedAndMagicParamRunes,
-//        rulesS,
-//        explicitParams1.map(_.pattern),
-//        maybeRetCoordRune)
-//    val Conclusions(knowableValueRunes, predictedruneToType) =
-//      PredictorEvaluator.solve(
-//        parentStackFrame.parentEnv.allUserDeclaredRunes(),
-//        rulesS,
-//        explicitParams1.map(_.pattern),
-//        Scout.evalRange(myStackFrame.file, range))
-//
-//    val localRunes = allRunes -- myStackFrame.parentEnv.allUserDeclaredRunes()
-//    val unknowableRunes = allRunes -- knowableValueRunes
-//
-
-    // This cant be:
-    //   val identifyingRunes =
-    //     userSpecifiedIdentifyingRunes ++ (unknowableRunes -- userSpecifiedIdentifyingRunes)
-    // because for example if we had:
-    //   fn moo<T>(m &T) { m.hp }
-    // then userSpecifiedIdentifyingRunes would be
-    //   CodeRuneS("T")
-    // and unknowableRunes would be
-    //   Set(CodeRuneS("T"), ImplicitRuneS(0), ImplicitRuneS(1))
-    // and we'd end up with identifyingRunes as
-    //   Vector(CodeRuneS("T"), ImplicitRuneS(0), ImplicitRuneS(1))
-    // So, what we instead want is like... the original causes of unknowable runes.
-    // I think thats just user specified ones, and implicit template runes from params,
-    // and magic param runes.
-//    val topLevelImplicitRunesS =
-//      paramsP.zip(explicitParams1.map(_.pattern)).flatMap({
-//        case (paramP, explicitParamPatternS) => {
-//          if (paramP.templex.isEmpty) {
-//            Vector(explicitParamPatternS.coordRune)
-//          } else {
-//            Vector.empty
-//          }
-//        }
-//      })
-
-//    val identifyingParamCoordRunes =
-//      explicitParamPatterns1
-//        .map(_.coordRune)
-//        .filter(!knowableValueRunes.contains(_))
-//        .filter(!userSpecifiedIdentifyingRunes.contains(_))
-//    val identifyingRunes = userSpecifiedIdentifyingRunes ++ magicParams.map(_.pattern.coordRune) ++ identifyingParamCoordRunes
-//
-//    val isTemplate = identifyingRunes.nonEmpty
-//
-//    val maybePredictedType =
-//      if (isTemplate) {
-//        if (identifyingRunes.isEmpty) {
-//          Some(TemplateTypeSR(identifyingRunes.map(predictedruneToType), FunctionTypeSR))
-//        } else {
-//          None
-//        }
-//      } else {
-//        Some(FunctionTypeSR)
-//      }
 
     val function1 =
       FunctionS(

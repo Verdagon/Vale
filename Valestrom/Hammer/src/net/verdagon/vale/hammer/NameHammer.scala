@@ -2,7 +2,7 @@ package net.verdagon.vale.hammer
 
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
-import net.verdagon.vale.scout.CodeLocationS
+import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeLocationS, CodeRuneS, ExplicitTemplateArgRuneS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.{IEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.templata._
@@ -28,18 +28,18 @@ object NameHammer {
       case AnonymousSubstructImplNameT() => "AnonSubstructImplName"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
       case AnonymousSubstructNameT(callables) => "AnonSubstruct"
-      case AnonymousSubstructParentInterfaceRuneS() => "anonSubstructParentInterfaceRune"
+//      case AnonymousSubstructParentInterfaceRuneS() => "anonSubstructParentInterfaceRune"
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
       case BuildingFunctionNameWithClosuredsAndTemplateArgsT(_, _) => vwat() // Shouldnt see this in hammer
       case CitizenNameT(humanName, templateArgs) => humanName
       case CitizenTemplateNameT(humanName, codeLocation) => humanName
       case ClosureParamNameT() => "closure"
-      case CodeRuneS(name) => name
+//      case CodeRuneS(name) => name
       case CodeVarNameT(name) => name
       case ConstructingMemberNameT(name) => name
       case ConstructorNameT(params) => "constructor"
       case ConstructorTemplateNameT(codeLoc) => "constructorTemplate"
-      case ExplicitTemplateArgRuneS(index) => "rune" + index
+//      case ExplicitTemplateArgRuneS(index) => "rune" + index
       case ExternFunctionNameT(humanName, params) => humanName
       case FunctionNameT(humanName, templateArgs, params) => humanName
       case FunctionTemplateNameT(humanName, codeLoc) => humanName
@@ -51,19 +51,19 @@ object NameHammer {
       case ImmInterfaceDestructorNameT(templateArgs, params) => "immInterfaceDestructor"
       case ImmInterfaceDestructorTemplateNameT() => "immInterfaceDestructorTemplate"
       case ImplDeclareNameT(subCitizenHumanName, codeLoc) => "impl" + subCitizenHumanName
-      case ImplicitRuneS(parentName, name) => "implicitRune" + name
+//      case ImplicitRuneS(parentName, name) => "implicitRune" + name
       case StaticSizedArrayNameT(size, arr) => "ssa" + size
       case LambdaCitizenNameT(codeLoc) => "lam"
       case LambdaTemplateNameT(codeLoc) => "lamTemplate"
-      case LetImplicitRuneS(codeLoc, name) => "letImplicitRune" + name
+//      case LetImplicitRuneS(codeLoc, name) => "letImplicitRune" + name
       case LetNameT(codeLoc) => "letName"
-      case MagicImplicitRuneS(codeLoc) => "magicRune"
+//      case MagicImplicitRuneS(codeLoc) => "magicRune"
       case MagicParamNameT(codeLoc) => "magicParam"
-      case MemberRuneS(memberIndex) => "memberRune" + memberIndex
+//      case MemberRuneS(memberIndex) => "memberRune" + memberIndex
       case PrimitiveNameT(humanName) => humanName
       case RawArrayNameT(mutability, elementType) => "rawArr"
-      case ReturnRuneS() => "retRune"
-      case SolverKindRuneS(paramRune) => "solverKindRune"
+//      case ReturnRuneS() => "retRune"
+//      case SolverKindRuneS(paramRune) => "solverKindRune"
       case TemplarBlockResultVarNameT(num) => "blockResult" + num
       case TemplarFunctionResultVarNameT() => "funcResult"
       case TemplarPatternDestructureeNameT(num) => "patDestrName" + num

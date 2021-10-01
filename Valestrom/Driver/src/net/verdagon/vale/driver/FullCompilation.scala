@@ -15,7 +15,7 @@ import net.verdagon.von.{IVonData, JsonSyntax, VonPrinter}
 import scala.collection.immutable.List
 
 case class FullCompilationOptions(
-  debugOut: String => Unit = (x => {
+  debugOut: (=> String) => Unit = (x => {
     println("##: " + x)
   }),
   verbose: Boolean = true,

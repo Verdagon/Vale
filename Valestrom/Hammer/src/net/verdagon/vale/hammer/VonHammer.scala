@@ -4,7 +4,7 @@ import net.verdagon.vale.hammer.NameHammer.translateFileCoordinate
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl, metal => m}
-import net.verdagon.vale.scout.CodeLocationS
+import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.types._
@@ -1264,68 +1264,68 @@ object VonHammer {
           None,
           Vector())
       }
-      case CodeRuneS(name) => {
-        VonObject(
-          "CodeRune",
-          None,
-          Vector(
-            VonMember("name", VonStr(name))))
-      }
-      case ImplicitRuneS(parentName, name) => {
-        VonObject(
-          "ImplicitRune",
-          None,
-          Vector(
-            VonMember("parentName", translateName(hinputs, hamuts, parentName)),
-            VonMember("name", VonInt(name))))
-      }
-      case LetImplicitRuneS(codeLocation, name) => {
-        VonObject(
-          "LetImplicitRune",
-          None,
-          Vector(
-            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
-      }
-      case MemberRuneS(memberIndex) => {
-        VonObject(
-          "MemberRune",
-          None,
-          Vector(
-            VonMember("memberIndex", VonInt(memberIndex))))
-      }
-      case MagicImplicitRuneS(codeLocation) => {
-        VonObject(
-          "MagicImplicitRune",
-          None,
-          Vector(
-            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
-      }
-      case ReturnRuneS() => {
-        VonObject(
-          "ReturnRune",
-          None,
-          Vector())
-      }
-      case SolverKindRuneS(paramRune) => {
-        VonObject(
-          "SolverKindRune",
-          None,
-          Vector(
-            VonMember("paramRune", translateName(hinputs, hamuts, paramRune))))
-      }
-      case ExplicitTemplateArgRuneS(index) => {
-        VonObject(
-          "ExplicitTemplateArgRune",
-          None,
-          Vector(
-            VonMember("index", VonInt(index))))
-      }
-      case AnonymousSubstructParentInterfaceRuneS() => {
-        VonObject(
-          "AnonymousSubstructParentInterfaceRune",
-          None,
-          Vector())
-      }
+//      case CodeRuneS(name) => {
+//        VonObject(
+//          "CodeRune",
+//          None,
+//          Vector(
+//            VonMember("name", VonStr(name))))
+//      }
+//      case ImplicitRuneS(parentName, name) => {
+//        VonObject(
+//          "ImplicitRune",
+//          None,
+//          Vector(
+//            VonMember("parentName", translateName(hinputs, hamuts, parentName)),
+//            VonMember("name", VonInt(name))))
+//      }
+//      case LetImplicitRuneS(codeLocation, name) => {
+//        VonObject(
+//          "LetImplicitRune",
+//          None,
+//          Vector(
+//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+//      }
+//      case MemberRuneS(memberIndex) => {
+//        VonObject(
+//          "MemberRune",
+//          None,
+//          Vector(
+//            VonMember("memberIndex", VonInt(memberIndex))))
+//      }
+//      case MagicImplicitRuneS(codeLocation) => {
+//        VonObject(
+//          "MagicImplicitRune",
+//          None,
+//          Vector(
+//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+//      }
+//      case ReturnRuneS() => {
+//        VonObject(
+//          "ReturnRune",
+//          None,
+//          Vector())
+//      }
+//      case SolverKindRuneS(paramRune) => {
+//        VonObject(
+//          "SolverKindRune",
+//          None,
+//          Vector(
+//            VonMember("paramRune", translateName(hinputs, hamuts, paramRune))))
+//      }
+//      case ExplicitTemplateArgRuneS(index) => {
+//        VonObject(
+//          "ExplicitTemplateArgRune",
+//          None,
+//          Vector(
+//            VonMember("index", VonInt(index))))
+//      }
+//      case AnonymousSubstructParentInterfaceRuneS() => {
+//        VonObject(
+//          "AnonymousSubstructParentInterfaceRune",
+//          None,
+//          Vector())
+//      }
     }
   }
 

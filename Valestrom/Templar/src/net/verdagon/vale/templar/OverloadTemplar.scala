@@ -1,8 +1,8 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS}
-import net.verdagon.vale.scout.predictor.{AstronomySolveError, AstronomySolver}
+import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolveError, RuneTypeSolver}
+import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.RuleTypeSolveFailure
@@ -31,7 +31,7 @@ object OverloadTemplar {
   case class SpecificParamDoesntMatch(index: Int, reason: String) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamVirtualityDoesntMatch(index: Int) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class Outscored() extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
-  case class RuleTypeSolveFailure(reason: AstronomySolveError) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
+  case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class InferFailure(reason: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
 
 
@@ -258,14 +258,14 @@ class OverloadTemplar(
                       // And now that we know the types that are expected of these template arguments, we can
                       // run these template argument templexes through the solver so it can evaluate them in
                       // context of the current environment and spit out some templatas.
-                      AstronomySolver.solve(
+                      RuneTypeSolver.solve(
                           nameS => vassertOne(env.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
                           false,
                           explicitlySpecifiedTemplateArgTemplexesS,
                           explicitTemplateArgRuneNamesS,
                           true,
                           explicitTemplateArgRuneToType) match {
-                        case Err(e @ AstronomySolveError(_)) => {
+                        case Err(e @ RuneTypeSolveError(_)) => {
                           val reason = RuleTypeSolveFailure(e)
                           (Vector.empty, Map(), Map(function -> reason))
                         }

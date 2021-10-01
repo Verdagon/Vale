@@ -3,7 +3,6 @@ package net.verdagon.vale
 import net.verdagon.vale.parser.{CaptureP, FinalP, VaryingP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{CoordTemplataType, TypedSR}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT}
@@ -70,7 +69,7 @@ class OwnershipTests extends FunSuite with Matchers {
 
     val main = compile.expectTemputs().lookupFunction("main")
     Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
-    main.all({ case FunctionCallTE(_, _) => }).size shouldEqual 2
+    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
@@ -117,7 +116,7 @@ class OwnershipTests extends FunSuite with Matchers {
 
     val main = compile.expectTemputs().lookupFunction("main")
     Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
-    main.all({ case FunctionCallTE(_, _) => }).size shouldEqual 2
+    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
@@ -151,7 +150,7 @@ class OwnershipTests extends FunSuite with Matchers {
     // The only function lookup should be println
     Collector.only(destructor, { case FunctionCallTE(functionName("println"), _) => })
     // Only one call (the above println)
-    destructor.all({ case FunctionCallTE(_, _) => }).size shouldEqual 1
+    Collector.all(destructor, { case FunctionCallTE(_, _) => }).size shouldEqual 1
 
     // moo should be calling the destructor
     val moo = temputs.lookupFunction("moo")
@@ -160,7 +159,7 @@ class OwnershipTests extends FunSuite with Matchers {
 
     // main should not be calling the destructor
     val main = temputs.lookupFunction("main")
-    main.all({ case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => true }).size shouldEqual 0
+    Collector.all(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => true }).size shouldEqual 0
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
@@ -185,7 +184,7 @@ class OwnershipTests extends FunSuite with Matchers {
 
     val main = compile.expectTemputs().lookupFunction("main")
     Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
-    main.all({ case FunctionCallTE(_, _) => }).size shouldEqual 2
+    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForKindAndStdout(Vector()) shouldEqual (VonInt(10), "Destroying!\n")
   }
@@ -223,9 +222,9 @@ class OwnershipTests extends FunSuite with Matchers {
 
     val main = compile.expectTemputs().lookupFunction("main")
 
-    val numVariables = main.all({ case ReferenceLocalVariableT(_, _, _) => }).size
-    main.all({ case LetAndLendTE(_, _) => case LetNormalTE(_, _) => }).size shouldEqual numVariables
-    main.all({ case UnletTE(_) => }).size shouldEqual numVariables
+    val numVariables = Collector.all(main, { case ReferenceLocalVariableT(_, _, _) => }).size
+    Collector.all(main, { case LetAndLendTE(_, _) => case LetNormalTE(_, _) => }).size shouldEqual numVariables
+    Collector.all(main, { case UnletTE(_) => }).size shouldEqual numVariables
   }
 
 

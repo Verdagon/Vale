@@ -1,9 +1,8 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer.ICompileErrorA
-import net.verdagon.vale.scout.predictor.AstronomySolveError
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RangeS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RangeS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
 import net.verdagon.vale.templar.infer.ITemplarSolverError
@@ -46,7 +45,7 @@ case class LambdaReturnDoesntMatchInterfaceConstructor(range: RangeS) extends IC
 case class IfConditionIsntBoolean(range: RangeS, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class WhileConditionIsntBoolean(range: RangeS, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantMoveFromGlobal(range: RangeS, name: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
-case class InferAstronomerError(range: RangeS, err: AstronomySolveError) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class InferAstronomerError(range: RangeS, err: RuneTypeSolveError) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 //case class NotEnoughToSolveError(range: RangeS, conclusions: Map[IRuneS, ITemplata], unknownRunes: Iterable[IRuneS]) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class TemplarSolverError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 //case class TemplarSolverConflict(range: RangeS, conclusions: Map[IRuneS, ITemplata], rune: IRuneS, conflictingNewConclusion: ITemplata) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
