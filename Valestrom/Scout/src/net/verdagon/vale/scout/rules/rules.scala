@@ -24,6 +24,11 @@ case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IR
   override def runeUsages: Array[RuneUsage] = Array(left, right)
 }
 
+case class ReceivesSR(range: RangeS, receiver: RuneUsage, sender: RuneUsage) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(receiver, sender)
+}
+
 case class IsaSR(range: RangeS, sub: RuneUsage, suuper: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(sub, suuper)

@@ -3,7 +3,7 @@ package net.verdagon.vale.scout.predictor
 import net.verdagon.vale._
 import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{Planner, Solver}
+import net.verdagon.vale.solver.{ISolverStateForRule, Planner}
 import net.verdagon.vale.templar.types._
 
 case class AstronomySolveError(unknownRunes: Iterable[IRuneS])
@@ -39,6 +39,7 @@ object AstronomySolver {
 
   def getPuzzles(predicting: Boolean, rule: IRulexSR): Array[Array[IRuneS]] = {
     rule match {
+      case EqualsSR(_, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case LookupSR(_, _, _) => {
         if (predicting) {
           // This Array() literally means nothing can solve this puzzle.
@@ -87,17 +88,14 @@ object AstronomySolver {
     env: INameS => ITemplataType,
     ruleIndex: Int,
     rule: IRulexSR,
-    getConclusion: IRuneS => Option[ITemplataType],
-    concludeRune: (IRuneS, ITemplataType) => Unit):
-  Result[Unit, Unit] = {
+    solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]):
+  Result[Map[IRuneS, ITemplataType], Unit] = {
     rule match {
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
-        concludeRune(resultRune.rune, KindTemplataType)
-        concludeRune(mutabilityRune.rune, MutabilityTemplataType)
-        Ok(())
+        Ok(Map(resultRune.rune -> KindTemplataType, mutabilityRune.rune -> MutabilityTemplataType))
       }
       case CallSR(range, resultRune, templateRune, argRunes) => {
-        getConclusion(templateRune.rune) match {
+        solverState.getConclusion(templateRune.rune) match {
           case None => {
             // We can't determine the template from the result and args because we might be coercing its
             // returned kind to a coord.
@@ -118,60 +116,56 @@ object AstronomySolver {
                     case KindTemplataType => CoordTemplataType
                     case other => other
                   }
-                concludeRune(resultRune.rune, effectiveReturnType)
-
-                argRunes.zip(paramTypes).foreach({ case (argRune, paramType) =>
-                  concludeRune(argRune.rune, paramType)
-                })
+                Ok(argRunes.map(_.rune).zip(paramTypes).toMap ++ Map(resultRune.rune -> effectiveReturnType))
               }
               case _ => vimpl(); Err(())
             }
           }
         }
-        Ok(())
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => {
-        concludeRune(resultRune.rune, CoordTemplataType)
-        concludeRune(ownershipRune.rune, OwnershipTemplataType)
-        concludeRune(permissionRune.rune, PermissionTemplataType)
-        concludeRune(kindRune.rune, KindTemplataType)
-        Ok(())
+        Ok(
+          Map(
+            resultRune.rune -> CoordTemplataType,
+            ownershipRune.rune -> OwnershipTemplataType,
+            permissionRune.rune -> PermissionTemplataType,
+            kindRune.rune -> KindTemplataType))
       }
       case PrototypeComponentsSR(_, resultRune, nameRune, paramListRune, returnRune) => {
-        concludeRune(resultRune.rune, PrototypeTemplataType)
-        concludeRune(nameRune.rune, StringTemplataType)
-        concludeRune(paramListRune.rune, PackTemplataType(CoordTemplataType))
-        concludeRune(returnRune.rune, CoordTemplataType)
-        Ok(())
+        Ok(
+          Map(
+            resultRune.rune -> PrototypeTemplataType,
+            nameRune.rune -> StringTemplataType,
+            paramListRune.rune -> PackTemplataType(CoordTemplataType),
+            returnRune.rune -> CoordTemplataType))
       }
       case OneOfSR(_, resultRune, literals) => {
         val types = literals.map(_.getType()).toSet
         if (types.size > 1) {
           vfail("OneOf rule's possibilities must all be the same type!")
         }
-        concludeRune(resultRune.rune, types.head)
-        Ok(())
+        Ok(Map(resultRune.rune -> types.head))
+      }
+      case EqualsSR(_, leftRune, rightRune) => {
+        solverState.getConclusion(leftRune.rune) match {
+          case None => Ok(Map(leftRune.rune -> vassertSome(solverState.getConclusion(rightRune.rune))))
+          case Some(left) => Ok(Map(rightRune.rune -> left))
+        }
       }
       case IsConcreteSR(_, rune) => {
-        concludeRune(rune.rune, KindTemplataType)
-        Ok(())
+        Ok(Map(rune.rune -> KindTemplataType))
       }
       case IsInterfaceSR(_, rune) => {
-        concludeRune(rune.rune, KindTemplataType)
-        Ok(())
+        Ok(Map(rune.rune -> KindTemplataType))
       }
       case IsStructSR(_, rune) => {
-        concludeRune(rune.rune, KindTemplataType)
-        Ok(())
+        Ok(Map(rune.rune -> KindTemplataType))
       }
       case CoerceToCoord(_, coordRune, kindRune) => {
-        concludeRune(kindRune.rune, KindTemplataType)
-        concludeRune(coordRune.rune, CoordTemplataType)
-        Ok(())
+        Ok(Map(kindRune.rune -> KindTemplataType, coordRune.rune -> CoordTemplataType))
       }
       case LiteralSR(_, rune, literal) => {
-        concludeRune(rune.rune, literal.getType())
-        Ok(())
+        Ok(Map(rune.rune -> literal.getType()))
       }
       case LookupSR(range, rune, name) => {
         val actualType =
@@ -181,28 +175,25 @@ object AstronomySolver {
             case TemplateTemplataType(Vector(), CoordTemplataType) => CoordTemplataType
             case other => other
           }
-        concludeRune(rune.rune, actualType)
-        Ok(())
+        Ok(Map(rune.rune -> actualType))
       }
       case KindLookupSR(range, rune, name) => {
-        concludeRune(rune.rune, KindTemplataType)
-        Ok(())
+        Ok(Map(rune.rune -> KindTemplataType))
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
-        concludeRune(resultRune.rune, CoordTemplataType)
-        concludeRune(innerRune.rune, CoordTemplataType)
-        Ok(())
+        Ok(Map(resultRune.rune -> CoordTemplataType, innerRune.rune -> CoordTemplataType))
       }
       case PackSR(_, resultRune, memberRunes) => {
-        getConclusion(resultRune.rune) match {
+        solverState.getConclusion(resultRune.rune) match {
           case Some(PackTemplataType(elementType)) => {
-            memberRunes.foreach(memberRune => concludeRune(memberRune.rune, elementType))
+            Ok(memberRunes.map(memberRune => (memberRune.rune -> elementType)).toMap)
           }
           case Some(_) => {
             vfail("Pack rule's result must be a pack!")
           }
           case None => {
-            val memberTypes = memberRunes.map(memberRune => vassertSome(getConclusion(memberRune.rune)))
+            val memberTypes =
+              memberRunes.map(memberRune => vassertSome(solverState.getConclusion(memberRune.rune)))
             val distinctMemberTypes = memberTypes.distinct
             val memberType =
               if (distinctMemberTypes.size != 1) {
@@ -210,18 +201,18 @@ object AstronomySolver {
               } else {
                 distinctMemberTypes.head
               }
-            concludeRune(resultRune.rune, PackTemplataType(memberType))
+            Ok(Map(resultRune.rune -> PackTemplataType(memberType)))
           }
         }
-        Ok(())
       }
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        concludeRune(resultRune.rune, CoordTemplataType)
-        concludeRune(mutabilityRune.rune, MutabilityTemplataType)
-        concludeRune(variabilityRune.rune, VariabilityTemplataType)
-        concludeRune(sizeRune.rune, IntegerTemplataType)
-        concludeRune(elementRune.rune, CoordTemplataType)
-        Ok(())
+        Ok(
+          Map(
+            resultRune.rune -> CoordTemplataType,
+            mutabilityRune.rune -> MutabilityTemplataType,
+            variabilityRune.rune -> VariabilityTemplataType,
+            sizeRune.rune -> IntegerTemplataType,
+            elementRune.rune -> CoordTemplataType))
       }
       case ManualSequenceSR(_, resultRune, elements) => vimpl()
       case CoordListSR(_, resultRune, elements) => vimpl()
@@ -238,30 +229,21 @@ object AstronomySolver {
     expectCompleteSolve: Boolean,
     initiallyKnownRunes: Map[IRuneS, ITemplataType]):
   Result[Map[IRuneS, ITemplataType], AstronomySolveError] = {
-    val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
-      Planner.plan(
-        rules,
-        additionalRunes,
-        getRunes,
-        (rule: IRulexSR) => getPuzzles(predicting, rule),
-        initiallyKnownRunes.keySet,
-        { case EqualsSR(_, a, b) => (a.rune, b.rune)}: PartialFunction[IRulexSR, (IRuneS, IRuneS)])
+    val solverState =
+      Planner.makeInitialSolverState(
+        rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
     val conclusions =
-      Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
+      Planner.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
         Unit,
         env,
-        numCanonicalRunes, rules, ruleExecutionOrder,
-        getRunes,
-        userRuneToCanonicalRune,
-        userRuneToCanonicalRune.keys,
-        initiallyKnownRunes,
+        solverState,
         solveRule
       ) match {
         case Ok(c) => c.toMap
         case Err(e) => vfail(e)
       }
-    if (expectCompleteSolve && (conclusions.keySet != userRuneToCanonicalRune.keySet)) {
-      Err(AstronomySolveError(userRuneToCanonicalRune.keySet -- conclusions.keySet))
+    if (expectCompleteSolve && (conclusions.keySet != solverState.getAllRunes())) {
+      Err(AstronomySolveError(solverState.getAllRunes() -- conclusions.keySet))
     } else {
       Ok(conclusions)
     }

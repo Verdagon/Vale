@@ -158,8 +158,8 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       case FunctionNameS("blork", _) =>
     }
 
-    vassert(imoo.userSpecifiedIdentifyingRunes.contains(CodeRuneS("T")))
-    vassert(!blork.identifyingRunes.contains(CodeRuneS("T")))
+    vassert(imoo.userSpecifiedIdentifyingRunes.map(_.rune).contains(CodeRuneS("T")))
+    vassert(!blork.identifyingRunes.map(_.rune).contains(CodeRuneS("T")))
   }
 
   test("Impl") {
@@ -214,10 +214,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val lambda1 = things(0).asInstanceOf[FunctionSE].function
     val lambda2 = things(1).asInstanceOf[FunctionSE].function
     lambda1.params match {
-      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, RuneUsage(_, MagicParamRuneS(_)), None))) =>
+      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(MagicParamNameS(_))), None, Some(RuneUsage(_, MagicParamRuneS(_))), None))) =>
     }
     lambda2.params match {
-      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS("a"))), None, RuneUsage(_, ImplicitRuneS(_)), None))) =>
+      case Vector(_, ParameterS(AtomSP(_, Some(CaptureS(CodeVarNameS("a"))), None, Some(RuneUsage(_, ImplicitRuneS(_))), None))) =>
     }
   }
 

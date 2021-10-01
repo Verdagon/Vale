@@ -459,7 +459,7 @@ object Astronomer {
   Map[IRuneS, ITemplataType] = {
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.map(_.pattern.coordRune.rune -> CoordTemplataType).toMap
+        paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType)).toMap
     val runeSToType =
       AstronomySolver.solve(
         (n) => Astronomer.lookupType(astrouts, env, rangeS, n),

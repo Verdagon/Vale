@@ -176,7 +176,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 //    val solver = makeSolver()
 //    val (runeToIndex, runeToType, plannerState) = RuleFlattener.flattenAndCompileRules(rulesSR)
 //    val rawConclusions =
-//      solver.solve((), (), plannerState, tr).getOrDie()
+//      Planner.solve((), (), plannerState, tr).getOrDie()
 //    val conclusions = runeToIndex.mapValues(i => vassertSome(rawConclusions(i)))
 //    (conclusions, plannerState)
 //  }

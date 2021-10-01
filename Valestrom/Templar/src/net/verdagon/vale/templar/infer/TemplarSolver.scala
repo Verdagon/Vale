@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
 import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RangeS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, IncompleteSolve, Planner, RuleError, Solver, SolverConflict}
+import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, Planner, RuleError, SolverConflict}
 import net.verdagon.vale.templar.FunctionNameT
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types._
@@ -70,6 +70,7 @@ class TemplarSolver[Env, State](
       // Notice how there is no return rune in here; we can solve the entire rule with just the name and the parameter list.
       case PrototypeComponentsSR(range, resultRune, nameRune, paramListRune, returnRune) => Array(Array(resultRune.rune), Array(nameRune.rune, paramListRune.rune))
       case OneOfSR(_, rune, literals) => Array(Array(rune.rune))
+      case EqualsSR(_, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
       case IsInterfaceSR(_, rune) => Array(Array(rune.rune))
       case IsStructSR(_, rune) => Array(Array(rune.rune))
@@ -87,45 +88,45 @@ class TemplarSolver[Env, State](
     env: Env,
     ruleIndex: Int,
     rule: IRulexSR,
-    getConclusion: IRuneS => Option[ITemplata],
-    concludeRune: (IRuneS, ITemplata) => Unit,
-    getRuneType: IRuneS => ITemplataType):
+    solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplata]):
   // One might expect us to return the conclusions in this Result. Instead we take in a
   // lambda to avoid intermediate allocations, for speed.
-  Result[Unit, ITemplarSolverError] = {
+  Result[Map[IRuneS, ITemplata], ITemplarSolverError] = {
     rule match {
       case KindComponentsSR(range, kindRune, mutabilityRune) => {
-        val KindTemplata(kind) = vassertSome(getConclusion(kindRune.rune))
+        val KindTemplata(kind) = vassertSome(solverState.getConclusion(kindRune.rune))
         val mutability = delegate.getMutability(state, kind)
-        concludeRune(mutabilityRune.rune, MutabilityTemplata(mutability))
-        Ok(())
+        Ok(Map(mutabilityRune.rune -> MutabilityTemplata(mutability)))
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => {
-        getConclusion(resultRune.rune) match {
+        solverState.getConclusion(resultRune.rune) match {
           case None => {
-            val OwnershipTemplata(ownership) = vassertSome(getConclusion(ownershipRune.rune))
-            val PermissionTemplata(permission) = vassertSome(getConclusion(permissionRune.rune))
-            val KindTemplata(kind) = vassertSome(getConclusion(kindRune.rune))
+            val OwnershipTemplata(ownership) = vassertSome(solverState.getConclusion(ownershipRune.rune))
+            val PermissionTemplata(permission) = vassertSome(solverState.getConclusion(permissionRune.rune))
+            val KindTemplata(kind) = vassertSome(solverState.getConclusion(kindRune.rune))
             val newCoord = CoordT(ownership, permission, kind)
-            concludeRune(resultRune.rune, CoordTemplata(newCoord))
+            Ok(Map(resultRune.rune -> CoordTemplata(newCoord)))
           }
           case Some(coord) => {
             val CoordTemplata(CoordT(ownership, permission, kind)) = coord
-            concludeRune(ownershipRune.rune, OwnershipTemplata(ownership))
-            concludeRune(permissionRune.rune, PermissionTemplata(permission))
-            concludeRune(kindRune.rune, KindTemplata(kind))
+            Ok(
+              Map(
+                ownershipRune.rune -> OwnershipTemplata(ownership),
+                permissionRune.rune -> PermissionTemplata(permission),
+                kindRune.rune -> KindTemplata(kind)))
           }
         }
-        Ok(())
       }
       case PrototypeComponentsSR(_, resultRune, nameRune, paramListRune, returnRune) => {
-        getConclusion(resultRune.rune) match {
+        solverState.getConclusion(resultRune.rune) match {
           case None => {
-            val StringTemplata(name) = vassertSome(getConclusion(nameRune.rune))
-            val CoordListTemplata(coords) = vassertSome(getConclusion(paramListRune.rune))
+            val StringTemplata(name) = vassertSome(solverState.getConclusion(nameRune.rune))
+            val CoordListTemplata(coords) = vassertSome(solverState.getConclusion(paramListRune.rune))
             val prototype = delegate.resolveExactSignature(env, state, rule.range, name, coords)
-            concludeRune(resultRune.rune, PrototypeTemplata(prototype))
-            concludeRune(returnRune.rune, CoordTemplata(prototype.returnType))
+            Ok(
+              Map(
+                resultRune.rune -> PrototypeTemplata(prototype),
+                returnRune.rune -> CoordTemplata(prototype.returnType)))
           }
           case Some(prototype) => {
             val PrototypeTemplata(PrototypeT(fullName, returnType)) = prototype
@@ -133,41 +134,48 @@ class TemplarSolver[Env, State](
               fullName.last match {
                 case FunctionNameT(humanName, _, _) => humanName
               }
-            concludeRune(nameRune.rune, StringTemplata(humanName))
-            concludeRune(returnRune.rune, CoordTemplata(returnType))
+            Ok(
+              Map(
+                nameRune.rune -> StringTemplata(humanName),
+                returnRune.rune -> CoordTemplata(returnType)))
           }
         }
-        Ok(())
+      }
+      case EqualsSR(_, leftRune, rightRune) => {
+        solverState.getConclusion(leftRune.rune) match {
+          case None => Ok(Map(leftRune.rune -> vassertSome(solverState.getConclusion(rightRune.rune))))
+          case Some(left) => Ok(Map(rightRune.rune -> left))
+        }
       }
       case rule @ OneOfSR(_, resultRune, literals) => {
-        val result = vassertSome(getConclusion(resultRune.rune))
+        val result = vassertSome(solverState.getConclusion(resultRune.rune))
         val templatas = literals.map(literalToTemplata)
         if (templatas.contains(result)) {
-          Ok(())
+          Ok(Map())
         } else {
           Err(OneOfFailed(rule))
         }
       }
       case rule @ IsConcreteSR(_, rune) => {
-        val templata = vassertSome(getConclusion(rune.rune))
+        val templata = vassertSome(solverState.getConclusion(rune.rune))
         templata match {
           case KindTemplata(kind) => {
             kind match {
               case InterfaceTT(_) => {
                 Err(KindIsNotConcrete(kind))
               }
-              case _ => Ok(())
+              case _ => Ok(Map())
             }
           }
           case _ => vwat() // Should be impossible, all template rules are type checked
         }
       }
       case rule @ IsInterfaceSR(_, rune) => {
-        val templata = vassertSome(getConclusion(rune.rune))
+        val templata = vassertSome(solverState.getConclusion(rune.rune))
         templata match {
           case KindTemplata(kind) => {
             kind match {
-              case InterfaceTT(_) => Ok(())
+              case InterfaceTT(_) => Ok(Map())
               case _ => Err(KindIsNotInterface(kind))
             }
           }
@@ -175,11 +183,11 @@ class TemplarSolver[Env, State](
         }
       }
       case IsStructSR(_, rune) => {
-        val templata = vassertSome(getConclusion(rune.rune))
+        val templata = vassertSome(solverState.getConclusion(rune.rune))
         templata match {
           case KindTemplata(kind) => {
             kind match {
-              case StructTT(_) => Ok(())
+              case StructTT(_) => Ok(Map())
               case _ => Err(KindIsNotStruct(kind))
             }
           }
@@ -188,28 +196,23 @@ class TemplarSolver[Env, State](
       }
       case CoerceToCoord(_, coordRune, kindRune) => {
         vimpl()
-//        concludeRune(kindRune.rune, KindTemplataType)
-//        concludeRune(coordRune.rune, CoordTemplataType)
-        Ok(())
+//        Ok(Map(kindRune.rune, KindTemplataType))
+//        Ok(Map(coordRune.rune, CoordTemplataType))
       }
       case LiteralSR(_, rune, literal) => {
         val templata = literalToTemplata(literal)
-        concludeRune(rune.rune, templata)
-        Ok(())
+        Ok(Map(rune.rune -> templata))
       }
       case LookupSR(range, rune, name) => {
         val result = delegate.lookupTemplataImprecise(env, state, range, name)
-        concludeRune(rune.rune, delegate.coerce(env, state, range, getRuneType(rune.rune), result))
-        Ok(())
+        Ok(Map(rune.rune -> result))
       }
       case KindLookupSR(range, rune, name) => {
-        vassert(getRuneType(rune.rune) == KindTemplataType)
         val result = delegate.lookupTemplataImprecise(env, state, range, name)
-        concludeRune(rune.rune, delegate.coerce(env, state, range, getRuneType(rune.rune), result))
-        Ok(())
+        Ok(Map(rune.rune -> result))
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
-        getConclusion(innerRune.rune) match {
+        solverState.getConclusion(innerRune.rune) match {
           case Some(CoordTemplata(initialCoord)) => {
             val newCoord =
               literals.foldLeft(initialCoord)({
@@ -231,10 +234,10 @@ class TemplarSolver[Env, State](
                   }
                 }
               })
-            concludeRune(resultRune.rune, CoordTemplata(newCoord))
+            Ok(Map(resultRune.rune -> CoordTemplata(newCoord)))
           }
           case None => {
-            val CoordTemplata(initialCoord) = vassertSome(getConclusion(resultRune.rune))
+            val CoordTemplata(initialCoord) = vassertSome(solverState.getConclusion(resultRune.rune))
             val newCoord =
               literals.foldLeft(initialCoord)({
                 case (coord, OwnershipLiteralSL(requiredOwnership)) => {
@@ -265,75 +268,79 @@ class TemplarSolver[Env, State](
                   }
                 }
               })
-            concludeRune(innerRune.rune, CoordTemplata(newCoord))
+            Ok(Map(innerRune.rune -> CoordTemplata(newCoord)))
           }
         }
-        Ok(())
+
       }
       case PackSR(_, resultRune, memberRunes) => {
-        getConclusion(resultRune.rune) match {
+        solverState.getConclusion(resultRune.rune) match {
           case None => {
             val members =
               memberRunes.map(memberRune => {
-                val CoordTemplata(coord) = vassertSome(getConclusion(memberRune.rune))
+                val CoordTemplata(coord) = vassertSome(solverState.getConclusion(memberRune.rune))
                 coord
               })
-            concludeRune(resultRune.rune, CoordListTemplata(members.toVector))
+            Ok(Map(resultRune.rune -> CoordListTemplata(members.toVector)))
           }
           case Some(CoordListTemplata(members)) => {
             vassert(members.size == memberRunes.size)
-            memberRunes.zip(members).foreach({ case (memberRune, member) =>
-              concludeRune(memberRune.rune, CoordTemplata(member))
-            })
+            Ok(memberRunes.map(_.rune).zip(members.map(CoordTemplata)).toMap)
           }
         }
-        Ok(())
       }
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        getConclusion(resultRune.rune) match {
+        solverState.getConclusion(resultRune.rune) match {
           case None => {
             vimpl()
           }
           case Some(result) => {
             result match {
               case KindTemplata(StaticSizedArrayTT(size, RawArrayTT(elementType, mutability, variability))) => {
-                concludeRune(elementRune.rune, CoordTemplata(elementType))
-                concludeRune(sizeRune.rune, IntegerTemplata(size))
-                concludeRune(mutabilityRune.rune, MutabilityTemplata(mutability))
-                concludeRune(variabilityRune.rune, VariabilityTemplata(variability))
+                Ok(
+                  Map(
+                    elementRune.rune -> CoordTemplata(elementType),
+                    sizeRune.rune -> IntegerTemplata(size),
+                    mutabilityRune.rune -> MutabilityTemplata(mutability),
+                    variabilityRune.rune -> VariabilityTemplata(variability)))
               }
               case CoordTemplata(CoordT(OwnT | ShareT, _, StaticSizedArrayTT(size, RawArrayTT(elementType, mutability, variability)))) => {
-                concludeRune(elementRune.rune, CoordTemplata(elementType))
-                concludeRune(sizeRune.rune, IntegerTemplata(size))
-                concludeRune(mutabilityRune.rune, MutabilityTemplata(mutability))
-                concludeRune(variabilityRune.rune, VariabilityTemplata(variability))
+                Ok(
+                  Map(
+                    elementRune.rune -> CoordTemplata(elementType),
+                    sizeRune.rune -> IntegerTemplata(size),
+                    mutabilityRune.rune -> MutabilityTemplata(mutability),
+                    variabilityRune.rune -> VariabilityTemplata(variability)))
               }
               case _ => return Err(CallResultWasntExpectedType(StaticSizedArrayTemplateTemplata(), result))
             }
           }
         }
-        Ok(())
       }
       case ManualSequenceSR(_, resultRune, elements) => vimpl()
       case CoordListSR(_, resultRune, elements) => vimpl()
       case CallSR(range, resultRune, templateRune, argRunes) => {
-        val template = vassertSome(getConclusion(templateRune.rune))
-        getConclusion(resultRune.rune) match {
+        val template = vassertSome(solverState.getConclusion(templateRune.rune))
+        solverState.getConclusion(resultRune.rune) match {
           case Some(result) => {
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 result match {
                   case CoordTemplata(CoordT(ShareT | OwnT, _, RuntimeSizedArrayTT(RawArrayTT(memberType, mutability, variability)))) => {
                     val Array(mutabilityRune, variabilityRune, elementRune) = argRunes
-                    concludeRune(mutabilityRune.rune, MutabilityTemplata(mutability))
-                    concludeRune(variabilityRune.rune, VariabilityTemplata(variability))
-                    concludeRune(elementRune.rune, CoordTemplata(memberType))
+                    Ok(
+                      Map(
+                        mutabilityRune.rune -> MutabilityTemplata(mutability),
+                        variabilityRune.rune -> VariabilityTemplata(variability),
+                        elementRune.rune -> CoordTemplata(memberType)))
                   }
                   case KindTemplata(RuntimeSizedArrayTT(RawArrayTT(memberType, mutability, variability))) => {
                     val Array(mutabilityRune, variabilityRune, elementRune) = argRunes
-                    concludeRune(mutabilityRune.rune, MutabilityTemplata(mutability))
-                    concludeRune(variabilityRune.rune, VariabilityTemplata(variability))
-                    concludeRune(elementRune.rune, CoordTemplata(memberType))
+                    Ok(
+                      Map(
+                        mutabilityRune.rune -> MutabilityTemplata(mutability),
+                        variabilityRune.rune -> VariabilityTemplata(variability),
+                        elementRune.rune -> CoordTemplata(memberType)))
                   }
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
@@ -344,23 +351,15 @@ class TemplarSolver[Env, State](
                     if (!delegate.citizenIsFromTemplate(interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    vassert(interface.fullName.last.templateArgs.size == argRunes.size)
-                    interface.fullName.last.templateArgs.zip(argRunes).foreach({
-                      case (templateArg, rune) => {
-                        concludeRune(rune.rune, templateArg)
-                      }
-                    })
+                    vassert(argRunes.size == interface.fullName.last.templateArgs.size)
+                    Ok(argRunes.map(_.rune).zip(interface.fullName.last.templateArgs).toMap)
                   }
                   case CoordTemplata(CoordT(OwnT | ShareT, _, interface @ InterfaceTT(_))) => {
                     if (!delegate.citizenIsFromTemplate(interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    vassert(interface.fullName.last.templateArgs.size == argRunes.size)
-                    interface.fullName.last.templateArgs.zip(argRunes).foreach({
-                      case (templateArg, rune) => {
-                        concludeRune(rune.rune, templateArg)
-                      }
-                    })
+                    vassert(argRunes.size == interface.fullName.last.templateArgs.size)
+                    Ok(argRunes.map(_.rune).zip(interface.fullName.last.templateArgs).toMap)
                   }
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
@@ -370,20 +369,20 @@ class TemplarSolver[Env, State](
           case None => {
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
-                val args = argRunes.map(argRune => vassertSome(getConclusion(argRune.rune)))
+                val args = argRunes.map(argRune => vassertSome(solverState.getConclusion(argRune.rune)))
                 val Array(MutabilityTemplata(mutability), VariabilityTemplata(variability), CoordTemplata(coord)) = args
                 val rsaKind = delegate.getRuntimeSizedArrayKind(env, state, coord, mutability, variability)
-                concludeRune(resultRune.rune, delegate.coerce(env, state, range, getRuneType(resultRune.rune), KindTemplata(rsaKind)))
+                Ok(Map(resultRune.rune -> KindTemplata(rsaKind)))
               }
               case it @ StructTemplata(_, _) => {
-                val args = argRunes.map(argRune => vassertSome(getConclusion(argRune.rune)))
+                val args = argRunes.map(argRune => vassertSome(solverState.getConclusion(argRune.rune)))
                 val kind = delegate.evaluateStructTemplata(state, range, it, args.toVector)
-                concludeRune(resultRune.rune, delegate.coerce(env, state, range, getRuneType(resultRune.rune), KindTemplata(kind)))
+                Ok(Map(resultRune.rune -> KindTemplata(kind)))
               }
               case it @ InterfaceTemplata(_, _) => {
-                val args = argRunes.map(argRune => vassertSome(getConclusion(argRune.rune)))
+                val args = argRunes.map(argRune => vassertSome(solverState.getConclusion(argRune.rune)))
                 val kind = delegate.evaluateInterfaceTemplata(state, range, it, args.toVector)
-                concludeRune(resultRune.rune, delegate.coerce(env, state, range, getRuneType(resultRune.rune), KindTemplata(kind)))
+                Ok(Map(resultRune.rune -> KindTemplata(kind)))
               }
 //              case TemplateTemplataType(paramTypes, returnType) => {
 //                val effectiveReturnType =
@@ -391,17 +390,16 @@ class TemplarSolver[Env, State](
 //                    case KindTemplataType => CoordTemplataType
 //                    case other => other
 //                  }
-//                concludeRune(resultRune.rune, effectiveReturnType)
+//                Ok(Map(resultRune.rune, effectiveReturnType))
 //
 //                argRunes.zip(paramTypes).foreach({ case (argRune, paramType) =>
-//                  concludeRune(argRune.rune, paramType)
+//                  Ok(Map(argRune.rune, paramType))
 //                })
 //              }
-              case _ => vimpl(); Err(())
+              case _ => vimpl()
             }
           }
         }
-        Ok(())
       }
     }
   }
@@ -427,48 +425,49 @@ class TemplarSolver[Env, State](
 
     rules.flatMap(_.runeUsages.map(_.rune)).foreach(rune => vassert(runeToType.contains(rune)))
 
-    val (numCanonicalRunes, userRuneToCanonicalRune, ruleExecutionOrder, canonicalRuneToIsSolved) =
-      Planner.plan(
+    initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
+      vassert(templata.tyype == vassertSome(runeToType.get(rune)))
+    })
+
+    val solverState =
+      Planner.makeInitialSolverState(
         rules,
-        List(),
         getRunes,
         (rule: IRulexSR) => getPuzzles(rule),
-        initiallyKnownRuneToTemplata.keySet,
-        { case EqualsSR(_, a, b) => (a.rune, b.rune )}: PartialFunction[IRulexSR, (IRuneS, IRuneS)])
-    Solver.solve[IRulexSR, IRuneS, Env, State, ITemplata, ITemplarSolverError](
+        initiallyKnownRuneToTemplata)
+    Planner.solve[IRulexSR, IRuneS, Env, State, ITemplata, ITemplarSolverError](
       state,
       env,
-      numCanonicalRunes, rules, ruleExecutionOrder,
-      getRunes,
-      runeS => vassertSome(userRuneToCanonicalRune.get(runeS)),
-      userRuneToCanonicalRune.keys,
-      initiallyKnownRuneToTemplata,
+      solverState,
       (
         state: State,
         env: Env,
         ruleIndex: Int,
         rule: IRulexSR,
-        getConclusion: IRuneS => Option[ITemplata],
-        concludeRune: (IRuneS, ITemplata) => Unit) =>
+        solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplata]) =>
       {
-        solveRule(
-          state, env, ruleIndex, rule,
-          getConclusion,
-          (rune: IRuneS, conclusion: ITemplata) => {
-            vassert(conclusion.tyype == vassertSome(runeToType.get(rune)))
-            concludeRune(rune, conclusion)
-          },
-          runeS => vassertSome(runeToType.get(runeS)))
+        solveRule(state, env, ruleIndex, rule, solverState) match {
+          case Err(e) => Err(e)
+          case Ok(conclusions) => {
+            Ok(
+              conclusions.map({ case (rune, conclusion) =>
+                val coerced =
+                  delegate.coerce(env, state, range, vassertSome(runeToType.get(rune)), conclusion)
+                vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
+                (rune -> coerced)
+              }))
+          }
+        }
       }
     ) match {
       case Err(f @ FailedSolve(_, _, _)) => f
       case Ok(conclusionsStream) => {
         val conclusions = conclusionsStream.toMap
-        if (conclusions.keySet != userRuneToCanonicalRune.keySet) {
+        if (conclusions.keySet != solverState.getAllRunes()) {
           IncompleteSolve(
             conclusions,
-            (rules.zipWithIndex.map({ case (r, i) => (i, r) }).toMap -- ruleExecutionOrder).values.toVector,
-            userRuneToCanonicalRune.keySet -- conclusions.keySet)
+            solverState.getUnsolvedRules(),
+            solverState.getAllRunes() -- conclusions.keySet)
         } else {
           CompleteSolve(conclusions)
         }

@@ -522,7 +522,7 @@ object DestructorTemplar {
         CodeRuneS("O") -> OwnershipTemplataType,
         CodeRuneS("P") -> PermissionTemplataType),
       Vector(
-        ParameterS(AtomSP(RangeS.internal(-1339), Some(CaptureS(CodeVarNameS("this"))), None, RuneUsage(RangeS.internal(-68002), CodeRuneS("T")), None))),
+        ParameterS(AtomSP(RangeS.internal(-1339), Some(CaptureS(CodeVarNameS("this"))), None, Some(RuneUsage(RangeS.internal(-68002), CodeRuneS("T"))), None))),
       Some(RuneUsage(RangeS.internal(-68002), CodeRuneS("V"))),
       // RangeS.internal(-16725),
       // RangeS.internal(-16726)
@@ -607,7 +607,7 @@ object DestructorTemplar {
           CodeRuneS("P") -> PermissionTemplataType,
           CodeRuneS("K") -> KindTemplataType),
         Vector(
-          ParameterS(AtomSP(RangeS.internal(-1340), Some(CaptureS(CodeVarNameS("this"))), Some(AbstractSP), RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), None))),
+          ParameterS(AtomSP(RangeS.internal(-1340), Some(CaptureS(CodeVarNameS("this"))), Some(AbstractSP), Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))), None))),
         Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(
           KindComponentsSR(RangeS.internal(-95), RuneUsage(RangeS.internal(-64002), CodeRuneS("K")), RuneUsage(RangeS.internal(-64002), CodeRuneS("KM"))),
@@ -682,7 +682,7 @@ object DestructorTemplar {
           CodeRuneS("I") -> KindTemplataType,
           CodeRuneS("V") -> CoordTemplataType),
         Vector(
-          ParameterS(AtomSP(RangeS.internal(-1341), Some(CaptureS(CodeVarNameS("this"))), Some(OverrideSP(RangeS.internal(-1133), RuneUsage(RangeS.internal(-1133), CodeRuneS("I")))), RuneUsage(RangeS.internal(-64002), CodeRuneS("SC")), None))),
+          ParameterS(AtomSP(RangeS.internal(-1341), Some(CaptureS(CodeVarNameS("this"))), Some(OverrideSP(RangeS.internal(-1133), RuneUsage(RangeS.internal(-1133), CodeRuneS("I")))), Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("SC"))), None))),
         Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(
           CoordComponentsSR(RangeS.internal(-98), RuneUsage(RangeS.internal(-64002), CodeRuneS("SC")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SO")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SP")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK"))),
@@ -763,10 +763,12 @@ object DestructorTemplar {
       Map(
         CodeRuneS("T") -> CoordTemplataType,
         CodeRuneS("V") -> CoordTemplataType,
+        CodeRuneS("K") -> KindTemplataType,
+        CodeRuneS("KM") -> MutabilityTemplataType,
         CodeRuneS("O") -> OwnershipTemplataType,
         CodeRuneS("P") -> PermissionTemplataType),
       Vector(
-        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), None))),
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))), None))),
       Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
       Vector(
         CoordComponentsSR(RangeS.internal(-98),

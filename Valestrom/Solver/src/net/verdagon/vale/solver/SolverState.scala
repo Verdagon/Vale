@@ -111,6 +111,10 @@ case class SolverState[Rule, RuneID, Conclusion](
       runeToConclusion.clone())
   }
 
+  def getAllRunes(): Set[RuneID] = {
+    userRuneToCanonicalRune.keySet.toSet
+  }
+
   def getCanonicalRune(rune: RuneID): Int = {
     userRuneToCanonicalRune.get(rune) match {
       case Some(s) => s

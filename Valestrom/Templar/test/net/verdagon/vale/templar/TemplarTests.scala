@@ -776,6 +776,7 @@ class TemplarTests extends FunSuite with Matchers {
   test("Test return from inside if") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.panic.*;
         |fn main() int export {
         |  if (true) {
         |    ret 7;

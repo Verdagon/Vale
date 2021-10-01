@@ -283,7 +283,10 @@ object FunctionScout {
       ParameterS(
         AtomSP(
           closureParamRange,
-          Some(CaptureS(closureParamName)),None,closureParamTypeRune,None))
+          Some(CaptureS(closureParamName)),
+          None,
+          Some(closureParamTypeRune),
+          None))
 
     val magicParams =
         lambdaMagicParamNames.map({
@@ -295,14 +298,14 @@ object FunctionScout {
               ParameterS(
                 AtomSP(
                   magicParamRange,
-                  Some(CaptureS(mpn)),None,magicParamRune,None))
+                  Some(CaptureS(mpn)),None,Some(magicParamRune),None))
             paramS
           }
         })
 
     // Lambdas identifying runes are determined by their magic params.
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
-    val identifyingRunes = magicParams.map(_.pattern.coordRune).distinct
+    val identifyingRunes = magicParams.map(param => vassertSome(param.pattern.coordRune))
 
     val totalParams = Vector(closureParamS) ++ explicitParams1 ++ magicParams;
 

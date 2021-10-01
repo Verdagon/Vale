@@ -100,7 +100,7 @@ class StructTemplar(
                 Some(CaptureS(CodeVarNameS(member.name))),
 //                Some(LocalS(CodeVarNameS(member.name), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
                 None,
-                member.typeRune,
+                Some(member.typeRune),
                 None))
           }
         })
@@ -150,7 +150,7 @@ class StructTemplar(
               method.range,
               Some(CaptureS(AnonymousSubstructMemberNameS(index))),
               None,
-              RuneUsage(method.range, CodeRuneS("Functor" + index)),
+              Some(RuneUsage(method.range, CodeRuneS("Functor" + index))),
               None))
         })
 
