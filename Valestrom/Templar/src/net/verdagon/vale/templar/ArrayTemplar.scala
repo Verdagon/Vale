@@ -37,15 +37,25 @@ class ArrayTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     range: RangeS,
-    rules: Vector[IRulexSR],
+    rulesA: Vector[IRulexSR],
     sizeRuneA: IRuneS,
     mutabilityRune: IRuneS,
     variabilityRune: IRuneS,
     callableTE: ReferenceExpressionTE):
   StaticArrayFromCallableTE = {
-    val runeToType = vimpl()
+    val runeToType =
+      RuneTypeSolver.solve(
+        nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        false,
+        rulesA,
+        List(),
+        true,
+        Map()) match {
+        case Ok(r) => r
+        case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
+      }
     val templatas =
-      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rules, runeToType, range, Map())
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map())
     val IntegerTemplata(size) = vassertSome(templatas.get(sizeRuneA))
     val mutability = getArrayMutability(templatas, mutabilityRune)
     val variability = getArrayVariability(templatas, variabilityRune)

@@ -2,7 +2,7 @@ package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.FileCoordinateMap
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
-import net.verdagon.vale.scout.{RangeS, RuneTypeSolveError}
+import net.verdagon.vale.scout.{RangeS, RuneTypeSolveError, ScoutErrorHumanizer}
 
 object AstronomerErrorHumanizer {
   def assembleError(
@@ -34,7 +34,7 @@ object AstronomerErrorHumanizer {
           ": internal error: " + message
         }
         case CouldntFindTypeA(range, name) => {
-          ": Couldn't find type `" + name + "`:\n"
+          ": Couldn't find type `" + ScoutErrorHumanizer.humanizeName(name) + "`:\n"
         }
         case CouldntSolveRulesA(range, rules) => {
           ": Couldn't solve generics rules:\n" + lineContaining(filenamesAndSources, range.file, range.begin.offset) + "\n" + rules.toString

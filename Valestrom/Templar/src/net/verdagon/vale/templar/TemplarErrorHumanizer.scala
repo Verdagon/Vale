@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, lineRangeContaining}
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmDropNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, RangeS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, SenderRuneS, RangeS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
@@ -358,10 +358,11 @@ object TemplarErrorHumanizer {
         }).mkString("")
   }
 
-  def humanizeRune(rune: IRuneS) = {
+  def humanizeRune(rune: IRuneS): String = {
     rune match {
       case ImplicitRuneS(lid) => "_" + lid.path.mkString("")
       case CodeRuneS(name) => name
+      case SenderRuneS(paramRune) => "(arg for " + humanizeRune(paramRune) + ")"
       case other => vimpl(other)
     }
   }

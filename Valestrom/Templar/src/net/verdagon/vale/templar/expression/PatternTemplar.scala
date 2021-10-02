@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.expression
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser.{LendConstraintP, UseP}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{IRulexSR, ReceivesSR, RuneUsage}
+import net.verdagon.vale.scout.rules.{CoordReceivesSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
@@ -105,20 +105,21 @@ class PatternTemplar(
           case None => {
             unconvertedInputExpr
           }
-          case Some(coordRune) => {
+          case Some(receiverRune) => {
+            val senderRune = SenderRuneS(receiverRune.rune)
             val templatasByRune =
               inferTemplar.solveExpectComplete(
                 fate.snapshot,
                 temputs,
-                rules :+ ReceivesSR(pattern.range, coordRune, RuneUsage(pattern.range, PatternCoordRuneS())),
-                runeToType + (PatternCoordRuneS() -> CoordTemplataType),
+                rules :+ CoordReceivesSR(pattern.range, receiverRune, RuneUsage(pattern.range, senderRune)),
+                runeToType + (senderRune -> CoordTemplataType),
                 pattern.range,
-                Map(PatternCoordRuneS() -> CoordTemplata(unconvertedInputExpr.resultRegister.reference)))
+                Map(senderRune -> CoordTemplata(unconvertedInputExpr.resultRegister.reference)))
             fate.addEntries(
               opts.useOptimization,
               templatasByRune.map({ case (key, value) => (RuneNameT(key), value) })
                 .mapValues(v => Vector(TemplataEnvEntry(v))).toMap)
-            val CoordTemplata(expectedCoord) = vassertSome(templatasByRune.get(coordRune.rune))
+            val CoordTemplata(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))
 
             // Now we convert m to a Marine. This also checks that it *can* be
             // converted to a Marine.

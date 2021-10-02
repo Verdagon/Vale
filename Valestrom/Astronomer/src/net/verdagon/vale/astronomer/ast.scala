@@ -261,6 +261,7 @@ case class FunctionA(
     return range == that.range && name == that.name;
   }
 
+  rules.foreach(rule => rule.runeUsages.foreach(rune => vassert(runeToType.contains(rune.rune))))
   params.flatMap(_.pattern.coordRune).foreach(runeUsage => {
     vassert(runeToType.contains(runeUsage.rune))
   })

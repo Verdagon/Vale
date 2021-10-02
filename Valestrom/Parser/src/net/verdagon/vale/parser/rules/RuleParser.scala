@@ -75,6 +75,7 @@ trait RuleParser extends RegexParsers with ParserUtils {
 
   private[parser] def level3PR: Parser[IRulexPR] = {
     implementsPR |
+    isInterfacePR |
     existsPR |
     dotPR(level2PR) |
     level2PR
@@ -139,6 +140,15 @@ trait RuleParser extends RegexParsers with ParserUtils {
     pos ~ pstr("implements") ~ (optWhite ~> "(" ~> optWhite ~> rulePR <~ optWhite <~ "," <~ optWhite) ~
         (rulePR <~ optWhite <~ ")") ~ pos ^^ {
       case begin ~ impl ~ struct ~ interface ~ end => BuiltinCallPR(Range(begin, end), impl, Vector(struct, interface))
+    }
+  }
+
+  // Add any new rules to the "Nothing matches empty string" test!
+
+  // Atomic means no neighboring, see parser doc.
+  private[parser] def isInterfacePR: Parser[IRulexPR] = {
+    pos ~ pstr("isInterface") ~ (optWhite ~> "(" ~> optWhite ~> rulePR <~ optWhite <~ ")") ~ pos ^^ {
+      case begin ~ name ~ arg ~ end => BuiltinCallPR(Range(begin, end), name, Vector(arg))
     }
   }
 

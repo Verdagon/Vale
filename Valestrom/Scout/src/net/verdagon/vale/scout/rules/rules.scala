@@ -24,14 +24,21 @@ case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IR
   override def runeUsages: Array[RuneUsage] = Array(left, right)
 }
 
-case class ReceivesSR(range: RangeS, receiver: RuneUsage, sender: RuneUsage) extends IRulexSR {
+// See IRFU and SRCAMP for what's going on with this rule.
+case class CoordReceivesSR(range: RangeS, receiverRune: RuneUsage, senderRune: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(receiver, sender)
+  override def runeUsages: Array[RuneUsage] = Array(receiverRune, senderRune)
+  vpass()
 }
 
-case class IsaSR(range: RangeS, sub: RuneUsage, suuper: RuneUsage) extends IRulexSR {
+case class CoordIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(sub, suuper)
+  override def runeUsages: Array[RuneUsage] = Array(subRune, superRune)
+}
+
+case class KindIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(subRune, superRune)
 }
 
 case class KindComponentsSR(
@@ -155,6 +162,7 @@ case class AugmentSR(
 case class CallSR(
   range: RangeS,
   resultRune: RuneUsage,
+  coerceResultToKind: Boolean,
   templateRune: RuneUsage,
   args: Array[RuneUsage]
 ) extends IRulexSR {

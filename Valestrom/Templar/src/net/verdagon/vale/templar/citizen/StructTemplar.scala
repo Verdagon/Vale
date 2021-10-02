@@ -32,7 +32,8 @@ trait IStructTemplarDelegate {
     temputs: Temputs,
     callRange: RangeS,
     functionName: INameS,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
+    explicitTemplateArgRulesS: Vector[IRulexSR],
+    explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
@@ -115,9 +116,9 @@ class StructTemplar(
       runeToType += (retRune.rune -> CoordTemplataType)
       if (structA.isTemplate) {
         val structNameRune = StructNameRuneS(structA.name)
-        runeToType += (structNameRune -> CoordTemplataType)
+        runeToType += (structNameRune -> structA.tyype)
         rules += LookupSR(structA.range, RuneUsage(structA.name.range, structNameRune), CodeTypeNameS(structA.name.name))
-        rules += CallSR(structA.range, retRune, RuneUsage(structA.range, structNameRune), structA.identifyingRunes.toArray)
+        rules += CallSR(structA.range, retRune, true, RuneUsage(structA.range, structNameRune), structA.identifyingRunes.toArray)
       } else {
         rules += LookupSR(structA.range, retRune, CodeTypeNameS(structA.name.name))
       }
@@ -131,7 +132,7 @@ class StructTemplar(
           case TemplateTemplataType(params, KindTemplataType) => TemplateTemplataType(params, FunctionTemplataType)
         },
         structA.identifyingRunes,
-        structA.runeToType + (retRune.rune -> CoordTemplataType),
+        runeToType.toMap,
         params,
         Some(retRune),
         rules.toVector,
@@ -165,14 +166,14 @@ class StructTemplar(
       // We stash the interface type in the env with this rune, so that when the interface constructor
       // generator runs, it can read this to know what interface it's making a subclass of.
       val substructRune = RuneUsage(interfaceA.name.range, AnonymousSubstructParentInterfaceRuneS())
-      runeToType += (substructRune.rune -> CoordTemplataType)
+      runeToType += (substructRune.rune -> KindTemplataType)
       if (interfaceA.isTemplate) {
         val structNameRune = RuneUsage(interfaceA.name.range, StructNameRuneS(interfaceA.name))
-        runeToType += (structNameRune.rune -> CoordTemplataType)
-        rules += LookupSR(interfaceA.range, structNameRune, interfaceA.name)
-        rules += CallSR(interfaceA.range, substructRune, structNameRune, interfaceA.identifyingRunes.toArray)
+        runeToType += (structNameRune.rune -> interfaceA.tyype)
+        rules += LookupSR(interfaceA.range, structNameRune, CodeTypeNameS(interfaceA.name.name))
+        rules += CallSR(interfaceA.range, substructRune, true, structNameRune, interfaceA.identifyingRunes.toArray)
       } else {
-        rules += LookupSR(interfaceA.range, substructRune, interfaceA.name)
+        rules += LookupSR(interfaceA.range, substructRune, CodeTypeNameS(interfaceA.name.name))
       }
 
       val isTemplate = interfaceA.tyype != KindTemplataType
@@ -484,7 +485,7 @@ object StructTemplar {
             val interfaceTT =
               env.lookupWithImpreciseName(profiler, RuneNameS(AnonymousSubstructParentInterfaceRuneS()), Set(TemplataLookupContext), true) match {
                 case List(KindTemplata(ir @ InterfaceTT(_))) => ir
-                case _ => vwat()
+                case other => vwat(other)
               }
 
             val structTT =

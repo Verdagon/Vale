@@ -34,7 +34,8 @@ class CallTemplar(
       life: LocationInFunctionEnvironment,
       range: RangeS,
       callableExpr: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
+      explicitTemplateArgRulesS: Vector[IRulexSR],
+      explicitTemplateArgRunesS: Array[IRuneS],
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     callableExpr.resultRegister.reference.kind match {
@@ -43,11 +44,11 @@ class CallTemplar(
       }
       case structTT @ StructTT(_) => {
         evaluateClosureCall(
-          fate, temputs, life, range, structTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
+          fate, temputs, life, range, structTT, explicitTemplateArgRulesS, explicitTemplateArgRunesS, callableExpr, givenArgsExprs2)
       }
       case interfaceTT @ InterfaceTT(_) => {
         evaluateClosureCall(
-          fate, temputs, life, range, interfaceTT, explicitlySpecifiedTemplateArgTemplexesS, callableExpr, givenArgsExprs2)
+          fate, temputs, life, range, interfaceTT, explicitTemplateArgRulesS, explicitTemplateArgRunesS, callableExpr, givenArgsExprs2)
       }
       case OverloadSet(_, functionName, _) => {
         val unconvertedArgsPointerTypes2 =
@@ -68,7 +69,8 @@ class CallTemplar(
               temputs,
               range,
               functionName,
-              explicitlySpecifiedTemplateArgTemplexesS,
+              explicitTemplateArgRulesS,
+              explicitTemplateArgRunesS,
               argsParamFilters,
               Vector.empty,
               false) match {
@@ -113,7 +115,8 @@ class CallTemplar(
     fate: FunctionEnvironment,
     range: RangeS,
     functionName: GlobalFunctionFamilyNameS,
-    explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
+    explicitTemplateArgRulesS: Vector[IRulexSR],
+    explicitTemplateArgRunesS: Array[IRuneS],
     givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val unconvertedArgsPointerTypes2 =
@@ -134,7 +137,8 @@ class CallTemplar(
         temputs,
         range,
         functionName,
-        explicitlySpecifiedTemplateArgTemplexesS,
+        explicitTemplateArgRulesS,
+        explicitTemplateArgRunesS,
         argsParamFilters,
         Vector.empty,
         false) match {
@@ -176,7 +180,8 @@ class CallTemplar(
       life: LocationInFunctionEnvironment,
       range: RangeS,
       citizenRef: CitizenRefT,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
+      explicitTemplateArgRulesS: Vector[IRulexSR],
+      explicitTemplateArgRunesS: Array[IRuneS],
       givenCallableUnborrowedExpr2: ReferenceExpressionTE,
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
       (FunctionCallTE) = {
@@ -207,7 +212,7 @@ class CallTemplar(
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitlySpecifiedTemplateArgTemplexesS, paramFilters, Vector.empty, false) match {
+        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false) match {
         case ScoutExpectedFunctionSuccess(p) => p
         case seff @ ScoutExpectedFunctionFailure(_, _, _, _, _) => {
           throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
@@ -279,12 +284,13 @@ class CallTemplar(
     life: LocationInFunctionEnvironment,
     range: RangeS,
       callableReferenceExpr2: ReferenceExpressionTE,
-      explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR],
-    maybeTemplateArgs: Option[Array[IRuneS]],
+    explicitTemplateArgRulesS: Vector[IRulexSR],
+    explicitTemplateArgRunesS: Array[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val callExpr =
-      evaluateCall(temputs, fate, life, range, callableReferenceExpr2, explicitlySpecifiedTemplateArgTemplexesS, argsExprs2)
+      evaluateCall(
+        temputs, fate, life, range, callableReferenceExpr2, explicitTemplateArgRulesS, explicitTemplateArgRunesS, argsExprs2)
     (callExpr)
   }
 
@@ -297,6 +303,6 @@ class CallTemplar(
     templateArgs: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
-    evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, rules, argsExprs2)
+    evaluateNamedCall(temputs, fate.snapshot, rangeS, functionName, rules, templateArgs.toArray, argsExprs2)
   }
 }

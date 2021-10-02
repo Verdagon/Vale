@@ -2,7 +2,10 @@ package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.vassertOne
+import net.verdagon.vale.solver.IncompleteSolve
+import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.{CompileErrorExceptionT, CouldntFindFunctionToCallT, TemplarTestCompilation}
+import net.verdagon.vale.{Err, vassertOne}
 //import net.verdagon.vale.astronomer.ruletyper.IRuleTyperEvaluatorDelegate
 import net.verdagon.vale.astronomer.{InterfaceA, StructA}
 import net.verdagon.vale.parser._
@@ -344,7 +347,21 @@ class InfererTests extends FunSuite with Matchers {
   }
 
   test("Not enough to solve") {
-    vimpl() // TODO: Test NotEnoughToSolveError here
+    val compile = TemplarTestCompilation.test(
+      """
+        |fn bork<T, K, Y>(a T) rules(K Ref = Y) { }
+        |fn main() export { bork<int>(); }
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(CouldntFindFunctionToCallT(_, ScoutExpectedFunctionFailure(_, _, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction))) => {
+        val List(rejection) = (outscoredReasonByPotentialBanner.values ++ rejectedReasonByBanner.values ++ rejectedReasonByFunction.values).toList
+        rejection match {
+          case InferFailure(IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes)) => {
+            unknownRunes shouldEqual Set(CodeRuneS("Y"), CodeRuneS("K"))
+          }
+        }
+      }
+    }
   }
 
   test("Constraint becomes share if kind is immutable") {

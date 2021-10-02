@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale._
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{ISolverStateForRule, Planner}
+import net.verdagon.vale.solver.{ISolverStateForRule, Solver}
 import net.verdagon.vale.templar.types._
 
 case class RuneTypeSolveError(unknownRunes: Iterable[IRuneS])
@@ -13,7 +13,8 @@ object RuneTypeSolver {
         case LookupSR(range, rune, literal) => Array(rune)
         case KindLookupSR(range, rune, literal) => Array(rune)
         case EqualsSR(range, left, right) => Array(left, right)
-        case IsaSR(range, sub, suuper) => Array(sub, suuper)
+        case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
+        case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, permissionRune, kindRune) => Array(resultRune, ownershipRune, permissionRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) => Array(resultRune, nameRune, paramsListRune, returnRune)
@@ -24,7 +25,7 @@ object RuneTypeSolver {
         case CoerceToCoord(range, coordRune, kindRune) => Array(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Array(rune)
         case AugmentSR(range, resultRune, literal, innerRune) => Array(resultRune, innerRune)
-        case CallSR(range, resultRune, templateRune, args) => Array(resultRune, templateRune) ++ args
+        case CallSR(range, resultRune, coerceResultToKind, templateRune, args) => Array(resultRune, templateRune) ++ args
         case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Array(resultRune) ++ parameters ++ Array(returnTypeRune)
         case PackSR(range, resultRune, members) => Array(resultRune) ++ members
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
@@ -50,13 +51,11 @@ object RuneTypeSolver {
         }
       }
       case KindLookupSR(_, _, _) => Array(Array())
-      case CallSR(range, resultRune, templateRune, args) => {
-        Array(
-          Array(resultRune.rune, templateRune.rune),
-          Array(templateRune.rune) ++ args.map(_.rune))
-          // We can't determine the template from the result and args because we might be coercing its
-          // returned kind to a coord.
-          // Array(resultRune.rune) ++ args.map(_.rune))
+      case CallSR(range, resultRune, coerceResultToKind, templateRune, args) => {
+        // We can't determine the template from the result and args because we might be coercing its
+        // returned kind to a coord. So we need the template.
+        // We can determine the result from the template, we know whether we want to coerce or not.
+        Array(Array(templateRune.rune))
       }
       case PackSR(_, resultRune, members) => {
         if (members.nonEmpty) {
@@ -93,33 +92,21 @@ object RuneTypeSolver {
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
         Ok(Map(resultRune.rune -> KindTemplataType, mutabilityRune.rune -> MutabilityTemplataType))
       }
-      case CallSR(range, resultRune, templateRune, argRunes) => {
-        solverState.getConclusion(templateRune.rune) match {
-          case None => {
-            // We can't determine the template from the result and args because we might be coercing its
-            // returned kind to a coord.
-            //val result =
-            //  vassertSome(getConclusion(resultRune.rune)) match {
-            //    case KindTemplataType => CoordTemplataType
-            //    case other => other
-            //  }
-            //val args = argRunes.map(argRune => vassertSome(getConclusion(argRune.rune))).toVector
-            //concludeRune(templateRune.rune, TemplateTemplataType(args, result))
-            vwat()
+      case CallSR(range, resultRune, coerceResultToKind, templateRune, argRunes) => {
+        vassertSome(solverState.getConclusion(templateRune.rune)) match {
+          case TemplateTemplataType(paramTypes, returnType) => {
+            Ok(
+              argRunes.map(_.rune).zip(paramTypes).toMap +
+                (resultRune.rune ->
+                (returnType match {
+                  case CoordTemplataType if coerceResultToKind => KindTemplataType
+                  case KindTemplataType if coerceResultToKind => KindTemplataType
+                  case other if coerceResultToKind => vwat(other)
+                  case KindTemplataType => CoordTemplataType
+                  case other => other
+                })))
           }
-          case Some(templateType) => {
-            templateType match {
-              case TemplateTemplataType(paramTypes, returnType) => {
-                val effectiveReturnType =
-                  returnType match {
-                    case KindTemplataType => CoordTemplataType
-                    case other => other
-                  }
-                Ok(argRunes.map(_.rune).zip(paramTypes).toMap ++ Map(resultRune.rune -> effectiveReturnType))
-              }
-              case _ => vimpl(); Err(())
-            }
-          }
+          case other => vwat(other)
         }
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => {
@@ -229,10 +216,10 @@ object RuneTypeSolver {
     initiallyKnownRunes: Map[IRuneS, ITemplataType]):
   Result[Map[IRuneS, ITemplataType], RuneTypeSolveError] = {
     val solverState =
-      Planner.makeInitialSolverState(
+      Solver.makeInitialSolverState(
         rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
     val conclusions =
-      Planner.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
+      Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
         Unit,
         env,
         solverState,
@@ -241,8 +228,9 @@ object RuneTypeSolver {
         case Ok(c) => c.toMap
         case Err(e) => vfail(e)
       }
-    if (expectCompleteSolve && (conclusions.keySet != solverState.getAllRunes())) {
-      Err(RuneTypeSolveError(solverState.getAllRunes() -- conclusions.keySet))
+    val allRunes = solverState.getAllRunes() ++ additionalRunes
+    if (expectCompleteSolve && (conclusions.keySet != allRunes)) {
+      Err(RuneTypeSolveError(allRunes -- conclusions.keySet))
     } else {
       Ok(conclusions)
     }

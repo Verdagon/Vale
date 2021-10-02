@@ -454,9 +454,10 @@ case class TemplatasStore(
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
     profiler.childFrame("lookupWithImpreciseName", () => {
-      val allEntriesFromThisEnv = entriesByImpreciseNameS.get(nameS).toVector.flatten
       val allTemplatasFromThisEnv =
-        allEntriesFromThisEnv
+          entriesByImpreciseNameS.get(nameS)
+          .toVector
+          .flatten
           .filter(entryMatchesFilter(_, lookupFilter))
           .map(entryToTemplata(from, _))
       if (getOnlyNearest) {

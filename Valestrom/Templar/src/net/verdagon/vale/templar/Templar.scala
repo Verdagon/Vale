@@ -6,7 +6,7 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.UseP
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{CodeLocationS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, LambdaNameS, ProgramS, RangeS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeLocationS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, LambdaNameS, ProgramS, RangeS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
@@ -459,7 +459,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
 
         override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {
           profiler.childFrame("InferTemplarDelegate.resolveExactSignature", () => {
-            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
+            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
               case sef@ScoutExpectedFunctionFailure(humanName, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction) => {
                 throw new CompileErrorExceptionT(CouldntFindFunctionToCallT(range, sef))
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, sef.toString))
@@ -502,9 +502,14 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: INameS, explicitlySpecifiedTemplateArgTemplexesS: Vector[IRulexSR], args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
+          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: INameS,
+          explicitTemplateArgRulesS: Vector[IRulexSR],
+          explicitTemplateArgRunesS: Array[IRuneS],
+          args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
         OverloadTemplar.IScoutExpectedFunctionResult = {
-          overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName, explicitlySpecifiedTemplateArgTemplexesS, args, extraEnvsToLookIn, exact)
+          overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName,
+            explicitTemplateArgRulesS,
+            explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact)
         }
 
         override def makeImmConcreteDestructor(temputs: Temputs, env: IEnvironment, structTT: StructTT): PrototypeT = {
@@ -1038,6 +1043,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           RangeS.internal(-1900),
           neededOverride.name,
           Vector.empty, // No explicitly specified ones. It has to be findable just by param filters.
+          Array.empty,
           neededOverride.paramFilters,
           Vector.empty,
           true) match {
