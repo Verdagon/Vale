@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 //import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.PatternScout
-import net.verdagon.vale.scout.predictor.RuneTypeSolveError
+//import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
@@ -244,13 +244,14 @@ object Scout {
     ImportS(Scout.evalRange(file, range), moduleName.str, packageNames.map(_.str), importeeName.str)
   }
 
-  private def predictRuneTypes(
+  def predictRuneTypes(
     rangeS: RangeS,
     identifyingRunesS: Vector[IRuneS],
+    runeToExplicitType: Map[IRuneS, ITemplataType],
     rulesS: Array[IRulexSR]):
   Map[IRuneS, ITemplataType] = {
     val runeSToLocallyPredictedTypes =
-      RuneTypeSolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, Map()) match {
+      RuneTypeSolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
         case Ok(t) => t
         // This likely cannot happen because we aren't even asking for a complete solve.
         case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
@@ -314,7 +315,7 @@ object Scout {
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(structRangeS, identifyingRunesS.map(_.rune), rulesS)
+    val runeToPredictedType = predictRuneTypes(structRangeS, identifyingRunesS.map(_.rune), Map(), rulesS)
 
     val predictedMutability = predictMutability(structRangeS, mutabilityRuneS.rune, rulesS)
 
@@ -415,7 +416,7 @@ object Scout {
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(interfaceRangeS, explicitIdentifyingRunes.map(_.rune), rulesS)
+    val runeToPredictedType = predictRuneTypes(interfaceRangeS, explicitIdentifyingRunes.map(_.rune), Map(), rulesS)
 
     val predictedMutability = predictMutability(interfaceRangeS, mutabilityRuneS.rune, rulesS)
 

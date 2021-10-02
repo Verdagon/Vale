@@ -47,7 +47,10 @@ case class WhileConditionIsntBoolean(range: RangeS, actualType: CoordT) extends 
 case class CantMoveFromGlobal(range: RangeS, name: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class InferAstronomerError(range: RangeS, err: RuneTypeSolveError) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 //case class NotEnoughToSolveError(range: RangeS, conclusions: Map[IRuneS, ITemplata], unknownRunes: Iterable[IRuneS]) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
-case class TemplarSolverError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class TemplarSolverError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends ICompileErrorT {
+  override def hashCode(): Int = vcurious()
+  vpass()
+}
 //case class TemplarSolverConflict(range: RangeS, conclusions: Map[IRuneS, ITemplata], rune: IRuneS, conflictingNewConclusion: ITemplata) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantImplStruct(range: RangeS, parent: StructTT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 // REMEMBER: Add any new errors to the "Humanize errors" test

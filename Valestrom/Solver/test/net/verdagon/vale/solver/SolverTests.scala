@@ -333,13 +333,13 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
 
     val solverState =
-      Planner.makeInitialSolverState[IRule, Long, String](
+      Solver.makeInitialSolverState[IRule, Long, String](
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
         Map())
     val firstConclusions =
-      Planner.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, RuleSolver.solve) match {
         case Ok(c) => c
         case Err(e) => vfail(e)
       }
@@ -347,7 +347,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     solverState.concludeRune(solverState.getCanonicalRune(-1), "Firefly")
 
     val secondConclusions =
-      Planner.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, RuleSolver.solve) match {
         case Ok(c) => c
         case Err(e) => vfail(e)
       }
@@ -383,13 +383,13 @@ class SolverTests extends FunSuite with Matchers with Collector {
 //          }: PartialFunction[IRule, (Long, Long)])
 
       val solverState =
-        Planner.makeInitialSolverState[IRule, Long, String](
+        Solver.makeInitialSolverState[IRule, Long, String](
           rules,
           (rule: IRule) => rule.allRunes.toVector,
           puzzler,
           Map())
       val conclusions =
-        Planner.solve((), (), solverState, RuleSolver.solve) match {
+        Solver.solve((), (), solverState, RuleSolver.solve) match {
           case Ok(c) => c.toMap
           case Err(e) => vfail(e)
         }
@@ -436,12 +436,12 @@ class SolverTests extends FunSuite with Matchers with Collector {
 //        }//: PartialFunction[IRule, (Long, Long)])
 
     val solverState =
-      Planner.makeInitialSolverState[IRule, Long, String](
+      Solver.makeInitialSolverState[IRule, Long, String](
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
         Map())
-    Planner.solve((), (), solverState, RuleSolver.solve) match {
+    Solver.solve((), (), solverState, RuleSolver.solve) match {
       case Ok(c) => vfail(c)
       case Err(e) => e
     }
@@ -453,13 +453,13 @@ class SolverTests extends FunSuite with Matchers with Collector {
     initiallyKnownRunes: Map[Long, String] = Map()):
   Map[Long, String] = {
     val solverState =
-      Planner.makeInitialSolverState[IRule, Long, String](
+      Solver.makeInitialSolverState[IRule, Long, String](
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
         initiallyKnownRunes)
     val conclusions =
-      Planner.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, RuleSolver.solve) match {
           case Ok(c) => c
           case Err(e) => vfail(e)
         }

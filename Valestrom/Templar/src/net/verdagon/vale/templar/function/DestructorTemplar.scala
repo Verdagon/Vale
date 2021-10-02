@@ -38,6 +38,7 @@ class DestructorTemplar(
             GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
           },
           Vector.empty,
+          Array.empty,
           Vector(ParamFilter(type2, None)),
           Vector.empty,
           true) match {
@@ -58,6 +59,7 @@ class DestructorTemplar(
             GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
           },
           Vector.empty,
+          Array.empty,
           Vector(ParamFilter(type2, None)),
           Vector.empty,
           true) match {
@@ -88,6 +90,7 @@ class DestructorTemplar(
         GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
       },
       Vector.empty,
+      Array.empty,
       Vector(ParamFilter(type2, None)),
       Vector.empty,
       true) match {
@@ -115,6 +118,7 @@ class DestructorTemplar(
         GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
       },
       Vector.empty,
+      Array.empty,
       Vector(ParamFilter(type2, None)),
       Vector.empty,
       true) match {
@@ -334,6 +338,7 @@ class DestructorTemplar(
         env, temputs, RangeS.internal(-108),
         GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
         Vector.empty,
+        Array.empty,
         Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.elementType, None)),
         Vector.empty, true) match {
         case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
@@ -392,6 +397,7 @@ class DestructorTemplar(
         env, temputs, range,
         GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
         Vector.empty,
+        Array.empty,
         Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.elementType, None)),
         Vector.empty, true) match {
         case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
@@ -436,6 +442,7 @@ class DestructorTemplar(
       RangeS.internal(-1673),
       ImmConcreteDestructorImpreciseNameS(),
       Vector.empty,
+      Array.empty,
       Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), None)),
       Vector.empty,
       true) match {
@@ -460,6 +467,7 @@ class DestructorTemplar(
         RangeS.internal(-1677),
         ImmInterfaceDestructorImpreciseNameS(),
         Vector.empty,
+        Array.empty,
         Vector(ParamFilter(CoordT(ShareT, ReadonlyT, interfaceTT), None)),
         Vector.empty,
         true) match {
@@ -487,6 +495,7 @@ class DestructorTemplar(
         RangeS.internal(-1674),
         ImmInterfaceDestructorImpreciseNameS(),
         Vector.empty,
+        Array.empty,
         Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), Some(OverrideT(implementedInterfaceRefT)))),
         Vector.empty,
         true)

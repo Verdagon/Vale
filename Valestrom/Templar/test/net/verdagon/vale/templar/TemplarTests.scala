@@ -46,6 +46,18 @@ class TemplarTests extends FunSuite with Matchers {
     Collector.only(main, { case ConstantIntTE(-3, _) => true })
   }
 
+  test("Simple local") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |fn main() infer-ret export {
+        |  a = 42;
+        |  = a;
+        |}
+    """.stripMargin)
+    val main = compile.expectTemputs().lookupFunction("main")
+    vassert(main.header.returnType.kind == IntT(32))
+  }
+
   test("Tests panic return type") {
     val compile = TemplarTestCompilation.test(
       """
@@ -1111,7 +1123,7 @@ class TemplarTests extends FunSuite with Matchers {
     }
   }
 
-  test("Lambda is compatible anonymous interface") {
+  test("Lambda is incompatible anonymous interface") {
     val compile = TemplarTestCompilation.test(
         """
           |interface AFunction1<P> rules(P Ref) {

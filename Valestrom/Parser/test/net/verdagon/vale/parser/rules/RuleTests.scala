@@ -44,6 +44,7 @@ class RuleTests extends FunSuite with Matchers with Collector {
     checkFail(level0PR, "")
     checkFail(level1PR, "")
     checkFail(level2PR, "")
+    checkFail(isInterfacePR, "")
     checkFail(level3PR, "")
     checkFail(level4PR, "")
     checkFail(level5PR, "")

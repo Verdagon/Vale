@@ -350,7 +350,7 @@ class ExpressionTemplar(
               range,
               newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
               rules.toVector,
-              maybeTemplateArgs.map(_.map(_.rune)),
+              maybeTemplateArgs.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -366,7 +366,7 @@ class ExpressionTemplar(
               range,
               newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
               rules.toVector,
-              templateArgTemplexesS.map(_.map(_.rune)),
+              templateArgTemplexesS.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -396,7 +396,7 @@ class ExpressionTemplar(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life + 1, argsExprs1)
           val functionPointerCall2 =
-            callTemplar.evaluatePrefixCall(temputs, fate, life + 2, range, decayedCallableReferenceExpr2, Vector(), None, argsExprs2)
+            callTemplar.evaluatePrefixCall(temputs, fate, life + 2, range, decayedCallableReferenceExpr2, Vector(), Array(), argsExprs2)
           (functionPointerCall2, returnsFromCallable ++ returnsFromArgs)
         }
 
@@ -734,7 +734,7 @@ class ExpressionTemplar(
               temputs, fate, range, rules.toVector, vimpl(), sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2)
           (expr2, returnsFromElements)
         }
-        case StaticArrayFromCallableSE(range, rules, sizeRuneA, maybeMutabilityRune, maybeVariabilityRune, callableAE) => {
+        case StaticArrayFromCallableSE(range, rules, maybeMutabilityRune, maybeVariabilityRune, sizeRuneA, callableAE) => {
           val (callableTE, returnsFromCallable) =
             evaluateAndCoerceToReferenceExpression(temputs, fate, life, callableAE);
           val expr2 =
@@ -1317,7 +1317,7 @@ class ExpressionTemplar(
       attributesS ++ Vector(UserFunctionS),
       tyype,
       identifyingRunesS,
-      runeSToType ++ fate.function.runeToType,
+      runeSToType,
       paramsS,
       maybeRetCoordRune,
       rulesS.toVector,

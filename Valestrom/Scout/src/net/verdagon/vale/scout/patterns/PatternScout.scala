@@ -73,16 +73,20 @@ object PatternScout {
         }
       }
 
-    val coordRuneS =
-      Some(
-        translateMaybeTypeIntoRune(
-          stackFrame.parentEnv,
-          lidb.child(),
-          Scout.evalRange(stackFrame.file, range),
-          ruleBuilder,
-          runeToExplicitType,
-          maybeTypeP,
-          false))
+    val maybeCoordRuneS =
+      maybeTypeP.map(typeP => {
+        val runeS =
+          translateMaybeTypeIntoRune(
+            stackFrame.parentEnv,
+            lidb.child(),
+            Scout.evalRange(stackFrame.file, range),
+            ruleBuilder,
+            runeToExplicitType,
+            maybeTypeP,
+            false)
+        runeToExplicitType.put(runeS.rune, CoordTemplataType)
+        runeS
+      })
 
     val maybePatternsS =
       maybeDestructureP match {
@@ -112,7 +116,7 @@ object PatternScout {
         }
       }
 
-    AtomSP(Scout.evalRange(stackFrame.file, range), captureS, maybeVirtualityS, coordRuneS, maybePatternsS)
+    AtomSP(Scout.evalRange(stackFrame.file, range), captureS, maybeVirtualityS, maybeCoordRuneS, maybePatternsS)
   }
 
   def translateTypeIntoRune(

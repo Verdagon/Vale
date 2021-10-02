@@ -21,6 +21,21 @@ class TemplarVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val temputs = compile.expectTemputs()
   }
+
+  test("Upcast") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |interface IShip {}
+        |struct Raza { fuel int; }
+        |impl IShip for Raza;
+        |
+        |fn main() export {
+        |  ship IShip = Raza(42);
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+  }
+
   test("Downcast with as") {
     val compile = TemplarTestCompilation.test(
       """

@@ -519,6 +519,12 @@ object ParsedLoader {
           loadRulex(getObjectField(jobj, "left")),
           loadRulex(getObjectField(jobj, "right")))
       }
+      case "BuiltinCallPR" => {
+        BuiltinCallPR(
+          loadRange(getObjectField(jobj, "range")),
+          loadName(getObjectField(jobj, "name")),
+          getArrayField(jobj, "args").map(expectObject).map(loadRulex))
+      }
       case x => vimpl(x.toString)
     }
   }

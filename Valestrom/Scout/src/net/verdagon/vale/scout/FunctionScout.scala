@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.ExpressionScout.NormalResult
-import net.verdagon.vale.scout.Scout.noDeclarations
+import net.verdagon.vale.scout.Scout.{noDeclarations, predictRuneTypes}
 import net.verdagon.vale.scout.patterns._
 //import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
 import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType}
@@ -168,12 +168,19 @@ object FunctionScout {
 
     val attrsS = translateFunctionAttributes(file, attributes.filter({ case AbstractAttributeP(_) => false case _ => true}))
 
+    val runeToPredictedType =
+      predictRuneTypes(
+        rangeS,
+        userSpecifiedIdentifyingRunes.map(_.rune),
+        runeToExplicitType.toMap,
+        ruleBuilder.toArray)
+
     FunctionS(
       Scout.evalRange(file, range),
       name,
       attrsS,
       userSpecifiedIdentifyingRunes,
-      runeToExplicitType.toMap,
+      runeToPredictedType,
       explicitParams1,
       maybeRetCoordRune,
       ruleBuilder.toArray,
@@ -222,14 +229,30 @@ object FunctionScout {
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
-    val explicitParamPatterns1 =
+
+    // We say PerhapsTypeless because they might be anonymous params like in `(_){ true }`
+    // Later on, we'll make identifying runes for these.
+    val explicitParamPatternsPerhapsTypeless =
       PatternScout.scoutPatterns(
         myStackFrameWithoutParams,
         lidb.child(),
         ruleBuilder,
         runeToExplicitType,
         paramsP.toVector.flatMap(_.patterns))
-    val explicitParams1 = explicitParamPatterns1.map(ParameterS)
+
+    val explicitParamPatternsAndIdentifyingRunes =
+      explicitParamPatternsPerhapsTypeless.map({
+        case a @ AtomSP(_, _, _, Some(_), _) => (a, None)
+        case AtomSP(range, name, virtuality, None, destructure) => {
+          val rune = RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
+          runeToExplicitType.put(rune.rune, CoordTemplataType)
+          val newParam = AtomSP(range, name, virtuality, Some(rune), destructure)
+          (newParam, Some(rune))
+        }
+      })
+    val explicitParams = explicitParamPatternsAndIdentifyingRunes.map(_._1).map(ParameterS)
+    val identifyingRunesFromExplicitParams = explicitParamPatternsAndIdentifyingRunes.flatMap(_._2)
+
 //    vassert(exportedTemplateParamNames.size == exportedTemplateParamNames.toSet.size)
 
     val closureParamName = ClosureParamNameS()
@@ -238,7 +261,7 @@ object FunctionScout {
       VariableDeclarations(Vector(VariableDeclaration(closureParamName)))
 
     val paramDeclarations =
-      explicitParams1.map(_.pattern)
+      explicitParams.map(_.pattern)
         .map(pattern1 => VariableDeclarations(PatternScout.getParameterCaptures(pattern1)))
         .foldLeft(closureDeclaration)(_ ++ _)
 
@@ -260,7 +283,7 @@ object FunctionScout {
         body0,
         paramDeclarations)
 
-    if (lambdaMagicParamNames.nonEmpty && (explicitParams1.nonEmpty)) {
+    if (lambdaMagicParamNames.nonEmpty && (explicitParams.nonEmpty)) {
       throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(parentStackFrame.file, range), "Cant have a lambda with _ and params"))
     }
 
@@ -305,9 +328,11 @@ object FunctionScout {
 
     // Lambdas identifying runes are determined by their magic params.
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
-    val identifyingRunes = magicParams.map(param => vassertSome(param.pattern.coordRune))
+    val identifyingRunes =
+      identifyingRunesFromExplicitParams ++
+      magicParams.map(param => vassertSome(param.pattern.coordRune))
 
-    val totalParams = Vector(closureParamS) ++ explicitParams1 ++ magicParams;
+    val totalParams = Vector(closureParamS) ++ explicitParams ++ magicParams;
 
     val maybeRetCoordRune =
       (maybeInferRet, maybeRetType) match {

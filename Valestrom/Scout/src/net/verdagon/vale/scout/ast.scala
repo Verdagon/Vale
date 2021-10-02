@@ -225,6 +225,8 @@ case class ParameterS(
     // Note the lack of a VariabilityP here. The only way to get a variability is with a Capture.
     pattern: AtomSP) {
   override def hashCode(): Int = vcurious()
+
+  vassert(pattern.coordRune.nonEmpty)
 }
 
 case class SimpleParameterS(
@@ -254,7 +256,7 @@ case class FunctionS(
     attributes: Vector[IFunctionAttributeS],
 
     identifyingRunes: Vector[RuneUsage],
-  runeToExplicitType: Map[IRuneS, ITemplataType],
+    runeToPredictedType: Map[IRuneS, ITemplataType],
 
 //    // Runes that we can know without looking at args or template args.
 //    knowableRunes: Set[IRuneS],

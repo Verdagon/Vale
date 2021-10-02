@@ -88,61 +88,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val program1 = compile("interface IMoo { fn blork(virtual this &IMoo, a bool)void; }")
     val imoo = program1.lookupInterface("IMoo")
 
-//    imoo.rules match {
-//      case Vector(EqualsSR(_, RuneSR(_, ImplicitRuneS(_)), MutabilitySR(_, MutableP))) =>
-//    }
-
     val blork = imoo.internalMethods.head
     blork.name match {
       case FunctionNameS("blork", _) =>
     }
-//
-//    val (actualThisParamRune, actualBoolParamRune, retRune) =
-//      blork.templateRules match {
-//        case Vector(
-//        EqualsSR(_,
-//        TypedSR(_, actualThisParamRune, CoordTypeSR),
-//        InterpretedSR(_, ConstraintP, ReadonlyP, NameSR(_, CodeTypeNameS("IMoo")))),
-//        EqualsSR(_,
-//        TypedSR(_, actualBoolParamRune, CoordTypeSR),
-//        NameSR(_, CodeTypeNameS("bool"))),
-//        EqualsSR(_,
-//        TypedSR(_, actualRetRune, CoordTypeSR),
-//        NameSR(_, CodeTypeNameS("void")))) => {
-//          actualThisParamRune match {
-//            case ImplicitRuneS(_, 0) =>
-//          }
-//          actualBoolParamRune match {
-//            case ImplicitRuneS(_, 1) =>
-//          }
-//          actualRetRune match {
-//            case ImplicitRuneS(_, 2) =>
-//          }
-//          (actualThisParamRune, actualBoolParamRune, actualRetRune)
-//        }
-//      }
-//
-//    RuleSUtils.getDistinctOrderedRunesForRulexes(blork.templateRules) shouldEqual
-//      Vector(actualThisParamRune, actualBoolParamRune, retRune)
-//
-//    blork.params match {
-//      case Vector(
-//      ParameterS(
-//      AtomSP(_,
-//      Some(CaptureS(CodeVarNameS("this"))),
-//      Some(AbstractSP),
-//      ImplicitRuneS(_, 0),
-//      None)),
-//      ParameterS(
-//      AtomSP(_,
-//      Some(CaptureS(CodeVarNameS("a"))),
-//      None,
-//      ImplicitRuneS(_, 1),
-//      None))) =>
-//    }
-//
-//    // Yes, even though the user didnt specify any. See CCAUIR.
-//    blork.identifyingRunes shouldEqual Vector.empty
   }
 
   test("Generic interface") {

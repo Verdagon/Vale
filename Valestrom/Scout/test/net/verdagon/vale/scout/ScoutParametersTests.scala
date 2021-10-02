@@ -24,7 +24,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""fn main<T>(moo T) infer-ret { }""")
     val main = program1.lookupFunction("main")
 
-    vassert(main.runeToExplicitType.size == 1)
+    vassert(main.runeToPredictedType.size == 1)
 
     main.identifyingRunes match {
       case Vector(RuneUsage(_, CodeRuneS("T"))) =>
@@ -62,7 +62,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     tCoordRuneFromParams shouldEqual tCoordRuneFromRules.rune
   }
 
-  test("Anonymous typed param") {
+  test("Anonymous, typed param") {
     val program1 = compile("""fn main(_ int) infer-ret { }""")
     val main = program1.lookupFunction("main")
     val Vector(param) = main.params
@@ -137,6 +137,19 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     val bork = compile(
       """
         |fn main() int export {do({ _ })}
+        |""".stripMargin)
+
+    val main = bork.lookupFunction("main")
+    // We dont support regions yet, so scout should filter them out.
+    main.identifyingRunes.size shouldEqual 0
+    val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
+    lambda.function.identifyingRunes.size shouldEqual 1
+  }
+
+  test("Test one-anonymous-param lambda identifying runes") {
+    val bork = compile(
+      """
+        |fn main() int export {do((_){ true })}
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")

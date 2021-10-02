@@ -90,6 +90,7 @@ object TemplexScout {
               CallSR(
                 evalRange(range),
                 resultRuneS,
+                askingForKind,
                 translateTemplex(env, lidb.child(), ruleBuilder, template, false),
                 args.map(translateTemplex(env, lidb.child(), ruleBuilder, _, false)).toArray)
             resultRuneS
@@ -106,6 +107,7 @@ object TemplexScout {
               CallSR(
                 evalRange(range),
                 resultRuneS,
+                askingForKind,
                 templateNameRuneS,
                 Array(
                   mutabilityRuneS,

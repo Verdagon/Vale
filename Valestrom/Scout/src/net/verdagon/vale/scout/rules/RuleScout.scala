@@ -127,9 +127,16 @@ object RuleScout {
         RuneUsage(evalRange(range), rune)
       }
       case TemplexPR(templex) => TemplexScout.translateTemplex(env, lidb.child(), builder, templex, false)
-      case BuiltinCallPR(range, NameP(_, name), args) => {
-        vimpl()
-        //        BuiltinCallSR(Scout.evalRange(env.file, range), name, args.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, _)))
+      case BuiltinCallPR(range, NameP(_, "isInterface"), args) => {
+        vassert(args.length == 1)
+        val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)
+
+        val resultRune = ImplicitRuneS(lidb.child().consume())
+        builder += IsInterfaceSR(evalRange(range), argRune)
+        runeToExplicitType.put(resultRune, KindTemplataType)
+        runeToExplicitType.put(argRune.rune, KindTemplataType)
+
+        RuneUsage(evalRange(range), resultRune)
       }
     }
   }

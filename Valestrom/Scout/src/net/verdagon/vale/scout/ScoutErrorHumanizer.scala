@@ -15,7 +15,7 @@ object ScoutErrorHumanizer {
         case CantOwnershipInterfaceInImpl(range) => s": Can only impl a plain interface, remove symbol."
         case CantOwnershipStructInImpl(range) => s": Only a plain struct/interface can be in an impl, remove symbol."
         case CantOverrideOwnershipped(range) => s": Can only impl a plain interface, remove symbol."
-        case VariableNameAlreadyExists(range, name) => s": Local named " + humanizeVarName(name) + " already exists!\n(If you meant to modify the variable, use the `set` keyword beforehand.)"
+        case VariableNameAlreadyExists(range, name) => s": Local named " + humanizeName(name) + " already exists!\n(If you meant to modify the variable, use the `set` keyword beforehand.)"
         case InterfaceMethodNeedsSelf(range) => s": Interface's method needs a virtual param of interface's type!"
         case LightFunctionMustHaveParamTypes(range, paramIndex) => s": Function parameter must have a type!"
         case ForgotSetKeywordError(range) => s": Changing a struct's member must start with the `set` keyword."
@@ -33,10 +33,11 @@ object ScoutErrorHumanizer {
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
   }
 
-  def humanizeVarName(varName: IVarNameS): String = {
-    varName match {
+  def humanizeName(name: INameS): String = {
+    name match {
 //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
       case ClosureParamNameS() => "(closure)"
+      case CodeTypeNameS(n) => n
       case MagicParamNameS(codeLocation) => "(magic)"
       case CodeVarNameS(name) => name
       case ConstructingMemberNameS(name) => "member " + name

@@ -155,7 +155,7 @@ object Astronomer {
     val (primitivesS, structsS, interfacesS) = env.lookupType(name)
 
     if (primitivesS.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
-      ErrorReporter.report(RangedInternalErrorA(range, "Nothing found with name " + name))
+      ErrorReporter.report(CouldntFindTypeA(range, name))
     }
     if (primitivesS.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
       ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
@@ -193,7 +193,7 @@ object Astronomer {
     val (primitivesS, structsS, interfacesS) = env.lookupType(name)
 
     if (primitivesS.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
-      ErrorReporter.report(CouldntFindTypeA(range, name.name))
+      ErrorReporter.report(CouldntFindTypeA(range, name))
     }
     if (primitivesS.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
       ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
@@ -329,7 +329,10 @@ object Astronomer {
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val methodsEnv = env.addRunes(runeAToType)
-    val internalMethodsA = internalMethodsS.map(translateFunction(astrouts, methodsEnv, _))
+    val internalMethodsA =
+      internalMethodsS.map(method => {
+        translateFunction(astrouts, methodsEnv, method)
+      })
 
     val interfaceA =
       InterfaceA(

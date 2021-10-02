@@ -1,7 +1,7 @@
 package net.verdagon.vale.scout
 
-import net.verdagon.vale.parser.{CombinatorParsers,  ParseFailure, ParseSuccess, Parser, VaryingP}
-import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vfail, vimpl}
+import net.verdagon.vale.parser.{CombinatorParsers, ParseFailure, ParseSuccess, Parser, VaryingP}
+import net.verdagon.vale.{Collector, Err, FileCoordinate, Ok, vassert, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.runtime.Nothing$
@@ -41,6 +41,13 @@ class ScoutVariableTests extends FunSuite with Matchers {
       CodeVarNameS("x"),
       NotUsed, NotUsed, NotUsed, NotUsed, NotUsed, NotUsed) =>
     }
+  }
+
+  test("Type-less local has no coord rune") {
+    val program1 = compile("fn main() int export { x = 4; }")
+    val main = program1.lookupFunction("main")
+    val local = Collector.only(main, { case let @ LetSE(_, rules, pattern, _) => let })
+    local.pattern.coordRune shouldEqual None
   }
 
   test("Reports defining same-name variable") {

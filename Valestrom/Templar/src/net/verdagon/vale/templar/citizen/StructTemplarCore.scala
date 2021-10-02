@@ -143,6 +143,7 @@ class StructTemplarCore(
                   structA.range,
                   GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
                   Vector.empty,
+                  Array.empty,
                   Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
                   Vector.empty,
                   true)
@@ -611,6 +612,7 @@ class StructTemplarCore(
             range,
             GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
             Vector.empty,
+            Array.empty,
             forwardedCallArgs,
             Vector.empty,
             true) match {
