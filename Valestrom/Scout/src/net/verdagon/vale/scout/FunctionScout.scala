@@ -120,25 +120,26 @@ object FunctionScout {
           // If nothing's present, assume void
           val rangeS = Scout.evalRange(file, retRange)
           val rune = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-          runeToExplicitType.put(rune.rune, CoordTemplataType)
           ruleBuilder += LookupSR(rangeS, rune, CodeTypeNameS("void"))
           Some(rune)
         }
         case (Some(_), None) => None // Infer the return
         case (None, Some(retTypePT)) => {
-          PatternScout.translateMaybeTypeIntoMaybeRune(
-            functionEnv,
-            lidb,
-            Scout.evalRange(file, retRange),
-            ruleBuilder,
-            runeToExplicitType,
-            Some(retTypePT),
-            false,
-            // The rune should be on the right, see DCRC option A.
-            false)
+          val rune =
+            PatternScout.translateMaybeTypeIntoMaybeRune(
+              functionEnv,
+              lidb,
+              Scout.evalRange(file, retRange),
+              ruleBuilder,
+              runeToExplicitType,
+              Some(retTypePT),
+              // The rune should be on the right, see DCRC option A.
+              false)
+          rune
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(file, range), "Can't have return type and infer-ret at the same time"))
       }
+    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
 
     val body1 =
       if (attributes.collectFirst({ case AbstractAttributeP(_) => }).nonEmpty) {
@@ -349,6 +350,7 @@ object FunctionScout {
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(parentStackFrame.file, range), "Can't have return type and infer-ret at the same time"))
       }
+    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
 
     val function1 =
       FunctionS(
@@ -374,13 +376,15 @@ object FunctionScout {
   // - Uses of parent variables.
   // - Magic params made/used inside.
   private def scoutBody(
-    functionBodyEnv: FunctionEnvironment,
+    functionEnv: FunctionEnvironment,
     // This might be the block containing the lambda that we're evaluating now.
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     body0: BlockPE,
     initialDeclarations: VariableDeclarations):
   (BodySE, VariableUses, Vector[MagicParamNameS]) = {
+    val functionBodyEnv = functionEnv.child()
+
     // There's an interesting consequence of calling this function here...
     // If we have a lone lookup node, like "m = Marine(); m;" then that
     // 'm' will be turned into an expression, which means that's how it's
@@ -519,7 +523,6 @@ object FunctionScout {
         case (None, None) => {
           // If nothing's present, assume void
           val rune = RuneUsage(retRangeS, ImplicitRuneS(lidb.child().consume()))
-          runeToExplicitType.put(rune.rune, CoordTemplataType)
           ruleBuilder += LookupSR(retRangeS, rune, CodeTypeNameS("void"))
           Some(rune)
         }
@@ -538,6 +541,7 @@ object FunctionScout {
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(myStackFrame.file, range), "Can't have return type and infer-ret at the same time"))
       }
+    maybeReturnRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
 
     if (attrsP.collect({ case AbstractAttributeP(_) => true  }).nonEmpty) {
       throw CompileErrorExceptionS(RangedInternalErrorS(Scout.evalRange(interfaceEnv.file, range), "Dont need abstract here"))

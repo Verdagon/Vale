@@ -4,7 +4,7 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP}
 import net.verdagon.vale.templar.types.{CoordTemplataType, IntegerTemplataType, KindTemplataType, MutabilityTemplataType, OwnershipTemplataType, PermissionTemplataType, VariabilityTemplataType}
-import net.verdagon.vale.{Err, FileCoordinate, Ok, vassert, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.{Err, FileCoordinate, Ok, RangeS, vassert, vassertSome, vfail, vimpl, vwat}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -125,8 +125,8 @@ class ScoutRuleTests extends FunSuite with Matchers {
     val program =
       compile(
         """
-          |fn main<M, V, N, E, T>()
-          |rules(T = [<M, V> N * E]) {}
+          |fn main<M, V, N, E>(t T)
+          |rules(T Ref = [<M, V> N * E]) {}
           |""".stripMargin)
     val main = program.lookupFunction("main")
 
@@ -134,7 +134,6 @@ class ScoutRuleTests extends FunSuite with Matchers {
     vassertSome(main.runeToPredictedType.get(CodeRuneS("V"))) shouldEqual VariabilityTemplataType
     vassertSome(main.runeToPredictedType.get(CodeRuneS("N"))) shouldEqual IntegerTemplataType
     vassertSome(main.runeToPredictedType.get(CodeRuneS("E"))) shouldEqual CoordTemplataType
-    // We should assume it's a coord, we can have an operator later (.kind perhaps) to get the kind
     vassertSome(main.runeToPredictedType.get(CodeRuneS("T"))) shouldEqual CoordTemplataType
   }
 

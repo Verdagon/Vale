@@ -4,7 +4,7 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AtomSP, VirtualitySP}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types.ITemplataType
-import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vcurious, vimpl, vpass, vwat}
+import net.verdagon.vale.{FileCoordinate, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
 
@@ -42,38 +42,6 @@ case class ProgramS(
     vassert(matches.size == 1)
     matches.head
   }
-}
-
-object CodeLocationS {
-  // Keep in sync with CodeLocation2
-  val testZero = CodeLocationS.internal(-1)
-  def internal(internalNum: Int): CodeLocationS = {
-    vassert(internalNum < 0)
-    CodeLocationS(FileCoordinate("", Vector.empty, "internal"), internalNum)
-  }
-}
-
-object RangeS {
-  // Should only be used in tests.
-  val testZero = RangeS(CodeLocationS.testZero, CodeLocationS.testZero)
-
-  def internal(internalNum: Int): RangeS = {
-    vassert(internalNum < 0)
-    RangeS(CodeLocationS.internal(internalNum), CodeLocationS.internal(internalNum))
-  }
-}
-
-case class CodeLocationS(
-  // The index in the original source code files list.
-  // If negative, it means it came from some internal non-file code.
-  file: FileCoordinate,
-  offset: Int) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-
-case class RangeS(begin: CodeLocationS, end: CodeLocationS) {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  vassert(begin.file == end.file)
-  vassert(begin.offset <= end.offset)
-  def file: FileCoordinate = begin.file
 }
 
 sealed trait ICitizenAttributeS

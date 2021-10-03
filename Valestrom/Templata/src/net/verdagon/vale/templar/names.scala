@@ -1,9 +1,9 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.scout.{CodeLocationS, IRuneS}
+import net.verdagon.vale.scout.{ IRuneS}
 import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata}
 import net.verdagon.vale.templar.types.{CoordT, IntT, InterfaceTT, KindT, MutabilityT, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT}
-import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vpass, vwat}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vpass, vwat}
 
 import scala.collection.immutable.List
 

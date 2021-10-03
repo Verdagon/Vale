@@ -6,12 +6,12 @@ import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.RuleTypeSolveFailure
 import net.verdagon.vale.templar.infer.ITemplarSolverError
-import net.verdagon.vale.{Err, Ok, vassertOne, vpass}
+import net.verdagon.vale.{Err, Ok, RangeS, vassertOne, vpass}
 //import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import net.verdagon.vale.scout.rules.{EqualsSR, TemplexSR, TypedSR}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata.{IPotentialBanner, _}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS, RangeS}
+import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, IScoutExpectedFunctionResult, InferFailure, Outscored, ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
@@ -271,20 +271,19 @@ class OverloadTemplar(
                       // context of the current environment and spit out some templatas.
                       RuneTypeSolver.solve(
                           nameS => vassertOne(env.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+                          callRange,
                           false,
                           explicitTemplateArgRulesS,
                           explicitTemplateArgRunesS,
                           true,
                           explicitTemplateArgRuneToType) match {
-                        case Err(e @ RuneTypeSolveError(_)) => {
+                        case Err(e @ RuneTypeSolveError(_, _)) => {
                           val reason = RuleTypeSolveFailure(e)
                           (Vector.empty, Map(), Map(function -> reason))
                         }
                         case Ok(runeTypeConclusions) => {
                           // rulesA is the equals rules, but rule typed. Now we'll run them through the solver to get
                           // some actual templatas.
-//
-//                          val explicitTemplatas = templataTemplar.evaluateTemplexes(env, temputs, explicitlySpecifiedTemplateArgTemplexesS)
 
                           // We only want to solve the template arg runes
                           profiler.childFrame("late astronoming", () => {
@@ -294,7 +293,7 @@ class OverloadTemplar(
                               explicitTemplateArgRulesS,
                                 explicitTemplateArgRuneToType ++ runeTypeConclusions,
                                 callRange,
-                                Map()) match {
+                              Map()) match {
                               case (Err(e)) => {
                                 (Vector.empty, Map(), Map(function -> InferFailure(e)))
                               }

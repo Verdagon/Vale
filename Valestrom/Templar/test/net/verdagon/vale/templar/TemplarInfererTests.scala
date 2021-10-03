@@ -5,7 +5,7 @@ import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.IncompleteSolve
 import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar.{CompileErrorExceptionT, CouldntFindFunctionToCallT, TemplarTestCompilation}
-import net.verdagon.vale.{Err, vassertOne}
+import net.verdagon.vale.{CodeLocationS, Err, RangeS, vassertOne}
 //import net.verdagon.vale.astronomer.ruletyper.IRuleTyperEvaluatorDelegate
 import net.verdagon.vale.astronomer.{InterfaceA, StructA}
 import net.verdagon.vale.parser._

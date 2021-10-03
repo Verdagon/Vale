@@ -1,12 +1,11 @@
 package net.verdagon.vale.templar.citizen
 
 import net.verdagon.vale.astronomer.ImplA
-import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
-import net.verdagon.vale.{Err, IProfiler, Ok, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 

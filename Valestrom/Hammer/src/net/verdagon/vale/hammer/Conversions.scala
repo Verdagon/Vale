@@ -5,12 +5,11 @@ import net.verdagon.vale.metal._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{types => t}
-import net.verdagon.vale.{metal => m}
-import net.verdagon.vale.{vimpl, scout => s}
+import net.verdagon.vale.{CodeLocationS, vimpl, metal => m, scout => s}
 
 object Conversions {
-  def evaluateCodeLocation(loc: s.CodeLocationS): m.CodeLocation = {
-    val s.CodeLocationS(line, col) = loc
+  def evaluateCodeLocation(loc: CodeLocationS): m.CodeLocation = {
+    val CodeLocationS(line, col) = loc
     m.CodeLocation(line, col)
   }
 

@@ -2,7 +2,7 @@ package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{CaptureP, VariabilityP}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
-import net.verdagon.vale.scout.{IRuneS, LocalS, RangeS}
+import net.verdagon.vale.scout.{IRuneS, LocalS}
 import net.verdagon.vale.templar.templata.KindTemplata
 import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType, KindTemplataType}
 import net.verdagon.vale.{vcurious, vimpl}

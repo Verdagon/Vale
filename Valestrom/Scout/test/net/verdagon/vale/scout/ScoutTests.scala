@@ -117,10 +117,10 @@ class ScoutTests extends FunSuite with Matchers with Collector {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
     impl.rules shouldHave {
-      case KindLookupSR(_, r, CodeTypeNameS("Moo")) => vassert(r == impl.structKindRune)
+      case LookupSR(_, r, CodeTypeNameS("Moo")) => vassert(r == impl.structKindRune)
     }
     impl.rules shouldHave {
-      case KindLookupSR(_, r, CodeTypeNameS("IMoo")) => vassert(r == impl.interfaceKindRune)
+      case LookupSR(_, r, CodeTypeNameS("IMoo")) => vassert(r == impl.interfaceKindRune)
     }
   }
 

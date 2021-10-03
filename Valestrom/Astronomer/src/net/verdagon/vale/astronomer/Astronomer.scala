@@ -5,7 +5,7 @@ import net.verdagon.vale.parser.{CaptureP, FailedParse, FileP, ImmutableP, Mutab
 import net.verdagon.vale.scout.{ExportS, ExternS, RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.{Err, FileCoordinateMap, IPackageResolver, Ok, PackageCoordinate, PackageCoordinateMap, Result, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import net.verdagon.vale.{CodeLocationS, Err, FileCoordinateMap, IPackageResolver, Ok, PackageCoordinate, PackageCoordinateMap, RangeS, Result, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -20,7 +20,6 @@ case class Astrouts(
 case class Environment(
     maybeName: Option[INameS],
     maybeParentEnv: Option[Environment],
-    primitives: Map[String, ITemplataType],
     codeMap: PackageCoordinateMap[ProgramS],
     runeToType: Map[IRuneS, ITemplataType]) {
   override def hashCode(): Int = vcurious()
@@ -33,88 +32,7 @@ case class Environment(
   val imports: Vector[ImportS] = codeMap.moduleToPackagesToContents.values.flatMap(_.values.flatMap(_.imports)).toVector
 
   def addRunes(newruneToType: Map[IRuneS, ITemplataType]): Environment = {
-    Environment(maybeName, maybeParentEnv, primitives, codeMap, runeToType ++ newruneToType)
-  }
-
-  // Returns whether the imprecise name could be referring to the absolute name.
-  // See MINAAN for what we're doing here.
-  def impreciseNameMatchesAbsoluteName(
-    absoluteName: INameS,
-    needleImpreciseNameS: INameS):
-  Boolean = {
-    (absoluteName, needleImpreciseNameS) match {
-      case (TopLevelCitizenDeclarationNameS(humanNameA, _), CodeTypeNameS(humanNameB)) => humanNameA == humanNameB
-      case _ => vimpl()
-    }
-
-//    val envNameSteps = maybeName.map(_.steps).getOrElse(Vector.empty)
-//
-//    // See MINAAN for what we're doing here.
-//    absoluteNameEndsWithImpreciseName(absoluteName, needleImpreciseNameS) match {
-//      case None => false
-//      case Some(absoluteNameFirstHalf) => {
-//        if (absoluteNameFirstHalf.steps.size > envNameSteps.size) {
-//          false
-//        } else {
-//          (absoluteNameFirstHalf.steps.map(Some(_)) ++ envNameSteps.map(_ => None))
-//            .zip(envNameSteps)
-//            .forall({
-//              case (None, _) => true
-//              case (Some(firstHalfNameStep), envNameStep) => firstHalfNameStep == envNameStep
-//            })
-//        }
-//      }
-//    }
-  }
-
-  def lookupType(needleImpreciseNameS: INameS):
-  (Option[ITemplataType], Vector[StructS], Vector[InterfaceS]) = {
-    // See MINAAN for what we're doing here.
-
-    val nearStructs = structsS.filter(struct => {
-      impreciseNameMatchesAbsoluteName(struct.name, needleImpreciseNameS)
-    })
-    val nearInterfaces = interfacesS.filter(interface => {
-      impreciseNameMatchesAbsoluteName(interface.name, needleImpreciseNameS)
-    })
-    val nearPrimitives =
-      needleImpreciseNameS match {
-        case CodeTypeNameS(nameStr) => primitives.get(nameStr)
-        case _ => None
-      }
-
-    if (nearPrimitives.nonEmpty || nearStructs.nonEmpty || nearInterfaces.nonEmpty) {
-      return (nearPrimitives, nearStructs.toVector, nearInterfaces.toVector)
-    }
-    maybeParentEnv match {
-      case None => (None, Vector.empty, Vector.empty)
-      case Some(parentEnv) => parentEnv.lookupType(needleImpreciseNameS)
-    }
-  }
-
-//  def lookupSingle(range: RangeS, needleImpreciseNameS: INameS):
-//  (Option[ITemplataType], Vector[StructS], Vector[InterfaceS]) = {
-//    val (nearPrimitives, nearStructs, nearInterfaces) = lookupType(needleImpreciseNameS)
-//    val allTypes = nearPrimitives ++ nearStructs ++ nearInterfaces
-//    if (allTypes.isEmpty) {
-//      throw CompileErrorExceptionA(CouldntFindTypeA(range, needleImpreciseNameS.toString))
-//    } else if (allTypes.size > 1) {
-//      throw CompileErrorExceptionA(TooManyMatchingTypesA(range, needleImpreciseNameS.toString))
-//    } else {
-//      allTypes.head
-//    }
-//  }
-
-  def lookupRune(name: IRuneS): ITemplataType = {
-    runeToType.get(name) match {
-      case Some(tyype) => tyype
-      case None => {
-        maybeParentEnv match {
-          case None => vfail()
-          case Some(parentEnv) => parentEnv.lookupRune(name)
-        }
-      }
-    }
+    Environment(maybeName, maybeParentEnv, codeMap, runeToType ++ newruneToType)
   }
 }
 
@@ -132,92 +50,132 @@ object Astronomer {
       "Array" -> TemplateTemplataType(Vector(MutabilityTemplataType, VariabilityTemplataType, CoordTemplataType), KindTemplataType))
 
 
-  def lookupType(astrouts: Astrouts,  env: Environment, range: RangeS, name: INameS): ITemplataType = {
+
+  // Returns whether the imprecise name could be referring to the absolute name.
+  // See MINAAN for what we're doing here.
+  def impreciseNameMatchesAbsoluteName(
+    needleImpreciseNameS: INameS,
+    absoluteName: INameS):
+  Boolean = {
+    (needleImpreciseNameS, absoluteName) match {
+      case (CodeTypeNameS(humanNameB), TopLevelCitizenDeclarationNameS(humanNameA, _)) => humanNameA == humanNameB
+      case (RuneNameS(a), _) => false
+      case other => vimpl(other)
+    }
+  }
+
+  def lookupTypes(astrouts: Astrouts, env: Environment, needleImpreciseNameS: INameS): Vector[ITemplataType] = {
+    // See MINAAN for what we're doing here.
+
     // When the scout comes across a lambda, it doesn't put the e.g. main:lam1:__Closure struct into
     // the environment or anything, it lets templar to do that (because templar knows the actual types).
     // However, this means that when the lambda function gets to the astronomer, the astronomer doesn't
     // know what to do with it.
-
-    name match {
+    needleImpreciseNameS match {
       case LambdaNameS(_) =>
       case FunctionNameS(_, _) =>
       case CodeTypeNameS(_) =>
+      case RuneNameS(_) =>
       case TopLevelCitizenDeclarationNameS(_, _) =>
-      case LambdaStructNameS(_) => return KindTemplataType
+      case LambdaStructNameS(_) => return Vector(KindTemplataType)
       case ImplNameS(_, _) => vwat()
       case LetNameS(_) => vwat()
-//      case UnnamedLocalNameS(_) => vwat()
+      //      case UnnamedLocalNameS(_) => vwat()
       case ClosureParamNameS() => vwat()
       case MagicParamNameS(_) => vwat()
       case CodeVarNameS(_) => vwat()
     }
 
-    val (primitivesS, structsS, interfacesS) = env.lookupType(name)
-
-    if (primitivesS.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
-      ErrorReporter.report(CouldntFindTypeA(range, name))
+    needleImpreciseNameS match {
+      case CodeTypeNameS(nameStr) => {
+        primitives.get(nameStr) match {
+          case Some(x) => return Vector(x)
+          case None =>
+        }
+      }
+      case _ =>
     }
-    if (primitivesS.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
-      ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
+
+    needleImpreciseNameS match {
+      case RuneNameS(rune) => {
+        env.runeToType.get(rune) match {
+          case Some(tyype) => return Vector(tyype)
+          case None =>
+        }
+      }
+      case _ =>
     }
 
-    if (primitivesS.nonEmpty) {
-      if (primitivesS.toSet.size > 1) {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + primitivesS.toSet))
+    val nearStructTypes =
+      env.structsS
+        .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
+        .map(getStructType(astrouts, env, _))
+    val nearInterfaceTypes =
+      env.interfacesS
+        .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
+        .map(getInterfaceType(astrouts, env, _))
+    val result = nearStructTypes ++ nearInterfaceTypes
+
+    if (result.nonEmpty) {
+      result
+    } else {
+      env.maybeParentEnv match {
+        case None => Vector.empty
+        case Some(parentEnv) => lookupTypes(astrouts, parentEnv, needleImpreciseNameS)
       }
-      val tyype = primitivesS.head
-      tyype
-    } else if (structsS.nonEmpty) {
-      val types = structsS.map(getStructType(astrouts, env, _))
-      if (types.toSet.size > 1) {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
-      }
-      val tyype = types.head
-      tyype
-    } else if (interfacesS.nonEmpty) {
-      val types = interfacesS.map(getInterfaceType(astrouts, env, _))
-      if (types.toSet.size > 1) {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
-      }
-      val tyype = types.head
-      tyype
-    } else vfail()
+    }
   }
 
-  def lookupType(astrouts: Astrouts, env: Environment, range: RangeS, name: CodeTypeNameS): ITemplataType = {
-    // When the scout comes across a lambda, it doesn't put the e.g. __Closure<main>:lam1 struct into
-    // the environment or anything, it lets templar to do that (because templar knows the actual types).
-    // However, this means that when the lambda function gets to the astronomer, the astronomer doesn't
-    // know what to do with it.
-
-    val (primitivesS, structsS, interfacesS) = env.lookupType(name)
-
-    if (primitivesS.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
-      ErrorReporter.report(CouldntFindTypeA(range, name))
-    }
-    if (primitivesS.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
-      ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
-    }
-
-    if (primitivesS.nonEmpty) {
-      vassert(primitivesS.size == 1)
-      primitivesS.get
-    } else if (structsS.nonEmpty) {
-      val types = structsS.map(getStructType(astrouts, env, _))
-      if (types.toSet.size > 1) {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
+  def lookupType(astrouts: Astrouts,  env: Environment, range: RangeS, name: INameS): ITemplataType = {
+    lookupTypes(astrouts, env, name) match {
+      case Vector() => ErrorReporter.report(CouldntFindTypeA(range, name))
+      case Vector(only) => only
+      case others => {
+        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + others.mkString(", ")))
       }
-      val tyype = types.head
-      tyype
-    } else if (interfacesS.nonEmpty) {
-      val types = interfacesS.map(getInterfaceType(astrouts, env, _))
-      if (types.toSet.size > 1) {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
-      }
-      val tyype = types.head
-      tyype
-    } else vfail()
+    }
   }
+//
+//  def lookupType(astrouts: Astrouts, env: Environment, range: RangeS, name: CodeTypeNameS): ITemplataType = {
+//    // When the scout comes across a lambda, it doesn't put the e.g. __Closure<main>:lam1 struct into
+//    // the environment or anything, it lets templar to do that (because templar knows the actual types).
+//    // However, this means that when the lambda function gets to the astronomer, the astronomer doesn't
+//    // know what to do with it.
+//
+//    val (primitivesS, typesFromEnv, structsS, interfacesS) = env.lookupType(name)
+//
+//    if (primitivesS.isEmpty && typesFromEnv.isEmpty && structsS.isEmpty && interfacesS.isEmpty) {
+//      ErrorReporter.report(CouldntFindTypeA(range, name))
+//    }
+//    if (primitivesS.size.signum + typesFromEnv.size.signum + structsS.size.signum + interfacesS.size.signum > 1) {
+//      ErrorReporter.report(RangedInternalErrorA(range, "Name doesn't correspond to only one of primitive or struct or interface: " + name))
+//    }
+//
+//    if (primitivesS.nonEmpty) {
+//      vassert(primitivesS.size == 1)
+//      primitivesS.get
+//    } else if (typesFromEnv.nonEmpty) {
+//      if (typesFromEnv.toSet.size > 1) {
+//        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + typesFromEnv.toSet))
+//      }
+//      val tyype = typesFromEnv.head
+//      tyype
+//    } else if (structsS.nonEmpty) {
+//      val types = structsS.map(getStructType(astrouts, env, _))
+//      if (types.toSet.size > 1) {
+//        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
+//      }
+//      val tyype = types.head
+//      tyype
+//    } else if (interfacesS.nonEmpty) {
+//      val types = interfacesS.map(getInterfaceType(astrouts, env, _))
+//      if (types.toSet.size > 1) {
+//        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + types.toSet))
+//      }
+//      val tyype = types.head
+//      tyype
+//    } else vfail()
+//  }
 
   def getStructType(
     astrouts: Astrouts,
@@ -328,7 +286,9 @@ object Astronomer {
     val tyype = Scout.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
-    val methodsEnv = env.addRunes(runeAToType)
+    val methodsEnv =
+      env
+        .addRunes(runeAToType)
     val internalMethodsA =
       internalMethodsS.map(method => {
         translateFunction(astrouts, methodsEnv, method)
@@ -381,22 +341,19 @@ object Astronomer {
   }
 
   def translateExport(astrouts: Astrouts,  env: Environment, exportS: ExportAsS): ExportAsA = {
-    vimpl()
-//    val ExportAsS(range, exportName, templexS, exportedName) = exportS
-//
-//    val runeS = ImplicitRuneS(exportName, 0)
-//    val runeA = runeS)
-//    val rulesS = Vector(EqualsSR(range, TypedSR(range, runeS, KindTypeSR), templexS))
-//
-//    val (runeToIndex, runeToType, rulesA) = RuleFlattener.flattenAndCompileRules(rulesS)
-//
-//    val conclusions =
-//      makeRuleTyper().solve(astrouts, env, rulesA, range) match {
-//        case Err(e) => throw CompileErrorExceptionA(e)
-//        case Ok(x) => runeToIndex.mapValues(index => vassertSome(x(index)))
-//      }
-//
-//    ExportAsA(range, exportedName, rulesA, conclusions, runeA)
+    val ExportAsS(rangeS, rulesS, exportName, rune, exportedName) = exportS
+
+    val runeSToType =
+      calculateRuneTypes(
+        astrouts,
+        rangeS,
+        Vector(),
+        Map(rune.rune -> KindTemplataType),
+        Vector(),
+        rulesS,
+        env)
+
+    ExportAsA(rangeS, exportedName, rulesS.toVector, runeSToType, rune)
   }
 //
 //  def translateParameter(env: Environment, paramS: ParameterS): ParameterA = {
@@ -465,6 +422,7 @@ object Astronomer {
     val runeSToType =
       RuneTypeSolver.solve(
         (n) => Astronomer.lookupType(astrouts, env, rangeS, n),
+        rangeS,
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
@@ -478,7 +436,7 @@ object Astronomer {
       suppliedFunctions: Vector[FunctionA],
       suppliedInterfaces: Vector[InterfaceA]):
   ProgramA = {
-    val env = Environment(None, None, primitives, codeMap, Map())
+    val env = Environment(None, None, codeMap, Map())
 
     // If something is absence from the map, we haven't started evaluating it yet
     // If there is a None in the map, we started evaluating it
@@ -606,6 +564,11 @@ class AstronomerCompilation(
     }
   }
   def expectAstrouts(): PackageCoordinateMap[ProgramA] = {
-    getAstrouts().getOrDie()
+    getAstrouts() match {
+      case Ok(x) => x
+      case Err(e) => {
+        vfail(AstronomerErrorHumanizer.humanize(scoutCompilation.getCodeMap().getOrDie(), e))
+      }
+    }
   }
 }

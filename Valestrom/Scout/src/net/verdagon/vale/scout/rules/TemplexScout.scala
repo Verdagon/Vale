@@ -1,7 +1,8 @@
 package net.verdagon.vale.scout.rules
 
+import net.verdagon.vale.RangeS
 import net.verdagon.vale.parser.{AnonymousRunePT, BoolPT, BorrowPT, CallPT, ConstraintP, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, ManualSequencePT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PermissionPT, PrototypePT, Range, RepeaterSequencePT, StringPT, VariabilityPT}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, IEnvironment, INameS, IRuneS, ImplicitRuneS, LocationInDenizenBuilder, RangeS, Scout}
+import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, IEnvironment, INameS, IRuneS, ImplicitRuneS, LocationInDenizenBuilder, Scout}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -17,20 +18,25 @@ object TemplexScout {
     runeS
   }
 
+  def addRuneParentEnvLookupRule(
+    lidb: LocationInDenizenBuilder,
+    ruleBuilder: ArrayBuffer[IRulexSR],
+    rangeS: RangeS,
+    runeS: IRuneS):
+  RuneUsage = {
+    val usage = RuneUsage(rangeS, runeS)
+    ruleBuilder += RuneParentEnvLookupSR(rangeS, usage)
+    usage
+  }
+
   def addLookupRule(
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
     rangeS: RangeS,
-    nameSN: INameS,
-    askingForKind: Boolean):
+    nameSN: INameS):
   RuneUsage = {
     val runeS = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-    ruleBuilder +=
-      (if (askingForKind) {
-        KindLookupSR(rangeS, runeS, nameSN)
-      } else {
-        LookupSR(rangeS, runeS, nameSN)
-      })
+    ruleBuilder += LookupSR(rangeS, runeS, nameSN)
     runeS
   }
 
@@ -52,9 +58,7 @@ object TemplexScout {
     env: IEnvironment,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
-    templex: ITemplexPT,
-    // True if we want a lookup to be for a kind instead of a coord.
-    askingForKind: Boolean):
+    templex: ITemplexPT):
   RuneUsage = {
     val evalRange = (range: Range) => Scout.evalRange(env.file, range)
 
@@ -66,21 +70,27 @@ object TemplexScout {
           case NameOrRunePT(NameP(range, nameOrRune)) => {
             val isRuneFromEnv = env.allDeclaredRunes().contains(CodeRuneS(nameOrRune))
             if (isRuneFromEnv) {
-              RuneUsage(evalRange(range), CodeRuneS(nameOrRune))
+              val isRuneFromLocalEnv = env.localDeclaredRunes().contains(CodeRuneS(nameOrRune))
+              if (isRuneFromLocalEnv) {
+                RuneUsage(evalRange(range), CodeRuneS(nameOrRune))
+              } else {
+                // It's from a parent env
+                addRuneParentEnvLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeRuneS(nameOrRune))
+              }
             } else {
               val valueSR = CodeTypeNameS(nameOrRune)
-              addLookupRule(lidb.child(), ruleBuilder, evalRange(range), valueSR, askingForKind)
+              addLookupRule(lidb.child(), ruleBuilder, evalRange(range), valueSR)
             }
           }
           case InterpretedPT(range, ownership, permission, innerP) => {
             val resultRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-            val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP, false)
+            val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP)
             ruleBuilder += AugmentSR(evalRange(range), resultRuneS, Vector(OwnershipLiteralSL(ownership), PermissionLiteralSL(permission)), innerRuneS)
             resultRuneS
           }
           case BorrowPT(range, innerP) => {
             val resultRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-            val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP, false)
+            val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP)
             ruleBuilder += AugmentSR(evalRange(range), resultRuneS, Vector(OwnershipLiteralSL(ConstraintP)), innerRuneS)
             resultRuneS
           }
@@ -90,29 +100,27 @@ object TemplexScout {
               CallSR(
                 evalRange(range),
                 resultRuneS,
-                askingForKind,
-                translateTemplex(env, lidb.child(), ruleBuilder, template, false),
-                args.map(translateTemplex(env, lidb.child(), ruleBuilder, _, false)).toArray)
+                translateTemplex(env, lidb.child(), ruleBuilder, template),
+                args.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
             resultRuneS
           }
           case FunctionPT(range, mutability, paramsPack, returnType) => {
             val resultRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-            val templateNameRuneS = addLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeTypeNameS("IFunction"), false)
+            val templateNameRuneS = addLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeTypeNameS("IFunction"))
             val mutabilityRuneS =
               mutability match {
                 case None => addLiteralRule(lidb.child(), ruleBuilder, evalRange(range), MutabilityLiteralSL(MutableP))
-                case Some(m) => translateTemplex(env, lidb.child(), ruleBuilder, m, false)
+                case Some(m) => translateTemplex(env, lidb.child(), ruleBuilder, m)
               }
             ruleBuilder +=
               CallSR(
                 evalRange(range),
                 resultRuneS,
-                askingForKind,
                 templateNameRuneS,
                 Array(
                   mutabilityRuneS,
-                  translateTemplex(env, lidb.child(), ruleBuilder, paramsPack, false),
-                  translateTemplex(env, lidb.child(), ruleBuilder, returnType, false)))
+                  translateTemplex(env, lidb.child(), ruleBuilder, paramsPack),
+                  translateTemplex(env, lidb.child(), ruleBuilder, returnType)))
             resultRuneS
           }
           case PrototypePT(range, NameP(_, name), parameters, returnType) => {
@@ -122,8 +130,8 @@ object TemplexScout {
                 evalRange(range),
                 resultRuneS,
                 name,
-                parameters.map(translateTemplex(env, lidb.child(), ruleBuilder, _, false)).toArray,
-                translateTemplex(env, lidb.child(), ruleBuilder, returnType, false))
+                parameters.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray,
+                translateTemplex(env, lidb.child(), ruleBuilder, returnType))
             resultRuneS
           }
           case PackPT(range, members) => {
@@ -132,7 +140,7 @@ object TemplexScout {
               PackSR(
                 evalRange(range),
                 resultRuneS,
-                members.map(translateTemplex(env, lidb.child(), ruleBuilder, _, false)).toArray)
+                members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
             resultRuneS
           }
           case RepeaterSequencePT(range, mutability, variability, size, element) => {
@@ -141,10 +149,10 @@ object TemplexScout {
               RepeaterSequenceSR(
                 evalRange(range),
                 resultRuneS,
-                translateTemplex(env, lidb.child(), ruleBuilder, mutability, false),
-                translateTemplex(env, lidb.child(), ruleBuilder, variability, false),
-                translateTemplex(env, lidb.child(), ruleBuilder, size, false),
-                translateTemplex(env, lidb.child(), ruleBuilder, element, false))
+                translateTemplex(env, lidb.child(), ruleBuilder, mutability),
+                translateTemplex(env, lidb.child(), ruleBuilder, variability),
+                translateTemplex(env, lidb.child(), ruleBuilder, size),
+                translateTemplex(env, lidb.child(), ruleBuilder, element))
             resultRuneS
           }
           case ManualSequencePT(range, elements) => {
@@ -152,7 +160,7 @@ object TemplexScout {
             ManualSequenceSR(
               evalRange(range),
               resultRuneS,
-              elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _, false)).toArray)
+              elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
             resultRuneS
           }
         }

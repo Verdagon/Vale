@@ -5,9 +5,9 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment, TemplatasStore, InterfaceEnvEntry, PackageEnvironment, TemplataEnvEntry}
+import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment, InterfaceEnvEntry, PackageEnvironment, TemplataEnvEntry, TemplatasStore}
 import net.verdagon.vale.templar.function.{FunctionTemplar, FunctionTemplarCore, VirtualTemplar}
-import net.verdagon.vale.{IProfiler, vfail, vimpl}
+import net.verdagon.vale.{IProfiler, RangeS, vfail, vimpl}
 
 import scala.collection.immutable.List
 

@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, ProgramA}
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.{CodeLocationS, FunctionNameS, GlobalFunctionFamilyNameS, ProgramS, RangeS, Scout}
+import net.verdagon.vale.scout.{FunctionNameS, GlobalFunctionFamilyNameS, ProgramS, Scout}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._

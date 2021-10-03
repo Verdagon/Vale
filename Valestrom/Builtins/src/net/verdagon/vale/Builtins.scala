@@ -18,7 +18,8 @@ object Builtins {
       "panic" -> "panic.vale",
       "opt" -> "opt.vale",
       "result" -> "result.vale",
-      "sameinstance" -> "sameinstance.vale")
+      "sameinstance" -> "sameinstance.vale",
+      "weak" -> "weak.vale")
 
   def load(resourceFilename: String): String = {
     val stream = getClass().getClassLoader().getResourceAsStream(resourceFilename)

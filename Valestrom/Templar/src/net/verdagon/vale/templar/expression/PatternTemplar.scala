@@ -10,7 +10,7 @@ import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar._
-import net.verdagon.vale.{IProfiler, vassert, vassertSome, vfail}
+import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vfail}
 
 import scala.collection.immutable.List
 

@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.parser.{CombinatorParsers, FileP, ParseErrorHumanizer, ParseFailure, ParseSuccess, ParsedLoader, Parser, ParserVonifier}
-import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, ICompileErrorS, ProgramS, RangeS, Scout, TopLevelCitizenDeclarationNameS, VariableNameAlreadyExists}
+import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, ICompileErrorS, ProgramS, Scout, TopLevelCitizenDeclarationNameS, VariableNameAlreadyExists}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
@@ -495,6 +495,7 @@ class TemplarTests extends FunSuite with Matchers {
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.panic.*;
         |import panicutils.*;
         |interface MyOption<T> rules(T Ref) imm { }
         |struct MySome<T> rules(T Ref) imm { value T; }
@@ -892,6 +893,7 @@ class TemplarTests extends FunSuite with Matchers {
   test("Reports when exported function depends on non-exported return") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.panic.*;
         |import panicutils.*;
         |struct Firefly { }
         |fn moo() &Firefly export { __pretend<&Firefly>() }
@@ -1143,6 +1145,7 @@ class TemplarTests extends FunSuite with Matchers {
     val compile = TemplarTestCompilation.test(
         """
           |import v.builtins.opt.*;
+          |import v.builtins.weak.*;
           |import v.builtins.logic.*;
           |import panicutils.*;
           |import printutils.*;

@@ -1,8 +1,11 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.FileCoordinateMap
+import net.verdagon.vale.{FileCoordinateMap, RangeS}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
-import net.verdagon.vale.scout.{RangeS, RuneTypeSolveError, ScoutErrorHumanizer}
+import net.verdagon.vale.scout.rules.IRulexSR
+import net.verdagon.vale.scout.{IRuneS, RuneTypeSolveError, ScoutErrorHumanizer}
+import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, SolverErrorHumanizer}
+import net.verdagon.vale.templar.types.ITemplataType
 
 object AstronomerErrorHumanizer {
   def assembleError(
@@ -20,8 +23,15 @@ object AstronomerErrorHumanizer {
     range: RangeS,
     err: RuneTypeSolveError):
   String = {
-    val RuneTypeSolveError(rules) = err
-    ": Couldn't solve generics rules:\n" + lineContaining(filenamesAndSources, range.file, range.begin.offset) + "\n" + rules.toString
+    ": Couldn't solve generics rules:\n" +
+    SolverErrorHumanizer.humanizeFailedSolve(
+      filenamesAndSources,
+      ScoutErrorHumanizer.humanizeRune,
+      (codeMap, tyype: ITemplataType) => tyype.toString,
+      (codeMap, u: Unit) => "",
+      (rule: IRulexSR) => rule.range,
+      (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
+      err.failedSolve)
   }
 
   def humanize(
@@ -36,8 +46,16 @@ object AstronomerErrorHumanizer {
         case CouldntFindTypeA(range, name) => {
           ": Couldn't find type `" + ScoutErrorHumanizer.humanizeName(name) + "`:\n"
         }
-        case CouldntSolveRulesA(range, rules) => {
-          ": Couldn't solve generics rules:\n" + lineContaining(filenamesAndSources, range.file, range.begin.offset) + "\n" + rules.toString
+        case CouldntSolveRulesA(range, err) => {
+          ": Couldn't solve generics rules:\n" +
+          SolverErrorHumanizer.humanizeFailedSolve(
+            filenamesAndSources,
+            ScoutErrorHumanizer.humanizeRune,
+            (codeMap, tyype: ITemplataType) => ScoutErrorHumanizer.humanizeTemplataType(tyype),
+            (codeMap, u: Unit) => "",
+            (rule: IRulexSR) => rule.range,
+            (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
+            err.failedSolve)
         }
         case WrongNumArgsForTemplateA(range, expectedNumArgs, actualNumArgs) => {
           ": Expected " + expectedNumArgs + " template args but received " + actualNumArgs + "\n"

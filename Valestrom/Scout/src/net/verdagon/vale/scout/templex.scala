@@ -1,6 +1,6 @@
 package net.verdagon.vale.scout
 
-import net.verdagon.vale.{PackageCoordinate, vassert, vcheck, vcurious, vimpl, vpass, vwat}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS, vassert, vcheck, vcurious, vimpl, vpass, vwat}
 
 trait INameS
 sealed trait IVarNameS extends INameS

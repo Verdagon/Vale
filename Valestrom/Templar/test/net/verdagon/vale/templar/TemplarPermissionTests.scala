@@ -1,8 +1,5 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.parser.{CombinatorParsers, FileP, ParseErrorHumanizer, ParseFailure, ParseSuccess, Parser}
-import net.verdagon.vale.scout.{CodeLocationS, CodeVarNameS, ProgramS, RangeS, Scout, VariableNameAlreadyExists}
-import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale._

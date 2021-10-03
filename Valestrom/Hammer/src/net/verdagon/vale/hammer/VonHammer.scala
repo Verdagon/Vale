@@ -3,7 +3,7 @@ package net.verdagon.vale.hammer
 import net.verdagon.vale.hammer.NameHammer.translateFileCoordinate
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
-import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl, metal => m}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vimpl, metal => m}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._

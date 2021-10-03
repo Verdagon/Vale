@@ -2,9 +2,9 @@ package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale._
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
-import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RangeS}
+import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RuneNameS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, Solver, RuleError, SolverConflict}
+import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.FunctionNameT
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types._
@@ -30,7 +30,8 @@ class TemplarSolver[Env, State](
     val sanityCheck =
       rule match {
         case LookupSR(range, rune, literal) => Array(rune)
-        case KindLookupSR(range, rune, literal) => Array(rune)
+        case LookupSR(range, rune, literal) => Array(rune)
+        case RuneParentEnvLookupSR(range, rune) => Array(rune)
         case EqualsSR(range, left, right) => Array(left, right)
         case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
@@ -43,12 +44,12 @@ class TemplarSolver[Env, State](
         case CoerceToCoord(range, coordRune, kindRune) => Array(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Array(rune)
         case AugmentSR(range, resultRune, literal, innerRune) => Array(resultRune, innerRune)
-        case CallSR(range, resultRune, coerceResultToKind, templateRune, args) => Array(resultRune, templateRune) ++ args
+        case CallSR(range, resultRune, templateRune, args) => Array(resultRune, templateRune) ++ args
         case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Array(resultRune) ++ parameters ++ Array(returnTypeRune)
         case PackSR(range, resultRune, members) => Array(resultRune) ++ members
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
         case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
-        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
+//        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
         case CoordReceivesSR(range, receiverRune, senderRune) => Array(receiverRune, senderRune)
       }
     val result = rule.runeUsages
@@ -59,8 +60,9 @@ class TemplarSolver[Env, State](
   def getPuzzles(rule: IRulexSR): Array[Array[IRuneS]] = {
     rule match {
       // This means we can solve this puzzle and dont need anything to do it.
-      case LookupSR(_, _, _) | KindLookupSR(_, _, _) => Array(Array())
-      case CallSR(range, resultRune, coerceResultToKind, templateRune, args) => {
+      case LookupSR(_, _, _) => Array(Array())
+      case RuneParentEnvLookupSR(_, _) => Array(Array())
+      case CallSR(range, resultRune, templateRune, args) => {
         Array(
           Array(resultRune.rune, templateRune.rune),
           Array(templateRune.rune) ++ args.map(_.rune))
@@ -79,9 +81,9 @@ class TemplarSolver[Env, State](
       case CoerceToCoord(_, coordRune, kindRune) => Array(Array())
       case LiteralSR(_, rune, literal) => Array(Array())
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array(innerRune.rune), Array(resultRune.rune))
-      case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array())
-      case ManualSequenceSR(_, resultRune, elements) => Array(Array())
-      case CoordListSR(_, resultRune, elements) => Array(Array())
+      case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
+      case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
+//      case CoordListSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
       case CoordReceivesSR(_, receiverRune, senderRune) => Array(Array(receiverRune.rune))
     }
   }
@@ -261,8 +263,8 @@ class TemplarSolver[Env, State](
         val result = delegate.lookupTemplataImprecise(env, state, range, name)
         Ok(Map(rune.rune -> result))
       }
-      case KindLookupSR(range, rune, name) => {
-        val result = delegate.lookupTemplataImprecise(env, state, range, name)
+      case RuneParentEnvLookupSR(range, rune) => {
+        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
         Ok(Map(rune.rune -> result))
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
@@ -346,7 +348,13 @@ class TemplarSolver[Env, State](
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
         solverState.getConclusion(resultRune.rune) match {
           case None => {
-            vimpl()
+            val MutabilityTemplata(mutability) = vassertSome(solverState.getConclusion(mutabilityRune.rune))
+            val VariabilityTemplata(variability) = vassertSome(solverState.getConclusion(variabilityRune.rune))
+            val IntegerTemplata(size) = vassertSome(solverState.getConclusion(sizeRune.rune))
+            val CoordTemplata(element) = vassertSome(solverState.getConclusion(elementRune.rune))
+            val arrKind =
+              delegate.getStaticSizedArrayKind(env, state, mutability, variability, size.toInt, element)
+            Ok(Map(resultRune.rune -> KindTemplata(arrKind)))
           }
           case Some(result) => {
             result match {
@@ -372,8 +380,8 @@ class TemplarSolver[Env, State](
         }
       }
       case ManualSequenceSR(_, resultRune, elements) => vimpl()
-      case CoordListSR(_, resultRune, elements) => vimpl()
-      case CallSR(range, resultRune, coerceResultToKind, templateRune, argRunes) => {
+//      case CoordListSR(_, resultRune, elements) => vimpl()
+      case CallSR(range, resultRune, templateRune, argRunes) => {
         val template = vassertSome(solverState.getConclusion(templateRune.rune))
         solverState.getConclusion(resultRune.rune) match {
           case Some(result) => {

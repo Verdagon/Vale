@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.{FailedParse, FileP}
-import net.verdagon.vale.scout.{CodeLocationS, ICompileErrorS, ProgramS, RangeS}
+import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -35,7 +35,7 @@ class TemplarCompilation(
       case Some(temputs) => Ok(temputs)
       case None => {
         val templar = new Templar(options.debugOut, options.verbose, options.profiler, options.useOptimization)
-        templar.evaluate(astronomerCompilation.getAstrouts().getOrDie()) match {
+        templar.evaluate(astronomerCompilation.expectAstrouts()) match {
           case Err(e) => Err(e)
           case Ok(hinputs) => {
             hinputsCache = Some(hinputs)

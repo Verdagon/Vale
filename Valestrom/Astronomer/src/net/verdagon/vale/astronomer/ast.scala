@@ -4,7 +4,7 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vimpl, vpass, vwat}
+import net.verdagon.vale.{PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
 

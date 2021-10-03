@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.types.CitizenRefT
-import net.verdagon.vale.{vimpl, vwat}
+import net.verdagon.vale.{CodeLocationS, vimpl, vwat}
 
 import scala.collection.immutable.List
 

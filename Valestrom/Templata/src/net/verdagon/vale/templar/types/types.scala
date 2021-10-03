@@ -6,7 +6,7 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.IEnvironment
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{PackageCoordinate, vassert, vcurious, vfail, vimpl}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vcurious, vfail, vimpl}
 
 import scala.collection.immutable.List
 

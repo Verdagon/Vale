@@ -4,7 +4,7 @@ import net.verdagon.vale.parser.{ConstraintP, LendConstraintP, LendWeakP, LoadAs
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR, RuneUsage}
 import net.verdagon.vale.templar.types.ITemplataType
-import net.verdagon.vale.{vassert, vcurious, vimpl, vpass}
+import net.verdagon.vale.{RangeS, vassert, vcurious, vimpl, vpass}
 
 // patternId is a unique number, can be used to make temporary variables that wont
 // collide with other things
@@ -220,6 +220,7 @@ case class OutsideLoadSE(
   targetOwnership: LoadAsP
 ) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
+  vpass()
 }
 case class RuneLookupSE(range: RangeS, rune: IRuneS) extends IExpressionSE {
   override def hashCode(): Int = vcurious()

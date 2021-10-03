@@ -1,6 +1,6 @@
 package net.verdagon.vale.scout.rules
 
-import net.verdagon.vale.{vassert, vcurious, vimpl, vpass, vwat}
+import net.verdagon.vale.{RangeS, vassert, vcurious, vimpl, vpass, vwat}
 import net.verdagon.vale.parser.{LocationP, MutabilityP, OwnershipP, PermissionP, VariabilityP}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.types._
@@ -135,10 +135,9 @@ case class LookupSR(
   override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
-case class KindLookupSR(
+case class RuneParentEnvLookupSR(
   range: RangeS,
-  rune: RuneUsage,
-  name: INameS
+  rune: RuneUsage
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vpass()
@@ -162,7 +161,6 @@ case class AugmentSR(
 case class CallSR(
   range: RangeS,
   resultRune: RuneUsage,
-  coerceResultToKind: Boolean,
   templateRune: RuneUsage,
   args: Array[RuneUsage]
 ) extends IRulexSR {
@@ -211,14 +209,14 @@ case class ManualSequenceSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
 }
 
-case class CoordListSR(
-  range: RangeS,
-  resultRune: RuneUsage,
-  elements: Array[RuneUsage]
-) extends IRulexSR {
-  override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
-}
+//case class CoordListSR(
+//  range: RangeS,
+//  resultRune: RuneUsage,
+//  elements: Array[RuneUsage]
+//) extends IRulexSR {
+//  override def hashCode(): Int = vcurious()
+//  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
+//}
 
 
 sealed trait ILiteralSL {
