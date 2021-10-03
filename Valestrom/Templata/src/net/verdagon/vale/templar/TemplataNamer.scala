@@ -36,7 +36,7 @@ object TemplataNamer {
   }
 
   def getFullNameIdentifierName(fullName: FullNameT[INameT]): String = {
-    // Some nice rune symbols: ᚠᚢᚣᚥᚨᚫᚬᚮᚱᚳᚴᚻᛃᛄᛇᛈᛉᛊᛋᛒᛗᛘᛝᛞᛟᛥ
+    // Some nice rune symbols: ᚠᚢᚣᚥᚨᚫᚬᚮᚱᚳᚴᚻᛃᛄᛇᛈᛉᛊᛋᛒᛗᛝᛞᛟᛥ
     // Here's the ones we haven't used below: ᚢᚨᚬᚮᚳᚴᛃᛄᛇ
     // We should probably not use these long term since they're super unrecognizable,
     // we can switch to nicer symbols once things settle.
@@ -58,6 +58,7 @@ object TemplataNamer {
       case CitizenNameT(humanName, templateArgs) => "ᛘ" + humanName + stringifyTemplateArgs(templateArgs)
       case LambdaCitizenNameT(codeLocation) => "ᛊ" + codeLocation
       case AnonymousSubstructNameT(thing) =>
+      case AnonymousSubstructLambdaNameT(codeLocation) => "ᛘ" + codeLocation
       case TupleNameT(members) => "tup#"
       case ImmDropNameT(kind) => "drop*" + getKindIdentifierName(kind)
       case x => vimpl(x.toString)
