@@ -353,8 +353,8 @@ class InfererTests extends FunSuite with Matchers {
         |fn main() export { bork<int>(); }
         |""".stripMargin)
     compile.getTemputs() match {
-      case Err(CouldntFindFunctionToCallT(_, ScoutExpectedFunctionFailure(_, _, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction))) => {
-        val List(rejection) = (outscoredReasonByPotentialBanner.values ++ rejectedReasonByBanner.values ++ rejectedReasonByFunction.values).toList
+      case Err(CouldntFindFunctionToCallT(_, ScoutExpectedFunctionFailure(_, _, rejectedReasonByBanner))) => {
+        val List(rejection) = rejectedReasonByBanner.values.toList
         rejection match {
           case InferFailure(IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes)) => {
             unknownRunes shouldEqual Set(CodeRuneS("Y"), CodeRuneS("K"))

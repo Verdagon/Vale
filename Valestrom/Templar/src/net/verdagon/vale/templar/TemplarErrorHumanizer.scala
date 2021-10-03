@@ -8,7 +8,7 @@ import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFu
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
-import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, IPotentialBanner, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
@@ -98,54 +98,9 @@ object TemplarErrorHumanizer {
         case InitializedWrongNumberOfElements(range, expectedNumElements, numElementsInitialized) => {
             ": Supplied " + numElementsInitialized + " elements, but expected " + expectedNumElements + "."
         }
-        case CouldntFindFunctionToCallT(range, ScoutExpectedFunctionFailure(name, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction)) => {
-            ": Couldn't find a suitable function named `" +
-            (name match {
-              case GlobalFunctionFamilyNameS(humanName) => humanName
-              case other => other.toString
-            }) +
-            "` with args (" +
-            (if (args.collectFirst({ case ParamFilter(tyype, Some(_)) => }).nonEmpty) {
-              vimpl()
-            } else {
-              args.map({ case ParamFilter(tyype, None) => TemplataNamer.getReferenceIdentifierName(tyype) }).mkString(", ")
-            }) +
-            "):\n" + lineContaining(codeMap, range.file, range.end.offset) + "\n" +
-            (if (outscoredReasonByPotentialBanner.size + rejectedReasonByBanner.size + rejectedReasonByFunction.size == 0) {
-              "No function with that name exists.\nPerhaps you forget to include a file in the command line?\n"
-            } else {
-              (if (outscoredReasonByPotentialBanner.nonEmpty) {
-                "Outscored candidates:\n" + outscoredReasonByPotentialBanner.map({
-                  case (potentialBanner, outscoredReason) => {
-                    "  " + TemplataNamer.getFullNameIdentifierName(potentialBanner.banner.fullName) + ":\n" +
-                      humanizeRejectionReason(
-                        verbose,
-                        codeMap,
-                        range,
-                        outscoredReason)
-                  }
-                }).mkString("\n")
-              } else {
-                ""
-              }) + "\n" +
-                (if (rejectedReasonByBanner.size + rejectedReasonByFunction.size > 0) {
-                  "Rejected candidates:\n" +
-                    (rejectedReasonByBanner.map({
-                      case (banner, rejectedReason) => {
-                        "  " + humanizeBanner(codeMap, banner) + "\n" +
-                          humanizeRejectionReason(verbose, codeMap, range, rejectedReason)
-                      }
-                    }) ++
-                      rejectedReasonByFunction.map({
-                        case (functionA, rejectedReason) => {
-                          "  " + printableName(codeMap, functionA.name) + ":\n" +
-                            humanizeRejectionReason(verbose, codeMap, range, rejectedReason)
-                        }
-                      })).mkString("\n") + "\n"
-                } else {
-                  ""
-                })
-            })
+        case CouldntFindFunctionToCallT(range, seff) => {
+          lineContaining(codeMap, range.file, range.end.offset) + "\n" +
+          humanizeScoutExpectedFunctionFailure(verbose, codeMap, range, seff)
         }
         case FunctionAlreadyExists(oldFunctionRange, newFunctionRange, signature) => {
             ": Function " + signature.fullName.last + " already exists! Previous declaration at:\n" +
@@ -176,6 +131,34 @@ object TemplarErrorHumanizer {
     val nextStuff = lineContaining(codeMap, err.range.file, err.range.begin.offset)
     val errorId = "T"
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
+  }
+
+  def humanizeScoutExpectedFunctionFailure(
+    verbose: Boolean,
+    codeMap: FileCoordinateMap[String],
+    invocationRange: RangeS,
+    seff: OverloadTemplar.ScoutExpectedFunctionFailure): String = {
+
+    val ScoutExpectedFunctionFailure(name, args, rejectedCalleeToReason) = seff
+    ": Couldn't find a suitable function " +
+      (name match {
+        case GlobalFunctionFamilyNameS(humanName) => humanName
+        case other => other.toString
+      }) +
+      "(" +
+      args.map({
+        case ParamFilter(tyype, Some(_)) => vimpl()
+        case ParamFilter(tyype, None) => TemplataNamer.getReferenceIdentifierName(tyype)
+      }).mkString(", ") +
+      "):\n" +
+      (if (rejectedCalleeToReason.isEmpty) {
+        "No function with that name exists.\n"
+      } else {
+        rejectedCalleeToReason.map({ case (candidate, reason) =>
+          "  Rejected: " + TemplataNamer.getPotentialCalleeName(candidate) + ":\n" +
+            humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n"
+        }).mkString("")
+      })
   }
 
   def humanizeBanner(

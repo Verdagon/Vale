@@ -8,7 +8,7 @@ import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, IsCon
 import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, Used, UserFunctionS}
 import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
@@ -41,12 +41,7 @@ class DestructorTemplar(
           Array.empty,
           Vector(ParamFilter(type2, None)),
           Vector.empty,
-          true) match {
-          case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-            throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find concrete destructor!\n" + seff.toString))
-          }
-          case (ScoutExpectedFunctionSuccess(p)) => (p)
-        }
+          true)
       }
       case InterfaceTT(_) => {
         overloadTemplar.scoutExpectedFunctionForPrototype(
@@ -62,12 +57,7 @@ class DestructorTemplar(
           Array.empty,
           Vector(ParamFilter(type2, None)),
           Vector.empty,
-          true) match {
-          case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-            throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find interface destructor!\n" + seff.toString))
-          }
-          case (ScoutExpectedFunctionSuccess(p)) => (p)
-        }
+          true)
       }
     }
   }
@@ -93,12 +83,7 @@ class DestructorTemplar(
       Array.empty,
       Vector(ParamFilter(type2, None)),
       Vector.empty,
-      true) match {
-      case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-        throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find array destructor!\n" + seff.toString))
-      }
-      case (ScoutExpectedFunctionSuccess(p)) => (p)
-    }
+      true)
   }
 
   // "Drop" is a general term that encompasses:
@@ -121,12 +106,7 @@ class DestructorTemplar(
       Array.empty,
       Vector(ParamFilter(type2, None)),
       Vector.empty,
-      true) match {
-      case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-        throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find drop function!\n" + seff.toString))
-      }
-      case (ScoutExpectedFunctionSuccess(p)) => (p)
-    }
+      true)
   }
 
   def drop(
@@ -340,12 +320,7 @@ class DestructorTemplar(
         Vector.empty,
         Array.empty,
         Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.elementType, None)),
-        Vector.empty, true) match {
-        case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-          vimpl()
-        }
-        case ScoutExpectedFunctionSuccess(prototype) => prototype
-      }
+        Vector.empty, true)
 
     val function2 =
       FunctionT(
@@ -399,12 +374,7 @@ class DestructorTemplar(
         Vector.empty,
         Array.empty,
         Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.elementType, None)),
-        Vector.empty, true) match {
-        case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-          throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
-        }
-        case ScoutExpectedFunctionSuccess(prototype) => prototype
-      }
+        Vector.empty, true)
 
     val function2 =
       FunctionT(
@@ -445,12 +415,7 @@ class DestructorTemplar(
       Array.empty,
       Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), None)),
       Vector.empty,
-      true) match {
-      case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-        throw CompileErrorExceptionT(CouldntFindFunctionToCallT(RangeS.internal(-49), seff))
-      }
-      case (ScoutExpectedFunctionSuccess(p)) => (p)
-    }
+      true)
   }
 
   def getImmInterfaceDestructor(
@@ -470,12 +435,7 @@ class DestructorTemplar(
         Array.empty,
         Vector(ParamFilter(CoordT(ShareT, ReadonlyT, interfaceTT), None)),
         Vector.empty,
-        true) match {
-        case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-          throw CompileErrorExceptionT(CouldntFindFunctionToCallT(RangeS.internal(-48), seff))
-        }
-        case (ScoutExpectedFunctionSuccess(p)) => (p)
-      }
+        true)
     prototype
   }
 
@@ -488,23 +448,16 @@ class DestructorTemplar(
     vassert(Templar.getMutability(temputs, structTT) == ImmutableT)
     vassert(Templar.getMutability(temputs, implementedInterfaceRefT) == ImmutableT)
 
-    val sefResult =
-      overloadTemplar.scoutExpectedFunctionForPrototype(
-        env,
-        temputs,
-        RangeS.internal(-1674),
-        ImmInterfaceDestructorImpreciseNameS(),
-        Vector.empty,
-        Array.empty,
-        Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), Some(OverrideT(implementedInterfaceRefT)))),
-        Vector.empty,
-        true)
-    sefResult match {
-      case ScoutExpectedFunctionSuccess(prototype) => prototype
-      case ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-        throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), sefResult.toString))
-      }
-    }
+    overloadTemplar.scoutExpectedFunctionForPrototype(
+      env,
+      temputs,
+      RangeS.internal(-1674),
+      ImmInterfaceDestructorImpreciseNameS(),
+      Vector.empty,
+      Array.empty,
+      Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), Some(OverrideT(implementedInterfaceRefT)))),
+      Vector.empty,
+      true)
   }
 }
 

@@ -23,20 +23,32 @@ case class ParameterT(
 
 }
 
-sealed trait IPotentialBanner {
-  def banner: FunctionBannerT
+sealed trait ICalleeCandidate
+
+case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
+//case class BannerCalleeCandidate(banner: FunctionBannerT) extends ICalleeCandidate {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//}
+case class ExternCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
-case class PotentialBannerFromFunctionS(
-  banner: FunctionBannerT,
-  function: FunctionTemplata
-) extends IPotentialBanner { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-
-case class PotentialBannerFromExternFunction(
+sealed trait IValidCalleeCandidate {
+  def banner: FunctionBannerT
+}
+case class ValidExternCalleeCandidate(
   header: FunctionHeaderT
-) extends IPotentialBanner {
+) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def banner: FunctionBannerT = header.toBanner
+}
+case class ValidCalleeCandidate(
+  banner: FunctionBannerT,
+  function: FunctionTemplata
+) extends IValidCalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
 // A "signature" is just the things required for overload resolution, IOW function name and arg types.

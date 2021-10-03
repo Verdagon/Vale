@@ -2,7 +2,7 @@ package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS}
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
@@ -73,13 +73,7 @@ class CallTemplar(
               explicitTemplateArgRunesS,
               argsParamFilters,
               Vector.empty,
-              false) match {
-            case (seff @ ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-              throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
-//              vfail("Couldn't find function to call!\n" + seff.toString)
-            }
-            case (ScoutExpectedFunctionSuccess(p)) => (p)
-          }
+              false)
         val argsExprs2 =
           convertHelper.convertExprs(
             fate.snapshot, temputs, range, givenArgsExprs2, prototype.paramTypes)
@@ -141,12 +135,7 @@ class CallTemplar(
         explicitTemplateArgRunesS,
         argsParamFilters,
         Vector.empty,
-        false) match {
-        case (seff @ ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-          ErrorReporter.report(CouldntFindFunctionToCallT(range, seff))
-        }
-        case (ScoutExpectedFunctionSuccess(p)) => (p)
-      }
+        false)
     val argsExprs2 =
       convertHelper.convertExprs(
         fate, temputs, range, givenArgsExprs2, prototype.paramTypes)
@@ -212,12 +201,7 @@ class CallTemplar(
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
       overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false) match {
-        case ScoutExpectedFunctionSuccess(p) => p
-        case seff @ ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-          throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, seff))
-        }
-      }
+        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false)
 
     val mutability = Templar.getMutability(temputs, citizenRef)
     val ownership = if (mutability == MutableT) ConstraintT else ShareT
