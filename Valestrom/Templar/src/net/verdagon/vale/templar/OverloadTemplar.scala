@@ -12,7 +12,7 @@ import net.verdagon.vale.{Err, Ok, RangeS, Result, vassertOne, vpass}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS}
-import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.FunctionTemplar
@@ -29,7 +29,7 @@ object OverloadTemplar {
   case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntMatch(index: Int, reason: String) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamVirtualityDoesntMatch(index: Int) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
-  case class Outscored() extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
+//  case class Outscored() extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class InferFailure(reason: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
 
@@ -527,10 +527,11 @@ class OverloadTemplar(
 
     val rejectedBanners =
       bannerByIsBestScore.getOrElse(false, Vector.empty).map(_._1)
-    val rejectionReasonByBanner =
-      rejectedBanners.map((_, Outscored())).toMap
+//    val rejectionReasonByBanner =
+//      rejectedBanners.map((_, Outscored())).toMap
+    vimpl()
 
-    (bannerWithBestScore, rejectionReasonByBanner)
+//    (bannerWithBestScore, rejectionReasonByBanner)
   }
 
   def stampPotentialFunctionForBanner(

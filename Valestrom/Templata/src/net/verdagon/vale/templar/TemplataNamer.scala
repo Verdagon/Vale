@@ -36,13 +36,6 @@ object TemplataNamer {
     "(" + parameters.map(parameter => getReferenceIdentifierName(parameter)).mkString(", ") + ")"
   }
 
-  def getPotentialCalleeName(potentialCallee: ICalleeCandidate): String = {
-    potentialCallee match {
-      case FunctionCalleeCandidate(function) => ScoutErrorHumanizer.humanizeName(function.function.name)
-      case ExternCalleeCandidate(banner) => getFullNameIdentifierName(banner.fullName)
-    }
-  }
-
   def getFullNameIdentifierName(fullName: FullNameT[INameT]): String = {
     // Some nice rune symbols: ᚠᚢᚣᚥᚨᚫᚬᚮᚱᚳᚴᚻᛃᛄᛇᛈᛉᛊᛋᛒᛗᛝᛞᛟᛥ
     // Here's the ones we haven't used below: ᚢᚨᚬᚮᚳᚴᛃᛄᛇ

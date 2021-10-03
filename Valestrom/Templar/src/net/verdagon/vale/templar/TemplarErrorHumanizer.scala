@@ -1,16 +1,17 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, lineRangeContaining}
+import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmDropNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.scout.ScoutErrorHumanizer.humanizeRune
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, SenderRuneS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, SenderRuneS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
-import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import net.verdagon.vale.templar.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
-import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.templata.{CoordTemplata, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
-import net.verdagon.vale.{FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
+import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
 object TemplarErrorHumanizer {
   def humanize(
@@ -84,8 +85,8 @@ object TemplarErrorHumanizer {
         }
         case TypeExportedMultipleTimes(range, paackage, exports) => {
           ": Type exported multiple times:" + exports.map(export => {
-            val posStr = humanizePos(codeMap, export.range.file, export.range.begin.offset)
-            val line = lineContaining(codeMap, export.range.file, export.range.begin.offset)
+            val posStr = humanizePos(codeMap, export.range.begin)
+            val line = lineContaining(codeMap, export.range.begin)
             s"\n  ${posStr}: ${line}"
           })
         }
@@ -99,12 +100,11 @@ object TemplarErrorHumanizer {
             ": Supplied " + numElementsInitialized + " elements, but expected " + expectedNumElements + "."
         }
         case CouldntFindFunctionToCallT(range, seff) => {
-          lineContaining(codeMap, range.file, range.end.offset) + "\n" +
           humanizeScoutExpectedFunctionFailure(verbose, codeMap, range, seff)
         }
         case FunctionAlreadyExists(oldFunctionRange, newFunctionRange, signature) => {
             ": Function " + signature.fullName.last + " already exists! Previous declaration at:\n" +
-            humanizePos(codeMap, oldFunctionRange.file, oldFunctionRange.begin.offset)
+            humanizePos(codeMap, oldFunctionRange.begin)
         }
         case IfConditionIsntBoolean(range, actualType) => {
             ": If condition should be a bool, but was: " + actualType
@@ -120,17 +120,18 @@ object TemplarErrorHumanizer {
 ////          ": Couldn't solve unknowns: " + unknownRunes.toVector.sortBy({ case CodeRuneS(_) => 0 case _ => 1 }) + " but do know:\n" + conclusions.map({ case (k, v) => "  " + k + ": " + v + "\n" }).mkString("")
 //        }
         case TemplarSolverError(range, failedSolve) => {
-          humanizeFailedSolve(codeMap, range, failedSolve)
+          vimpl()
+//          humanizeCandidateAndFailedSolve(codeMap, range, failedSolve)
         }
         case InferAstronomerError(range, err) => {
           AstronomerErrorHumanizer.humanize(codeMap, range, err)
         }
       }
 
-    val posStr = humanizePos(codeMap, err.range.file, err.range.begin.offset)
-    val nextStuff = lineContaining(codeMap, err.range.file, err.range.begin.offset)
+    val posStr = humanizePos(codeMap, err.range.begin)
+    val lineContents = lineContaining(codeMap, err.range.begin)
     val errorId = "T"
-    f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
+    f"${posStr} error ${errorId}\n${lineContents}\n${errorStrBody}\n"
   }
 
   def humanizeScoutExpectedFunctionFailure(
@@ -140,7 +141,7 @@ object TemplarErrorHumanizer {
     seff: OverloadTemplar.ScoutExpectedFunctionFailure): String = {
 
     val ScoutExpectedFunctionFailure(name, args, rejectedCalleeToReason) = seff
-    ": Couldn't find a suitable function " +
+    "Couldn't find a suitable function " +
       (name match {
         case GlobalFunctionFamilyNameS(humanName) => humanName
         case other => other.toString
@@ -150,13 +151,13 @@ object TemplarErrorHumanizer {
         case ParamFilter(tyype, Some(_)) => vimpl()
         case ParamFilter(tyype, None) => TemplataNamer.getReferenceIdentifierName(tyype)
       }).mkString(", ") +
-      "):\n" +
+      "). " +
       (if (rejectedCalleeToReason.isEmpty) {
         "No function with that name exists.\n"
       } else {
+        "Rejected candidates:\n" +
         rejectedCalleeToReason.map({ case (candidate, reason) =>
-          "  Rejected: " + TemplataNamer.getPotentialCalleeName(candidate) + ":\n" +
-            humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n"
+            "\n" + humanizeCandidateAndRejectionReason(verbose, codeMap, invocationRange, candidate, reason) + "\n"
         }).mkString("")
       })
   }
@@ -178,9 +179,9 @@ object TemplarErrorHumanizer {
     name match {
       case CodeVarNameS(name) => name
       case TopLevelCitizenDeclarationNameS(name, codeLocation) => name
-      case LambdaNameS(codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + "(lambda)"
-      case FunctionNameS(name, codeLocation) => humanizePos(codeMap, codeLocation.file, codeLocation.offset) + ": " + name
-      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => humanizePos(codeMap, range.file, range.begin.offset) + ": " + name
+      case LambdaNameS(codeLocation) => humanizePos(codeMap, codeLocation) + ": " + "(lambda)"
+      case FunctionNameS(name, codeLocation) => humanizePos(codeMap, codeLocation) + ": " + name
+      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => humanizePos(codeMap, range.begin) + ": " + name
       case ImmConcreteDestructorNameS(_) => vimpl()
       case ImmInterfaceDestructorNameS(_) => vimpl()
       case ImmDropNameS(_) => vimpl()
@@ -238,30 +239,35 @@ object TemplarErrorHumanizer {
     functionA.range.file
   }
 
-  private def humanizeRejectionReason(
+  private def humanizeCandidateAndRejectionReason(
       verbose: Boolean,
       codeMap: FileCoordinateMap[String],
       invocationRange: RangeS,
+      candidate: ICalleeCandidate,
       reason: IScoutExpectedFunctionFailureReason): String = {
-    reason match {
+
+    (reason match {
       case WrongNumberOfArguments(supplied, expected) => {
+        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Number of params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
       case WrongNumberOfTemplateArguments(supplied, expected) => {
+        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Number of template params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
-      case SpecificParamDoesntMatch(index, reason) => "Param at index " + index + " doesn't match: " + reason
-      case SpecificParamVirtualityDoesntMatch(index) => "Virtualities don't match at index " + index
-      case Outscored() => "Outscored!"
-      case InferFailure(reason) => {
-        if (verbose) {
-            "Failed to infer:\n" +
-            humanizeFailedSolve(codeMap, invocationRange, reason)
-        } else {
-          "(run with --verbose to see some incomprehensible details)"
-        }
+      case SpecificParamDoesntMatch(index, reason) => {
+        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
+        "Param at index " + index + " doesn't match: " + reason
       }
-    }
+      case SpecificParamVirtualityDoesntMatch(index) => {
+        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
+        "Virtualities don't match at index " + index
+      }
+//      case Outscored() => "Outscored!"
+      case InferFailure(reason) => {
+        humanizeCandidateAndFailedSolve(codeMap, invocationRange, candidate, reason)
+      }
+    })
   }
 
   def humanizeRuleError(
@@ -281,19 +287,45 @@ object TemplarErrorHumanizer {
     }
   }
 
-  def humanizeFailedSolve(
+  def humanizeCandidateAndFailedSolve(
     codeMap: FileCoordinateMap[String],
     invocationRange: RangeS,
+    candidate: ICalleeCandidate,
     result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]):
   String = {
-    SolverErrorHumanizer.humanizeFailedSolve(
-      codeMap,
-      humanizeRune,
-      humanizeTemplata,
-      humanizeRuleError,
-      (rule: IRulexSR) => rule.range,
-      (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
-      result)
+    val (text, lineBegins) =
+      SolverErrorHumanizer.humanizeFailedSolve(
+        codeMap,
+        humanizeRune,
+        humanizeTemplata,
+        humanizeRuleError,
+        (rule: IRulexSR) => rule.range,
+        (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
+        result)
+
+    (candidate match {
+      case ExternCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
+      case FunctionCalleeCandidate(ft) => {
+        val begin = lineBegin(codeMap, ft.function.range.begin)
+        humanizePos(codeMap, begin) + ":\n" +
+        (if (lineBegins.contains(begin)) {
+          ""
+        } else {
+          lineContaining(codeMap, begin) + "\n"
+        })
+      }
+    }) + text
+  }
+
+  def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
+    candidate match {
+      case ExternCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
+      case FunctionCalleeCandidate(ft) => {
+        val begin = lineBegin(codeMap, ft.function.range.begin)
+        humanizePos(codeMap, begin) + ":\n" +
+        lineContaining(codeMap, begin) + "\n"
+      }
+    }
   }
 
   def humanizeTemplata(
@@ -373,7 +405,7 @@ object TemplarErrorHumanizer {
   String = {
     name.last match {
       case LambdaCitizenNameT(codeLocation) => {
-        "λ:" + humanizePos(codeMap, codeLocation.file, codeLocation.offset)
+        "λ:" + humanizePos(codeMap, codeLocation)
       }
       case FunctionNameT(humanName, templateArgs, parameters) => {
         humanName +

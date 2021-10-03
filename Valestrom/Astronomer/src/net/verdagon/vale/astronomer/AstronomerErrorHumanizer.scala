@@ -12,8 +12,8 @@ object AstronomerErrorHumanizer {
     filenamesAndSources: FileCoordinateMap[String],
     range: RangeS,
     errorStrBody: String) = {
-    val posStr = humanizePos(filenamesAndSources, range.file, range.begin.offset)
-    val nextStuff = lineContaining(filenamesAndSources, range.file, range.begin.offset)
+    val posStr = humanizePos(filenamesAndSources, range.begin)
+    val nextStuff = lineContaining(filenamesAndSources, range.begin)
     val errorId = "A"
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
   }
