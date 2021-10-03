@@ -12,9 +12,9 @@ object SourceCodeUtils {
 
   def humanizePos(
     filenamesAndSources: FileCoordinateMap[String],
-    file: FileCoordinate,
-    pos: Int):
+    codeLocationS: CodeLocationS):
   String = {
+    val CodeLocationS(file, pos) = codeLocationS
     if (file.isInternal) {
       return humanizeFile(file)
     }
@@ -42,11 +42,19 @@ object SourceCodeUtils {
     text.slice(position, text.length).trim().split("\\n")(0).trim()
   }
 
+  def lineBegin(
+    filenamesAndSources: FileCoordinateMap[String],
+    codeLocationS: CodeLocationS):
+  CodeLocationS = {
+    val (begin, end) = lineRangeContaining(filenamesAndSources, codeLocationS)
+    CodeLocationS(codeLocationS.file, begin)
+  }
+
   def lineRangeContaining(
     filenamesAndSources: FileCoordinateMap[String],
-    file: FileCoordinate,
-    position: Int):
+    codeLocationS: CodeLocationS):
   (Int, Int) = {
+    val CodeLocationS(file, offset) = codeLocationS
     if (file.isInternal) {
       return (-1, 0)
     }
@@ -59,7 +67,7 @@ object SourceCodeUtils {
           case -1 => text.length
           case other => other
         }
-      if (lineBegin <= position && position <= lineEnd) {
+      if (lineBegin <= offset && offset <= lineEnd) {
         return (lineBegin, lineEnd)
       }
       lineBegin = lineEnd + 1
@@ -69,14 +77,13 @@ object SourceCodeUtils {
 
   def lineContaining(
       filenamesAndSources: FileCoordinateMap[String],
-      file: FileCoordinate,
-      position: Int):
+      codeLocationS: CodeLocationS):
   String = {
-    if (file.isInternal) {
-      return humanizeFile(file)
+    if (codeLocationS.file.isInternal) {
+      return humanizeFile(codeLocationS.file)
     }
-    val (lineBegin, lineEnd) = lineRangeContaining(filenamesAndSources, file, position)
-    val text = filenamesAndSources(file)
+    val (lineBegin, lineEnd) = lineRangeContaining(filenamesAndSources, codeLocationS)
+    val text = filenamesAndSources(codeLocationS.file)
     text.substring(lineBegin, lineEnd)
   }
 }

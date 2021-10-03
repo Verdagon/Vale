@@ -12,7 +12,8 @@ object SolverErrorHumanizer {
     getRuleRange: (Rule) => RangeS,
     getRuneUsages: (Rule) => Iterable[(RuneID, RangeS)],
     result: IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType]):
-  String = {
+  // Returns text and all line begins
+  (String, Vector[CodeLocationS]) = {
     val errorBody =
       (result match {
         case IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes) => {
@@ -24,7 +25,7 @@ object SolverErrorHumanizer {
               "Conflict, thought rune " + humanizeRune(rune) + " was " + humanizeTemplata(codeMap, previousConclusion) + " but now concluding it's " + humanizeTemplata(codeMap, newConclusion)
             }
             case RuleError(ruleIndex, err) => {
-              humanizeRuleError(codeMap, err) + "\n"
+              humanizeRuleError(codeMap, err)
             }
           }
         }
@@ -33,8 +34,8 @@ object SolverErrorHumanizer {
     val unsolvedRules = result.unsolvedRules
     val allLineBeginLocs =
       unsolvedRules.flatMap(rule => {
-        val ruleBeginLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).file, getRuleRange(rule).begin.offset)._1
-        val ruleEndLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).file, getRuleRange(rule).end.offset)._1
+        val ruleBeginLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).begin)._1
+        val ruleEndLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).end)._1
         ruleBeginLineBegin.to(ruleEndLineBegin).map(lineBegin => CodeLocationS(getRuleRange(rule).file, lineBegin))
       })
         .distinct
@@ -42,18 +43,19 @@ object SolverErrorHumanizer {
     val lineBeginLocToRuneUsage =
       allRuneUsages
         .map(runeUsage => {
-          val usageBeginLine = lineRangeContaining(codeMap, runeUsage._2.file, runeUsage._2.begin.offset)._1
+          val usageBeginLine = lineRangeContaining(codeMap, runeUsage._2.begin)._1
           (usageBeginLine, runeUsage)
         })
         .groupBy(_._1)
         .mapValues(_.map(_._2))
 
-    errorBody + "\n" +
+    val text =
+      errorBody + "\n" +
       allLineBeginLocs
         // Show the lines in order
         .sortBy(_.offset)
-        .map({ case CodeLocationS(file, lineBegin) =>
-          lineContaining(codeMap, file, lineBegin) + "\n" +
+        .map({ case loc @ CodeLocationS(file, lineBegin) =>
+          lineContaining(codeMap, loc) + "\n" +
             lineBeginLocToRuneUsage
               .getOrElse(lineBegin, Vector())
               // Show the runes from right to left
@@ -61,12 +63,19 @@ object SolverErrorHumanizer {
               .map({ case (rune, range) =>
                 val numSpaces = range.begin.offset - lineBegin
                 val numArrows = range.end.offset - range.begin.offset
-                repeatStr(" ", numSpaces) + repeatStr("^", numArrows) + " " +
+                val runeName = humanizeRune(rune)
+                (if (runeName.length + 4 < numSpaces) {
+                  "  " + runeName + ": " +
+                  repeatStr(" ", numSpaces - runeName.length - 4) + repeatStr("^", numArrows) + " "
+                } else {
+                  repeatStr(" ", numSpaces) + repeatStr("^", numArrows) + " " +
+                    runeName + ": "
+                }) +
                   result.incompleteConclusions.get(rune).map(humanizeTemplata(codeMap, _)).getOrElse("(unknown)") +
-                  " (" + humanizeRune(rune) + ")" +
                   "\n"
               }).mkString("")
         }).mkString("")
+    (text, allLineBeginLocs.toVector)
   }
 
 }
