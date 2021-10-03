@@ -1,6 +1,7 @@
 package net.verdagon.vale.scout
 
 //import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
+import net.verdagon.vale.{CodeLocationS, RangeS}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.PatternScout
 //import net.verdagon.vale.scout.predictor.RuneTypeSolveError
@@ -38,6 +39,7 @@ sealed trait IEnvironment {
   def file: FileCoordinate
   def name: INameS
   def allDeclaredRunes(): Set[IRuneS]
+  def localDeclaredRunes(): Set[IRuneS]
 }
 
 // Someday we might split this into PackageEnvironment and CitizenEnvironment
@@ -48,6 +50,9 @@ case class Environment(
     userDeclaredRunes: Set[IRuneS]
 ) extends IEnvironment {
   override def hashCode(): Int = vcurious()
+  override def localDeclaredRunes(): Set[IRuneS] = {
+    userDeclaredRunes
+  }
   override def allDeclaredRunes(): Set[IRuneS] = {
     userDeclaredRunes ++ parentEnv.toVector.flatMap(_.allDeclaredRunes())
   }
@@ -66,8 +71,14 @@ case class FunctionEnvironment(
   numExplicitParams: Int
 ) extends IEnvironment {
   override def hashCode(): Int = vcurious()
+  override def localDeclaredRunes(): Set[IRuneS] = {
+    declaredRunes
+  }
   override def allDeclaredRunes(): Set[IRuneS] = {
     declaredRunes ++ parentEnv.toVector.flatMap(_.allDeclaredRunes()).toSet
+  }
+  def child(): FunctionEnvironment = {
+    FunctionEnvironment(file, name, Some(this), Set(), numExplicitParams)
   }
 }
 
@@ -231,7 +242,7 @@ object Scout {
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val lidb = new LocationInDenizenBuilder(Vector())
-    val runeS = TemplexScout.translateTemplex(exportEnv, lidb, ruleBuilder, templexP, true)
+    val runeS = TemplexScout.translateTemplex(exportEnv, lidb, ruleBuilder, templexP)
 
     ExportAsS(Scout.evalRange(file, range), ruleBuilder.toArray, exportName, runeS, exportedName.str)
   }
@@ -251,7 +262,8 @@ object Scout {
     rulesS: Array[IRulexSR]):
   Map[IRuneS, ITemplataType] = {
     val runeSToLocallyPredictedTypes =
-      RuneTypeSolver.solve((n) => vimpl(), true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
+      RuneTypeSolver.solve(
+        (n) => vimpl(), rangeS, true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
         case Ok(t) => t
         // This likely cannot happen because we aren't even asking for a complete solve.
         case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
@@ -263,7 +275,7 @@ object Scout {
   Option[MutabilityP] = {
     val predictedMutabilities =
       rulesS.collect({
-        case LiteralSR(_, runeS, MutabilityLiteralSL(mutability)) if runeS == mutabilityRuneS => mutability
+        case LiteralSR(_, runeS, MutabilityLiteralSL(mutability)) if runeS.rune == mutabilityRuneS => mutability
       })
     val predictedMutability =
       predictedMutabilities.size match {
@@ -299,7 +311,7 @@ object Scout {
     val membersS =
       members.flatMap({
         case StructMemberP(range, name, variability, memberType) => {
-          val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType, false)
+          val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
           runeToExplicitType.put(memberRune.rune, CoordTemplataType)
           Vector(StructMemberS(Scout.evalRange(structEnv.file, range), name.str, variability, memberRune))
         }
@@ -311,11 +323,12 @@ object Scout {
 
     RuleScout.translateRulexes(structEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
-    val mutabilityRuneS = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, mutabilityPT, false)
+    val mutabilityRuneS = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, mutabilityPT)
+    runeToExplicitType.put(mutabilityRuneS.rune, MutabilityTemplataType)
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(structRangeS, identifyingRunesS.map(_.rune), Map(), rulesS)
+    val runeToPredictedType = predictRuneTypes(structRangeS, identifyingRunesS.map(_.rune), runeToExplicitType.toMap, rulesS)
 
     val predictedMutability = predictMutability(structRangeS, mutabilityRuneS.rune, rulesS)
 
@@ -411,7 +424,7 @@ object Scout {
 
     RuleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, rulesP)
 
-    val mutabilityRuneS = TemplexScout.translateTemplex(interfaceEnv, lidb.child(), ruleBuilder, mutabilityPT, false)
+    val mutabilityRuneS = TemplexScout.translateTemplex(interfaceEnv, lidb.child(), ruleBuilder, mutabilityPT)
 
 
     val rulesS = ruleBuilder.toArray

@@ -1,11 +1,10 @@
 package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.TemplataTemplar
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.vfail
+import net.verdagon.vale.{RangeS, vfail}
 
 import scala.collection.immutable.List
 

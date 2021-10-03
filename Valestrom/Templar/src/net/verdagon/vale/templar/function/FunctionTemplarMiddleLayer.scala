@@ -8,7 +8,7 @@ import net.verdagon.vale.scout.patterns.{AbstractSP, OverrideSP, VirtualitySP}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
-import net.verdagon.vale.{IProfiler, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
 
 import scala.collection.immutable.{List, Set}

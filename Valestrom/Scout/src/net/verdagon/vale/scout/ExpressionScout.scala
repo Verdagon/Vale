@@ -1,7 +1,7 @@
 package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser.{RuntimeSizedP, _}
-import net.verdagon.vale.{scout, vassert, vcurious, vfail, vimpl, vwat}
+import net.verdagon.vale.{RangeS, scout, vassert, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.scout.Scout.{noDeclarations, noVariableUses}
 import net.verdagon.vale.scout.patterns.PatternScout
 import net.verdagon.vale.scout.rules.RuneUsage
@@ -264,7 +264,7 @@ object ExpressionScout {
             }
             case Some(mutabilityPT) => {
               TemplexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, mutabilityPT, false)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, mutabilityPT)
             }
           }
         val variabilityRuneS =
@@ -276,7 +276,7 @@ object ExpressionScout {
             }
             case Some(variabilityPT) => {
               TemplexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, variabilityPT, false)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, variabilityPT)
             }
           }
 
@@ -306,7 +306,7 @@ object ExpressionScout {
                         stackFrame0.parentEnv,
                         lidb.child(),
                         ruleBuilder,
-                        sizePT, false))
+                        sizePT))
                   }
                 }
 
@@ -541,7 +541,7 @@ object ExpressionScout {
             maybeTemplateArgs.map(templateArgs => {
               templateArgs.map(templateArgPT => {
                 TemplexScout.translateTemplex(
-                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT, false)
+                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT)
               })
             })
           val load = OutsideLoadSE(range, ruleBuilder.toArray, name, maybeTemplateArgRunes, targetOwnershipIfLookupResult)

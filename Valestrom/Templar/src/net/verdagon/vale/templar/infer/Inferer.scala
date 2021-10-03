@@ -1,8 +1,9 @@
 package net.verdagon.vale.templar.infer
 
+import net.verdagon.vale.RangeS
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.{INameS, IRuneS, RangeS}
+import net.verdagon.vale.scout.{INameS, IRuneS}
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.templar.INameT
 //import net.verdagon.vale.templar.infer.TemplarSolver.TemplarSolverEnv

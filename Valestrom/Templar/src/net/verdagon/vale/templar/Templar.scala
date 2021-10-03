@@ -6,7 +6,7 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.UseP
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{CodeLocationS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, LambdaNameS, ProgramS, RangeS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
@@ -276,7 +276,41 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
 
           header
         }
-      })
+      }) +
+      ("vale_lock_weak" ->
+        new IFunctionGenerator {
+          override def generate(profiler: IProfiler,
+            functionTemplarCore: FunctionTemplarCore,
+            structTemplar: StructTemplar,
+            destructorTemplar: DestructorTemplar,
+            arrayTemplar: ArrayTemplar,
+            namedEnv: FunctionEnvironment,
+            temputs: Temputs,
+            life: LocationInFunctionEnvironment,
+            callRange: RangeS,
+            maybeOriginFunction1: Option[FunctionA],
+            paramCoords: Vector[ParameterT],
+            maybeReturnType2: Option[CoordT]):
+          (FunctionHeaderT) = {
+            val header =
+              FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            temputs.declareFunctionReturnType(header.toSignature, header.returnType)
+
+            val borrowCoord = paramCoords.head.tyype.copy(ownership = ConstraintT)
+            val (optCoord, someConstructor, noneConstructor) =
+              expressionTemplar.getOption(temputs, namedEnv, callRange, borrowCoord)
+            val lockExpr =
+              LockWeakTE(
+                ArgLookupTE(0, paramCoords.head.tyype),
+                optCoord,
+                someConstructor,
+                noneConstructor)
+
+            temputs.addFunction(FunctionT(header, BlockTE(ReturnTE(lockExpr))))
+
+            header
+          }
+        })
 
   val opts = TemplarOptions(generatorsById, debugOut, verbose, useOptimization)
 

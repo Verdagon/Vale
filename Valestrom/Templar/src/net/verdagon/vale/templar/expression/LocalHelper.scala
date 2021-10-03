@@ -1,13 +1,13 @@
 package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.{LocalS, NotUsed, RangeS}
+import net.verdagon.vale.scout.{LocalS, NotUsed}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, FunctionEnvironmentBox, ILocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.templata.Conversions
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar._
-import net.verdagon.vale.{vassert, vfail, vimpl}
+import net.verdagon.vale.{RangeS, vassert, vfail, vimpl}
 
 import scala.collection.immutable.List
 

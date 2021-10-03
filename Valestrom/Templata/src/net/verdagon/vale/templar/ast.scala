@@ -1,11 +1,10 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer.FunctionA
-import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
+import net.verdagon.vale.{PackageCoordinate, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 
 import scala.collection.immutable._
 import scala.collection.mutable

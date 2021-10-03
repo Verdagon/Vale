@@ -1,11 +1,10 @@
 package net.verdagon.vale.templar
 
 //import net.verdagon.vale.astronomer.IVarNameA
-import net.verdagon.vale.scout.RangeS
 import net.verdagon.vale.templar.env.{ILocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{vassert, vcurious, vfail, vpass, vwat}
+import net.verdagon.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {

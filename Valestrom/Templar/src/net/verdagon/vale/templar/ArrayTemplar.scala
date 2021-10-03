@@ -4,7 +4,7 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RangeS, RuneTypeSolver}
+import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
@@ -12,7 +12,7 @@ import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.{Err, IProfiler, Ok, vassert, vassertOne, vassertSome, vimpl}
+import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, vassert, vassertOne, vassertSome, vimpl}
 
 import scala.collection.immutable.{List, Set}
 
@@ -46,6 +46,7 @@ class ArrayTemplar(
     val runeToType =
       RuneTypeSolver.solve(
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        range,
         false,
         rulesA,
         List(),
@@ -78,6 +79,7 @@ class ArrayTemplar(
     val runeToType =
       RuneTypeSolver.solve(
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        range,
         false,
         rulesA,
         List(),
@@ -100,13 +102,24 @@ class ArrayTemplar(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
       range: RangeS,
-      rules: Vector[IRulexSR],
-      runeToType: Map[IRuneS, ITemplataType],
+      rulesA: Vector[IRulexSR],
     sizeRuneA: IRuneS,
     mutabilityRuneA: IRuneS,
     variabilityRuneA: IRuneS,
       exprs2: Vector[ReferenceExpressionTE]):
    StaticArrayFromValuesTE = {
+    val runeToType =
+      RuneTypeSolver.solve(
+        nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        range,
+        false,
+        rulesA,
+        List(),
+        true,
+        Map()) match {
+        case Ok(r) => r
+        case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
+      }
     val memberTypes = exprs2.map(_.resultRegister.reference).toSet
     if (memberTypes.size > 1) {
       throw CompileErrorExceptionT(ArrayElementsHaveDifferentTypes(range, memberTypes))
@@ -115,7 +128,7 @@ class ArrayTemplar(
 
     val templatas =
       inferTemplar.solveExpectComplete(
-        fate.snapshot, temputs, rules, runeToType, range, Map())
+        fate.snapshot, temputs, rulesA, runeToType, range, Map())
     val size = getArraySize(templatas, sizeRuneA)
     val mutability = getArrayMutability(templatas, mutabilityRuneA)
     val variability = getArrayVariability(templatas, variabilityRuneA)

@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RangeS}
+import net.verdagon.vale.scout.IRuneS
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.env.{IEnvironment, ILookupContext, TemplataLook
 import net.verdagon.vale.templar.infer.{IInfererDelegate, _}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{Err, IProfiler, Ok, Result, vassert, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, Result, vassert, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 import scala.collection.mutable

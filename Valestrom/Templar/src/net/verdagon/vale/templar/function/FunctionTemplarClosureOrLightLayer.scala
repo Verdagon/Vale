@@ -3,12 +3,12 @@ package net.verdagon.vale.templar.function
 import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.scout.{AbstractBodyS, CodeBodyS, ExternBodyS, GeneratedBodyS, IFunctionDeclarationNameS, RangeS}
+import net.verdagon.vale.scout.{AbstractBodyS, CodeBodyS, ExternBodyS, GeneratedBodyS, IFunctionDeclarationNameS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar.IEvaluateFunctionResult
-import net.verdagon.vale.{IProfiler, vassert, vfail, vimpl}
+import net.verdagon.vale.{IProfiler, RangeS, vassert, vfail, vimpl}
 
 import scala.collection.immutable.{List, Map}
 

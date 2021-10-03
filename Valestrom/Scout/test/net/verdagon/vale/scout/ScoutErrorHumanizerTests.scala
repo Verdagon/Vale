@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.{Collector, Err, FileCoordinate, FileCoordinateMap, Ok, vassert, vfail}
+import net.verdagon.vale.{Collector, Err, FileCoordinate, FileCoordinateMap, Ok, RangeS, vassert, vfail}
 import org.scalatest.{FunSuite, Matchers}
 
 class ScoutErrorHumanizerTests extends FunSuite with Matchers {

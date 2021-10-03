@@ -2,12 +2,12 @@ package net.verdagon.vale.hammer
 
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
-import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeLocationS, CodeRuneS, ExplicitTemplateArgRuneS}
+import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeRuneS, ExplicitTemplateArgRuneS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.{IEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vfail, vimpl, vwat}
+import net.verdagon.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, vassert, vfail, vimpl, vwat}
 import net.verdagon.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List

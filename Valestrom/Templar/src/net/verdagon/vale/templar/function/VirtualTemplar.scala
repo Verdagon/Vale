@@ -1,14 +1,14 @@
 package net.verdagon.vale.templar.function
 
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
-import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, RangeS}
+import net.verdagon.vale.scout.GlobalFunctionFamilyNameS
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.IEnvironment
-import net.verdagon.vale.{vassert, vcurious, vfail, vimpl}
+import net.verdagon.vale.{RangeS, vassert, vcurious, vfail, vimpl}
 
 import scala.collection.immutable.List
 

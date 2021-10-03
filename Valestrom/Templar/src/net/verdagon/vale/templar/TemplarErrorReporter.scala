@@ -2,13 +2,13 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer.ICompileErrorA
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RangeS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
 import net.verdagon.vale.templar.infer.ITemplarSolverError
 import net.verdagon.vale.templar.templata.{ITemplata, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types.{CitizenRefT, CoordT, InterfaceTT, KindT, StructTT}
-import net.verdagon.vale.{PackageCoordinate, vcurious, vimpl, vpass}
+import net.verdagon.vale.{PackageCoordinate, RangeS, vcurious, vimpl, vpass}
 
 case class CompileErrorExceptionT(err: ICompileErrorT) extends RuntimeException {
   override def hashCode(): Int = vcurious()

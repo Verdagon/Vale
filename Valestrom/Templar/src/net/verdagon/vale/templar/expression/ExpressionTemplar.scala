@@ -731,7 +731,7 @@ class ExpressionTemplar(
           // would we need a sequence templata? probably right?
           val expr2 =
             arrayTemplar.evaluateStaticSizedArrayFromValues(
-              temputs, fate, range, rules.toVector, vimpl(), sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2)
+              temputs, fate, range, rules.toVector, sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2)
           (expr2, returnsFromElements)
         }
         case StaticArrayFromCallableSE(range, rules, maybeMutabilityRune, maybeVariabilityRune, sizeRuneA, callableAE) => {
@@ -789,6 +789,7 @@ class ExpressionTemplar(
           val runeToType =
             RuneTypeSolver.solve(
                 nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+                range,
                 false,
                 rulesA,
                 List(),
@@ -1303,6 +1304,7 @@ class ExpressionTemplar(
             vassertSome(fate.lookupNearestWithImpreciseName(profiler, n, Set(TemplataLookupContext))).tyype
           }
         },
+        rangeS,
         false, rulesS, identifyingRunesS.map(_.rune), true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))

@@ -8,7 +8,7 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IStructTemplarDelegate, StructTemplarMiddle}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar
-import net.verdagon.vale.{IProfiler, vassert, vfail, vimpl, vwat}
+import net.verdagon.vale.{IProfiler, RangeS, vassert, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 

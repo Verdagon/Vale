@@ -2,14 +2,15 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, lineRangeContaining}
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmDropNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.scout.ScoutErrorHumanizer.humanizeRune
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{CodeLocationS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, SenderRuneS, RangeS, TopLevelCitizenDeclarationNameS}
-import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict}
+import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, SenderRuneS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, Outscored, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
 import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionBannerT, IPotentialBanner, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
-import net.verdagon.vale.{FileCoordinate, FileCoordinateMap, repeatStr, vimpl}
+import net.verdagon.vale.{FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
 object TemplarErrorHumanizer {
   def humanize(
@@ -302,69 +303,14 @@ object TemplarErrorHumanizer {
     invocationRange: RangeS,
     result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]):
   String = {
-    val errorBody =
-      (result match {
-        case IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes) => {
-          "Couldn't solve some runes."//  + unknownRunes.toVector.sortBy({ case CodeRuneS(_) => 0 case _ => 1 }).map(humanizeRune).mkString(", ")
-        }
-        case FailedSolve(incompleteConclusions, unsolvedRules, error) => {
-          error match {
-            case SolverConflict(rule, rune, previousConclusion, newConclusion) => {
-              "Conflict, thought rune " + humanizeRune(rune) + " was " + humanizeTemplata(codeMap, previousConclusion) + " but now concluding it's " + humanizeTemplata(codeMap, newConclusion)
-            }
-            case RuleError(ruleIndex, err) => {
-              humanizeRuleError(codeMap, err) + "\n"
-            }
-          }
-        }
-      })
-
-    val unsolvedRules = result.unsolvedRules
-    val allLineBeginLocs =
-      unsolvedRules.flatMap(rule => {
-        val ruleBeginLineBegin = lineRangeContaining(codeMap, rule.range.file, rule.range.begin.offset)._1
-        val ruleEndLineBegin = lineRangeContaining(codeMap, rule.range.file, rule.range.end.offset)._1
-        ruleBeginLineBegin.to(ruleEndLineBegin).map(lineBegin => CodeLocationS(rule.range.file, lineBegin))
-      })
-        .distinct
-    val allRuneUsages = unsolvedRules.flatMap(_.runeUsages).distinct
-    val lineBeginLocToRuneUsage =
-      allRuneUsages
-        .map(runeUsage => {
-          val usageBeginLine = lineRangeContaining(codeMap, runeUsage.range.file, runeUsage.range.begin.offset)._1
-          (usageBeginLine, runeUsage)
-        })
-        .groupBy(_._1)
-        .mapValues(_.map(_._2))
-
-    errorBody + "\n" +
-      allLineBeginLocs
-        // Show the lines in order
-        .sortBy(_.offset)
-        .map({ case CodeLocationS(file, lineBegin) =>
-          lineContaining(codeMap, file, lineBegin) + "\n" +
-          lineBeginLocToRuneUsage
-            .getOrElse(lineBegin, Vector())
-            // Show the runes from right to left
-            .sortBy(-_.range.begin.offset)
-            .map({ case RuneUsage(range, rune) =>
-              val numSpaces = range.begin.offset - lineBegin
-              val numArrows = range.end.offset - range.begin.offset
-              repeatStr(" ", numSpaces) + repeatStr("^", numArrows) + " " +
-                result.incompleteConclusions.get(rune).map(humanizeTemplata(codeMap, _)).getOrElse("(unknown)") +
-                " (" + humanizeRune(rune) + ")" +
-                "\n"
-            }).mkString("")
-        }).mkString("")
-  }
-
-  def humanizeRune(rune: IRuneS): String = {
-    rune match {
-      case ImplicitRuneS(lid) => "_" + lid.path.mkString("")
-      case CodeRuneS(name) => name
-      case SenderRuneS(paramRune) => "(arg for " + humanizeRune(paramRune) + ")"
-      case other => vimpl(other)
-    }
+    SolverErrorHumanizer.humanizeFailedSolve(
+      codeMap,
+      humanizeRune,
+      humanizeTemplata,
+      humanizeRuleError,
+      (rule: IRulexSR) => rule.range,
+      (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
+      result)
   }
 
   def humanizeTemplata(

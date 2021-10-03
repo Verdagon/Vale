@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale.IProfiler
-import net.verdagon.vale.scout.{INameS, RangeS}
+import net.verdagon.vale.scout.{INameS}
 import net.verdagon.vale.templar.INameT
 //import net.verdagon.vale.templar.templata.{ITemplata, PrototypeT, TemplataTemplarInner}
 import net.verdagon.vale.templar.types.{CitizenRefT, CoordT, InterfaceTT, KindT, MutabilityT, StructTT}

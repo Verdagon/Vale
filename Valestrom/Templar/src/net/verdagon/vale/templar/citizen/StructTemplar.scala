@@ -118,7 +118,7 @@ class StructTemplar(
         val structNameRune = StructNameRuneS(structA.name)
         runeToType += (structNameRune -> structA.tyype)
         rules += LookupSR(structA.range, RuneUsage(structA.name.range, structNameRune), CodeTypeNameS(structA.name.name))
-        rules += CallSR(structA.range, retRune, true, RuneUsage(structA.range, structNameRune), structA.identifyingRunes.toArray)
+        rules += CallSR(structA.range, retRune, RuneUsage(structA.range, structNameRune), structA.identifyingRunes.toArray)
       } else {
         rules += LookupSR(structA.range, retRune, CodeTypeNameS(structA.name.name))
       }
@@ -171,7 +171,7 @@ class StructTemplar(
         val structNameRune = RuneUsage(interfaceA.name.range, StructNameRuneS(interfaceA.name))
         runeToType += (structNameRune.rune -> interfaceA.tyype)
         rules += LookupSR(interfaceA.range, structNameRune, CodeTypeNameS(interfaceA.name.name))
-        rules += CallSR(interfaceA.range, substructRune, true, structNameRune, interfaceA.identifyingRunes.toArray)
+        rules += CallSR(interfaceA.range, substructRune, structNameRune, interfaceA.identifyingRunes.toArray)
       } else {
         rules += LookupSR(interfaceA.range, substructRune, CodeTypeNameS(interfaceA.name.name))
       }

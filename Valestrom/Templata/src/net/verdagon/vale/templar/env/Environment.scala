@@ -4,7 +4,7 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.{IProfiler, PackageCoordinate, vassert, vcurious, vfail, vimpl, vwat}
+import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, vassert, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.{List, Map}
 

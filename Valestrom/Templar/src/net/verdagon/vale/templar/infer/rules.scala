@@ -1,8 +1,9 @@
 package net.verdagon.vale.templar.infer
 
+import net.verdagon.vale.RangeS
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.{INameS, RangeS}
+import net.verdagon.vale.scout.INameS
 import net.verdagon.vale.templar.types.ITemplataType
 //import net.verdagon.vale.templar.{INameT, IRuneS}
 import net.verdagon.vale.{vassert, vcurious, vimpl, vwat}

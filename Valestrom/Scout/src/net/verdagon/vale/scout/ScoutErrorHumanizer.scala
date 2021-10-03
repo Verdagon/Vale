@@ -1,7 +1,8 @@
 package net.verdagon.vale.scout
 
-import net.verdagon.vale.FileCoordinateMap
+import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
+import net.verdagon.vale.templar.types._
 
 object ScoutErrorHumanizer {
   def humanize(
@@ -40,7 +41,36 @@ object ScoutErrorHumanizer {
       case CodeTypeNameS(n) => n
       case MagicParamNameS(codeLocation) => "(magic)"
       case CodeVarNameS(name) => name
+      case RuneNameS(rune) => humanizeRune(rune)
       case ConstructingMemberNameS(name) => "member " + name
+    }
+  }
+
+  def humanizeRune(rune: IRuneS): String = {
+    rune match {
+      case ImplicitRuneS(lid) => "_" + lid.path.mkString("")
+      case CodeRuneS(name) => name
+      case SenderRuneS(paramRune) => "(arg for " + humanizeRune(paramRune) + ")"
+      case other => vimpl(other)
+    }
+  }
+
+  def humanizeTemplataType(tyype: ITemplataType): String = {
+    tyype match {
+      case KindTemplataType => "kind"
+      case CoordTemplataType => "type"
+      case FunctionTemplataType => "func"
+      case IntegerTemplataType => "int"
+      case BooleanTemplataType => "bool"
+      case MutabilityTemplataType => "mut"
+      case PrototypeTemplataType => "prot"
+      case StringTemplataType => "str"
+      case PermissionTemplataType => "perm"
+      case LocationTemplataType => "loc"
+      case OwnershipTemplataType => "own"
+      case VariabilityTemplataType => "var"
+      case PackTemplataType(elementType) => "pack<" + humanizeTemplataType(elementType) + ">"
+      case TemplateTemplataType(params, ret) => humanizeTemplataType(ret) + "<" + params.map(humanizeTemplataType).mkString(",") + ">"
     }
   }
 }

@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.infer
 
 //import net.verdagon.vale.astronomer.ITemplataType
-import net.verdagon.vale.scout.{IRuneS, RangeS}
+import net.verdagon.vale.scout.{IRuneS}
 import net.verdagon.vale.templar.templata.ITemplata
 import net.verdagon.vale.templar.types.{ITemplataType, ParamFilter}
 import net.verdagon.vale.{vassert, vcurious, vimpl}

@@ -126,7 +126,7 @@ object RuleScout {
         runeToExplicitType.put(rune, translateType(tyype))
         RuneUsage(evalRange(range), rune)
       }
-      case TemplexPR(templex) => TemplexScout.translateTemplex(env, lidb.child(), builder, templex, false)
+      case TemplexPR(templex) => TemplexScout.translateTemplex(env, lidb.child(), builder, templex)
       case BuiltinCallPR(range, NameP(_, "isInterface"), args) => {
         vassert(args.length == 1)
         val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)

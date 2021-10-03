@@ -1,6 +1,6 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.scout.{CodeLocationS, IFunctionDeclarationNameS, INameS, IRuneS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{IFunctionDeclarationNameS, INameS, IRuneS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.{PackageCoordinate, vassert, vimpl, vpass}
 
 //// An absolute name is one where we know *exactly* where it's defined; if parser and scout
