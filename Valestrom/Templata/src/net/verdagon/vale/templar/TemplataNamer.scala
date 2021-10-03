@@ -1,5 +1,6 @@
 package net.verdagon.vale.templar
 
+import net.verdagon.vale.scout.ScoutErrorHumanizer
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.vimpl
@@ -33,6 +34,13 @@ object TemplataNamer {
 
   def stringifyParametersArgs(parameters: Vector[CoordT]): String = {
     "(" + parameters.map(parameter => getReferenceIdentifierName(parameter)).mkString(", ") + ")"
+  }
+
+  def getPotentialCalleeName(potentialCallee: ICalleeCandidate): String = {
+    potentialCallee match {
+      case FunctionCalleeCandidate(function) => ScoutErrorHumanizer.humanizeName(function.function.name)
+      case ExternCalleeCandidate(banner) => getFullNameIdentifierName(banner.fullName)
+    }
   }
 
   def getFullNameIdentifierName(fullName: FullNameT[INameT]): String = {

@@ -704,6 +704,42 @@ class TemplarTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
   }
 
+  test("Tests calling a function with an upcast") {
+    val compile = TemplarTestCompilation.test(
+        """
+          |interface ISpaceship {}
+          |struct Firefly {}
+          |impl ISpaceship for Firefly;
+          |fn launch(ship &ISpaceship) { }
+          |fn main() {
+          |  launch(&Firefly());
+          |}
+          |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+    Collector.only(main, {
+      case StructToInterfaceUpcastTE(_, InterfaceTT(FullNameT(_, _, CitizenNameT("ISpaceship", _)))) =>
+    })
+  }
+
+  test("Tests calling a templated function with an upcast") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |interface ISpaceship<T> rules(T Ref) {}
+        |struct Firefly<T> rules(T Ref) {}
+        |impl<T> ISpaceship<T> for Firefly<T>;
+        |fn launch<T>(ship &ISpaceship<T>) { }
+        |fn main() {
+        |  launch(&Firefly<int>());
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+    Collector.only(main, {
+      case StructToInterfaceUpcastTE(_, InterfaceTT(FullNameT(_, _, CitizenNameT("ISpaceship", _)))) =>
+    })
+  }
+
   test("Tests a templated linked list") {
     val compile = TemplarTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/templatedlinkedlist.vale"))
@@ -1117,8 +1153,8 @@ class TemplarTests extends FunSuite with Matchers {
     compile.getTemputs() match {
       // Err(     case WrongNumberOfArguments(_, _)) =>
       case Err(CouldntFindFunctionToCallT(_, seff)) => {
-        vassert(seff.rejectedReasonByBanner.size == 1)
-        seff.rejectedReasonByBanner.head._2 match {
+        vassert(seff.rejectedCalleeToReason.size == 1)
+        seff.rejectedCalleeToReason.head._2 match {
           case WrongNumberOfArguments(4, 3) =>
         }
       }
@@ -1201,13 +1237,11 @@ class TemplarTests extends FunSuite with Matchers {
         ScoutExpectedFunctionFailure(
           CodeTypeNameS("someFunc"),
           Vector(),
-          Map(),
-          Map(),
           Map()))).nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         RangeS.testZero,
-        ScoutExpectedFunctionFailure(GlobalFunctionFamilyNameS(""), Vector(), Map(), Map(), Map())))
+        ScoutExpectedFunctionFailure(GlobalFunctionFamilyNameS(""), Vector(), Map())))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CannotSubscriptT(

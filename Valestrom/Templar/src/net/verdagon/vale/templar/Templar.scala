@@ -8,7 +8,7 @@ import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.{ExpressionTemplar, IExpressionTemplarDelegate, LocalHelper}
@@ -493,13 +493,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
 
         override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {
           profiler.childFrame("InferTemplarDelegate.resolveExactSignature", () => {
-            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true) match {
-              case sef@ScoutExpectedFunctionFailure(humanName, args, outscoredReasonByPotentialBanner, rejectedReasonByBanner, rejectedReasonByFunction) => {
-                throw new CompileErrorExceptionT(CouldntFindFunctionToCallT(range, sef))
-                throw CompileErrorExceptionT(RangedInternalErrorT(range, sef.toString))
-              }
-              case ScoutExpectedFunctionSuccess(prototype) => prototype
-            }
+            overloadTemplar.scoutExpectedFunctionForPrototype(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
           })
         }
       })
@@ -540,7 +534,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
           args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
-        OverloadTemplar.IScoutExpectedFunctionResult = {
+        PrototypeT = {
           overloadTemplar.scoutExpectedFunctionForPrototype(env, temputs, callRange, functionName,
             explicitTemplateArgRulesS,
             explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact)
@@ -1080,12 +1074,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           Array.empty,
           neededOverride.paramFilters,
           Vector.empty,
-          true) match {
-          case (seff@ScoutExpectedFunctionFailure(_, _, _, _, _)) => {
-            throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(-1674), "Couldn't find function for vtable!\n" + seff.toString))
-          }
-          case (ScoutExpectedFunctionSuccess(_)) =>
-        }
+          true)
       }
     })
 

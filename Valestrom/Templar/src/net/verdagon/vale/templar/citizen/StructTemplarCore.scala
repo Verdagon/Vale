@@ -5,7 +5,7 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.{FinalP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionResult, ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer, FunctionTemplarOrdinaryOrTemplatedLayer}
@@ -136,23 +136,16 @@ class StructTemplarCore(
         case (implementedInterfaceRefT) => {
           structDefT.mutability match {
             case MutableT => {
-              val sefResult =
-                delegate.scoutExpectedFunctionForPrototype(
-                  structInnerEnv,
-                  temputs,
-                  structA.range,
-                  GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
-                  Vector.empty,
-                  Array.empty,
-                  Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
-                  Vector.empty,
-                  true)
-              sefResult match {
-                case ScoutExpectedFunctionSuccess(_) =>
-                case ScoutExpectedFunctionFailure(_, _, _, _, _) => {
-                  throw CompileErrorExceptionT(RangedInternalErrorT(structA.range, sefResult.toString))
-                }
-              }
+              delegate.scoutExpectedFunctionForPrototype(
+                structInnerEnv,
+                temputs,
+                structA.range,
+                GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
+                Vector.empty,
+                Array.empty,
+                Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
+                Vector.empty,
+                true)
             }
             case ImmutableT => {
               // If it's immutable, make sure there's a zero-arg destructor.
@@ -615,10 +608,7 @@ class StructTemplarCore(
             Array.empty,
             forwardedCallArgs,
             Vector.empty,
-            true) match {
-            case seff@ScoutExpectedFunctionFailure(_, _, _, _, _) => throw CompileErrorExceptionT(RangedInternalErrorT(range, seff.toString))
-            case ScoutExpectedFunctionSuccess(prototype) => prototype
-          }
+            true)
 
         val structParamCoord =
           CoordT(

@@ -2,7 +2,7 @@ package net.verdagon.vale.templar.function
 
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
 import net.verdagon.vale.scout.GlobalFunctionFamilyNameS
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
@@ -58,15 +58,10 @@ class VirtualTemplar(opts: TemplarOptions, overloadTemplar: OverloadTemplar) {
         val superInterfaceEnv = temputs.getEnvForInterfaceRef(superInterfaceRef2)
         val extraEnvsToLookIn = Vector(superInterfaceEnv)
 
+        // Throw away the result prototype, we just want it to be in the temputs.
         overloadTemplar.scoutExpectedFunctionForPrototype(
           env, temputs, RangeS.internal(-1388), nameToScoutFor, Vector.empty,
-          Array.empty, needleSuperFunctionParamFilters, extraEnvsToLookIn, true) match {
-          case (ScoutExpectedFunctionSuccess(_)) => {
-            // Throw away the prototype, we just want it to be in the temputs.
-
-          }
-          case (seff @ ScoutExpectedFunctionFailure(_, _, _, _, _)) => vfail(seff.toString)
-        }
+          Array.empty, needleSuperFunctionParamFilters, extraEnvsToLookIn, true)
       }
     }
   }

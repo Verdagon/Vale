@@ -43,6 +43,7 @@ object ScoutErrorHumanizer {
       case CodeVarNameS(name) => name
       case RuneNameS(rune) => humanizeRune(rune)
       case ConstructingMemberNameS(name) => "member " + name
+      case FunctionNameS(name, codeLocation) => name
     }
   }
 

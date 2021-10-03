@@ -11,7 +11,6 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer}
 import net.verdagon.vale._
-import net.verdagon.vale.templar.OverloadTemplar.IScoutExpectedFunctionResult
 import net.verdagon.vale.templar.citize.StructTemplarTemplateArgsLayer
 
 import scala.collection.immutable.List
@@ -37,7 +36,7 @@ trait IStructTemplarDelegate {
     args: Vector[ParamFilter],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
-  IScoutExpectedFunctionResult
+  PrototypeT
 
   def makeImmConcreteDestructor(
     temputs: Temputs,
