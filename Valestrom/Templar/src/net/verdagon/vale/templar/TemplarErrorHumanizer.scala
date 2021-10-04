@@ -9,7 +9,7 @@ import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, Incomple
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
-import net.verdagon.vale.templar.templata.{CoordTemplata, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.templata.{AbstractT, CoordTemplata, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OverrideT, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
@@ -148,7 +148,8 @@ object TemplarErrorHumanizer {
       }) +
       "(" +
       args.map({
-        case ParamFilter(tyype, Some(_)) => vimpl()
+        case ParamFilter(tyype, Some(OverrideT(interface))) => TemplataNamer.getReferenceIdentifierName(tyype) + " impl " + TemplataNamer.getKindIdentifierName(interface)
+        case ParamFilter(tyype, Some(AbstractT)) => TemplataNamer.getReferenceIdentifierName(tyype) + " abstract"
         case ParamFilter(tyype, None) => TemplataNamer.getReferenceIdentifierName(tyype)
       }).mkString(", ") +
       "). " +
@@ -301,18 +302,23 @@ object TemplarErrorHumanizer {
         humanizeRuleError,
         (rule: IRulexSR) => rule.range,
         (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
+        ScoutErrorHumanizer.humanizeRule,
         result)
 
     (candidate match {
       case ExternCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
       case FunctionCalleeCandidate(ft) => {
-        val begin = lineBegin(codeMap, ft.function.range.begin)
-        humanizePos(codeMap, begin) + ":\n" +
-        (if (lineBegins.contains(begin)) {
-          ""
+        if (ft.function.range.file.isInternal) {
+          ScoutErrorHumanizer.humanizeName(ft.function.name) + " (builtin " + ft.function.range.begin.offset + ")\n"
         } else {
-          lineContaining(codeMap, begin) + "\n"
-        })
+          val begin = lineBegin(codeMap, ft.function.range.begin)
+          humanizePos(codeMap, begin) + ":\n" +
+            (if (lineBegins.contains(begin)) {
+              ""
+            } else {
+              lineContaining(codeMap, begin) + "\n"
+            })
+        }
       }
     }) + text
   }

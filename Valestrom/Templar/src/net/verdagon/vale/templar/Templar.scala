@@ -753,7 +753,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
         exportsA.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
           val typeRuneT = typeRuneA
           val templataByRune =
-            inferTemplar.solveExpectComplete(env11, temputs, rules, runeToType, range, Map())
+            inferTemplar.solveExpectComplete(env11, temputs, rules, runeToType, range, Map(), Map())
           val kind =
             templataByRune.get(typeRuneT.rune) match {
               case Some(KindTemplata(kind)) => {

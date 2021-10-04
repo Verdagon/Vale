@@ -11,13 +11,14 @@ object SolverErrorHumanizer {
     humanizeRuleError: (FileCoordinateMap[String], ErrType) => String,
     getRuleRange: (Rule) => RangeS,
     getRuneUsages: (Rule) => Iterable[(RuneID, RangeS)],
+    ruleToString: (Rule) => String,
     result: IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType]):
   // Returns text and all line begins
   (String, Vector[CodeLocationS]) = {
     val errorBody =
       (result match {
         case IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes) => {
-          "Couldn't solve some runes:"  + unknownRunes.toVector.map(humanizeRune).mkString(", ")
+          "Couldn't solve some runes: "  + unknownRunes.toVector.map(humanizeRune).mkString(", ")
         }
         case FailedSolve(incompleteConclusions, unsolvedRules, error) => {
           error match {
@@ -32,10 +33,15 @@ object SolverErrorHumanizer {
       })
 
     val unsolvedRules = result.unsolvedRules
+    val builtinUnsolvedRules = unsolvedRules.filter(getRuleRange(_).file.isInternal)
+    val userUnsolvedRules = unsolvedRules.filter(!getRuleRange(_).file.isInternal)
+
     val allLineBeginLocs =
-      unsolvedRules.flatMap(rule => {
-        val ruleBeginLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).begin)._1
-        val ruleEndLineBegin = lineRangeContaining(codeMap, getRuleRange(rule).end)._1
+      userUnsolvedRules.flatMap(rule => {
+        val range = getRuleRange(rule)
+        val RangeS(begin, end) = range
+        val ruleBeginLineBegin = lineRangeContaining(codeMap, begin)._1
+        val ruleEndLineBegin = lineRangeContaining(codeMap, end)._1
         ruleBeginLineBegin.to(ruleEndLineBegin).map(lineBegin => CodeLocationS(getRuleRange(rule).file, lineBegin))
       })
         .distinct
@@ -49,8 +55,7 @@ object SolverErrorHumanizer {
         .groupBy(_._1)
         .mapValues(_.map(_._2))
 
-    val text =
-      errorBody + "\n" +
+    val textFromUserRules =
       allLineBeginLocs
         // Show the lines in order
         .sortBy(_.offset)
@@ -66,7 +71,7 @@ object SolverErrorHumanizer {
                 val runeName = humanizeRune(rune)
                 (if (runeName.length + 4 < numSpaces) {
                   "  " + runeName + ": " +
-                  repeatStr(" ", numSpaces - runeName.length - 4) + repeatStr("^", numArrows) + " "
+                    repeatStr(" ", numSpaces - runeName.length - 4) + repeatStr("^", numArrows) + " "
                 } else {
                   repeatStr(" ", numSpaces) + repeatStr("^", numArrows) + " " +
                     runeName + ": "
@@ -75,6 +80,15 @@ object SolverErrorHumanizer {
                   "\n"
               }).mkString("")
         }).mkString("")
+    val textFromBuiltinRules =
+      builtinUnsolvedRules.map(rule => {
+        ruleToString(rule) + "\n" +
+        getRuneUsages(rule).map({ case (rune, _) =>
+        "  " + humanizeRune(rune) + ": " +
+            result.incompleteConclusions.get(rune).map(humanizeTemplata(codeMap, _)).getOrElse("(unknown)") + "\n"
+        }).mkString("")
+      }).mkString("")
+    val text = errorBody + "\n" + textFromUserRules + textFromBuiltinRules
     (text, allLineBeginLocs.toVector)
   }
 

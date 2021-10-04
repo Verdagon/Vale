@@ -71,6 +71,7 @@ class StructTemplarTemplateArgsLayer(
               structA.rules,
               structA.runeToType,
               callRange,
+              Map(),
               structA.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
 
           structA.maybePredictedMutability match {
@@ -126,6 +127,7 @@ class StructTemplarTemplateArgsLayer(
               interfaceS.rules,
               interfaceS.runeToType,
               callRange,
+              Map(),
               interfaceS.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
 
           interfaceS.maybePredictedMutability match {

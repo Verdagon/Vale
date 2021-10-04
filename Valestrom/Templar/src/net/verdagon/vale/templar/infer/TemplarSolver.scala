@@ -2,7 +2,7 @@ package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale._
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
-import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RuneNameS}
+import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RuneNameS, SenderRuneS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.FunctionNameT
@@ -517,6 +517,7 @@ class TemplarSolver[Env, State](
         getRunes,
         (rule: IRulexSR) => getPuzzles(rule),
         initiallyKnownRuneToTemplata)
+
     Solver.solve[IRulexSR, IRuneS, Env, State, ITemplata, ITemplarSolverError](
       state,
       env,
