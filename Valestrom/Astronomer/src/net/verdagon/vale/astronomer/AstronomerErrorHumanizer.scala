@@ -31,7 +31,8 @@ object AstronomerErrorHumanizer {
       (codeMap, u: Unit) => "",
       (rule: IRulexSR) => rule.range,
       (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
-      err.failedSolve)
+      ScoutErrorHumanizer.humanizeRule,
+      err.failedSolve)._1
   }
 
   def humanize(
@@ -55,7 +56,8 @@ object AstronomerErrorHumanizer {
             (codeMap, u: Unit) => "",
             (rule: IRulexSR) => rule.range,
             (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
-            err.failedSolve)
+            ScoutErrorHumanizer.humanizeRule,
+            err.failedSolve)._1
         }
         case WrongNumArgsForTemplateA(range, expectedNumArgs, actualNumArgs) => {
           ": Expected " + expectedNumArgs + " template args but received " + actualNumArgs + "\n"

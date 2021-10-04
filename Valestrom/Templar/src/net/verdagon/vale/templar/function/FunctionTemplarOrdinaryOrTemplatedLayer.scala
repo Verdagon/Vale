@@ -45,7 +45,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.predictOrdinaryFunctionBanner(
@@ -64,7 +64,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForBanner(runedEnv, temputs, callRange, function)
@@ -128,6 +128,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
+    val receiverToSenderTemplata =
+      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
     val inferredTemplatas =
       inferTemplar.solveComplete(
         nearEnv,
@@ -135,6 +137,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
+        receiverToSenderTemplata,
         assembleKnownTemplatas(function, args, explicitTemplateArgs)
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
@@ -159,13 +162,15 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
       temputs: Temputs,
       callRange: RangeS,
       alreadySpecifiedTemplateArgs: Vector[ITemplata],
-      paramFilters: Vector[ParamFilter]):
+      args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     val function = nearEnv.function
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
+    val receiverToSenderTemplata =
+      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
     val inferredTemplatas =
       inferTemplar.solveComplete(
         nearEnv,
@@ -173,7 +178,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
-        assembleKnownTemplatas(function, paramFilters, alreadySpecifiedTemplateArgs)
+        receiverToSenderTemplata,
+        assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs)
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -243,7 +249,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
@@ -277,7 +283,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
       }).toMap
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, alreadyKnownTemplatas)
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), alreadyKnownTemplatas)
 
     // See FunctionTemplar doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
@@ -302,7 +308,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForPrototype(
@@ -329,6 +335,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     }
     vassert(nearEnv.function.isTemplate)
 
+    val receiverToSenderTemplata =
+      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
     val alreadyKnownTemplatas = assembleKnownTemplatas(function, args, explicitTemplateArgs)
     val inferences =
       inferTemplar.solveComplete(
@@ -337,6 +345,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
+        receiverToSenderTemplata,
         alreadyKnownTemplatas) match {
       case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
       case Ok(inferredTemplatas) => inferredTemplatas
@@ -352,12 +361,14 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     (EvaluateFunctionSuccess(banner))
   }
 
-  private def assembleKnownTemplatas(function: FunctionA, args: Vector[ParamFilter], explicitTemplateArgs: Vector[ITemplata]):
+  private def assembleKnownTemplatas(
+    function: FunctionA,
+    args: Vector[ParamFilter],
+    explicitTemplateArgs: Vector[ITemplata]):
   Map[IRuneS, ITemplata] = {
     function.params.flatMap(_.pattern.virtuality).collect({ case OverrideSP(_, rune) => rune.rune })
       .zip(args.flatMap(_.virtuality).collect({ case OverrideT(i) => i }).map(KindTemplata)).toMap ++
-      function.identifyingRunes.map(_.rune).zip(explicitTemplateArgs).toMap ++
-      function.params.map(_.pattern.coordRune.get.rune).zip(args.map(_.tyype).map(CoordTemplata)).toMap
+      function.identifyingRunes.map(_.rune).zip(explicitTemplateArgs).toMap
   }
 
   private def checkClosureConcernsHandled(

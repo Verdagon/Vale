@@ -265,6 +265,7 @@ class OverloadTemplar(
                       explicitTemplateArgRulesS,
                       explicitTemplateArgRuneToType ++ runeTypeConclusions,
                       callRange,
+                      Map(),
                       Map()) match {
                       case (Err(e)) => {
                         Err(InferFailure(e))

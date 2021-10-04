@@ -723,6 +723,15 @@ class TemplarTests extends FunSuite with Matchers {
   }
 
   test("Tests calling a templated function with an upcast") {
+
+    starthere
+    // it seems to have trouble matching against the idestructor.
+    // idestructor receives any kind of struct, as long as its mutability is whatever,
+    // but we send something in with a Receives rule, which doesn't know how to deal with
+    // that. the receives doesnt really know whether it's receiving into a struct or not.
+    // possible approach: astronomer can predict whether the receiver is an interface, and
+    // only then would we use some receives rules.
+
     val compile = TemplarTestCompilation.test(
       """
         |interface ISpaceship<T> rules(T Ref) {}

@@ -5,7 +5,7 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
+import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import net.verdagon.vale.templar.expression.CallTemplar
@@ -56,7 +56,7 @@ class ArrayTemplar(
         case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
       }
     val templatas =
-      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map())
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
     val IntegerTemplata(size) = vassertSome(templatas.get(sizeRuneA))
     val mutability = getArrayMutability(templatas, mutabilityRune)
     val variability = getArrayVariability(templatas, variabilityRune)
@@ -89,7 +89,7 @@ class ArrayTemplar(
         case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
       }
     val templatas =
-      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map())
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
     val mutability = getArrayMutability(templatas, mutabilityRune)
     val variability = getArrayVariability(templatas, variabilityRune)
     val prototype = overloadTemplar.getArrayGeneratorPrototype(temputs, fate, range, callableTE)
@@ -128,7 +128,7 @@ class ArrayTemplar(
 
     val templatas =
       inferTemplar.solveExpectComplete(
-        fate.snapshot, temputs, rulesA, runeToType, range, Map())
+        fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
     val size = getArraySize(templatas, sizeRuneA)
     val mutability = getArrayMutability(templatas, mutabilityRuneA)
     val variability = getArrayVariability(templatas, variabilityRuneA)

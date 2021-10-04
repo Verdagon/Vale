@@ -106,15 +106,15 @@ class PatternTemplar(
             unconvertedInputExpr
           }
           case Some(receiverRune) => {
-            val senderRune = SenderRuneS(receiverRune.rune)
             val templatasByRune =
               inferTemplar.solveExpectComplete(
                 fate.snapshot,
                 temputs,
-                rules :+ CoordReceivesSR(pattern.range, receiverRune, RuneUsage(pattern.range, senderRune)),
-                runeToType + (senderRune -> CoordTemplataType),
+                rules,
+                runeToType,
                 pattern.range,
-                Map(senderRune -> CoordTemplata(unconvertedInputExpr.resultRegister.reference)))
+                Map(receiverRune -> CoordTemplata(unconvertedInputExpr.resultRegister.reference)),
+                Map())
             fate.addEntries(
               opts.useOptimization,
               templatasByRune.map({ case (key, value) => (RuneNameT(key), value) })

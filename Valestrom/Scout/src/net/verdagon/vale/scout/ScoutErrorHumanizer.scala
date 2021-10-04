@@ -2,6 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
+import net.verdagon.vale.scout.rules.{CoordComponentsSR, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, OneOfSR}
 import net.verdagon.vale.templar.types._
 
 object ScoutErrorHumanizer {
@@ -28,8 +29,8 @@ object ScoutErrorHumanizer {
         case InitializingStaticSizedArrayFromCallableNeedsSizeTemplex(range) => s": Initializing a statically-sized array requires a size in-between the square brackets."
       })
 
-    val posStr = humanizePos(codeMap, err.range.file, err.range.begin.offset)
-    val nextStuff = lineContaining(codeMap, err.range.file, err.range.begin.offset)
+    val posStr = humanizePos(codeMap, err.range.begin)
+    val nextStuff = lineContaining(codeMap, err.range.begin)
     val errorId = "S"
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
   }
@@ -72,6 +73,23 @@ object ScoutErrorHumanizer {
       case VariabilityTemplataType => "var"
       case PackTemplataType(elementType) => "pack<" + humanizeTemplataType(elementType) + ">"
       case TemplateTemplataType(params, ret) => humanizeTemplataType(ret) + "<" + params.map(humanizeTemplataType).mkString(",") + ">"
+    }
+  }
+
+  def humanizeRule(rule: IRulexSR): String = {
+    rule match {
+      case KindComponentsSR(range, kindRune, mutabilityRune) => {
+        humanizeRune(kindRune.rune) + " Kind(" + humanizeRune(mutabilityRune.rune) + ")"
+      }
+      case CoordComponentsSR(range, resultRune, ownershipRune, permissionRune, kindRune) => {
+        humanizeRune(resultRune.rune) + " Ref(" + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(permissionRune.rune) + ", " + humanizeRune(kindRune.rune) + ")"
+      }
+      case OneOfSR(range, resultRune, literals) => {
+        humanizeRune(resultRune.rune) + " = " + literals.map(_.toString).mkString(" | ")
+      }
+      case IsInterfaceSR(range, resultRune) => "isInterface(" + humanizeRune(resultRune.rune) + ")"
+      case IsStructSR(range, resultRune) => "isStruct(" + humanizeRune(resultRune.rune) + ")"
+      case other => vimpl(other)
     }
   }
 }

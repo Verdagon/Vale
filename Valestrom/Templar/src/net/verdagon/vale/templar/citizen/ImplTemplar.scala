@@ -42,6 +42,7 @@ class AncestorHelper(
           rules,
           runeToType,
           RangeS.internal(-1875),
+          Map(),
           Map(structKindRune.rune -> KindTemplata(childCitizenRef)))
       })
 
