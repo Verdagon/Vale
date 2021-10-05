@@ -3,7 +3,8 @@ package net.verdagon.vale.templar.env
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{BlockSE, INameS, LocalS}
 import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.templata.{ITemplata}
+import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, INameT, IVarNameT}
+import net.verdagon.vale.templar.templata.ITemplata
 import net.verdagon.vale.templar.types.{CoordT, StructTT, VariabilityT}
 import net.verdagon.vale.{IProfiler, vassert, vcurious, vfail, vimpl, vwat}
 

@@ -1,6 +1,7 @@
-package net.verdagon.vale.templar
+package net.verdagon.vale.templar.templata
 
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT}
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, FunctionT, PrototypeT}
+import net.verdagon.vale.templar.names._
 
 object simpleName {
 //  def apply(name: String): FullName2 = {

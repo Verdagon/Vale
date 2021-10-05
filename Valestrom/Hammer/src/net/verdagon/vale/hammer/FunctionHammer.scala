@@ -4,6 +4,8 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl, vwat, metal => m}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{Extern2, FunctionHeaderT, FunctionT, IFunctionAttribute2, PrototypeT, PureT, UserFunctionT}
+import net.verdagon.vale.templar.names.{FullNameT, IVarNameT}
 import net.verdagon.vale.templar.templata.{Extern2, FunctionHeaderT, IFunctionAttribute2, PrototypeT, PureT, UserFunctionT}
 
 object FunctionHammer {

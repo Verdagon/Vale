@@ -5,7 +5,9 @@ import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
 import net.verdagon.vale.templar.infer.ITemplarSolverError
+import net.verdagon.vale.templar.names.{FullNameT, INameT, IVarNameT}
 import net.verdagon.vale.templar.templata.{ITemplata, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types.{CitizenRefT, CoordT, InterfaceTT, KindT, StructTT}
 import net.verdagon.vale.{PackageCoordinate, RangeS, vcurious, vimpl, vpass}

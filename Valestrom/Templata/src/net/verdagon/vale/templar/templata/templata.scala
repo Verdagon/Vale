@@ -2,8 +2,9 @@ package net.verdagon.vale.templar.templata
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{FunctionNameS, TopLevelCitizenDeclarationNameS}
-import net.verdagon.vale.templar.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImmConcreteDestructorNameT, ImmDropNameT, ImplDeclareNameT, NameTranslator, PackageTopLevelNameT}
+import net.verdagon.vale.templar.NameTranslator
 import net.verdagon.vale.templar.env._
+import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, NameTranslator, PackageTopLevelNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl}
 

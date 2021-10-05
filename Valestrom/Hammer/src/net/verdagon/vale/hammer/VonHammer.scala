@@ -7,6 +7,7 @@ import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vimp
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, ImmDropNameT, ImmInterfaceDestructorNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von._
 

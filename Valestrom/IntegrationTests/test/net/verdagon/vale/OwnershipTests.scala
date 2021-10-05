@@ -4,12 +4,14 @@ import net.verdagon.vale.parser.{CaptureP, FinalP, VaryingP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{FunctionCallTE, LetAndLendTE, LetNormalTE, UnletTE}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT}
+import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT, functionName, simpleName}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
 import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.names.{FullNameT, FunctionNameT, TemplarTemporaryVarNameT}
 
 class OwnershipTests extends FunSuite with Matchers {
   test("Borrowing a temporary mutable makes a local var") {

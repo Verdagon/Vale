@@ -10,9 +10,11 @@ import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, OverrideSP}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.OverloadTemplar.IScoutExpectedFunctionFailureReason
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar.IEvaluateFunctionResult
+import net.verdagon.vale.templar.names.{LambdaCitizenNameT, NameTranslator}
 
 import scala.collection.immutable.{List, Set}
 

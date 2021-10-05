@@ -5,9 +5,11 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{AbstractBodyS, CodeBodyS, ExternBodyS, GeneratedBodyS, IFunctionDeclarationNameS}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar.IEvaluateFunctionResult
+import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator}
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vfail, vimpl}
 
 import scala.collection.immutable.{List, Map}

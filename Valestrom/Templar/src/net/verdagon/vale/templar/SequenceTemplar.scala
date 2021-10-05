@@ -1,10 +1,12 @@
 package net.verdagon.vale.templar
 
+import net.verdagon.vale.templar.ast.{ExpressionT, ReferenceExpressionTE, TupleTE}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox, IEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar}
+import net.verdagon.vale.templar.names.TupleNameT
 import net.verdagon.vale.vassert
 
 class SequenceTemplar(

@@ -1,11 +1,10 @@
-package net.verdagon.vale.templar
+package net.verdagon.vale.templar.names
 
-import net.verdagon.vale.scout.{ IRuneS}
+import net.verdagon.vale._
+import net.verdagon.vale.scout.IRuneS
+import net.verdagon.vale.templar.ast.LocationInFunctionEnvironment
 import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata}
-import net.verdagon.vale.templar.types.{CoordT, IntT, InterfaceTT, KindT, MutabilityT, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT}
-import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vpass, vwat}
-
-import scala.collection.immutable.List
+import net.verdagon.vale.templar.types._
 
 // Scout's/Astronomer's name parts correspond to where they are in the source code,
 // but Templar's correspond more to what packages and stamped functions / structs

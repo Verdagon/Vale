@@ -1,7 +1,8 @@
 package net.verdagon.vale.hinputs
 
-import net.verdagon.vale.templar.{CitizenNameT, EdgeT, FullNameT, FunctionT, FunctionExportT, FunctionExternT, FunctionNameT, IFunctionNameT, ImplT, InterfaceEdgeBlueprint, KindExportT, KindExternT, LambdaCitizenNameT, Program2, simpleName}
-import net.verdagon.vale.templar.templata.{FunctionBannerT, PrototypeT, SignatureT}
+import net.verdagon.vale.templar.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionT, InterfaceEdgeBlueprint, KindExportT, KindExternT}
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
+import net.verdagon.vale.templar.templata.{FunctionBannerT, PrototypeT, SignatureT, simpleName}
 import net.verdagon.vale.templar.types.{InterfaceDefinitionT, InterfaceTT, KindT, StructDefinitionT, StructTT}
 import net.verdagon.vale.{PackageCoordinate, vassertSome, vfail}
 

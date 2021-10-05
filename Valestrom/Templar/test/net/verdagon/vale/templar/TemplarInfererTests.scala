@@ -4,6 +4,8 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.IncompleteSolve
 import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.ast.Program2
+import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, PackageTopLevelNameT, PrimitiveNameT}
 import net.verdagon.vale.templar.{CompileErrorExceptionT, CouldntFindFunctionToCallT, TemplarTestCompilation}
 import net.verdagon.vale.{CodeLocationS, Err, RangeS, vassertOne}
 //import net.verdagon.vale.astronomer.ruletyper.IRuleTyperEvaluatorDelegate
@@ -11,7 +13,7 @@ import net.verdagon.vale.astronomer.{InterfaceA, StructA}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.{LiteralSR, LookupSR, MutabilityLiteralSL}
 import net.verdagon.vale.scout.{IEnvironment => _, _}
-import net.verdagon.vale.templar.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, Program2, StaticArrayFromValuesTE, TupleNameT}
+import net.verdagon.vale.templar.NameTranslator
 import net.verdagon.vale.{IProfiler, NullProfiler, PackageCoordinate, vassert, vassertSome, vfail, vimpl, scout => s}
 import net.verdagon.vale.templar.env._
 //import net.verdagon.vale.templar.infer.{InfererEquator, InfererEvaluator}

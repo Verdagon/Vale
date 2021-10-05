@@ -3,12 +3,14 @@ package net.verdagon.vale
 import net.verdagon.vale.parser.{FinalP, ImmutableP, MutableP, VaryingP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{AddressMemberLookupTE, ConstructTE, FunctionCallTE, LetNormalTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.templata.{FunctionHeaderT, ParameterT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
 import net.verdagon.vale.templar.expression.LocalHelper
+import net.verdagon.vale.templar.names.{ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, LambdaCitizenNameT, TemplarBlockResultVarNameT}
 
 class ClosureTests extends FunSuite with Matchers {
 

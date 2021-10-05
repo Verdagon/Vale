@@ -2,9 +2,12 @@ package net.verdagon.vale
 
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{LetNormalTE, SoftLoadTE, WeakAliasTE}
 import net.verdagon.vale.templar.citizen.WeakableImplingMismatch
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.expression.TookWeakRefOfNonWeakableError
+import net.verdagon.vale.templar.names.{CodeVarNameT, FullNameT}
+import net.verdagon.vale.templar.templata.simpleName
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.vivem.ConstraintViolatedException
 import net.verdagon.von.VonInt

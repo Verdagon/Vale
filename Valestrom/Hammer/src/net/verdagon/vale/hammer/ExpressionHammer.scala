@@ -5,6 +5,7 @@ import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vimpl, metal =>
 import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.metal.{ShareH, BorrowH => _, Immutable => _, Mutable => _, OwnH => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{AddressMemberLookupTE, ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, ConsecutorTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructArrayTE, ConstructTE, DeferTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, DiscardTE, ExpressionT, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, IfTE, InterfaceFunctionCallTE, InterfaceToInterfaceUpcastTE, IsSameInstanceTE, LetAndLendTE, LetNormalTE, LocalLookupTE, LockWeakTE, MutateTE, NarrowPermissionTE, PackTE, ReturnTE, SoftLoadTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StructToInterfaceUpcastTE, TemplarReinterpretTE, TupleTE, UnletTE, UnreachableMootTE, VoidLiteralTE, WeakAliasTE, WhileTE}
 import net.verdagon.vale.templar.env.AddressibleLocalVariableT
 import net.verdagon.vale.templar.templata.FunctionHeaderT
 import net.verdagon.vale.templar.types._

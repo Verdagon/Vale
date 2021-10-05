@@ -3,6 +3,7 @@ package net.verdagon.vale.templar.env
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorTemplateNameT, ImmDropTemplateNameT, ImmInterfaceDestructorTemplateNameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, PrimitiveNameT, RuneNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, vassert, vcurious, vfail, vimpl, vwat}
 

@@ -6,7 +6,9 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{FunctionNameS, GlobalFunctionFamilyNameS, ProgramS, Scout}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
+import net.verdagon.vale.templar.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT, StructToInterfaceUpcastTE}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import org.scalatest.{FunSuite, Matchers}

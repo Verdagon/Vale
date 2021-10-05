@@ -2,9 +2,11 @@ package net.verdagon.vale.templar.expression
 
 //import net.verdagon.vale.astronomer.{BlockSE, IExpressionSE}
 import net.verdagon.vale.scout.{BlockSE, IExpressionSE}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
+import net.verdagon.vale.templar.ast.{BlockTE, LetNormalTE, LocationInFunctionEnvironment, ReferenceExpressionTE, UnreachableMootTE}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
+import net.verdagon.vale.templar.names.{FullNameT, IVarNameT, TemplarBlockResultVarNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.vassert
 
@@ -180,7 +182,7 @@ class BlockTemplar(
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map({ case head =>
-      UnreachableMootTE(localHelper.unletLocal(fate, head))
+      ast.UnreachableMootTE(localHelper.unletLocal(fate, head))
     })
   }
 }

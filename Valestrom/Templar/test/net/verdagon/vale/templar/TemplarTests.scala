@@ -10,9 +10,11 @@ import net.verdagon.vale.astronomer.{Astronomer, AstronomerCompilation}
 import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.solver.{FailedSolve, RuleError}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
+import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, ImmConcreteDestructorNameT}
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -724,7 +726,7 @@ class TemplarTests extends FunSuite with Matchers {
 
   test("Tests calling a templated function with an upcast") {
 
-    starthere
+    vimpl()
     // it seems to have trouble matching against the idestructor.
     // idestructor receives any kind of struct, as long as its mutability is whatever,
     // but we send something in with a Receives rule, which doesn't know how to deal with
@@ -1232,7 +1234,7 @@ class TemplarTests extends FunSuite with Matchers {
     val ispaceshipCoord = CoordT(OwnT,ReadwriteT,ispaceshipKind)
     val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Spoon", Vector())))
     val unrelatedCoord = CoordT(OwnT,ReadwriteT,unrelatedKind)
-    val fireflySignature = SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("myFunc", Vector(), Vector(fireflyCoord))))
+    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("myFunc", Vector(), Vector(fireflyCoord))))
     val fireflyExport = KindExportT(RangeS.testZero, fireflyKind, PackageCoordinate.TEST_TLD, "Firefly");
     val serenityExport = KindExportT(RangeS.testZero, fireflyKind, PackageCoordinate.TEST_TLD, "Serenity");
 

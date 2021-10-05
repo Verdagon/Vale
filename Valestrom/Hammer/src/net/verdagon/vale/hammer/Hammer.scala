@@ -5,7 +5,9 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.parser.{FileP, VariabilityP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
-import net.verdagon.vale.templar.{CitizenNameT, ExternFunctionNameT, FullNameT, FunctionExportT, FunctionExternT, FunctionNameT, ICompileErrorT, INameT, IVarNameT, ImmConcreteDestructorNameT, ImmInterfaceDestructorNameT, KindExportT, KindExternT, TemplarCompilation, TemplarCompilationOptions, types => t}
+import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, KindExportT, KindExternT}
+import net.verdagon.vale.templar.names.{FullNameT, IVarNameT}
+import net.verdagon.vale.templar.{ICompileErrorT, TemplarCompilation, TemplarCompilationOptions, types => t}
 import net.verdagon.vale.{Builtins, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, PackageCoordinate, PackageCoordinateMap, Result, vassert, vcurious, vfail, vwat}
 
 import scala.collection.immutable.List

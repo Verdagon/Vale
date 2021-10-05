@@ -8,7 +8,8 @@ import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.ast.{ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, ConsecutorTE, EdgeT, FunctionCallTE, FunctionHeaderT, FunctionT, IsSameInstanceTE, LocationInFunctionEnvironment, LockWeakTE, ParameterT, Program2, PrototypeT, ReferenceExpressionTE, ReturnTE}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructTemplarDelegate, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.{ExpressionTemplar, IExpressionTemplarDelegate, LocalHelper}
@@ -16,6 +17,7 @@ import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
+import net.verdagon.vale.templar.names.{CitizenTemplateNameT, FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -96,7 +98,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
           temputs.addFunction(
             FunctionT(
@@ -121,11 +123,11 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
             maybeReturnType2: Option[CoordT]):
           (FunctionHeaderT) = {
             val header =
-              FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+              ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
             temputs.declareFunctionReturnType(header.toSignature, header.returnType)
             val fate = FunctionEnvironmentBox(namedEnv)
             temputs.addFunction(
-              FunctionT(
+              ast.FunctionT(
                 header,
                 BlockTE(
                   ReturnTE(
@@ -154,10 +156,10 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
             maybeReturnType2: Option[CoordT]):
           (FunctionHeaderT) = {
             val header =
-              FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+              ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
             temputs.declareFunctionReturnType(header.toSignature, header.returnType)
             temputs.addFunction(
-              FunctionT(
+              ast.FunctionT(
                 header,
                 BlockTE(
                   ReturnTE(
@@ -182,11 +184,11 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
           val fate = FunctionEnvironmentBox(namedEnv)
           temputs.addFunction(
-            FunctionT(
+            ast.FunctionT(
               header,
               BlockTE(
                 ReturnTE(
@@ -215,7 +217,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           maybeReturnType2: Option[CoordT]):
         (FunctionHeaderT) = {
           val header =
-            FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+            ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
           temputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
           val sourceKind = vassertSome(paramCoords.headOption).tyype.kind
@@ -272,7 +274,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
               }
             }
 
-          temputs.addFunction(FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
+          temputs.addFunction(ast.FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
 
           header
         }
@@ -293,7 +295,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
             maybeReturnType2: Option[CoordT]):
           (FunctionHeaderT) = {
             val header =
-              FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
+              ast.FunctionHeaderT(namedEnv.fullName, Vector.empty, paramCoords, maybeReturnType2.get, maybeOriginFunction1)
             temputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
             val borrowCoord = paramCoords.head.tyype.copy(ownership = ConstraintT)
@@ -306,7 +308,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
                 someConstructor,
                 noneConstructor)
 
-            temputs.addFunction(FunctionT(header, BlockTE(ReturnTE(lockExpr))))
+            temputs.addFunction(ast.FunctionT(header, BlockTE(ReturnTE(lockExpr))))
 
             header
           }

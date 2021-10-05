@@ -5,11 +5,13 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, OverrideSP, VirtualitySP}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, names, _}
+import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionT, OverrideT, ParameterT, PrototypeT, SignatureT, VirtualityT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, ImmConcreteDestructorNameT, ImmConcreteDestructorTemplateNameT, ImmDropNameT, ImmDropTemplateNameT, ImmInterfaceDestructorNameT, ImmInterfaceDestructorTemplateNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -47,7 +49,7 @@ class FunctionTemplarMiddleLayer(
     val params2 = assembleFunctionParams(runedEnv, temputs, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = FunctionBannerT(Some(function1), namedEnv.fullName, params2)
+    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName, params2)
     banner
   }
 
@@ -93,7 +95,7 @@ class FunctionTemplarMiddleLayer(
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = FunctionBannerT(Some(function1), namedEnv.fullName, params2)
+    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName, params2)
 
     // Now we want to add its Function2 into the temputs.
     temputs.getDeclaredSignatureOrigin(banner.toSignature) match {
@@ -208,7 +210,7 @@ class FunctionTemplarMiddleLayer(
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, paramTypes2, maybeReturnType)
-    val needleSignature = SignatureT(namedEnv.fullName)
+    val needleSignature = ast.SignatureT(namedEnv.fullName)
 
     temputs.getDeclaredSignatureOrigin(needleSignature) match {
       case None => {
@@ -229,7 +231,7 @@ class FunctionTemplarMiddleLayer(
         }
         temputs.getReturnTypeForSignature(needleSignature) match {
           case Some(returnType2) => {
-            (PrototypeT(namedEnv.fullName, returnType2))
+            (ast.PrototypeT(namedEnv.fullName, returnType2))
           }
           case None => {
             throw CompileErrorExceptionT(RangedInternalErrorT(runedEnv.function.range, "Need return type for " + needleSignature + ", cycle found"))
@@ -275,7 +277,7 @@ class FunctionTemplarMiddleLayer(
             case None => TemplarIgnoredParamNameT(index)
             case Some(x) => NameTranslator.translateVarNameStep(x.name)
           }
-        ParameterT(nameT, maybeVirtuality, coord)
+        ast.ParameterT(nameT, maybeVirtuality, coord)
       })
   }
 
@@ -344,7 +346,7 @@ class FunctionTemplarMiddleLayer(
           ImmDropNameT(kind)
         }
       }
-    FullNameT(name.packageCoord, name.initSteps, newLastStep)
+    names.FullNameT(name.packageCoord, name.initSteps, newLastStep)
   }
 
   private def getMaybeReturnType(

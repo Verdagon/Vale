@@ -1,9 +1,11 @@
 package net.verdagon.vale.hammer
 
-import net.verdagon.vale.hinputs.{Hinputs}
+import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal.{Immutable => _, Mutable => _, Variability => _, Varying => _, _}
 import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vfail, metal => m}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{EdgeT, Program2}
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, ImmConcreteDestructorNameT}
 import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionHeaderT}
 import net.verdagon.vale.templar.types._
 

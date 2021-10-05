@@ -5,12 +5,14 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.{FinalP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer, FunctionTemplarOrdinaryOrTemplatedLayer}
 import net.verdagon.vale._
+import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttribute2, LocationInFunctionEnvironment, OverrideT, ParameterT, Program2, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SoftLoadTE}
 import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT, TupleNameT}
 
 import scala.collection.immutable.List
 
@@ -514,7 +516,7 @@ class StructTemplarCore(
             superParams.map({
               case ParameterT(name, Some(AbstractT), CoordT(ownership, permission, ir)) => {
                 vassert(ir == interfaceTT)
-                ParameterT(name, Some(OverrideT(interfaceTT)), CoordT(ownership, permission, structTT))
+                ast.ParameterT(name, Some(OverrideT(interfaceTT)), CoordT(ownership, permission, structTT))
               }
               case otherParam => otherParam
             })
@@ -523,7 +525,7 @@ class StructTemplarCore(
           val fowarderName =
             anonymousSubstructName.addStep(FunctionNameT(humanName, Vector.empty, params.map(_.tyype)))
           val forwarderHeader =
-            FunctionHeaderT(
+            ast.FunctionHeaderT(
               fowarderName,
               Vector.empty,
               params,
@@ -671,7 +673,7 @@ class StructTemplarCore(
 
     val forwarderParams =
       Vector(
-        ParameterT(
+        ast.ParameterT(
           TemplarTemporaryVarNameT(life + -1),
           None,
           CoordT(
@@ -679,10 +681,10 @@ class StructTemplarCore(
             ReadonlyT,
             structTT))) ++
       prototype.paramTypes.zipWithIndex.map({ case (paramType, index) =>
-        ParameterT(TemplarTemporaryVarNameT(life + index), None, paramType)
+        ast.ParameterT(TemplarTemporaryVarNameT(life + index), None, paramType)
       })
     val forwarderHeader =
-      FunctionHeaderT(
+      ast.FunctionHeaderT(
         structFullName.addStep(FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, Vector.empty, forwarderParams.map(_.tyype))),
         Vector.empty,
         forwarderParams,
@@ -717,7 +719,7 @@ class StructTemplarCore(
 //    }
 
     val forwarderFunction =
-      FunctionT(
+      ast.FunctionT(
         forwarderHeader,
         BlockTE(
           Templar.consecutive(
@@ -734,46 +736,4 @@ class StructTemplarCore(
     structTT
   }
 
-  def makeStructConstructor(
-    temputs: Temputs,
-    maybeConstructorOriginFunctionA: Option[FunctionA],
-    structDef: StructDefinitionT,
-    constructorFullName: FullNameT[IFunctionNameT]):
-  FunctionHeaderT = {
-    vassert(constructorFullName.last.parameters.size == structDef.members.size)
-    val constructorParams =
-      structDef.members.map({
-        case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
-          ParameterT(name, None, reference)
-        }
-      })
-    val constructorReturnOwnership = if (structDef.mutability == MutableT) OwnT else ShareT
-    val constructorReturnPermission = if (structDef.mutability == MutableT) ReadwriteT else ReadonlyT
-    val constructorReturnType = CoordT(constructorReturnOwnership, constructorReturnPermission, structDef.getRef)
-    // not virtual because how could a constructor be virtual
-    val constructor2 =
-      FunctionT(
-        FunctionHeaderT(
-          constructorFullName,
-          Vector.empty,
-          constructorParams,
-          constructorReturnType,
-          maybeConstructorOriginFunctionA),
-        BlockTE(
-            ReturnTE(
-              ConstructTE(
-                structDef.getRef,
-                constructorReturnType,
-                constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })))))
-
-    // we cant make the destructor here because they might have a user defined one somewhere
-    temputs.declareFunctionReturnType(constructor2.header.toSignature, constructor2.header.returnType)
-    temputs.addFunction(constructor2);
-
-    vassert(
-      temputs.getDeclaredSignatureOrigin(
-        constructor2.header.fullName).nonEmpty)
-
-    (constructor2.header)
-  }
 }

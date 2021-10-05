@@ -4,6 +4,7 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.names.{FullNameT, INameT, TupleNameT}
 import net.verdagon.vale.templar.templata.FunctionHeaderT
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.vfail

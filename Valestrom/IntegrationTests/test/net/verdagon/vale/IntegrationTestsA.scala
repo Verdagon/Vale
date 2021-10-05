@@ -3,7 +3,7 @@ package net.verdagon.vale
 import net.verdagon.vale.astronomer.{ICompileErrorA, ProgramA}
 
 import java.io.FileNotFoundException
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.vivem.{ConstraintViolatedException, Heap, IntV, PrimitiveKindV, ReferenceV, StructInstanceV, Vivem}
 import net.verdagon.von.{IVonData, VonBool, VonFloat, VonInt, VonObject}
@@ -14,6 +14,8 @@ import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal.{FullNameH, IntH, ProgramH, PrototypeH, ReadonlyH, ReadwriteH, YonderH}
 import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
+import net.verdagon.vale.templar.ast.{SignatureT, StructToInterfaceUpcastTE}
+import net.verdagon.vale.templar.names.{FullNameT, FunctionNameT}
 import net.verdagon.vale.templar.templata.SignatureT
 import net.verdagon.vale.templar.types.{CoordT, IntT, ReadonlyT, ShareT, StrT}
 
@@ -523,9 +525,9 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
     vassertSome(hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, FunctionNameT("helperFunc", Vector.empty, Vector(CoordT(ShareT, ReadonlyT, IntT.i32)))))))
 
-    vassert(None == hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, FunctionNameT("bork", Vector.empty, Vector(CoordT(ShareT, ReadonlyT, StrT())))))))
+    vassert(None == hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, FunctionNameT("bork", Vector.empty, Vector(CoordT(ShareT, ReadonlyT, StrT())))))))
 
-    vassert(None == hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, FunctionNameT("helperFunc", Vector.empty, Vector(CoordT(ShareT, ReadonlyT, StrT())))))))
+    vassert(None == hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector.empty, FunctionNameT("helperFunc", Vector.empty, Vector(CoordT(ShareT, ReadonlyT, StrT())))))))
   }
 
 //  test("Test overloading between borrow and own") {
