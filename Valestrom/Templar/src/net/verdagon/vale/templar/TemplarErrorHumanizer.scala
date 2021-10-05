@@ -7,9 +7,11 @@ import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, SenderRuneS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
-import net.verdagon.vale.templar.TemplataNamer.getFullNameIdentifierName
+import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
+import net.verdagon.vale.templar.ast.{AbstractT, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
-import net.verdagon.vale.templar.templata.{AbstractT, CoordTemplata, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IPotentialBanner, IPotentialCallee, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OverrideT, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, TemplataNamer}
+import net.verdagon.vale.templar.templata.{AbstractT, CoordTemplata, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OverrideT, OwnershipTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 

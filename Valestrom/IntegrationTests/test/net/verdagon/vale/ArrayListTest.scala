@@ -1,7 +1,8 @@
 package net.verdagon.vale
 
-import net.verdagon.vale.templar.{CodeVarNameT, FullNameT}
+import net.verdagon.vale.templar.CodeVarNameT
 import net.verdagon.vale.templar.env.AddressibleLocalVariableT
+import net.verdagon.vale.templar.names.{CodeVarNameT, FullNameT}
 import net.verdagon.vale.templar.types.VaryingT
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}

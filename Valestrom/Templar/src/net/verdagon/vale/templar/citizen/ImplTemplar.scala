@@ -5,6 +5,7 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env._
+import net.verdagon.vale.templar.names.NameTranslator
 import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List

@@ -3,6 +3,8 @@ package net.verdagon.vale.templar
 //import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
 import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, INameS}
+import net.verdagon.vale.templar.ast.{FunctionT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
+import net.verdagon.vale.templar.names.{FunctionNameT, ImmInterfaceDestructorNameT}
 import net.verdagon.vale.templar.templata.{FunctionBannerT, OverrideT, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
@@ -164,7 +166,7 @@ object EdgeTemplar {
     val interfaceEdgeBlueprints =
       abstractFunctionHeadersByInterface
         .map({ case (interfaceTT, functionHeaders2) =>
-          InterfaceEdgeBlueprint(
+          ast.InterfaceEdgeBlueprint(
             interfaceTT,
             // This is where they're given order and get an implied index
             functionHeaders2.map(_.toBanner).toVector)

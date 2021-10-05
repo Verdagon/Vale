@@ -5,7 +5,8 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, PrototypeT, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import net.verdagon.vale.templar.expression.CallTemplar

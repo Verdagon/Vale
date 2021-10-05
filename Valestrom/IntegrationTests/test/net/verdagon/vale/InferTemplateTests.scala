@@ -1,7 +1,7 @@
 package net.verdagon.vale
 
-import net.verdagon.vale.templar.{CitizenNameT, CodeVarNameT, FullNameT, simpleName}
-import net.verdagon.vale.templar.templata.{CoordTemplata, ParameterT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT}
+import net.verdagon.vale.templar.templata.{CoordTemplata, ParameterT, simpleName}
 import net.verdagon.vale.templar.types.{ConstraintT, CoordT, OwnT, ReadonlyT, ReadwriteT, StructTT}
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}

@@ -2,6 +2,7 @@ package net.verdagon.vale
 
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.IfTE
 import net.verdagon.vale.templar.types._
 import net.verdagon.von.{VonInt, VonStr}
 import org.scalatest.{FunSuite, Matchers}

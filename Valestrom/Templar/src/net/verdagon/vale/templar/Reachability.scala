@@ -1,5 +1,7 @@
 package net.verdagon.vale.templar
 
+import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, InterfaceEdgeBlueprint, LockWeakTE, Program2, SignatureT, StaticArrayFromCallableTE}
+import net.verdagon.vale.templar.names.FunctionNameT
 import net.verdagon.vale.templar.templata.{CoordTemplata, SignatureT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Collector, PackageCoordinate, vassertSome, vcurious, vpass}

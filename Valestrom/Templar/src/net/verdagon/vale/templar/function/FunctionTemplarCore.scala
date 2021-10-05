@@ -5,10 +5,12 @@ import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata.{IFunctionAttribute2, _}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
+import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, Extern2, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, FunctionT, IFunctionAttribute2, InterfaceFunctionCallTE, LocationInFunctionEnvironment, OverrideT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.names.{CodeVarNameT, ExternFunctionNameT, FullNameT, FunctionNameT, IFunctionNameT}
 import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, vassert, vassertOne, vassertSome, vcheck, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.{List, Set}
@@ -275,7 +277,7 @@ class FunctionTemplarCore(
       attributesT: Vector[IFunctionAttribute2],
       paramsT: Vector[ParameterT],
       returnCoord: CoordT) = {
-    val header = FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
+    val header = ast.FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
     temputs.declareFunctionReturnType(header.toSignature, returnCoord)
     header
   }
@@ -364,7 +366,7 @@ class FunctionTemplarCore(
 //      }
       case FunctionNameT(humanName, Vector(), params) => {
         val header =
-          FunctionHeaderT(
+          ast.FunctionHeaderT(
             fullName,
             Vector(Extern2(range.file.packageCoordinate)) ++ attributes,
             params2,
@@ -378,7 +380,7 @@ class FunctionTemplarCore(
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })
         val function2 =
-          FunctionT(
+          ast.FunctionT(
             header,
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
@@ -408,14 +410,14 @@ class FunctionTemplarCore(
   (FunctionHeaderT) = {
     vassert(params2.exists(_.virtuality == Some(AbstractT)))
     val header =
-      FunctionHeaderT(
+      ast.FunctionHeaderT(
         env.fullName,
         Vector.empty,
         params2,
         returnReferenceType2,
         origin)
     val function2 =
-      FunctionT(
+      ast.FunctionT(
         header,
         BlockTE(
             ReturnTE(
@@ -446,11 +448,11 @@ class FunctionTemplarCore(
     val structType2 = CoordT(ownership, permission, structTT)
 
     val destructor2 =
-      FunctionT(
-        FunctionHeaderT(
+      ast.FunctionT(
+        ast.FunctionHeaderT(
           env.fullName,
           Vector.empty,
-          Vector(ParameterT(CodeVarNameT("this"), Some(OverrideT(interfaceTT)), structType2)),
+          Vector(ast.ParameterT(CodeVarNameT("this"), Some(OverrideT(interfaceTT)), structType2)),
           CoordT(ShareT, ReadonlyT, VoidT()),
           maybeOriginFunction1),
         BlockTE(

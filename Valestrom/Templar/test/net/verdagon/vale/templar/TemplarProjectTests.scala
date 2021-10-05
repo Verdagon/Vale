@@ -1,5 +1,7 @@
 package net.verdagon.vale.templar
 
+import net.verdagon.vale.templar.ast.SignatureT
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT, LambdaCitizenNameT}
 import net.verdagon.vale.templar.templata.{CoordTemplata, SignatureT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Builtins, FileCoordinateMap, PackageCoordinate, Tests, vassert, vassertSome, vimpl}

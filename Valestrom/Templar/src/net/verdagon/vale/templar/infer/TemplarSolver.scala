@@ -6,6 +6,7 @@ import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RuneNameS, Sender
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.FunctionNameT
+import net.verdagon.vale.templar.names.{FunctionNameT, INameT}
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types._
 
@@ -21,6 +22,62 @@ case class CallResultWasntExpectedType(expected: ITemplata, actual: ITemplata) e
 }
 case class OneOfFailed(rule: OneOfSR) extends ITemplarSolverError
 case class KindDoesntImplementInterface(sub: CitizenRefT, suuper: InterfaceTT) extends ITemplarSolverError
+
+trait IInfererDelegate[Env, State] {
+  def lookupMemberTypes(
+    state: State,
+    kind: KindT,
+    // This is here so that the predictor can just give us however many things
+    // we expect.
+    expectedNumMembers: Int
+  ): Option[Vector[CoordT]]
+
+  def getMutability(state: State, kind: KindT): MutabilityT
+
+  def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata
+
+  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: INameS): ITemplata
+
+  def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata
+
+  def evaluateStructTemplata(
+    state: State,
+    callRange: RangeS,
+    templata: StructTemplata,
+    templateArgs: Vector[ITemplata]):
+  (KindT)
+
+  def evaluateInterfaceTemplata(
+    state: State,
+    callRange: RangeS,
+    templata: InterfaceTemplata,
+    templateArgs: Vector[ITemplata]):
+  (KindT)
+
+  //  def getPackKind(env: Env, state: State, members: Vector[Coord]): (PackT2, Mutability)
+
+  def getStaticSizedArrayKind(env: Env, state: State, mutability: MutabilityT, variability: VariabilityT, size: Int, element: CoordT): (StaticSizedArrayTT)
+
+  def getRuntimeSizedArrayKind(env: Env, state: State, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT
+
+  def getTupleKind(env: Env, state: State, elements: Vector[CoordT]): TupleTT
+
+  def getAncestorInterfaceDistance(temputs: State, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): (Option[Int])
+
+  def getAncestorInterfaces(temputs: State, descendantCitizenRef: CitizenRefT):
+  (Set[InterfaceTT])
+
+  def getInterfaceTemplataType(it: InterfaceTemplata): ITemplataType
+  def getStructTemplataType(st: StructTemplata): ITemplataType
+
+  def getMemberCoords(state: State, structTT: StructTT): Vector[CoordT]
+
+  def structIsClosure(state: State, structTT: StructTT): Boolean
+
+  def resolveExactSignature(env: Env, state: State, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT
+
+  def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata): Boolean
+}
 
 class TemplarSolver[Env, State](
   delegate: IInfererDelegate[Env, State]

@@ -1,6 +1,7 @@
 package net.verdagon.vale
 
-import net.verdagon.vale.templar.{StaticArrayFromValuesTE, PackTE, TupleTE}
+import net.verdagon.vale.templar.StaticArrayFromValuesTE
+import net.verdagon.vale.templar.ast.TupleTE
 import net.verdagon.vale.templar.types.{IntT, PackTT}
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}

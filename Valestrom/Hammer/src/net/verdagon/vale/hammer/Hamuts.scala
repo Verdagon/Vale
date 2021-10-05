@@ -1,7 +1,7 @@
 package net.verdagon.vale.hammer
 
 import net.verdagon.vale.metal._
-import net.verdagon.vale.templar.{FullNameT, INameT}
+import net.verdagon.vale.templar.INameT
 import net.verdagon.vale.templar.templata.PrototypeT
 import net.verdagon.vale.templar.types.{InterfaceTT, PackTT, StructTT}
 import net.verdagon.vale.{PackageCoordinate, vassert, vfail, vimpl}

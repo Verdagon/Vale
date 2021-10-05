@@ -1,5 +1,7 @@
 package net.verdagon.vale.templar
 
+import net.verdagon.vale.templar.ast.AsSubtypeTE
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT}
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types.{ConstraintT, CoordT, InterfaceTT, OwnT, ReadonlyT, ReadwriteT, StructTT}
 import net.verdagon.vale.{Collector, vassert, vimpl}

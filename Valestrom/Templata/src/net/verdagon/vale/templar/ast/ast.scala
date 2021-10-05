@@ -1,10 +1,135 @@
-package net.verdagon.vale.templar.templata
+package net.verdagon.vale.templar.ast
 
-
-import net.verdagon.vale.astronomer._
-import net.verdagon.vale.templar.{FullNameT, FunctionNameT, IFunctionNameT, IVarNameT}
+import net.verdagon.vale._
+import net.verdagon.vale.astronomer.FunctionA
+import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.names.{FullNameT, IFunctionNameT, IVarNameT, TupleNameT}
+import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{FileCoordinate, PackageCoordinate, vassert, vassertSome, vfail, vimpl}
+
+import scala.collection.immutable._
+
+// We won't always have a return type for a banner... it might have not specified its return
+// type, so we're currently evaluating the entire body for it right now.
+// If we ever find ourselves wanting the return type for a banner, we need to:
+// - Check if it's in the returnTypesByBanner map. If so, good.
+// - If not, then check if the banner is in declaredBanners. If so, then we're currently in
+//   the process of evaluating the entire body. In this case, throw an error because we're
+//   about to infinite loop. Hopefully this is a user error, they need to specify a return
+//   type to avoid a cyclical definition.
+// - If not in declared banners, then tell FunctionTemplar to start evaluating it.
+
+case class ImplT(
+  struct: StructTT,
+  interface: InterfaceTT
+)  {
+  override def hashCode(): Int = vcurious()
+
+}
+
+case class KindExportT(
+  range: RangeS,
+  tyype: KindT,
+  packageCoordinate: PackageCoordinate,
+  exportedName: String
+)  {
+  override def hashCode(): Int = vcurious()
+
+}
+
+case class FunctionExportT(
+  range: RangeS,
+  prototype: PrototypeT,
+  packageCoordinate: PackageCoordinate,
+  exportedName: String
+)  {
+  override def hashCode(): Int = vcurious()
+
+}
+
+case class KindExternT(
+  tyype: KindT,
+  packageCoordinate: PackageCoordinate,
+  externName: String
+)  {
+  override def hashCode(): Int = vcurious()
+
+}
+
+case class FunctionExternT(
+  range: RangeS,
+  prototype: PrototypeT,
+  packageCoordinate: PackageCoordinate,
+  externName: String
+)  {
+  override def hashCode(): Int = vcurious()
+
+}
+
+case class InterfaceEdgeBlueprint(
+  interface: InterfaceTT,
+  superFamilyRootBanners: Vector[FunctionBannerT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+
+case class EdgeT(
+  struct: StructTT,
+  interface: InterfaceTT,
+  methods: Vector[PrototypeT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+
+object Program2 {
+  val emptyTupleStructRef = StructTT(FullNameT(PackageCoordinate.BUILTIN, Vector.empty, TupleNameT(Vector.empty)))
+  val emptyTupleType: PackTT = PackTT(Vector.empty, Program2.emptyTupleStructRef)
+  val emptyTupleReference: CoordT = CoordT(ShareT, ReadonlyT, emptyTupleType)
+  val emptyPackExpression: PackTE = PackTE(Vector.empty, CoordT(ShareT, ReadonlyT, Program2.emptyTupleType), Program2.emptyTupleType)
+
+  val intType = CoordT(ShareT, ReadonlyT, IntT.i32)
+  val boolType = CoordT(ShareT, ReadonlyT, BoolT())
+}
+
+//trait Program2 {
+//  def getAllInterfaces: Set[InterfaceDefinition2]
+//  def getAllStructs: Set[StructDefinition2]
+//  def getAllImpls: Vector[Impl2]
+//  def getAllFunctions: Set[Function2]
+//  def getAllCitizens: Set[CitizenDefinition2] = getAllInterfaces ++ getAllStructs
+//  def getAllExterns: Set[FunctionHeader2]
+//  def emptyPackStructRef: structTT
+//
+//  def lookupStruct(structTT: structTT): StructDefinition2;
+//  def lookupInterface(interfaceTT: InterfaceRef2): InterfaceDefinition2;
+//  def lookupCitizen(citizenRef: CitizenRef2): CitizenDefinition2;
+//  def lookupFunction(signature2: Signature2): Option[Function2];
+//
+//  def getAllNonExternFunctions: Set[Function2] = {
+//    getAllFunctions.filter(!_.header.isExtern)
+//  }
+//  def getAllUserFunctions: Set[Function2] = {
+//    getAllFunctions.filter(_.header.isUserFunction)
+//  }
+//}
+
+case class FunctionT(
+  header: FunctionHeaderT,
+//  // Used for testing
+//  variables: Vector[ILocalVariableT],
+  body: ReferenceExpressionTE)  {
+  override def hashCode(): Int = vcurious()
+
+  // We always end a function with a return, whose result is a Never.
+  vassert(body.resultRegister.kind == NeverT())
+
+
+}
+
+// A unique location in a function. Environment is in the name so it spells LIFE!
+case class LocationInFunctionEnvironment(path: Vector[Int]) {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+
+  def +(subLocation: Int): LocationInFunctionEnvironment = {
+    LocationInFunctionEnvironment(path :+ subLocation)
+  }
+
+  override def toString: String = path.mkString(".")
+}
 
 trait VirtualityT
 case object AbstractT extends VirtualityT {
@@ -16,9 +141,9 @@ case class OverrideT(interface: InterfaceTT) extends VirtualityT {
 }
 
 case class ParameterT(
-    name: IVarNameT,
-    virtuality: Option[VirtualityT],
-    tyype: CoordT)  {
+  name: IVarNameT,
+  virtuality: Option[VirtualityT],
+  tyype: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
 }
@@ -69,9 +194,9 @@ case class SignatureT(fullName: FullNameT[IFunctionNameT]) {
 }
 
 case class FunctionBannerT(
-    originFunction: Option[FunctionA],
-    fullName: FullNameT[IFunctionNameT],
-    params: Vector[ParameterT])   {
+  originFunction: Option[FunctionA],
+  fullName: FullNameT[IFunctionNameT],
+  params: Vector[ParameterT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   vassert(fullName.last.parameters == params.map(_.tyype))
@@ -130,11 +255,11 @@ case object PureT extends IFunctionAttribute2 with ICitizenAttribute2
 case object UserFunctionT extends IFunctionAttribute2 // Whether it was written by a human. Mostly for tests right now.
 
 case class FunctionHeaderT(
-    fullName: FullNameT[IFunctionNameT],
-    attributes: Vector[IFunctionAttribute2],
-    params: Vector[ParameterT],
-    returnType: CoordT,
-    maybeOriginFunction: Option[FunctionA])  {
+  fullName: FullNameT[IFunctionNameT],
+  attributes: Vector[IFunctionAttribute2],
+  params: Vector[ParameterT],
+  returnType: CoordT,
+  maybeOriginFunction: Option[FunctionA])  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Make sure there's no duplicate names
@@ -143,7 +268,7 @@ case class FunctionHeaderT(
   vassert(fullName.last.parameters == paramTypes)
 
   def isExtern = attributes.exists({ case Extern2(_) => true case _ => false })
-//  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
+  //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
   def isUserFunction = attributes.contains(UserFunctionT)
   def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface
   def getOverride: Option[(StructTT, InterfaceTT)] = toBanner.getOverride
@@ -168,8 +293,8 @@ case class FunctionHeaderT(
 }
 
 case class PrototypeT(
-    fullName: FullNameT[IFunctionNameT],
-    returnType: CoordT)  {
+  fullName: FullNameT[IFunctionNameT],
+  returnType: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordT] = fullName.last.parameters
   def toSignature: SignatureT = SignatureT(fullName)

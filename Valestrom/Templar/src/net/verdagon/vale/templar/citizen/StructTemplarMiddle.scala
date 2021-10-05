@@ -5,8 +5,10 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{LocationInFunctionEnvironment, PrototypeT}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment, InterfaceEnvEntry, PackageEnvironment, TemplataEnvEntry, TemplatasStore}
 import net.verdagon.vale.templar.function.{FunctionTemplar, FunctionTemplarCore, VirtualTemplar}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, FullNameT, ICitizenNameT, INameT, RuneNameT}
 import net.verdagon.vale.{IProfiler, RangeS, vfail, vimpl}
 
 import scala.collection.immutable.List
@@ -21,15 +23,6 @@ class StructTemplarMiddle(
 
   def addBuiltInStructs(env: PackageEnvironment[INameT], temputs: Temputs): Unit = {
     core.addBuiltInStructs(env, temputs)
-  }
-
-  def makeStructConstructor(
-    temputs: Temputs,
-    maybeConstructorOriginFunctionA: Option[FunctionA],
-    structDef: StructDefinitionT,
-    constructorFullName: FullNameT[IFunctionNameT]):
-  FunctionHeaderT = {
-    core.makeStructConstructor(temputs, maybeConstructorOriginFunctionA, structDef, constructorFullName)
   }
 
   def getStructRef(

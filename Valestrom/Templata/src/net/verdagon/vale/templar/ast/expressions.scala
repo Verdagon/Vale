@@ -1,10 +1,11 @@
-package net.verdagon.vale.templar
+package net.verdagon.vale.templar.ast
 
 //import net.verdagon.vale.astronomer.IVarNameA
+import net.verdagon.vale._
 import net.verdagon.vale.templar.env.{ILocalVariableT, ReferenceLocalVariableT}
-import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
+import net.verdagon.vale.templar.ExternFunctionNameT
+import net.verdagon.vale.templar.names.{ExternFunctionNameT, FullNameT, IVarNameT}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {

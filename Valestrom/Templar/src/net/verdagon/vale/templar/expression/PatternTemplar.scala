@@ -10,6 +10,8 @@ import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE, TemplarReinterpretTE}
+import net.verdagon.vale.templar.names.RuneNameT
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vfail}
 
 import scala.collection.immutable.List

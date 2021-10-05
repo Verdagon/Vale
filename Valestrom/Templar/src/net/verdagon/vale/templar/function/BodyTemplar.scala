@@ -10,7 +10,9 @@ import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
 import net.verdagon.vale.templar.env._
+import net.verdagon.vale.templar.names.NameTranslator
 
 import scala.collection.immutable.{List, Set}
 

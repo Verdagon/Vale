@@ -5,7 +5,9 @@ import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolve
 import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.RuleTypeSolveFailure
+import net.verdagon.vale.templar.ast.{AbstractT, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, OverrideT, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidExternCalleeCandidate}
 import net.verdagon.vale.templar.infer.ITemplarSolverError
+import net.verdagon.vale.templar.names.TemplataNamer
 import net.verdagon.vale.{Err, Ok, RangeS, Result, vassertOne, vpass}
 //import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import net.verdagon.vale.scout.rules.{EqualsSR, TemplexSR, TypedSR}
@@ -306,7 +308,7 @@ class OverloadTemplar(
                 case (EvaluateFunctionSuccess(banner)) => {
                   paramsMatch(temputs, paramFilters, banner.params, exact) match {
                     case Some(reason) => Err(reason)
-                    case None => Ok(ValidCalleeCandidate(banner, ft))
+                    case None => Ok(ast.ValidCalleeCandidate(banner, ft))
                   }
                 }
               }
@@ -315,7 +317,7 @@ class OverloadTemplar(
         } else {
           val banner = functionTemplar.evaluateOrdinaryFunctionFromNonCallForBanner(temputs, callRange, ft)
           paramsMatch(temputs, paramFilters, banner.params, exact) match {
-            case (None) => Ok(ValidCalleeCandidate(banner, ft))
+            case (None) => Ok(ast.ValidCalleeCandidate(banner, ft))
             case (Some(reason)) => Err(reason)
           }
         }

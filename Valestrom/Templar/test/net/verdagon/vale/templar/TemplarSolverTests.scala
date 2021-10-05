@@ -5,9 +5,11 @@ import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
 import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, RuleError}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
+import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError

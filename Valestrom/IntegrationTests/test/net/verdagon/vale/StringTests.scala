@@ -1,6 +1,7 @@
 package net.verdagon.vale
 
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.ConstantStrTE
 import net.verdagon.von.{VonInt, VonStr}
 import org.scalatest.{FunSuite, Matchers}
 

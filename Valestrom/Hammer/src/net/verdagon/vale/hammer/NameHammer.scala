@@ -5,6 +5,7 @@ import net.verdagon.vale.metal._
 import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeRuneS, ExplicitTemplateArgRuneS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.{IEnvironment, PackageEnvironment}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ConstructorTemplateNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, ImmConcreteDestructorTemplateNameT, ImmDropNameT, ImmDropTemplateNameT, ImmInterfaceDestructorNameT, ImmInterfaceDestructorTemplateNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, vassert, vfail, vimpl, vwat}

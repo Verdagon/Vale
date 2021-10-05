@@ -5,12 +5,13 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.{RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, ScoutExpectedFunctionSuccess}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
+import net.verdagon.vale.templar.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, NarrowPermissionTE, Program2, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, TemplarReinterpretTE, VoidLiteralTE, WeakAliasTE, WhileTE}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.function.FunctionTemplar.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
+import net.verdagon.vale.templar.names.{ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, TemplarFunctionResultVarNameT, TemplarTemporaryVarNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 
@@ -198,7 +199,7 @@ class ExpressionTemplar(
 
         val index = closuredVarsStructDef.members.indexWhere(_.name == id.last)
         val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.ownership
-        val lookup = AddressMemberLookupTE(range, borrowExpr, id, tyype, variability)
+        val lookup = ast.AddressMemberLookupTE(range, borrowExpr, id, tyype, variability)
         Some(lookup)
       }
       case Some(ReferenceClosureVariableT(varName, closuredVarsStructRef, variability, tyype)) => {
@@ -221,7 +222,7 @@ class ExpressionTemplar(
 
 //        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.ownership
 
-        val lookup = ReferenceMemberLookupTE(range, borrowExpr, varName, tyype, tyype.permission, variability)
+        val lookup = ast.ReferenceMemberLookupTE(range, borrowExpr, varName, tyype, tyype.permission, variability)
         Some(lookup)
       }
       case None => None
@@ -629,7 +630,7 @@ class ExpressionTemplar(
                         containerExpr2.resultRegister.reference.permission,
                         memberType.reference.permission)
 
-                    ReferenceMemberLookupTE(range, containerExpr2, memberName, memberType.reference, targetPermission, FinalT)
+                    ast.ReferenceMemberLookupTE(range, containerExpr2, memberName, memberType.reference, targetPermission, FinalT)
                   }
                   case _ => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Struct random access not implemented yet!"))
                 }
@@ -669,7 +670,7 @@ class ExpressionTemplar(
                     structMember.variability,
                     memberType.permission)
 
-                ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
+                ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
               }
               case TupleTT(_, structTT) => {
                 temputs.lookupStruct(structTT) match {
@@ -687,7 +688,7 @@ class ExpressionTemplar(
                         structMember.variability,
                         memberType.permission)
 
-                    ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
+                    ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
                   }
                 }
               }
@@ -935,7 +936,7 @@ class ExpressionTemplar(
             }
 
           val ifExpr2 =
-            IfTE(
+            ast.IfTE(
               conditionExpr,
               thenBody,
               BlockTE(ConstantBoolTE(false)))

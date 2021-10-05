@@ -1,6 +1,6 @@
-package net.verdagon.vale.templar
+package net.verdagon.vale.templar.names
 
-import net.verdagon.vale.scout.ScoutErrorHumanizer
+import net.verdagon.vale.templar.ast.{AbstractT, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.vimpl
@@ -14,16 +14,16 @@ object TemplataNamer {
     val CoordT(ownership, permission, kind) = reference;
     val ownershipString =
       ownership match {
-        case ShareT => ""//"*"
+        case ShareT => "" //"*"
         case ConstraintT => "&"
         case WeakT => "&&"
-        case OwnT => ""//"^"
+        case OwnT => "" //"^"
       }
     val permissionString =
       permission match {
         case ReadonlyT => "#"
         case ReadwriteT => "!"
-//        case ExclusiveReadwrite => "!!"
+        //        case ExclusiveReadwrite => "!!"
       }
     ownershipString + permissionString + getKindIdentifierName(kind)
   }
@@ -48,14 +48,14 @@ object TemplataNamer {
       case ClosureParamNameT() => "ᛋ"
       case MagicParamNameT(magicParamNumber) => "ᛞ" + magicParamNumber
       case CodeVarNameT(name) => "ᛗ" + name
-//      case CodeRune2(name) => "ᛝ" + name
-//      case ImplicitRune2(name) => "ᚻ" + name
-//      case MemberRune2(memberIndex) => "ᛒ" + memberIndex
-//      case MagicImplicitRune2(magicParamIndex) => "ᛥ" + magicParamIndex
-//      case ReturnRune2() => "ᚱ"
+      //      case CodeRune2(name) => "ᛝ" + name
+      //      case ImplicitRune2(name) => "ᚻ" + name
+      //      case MemberRune2(memberIndex) => "ᛒ" + memberIndex
+      //      case MagicImplicitRune2(magicParamIndex) => "ᛥ" + magicParamIndex
+      //      case ReturnRune2() => "ᚱ"
       case FunctionNameT(humanName, templateArgs, parameters) => "ᚫ" + humanName + stringifyTemplateArgs(templateArgs) + stringifyParametersArgs(parameters)
-//      case LambdaName2(codeLocation, templateArgs, parameters) => "ᛈ" + codeLocation + stringifyTemplateArgs(templateArgs) + stringifyParametersArgs(parameters)
-//      case CitizenName2(humanName, templateArgs) => "ᛟ" + humanName + stringifyTemplateArgs(templateArgs)
+      //      case LambdaName2(codeLocation, templateArgs, parameters) => "ᛈ" + codeLocation + stringifyTemplateArgs(templateArgs) + stringifyParametersArgs(parameters)
+      //      case CitizenName2(humanName, templateArgs) => "ᛟ" + humanName + stringifyTemplateArgs(templateArgs)
       case CitizenNameT(humanName, templateArgs) => "ᛘ" + humanName + stringifyTemplateArgs(templateArgs)
       case LambdaCitizenNameT(codeLocation) => "ᛊ" + codeLocation
       case AnonymousSubstructNameT(thing) =>
@@ -69,9 +69,9 @@ object TemplataNamer {
   def getKindIdentifierName(tyype: KindT): String = {
     tyype match {
       case IntT(bits) => "i" + bits //"𝒾"
-      case FloatT() => "float"//"𝒻"
-      case BoolT() => "bool"// "𝒷"
-      case StrT() => "str"// "𝓈"
+      case FloatT() => "float" //"𝒻"
+      case BoolT() => "bool" // "𝒷"
+      case StrT() => "str" // "𝓈"
       case VoidT() => "void" // "∅"
       case TupleTT(_, _) => "tup"
       case NeverT() => "never"
@@ -95,15 +95,15 @@ object TemplataNamer {
       case MutabilityTemplata(MutableT) => "ㄊmut"
       case MutabilityTemplata(ImmutableT) => "ㄊimm"
       case IntegerTemplata(num) => "ㄊ" + num
-//      case StructTemplateTemplata(structA) => "ㄊ𝕊" + structA.struct1Id
-//      case InterfaceTemplateTemplata(interfaceA) => "ㄊ𝕋" + interfaceA.interface1Id
+      //      case StructTemplateTemplata(structA) => "ㄊ𝕊" + structA.struct1Id
+      //      case InterfaceTemplateTemplata(interfaceA) => "ㄊ𝕋" + interfaceA.interface1Id
     }
   }
 
   def getIdentifierName(prototype: PrototypeT): String = {
     val PrototypeT(fullName, returnType2) = prototype;
     "𝔽" + getFullNameIdentifierName(fullName) +
-        getReferenceIdentifierName(returnType2)
+      getReferenceIdentifierName(returnType2)
   }
 
   def getIdentifierName(paramFilter: ParamFilter): String = {

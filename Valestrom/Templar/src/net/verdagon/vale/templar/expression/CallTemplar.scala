@@ -2,11 +2,12 @@ package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS}
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
+import net.verdagon.vale.templar.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
 import net.verdagon.vale.{RangeS, vassert, vfail}
 
 import scala.collection.immutable.List
@@ -221,7 +222,7 @@ class CallTemplar(
 
     checkTypes(temputs, prototype2.paramTypes, argTypes, exact = true)
 
-    val resultingExpr2 = FunctionCallTE(prototype2, actualArgsExprs2);
+    val resultingExpr2 = ast.FunctionCallTE(prototype2, actualArgsExprs2);
 
     (resultingExpr2)
   }

@@ -6,7 +6,9 @@ import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, FunctionEnviron
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.templata.Conversions
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{ast, _}
+import net.verdagon.vale.templar.ast.{AddressExpressionTE, AddressMemberLookupTE, DeferTE, ExpressionT, LetAndLendTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE, UnletTE}
+import net.verdagon.vale.templar.names.{NameTranslator, TemplarTemporaryVarNameT}
 import net.verdagon.vale.{RangeS, vassert, vfail, vimpl}
 
 import scala.collection.immutable.List
@@ -44,7 +46,7 @@ class LocalHelper(
 
     // No Discard here because the destructor already returns void.
 
-    (DeferTE(letExpr2, destructExpr2))
+    (ast.DeferTE(letExpr2, destructExpr2))
   }
 
   def unletLocal(fate: FunctionEnvironmentBox, localVar: ILocalVariableT):

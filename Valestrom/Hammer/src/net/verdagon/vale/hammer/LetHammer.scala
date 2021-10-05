@@ -6,7 +6,9 @@ import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl, metal => m}
 import net.verdagon.vale.metal.{Variability => _, _}
 import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.ast.{DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, FunctionHeaderT, LetAndLendTE, LetNormalTE, ReferenceExpressionTE, UnletTE}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
+import net.verdagon.vale.templar.names.{FullNameT, IVarNameT}
 import net.verdagon.vale.templar.templata.FunctionHeaderT
 import net.verdagon.vale.templar.types._
 
