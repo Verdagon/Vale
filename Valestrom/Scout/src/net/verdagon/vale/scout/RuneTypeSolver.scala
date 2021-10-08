@@ -3,8 +3,6 @@ package net.verdagon.vale.scout
 import net.verdagon.vale._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{IIncompleteOrFailedSolve, ISolverStateForRule, IncompleteSolve, Solver}
-import net.verdagon.vale.templar.templata.CoordListTemplata
-import net.verdagon.vale.templar.types._
 
 case class RuneTypeSolveError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplataType, Unit]) {
   vpass()

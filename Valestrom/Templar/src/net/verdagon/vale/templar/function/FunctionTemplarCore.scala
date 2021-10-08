@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.function
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.templar.templata.{IFunctionAttribute2, _}
+import net.verdagon.vale.templar.templata.{_}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, Extern2, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, FunctionT, IFunctionAttribute2, InterfaceFunctionCallTE, LocationInFunctionEnvironment, OverrideT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
@@ -20,11 +20,11 @@ case class ResultTypeMismatchError(expectedType: CoordT, actualType: CoordT) { v
 class FunctionTemplarCore(
     opts: TemplarOptions,
   profiler: IProfiler,
-  newTemplataStore: () => TemplatasStore,
+
   templataTemplar: TemplataTemplar,
     convertHelper: ConvertHelper,
     delegate: IFunctionTemplarDelegate) {
-  val bodyTemplar = new BodyTemplar(opts, profiler, newTemplataStore, templataTemplar, convertHelper, new IBodyTemplarDelegate {
+  val bodyTemplar = new BodyTemplar(opts, profiler, templataTemplar, convertHelper, new IBodyTemplarDelegate {
     override def evaluateBlockStatements(
       temputs: Temputs,
       startingFate: FunctionEnvironment,
@@ -66,7 +66,7 @@ class FunctionTemplarCore(
       params2.nonEmpty &&
       params2.head.tyype.ownership == OwnT &&
       (startingFullEnv.fullName.last match {
-        case FunctionNameT(humanName, _, _) if humanName == CallTemplar.MUT_DESTRUCTOR_NAME => true
+        case FunctionNameT(humanName, _, _) if humanName == CallTemplar.DROP_FUNCTION_NAME => true
         case _ => false
       })
 
@@ -148,10 +148,10 @@ class FunctionTemplarCore(
               (function2.header)
             }
             case None => {
-              val generator = vassertSome(opts.functionGeneratorByName.get(generatorId))
+              val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
               val header =
-                delegate.generateFunction(
-                  this, generator, fullEnv.snapshot, temputs, life, callRange, Some(startingFullEnv.function), params2, maybeRetCoord)
+                generator.generateFunctionBody(
+                  fullEnv.snapshot, temputs, life, callRange, Some(startingFullEnv.function), params2, maybeRetCoord)
               if (header.toSignature != signature2) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
                 "Expected:  " + signature2 + "\n" +

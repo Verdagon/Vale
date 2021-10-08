@@ -8,7 +8,7 @@ import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
 import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
 import net.verdagon.vale.templar.infer.ITemplarSolverError
 import net.verdagon.vale.templar.names.{FullNameT, INameT, IVarNameT}
-import net.verdagon.vale.templar.templata.{ITemplata, PrototypeT, SignatureT}
+import net.verdagon.vale.templar.templata.ITemplata
 import net.verdagon.vale.templar.types.{CitizenRefT, CoordT, InterfaceTT, KindT, StructTT}
 import net.verdagon.vale.{PackageCoordinate, RangeS, vcurious, vimpl, vpass}
 

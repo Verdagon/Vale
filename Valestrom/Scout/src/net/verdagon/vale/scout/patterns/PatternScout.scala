@@ -3,7 +3,6 @@ package net.verdagon.vale.scout.patterns
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, _}
-import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType, KindTemplataType}
 import net.verdagon.vale.{RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List

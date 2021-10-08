@@ -3,7 +3,6 @@ package net.verdagon.vale.astronomer
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat}
 
 import scala.collection.immutable.List
@@ -234,6 +233,10 @@ object structName {
 case class FunctionA(
     range: RangeS,
     name: IFunctionDeclarationNameS,
+
+    // One day we might put a List of import statements here. After all, imports apply to
+    // everything in the file.
+
     attributes: Vector[IFunctionAttributeS],
 
     tyype: ITemplataType,

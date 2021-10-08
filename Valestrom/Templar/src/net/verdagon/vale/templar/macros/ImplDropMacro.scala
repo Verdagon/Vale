@@ -1,33 +1,35 @@
 package net.verdagon.vale.templar.macros
 
-import net.verdagon.vale.astronomer.{FunctionA, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, ParameterS, UserFunctionS}
+import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS, OverrideSP}
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
-import net.verdagon.vale.templar.ast.LocationInFunctionEnvironment
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT}
 import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, Temputs}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.FunctionEnvironment
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.templata.{Conversions, CoordTemplata, FunctionHeaderT, KindTemplata, ParameterT}
-import net.verdagon.vale.templar.types.{CoordT, CoordTemplataType, FunctionTemplataType, InterfaceTT, KindTemplataType, MutabilityT, MutableT, OwnT, ReadonlyT, ReadwriteT, ShareT, StructTT, TemplateTemplataType}
+import net.verdagon.vale.templar.templata.{Conversions, CoordTemplata, KindTemplata}
+import net.verdagon.vale.templar.types.{CoordT, InterfaceTT, MutabilityT, MutableT, OwnT, ReadonlyT, ReadwriteT, ShareT, StructTT}
 import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail}
 
 object ImplDropMacro {
 
   def addImplDestructor(
-    mutability: MutabilityT):
+//    mutability: MutabilityT
+  ):
   (FunctionA, IFunctionGenerator) = {
     val unevaluatedFunctionA =
       FunctionA(
         RangeS.internal(-65),
-        if (mutability == MutableT) {
-          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-18))
-        } else {
-          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
-        },
+        DropNameS(PackageCoordinate.BUILTIN),
+//        if (mutability == MutableT) {
+//          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-18))
+//        } else {
+//          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
+//        },
         Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType, KindTemplataType), FunctionTemplataType),
         Vector(RuneUsage(RangeS.internal(-65002), CodeRuneS("SC")), RuneUsage(RangeS.internal(-65002), CodeRuneS("I"))),
@@ -44,13 +46,13 @@ object ImplDropMacro {
         Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(
           CoordComponentsSR(RangeS.internal(-98), RuneUsage(RangeS.internal(-64002), CodeRuneS("SC")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SO")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SP")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK"))),
-          KindComponentsSR(RangeS.internal(-97), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM"))),
+//          KindComponentsSR(RangeS.internal(-97), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK")), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM"))),
           IsStructSR(RangeS.internal(-167241), RuneUsage(RangeS.internal(-64002), CodeRuneS("SK"))),
-          OneOfSR(RangeS.internal(-167232), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM")), Array(MutabilityLiteralSL(Conversions.unevaluateMutability(mutability)))),
+//          OneOfSR(RangeS.internal(-167232), RuneUsage(RangeS.internal(-64002), CodeRuneS("SKM")), Array(MutabilityLiteralSL(Conversions.unevaluateMutability(mutability)))),
           OneOfSR(RangeS.internal(-167235), RuneUsage(RangeS.internal(-64002), CodeRuneS("SO")), Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
           OneOfSR(RangeS.internal(-167235), RuneUsage(RangeS.internal(-64002), CodeRuneS("SP")), Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
           IsInterfaceSR(RangeS.internal(-167243),RuneUsage(RangeS.internal(-64002), CodeRuneS("I"))),
-          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeTypeNameS("void"))),
+          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeNameS("void"))),
         GeneratedBodyS("implDestructorGenerator"))
     val generator =
       new IFunctionGenerator {

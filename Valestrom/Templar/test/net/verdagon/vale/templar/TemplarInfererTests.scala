@@ -4,7 +4,7 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.IncompleteSolve
 import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, ScoutExpectedFunctionFailure}
-import net.verdagon.vale.templar.ast.Program2
+import net.verdagon.vale.templar.ast.{ProgramT, PrototypeT}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, PackageTopLevelNameT, PrimitiveNameT}
 import net.verdagon.vale.templar.{CompileErrorExceptionT, CouldntFindFunctionToCallT, TemplarTestCompilation}
 import net.verdagon.vale.{CodeLocationS, Err, RangeS, vassertOne}
@@ -13,7 +13,6 @@ import net.verdagon.vale.astronomer.{InterfaceA, StructA}
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.rules.{LiteralSR, LookupSR, MutabilityLiteralSL}
 import net.verdagon.vale.scout.{IEnvironment => _, _}
-import net.verdagon.vale.templar.NameTranslator
 import net.verdagon.vale.{IProfiler, NullProfiler, PackageCoordinate, vassert, vassertSome, vfail, vimpl, scout => s}
 import net.verdagon.vale.templar.env._
 //import net.verdagon.vale.templar.infer.{InfererEquator, InfererEvaluator}
@@ -29,18 +28,19 @@ case class FakeEnv() { val hash = runtime.ScalaRunTime._hashCode(this); override
 case class FakeState() { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 case class SimpleEnvironment(templatas: TemplatasStore) extends IEnvironment {
-  override def getParentEnv(): Option[IEnvironment] = None
+  override def localNamespaces: List[TemplatasStore] = vimpl()
+  override def globalEnv: GlobalEnvironment = vimpl()
+  override def globalNamespaces: Vector[TemplatasStore] = vimpl()
+
   def fullName = FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT())
-  def globalEnv: PackageEnvironment[INameT] = {
-    vfail()
-  }
   def lookupWithImpreciseName(
     profiler: IProfiler,
     nameS: INameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
-    templatas.lookupWithImpreciseName(profiler, this, nameS, lookupFilter, getOnlyNearest)
+    vimpl()
+//    templatas.lookupWithImpreciseName(profiler, this, nameS, lookupFilter, getOnlyNearest)
   }
 
   def lookupWithName(
@@ -49,7 +49,8 @@ case class SimpleEnvironment(templatas: TemplatasStore) extends IEnvironment {
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
-    templatas.lookupWithName(profiler, this, nameS, lookupFilter, getOnlyNearest)
+    vimpl()
+//    templatas.lookupWithName(profiler, this, nameS, lookupFilter, getOnlyNearest)
   }
 }
 
@@ -184,7 +185,9 @@ class InfererTests extends FunSuite with Matchers {
     PrototypeT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("increment", Vector(), Vector(CoordT(ShareT, ReadonlyT, IntT.i32)))), CoordT(ShareT, ReadonlyT, IntT.i32))
 
   def makeCannedEnvironment(): SimpleEnvironment = {
-    var entries: TemplatasStore = TemplatasStore(Map(), Map())
+    var entries: TemplatasStore =
+      TemplatasStore(
+        FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()), Map(), Map())
     val voidName = PrimitiveNameT("void")
     entries = entries.addEntry(true, voidName, TemplataEnvEntry(KindTemplata(VoidT())))
     val intName = PrimitiveNameT("int")
@@ -221,8 +224,8 @@ class InfererTests extends FunSuite with Matchers {
             Map(CodeRuneS("M") -> MutabilityTemplataType, CodeRuneS("I") -> CoordTemplataType, CodeRuneS("B") -> CoordTemplataType),
             Vector(
               LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(ImmutableP)),
-              LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("I")), CodeTypeNameS("int")),
-              LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("B")), CodeTypeNameS("bool"))),
+              LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("I")), CodeNameS("int")),
+              LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("B")), CodeNameS("bool"))),
             Vector(
               StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("I"))),
               StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("B")))))))
@@ -307,7 +310,7 @@ class InfererTests extends FunSuite with Matchers {
       TemplataEnvEntry(
         KindTemplata(
           TupleTT(
-            Vector(Program2.intType, Program2.boolType),
+            Vector(ProgramT.intType, ProgramT.boolType),
             // Normally this would be backed by a struct simply named "Tup"
             StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ImmStruct", Vector())))))))
     val callPrototype = PrototypeTemplata(incrementPrototype)

@@ -2,7 +2,6 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, ProgramA}
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{FunctionNameS, GlobalFunctionFamilyNameS, ProgramS, Scout}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}

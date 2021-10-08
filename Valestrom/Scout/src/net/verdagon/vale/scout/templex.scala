@@ -67,7 +67,7 @@ case class ArrayMutabilityImplicitRuneS() extends IRuneS { val hash = runtime.Sc
 case class ArrayVariabilityImplicitRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ReturnRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class StructNameRuneS(structName: TopLevelCitizenDeclarationNameS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class CodeTypeNameS(name: String) extends INameS {
+case class CodeNameS(name: String) extends INameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
   vassert(name != "_")

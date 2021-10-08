@@ -1,8 +1,8 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, InterfaceEdgeBlueprint, LockWeakTE, Program2, SignatureT, StaticArrayFromCallableTE}
+import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, InterfaceEdgeBlueprint, LockWeakTE, ProgramT, SignatureT, StaticArrayFromCallableTE}
 import net.verdagon.vale.templar.names.FunctionNameT
-import net.verdagon.vale.templar.templata.{CoordTemplata, SignatureT}
+import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Collector, PackageCoordinate, vassertSome, vcurious, vpass}
 
@@ -46,7 +46,7 @@ object Reachability {
       exposedStructs.map(_.getRef).foreach(visitStruct(program, edgeBlueprints, edges, reachables, _))
       exposedInterfaces.map(_.getRef).foreach(visitInterface(program, edgeBlueprints, edges, reachables, _))
     } while (reachables.size != sizeBefore)
-    visitStruct(program, edgeBlueprints, edges, reachables, Program2.emptyTupleStructRef)
+    visitStruct(program, edgeBlueprints, edges, reachables, ProgramT.emptyTupleStructRef)
     reachables
   }
   def visitFunction(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, calleeSignature: SignatureT): Unit = {
@@ -88,7 +88,7 @@ object Reachability {
     val structDef = program.lookupStruct(structTT)
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
-    if (structDef.mutability == ImmutableT && structTT != Program2.emptyTupleStructRef) {
+    if (structDef.mutability == ImmutableT && structTT != ProgramT.emptyTupleStructRef) {
       val destructorSignature = program.getDestructor(structTT).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }

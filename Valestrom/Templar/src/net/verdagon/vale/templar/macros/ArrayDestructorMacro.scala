@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.macros
 
-import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorNameS, ImmDropImpreciseNameS}
+import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmConcreteDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
@@ -9,11 +9,11 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.templata.{Conversions, FunctionHeaderT, ParameterT, PrototypeT}
+import net.verdagon.vale.templar.templata.Conversions
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, OverloadTemplar, Templar, TemplarOptions, Temputs, ast}
 import net.verdagon.vale._
-import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, FunctionT, LocationInFunctionEnvironment, ReturnTE, StructToInterfaceUpcastTE, VoidLiteralTE}
+import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReturnTE, StructToInterfaceUpcastTE, VoidLiteralTE}
 import net.verdagon.vale.templar.names.CodeVarNameT
 
 class ArrayDestructorMacro(
@@ -38,46 +38,47 @@ class ArrayDestructorMacro(
 
     val elementDropFunctionPrototype = getDropFunction(env, temputs, sequence.array.elementType)
 
-    val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
-      structTemplar.prototypeToAnonymousIFunctionSubstruct(
-        env, temputs, life, RangeS.internal(-1203), elementDropFunctionPrototype)
-
-    val ifunctionExpression =
-      StructToInterfaceUpcastTE(
-        FunctionCallTE(constructorPrototype, Vector.empty),
-        ifunction1InterfaceRef)
-
-
-    val consumerMethod2 =
-      overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, RangeS.internal(-108),
-        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
-        Vector.empty,
-        Array.empty,
-        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.elementType, None)),
-        Vector.empty, true)
-
-    val function2 =
-      FunctionT(
-        FunctionHeaderT(
-          env.fullName,
-          Vector.empty,
-          Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType)),
-          CoordT(ShareT, ReadonlyT, VoidT()),
-          maybeOriginFunction1),
-        BlockTE(
-          Templar.consecutive(
-            Vector(
-              DestroyStaticSizedArrayIntoFunctionTE(
-                ArgLookupTE(0, arrayRefType),
-                sequence,
-                ifunctionExpression,
-                consumerMethod2),
-              ReturnTE(VoidLiteralTE())))))
-
-    temputs.declareFunctionReturnType(function2.header.toSignature, function2.header.returnType)
-    temputs.addFunction(function2)
-    function2.header
+    vimpl()
+//    val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
+//      structTemplar.prototypeToAnonymousIFunctionSubstruct(
+//        env, temputs, life, RangeS.internal(-1203), elementDropFunctionPrototype)
+//
+//    val ifunctionExpression =
+//      StructToInterfaceUpcastTE(
+//        FunctionCallTE(constructorPrototype, Vector.empty),
+//        ifunction1InterfaceRef)
+//
+//
+//    val consumerMethod2 =
+//      overloadTemplar.scoutExpectedFunctionForPrototype(
+//        env, temputs, RangeS.internal(-108),
+//        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
+//        Vector.empty,
+//        Array.empty,
+//        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(sequence.array.elementType, None)),
+//        Vector.empty, true)
+//
+//    val function2 =
+//      FunctionT(
+//        FunctionHeaderT(
+//          env.fullName,
+//          Vector.empty,
+//          Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType)),
+//          CoordT(ShareT, ReadonlyT, VoidT()),
+//          maybeOriginFunction1),
+//        BlockTE(
+//          Templar.consecutive(
+//            Vector(
+//              DestroyStaticSizedArrayIntoFunctionTE(
+//                ArgLookupTE(0, arrayRefType),
+//                sequence,
+//                ifunctionExpression,
+//                consumerMethod2),
+//              ReturnTE(VoidLiteralTE())))))
+//
+//    temputs.declareFunctionReturnType(function2.header.toSignature, function2.header.returnType)
+//    temputs.addFunction(function2)
+//    function2.header
   }
 
   def generateRuntimeSizedArrayDestructor(
@@ -93,45 +94,46 @@ class ArrayDestructorMacro(
 
     val elementDropFunctionPrototype = getDropFunction(env, temputs, array.array.elementType)
 
-    val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
-      structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, life, RangeS.internal(-1879), elementDropFunctionPrototype)
-
-    val ifunctionExpression =
-      StructToInterfaceUpcastTE(
-        FunctionCallTE(constructorPrototype, Vector.empty),
-        ifunction1InterfaceRef)
-
-    val range = RangeS.internal(-108)
-    val consumerMethod2 =
-      overloadTemplar.scoutExpectedFunctionForPrototype(
-        env, temputs, range,
-        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
-        Vector.empty,
-        Array.empty,
-        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.elementType, None)),
-        Vector.empty, true)
-
-    val function2 =
-      ast.FunctionT(
-        FunctionHeaderT(
-          env.fullName,
-          Vector.empty,
-          Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType2)),
-          CoordT(ShareT, ReadonlyT, VoidT()),
-          maybeOriginFunction1),
-        BlockTE(
-          Templar.consecutive(
-            Vector(
-              DestroyRuntimeSizedArrayTE(
-                ArgLookupTE(0, arrayRefType2),
-                array,
-                ifunctionExpression,
-                consumerMethod2),
-              ReturnTE(VoidLiteralTE())))))
-
-    temputs.declareFunctionReturnType(function2.header.toSignature, function2.header.returnType)
-    temputs.addFunction(function2)
-    (function2.header)
+    vimpl()
+//    val (ifunction1InterfaceRef, elementDropFunctionAsIFunctionSubstructStructRef, constructorPrototype) =
+//      structTemplar.prototypeToAnonymousIFunctionSubstruct(env, temputs, life, RangeS.internal(-1879), elementDropFunctionPrototype)
+//
+//    val ifunctionExpression =
+//      StructToInterfaceUpcastTE(
+//        FunctionCallTE(constructorPrototype, Vector.empty),
+//        ifunction1InterfaceRef)
+//
+//    val range = RangeS.internal(-108)
+//    val consumerMethod2 =
+//      overloadTemplar.scoutExpectedFunctionForPrototype(
+//        env, temputs, range,
+//        GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
+//        Vector.empty,
+//        Array.empty,
+//        Vector(ParamFilter(ifunctionExpression.resultRegister.reference, None), ParamFilter(array.array.elementType, None)),
+//        Vector.empty, true)
+//
+//    val function2 =
+//      ast.FunctionT(
+//        FunctionHeaderT(
+//          env.fullName,
+//          Vector.empty,
+//          Vector(ParameterT(CodeVarNameT("this"), None, arrayRefType2)),
+//          CoordT(ShareT, ReadonlyT, VoidT()),
+//          maybeOriginFunction1),
+//        BlockTE(
+//          Templar.consecutive(
+//            Vector(
+//              DestroyRuntimeSizedArrayTE(
+//                ArgLookupTE(0, arrayRefType2),
+//                array,
+//                ifunctionExpression,
+//                consumerMethod2),
+//              ReturnTE(VoidLiteralTE())))))
+//
+//    temputs.declareFunctionReturnType(function2.header.toSignature, function2.header.returnType)
+//    temputs.addFunction(function2)
+//    (function2.header)
   }
 
   // "Drop" is a general term that encompasses:
@@ -145,11 +147,11 @@ class ArrayDestructorMacro(
       env,
       temputs,
       RangeS.internal(-1676),
-      if (type2.ownership == ShareT) {
-        ImmDropImpreciseNameS()
-      } else {
-        GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
-      },
+//      if (type2.ownership == ShareT) {
+        DropNameS(PackageCoordinate.internal),
+//      } else {
+//        GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
+//      },
       Vector.empty,
       Array.empty,
       Vector(ParamFilter(type2, None)),

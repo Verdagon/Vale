@@ -37,7 +37,7 @@ trait IBodyTemplarDelegate {
 class BodyTemplar(
   opts: TemplarOptions,
   profiler: IProfiler,
-  newTemplataStore: () => TemplatasStore,
+
     templataTemplar: TemplataTemplar,
     convertHelper: ConvertHelper,
     delegate: IBodyTemplarDelegate) {
@@ -133,7 +133,7 @@ class BodyTemplar(
     isDestructor: Boolean,
     maybeExpectedResultType: Option[CoordT]):
   Result[(BlockTE, Set[CoordT]), ResultTypeMismatchError] = {
-    val env = funcOuterEnv.makeChildEnvironment(newTemplataStore, Some(body1.block))
+    val env = funcOuterEnv.makeChildEnvironment(Some(body1.block))
     val startingEnv = env.functionEnvironment
 
     val patternsTE =

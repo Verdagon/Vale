@@ -3,9 +3,8 @@ package net.verdagon.vale.astronomer
 import net.verdagon.vale.{FileCoordinateMap, RangeS}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RuneTypeSolveError, ScoutErrorHumanizer}
+import net.verdagon.vale.scout.{IRuneS, ITemplataType, RuneTypeSolveError, ScoutErrorHumanizer}
 import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, SolverErrorHumanizer}
-import net.verdagon.vale.templar.types.ITemplataType
 
 object AstronomerErrorHumanizer {
   def assembleError(

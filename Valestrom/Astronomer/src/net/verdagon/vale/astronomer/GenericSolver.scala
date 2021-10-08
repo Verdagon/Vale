@@ -1,11 +1,9 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale._
-import net.verdagon.vale.scout.{INameS, IRuneS, RuneNameS}
+import net.verdagon.vale.scout.{INameS, IRuneS, ITemplataType, RuneNameS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{IIncompleteOrFailedSolve, ISolverStateForRule, IncompleteSolve, Solver}
-import net.verdagon.vale.templar.templata.CoordListTemplata
-import net.verdagon.vale.templar.types._
 
 case class GenericSolveError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplataType, Unit]) {
   vpass()

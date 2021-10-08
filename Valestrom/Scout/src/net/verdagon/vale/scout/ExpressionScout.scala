@@ -7,7 +7,6 @@ import net.verdagon.vale.scout.patterns.PatternScout
 import net.verdagon.vale.scout.rules.RuneUsage
 //import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
 import net.verdagon.vale.scout.rules.{ILiteralSL, IntLiteralSL, LiteralSR, MutabilityLiteralSL, TemplexScout, VariabilityLiteralSL}
-import net.verdagon.vale.templar.types.ITemplataType
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

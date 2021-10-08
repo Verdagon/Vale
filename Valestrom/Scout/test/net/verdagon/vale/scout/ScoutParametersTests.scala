@@ -77,7 +77,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case LookupSR(_, pr, CodeTypeNameS("int")) => vassert(pr.rune == paramRune)
+      case LookupSR(_, pr, CodeNameS("int")) => vassert(pr.rune == paramRune)
     }
   }
 
@@ -105,7 +105,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case LookupSR(_, air, CodeTypeNameS("int")) => vassert(air.rune == aRune)
+      case LookupSR(_, air, CodeNameS("int")) => vassert(air.rune == aRune)
     }
 
     // See CCAUIR.

@@ -23,7 +23,7 @@ trait IBlockTemplarDelegate {
 
 class BlockTemplar(
     opts: TemplarOptions,
-    newTemplataStore: () => TemplatasStore,
+
     destructorTemplar: DestructorTemplar,
     localHelper: LocalHelper,
     delegate: IBlockTemplarDelegate) {
@@ -41,7 +41,7 @@ class BlockTemplar(
     life: LocationInFunctionEnvironment,
     block1: BlockSE):
   (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
-    val fate = parentFate.makeChildEnvironment(newTemplataStore, Some(block1))
+    val fate = parentFate.makeChildEnvironment(Some(block1))
     val startingFate = fate.snapshot
 
     val (expressionsWithResult, returnsFromExprs) =

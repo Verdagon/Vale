@@ -11,19 +11,18 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, ImmConcreteDestructorNameT, ImmConcreteDestructorTemplateNameT, ImmDropNameT, ImmDropTemplateNameT, ImmInterfaceDestructorNameT, ImmInterfaceDestructorTemplateNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
+import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, ImmConcreteDestructorNameT, ImmConcreteDestructorTemplateNameT, DropNameT, DropTemplateNameT, ImmInterfaceDestructorNameT, ImmInterfaceDestructorTemplateNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
 
 import scala.collection.immutable.{List, Set}
 
 class FunctionTemplarMiddleLayer(
     opts: TemplarOptions,
   profiler: IProfiler,
-  newTemplataStore: () => TemplatasStore,
   templataTemplar: TemplataTemplar,
   convertHelper: ConvertHelper,
     structTemplar: StructTemplar,
     delegate: IFunctionTemplarDelegate) {
-  val core = new FunctionTemplarCore(opts, profiler, newTemplataStore, templataTemplar, convertHelper, delegate)
+  val core = new FunctionTemplarCore(opts, profiler, templataTemplar, convertHelper, delegate)
 
   // This is for the early stages of Templar when it's scanning banners to put in
   // its env. We just want its banner, we don't want to evaluate it.
@@ -316,12 +315,12 @@ class FunctionTemplarMiddleLayer(
     paramTypes: Vector[CoordT],
     maybeReturnType: Option[CoordT]
   ): FunctionEnvironment = {
-    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(parentEnv, oldName, function, variables, entries) = runedEnv
+    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, oldName, function, variables, globalNamespaces, localNamespaces) = runedEnv
 
     // We fill out the params here to get the function's full name.
     val newName = assembleName(oldName, paramTypes)
 
-    FunctionEnvironment(parentEnv, newName, function, entries, maybeReturnType, None, variables, Set())
+    FunctionEnvironment(globalEnv, newName, function, globalNamespaces, localNamespaces, maybeReturnType, None, variables, Set())
   }
 
   private def assembleName(
@@ -341,9 +340,9 @@ class FunctionTemplarMiddleLayer(
         case ImmInterfaceDestructorTemplateNameT() => {
           ImmInterfaceDestructorNameT(templateArgs, params)
         }
-        case ImmDropTemplateNameT() => {
-          val Vector(CoordT(ShareT, ReadonlyT, kind)) = params
-          ImmDropNameT(kind)
+        case DropTemplateNameT() => {
+          val Vector(coord) = params
+          DropNameT(templateArgs, coord)
         }
       }
     names.FullNameT(name.packageCoord, name.initSteps, newLastStep)

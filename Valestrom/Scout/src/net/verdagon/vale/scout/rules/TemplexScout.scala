@@ -2,7 +2,7 @@ package net.verdagon.vale.scout.rules
 
 import net.verdagon.vale.RangeS
 import net.verdagon.vale.parser.{AnonymousRunePT, BoolPT, BorrowPT, CallPT, ConstraintP, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, ManualSequencePT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PermissionPT, PrototypePT, Range, RepeaterSequencePT, StringPT, VariabilityPT}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, IEnvironment, INameS, IRuneS, ImplicitRuneS, LocationInDenizenBuilder, Scout}
+import net.verdagon.vale.scout.{CodeRuneS, CodeNameS, IEnvironment, INameS, IRuneS, ImplicitRuneS, LocationInDenizenBuilder, Scout}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -78,7 +78,7 @@ object TemplexScout {
                 addRuneParentEnvLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeRuneS(nameOrRune))
               }
             } else {
-              val valueSR = CodeTypeNameS(nameOrRune)
+              val valueSR = CodeNameS(nameOrRune)
               addLookupRule(lidb.child(), ruleBuilder, evalRange(range), valueSR)
             }
           }
@@ -106,7 +106,7 @@ object TemplexScout {
           }
           case FunctionPT(range, mutability, paramsPack, returnType) => {
             val resultRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-            val templateNameRuneS = addLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeTypeNameS("IFunction"))
+            val templateNameRuneS = addLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeNameS("IFunction"))
             val mutabilityRuneS =
               mutability match {
                 case None => addLiteralRule(lidb.child(), ruleBuilder, evalRange(range), MutabilityLiteralSL(MutableP))

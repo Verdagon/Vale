@@ -1,32 +1,33 @@
 package net.verdagon.vale.templar.macros
 
-import net.verdagon.vale.astronomer.{FunctionA, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, ParameterS, UserFunctionS}
+import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, IsInterfaceSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
-import net.verdagon.vale.templar.ast.LocationInFunctionEnvironment
-import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, Templar, Temputs}
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT}
+import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, OverloadTemplar, Templar, Temputs}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.templata.{Conversions, FunctionHeaderT, ParameterT, PrototypeT}
-import net.verdagon.vale.templar.types.{CoordT, CoordTemplataType, FunctionTemplataType, InterfaceTT, MutabilityT, ParamFilter, ReadonlyT, ShareT, TemplateTemplataType}
-import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail}
+import net.verdagon.vale.templar.templata.Conversions
+import net.verdagon.vale.templar.types.{CoordT, ImmutableT, InterfaceTT, MutabilityT, MutableT, ParamFilter, ReadonlyT, ShareT}
+import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail, vimpl}
 
-object InterfaceDropMacro {
+class InterfaceDropMacro(overloadTemplar: OverloadTemplar) {
 
   def addInterfaceDestructor(mutability: MutabilityT):
   (FunctionA, IFunctionGenerator) = {
     val unevaluatedFunctionA =
       FunctionA(
         RangeS.internal(-64),
-        if (mutability == MutableT) {
-          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-17))
-        } else {
-          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
-        },
+        DropNameS(vimpl()),
+//        if (mutability == MutableT) {
+//          FunctionNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME, CodeLocationS.internal(-17))
+//        } else {
+//          ImmInterfaceDestructorNameS(PackageCoordinate.internal)
+//        },
         Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
         //        Set(CodeRuneS("V")),
@@ -54,7 +55,7 @@ object InterfaceDropMacro {
           OneOfSR(RangeS.internal(-167219), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
           OneOfSR(RangeS.internal(-167222), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
           IsInterfaceSR(RangeS.internal(-167225), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
-          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeTypeNameS("void"))),
+          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("V")),CodeNameS("void"))),
         GeneratedBodyS("interfaceDestructorGenerator"))
     val generator =
       new IFunctionGenerator {

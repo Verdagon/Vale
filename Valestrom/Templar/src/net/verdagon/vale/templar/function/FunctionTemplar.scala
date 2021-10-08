@@ -70,7 +70,6 @@ object FunctionTemplar {
 class FunctionTemplar(
     opts: TemplarOptions,
     profiler: IProfiler,
-    newTemplataStore: () => TemplatasStore,
     templataTemplar: TemplataTemplar,
     inferTemplar: InferTemplar,
     convertHelper: ConvertHelper,
@@ -78,7 +77,7 @@ class FunctionTemplar(
     delegate: IFunctionTemplarDelegate) {
   val closureOrLightLayer =
     new FunctionTemplarClosureOrLightLayer(
-      opts, profiler, newTemplataStore, templataTemplar, inferTemplar, convertHelper, structTemplar, delegate)
+      opts, profiler, templataTemplar, inferTemplar, convertHelper, structTemplar, delegate)
 
   private def determineClosureVariableMember(
       env: FunctionEnvironment,

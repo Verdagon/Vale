@@ -1,13 +1,12 @@
 package net.verdagon.vale.hammer
 
 import net.verdagon.vale.hammer.NameHammer.translateFileCoordinate
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal._
 import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vimpl, metal => m}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, ImmDropNameT, ImmInterfaceDestructorNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
+import net.verdagon.vale.templar.{Hinputs, _}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, DropNameT, ImmInterfaceDestructorNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von._
 
@@ -1151,7 +1150,7 @@ object VonHammer {
                   .map(vonifyCoord)
                   .toVector))))
       }
-      case ImmDropNameT(kind) => {
+      case DropNameT(kind) => {
         VonObject(
           "ImmInterfaceDestructorName",
           None,
