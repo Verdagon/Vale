@@ -10,7 +10,7 @@ object NameTranslator {
     functionName match {
       case ImmConcreteDestructorNameS(_) => ImmConcreteDestructorTemplateNameT()
       case ImmInterfaceDestructorNameS(_) => ImmInterfaceDestructorTemplateNameT()
-      case ImmDropNameS(_) => ImmDropTemplateNameT()
+      case DropNameS(_) => DropTemplateNameT()
       case LambdaNameS(/*parent, */ codeLocation) => {
         LambdaTemplateNameT(NameTranslator.translateCodeLocation(codeLocation))
       }
@@ -93,7 +93,7 @@ object NameTranslator {
       //      case LambdaNameS(codeLocation) => LambdaName2(codeLocation)
       //      case FunctionNameS(name, codeLocation) => FunctionName2(name, codeLocation)
       //      case TopLevelCitizenDeclarationNameS(name, codeLocation) => TopLevelCitizenDeclarationName2(name, codeLocation)
-      case CodeTypeNameS(n@("int" | "str")) => PrimitiveNameT(n)
+      case CodeNameS(n@("int" | "str")) => PrimitiveNameT(n)
       case LambdaStructNameS(LambdaNameS(codeLocation)) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
       case ImplNameS(subCitizenHumanName, codeLocation) => ImplDeclareNameT(subCitizenHumanName, translateCodeLocation(codeLocation))
       case LetNameS(codeLocation) => LetNameT(translateCodeLocation(codeLocation))
@@ -119,9 +119,9 @@ object NameTranslator {
       case FunctionNameS(name, codeLocation) => {
         FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation))
       }
-      //      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, codeLocation)) => {
-      //        FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation))
-      //      }
+      case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, codeLocation)) => {
+        FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation.begin))
+      }
       case _ => vimpl(name.toString)
     }
   }

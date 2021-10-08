@@ -5,7 +5,6 @@ import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
 import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, INameS}
 import net.verdagon.vale.templar.ast.{FunctionT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.names.{FunctionNameT, ImmInterfaceDestructorNameT}
-import net.verdagon.vale.templar.templata.{FunctionBannerT, OverrideT, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
 

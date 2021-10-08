@@ -10,7 +10,7 @@ import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer, FunctionTemplarOrdinaryOrTemplatedLayer}
 import net.verdagon.vale._
-import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttribute2, LocationInFunctionEnvironment, OverrideT, ParameterT, Program2, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SoftLoadTE}
+import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttribute2, LocationInFunctionEnvironment, OverrideT, ParameterT, ProgramT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SoftLoadTE}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT, TupleNameT}
 
@@ -19,12 +19,12 @@ import scala.collection.immutable.List
 class StructTemplarCore(
     opts: TemplarOptions,
     profiler: IProfiler,
-    newTemplataStore: () => TemplatasStore,
+
     ancestorHelper: AncestorHelper,
     delegate: IStructTemplarDelegate) {
   def addBuiltInStructs(env: PackageEnvironment[INameT], temputs: Temputs): Unit = {
-    val emptyTupleFullName = Program2.emptyTupleStructRef.fullName
-    val emptyTupleEnv = PackageEnvironment(Some(env), emptyTupleFullName, newTemplataStore())
+    val emptyTupleFullName = ProgramT.emptyTupleStructRef.fullName
+    val emptyTupleEnv = PackageEnvironment.child(env, emptyTupleFullName)
     val structDefT = StructDefinitionT(emptyTupleFullName, Vector(), false, ImmutableT, Vector.empty, false)
     temputs.declareStruct(structDefT.getRef)
     temputs.declareStructMutability(structDefT.getRef, ImmutableT)
@@ -55,11 +55,7 @@ class StructTemplarCore(
     val maybeExport =
       structA.attributes.collectFirst { case e@ExportS(_) => e }
 
-    val structInnerEnv =
-      PackageEnvironment(
-        Some(structRunesEnv),
-        fullName,
-        newTemplataStore())
+    val structInnerEnv = PackageEnvironment.child(structRunesEnv, fullName)
     // when we have structs that contain functions, add this back in
 //        structA.members
 //          .map(_.origin)
@@ -123,40 +119,11 @@ class StructTemplarCore(
       }
     }
 
-    // If it's immutable, make sure there's a zero-arg destructor.
-    if (mutability == ImmutableT) {
-      temputs.addDestructor(
-        structDefT.getRef,
-        delegate.makeImmConcreteDestructor(temputs, structInnerEnv, structDefT.getRef))
-    }
+    structRunesEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {
+      maacro.onStructGenerated(structDefT.getRef)
+    })
 
     profiler.childFrame("struct ancestor interfaces", () => {
-      val implementedInterfaceRefs2 =
-        ancestorHelper.getParentInterfaces(temputs, structDefT.getRef);
-
-      implementedInterfaceRefs2.foreach({
-        case (implementedInterfaceRefT) => {
-          structDefT.mutability match {
-            case MutableT => {
-              delegate.scoutExpectedFunctionForPrototype(
-                structInnerEnv,
-                temputs,
-                structA.range,
-                GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
-                Vector.empty,
-                Array.empty,
-                Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
-                Vector.empty,
-                true)
-            }
-            case ImmutableT => {
-              // If it's immutable, make sure there's a zero-arg destructor.
-              delegate.getImmInterfaceDestructorOverride(temputs, structInnerEnv, structDefT.getRef, implementedInterfaceRefT)
-            }
-          }
-        }
-      })
-
       val ancestorInterfaces =
         ancestorHelper.getAncestorInterfaces(temputs, temporaryStructRef)
 
@@ -167,6 +134,10 @@ class StructTemplarCore(
             throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
           }
           temputs.addImpl(temporaryStructRef, ancestorInterface)
+
+          structRunesEnv.globalEnv.onImplGeneratedMacros.foreach(maacro => {
+            maacro.onImplGenerated(structDefT.getRef, ancestorInterface)
+          })
         }
       })
 
@@ -203,27 +174,21 @@ class StructTemplarCore(
     val maybeExport =
       interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
-    val interfaceInnerEnv0 =
-      PackageEnvironment(
-        Some(interfaceRunesEnv),
+    val interfaceInnerEnv =
+      PackageEnvironment.child(interfaceRunesEnv,
         fullName,
-        newTemplataStore())
-    val interfaceInnerEnv1 =
-      interfaceInnerEnv0.addEntries(
-        opts.useOptimization,
-        interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
-          .map({ case (rune, templata) => (RuneNameT(rune.rune), Vector(TemplataEnvEntry(templata))) })
-          .toMap)
-    val interfaceInnerEnv2 =
-      interfaceInnerEnv1.addEntries(
-        opts.useOptimization,
-        interfaceA.internalMethods
-          .map(internalMethod => {
-            val functionName = NameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
-            (functionName -> Vector(FunctionEnvEntry(internalMethod)))
-          })
-          .toMap[INameT, Vector[IEnvEntry]])
-    val interfaceInnerEnv = interfaceInnerEnv2
+        TemplatasStore(fullName, Map(), Map())
+          .addEntries(
+            interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
+              .map({ case (rune, templata) => (RuneNameT(rune.rune), Vector(TemplataEnvEntry(templata))) })
+              .toMap)
+          .addEntries(
+            interfaceA.internalMethods
+              .map(internalMethod => {
+                val functionName = NameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
+                (functionName -> Vector(FunctionEnvEntry(internalMethod)))
+              })
+              .toMap))
 
     temputs
       .declareInterfaceEnv(
@@ -282,12 +247,9 @@ class StructTemplarCore(
       }
     }
 
-    // If it's immutable, make sure there's a zero-arg destructor.
-    if (mutability == ImmutableT) {
-      temputs.addDestructor(
-        interfaceDef2.getRef,
-        delegate.getImmInterfaceDestructor(temputs, interfaceInnerEnv, interfaceDef2.getRef))
-    }
+    interfaceRunesEnv.globalEnv.onInterfaceGeneratedMacros.foreach(maacro => {
+      maacro.onInterfaceGenerated(interfaceDef2.getRef)
+    })
 
     profiler.childFrame("interface ancestor interfaces", () => {
       val _ = ancestorHelper.getParentInterfaces(temputs, temporaryInferfaceRef)
@@ -397,12 +359,11 @@ class StructTemplarCore(
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
     val structEnv =
-      PackageEnvironment(
-        Some(containingFunctionEnv),
+      PackageEnvironment.child(
+        containingFunctionEnv,
         fullName,
-        newTemplataStore()
+        TemplatasStore(fullName, Map(), Map())
           .addEntries(
-            opts.useOptimization,
             Map(
               FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationS.internal(-14)) -> Vector(FunctionEnvEntry(functionA)),
               nearName -> Vector(TemplataEnvEntry(KindTemplata(structTT))),
@@ -421,12 +382,9 @@ class StructTemplarCore(
     val closureStructDefinition = StructDefinitionT(fullName, Vector.empty, false, mutability, members, true);
     temputs.add(closureStructDefinition)
 
-    // If it's immutable, make sure there's a zero-arg destructor.
-    if (mutability == ImmutableT) {
-      temputs.addDestructor(
-        closureStructDefinition.getRef,
-        delegate.getImmConcreteDestructor(temputs, structEnv, closureStructDefinition.getRef))
-    }
+    structEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {
+      maacro.onStructGenerated(structTT)
+    })
 
     val closuredVarsStructRef = closureStructDefinition.getRef;
 
@@ -451,11 +409,7 @@ class StructTemplarCore(
       })
 
     val fullName = outerEnv.fullName.addStep(TupleNameT(memberCoords))
-    val structInnerEnv =
-      PackageEnvironment(
-        Some(outerEnv),
-        fullName,
-        newTemplataStore())
+    val structInnerEnv = PackageEnvironment.child(outerEnv, fullName, TemplatasStore(fullName, Map(), Map()))
 
     val newStructDef = StructDefinitionT(structInnerEnv.fullName, Vector.empty, false, packMutability, members, false);
     if (memberCoords.isEmpty && packMutability != ImmutableT)
@@ -466,274 +420,13 @@ class StructTemplarCore(
     temputs.declareStructEnv(newStructDef.getRef, structInnerEnv);
     temputs.add(newStructDef)
 
-    // If it's immutable, make sure there's a zero-arg destructor.
-    if (packMutability == ImmutableT) {
-      temputs.addDestructor(
-        newStructDef.getRef,
-        delegate.getImmConcreteDestructor(temputs, structInnerEnv, newStructDef.getRef))
-    }
+    outerEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {
+      maacro.onStructGenerated(newStructDef.getRef)
+    })
 
     temputs.declarePack(memberCoords, newStructDef.getRef);
 
     (newStructDef.getRef, packMutability)
-  }
-
-  // Makes an anonymous substruct of the given interface, with the given lambdas as its members.
-  // This doesnt make a constructor. We could add that if we wanted to.
-  def makeAnonymousSubstruct(
-      interfaceEnv: IEnvironment,
-      temputs: Temputs,
-    range: RangeS,
-      anonymousSubstructName: FullNameT[AnonymousSubstructNameT],
-      interfaceTT: InterfaceTT):
-  (StructTT, MutabilityT) = {
-    val callables = anonymousSubstructName.last.callables
-
-    val interfaceDef = temputs.lookupInterface(interfaceTT)
-
-    // We don't do:
-    //   val mutability = getCompoundTypeMutability(temputs, callables)
-    // because we want the mutability of the receiving interface. For example,
-    // we want to be able to do something like:
-    //   f = IFunction1<mut, Int, Int>({_})
-    // which wouldnt work if we just did the compound mutability of the closureds
-    // (which is imm in this case).
-    val mutability = temputs.lookupMutability(interfaceTT)
-
-    // Dont want any mutables in our immutable interface's substruct
-    if (mutability == ImmutableT) {
-      if (StructTemplar.getCompoundTypeMutability(callables) == MutableT) {
-        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Trying to make a mutable anonymous substruct of an immutable interface!"))
-      }
-    }
-
-    val structTT = StructTT(anonymousSubstructName)
-
-    val forwarderFunctionHeaders =
-      interfaceDef.internalMethods.zipWithIndex.map({
-        case (FunctionHeaderT(superFunctionName, _, superParams, superReturnType, _), index) => {
-          val params =
-            superParams.map({
-              case ParameterT(name, Some(AbstractT), CoordT(ownership, permission, ir)) => {
-                vassert(ir == interfaceTT)
-                ast.ParameterT(name, Some(OverrideT(interfaceTT)), CoordT(ownership, permission, structTT))
-              }
-              case otherParam => otherParam
-            })
-
-          val FunctionNameT(humanName, _, _) = superFunctionName.last
-          val fowarderName =
-            anonymousSubstructName.addStep(FunctionNameT(humanName, Vector.empty, params.map(_.tyype)))
-          val forwarderHeader =
-            ast.FunctionHeaderT(
-              fowarderName,
-              Vector.empty,
-              params,
-              superReturnType,
-              None)
-
-          temputs.declareFunctionSignature(range, forwarderHeader.toSignature, None)
-          forwarderHeader
-        }
-      })
-
-    val structInnerEnvEntries =
-      forwarderFunctionHeaders
-        .map(header => {
-          (header.fullName.last -> TemplataEnvEntry(ExternFunctionTemplata(header)))
-        })
-        .groupBy(_._1)
-        .mapValues(_.map(_._2))
-        .toMap ++
-      Map(
-        ImplDeclareNameT(NameTranslator.getImplNameForName(opts.useOptimization, interfaceTT).get.subCitizenHumanName, CodeLocationS.internal(-15)) -> Vector(TemplataEnvEntry(ExternImplTemplata(structTT, interfaceTT))),
-        // This is used later by the interface constructor generator to know what interface to impl.
-        RuneNameT(AnonymousSubstructParentInterfaceRuneS()) -> Vector(TemplataEnvEntry(KindTemplata(interfaceTT))),
-        AnonymousSubstructImplNameT() -> Vector(TemplataEnvEntry(ExternImplTemplata(structTT, interfaceTT))))
-    val structInnerEnv =
-      PackageEnvironment(
-        Some(interfaceEnv),
-        anonymousSubstructName,
-        newTemplataStore().addEntries(opts.useOptimization, structInnerEnvEntries))
-
-
-    temputs.addImpl(structTT, interfaceTT)
-
-    temputs.declareStruct(structTT)
-    temputs.declareStructMutability(structTT, mutability)
-    temputs.declareStructEnv(structTT, structInnerEnv)
-
-    vassert(interfaceDef.internalMethods.size == callables.size)
-
-    val structDef =
-      StructDefinitionT(
-        anonymousSubstructName,
-        Vector.empty,
-        interfaceDef.weakable,
-        mutability,
-        callables.zipWithIndex.map({ case (lambda, index) =>
-          StructMemberT(AnonymousSubstructMemberNameT(index), FinalT, ReferenceMemberTypeT(lambda))
-        }),
-        false)
-    temputs.add(structDef)
-
-    // If it's immutable, make sure there's a zero-arg destructor.
-    if (mutability == ImmutableT) {
-      temputs.addDestructor(
-        structDef.getRef,
-        delegate.getImmConcreteDestructor(temputs, structInnerEnv, structDef.getRef))
-    }
-
-    forwarderFunctionHeaders.zip(callables).zipWithIndex.foreach({
-      case ((forwarderHeader, lambda), methodIndex) => {
-//        val localVariables =
-//          forwarderHeader.params.map(param => {
-//            ReferenceLocalVariableT(forwarderHeader.fullName.addStep(param.name), FinalT, param.tyype)
-//          })
-
-        // The args for the call inside the forwarding function.
-        val lambdaCoord = CoordT(if (lambda.ownership == ShareT) ShareT else ConstraintT, lambda.permission, lambda.kind)
-        val forwardedCallArgs = (Vector(lambdaCoord) ++ forwarderHeader.paramTypes.tail).map(ParamFilter(_, None))
-
-//        start here
-        // since IFunction has a drop() method, its looking for a drop() for the
-        // lambda we gave it. but its immutable, so it needs no drop... or wait,
-        // maybe imms have drops?
-
-        val lambdaFunctionPrototype =
-          delegate.scoutExpectedFunctionForPrototype(
-            interfaceEnv, // Shouldnt matter here, because the callables themselves should have a __call
-            temputs,
-            range,
-            GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME),
-            Vector.empty,
-            Array.empty,
-            forwardedCallArgs,
-            Vector.empty,
-            true)
-
-        val structParamCoord =
-          CoordT(
-            if (structDef.mutability == ImmutableT) ShareT else ConstraintT,
-            forwarderHeader.paramTypes.head.permission,
-            structDef.getRef)
-        val methodCoord = structDef.members(methodIndex).tyype.reference
-        val loadSelfResultPermission = Templar.intersectPermission(methodCoord.permission, structParamCoord.permission)
-//        val loadSelfResultCoord = methodCoord.copy(permission = loadSelfResultPermission)
-
-        val loadedThisObjOwnership = if (methodCoord.ownership == ShareT) ShareT else ConstraintT
-        val loadedThisObjPermission = if (methodCoord.ownership == ShareT) ReadonlyT else ReadwriteT
-        val argExpressions =
-          Vector(
-            SoftLoadTE(
-              ReferenceMemberLookupTE(
-                range,
-                ArgLookupTE(0, structParamCoord),
-                structDef.fullName.addStep(structDef.members(methodIndex).name),
-                methodCoord,
-                loadSelfResultPermission,
-                FinalT),
-              loadedThisObjOwnership,
-              loadedThisObjPermission)) ++
-          forwarderHeader.params.tail.zipWithIndex.map({ case (param, index) =>
-            ArgLookupTE(index + 1, param.tyype)
-          })
-
-        if (lambdaFunctionPrototype.returnType.kind != NeverT() &&
-          forwarderHeader.returnType != lambdaFunctionPrototype.returnType) {
-          throw CompileErrorExceptionT(LambdaReturnDoesntMatchInterfaceConstructor(range))
-        }
-
-        val forwarderFunction =
-          FunctionT(
-            forwarderHeader,
-            BlockTE(
-                ReturnTE(
-                  FunctionCallTE(lambdaFunctionPrototype, argExpressions))))
-        temputs.addFunction(forwarderFunction)
-      }
-    })
-
-    (structTT, mutability)
-  }
-
-  // Makes an anonymous substruct of the given interface, which just forwards its method to the given prototype.
-  def prototypeToAnonymousStruct(
-    outerEnv: IEnvironment,
-    temputs: Temputs,
-    life: LocationInFunctionEnvironment,
-    range: RangeS,
-    prototype: PrototypeT,
-    structFullName: FullNameT[ICitizenNameT]):
-  StructTT = {
-    val structTT = StructTT(structFullName)
-
-    temputs.declareStruct(structTT)
-    temputs.declareStructMutability(structTT, ImmutableT)
-
-    val forwarderParams =
-      Vector(
-        ast.ParameterT(
-          TemplarTemporaryVarNameT(life + -1),
-          None,
-          CoordT(
-            ShareT,
-            ReadonlyT,
-            structTT))) ++
-      prototype.paramTypes.zipWithIndex.map({ case (paramType, index) =>
-        ast.ParameterT(TemplarTemporaryVarNameT(life + index), None, paramType)
-      })
-    val forwarderHeader =
-      ast.FunctionHeaderT(
-        structFullName.addStep(FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, Vector.empty, forwarderParams.map(_.tyype))),
-        Vector.empty,
-        forwarderParams,
-        prototype.returnType,
-        None)
-    temputs.declareFunctionSignature(range, forwarderHeader.toSignature, None)
-
-    val structInnerEnv =
-      PackageEnvironment(
-        Some(outerEnv),
-        structFullName,
-        newTemplataStore().addEntries(
-          opts.useOptimization,
-          Map(forwarderHeader.fullName.last -> Vector(TemplataEnvEntry(ExternFunctionTemplata(forwarderHeader))))))
-    temputs.declareStructEnv(structTT, structInnerEnv)
-
-    val structDef =
-      StructDefinitionT(
-        structFullName,
-        Vector.empty,
-        false,
-        ImmutableT,
-        Vector.empty,
-        false)
-    temputs.add(structDef)
-
-    // If it's immutable, make sure there's a zero-arg destructor.
-//    if (mutability == Immutable) {
-    temputs.addDestructor(
-      structDef.getRef,
-      delegate.getImmConcreteDestructor(temputs, structInnerEnv, structDef.getRef))
-//    }
-
-    val forwarderFunction =
-      ast.FunctionT(
-        forwarderHeader,
-        BlockTE(
-          Templar.consecutive(
-            Vector(
-              DiscardTE(ArgLookupTE(0, CoordT(ShareT, ReadonlyT, structTT))),
-              ReturnTE(
-                FunctionCallTE(
-                  prototype,
-                  forwarderHeader.params.tail.zipWithIndex.map({ case (param, index) =>
-                    ArgLookupTE(index + 1, param.tyype)
-                  })))))))
-    temputs.addFunction(forwarderFunction)
-
-    structTT
   }
 
 }

@@ -27,13 +27,12 @@ import scala.collection.immutable.{List, Set}
 class FunctionTemplarOrdinaryOrTemplatedLayer(
     opts: TemplarOptions,
   profiler: IProfiler,
-  newTemplataStore: () => TemplatasStore,
   templataTemplar: TemplataTemplar,
     inferTemplar: InferTemplar,
   convertHelper: ConvertHelper,
     structTemplar: StructTemplar,
     delegate: IFunctionTemplarDelegate) {
-  val middleLayer = new FunctionTemplarMiddleLayer(opts, profiler, newTemplataStore, templataTemplar, convertHelper, structTemplar, delegate)
+  val middleLayer = new FunctionTemplarMiddleLayer(opts, profiler, templataTemplar, convertHelper, structTemplar, delegate)
 
   // This is for the early stages of Templar when it's scanning banners to put in
   // its env. We just want its banner, we don't want to evaluate it.
@@ -394,7 +393,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata]
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
-    val BuildingFunctionEnvironmentWithClosureds(parentEnv, fullName, function, variables, templatas) = nearEnv
+    val BuildingFunctionEnvironmentWithClosureds(globalEnv, fullName, function, variables, globalNamespaces, localNamespaces) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
     val newName =
@@ -405,13 +404,13 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
           fullName.last.templateName, identifyingTemplatas))
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      parentEnv,
+      globalEnv,
       newName,
       function,
       variables,
-      templatas.addEntries(
-        opts.useOptimization,
-        templatasByRune.map({ case (k, v) => (RuneNameT(k), Vector(TemplataEnvEntry(v))) })
-        .toMap[INameT, Vector[IEnvEntry]]))
+      globalNamespaces,
+      localNamespaces.head.addEntries(
+        templatasByRune.map({ case (k, v) => (RuneNameT(k), Vector(TemplataEnvEntry(v))) }).toMap) ::
+        localNamespaces.tail)
   }
 }

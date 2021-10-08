@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.env
 
 import net.verdagon.vale.astronomer.{FunctionA, ImplA, InterfaceA, StructA}
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, IContainer, ITemplata}
+import net.verdagon.vale.templar.templata.{IContainer, ITemplata}
 import net.verdagon.vale.templar.types.{InterfaceTT, StructTT}
 import net.verdagon.vale.vimpl
 

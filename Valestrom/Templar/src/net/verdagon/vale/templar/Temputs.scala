@@ -3,7 +3,6 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, ReturnTE, SignatureT}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, ICitizenNameT, IFunctionNameT, INameT}
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT, SignatureT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
 import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertSome, vfail}
 

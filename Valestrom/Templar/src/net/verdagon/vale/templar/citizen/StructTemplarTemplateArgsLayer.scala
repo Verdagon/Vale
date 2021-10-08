@@ -1,4 +1,4 @@
-package net.verdagon.vale.templar.citize
+package net.verdagon.vale.templar.citizen
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.templar.types._
@@ -17,11 +17,10 @@ import scala.collection.immutable.List
 class StructTemplarTemplateArgsLayer(
     opts: TemplarOptions,
     profiler: IProfiler,
-    newTemplataStore: () => TemplatasStore,
     inferTemplar: InferTemplar,
     ancestorHelper: AncestorHelper,
     delegate: IStructTemplarDelegate) {
-  val middle = new StructTemplarMiddle(opts, profiler, newTemplataStore, ancestorHelper, delegate)
+  val middle = new StructTemplarMiddle(opts, profiler, ancestorHelper, delegate)
 
   def addBuiltInStructs(env: PackageEnvironment[INameT], temputs: Temputs): Unit = {
     middle.addBuiltInStructs(env, temputs)
@@ -152,34 +151,5 @@ class StructTemplarTemplateArgsLayer(
   def makeSeqOrPackUnerstruct(env: PackageEnvironment[INameT], temputs: Temputs, memberTypes2: Vector[CoordT], name: ICitizenNameT):
   (StructTT, MutabilityT) = {
     middle.makeSeqOrPackUnderstruct(env, temputs, memberTypes2, name)
-  }
-
-  // Makes an anonymous substruct of the given interface, with the given lambdas as its members.
-  def makeAnonymousSubstruct(
-    interfaceEnv: IEnvironment,
-    temputs: Temputs,
-    range: RangeS,
-    interfaceTT: InterfaceTT,
-    substructName: FullNameT[AnonymousSubstructNameT]):
-  (StructTT, MutabilityT) = {
-    middle.makeAnonymousSubstruct(
-      interfaceEnv,
-      temputs,
-      range,
-      interfaceTT,
-      substructName)
-  }
-
-  // Makes an anonymous substruct of the given interface, which just forwards its method to the given prototype.
-  def prototypeToAnonymousStruct(
-    outerEnv: IEnvironment,
-    temputs: Temputs,
-    life: LocationInFunctionEnvironment,
-    range: RangeS,
-    prototype: PrototypeT,
-    structFullName: FullNameT[ICitizenNameT]):
-  StructTT = {
-    middle.prototypeToAnonymousStruct(
-      outerEnv, temputs, life, range, prototype, structFullName)
   }
 }

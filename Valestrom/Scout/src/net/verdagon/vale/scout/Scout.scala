@@ -6,7 +6,6 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.PatternScout
 //import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List

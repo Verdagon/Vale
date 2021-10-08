@@ -1,11 +1,9 @@
 package net.verdagon.vale.hammer
 
 import net.verdagon.vale.hammer.ExpressionHammer.translate
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal.{BorrowH, ShareH, Variability => _, Varying => _, _}
 import net.verdagon.vale.{metal => m}
-import net.verdagon.vale.templar.{types => t}
-import net.verdagon.vale.templar._
+import net.verdagon.vale.templar.{Hinputs, types => t, _}
 import net.verdagon.vale.templar.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.names.{FullNameT, IVarNameT}

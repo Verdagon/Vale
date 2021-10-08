@@ -3,7 +3,6 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, OneOfSR}
-import net.verdagon.vale.templar.types._
 
 object ScoutErrorHumanizer {
   def humanize(
@@ -39,7 +38,7 @@ object ScoutErrorHumanizer {
     name match {
 //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
       case ClosureParamNameS() => "(closure)"
-      case CodeTypeNameS(n) => n
+      case CodeNameS(n) => n
       case MagicParamNameS(codeLocation) => "(magic)"
       case CodeVarNameS(name) => name
       case RuneNameS(rune) => humanizeRune(rune)

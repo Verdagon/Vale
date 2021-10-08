@@ -1,20 +1,19 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.parser.{CombinatorParsers, FileP, ParseErrorHumanizer, ParseFailure, ParseSuccess, ParsedLoader, Parser, ParserVonifier}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, ICompileErrorS, ProgramS, Scout, TopLevelCitizenDeclarationNameS, VariableNameAlreadyExists}
+import net.verdagon.vale.scout.{CodeNameS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, ICompileErrorS, ProgramS, Scout, TopLevelCitizenDeclarationNameS, VariableNameAlreadyExists}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, AstronomerCompilation}
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.solver.{FailedSolve, RuleError}
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
-import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, ImmConcreteDestructorNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, DropNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ImmConcreteDestructorNameT}
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -103,7 +102,46 @@ class TemplarTests extends FunSuite with Matchers {
     })
   }
 
-  test("Constraint reference") {
+  test("Simple struct read") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |struct Moo export { hp int; }
+        |fn main(moo &Moo) int export {
+        |  moo.hp
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+  }
+
+  test("Simple struct instantiate") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |struct Moo export { hp int; }
+        |fn main() Moo export {
+        |  Moo(42)
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+  }
+
+  test("Call destructor") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |struct Moo export { hp int; }
+        |fn main() int export {
+        |  Moo(42).hp
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+    Collector.only(main, {
+      case FunctionCallTE(PrototypeT(FullNameT(_, _, DropNameT(_, _)), _), _) =>
+    })
+  }
+
+  test("Make constraint reference") {
     val compile = TemplarTestCompilation.test(
       """
         |struct Moo {}
@@ -348,7 +386,7 @@ class TemplarTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT("drop", _, _)), _), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
   }
 
@@ -1246,7 +1284,7 @@ class TemplarTests extends FunSuite with Matchers {
       CouldntFindFunctionToCallT(
         RangeS.testZero,
         ScoutExpectedFunctionFailure(
-          CodeTypeNameS("someFunc"),
+          CodeNameS("someFunc"),
           Vector(),
           Map()))).nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,

@@ -1,11 +1,11 @@
 package net.verdagon.vale.templar.function
 
 //import net.verdagon.vale.astronomer.{AbstractAP, CallAR, CodeRuneS, CodeTypeNameS, CodeVarNameS, ComponentsAR, EqualsAR, FunctionA, FunctionNameS, GeneratedBodyS, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmDropImpreciseNameS, ImmDropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS, LocalS, MutabilityAR, NameSR, OrAR, OverrideAP, OwnershipAR, ParameterS, PermissionAR, RuneSR, TemplexAR, UserFunctionA}
-import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmDropImpreciseNameS, ImmDropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, DropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
 import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, Used, UserFunctionS}
+import net.verdagon.vale.scout.{CodeRuneS, CodeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, Used, UserFunctionS}
 import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
@@ -34,27 +34,27 @@ class DestructorTemplar(
           env,
           temputs,
           RangeS.internal(-1663),
-          if (type2.ownership == ShareT) {
-            ImmConcreteDestructorImpreciseNameS()
-          } else {
-            GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
-          },
+//          if (type2.ownership == ShareT) {
+//            ImmConcreteDestructorImpreciseNameS()
+//          } else {
+            CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME),
+//          },
           Vector.empty,
           Array.empty,
           Vector(ParamFilter(type2, None)),
           Vector.empty,
           true)
       }
-      case InterfaceTT(_) => {
+      case InterfaceTT(fullName) => {
         overloadTemplar.scoutExpectedFunctionForPrototype(
           env,
           temputs,
           RangeS.internal(-1668),
-          if (type2.ownership == ShareT) {
-            ImmInterfaceDestructorImpreciseNameS()
-          } else {
-            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
-          },
+//          if (type2.ownership == ShareT) {
+            DropNameS(fullName.packageCoord),
+//          } else {
+//            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
+//          },
           Vector.empty,
           Array.empty,
           Vector(ParamFilter(type2, None)),
@@ -76,11 +76,12 @@ class DestructorTemplar(
       env,
       temputs,
       RangeS.internal(-16721),
-      if (type2.ownership == ShareT) {
-        ImmConcreteDestructorImpreciseNameS()
-      } else {
-        GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
-      },
+      DropNameS(PackageCoordinate.BUILTIN),
+//      if (type2.ownership == ShareT) {
+//        ImmConcreteDestructorImpreciseNameS()
+//      } else {
+//        GlobalFunctionFamilyNameS(CallTemplar.MUT_DESTRUCTOR_NAME)
+//      },
       Vector.empty,
       Array.empty,
       Vector(ParamFilter(type2, None)),

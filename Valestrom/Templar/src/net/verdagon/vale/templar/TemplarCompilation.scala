@@ -2,7 +2,6 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
 

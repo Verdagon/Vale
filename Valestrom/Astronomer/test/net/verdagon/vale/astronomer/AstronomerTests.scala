@@ -1,11 +1,8 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{FileP, ParseFailure, ParseSuccess, Parser}
-import net.verdagon.vale.scout.{CodeRuneS, ProgramS, RuneTypeSolveError, Scout}
+import net.verdagon.vale.scout.{CodeRuneS, CoordTemplataType, PackTemplataType, ProgramS, RuneTypeSolveError, Scout}
 import net.verdagon.vale._
-import net.verdagon.vale.scout.rules.{LiteralSR, PackSR}
-import net.verdagon.vale.solver.IncompleteSolve
-import net.verdagon.vale.templar.types.{CoordTemplataType, PackTemplataType, PrototypeTemplataType}
 import org.scalatest.{FunSuite, Matchers}
 
 class AstronomerTests extends FunSuite with Matchers  {

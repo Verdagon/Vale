@@ -1,21 +1,21 @@
 package net.verdagon.vale.templar.macros
 
-import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS}
+import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, ParameterS, UserFunctionS}
+import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, IsConcreteSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
-import net.verdagon.vale.templar.ast.LocationInFunctionEnvironment
-import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, Templar, Temputs}
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT}
+import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, OverloadTemplar, Templar, Temputs}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.templata.{Conversions, FunctionHeaderT, ParameterT, PrototypeT}
-import net.verdagon.vale.templar.types.{CoordT, CoordTemplataType, FunctionTemplataType, MutabilityT, MutableT, PackTT, ParamFilter, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT, TemplateTemplataType}
-import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail}
+import net.verdagon.vale.templar.templata.Conversions
+import net.verdagon.vale.templar.types.{CoordT, ImmutableT, MutabilityT, MutableT, PackTT, ParamFilter, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT}
+import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail, vimpl}
 
-object ConcreteDestructorMacro {
+class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
 
   def addConcreteDestructor(mutability: MutabilityT): (FunctionA, IFunctionGenerator) = {
     // Note the virtuality None in the header, and how we filter so this only applies
@@ -23,11 +23,12 @@ object ConcreteDestructorMacro {
     val unevaluatedFunction =
     FunctionA(
       RangeS.internal(-68),
-      if (mutability == MutableT) {
-        FunctionNameS(CallTemplar.MUT_DESTRUCTOR_NAME, CodeLocationS.internal(-16))
-      } else {
-        ImmConcreteDestructorNameS(PackageCoordinate.internal)
-      },
+      DropNameS(PackageCoordinate.BUILTIN),
+//      if (mutability == MutableT) {
+//        FunctionNameS(CallTemplar.MUT_DESTRUCTOR_NAME, CodeLocationS.internal(-16))
+//      } else {
+//        ImmConcreteDestructorNameS(PackageCoordinate.internal)
+//      },
       Vector(UserFunctionS),
       TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
       Vector(RuneUsage(RangeS.internal(-68001), CodeRuneS("T"))),
@@ -55,7 +56,7 @@ object ConcreteDestructorMacro {
         IsConcreteSR(RangeS.internal(-16729), RuneUsage(RangeS.internal(-68002), CodeRuneS("XX"))),
         OneOfSR(RangeS.internal(-16727),RuneUsage(RangeS.internal(-68002), CodeRuneS("O")),Array(OwnershipLiteralSL(OwnP), OwnershipLiteralSL(ShareP))),
         OneOfSR(RangeS.internal(-16728),RuneUsage(RangeS.internal(-68002), CodeRuneS("P")),Array(PermissionLiteralSL(ReadwriteP), PermissionLiteralSL(ReadonlyP))),
-        LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-68002), CodeRuneS("V")),CodeTypeNameS("void"))),
+        LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-68002), CodeRuneS("V")),CodeNameS("void"))),
       GeneratedBodyS("concreteDestructorGenerator"))
     val generator =
       new IFunctionGenerator {
@@ -75,27 +76,28 @@ object ConcreteDestructorMacro {
         (FunctionHeaderT) = {
           // Even though below we treat packs, closures, and structs the same, they're
           // still disambiguated by the template arguments.
-          paramCoords.map(_.tyype) match {
-            case Vector(CoordT(_, _, PackTT(_, structTT))) => {
-              destructorTemplar.generateStructDestructor(
-                env, temputs, maybeOriginFunction1.get, paramCoords, structTT)
-            }
-            case Vector(CoordT(_, _, sr @ StructTT(_))) => {
-              destructorTemplar.generateStructDestructor(
-                env, temputs, maybeOriginFunction1.get, paramCoords, sr)
-            }
-            case Vector(r @ CoordT(_, _, as @ StaticSizedArrayTT(_, _))) => {
-              destructorTemplar.generateStaticSizedArrayDestructor(
-                env, temputs, life + 0, maybeOriginFunction1, r, as)
-            }
-            case Vector(r @ CoordT(_, _, ra @ RuntimeSizedArrayTT(_))) => {
-              destructorTemplar.generateRuntimeSizedArrayDestructor(
-                env, temputs, life + 1, maybeOriginFunction1, r, ra)
-            }
-            case _ => {
-              vfail("wot")
-            }
-          }
+          vimpl()
+//          paramCoords.map(_.tyype) match {
+//            case Vector(CoordT(_, _, PackTT(_, structTT))) => {
+//              destructorTemplar.generateStructDestructor(
+//                env, temputs, maybeOriginFunction1.get, paramCoords, structTT)
+//            }
+//            case Vector(CoordT(_, _, sr @ StructTT(_))) => {
+//              destructorTemplar.generateStructDestructor(
+//                env, temputs, maybeOriginFunction1.get, paramCoords, sr)
+//            }
+//            case Vector(r @ CoordT(_, _, as @ StaticSizedArrayTT(_, _))) => {
+//              destructorTemplar.generateStaticSizedArrayDestructor(
+//                env, temputs, life + 0, maybeOriginFunction1, r, as)
+//            }
+//            case Vector(r @ CoordT(_, _, ra @ RuntimeSizedArrayTT(_))) => {
+//              destructorTemplar.generateRuntimeSizedArrayDestructor(
+//                env, temputs, life + 1, maybeOriginFunction1, r, ra)
+//            }
+//            case _ => {
+//              vfail("wot")
+//            }
+//          }
         }
       }
     (unevaluatedFunction, generator)

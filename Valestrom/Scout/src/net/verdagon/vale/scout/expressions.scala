@@ -3,7 +3,6 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser.{ConstraintP, LendConstraintP, LendWeakP, LoadAsP, MoveP, MutabilityP, OwnershipP, PermissionP, VariabilityP, WeakP}
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.{ILiteralSL, IRulexSR, RuneUsage}
-import net.verdagon.vale.templar.types.ITemplataType
 import net.verdagon.vale.{RangeS, vassert, vcurious, vimpl, vpass}
 
 // patternId is a unique number, can be used to make temporary variables that wont

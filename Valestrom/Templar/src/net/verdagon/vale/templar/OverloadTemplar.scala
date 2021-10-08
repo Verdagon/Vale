@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolveError, RuneTypeSolver}
+import net.verdagon.vale.scout.{FunctionTemplataType, GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
 import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.RuleTypeSolveFailure
@@ -13,7 +13,7 @@ import net.verdagon.vale.{Err, Ok, RangeS, Result, vassertOne, vpass}
 //import net.verdagon.vale.scout.rules.{EqualsSR, TemplexSR, TypedSR}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.scout.{CodeRuneS, CodeTypeNameS, ExplicitTemplateArgRuneS, INameS}
+import net.verdagon.vale.scout.{CodeRuneS, CodeNameS, ExplicitTemplateArgRuneS, INameS}
 import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar

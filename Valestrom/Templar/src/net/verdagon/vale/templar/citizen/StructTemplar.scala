@@ -12,7 +12,7 @@ import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer}
 import net.verdagon.vale._
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, PrototypeT}
-import net.verdagon.vale.templar.citize.StructTemplarTemplateArgsLayer
+import net.verdagon.vale.templar.citizen.StructTemplarTemplateArgsLayer
 import net.verdagon.vale.templar.names.{ICitizenNameT, INameT}
 
 import scala.collection.immutable.List
@@ -39,43 +39,17 @@ trait IStructTemplarDelegate {
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   PrototypeT
-
-  def makeImmConcreteDestructor(
-    temputs: Temputs,
-    env: IEnvironment,
-    structTT: StructTT):
-  PrototypeT
-
-  def getImmInterfaceDestructorOverride(
-    temputs: Temputs,
-    env: IEnvironment,
-    structTT: StructTT,
-    implementedInterfaceRefT: InterfaceTT):
-  PrototypeT
-
-  def getImmInterfaceDestructor(
-    temputs: Temputs,
-    env: IEnvironment,
-    interfaceTT: InterfaceTT):
-  PrototypeT
-
-  def getImmConcreteDestructor(
-    temputs: Temputs,
-    env: IEnvironment,
-    structTT: StructTT):
-  PrototypeT
 }
 
 class StructTemplar(
     opts: TemplarOptions,
     profiler: IProfiler,
-    newTemplataStore: () => TemplatasStore,
     inferTemplar: InferTemplar,
     ancestorHelper: AncestorHelper,
     delegate: IStructTemplarDelegate) {
   val templateArgsLayer =
     new StructTemplarTemplateArgsLayer(
-      opts, profiler, newTemplataStore, inferTemplar, ancestorHelper, delegate)
+      opts, profiler, inferTemplar, ancestorHelper, delegate)
 
   def addBuiltInStructs(env: PackageEnvironment[INameT], temputs: Temputs): Unit = {
     templateArgsLayer.addBuiltInStructs(env, temputs)

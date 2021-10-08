@@ -2,12 +2,12 @@ package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale._
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
-import net.verdagon.vale.scout.{CodeTypeNameS, INameS, IRuneS, RuneNameS, SenderRuneS}
+import net.verdagon.vale.scout.{CodeNameS, INameS, IRuneS, ITemplataType, RuneNameS, SenderRuneS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
-import net.verdagon.vale.templar.FunctionNameT
+import net.verdagon.vale.templar.ast.PrototypeT
 import net.verdagon.vale.templar.names.{FunctionNameT, INameT}
-import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeT, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types._
 
 sealed trait ITemplarSolverError
@@ -534,7 +534,7 @@ class TemplarSolver[Env, State](
 //                  Ok(Map(argRune.rune, paramType))
 //                })
 //              }
-              case _ => vimpl()
+              case other => vimpl(other)
             }
           }
         }

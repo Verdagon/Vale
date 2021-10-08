@@ -6,7 +6,7 @@ object Result {
   }
 }
 
-sealed trait Result[T, E] {
+sealed trait Result[+T, +E] {
   def getOrDie(): T
   def expectErr(): E
   def map[Y](func: (T) => Y): Result[Y, E]

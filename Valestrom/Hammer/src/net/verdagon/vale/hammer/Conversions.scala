@@ -2,6 +2,7 @@ package net.verdagon.vale.hammer
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.metal._
+import net.verdagon.vale.scout.{BooleanTemplataType, CoordTemplataType, ITemplataType, IntegerTemplataType, KindTemplataType, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, PermissionTemplataType, TemplateTemplataType, VariabilityTemplataType}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{types => t}

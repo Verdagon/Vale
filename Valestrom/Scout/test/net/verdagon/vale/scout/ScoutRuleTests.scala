@@ -3,7 +3,6 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP}
-import net.verdagon.vale.templar.types.{CoordTemplataType, IntegerTemplataType, KindTemplataType, MutabilityTemplataType, OwnershipTemplataType, PermissionTemplataType, VariabilityTemplataType}
 import net.verdagon.vale.{Err, FileCoordinate, Ok, RangeS, vassert, vassertSome, vfail, vimpl, vwat}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import org.scalatest.{FunSuite, Matchers}

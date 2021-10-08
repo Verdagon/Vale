@@ -3,7 +3,6 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale._
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, ParameterT, UserFunctionT}
 import org.scalatest.{FunSuite, Matchers, _}

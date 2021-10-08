@@ -7,7 +7,7 @@ import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox, IEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar}
 import net.verdagon.vale.templar.names.TupleNameT
-import net.verdagon.vale.vassert
+import net.verdagon.vale.{vassert, vimpl}
 
 class SequenceTemplar(
   opts: TemplarOptions,
@@ -19,7 +19,7 @@ class SequenceTemplar(
     exprs2: Vector[ReferenceExpressionTE]):
   (ExpressionT) = {
     val types2 = exprs2.map(_.resultRegister.expectReference().reference)
-    val (tupleType2, mutability) = makeTupleType(env.globalEnv, temputs, types2)
+    val (tupleType2, mutability) = makeTupleType(vimpl(env.globalEnv), temputs, types2)
     val ownership = if (mutability == MutableT) OwnT else ShareT
     val permission = if (mutability == MutableT) ReadwriteT else ReadonlyT
     val finalExpr = TupleTE(exprs2, CoordT(ownership, permission, tupleType2), tupleType2)
@@ -32,7 +32,7 @@ class SequenceTemplar(
     types2: Vector[CoordT]):
   (TupleTT, MutabilityT) = {
     val (structTT, mutability) =
-      structTemplar.makeSeqOrPackUnderstruct(env.globalEnv, temputs, types2, TupleNameT(types2))
+      structTemplar.makeSeqOrPackUnderstruct(vimpl(env.globalEnv), temputs, types2, TupleNameT(types2))
 
     if (types2.isEmpty)
       vassert(temputs.lookupStruct(structTT).mutability == ImmutableT)

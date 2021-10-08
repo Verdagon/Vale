@@ -61,7 +61,7 @@ object TemplataNamer {
       case AnonymousSubstructNameT(thing) =>
       case AnonymousSubstructLambdaNameT(codeLocation) => "ᛘ" + codeLocation
       case TupleNameT(members) => "tup#"
-      case ImmDropNameT(kind) => "drop*" + getKindIdentifierName(kind)
+      case DropNameT(kind) => "drop*" + getReferenceIdentifierName(kind)
       case x => vimpl(x.toString)
     }).mkString(".")
   }

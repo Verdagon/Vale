@@ -1,7 +1,7 @@
 package net.verdagon.vale.astronomer
 
 import net.verdagon.vale.parser.{FileP, ParseFailure, ParseSuccess, Parser, Range}
-import net.verdagon.vale.scout.{CodeTypeNameS, ProgramS, Scout}
+import net.verdagon.vale.scout.{CodeNameS, ProgramS, Scout}
 import net.verdagon.vale.{Err, FileCoordinate, FileCoordinateMap, Ok, PackageCoordinateMap, vassert, vfail}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -22,7 +22,7 @@ class ErrorTests extends FunSuite with Matchers  {
 
 
     compileProgramForError(compilation) match {
-      case e @ CouldntFindTypeA(_, CodeTypeNameS("Bork")) => {
+      case e @ CouldntFindTypeA(_, CodeNameS("Bork")) => {
         val errorText = AstronomerErrorHumanizer.humanize(compilation.getCodeMap().getOrDie(), e)
         vassert(errorText.contains("Couldn't find type `Bork`"))
       }

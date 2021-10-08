@@ -75,11 +75,11 @@ case class EdgeT(
   interface: InterfaceTT,
   methods: Vector[PrototypeT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
-object Program2 {
+object ProgramT {
   val emptyTupleStructRef = StructTT(FullNameT(PackageCoordinate.BUILTIN, Vector.empty, TupleNameT(Vector.empty)))
-  val emptyTupleType: PackTT = PackTT(Vector.empty, Program2.emptyTupleStructRef)
+  val emptyTupleType: PackTT = PackTT(Vector.empty, ProgramT.emptyTupleStructRef)
   val emptyTupleReference: CoordT = CoordT(ShareT, ReadonlyT, emptyTupleType)
-  val emptyPackExpression: PackTE = PackTE(Vector.empty, CoordT(ShareT, ReadonlyT, Program2.emptyTupleType), Program2.emptyTupleType)
+  val emptyPackExpression: PackTE = PackTE(Vector.empty, CoordT(ShareT, ReadonlyT, ProgramT.emptyTupleType), ProgramT.emptyTupleType)
 
   val intType = CoordT(ShareT, ReadonlyT, IntT.i32)
   val boolType = CoordT(ShareT, ReadonlyT, BoolT())

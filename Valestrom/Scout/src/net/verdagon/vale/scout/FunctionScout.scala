@@ -5,7 +5,6 @@ import net.verdagon.vale.scout.ExpressionScout.NormalResult
 import net.verdagon.vale.scout.Scout.{noDeclarations, predictRuneTypes}
 import net.verdagon.vale.scout.patterns._
 //import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
-import net.verdagon.vale.templar.types.{CoordTemplataType, ITemplataType}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -120,7 +119,7 @@ object FunctionScout {
           // If nothing's present, assume void
           val rangeS = Scout.evalRange(file, retRange)
           val rune = RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-          ruleBuilder += LookupSR(rangeS, rune, CodeTypeNameS("void"))
+          ruleBuilder += LookupSR(rangeS, rune, CodeNameS("void"))
           Some(rune)
         }
         case (Some(_), None) => None // Infer the return
@@ -523,7 +522,7 @@ object FunctionScout {
         case (None, None) => {
           // If nothing's present, assume void
           val rune = RuneUsage(retRangeS, ImplicitRuneS(lidb.child().consume()))
-          ruleBuilder += LookupSR(retRangeS, rune, CodeTypeNameS("void"))
+          ruleBuilder += LookupSR(retRangeS, rune, CodeNameS("void"))
           Some(rune)
         }
         case (Some(_), None) => {

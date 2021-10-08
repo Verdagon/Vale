@@ -2,7 +2,6 @@ package net.verdagon.vale.scout.rules
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{IEnvironment, Environment => _, FunctionEnvironment => _, _}
-import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
 
 import scala.collection.mutable

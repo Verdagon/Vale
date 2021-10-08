@@ -33,7 +33,42 @@ case class FullNameT[+T <: INameT](
   def addStep[Y <: INameT](newLast: Y): FullNameT[Y] = {
     FullNameT[Y](packageCoord, steps, newLast)
   }
-  def init: FullNameT[INameT] = FullNameT[INameT](packageCoord, initSteps.init, initSteps.last)
+  def init: FullNameT[INameT] = {
+    if (initSteps.isEmpty) {
+      if (last == PackageTopLevelNameT()) {
+        vimpl()
+      } else {
+        FullNameT(packageCoord, Vector(), PackageTopLevelNameT())
+      }
+    } else {
+      FullNameT(packageCoord, initSteps.init, initSteps.last)
+    }
+  }
+
+  def parent: Option[FullNameT[INameT]] = {
+    if (initSteps.isEmpty) {
+      packageCoord.parent match {
+        case None => None
+        case Some(parentPackage) => Some(FullNameT(parentPackage, Vector(), PackageTopLevelNameT()))
+      }
+    } else {
+      Some(FullNameT(packageCoord, initSteps.init, initSteps.last))
+    }
+  }
+
+  def selfAndParents: List[FullNameT[INameT]] = {
+    parent match {
+      case None => List(this)
+      case Some(parent) => this :: parent.selfAndParents
+    }
+  }
+
+  def parents: List[FullNameT[INameT]] = {
+    parent match {
+      case None => List()
+      case Some(parent) => parent.selfAndParents
+    }
+  }
 }
 // not sure if we need imprecise names in templar
 //// An imprecise name is one where we don't know exactly where the thing is defined.
@@ -132,10 +167,10 @@ case class ImmInterfaceDestructorNameT(
 
 }
 // We dont just use "drop" as the name because we don't want the user to override it.
-case class ImmDropNameT(kind: KindT) extends IFunctionNameT {
+case class DropNameT(templateArgs: Vector[ITemplata], coord: CoordT) extends IFunctionNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def templateArgs: Vector[ITemplata] = Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, kind)))
-  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, kind))
+//  override def templateArgs: Vector[ITemplata] = Vector()
+  override def parameters: Vector[CoordT] = Vector(coord)
 
   def order = 39;
 
@@ -197,7 +232,7 @@ case class ImmInterfaceDestructorTemplateNameT() extends INameT with IFunctionTe
   def order = 44;
 
 }
-case class ImmDropTemplateNameT() extends INameT with IFunctionTemplateNameT {
+case class DropTemplateNameT() extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 45;
 

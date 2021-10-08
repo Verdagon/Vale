@@ -1,25 +1,23 @@
-package net.verdagon.vale.hinputs
+package net.verdagon.vale.templar
 
-import net.verdagon.vale.templar.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionT, InterfaceEdgeBlueprint, KindExportT, KindExternT}
-import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
-import net.verdagon.vale.templar.templata.{FunctionBannerT, PrototypeT, SignatureT, simpleName}
-import net.verdagon.vale.templar.types.{InterfaceDefinitionT, InterfaceTT, KindT, StructDefinitionT, StructTT}
-import net.verdagon.vale.{PackageCoordinate, vassertSome, vfail}
-
-import scala.collection.immutable.List
+import net.verdagon.vale.templar.ast._
+import net.verdagon.vale.templar.names._
+import net.verdagon.vale.templar.templata.simpleName
+import net.verdagon.vale.templar.types._
+import net.verdagon.vale.{vassertSome, vfail}
 
 case class Hinputs(
-    interfaces: Vector[InterfaceDefinitionT],
-    structs: Vector[StructDefinitionT],
-    emptyPackStructRef: StructTT,
-    functions: Vector[FunctionT],
-    kindToDestructor: Map[KindT, PrototypeT],
-    edgeBlueprintsByInterface: Map[InterfaceTT, InterfaceEdgeBlueprint],
-    edges: Vector[EdgeT],
-    kindExports: Vector[KindExportT],
-    functionExports: Vector[FunctionExportT],
-    kindExterns: Vector[KindExternT],
-    functionExterns: Vector[FunctionExternT]) {
+  interfaces: Vector[InterfaceDefinitionT],
+  structs: Vector[StructDefinitionT],
+  emptyPackStructRef: StructTT,
+  functions: Vector[FunctionT],
+  kindToDestructor: Map[KindT, PrototypeT],
+  edgeBlueprintsByInterface: Map[InterfaceTT, InterfaceEdgeBlueprint],
+  edges: Vector[EdgeT],
+  kindExports: Vector[KindExportT],
+  functionExports: Vector[FunctionExportT],
+  kindExterns: Vector[KindExternT],
+  functionExterns: Vector[FunctionExternT]) {
   override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
   def lookupStruct(structTT: StructTT): StructDefinitionT = {
@@ -28,9 +26,11 @@ case class Hinputs(
       case Some(s) => s
     }
   }
+
   def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
     vassertSome(interfaces.find(_.getRef == interfaceTT))
   }
+
   def lookupFunction(signature2: SignatureT): Option[FunctionT] = {
     functions.find(_.header.toSignature == signature2).headOption
   }
@@ -121,6 +121,7 @@ case class Hinputs(
   def getAllNonExternFunctions: Iterable[FunctionT] = {
     functions.filter(!_.header.isExtern)
   }
+
   def getAllUserFunctions: Iterable[FunctionT] = {
     functions.filter(_.header.isUserFunction)
   }

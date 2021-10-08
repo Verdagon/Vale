@@ -1,8 +1,8 @@
 package net.verdagon.vale.templar.templata
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{FunctionNameS, TopLevelCitizenDeclarationNameS}
-import net.verdagon.vale.templar.NameTranslator
+import net.verdagon.vale.scout.{BooleanTemplataType, CoordTemplataType, FunctionNameS, ITemplataType, IntegerTemplataType, KindTemplataType, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, PackTemplataType, PermissionTemplataType, PrototypeTemplataType, StringTemplataType, TemplateTemplataType, TopLevelCitizenDeclarationNameS, VariabilityTemplataType}
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, PrototypeT}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, NameTranslator, PackageTopLevelNameT}
 import net.verdagon.vale.templar.types._
@@ -50,12 +50,6 @@ case class FunctionTemplata(
   // somewhere.
   // See TMRE for more on these environments.
   outerEnv: IEnvironment,
-//
-//  // The containers are the structs/interfaces/impls/functions that this thing is inside.
-//  // E.g. if LinkedList has a Node substruct, then the Node's templata will have one
-//  // container, the LinkedList.
-//  // See NTKPRR for why we have these parents.
-//  unevaluatedContainers: Vector[IContainer],
 
   // This is the env entry that the function came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
@@ -98,34 +92,38 @@ case class FunctionTemplata(
 }
 
 object FunctionTemplata {
-  def make(parentEnv: IEnvironment, function: FunctionA) = {
-    val functionEnvName = FullNameT(function.range.file.packageCoordinate, parentEnv.fullName.steps, PackageTopLevelNameT())
-    val functionEnv = PackageEnvironment(Some(parentEnv), functionEnvName, TemplatasStore(Map(), Map()))
-    FunctionTemplata(functionEnv, function)
+  def make(globalEnv: GlobalEnvironment, namespaceName: FullNameT[INameT], function: FunctionA) = {
+    // THIS IS TEMPORARY, it pulls in all global namespaces!
+    // See https://github.com/ValeLang/Vale/issues/356
+    val definingEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceName)
+    FunctionTemplata(definingEnv, function)
   }
 }
 
 object StructTemplata {
-  def make(parentEnv: IEnvironment, struct: StructA) = {
-    val structEnvName = FullNameT(struct.range.file.packageCoordinate, parentEnv.fullName.steps, PackageTopLevelNameT())
-    val structEnv = PackageEnvironment(Some(parentEnv), structEnvName, TemplatasStore(Map(), Map()))
-    StructTemplata(structEnv, struct)
+  def make(globalEnv: GlobalEnvironment, namespaceName: FullNameT[INameT], struct: StructA) = {
+    // THIS IS TEMPORARY, it pulls in all global namespaces!
+    // See https://github.com/ValeLang/Vale/issues/356
+    val definingEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceName)
+    StructTemplata(definingEnv, struct)
   }
 }
 
 object InterfaceTemplata {
-  def make(parentEnv: IEnvironment, interface: InterfaceA) = {
-    val interfaceEnvName = FullNameT(interface.range.file.packageCoordinate, parentEnv.fullName.steps, PackageTopLevelNameT())
-    val interfaceEnv = PackageEnvironment(Some(parentEnv), interfaceEnvName, TemplatasStore(Map(), Map()))
-    InterfaceTemplata(interfaceEnv, interface)
+  def make(globalEnv: GlobalEnvironment, namespaceName: FullNameT[INameT], interface: InterfaceA) = {
+    // THIS IS TEMPORARY, it pulls in all global namespaces!
+    // See https://github.com/ValeLang/Vale/issues/356
+    val definingEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceName)
+    InterfaceTemplata(definingEnv, interface)
   }
 }
 
 object ImplTemplata {
-  def make(parentEnv: IEnvironment, impl: ImplA) = {
-    val implEnvName = FullNameT(impl.range.file.packageCoordinate, parentEnv.fullName.steps, PackageTopLevelNameT())
-    val implEnv = PackageEnvironment(Some(parentEnv), implEnvName, TemplatasStore(Map(), Map()))
-    ImplTemplata(implEnv, impl)
+  def make(globalEnv: GlobalEnvironment, namespaceName: FullNameT[INameT], impl: ImplA) = {
+    // THIS IS TEMPORARY, it pulls in all global namespaces!
+    // See https://github.com/ValeLang/Vale/issues/356
+    val definingEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceName)
+    ImplTemplata(definingEnv, impl)
   }
 }
 

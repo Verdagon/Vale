@@ -1,6 +1,5 @@
 package net.verdagon.vale.astronomer
 
-import net.verdagon.vale.templar.types._
 import net.verdagon.vale.parser.{CaptureP, FailedParse, FileP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{ExportS, ExternS, RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
@@ -58,7 +57,7 @@ object Astronomer {
     absoluteName: INameS):
   Boolean = {
     (needleImpreciseNameS, absoluteName) match {
-      case (CodeTypeNameS(humanNameB), TopLevelCitizenDeclarationNameS(humanNameA, _)) => humanNameA == humanNameB
+      case (CodeNameS(humanNameB), TopLevelCitizenDeclarationNameS(humanNameA, _)) => humanNameA == humanNameB
       case (RuneNameS(a), _) => false
       case other => vimpl(other)
     }
@@ -74,7 +73,7 @@ object Astronomer {
     needleImpreciseNameS match {
       case LambdaNameS(_) =>
       case FunctionNameS(_, _) =>
-      case CodeTypeNameS(_) =>
+      case CodeNameS(_) =>
       case RuneNameS(_) =>
       case TopLevelCitizenDeclarationNameS(_, _) =>
       case LambdaStructNameS(_) => return Vector(KindTemplataType)
@@ -87,7 +86,7 @@ object Astronomer {
     }
 
     needleImpreciseNameS match {
-      case CodeTypeNameS(nameStr) => {
+      case CodeNameS(nameStr) => {
         primitives.get(nameStr) match {
           case Some(x) => return Vector(x)
           case None =>

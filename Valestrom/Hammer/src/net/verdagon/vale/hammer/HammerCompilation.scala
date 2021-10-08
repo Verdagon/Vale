@@ -2,11 +2,10 @@ package net.verdagon.vale.hammer
 
 import net.verdagon.vale.{FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, PackageCoordinate, PackageCoordinateMap, Result, vimpl}
 import net.verdagon.vale.astronomer.{ICompileErrorA, ProgramA}
-import net.verdagon.vale.hinputs.Hinputs
 import net.verdagon.vale.metal.ProgramH
 import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
-import net.verdagon.vale.templar.{ICompileErrorT, TemplarCompilation, TemplarCompilationOptions}
+import net.verdagon.vale.templar.{Hinputs, ICompileErrorT, TemplarCompilation, TemplarCompilationOptions}
 
 import scala.collection.immutable.List
 

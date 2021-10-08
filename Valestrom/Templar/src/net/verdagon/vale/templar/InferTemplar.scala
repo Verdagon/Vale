@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.{CoordReceivesSR, IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{IRuneS, SenderRuneS}
+import net.verdagon.vale.scout.{CoordTemplataType, IRuneS, ITemplataType, SenderRuneS}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}

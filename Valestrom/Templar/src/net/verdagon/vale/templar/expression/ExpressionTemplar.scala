@@ -6,7 +6,7 @@ import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.{RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.{ast, _}
-import net.verdagon.vale.templar.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, NarrowPermissionTE, Program2, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, TemplarReinterpretTE, VoidLiteralTE, WeakAliasTE, WhileTE}
+import net.verdagon.vale.templar.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, NarrowPermissionTE, ProgramT, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, TemplarReinterpretTE, VoidLiteralTE, WeakAliasTE, WhileTE}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
@@ -40,7 +40,7 @@ trait IExpressionTemplarDelegate {
 class ExpressionTemplar(
     opts: TemplarOptions,
     profiler: IProfiler,
-  newTemplataStore: () => TemplatasStore,
+
     templataTemplar: TemplataTemplar,
     inferTemplar: InferTemplar,
     arrayTemplar: ArrayTemplar,
@@ -54,7 +54,7 @@ class ExpressionTemplar(
   val localHelper = new LocalHelper(opts, destructorTemplar)
   val callTemplar = new CallTemplar(opts, templataTemplar, convertHelper, localHelper, overloadTemplar)
   val patternTemplar = new PatternTemplar(opts, profiler, inferTemplar, arrayTemplar, convertHelper, destructorTemplar, localHelper)
-  val blockTemplar = new BlockTemplar(opts, newTemplataStore, destructorTemplar, localHelper, new IBlockTemplarDelegate {
+  val blockTemplar = new BlockTemplar(opts, destructorTemplar, localHelper, new IBlockTemplarDelegate {
     override def evaluateAndCoerceToReferenceExpression(
       temputs: Temputs,
       fate: FunctionEnvironmentBox,
@@ -818,7 +818,7 @@ class ExpressionTemplar(
           // The then and else blocks are children of the block which contains the condition
           // so they can access any locals declared by the condition.
 
-          val ifBlockFate = fate.makeChildEnvironment(newTemplataStore, None)
+          val ifBlockFate = fate.makeChildEnvironment(None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, ifBlockFate, life + 1, conditionSE)
@@ -827,7 +827,7 @@ class ExpressionTemplar(
           }
 
 
-          val thenFate = ifBlockFate.makeChildEnvironment(newTemplataStore, Some(thenBody1))
+          val thenFate = ifBlockFate.makeChildEnvironment(Some(thenBody1))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(temputs, thenFate.snapshot, thenFate, life + 2, thenBody1.exprs)
@@ -836,7 +836,7 @@ class ExpressionTemplar(
           val thenUnstackifiedAncestorLocals = thenFate.getEffects()
           val thenContinues = uncoercedThenBlock2.resultRegister.reference.kind != NeverT()
 
-          val elseFate = ifBlockFate.makeChildEnvironment(newTemplataStore, Some(elseBody1))
+          val elseFate = ifBlockFate.makeChildEnvironment(Some(elseBody1))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(temputs, elseFate.snapshot, elseFate, life + 3, elseBody1.exprs)
@@ -906,7 +906,7 @@ class ExpressionTemplar(
           // We make a block for the while-statement which contains its condition (the "if block"),
           // and the body block, so they can access any locals declared by the condition.
 
-          val whileBlockFate = fate.makeChildEnvironment(newTemplataStore, None)
+          val whileBlockFate = fate.makeChildEnvironment(None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, whileBlockFate, life + 0, conditionSE)
@@ -944,7 +944,7 @@ class ExpressionTemplar(
           (whileExpr2, returnsFromCondition ++ bodyReturnsFromExprs)
         }
         case b @ BlockSE(range, locals, blockExprs) => {
-          val childEnvironment = fate.makeChildEnvironment(newTemplataStore, Some(b))
+          val childEnvironment = fate.makeChildEnvironment(Some(b))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(temputs, childEnvironment.functionEnvironment, childEnvironment, life, blockExprs)
@@ -1010,8 +1010,8 @@ class ExpressionTemplar(
               }
             }
 
-          val allLocals = fate.getAllLocals(true)
-          val unstackifiedLocals = fate.getAllUnstackifiedLocals(true)
+          val allLocals = fate.getAllLocals()
+          val unstackifiedLocals = fate.getAllUnstackifiedLocals()
           val variablesToDestruct = allLocals.filter(x => !unstackifiedLocals.contains(x.id))
           val reversedVariablesToDestruct = variablesToDestruct.reverse
 
@@ -1069,7 +1069,7 @@ class ExpressionTemplar(
   def getOption(temputs: Temputs, fate: FunctionEnvironment, range: RangeS, containedCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
-      fate.lookupWithImpreciseName(profiler, CodeTypeNameS("Opt"), Set(TemplataLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("Opt"), Set(TemplataLookupContext), true).toList match {
         case List(it@InterfaceTemplata(_, _)) => it
         case _ => vfail()
       }
@@ -1106,7 +1106,7 @@ class ExpressionTemplar(
   def getResult(temputs: Temputs, fate: FunctionEnvironment, range: RangeS, containedSuccessCoord: CoordT, containedFailCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
-      fate.lookupWithImpreciseName(profiler, CodeTypeNameS("Result"), Set(TemplataLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("Result"), Set(TemplataLookupContext), true).toList match {
         case List(it@InterfaceTemplata(_, _)) => it
         case _ => vfail()
       }
@@ -1249,14 +1249,14 @@ class ExpressionTemplar(
 
   private def newGlobalFunctionGroupExpression(env: IEnvironmentBox, name: GlobalFunctionFamilyNameS): ReferenceExpressionTE = {
     TemplarReinterpretTE(
-      Program2.emptyPackExpression,
+      ProgramT.emptyPackExpression,
       CoordT(
         ShareT,
         ReadonlyT,
         OverloadSet(
           env.snapshot,
           name,
-          Program2.emptyTupleStructRef)))
+          ProgramT.emptyTupleStructRef)))
   }
 
   def evaluateBlockStatements(
