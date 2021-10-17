@@ -30,7 +30,7 @@ class TemplarTests extends FunSuite with Matchers {
   }
 
 
-  test("Simple program returning an int") {
+  test("Simple program returning an int, inferred") {
     val compile = TemplarTestCompilation.test("fn main() infer-ret {3}")
     val temputs = compile.expectTemputs()
 
@@ -39,6 +39,16 @@ class TemplarTests extends FunSuite with Matchers {
       case FunctionHeaderT(simpleName("main"),Vector(UserFunctionT),Vector(), CoordT(ShareT, ReadonlyT, IntT.i32), _) => true
     })
     Collector.only(main, { case ConstantIntTE(3, _) => true })
+  }
+
+  test("Simple program returning an int, explicit") {
+    // We had a bug once looking up "int" in the environment, hence this test.
+
+    val compile = TemplarTestCompilation.test("fn main() int {3}")
+    val temputs = compile.expectTemputs()
+
+    val main = temputs.lookupFunction("main")
+    main.header.returnType.kind shouldEqual IntT(32)
   }
 
   test("Hardcoding negative numbers") {

@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
 import net.verdagon.vale.scout.{CodeNameS, INameS, IRuneS, ITemplataType, RuneNameS, SenderRuneS}
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
+import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.ast.PrototypeT
 import net.verdagon.vale.templar.names.{FunctionNameT, INameT}
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
@@ -575,31 +575,31 @@ class TemplarSolver[Env, State](
         (rule: IRulexSR) => getPuzzles(rule),
         initiallyKnownRuneToTemplata)
 
+    val ruleSolver =
+      new ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata, ITemplarSolverError] {
+        override def complexSolve(solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplata]): Result[(Array[Int], Map[IRuneS, ITemplata]), ITemplarSolverError] = {
+          Ok((Array(), Map()))
+        }
+        override def solve(state: State, env: Env, ruleIndex: Int, rule: IRulexSR, solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplata]): Result[Map[IRuneS, ITemplata], ITemplarSolverError] = {
+          solveRule(state, env, ruleIndex, rule, solverState) match {
+            case Err(e) => Err(e)
+            case Ok(conclusions) => {
+              Ok(
+                conclusions.map({ case (rune, conclusion) =>
+                  val coerced =
+                    delegate.coerce(env, state, range, vassertSome(runeToType.get(rune)), conclusion)
+                  vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
+                  (rune -> coerced)
+                }))
+            }
+          }
+        }
+      }
     Solver.solve[IRulexSR, IRuneS, Env, State, ITemplata, ITemplarSolverError](
       state,
       env,
       solverState,
-      (
-        state: State,
-        env: Env,
-        ruleIndex: Int,
-        rule: IRulexSR,
-        solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplata]) =>
-      {
-        solveRule(state, env, ruleIndex, rule, solverState) match {
-          case Err(e) => Err(e)
-          case Ok(conclusions) => {
-            Ok(
-              conclusions.map({ case (rune, conclusion) =>
-                val coerced =
-                  delegate.coerce(env, state, range, vassertSome(runeToType.get(rune)), conclusion)
-                vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
-                (rune -> coerced)
-              }))
-          }
-        }
-      }
-    ) match {
+      ruleSolver) match {
       case Err(f @ FailedSolve(_, _, _)) => f
       case Ok(conclusionsStream) => {
         val conclusions = conclusionsStream.toMap

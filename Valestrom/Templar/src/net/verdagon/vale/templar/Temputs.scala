@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, ReturnTE, SignatureT}
-import net.verdagon.vale.templar.env.{FunctionEnvironment, PackageEnvironment}
+import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, ICitizenNameT, IFunctionNameT, INameT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
 import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertSome, vfail}
@@ -41,14 +41,14 @@ case class Temputs() {
   // Not too sure about the type of declaredStructs, we might need something else
   private val declaredStructs: mutable.HashSet[StructTT] = mutable.HashSet()
   private val structDefsByRef: mutable.HashMap[StructTT, StructDefinitionT] = mutable.HashMap()
-  private val envByStructRef: mutable.HashMap[StructTT, PackageEnvironment[INameT]] = mutable.HashMap()
+  private val envByStructRef: mutable.HashMap[StructTT, CitizenEnvironment[INameT]] = mutable.HashMap()
   // declaredInterfaces is the interfaces that we're currently in the process of defining
   // Things will appear here before they appear in interfaceDefsByRef
   // This is to prevent infinite recursion / stack overflow when templaring recursive types
   // Not too sure about the type of declaredInterfaces, we might need something else
   private val declaredInterfaces: mutable.HashSet[InterfaceTT] = mutable.HashSet()
   private val interfaceDefsByRef: mutable.HashMap[InterfaceTT, InterfaceDefinitionT] = mutable.HashMap()
-  private val envByInterfaceRef: mutable.HashMap[InterfaceTT, PackageEnvironment[INameT]] = mutable.HashMap()
+  private val envByInterfaceRef: mutable.HashMap[InterfaceTT, CitizenEnvironment[INameT]] = mutable.HashMap()
 
   private val impls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
 
@@ -150,7 +150,7 @@ case class Temputs() {
 
   def declareStructEnv(
     structTT: StructTT,
-    env: PackageEnvironment[ICitizenNameT],
+    env: CitizenEnvironment[ICitizenNameT],
   ): Unit = {
     vassert(declaredStructs.contains(structTT))
     vassert(!envByStructRef.contains(structTT))
@@ -173,7 +173,7 @@ case class Temputs() {
 
   def declareInterfaceEnv(
     interfaceTT: InterfaceTT,
-    env: PackageEnvironment[CitizenNameT]
+    env: CitizenEnvironment[CitizenNameT]
   ): Unit = {
     vassert(declaredInterfaces.contains(interfaceTT))
     vassert(!envByInterfaceRef.contains(interfaceTT))
@@ -330,10 +330,10 @@ case class Temputs() {
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
     envByFunctionSignature(sig)
   }
-  def getEnvForInterfaceRef(sr: InterfaceTT): PackageEnvironment[INameT] = {
+  def getEnvForInterfaceRef(sr: InterfaceTT): CitizenEnvironment[INameT] = {
     envByInterfaceRef(sr)
   }
-  def getEnvForStructRef(sr: StructTT): PackageEnvironment[INameT] = {
+  def getEnvForStructRef(sr: StructTT): CitizenEnvironment[INameT] = {
     envByStructRef(sr)
   }
   def getInterfaceDefForRef(ir: InterfaceTT): InterfaceDefinitionT = {

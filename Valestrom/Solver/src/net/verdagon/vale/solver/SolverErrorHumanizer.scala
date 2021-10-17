@@ -22,7 +22,7 @@ object SolverErrorHumanizer {
         }
         case FailedSolve(incompleteConclusions, unsolvedRules, error) => {
           error match {
-            case SolverConflict(rule, rune, previousConclusion, newConclusion) => {
+            case SolverConflict(rune, previousConclusion, newConclusion) => {
               "Conflict, thought rune " + humanizeRune(rune) + " was " + humanizeTemplata(codeMap, previousConclusion) + " but now concluding it's " + humanizeTemplata(codeMap, newConclusion)
             }
             case RuleError(ruleIndex, err) => {

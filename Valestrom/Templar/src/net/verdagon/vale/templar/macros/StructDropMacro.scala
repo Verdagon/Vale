@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.macros
 import net.verdagon.vale.astronomer.{DropNameS, FunctionA, StructA}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
-import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, RuneUsage}
+import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, RuneParentEnvLookupSR, RuneUsage}
 import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DestroyTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, Templar, Temputs}
 import net.verdagon.vale.templar.citizen.StructTemplar
@@ -24,61 +24,16 @@ class StructDropMacro(
   override def onStructDefined(
     packageCoordinate: PackageCoordinate, namespace: Vector[INameT], structName: INameT, structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
+    val structNameS = CodeNameS(structA.name.name)
+    val structType = structA.tyype
+    val structIdentifyingRunes = structA.identifyingRunes
+    val structIdentifyingRuneToType =
+      structIdentifyingRunes.map(_.rune)
+        .zip(structIdentifyingRunes.map(_.rune).map(structA.runeToType)).toMap
+
     val functionA =
-      FunctionA(
-        RangeS.internal(-66),
-//        if (mutability == MutableT) {
-//          FunctionNameS(CallTemplar.MUT_DROP_FUNCTION_NAME, CodeLocationS.internal(-19))
-//        } else {
-          DropNameS(PackageCoordinate.internal),
-  //      },
-        Vector(UserFunctionS),
-        structA.tyype match {
-          case KindTemplataType => FunctionTemplataType
-          case TemplateTemplataType(paramTypes, KindTemplataType) => {
-            TemplateTemplataType(paramTypes, FunctionTemplataType)
-          }
-        },
-        structA.identifyingRunes,
-        structA.identifyingRunes.map(_.rune)
-          .zip(structA.identifyingRunes.map(_.rune).map(structA.runeToType)).toMap ++
-        Map(
-          CodeRuneS("__S") -> structA.tyype,
-          CodeRuneS("__P1") -> CoordTemplataType,
-          CodeRuneS("__V") -> CoordTemplataType,
-//          CodeRuneS("K") -> KindTemplataType,
-//          CodeRuneS("KM") -> MutabilityTemplataType,
-//          CodeRuneS("O") -> OwnershipTemplataType,
-//          CodeRuneS("P") -> PermissionTemplataType
-          ),
-        Vector(
-          ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1"))), None))),
-        Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__V"))),
-        Vector(
-          structA.tyype match {
-            case KindTemplataType => {
-              EqualsSR(
-                RangeS.internal(-167215),
-                RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
-                RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")))
-            }
-            case TemplateTemplataType(_, KindTemplataType) => {
-              CallSR(
-                RangeS.internal(-167215),
-                RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
-                RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")),
-                structA.identifyingRunes.map(_.rune).map(r => RuneUsage(RangeS.internal(-64002), r)).toArray)
-            }
-          },
-//          CoordComponentsSR(RangeS.internal(-98),
-//            RuneUsage(RangeS.internal(-64002), CodeRuneS("T")), RuneUsage(RangeS.internal(-64002), CodeRuneS("O")), RuneUsage(RangeS.internal(-64002), CodeRuneS("P")), RuneUsage(RangeS.internal(-64002), CodeRuneS("K"))),
-//          KindComponentsSR(RangeS.internal(-99),
-//            RuneUsage(RangeS.internal(-64002), CodeRuneS("K")), RuneUsage(RangeS.internal(-64002), CodeRuneS("KM"))),
-//          LiteralSR(RangeS.internal(-167251),
-//            RuneUsage(RangeS.internal(-64002), CodeRuneS("KM")), MutabilityLiteralSL(Conversions.unevaluateMutability(mutability))),
-          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")),CodeNameS(structA.name.name)),
-          LookupSR(RangeS.internal(-167213),RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")),CodeNameS("void"))),
-        GeneratedBodyS(generatorId))
+      makeDropFunction(
+        structNameS, structType, structIdentifyingRunes.map(_.rune), structIdentifyingRuneToType)
 
     val fullName =
       FullNameT(packageCoordinate, namespace, NameTranslator.translateFunctionNameToTemplateName(functionA.name))
@@ -119,6 +74,70 @@ class StructDropMacro(
 //      }
 //    (unevaluatedFunctionA, generator)
 //  }
+
+  private def makeDropFunction(structNameS: CodeNameS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
+    FunctionA(
+      RangeS.internal(-66),
+      DropNameS(PackageCoordinate.internal),
+      Vector(UserFunctionS),
+      structType match {
+        case KindTemplataType => FunctionTemplataType
+        case TemplateTemplataType(paramTypes, KindTemplataType) => {
+          TemplateTemplataType(paramTypes, FunctionTemplataType)
+        }
+      },
+      structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(-64002), r)),
+      structIdentifyingRuneToType ++
+        Map(
+          CodeRuneS("__S") -> structType,
+          CodeRuneS("__P1") -> CoordTemplataType,
+          CodeRuneS("__V") -> CoordTemplataType),
+      Vector(
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1"))), None))),
+      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__V"))),
+      Vector(
+        structType match {
+          case KindTemplataType => {
+            EqualsSR(
+              RangeS.internal(-167215),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")))
+          }
+          case TemplateTemplataType(_, KindTemplataType) => {
+            CallSR(
+              RangeS.internal(-167215),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")),
+              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(-64002), r)).toArray)
+          }
+        },
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")), structNameS),
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")), CodeNameS("void"))),
+      GeneratedBodyS(generatorId))
+  }
+
+  def makeClosureDropFunction():
+  FunctionA = {
+    FunctionA(
+      RangeS.internal(-66),
+      DropNameS(PackageCoordinate.internal),
+      Vector(UserFunctionS),
+      FunctionTemplataType,
+      Vector(),
+      Map(
+        CodeRuneS("__P1") -> CoordTemplataType,
+        CodeRuneS("__V") -> CoordTemplataType),
+      Vector(
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1"))), None))),
+      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__V"))),
+      Vector(
+        LookupSR(
+          RangeS.internal(-167213),
+          RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
+          ClosureParamNameS()),
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")), CodeNameS("void"))),
+      GeneratedBodyS(generatorId))
+  }
 
   override def generateFunctionBody(
     env: FunctionEnvironment,
