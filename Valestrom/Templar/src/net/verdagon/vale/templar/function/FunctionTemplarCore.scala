@@ -212,19 +212,13 @@ class FunctionTemplarCore(
       val maybeExplicitReturnCoord =
         startingFullEnv.function.maybeRetCoordRune match {
           case Some(retCoordRune) => {
-            val maybeRetTemplata =
-              startingFullEnv.lookupWithImpreciseName(
+            startingFullEnv.lookupNearestWithImpreciseName(
                 profiler,
                 RuneNameS(retCoordRune.rune),
-                Set(TemplataLookupContext),
-                true).headOption
-            val retCoord =
-              maybeRetTemplata match {
-                case None => vwat()
-                case Some(CoordTemplata(retCoord)) => retCoord
-                case Some(_) => vwat()
-              }
-            Some(retCoord)
+                Set(TemplataLookupContext))  match {
+              case Some(CoordTemplata(retCoord)) => Some(retCoord)
+              case other => vwat(other)
+            }
           }
           case None => None
         }

@@ -415,18 +415,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
                 NameTranslator.translateFunctionNameToTemplateName(functionA.name),
                 FunctionEnvEntry(functionA)))
             })
-          }).flatten.flatten.toVector ++
-          // Primitives
-          Map[INameT, IEnvEntry](
-            PrimitiveNameT("int") -> TemplataEnvEntry(KindTemplata(IntT.i32)),
-            PrimitiveNameT("i64") -> TemplataEnvEntry(KindTemplata(IntT.i64)),
-            PrimitiveNameT("Array") -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()),
-            PrimitiveNameT("bool") -> TemplataEnvEntry(KindTemplata(BoolT())),
-            PrimitiveNameT("float") -> TemplataEnvEntry(KindTemplata(FloatT())),
-            PrimitiveNameT("__Never") -> TemplataEnvEntry(KindTemplata(NeverT())),
-            PrimitiveNameT("str") -> TemplataEnvEntry(KindTemplata(StrT())),
-            PrimitiveNameT("void") -> TemplataEnvEntry(KindTemplata(VoidT())))
-            .map({ case (name, envEntry) => (PackageCoordinate.BUILTIN, Vector(), name, envEntry) })
+          }).flatten.flatten.toVector
 
         val namespaceNameToTemplatas =
           packageAndNamespaceAndNameAndEnvEntry
@@ -442,14 +431,13 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
               }
             })
             .groupBy(_._1)
-            .map({ case (namespaceName, envEntries) =>
-              namespaceName ->
-                TemplatasStore(namespaceName, Map(), Map())
-                  .addEntries(
-                    envEntries
-                      .map({ case (_, b, c) => (b, c) })
-                      .groupBy(_._1)
-                      .mapValues(_.map(_._2)))
+            .mapValues(envEntries => {
+              TemplatasStore(Map(), Map())
+                .addEntries(
+                  envEntries
+                    .map({ case (_, b, c) => (b, c) })
+                    .groupBy(_._1)
+                    .mapValues(_.map(_._2)))
              })
 
         val globalEnv =
@@ -463,18 +451,26 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
             Map(
               structConstructorMacro.generatorId -> structConstructorMacro,
               structDropMacro.generatorId -> structDropMacro),
-            namespaceNameToTemplatas)
+            namespaceNameToTemplatas,
+            // Bulitins
+            TemplatasStore(Map(), Map()).addEntries(
+              Map[INameT, Vector[IEnvEntry]](
+                PrimitiveNameT("int") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i32))),
+                PrimitiveNameT("i64") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i64))),
+                PrimitiveNameT("Array") -> Vector(TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata())),
+                PrimitiveNameT("bool") -> Vector(TemplataEnvEntry(KindTemplata(BoolT()))),
+                PrimitiveNameT("float") -> Vector(TemplataEnvEntry(KindTemplata(FloatT()))),
+                PrimitiveNameT("__Never") -> Vector(TemplataEnvEntry(KindTemplata(NeverT()))),
+                PrimitiveNameT("str") -> Vector(TemplataEnvEntry(KindTemplata(StrT()))),
+                PrimitiveNameT("void") -> Vector(TemplataEnvEntry(KindTemplata(VoidT()))))))
 
         val temputs = Temputs()
         structTemplar.addBuiltInStructs(
-          PackageEnvironment(
-            globalEnv,
-            FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()),
-            Vector(),
-            List()),
+          PackageEnvironment.makeTopLevelEnvironment(globalEnv),
           temputs)
 
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv)
           templatas.entriesByNameT.map({ case (name, entries) =>
             entries.map({
               case TemplataEnvEntry(_) =>
@@ -487,7 +483,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
                       functionTemplar.evaluateOrdinaryFunctionFromNonCallForPrototype(
                         temputs,
                         RangeS.internal(-177),
-                        FunctionTemplata.make(globalEnv, namespaceCoord, functionA))
+                        FunctionTemplata(env, functionA))
                   }
                 }
               }
@@ -496,7 +492,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
                   // Do nothing, it's a template
                 } else {
                   if (isRootStruct(structA)) {
-                    val templata = StructTemplata.make(globalEnv, namespaceCoord, structA)
+                    val templata = StructTemplata(env, structA)
                     val _ = structTemplar.getStructRef(temputs, structA.range, templata, Vector.empty)
                   }
                 }
@@ -506,7 +502,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
                   // Do nothing, it's a template
                 } else {
                   if (isRootInterface(interfaceA)) {
-                    val templata = InterfaceTemplata.make(globalEnv, namespaceCoord, interfaceA)
+                    val templata = InterfaceTemplata(env, interfaceA)
                     val _ = structTemplar.getInterfaceRef(temputs, interfaceA.range, templata, Vector.empty)
                   }
                 }
@@ -519,9 +515,7 @@ class Templar(debugOut: (=> String) => Unit, verbose: Boolean, profiler: IProfil
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
-            val env =
-              PackageEnvironment(
-                globalEnv, FullNameT(packageCoord, Vector(), PackageTopLevelNameT()), Vector(), List())
+            val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv)
             val templataByRune =
               inferTemplar.solveExpectComplete(env, temputs, rules, runeToType, range, Map(), Map())
             val kind =

@@ -2,7 +2,9 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale._
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{IIncompleteOrFailedSolve, ISolverStateForRule, IncompleteSolve, Solver}
+import net.verdagon.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverStateForRule, IncompleteSolve, Solver}
+
+import scala.collection.immutable.Map
 
 case class RuneTypeSolveError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplataType, Unit]) {
   vpass()
@@ -259,8 +261,14 @@ object RuneTypeSolver {
         Unit,
         env,
         solverState,
-        solveRule
-      ) match {
+        new ISolveRule[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit] {
+          override def complexSolve(solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]): Result[(Array[Int], Map[IRuneS, ITemplataType]), Unit] = {
+            Ok((Array(), Map()))
+          }
+          override def solve(state: Unit, env: INameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]): Result[Map[IRuneS, ITemplataType], Unit] = {
+            solveRule(state, env, ruleIndex, rule, solverState)
+          }
+        }) match {
         case Ok(c) => c.toMap
         case Err(e) => vfail(e)
       }

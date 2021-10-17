@@ -315,12 +315,12 @@ class FunctionTemplarMiddleLayer(
     paramTypes: Vector[CoordT],
     maybeReturnType: Option[CoordT]
   ): FunctionEnvironment = {
-    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, oldName, function, variables, globalNamespaces, localNamespaces) = runedEnv
+    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, parentEnv, oldName, templatas, function, variables) = runedEnv
 
     // We fill out the params here to get the function's full name.
     val newName = assembleName(oldName, paramTypes)
 
-    FunctionEnvironment(globalEnv, newName, function, globalNamespaces, localNamespaces, maybeReturnType, None, variables, Set())
+    FunctionEnvironment(globalEnv, parentEnv, newName, templatas, function, maybeReturnType, None, variables, Set())
   }
 
   private def assembleName(

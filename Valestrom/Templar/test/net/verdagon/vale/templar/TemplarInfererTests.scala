@@ -28,9 +28,9 @@ case class FakeEnv() { val hash = runtime.ScalaRunTime._hashCode(this); override
 case class FakeState() { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 case class SimpleEnvironment(templatas: TemplatasStore) extends IEnvironment {
-  override def localNamespaces: List[TemplatasStore] = vimpl()
+//  override def localNamespaces: List[TemplatasStore] = vimpl()
   override def globalEnv: GlobalEnvironment = vimpl()
-  override def globalNamespaces: Vector[TemplatasStore] = vimpl()
+//  override def globalNamespaces: Vector[TemplatasStore] = vimpl()
 
   def fullName = FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT())
   def lookupWithImpreciseName(
@@ -185,9 +185,8 @@ class InfererTests extends FunSuite with Matchers {
     PrototypeT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("increment", Vector(), Vector(CoordT(ShareT, ReadonlyT, IntT.i32)))), CoordT(ShareT, ReadonlyT, IntT.i32))
 
   def makeCannedEnvironment(): SimpleEnvironment = {
-    var entries: TemplatasStore =
-      TemplatasStore(
-        FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()), Map(), Map())
+    // FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()),
+    var entries: TemplatasStore = TemplatasStore(Map(), Map())
     val voidName = PrimitiveNameT("void")
     entries = entries.addEntry(true, voidName, TemplataEnvEntry(KindTemplata(VoidT())))
     val intName = PrimitiveNameT("int")

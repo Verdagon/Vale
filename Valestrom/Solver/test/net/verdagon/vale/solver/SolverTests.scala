@@ -1,57 +1,9 @@
 package net.verdagon.vale.solver
 
-import net.verdagon.vale.{Collector, Err, Ok, Result, vassert, vassertSome, vfail, vimpl, vwat}
+import net.verdagon.vale.{Collector, Err, Ok, Result, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.Map
-
-sealed trait IRule {
-  def allRunes: Array[Long]
-  def allPuzzles: Array[Array[Long]]
-}
-case class Lookup(rune: Long, name: String) extends IRule {
-  override def allRunes: Array[Long] = Array(rune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array())
-}
-case class Literal(rune: Long, value: String) extends IRule {
-  override def allRunes: Array[Long] = Array(rune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array())
-}
-case class Equals(leftRune: Long, rightRune: Long) extends IRule {
-  override def allRunes: Array[Long] = Array(leftRune, rightRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(leftRune), Array(rightRune))
-}
-case class CoordComponents(coordRune: Long, ownershipRune: Long, kindRune: Long) extends IRule {
-  override def allRunes: Array[Long] = Array(coordRune, ownershipRune, kindRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(coordRune), Array(ownershipRune, kindRune))
-}
-case class OneOf(coordRune: Long, possibleValues: Array[String]) extends IRule {
-  override def allRunes: Array[Long] = Array(coordRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(coordRune))
-}
-case class Call(resultRune: Long, nameRune: Long, argRune: Long) extends IRule {
-  override def allRunes: Array[Long] = Array(resultRune, nameRune, argRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(resultRune, nameRune), Array(nameRune, argRune))
-}
-// See IRFU and SRCAMP for what this rule is doing
-case class Receive(receiverRune: Long, senderRune: Long) extends IRule {
-  override def allRunes: Array[Long] = Array(receiverRune, senderRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(receiverRune))
-}
-case class Implements(subRune: Long, superRune: Long) extends IRule {
-  override def allRunes: Array[Long] = Array(subRune, superRune)
-  override def allPuzzles: Array[Array[Long]] = Array(Array(subRune, superRune))
-}
-case class Pack(resultRune: Long, memberRunes: Array[Long]) extends IRule {
-  override def allRunes: Array[Long] = Array(resultRune) ++ memberRunes
-  override def allPuzzles: Array[Array[Long]] = {
-    if (memberRunes.isEmpty) {
-      Array(Array(resultRune))
-    } else {
-      Array(Array(resultRune), memberRunes)
-    }
-  }
-}
 
 class SolverTests extends FunSuite with Matchers with Collector {
   val complexRuleSet =
@@ -65,121 +17,6 @@ class SolverTests extends FunSuite with Matchers with Collector {
       CoordComponents(-1L, -2L, -3L),
       Equals(-6L, -7L))
   val complexRuleSetEqualsRules = Array(3, 5, 7)
-
-  //  def makePuzzler() = {
-  //    new IRunePuzzler[Unit, SimpleLiteral, SimpleLookup] {
-  //      override def getPuzzles(rulexAR: IRulexSR[Int, Unit, SimpleLiteral, SimpleLookup]): Array[Array[Int]] = {
-  //        TemplarPuzzler.apply(rulexAR)
-  //      }
-  //    }
-  //  }
-
-  object RuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String] {
-    override def solve(
-      state: Unit,
-      env: Unit,
-      ruleIndex: Int,
-      rule: IRule,
-      solverState: ISolverStateForRule[IRule, Long, String]):
-    Result[Map[Long, String], String] = {
-      rule match {
-        case Equals(leftRune, rightRune) => {
-          solverState.getConclusion(leftRune) match {
-            case Some(left) => Ok(Map(rightRune -> left))
-            case None => Ok(Map(leftRune -> vassertSome(solverState.getConclusion(rightRune))))
-          }
-        }
-        case Lookup(rune, name) => {
-          val value = name
-          Ok(Map(rune -> value))
-        }
-        case Literal(rune, literal) => {
-          Ok(Map(rune -> literal))
-        }
-        case OneOf(rune, literals) => {
-          val literal = solverState.getConclusion(rune).get
-          if (!literals.contains(literal)) {
-            return Err("conflict!")
-          }
-          Ok(Map())
-        }
-        case CoordComponents(coordRune, ownershipRune, kindRune) => {
-          solverState.getConclusion(coordRune) match {
-            case Some(combined) => {
-              val Array(ownership, kind) = combined.split("/")
-              Ok(Map(ownershipRune -> ownership, kindRune -> kind))
-            }
-            case None => {
-              (solverState.getConclusion(ownershipRune), solverState.getConclusion(kindRune)) match {
-                case (Some(ownership), Some(kind)) => {
-                  Ok(Map(coordRune -> (ownership + "/" + kind)))
-                }
-                case _ => vfail()
-              }
-            }
-          }
-        }
-        case Pack(resultRune, memberRunes) => {
-          solverState.getConclusion(resultRune) match {
-            case Some(result) => {
-              val parts = result.split(",")
-              Ok(memberRunes.zip(parts).toMap)
-            }
-            case None => {
-              val result = memberRunes.map(solverState.getConclusion).map(_.get).mkString(",")
-              Ok(Map(resultRune -> result))
-            }
-          }
-        }
-        case Call(resultRune, nameRune, argRune) => {
-          val maybeResult = solverState.getConclusion(resultRune)
-          val maybeName = solverState.getConclusion(nameRune)
-          val maybeArg = solverState.getConclusion(argRune)
-          (maybeResult, maybeName, maybeArg) match {
-            case (Some(result), Some("Firefly"), _) => Ok(Map(argRune -> result.slice("Firefly:".length, result.length)))
-            case (_, Some("Firefly"), Some(arg)) => Ok(Map(resultRune -> ("Firefly:" + arg)))
-            case other => vwat(other)
-          }
-        }
-        case Receive(receiverRune, senderRune) => {
-          val receiver = vassertSome(solverState.getConclusion(receiverRune))
-          if (receiver == "ISpaceship") {
-            val ruleIndex =
-              solverState.addRule(Implements(senderRune, receiverRune), Array(senderRune, receiverRune))
-            solverState.addPuzzle(ruleIndex, Array(senderRune, receiverRune))
-            Ok(Map())
-          } else {
-            // Not receiving into an interface, so sender must be the same
-            Ok(Map(senderRune -> receiver))
-          }
-        }
-        case Implements(subRune, superRune) => {
-          val sub = vassertSome(solverState.getConclusion(subRune))
-          val suuper = vassertSome(solverState.getConclusion(superRune))
-          if (sub == suuper) {
-            Ok(Map())
-          } else if (sub == "Firefly" && suuper == "ISpaceship") {
-            Ok(Map())
-          } else {
-            Err("bork")
-          }
-        }
-      }
-    }
-  }
-
-//  def solve(rulesSR: Vector[IRulexSR]): Map[IRuneS, String] = {
-//    solveAndGetState(rulesSR)._1
-//  }
-//
-//  def solveAndGetState(rulesSR: Vector[IRulexSR]): (Map[IRuneS, String], PlannerState) = {
-//    val solver = makeSolver()
-//    val (runeToIndex, runeToType, plannerState) = RuleFlattener.flattenAndCompileRules(rulesSR)
-//    val rawConclusions =
-//      Planner.solve((), (), plannerState, tr).getOrDie()
-//    val conclusions = runeToIndex.mapValues(i => vassertSome(rawConclusions(i)))
-//    (conclusions, plannerState)
-//  }
 
   test("Simple int rule") {
     val rules =
@@ -301,7 +138,6 @@ class SolverTests extends FunSuite with Matchers with Collector {
         unsolvedRules shouldEqual Vector()
         err match {
           case SolverConflict(
-            2,
             -2,
             // Already concluded this
             "ISpaceship",
@@ -318,8 +154,47 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-1L, "ISpaceship"),
         Literal(-2L, "Firefly"),
         Receive(-1L, -2L))
+    // Should be a successful solve
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "ISpaceship", -2L -> "Firefly")
+  }
+
+  test("Test complex solve: most specific ancestor") {
+    val rules =
+      Array(
+        Literal(-2L, "Firefly"),
+        Receive(-1L, -2L))
+    // Should be a successful solve
+    getConclusions(rules, true) shouldEqual
+      Map(-1L -> "Firefly", -2L -> "Firefly")
+  }
+
+  test("Test complex solve: calculate common ancestor") {
+    val rules =
+      Array(
+        Literal(-2L, "Firefly"),
+        Literal(-3L, "Serenity"),
+        Receive(-1L, -2L),
+        Receive(-1L, -3L))
+    // Should be a successful solve
+    getConclusions(rules, true) shouldEqual
+      Map(-1L -> "ISpaceship", -2L -> "Firefly", -3L -> "Serenity")
+  }
+
+  test("Test complex solve: most specific satisfying call") {
+    val rules =
+      Array(
+        Literal(-2L, "Flamethrower:int"),
+        Receive(-1L, -2L),
+        Call(-1L, -3L, -4L),
+        Literal(-3L, "IWeapon"))
+    // Should be a successful solve
+    getConclusions(rules, true) shouldEqual
+      Map(
+        -1 -> "IWeapon:int",
+        -4 -> "int",
+        -2 -> "Flamethrower:int",
+        -3 -> "IWeapon")
   }
 
   test("Partial Solve") {
@@ -339,7 +214,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         (rule: IRule) => rule.allPuzzles,
         Map())
     val firstConclusions =
-      Solver.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, TestRuleSolver) match {
         case Ok(c) => c
         case Err(e) => vfail(e)
       }
@@ -347,7 +222,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     solverState.concludeRune(solverState.getCanonicalRune(-1), "Firefly")
 
     val secondConclusions =
-      Solver.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, TestRuleSolver) match {
         case Ok(c) => c
         case Err(e) => vfail(e)
       }
@@ -389,7 +264,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
           puzzler,
           Map())
       val conclusions =
-        Solver.solve((), (), solverState, RuleSolver.solve) match {
+        Solver.solve((), (), solverState, TestRuleSolver) match {
           case Ok(c) => c.toMap
           case Err(e) => vfail(e)
         }
@@ -417,7 +292,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-1L, "1448"),
         Literal(-1L, "1337"))
     expectSolveFailure(rules) match {
-      case FailedSolve(_, _, SolverConflict(_, _, conclusionA, conclusionB)) => {
+      case FailedSolve(_, _, SolverConflict(_, conclusionA, conclusionB)) => {
         Vector(conclusionA, conclusionB).sorted shouldEqual Vector("1337", "1448").sorted
       }
     }
@@ -441,7 +316,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
         Map())
-    Solver.solve((), (), solverState, RuleSolver.solve) match {
+    Solver.solve((), (), solverState, TestRuleSolver) match {
       case Ok(c) => vfail(c)
       case Err(e) => e
     }
@@ -459,7 +334,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         (rule: IRule) => rule.allPuzzles,
         initiallyKnownRunes)
     val conclusions =
-      Solver.solve((), (), solverState, RuleSolver.solve) match {
+      Solver.solve((), (), solverState, TestRuleSolver) match {
           case Ok(c) => c
           case Err(e) => vfail(e)
         }

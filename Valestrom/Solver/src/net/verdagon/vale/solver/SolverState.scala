@@ -1,6 +1,6 @@
 package net.verdagon.vale.solver
 
-import net.verdagon.vale.{vassert, vfail, vimpl}
+import net.verdagon.vale.{Err, Ok, Result, vassert, vfail, vimpl}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -31,6 +31,7 @@ trait ISolverStateForRule[Rule, RuneID, Conclusion] {
 //  def concludeRune(rune: RuneID, conclusion: Conclusion)
   def addRule(rule: Rule, runes: Array[RuneID]): Int
   def addPuzzle(ruleIndex: Int, runes: Array[RuneID])
+  def getUnsolvedRules(): Vector[Rule]
 }
 
 case class SolverState[Rule, RuneID, Conclusion](
@@ -306,44 +307,72 @@ case class SolverState[Rule, RuneID, Conclusion](
     })
   }
 
-  def markRuleSolved(rule: Int, newConclusions: Map[Int, Conclusion]) = {
-    val ruleRunes = ruleToRunes(rule)
-    ruleRunes.foreach(canonicalRune => {
-      vassert(getConclusion(canonicalRune).nonEmpty, "Didn't conclude a rune!")
+  // Success returns number of new conclusions
+  def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[RuneID, Conclusion]):
+  Result[Int, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
+    val numNewConclusions =
+      newConclusions.map({ case (newlySolvedRune, newConclusion) =>
+        val newlySolvedCanonicalRune = getCanonicalRune(newlySolvedRune)
+        getConclusion(newlySolvedCanonicalRune) match {
+          case None => {
+            concludeRune(newlySolvedCanonicalRune, newConclusion)
+            1
+          }
+          case Some(existingConclusion) => {
+            if (existingConclusion != newConclusion) {
+              return Err(
+                FailedSolve(
+                  userifyConclusions().toMap,
+                  getUnsolvedRules(),
+                  SolverConflict(newlySolvedRune, existingConclusion, newConclusion)))
+            }
+            0
+          }
+        }
+      }).sum
+
+    ruleIndices.foreach(ruleIndex => {
+      val ruleRunes = ruleToRunes(ruleIndex)
+
+      ruleRunes.foreach(canonicalRune => {
+        vassert(getConclusion(canonicalRune).nonEmpty, "Didn't conclude a rune!")
+      })
+
+      ruleToPuzzles(ruleIndex).foreach(rulePuzzle => {
+        puzzleToExecuted(rulePuzzle) = true
+      })
+
+      val puzzlesForRule = ruleToPuzzles(ruleIndex)
+      puzzlesForRule.foreach(puzzle => {
+        val numUnknowns = puzzleToNumUnknownRunes(puzzle)
+        vassert(numUnknowns == 0)
+        puzzleToNumUnknownRunes(puzzle) = -1
+        val indexInNumUnknowns = puzzleToIndexInNumUnknowns(puzzle)
+
+        val oldNumPuzzlesInNumUnknownsBucket = numUnknownsToNumPuzzles(0)
+        val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+
+        // Swap the last one into this spot
+        val newPuzzleForThisSpot = numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
+        numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
+
+        // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
+        // where it is in the list.
+        puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
+
+        // Mark our position as -1
+        puzzleToIndexInNumUnknowns(puzzle) = -1
+
+        // Clear the last slot to -1
+        numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
+
+        // Reduce the number of puzzles in that bucket by 1
+        val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+        numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
+      })
     })
 
-    ruleToPuzzles(rule).foreach(rulePuzzle => {
-      puzzleToExecuted(rulePuzzle) = true
-    })
-
-    val puzzlesForRule = ruleToPuzzles(rule)
-    puzzlesForRule.foreach(puzzle => {
-      val numUnknowns = puzzleToNumUnknownRunes(puzzle)
-      vassert(numUnknowns == 0)
-      puzzleToNumUnknownRunes(puzzle) = -1
-      val indexInNumUnknowns = puzzleToIndexInNumUnknowns(puzzle)
-
-      val oldNumPuzzlesInNumUnknownsBucket = numUnknownsToNumPuzzles(0)
-      val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-
-      // Swap the last one into this spot
-      val newPuzzleForThisSpot = numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
-      numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
-
-      // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
-      // where it is in the list.
-      puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
-
-      // Mark our position as -1
-      puzzleToIndexInNumUnknowns(puzzle) = -1
-
-      // Clear the last slot to -1
-      numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
-
-      // Reduce the number of puzzles in that bucket by 1
-      val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-      numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
-    })
+    Ok(numNewConclusions)
   }
 
   def sanityCheck() = {

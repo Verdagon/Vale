@@ -12,7 +12,7 @@ import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, F
 import net.verdagon.vale._
 import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttribute2, LocationInFunctionEnvironment, OverrideT, ParameterT, ProgramT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SoftLoadTE}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT, TupleNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, DropTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT, TupleNameT}
 
 import scala.collection.immutable.List
 
@@ -24,7 +24,7 @@ class StructTemplarCore(
     delegate: IStructTemplarDelegate) {
   def addBuiltInStructs(env: PackageEnvironment[INameT], temputs: Temputs): Unit = {
     val emptyTupleFullName = ProgramT.emptyTupleStructRef.fullName
-    val emptyTupleEnv = PackageEnvironment.child(env, emptyTupleFullName)
+    val emptyTupleEnv = CitizenEnvironment(env.globalEnv, env, emptyTupleFullName, TemplatasStore(Map(), Map()))
     val structDefT = StructDefinitionT(emptyTupleFullName, Vector(), false, ImmutableT, Vector.empty, false)
     temputs.declareStruct(structDefT.getRef)
     temputs.declareStructMutability(structDefT.getRef, ImmutableT)
@@ -38,7 +38,7 @@ class StructTemplarCore(
 
   def makeStruct(
     // The environment that the struct was defined in.
-    structRunesEnv: PackageEnvironment[INameT],
+    structRunesEnv: CitizenEnvironment[INameT],
     temputs: Temputs,
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata]):
@@ -55,7 +55,7 @@ class StructTemplarCore(
     val maybeExport =
       structA.attributes.collectFirst { case e@ExportS(_) => e }
 
-    val structInnerEnv = PackageEnvironment.child(structRunesEnv, fullName)
+    val structInnerEnv = CitizenEnvironment(structRunesEnv.globalEnv, structRunesEnv, fullName, TemplatasStore(Map(), Map()))
     // when we have structs that contain functions, add this back in
 //        structA.members
 //          .map(_.origin)
@@ -157,7 +157,7 @@ class StructTemplarCore(
   // }
   // which means we need some way to know what T is.
   def makeInterface(
-    interfaceRunesEnv: PackageEnvironment[INameT],
+    interfaceRunesEnv: CitizenEnvironment[INameT],
     temputs: Temputs,
     interfaceA: InterfaceA,
     coercedFinalTemplateArgs2: Vector[ITemplata]):
@@ -175,9 +175,11 @@ class StructTemplarCore(
       interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
     val interfaceInnerEnv =
-      PackageEnvironment.child(interfaceRunesEnv,
+      CitizenEnvironment(
+        interfaceRunesEnv.globalEnv,
+        interfaceRunesEnv,
         fullName,
-        TemplatasStore(fullName, Map(), Map())
+        TemplatasStore(Map(), Map())
           .addEntries(
             interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
               .map({ case (rune, templata) => (RuneNameT(rune.rune), Vector(TemplataEnvEntry(templata))) })
@@ -359,13 +361,17 @@ class StructTemplarCore(
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
     val structEnv =
-      PackageEnvironment.child(
+      CitizenEnvironment(
+        containingFunctionEnv.globalEnv,
         containingFunctionEnv,
         fullName,
-        TemplatasStore(fullName, Map(), Map())
+        TemplatasStore(Map(), Map())
           .addEntries(
             Map(
-              FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationS.internal(-14)) -> Vector(FunctionEnvEntry(functionA)),
+              FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationS.internal(-14)) ->
+                Vector(FunctionEnvEntry(functionA)),
+              DropTemplateNameT() ->
+                Vector(FunctionEnvEntry(containingFunctionEnv.globalEnv.structDropMacro.makeClosureDropFunction())),
               nearName -> Vector(TemplataEnvEntry(KindTemplata(structTT))),
               ClosureParamNameT() -> Vector(TemplataEnvEntry(KindTemplata(structTT))))))
     // We return this from the function in case we want to eagerly compile it (which we do
@@ -409,7 +415,8 @@ class StructTemplarCore(
       })
 
     val fullName = outerEnv.fullName.addStep(TupleNameT(memberCoords))
-    val structInnerEnv = PackageEnvironment.child(outerEnv, fullName, TemplatasStore(fullName, Map(), Map()))
+    val structInnerEnv =
+      CitizenEnvironment(outerEnv.globalEnv, outerEnv, fullName, TemplatasStore(Map(), Map()))
 
     val newStructDef = StructDefinitionT(structInnerEnv.fullName, Vector.empty, false, packMutability, members, false);
     if (memberCoords.isEmpty && packMutability != ImmutableT)

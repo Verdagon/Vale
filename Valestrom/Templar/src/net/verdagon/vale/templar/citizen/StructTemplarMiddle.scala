@@ -6,7 +6,7 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{LocationInFunctionEnvironment, PrototypeT}
-import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment, InterfaceEnvEntry, PackageEnvironment, TemplataEnvEntry, TemplatasStore}
+import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment, InterfaceEnvEntry, PackageEnvironment, TemplataEnvEntry, TemplatasStore}
 import net.verdagon.vale.templar.function.{FunctionTemplar, FunctionTemplarCore, VirtualTemplar}
 import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, FullNameT, ICitizenNameT, INameT, RuneNameT}
 import net.verdagon.vale.{IProfiler, RangeS, vfail, vimpl}
@@ -26,7 +26,7 @@ class StructTemplarMiddle(
   }
 
   def getStructRef(
-    structOuterEnv: PackageEnvironment[INameT],
+    structOuterEnv: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
     structS: StructA,
@@ -35,10 +35,11 @@ class StructTemplarMiddle(
     val coercedFinalTemplateArgs2 = structS.identifyingRunes.map(_.rune).map(templatasByRune)
 
     val localEnv =
-      PackageEnvironment.child(
+      CitizenEnvironment(
+        structOuterEnv.globalEnv,
         structOuterEnv,
         structOuterEnv.fullName,
-        TemplatasStore(structOuterEnv.fullName, Map(), Map())
+        TemplatasStore(Map(), Map())
           .addEntries(
             templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
     val structDefinition2 =
@@ -49,7 +50,7 @@ class StructTemplarMiddle(
   }
 
   def getInterfaceRef(
-    interfaceOuterEnv: PackageEnvironment[INameT],
+    interfaceOuterEnv: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
     interfaceA: InterfaceA,
@@ -58,10 +59,11 @@ class StructTemplarMiddle(
     val coercedFinalTemplateArgs2 = interfaceA.identifyingRunes.map(_.rune).map(templatasByRune)
 
     val localEnv =
-      PackageEnvironment.child(
+      CitizenEnvironment(
+        interfaceOuterEnv.globalEnv,
         interfaceOuterEnv,
         interfaceOuterEnv.fullName,
-        TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
+        TemplatasStore(Map(), Map())
           .addEntries(
             templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
     val interfaceDefinition2 =
