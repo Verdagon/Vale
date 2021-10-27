@@ -25,7 +25,7 @@ object SolverErrorHumanizer {
             case SolverConflict(rune, previousConclusion, newConclusion) => {
               "Conflict, thought rune " + humanizeRune(rune) + " was " + humanizeTemplata(codeMap, previousConclusion) + " but now concluding it's " + humanizeTemplata(codeMap, newConclusion)
             }
-            case RuleError(ruleIndex, err) => {
+            case RuleError(err) => {
               humanizeRuleError(codeMap, err)
             }
           }

@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.expression
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.parser.{LendConstraintP, UseP}
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{CoordReceivesSR, IRulexSR, RuneUsage}
+import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
@@ -118,7 +118,6 @@ class PatternTemplar(
                 Map(receiverRune -> CoordTemplata(unconvertedInputExpr.resultRegister.reference)),
                 Map())
             fate.addEntries(
-              opts.useOptimization,
               templatasByRune.map({ case (key, value) => (RuneNameT(key), value) })
                 .mapValues(v => Vector(TemplataEnvEntry(v))).toMap)
             val CoordTemplata(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))

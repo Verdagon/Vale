@@ -4,7 +4,7 @@ import net.verdagon.vale._
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
 import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, RuleError}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.expression.CallTemplar
@@ -65,8 +65,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
           Map(
             CodeRuneS("A") -> OwnershipTemplata(OwnT)),
           unsolvedRules,
-          RuleError(
-            0, KindIsNotConcrete(ispaceshipKind)))))
+          RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
 
     val errorText =

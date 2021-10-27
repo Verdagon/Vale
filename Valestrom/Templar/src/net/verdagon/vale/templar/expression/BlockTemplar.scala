@@ -41,7 +41,7 @@ class BlockTemplar(
     life: LocationInFunctionEnvironment,
     block1: BlockSE):
   (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
-    val fate = parentFate.makeChildEnvironment(Some(block1))
+    val fate = parentFate.makeChildBlockEnvironment(Some(block1))
     val startingFate = fate.snapshot
 
     val (expressionsWithResult, returnsFromExprs) =
@@ -104,7 +104,7 @@ class BlockTemplar(
     currentFate: FunctionEnvironmentBox):
   Vector[ILocalVariableT] = {
     val localsAsOfThen =
-      sinceFate.liveLocals.collect({
+      sinceFate.declaredLocals.collect({
         case x @ ReferenceLocalVariableT(_, _, _) => x
         case x @ AddressibleLocalVariableT(_, _, _) => x
       })

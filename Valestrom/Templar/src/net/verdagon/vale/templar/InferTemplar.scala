@@ -2,10 +2,10 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
-import net.verdagon.vale.scout.rules.{CoordReceivesSR, IRulexSR, RuneUsage}
+import net.verdagon.vale.scout.rules.{CoordSendSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{CoordTemplataType, IRuneS, ITemplataType, SenderRuneS}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve, RuleError, SolverConflict}
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, ILookupContext, TemplataLookupContext}
 import net.verdagon.vale.templar.infer.{IInfererDelegate, _}
@@ -80,7 +80,7 @@ class InferTemplar(
       val rules =
         initialRules ++
         receiverAndSenderAndTemplata.map({ case (receiver, sender, _) =>
-          CoordReceivesSR(invocationRange, receiver, sender)
+          CoordSendSR(invocationRange, sender, receiver)
         })
       val alreadyKnown =
         initialAlreadyKnown ++
@@ -88,7 +88,7 @@ class InferTemplar(
           (sender.rune -> senderTemplata)
         })
 
-      new TemplarSolver[IEnvironment, Temputs](delegate).solve(
+      new TemplarSolver[IEnvironment, Temputs](opts.globalOptions, delegate).solve(
           invocationRange,
           env,
           state,

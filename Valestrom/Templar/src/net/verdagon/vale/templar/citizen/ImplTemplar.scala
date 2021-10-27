@@ -33,7 +33,7 @@ class AncestorHelper(
     implTemplata: ImplTemplata):
   (Option[InterfaceTT]) = {
     val ImplTemplata(env, impl) = implTemplata
-    val ImplA(range, codeLocation, rules, runeToType, structKindRune, interfaceKindRune) = impl
+    val ImplA(range, codeLocation, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
 
     val result =
       profiler.childFrame("getMaybeImplementedInterface", () => {
@@ -75,15 +75,15 @@ class AncestorHelper(
     childCitizenRef: CitizenRefT):
   (Vector[InterfaceTT]) = {
     val needleImplName =
-      NameTranslator.getImplNameForName(opts.useOptimization, childCitizenRef) match {
+      NameTranslator.getImplNameForName(childCitizenRef) match {
         case None => return Vector.empty
         case Some(x) => x
       }
 
     val citizenEnv =
       childCitizenRef match {
-        case sr @ StructTT(_) => temputs.getEnvForStructRef(sr)
-        case ir @ InterfaceTT(_) => temputs.getEnvForInterfaceRef(ir)
+        case sr @ StructTT(_) => temputs.getEnvForKind(sr)
+        case ir @ InterfaceTT(_) => temputs.getEnvForKind(ir)
       }
     citizenEnv.lookupWithImpreciseName(profiler, needleImplName, Set(TemplataLookupContext, ExpressionLookupContext), false)
       .flatMap({

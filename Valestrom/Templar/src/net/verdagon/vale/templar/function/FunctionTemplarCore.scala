@@ -3,8 +3,8 @@ package net.verdagon.vale.templar.function
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.templar.templata.{_}
-import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
+import net.verdagon.vale.templar.templata._
+import net.verdagon.vale.scout.{AbstractBodyS, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, Extern2, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, FunctionT, IFunctionAttribute2, InterfaceFunctionCallTE, LocationInFunctionEnvironment, OverrideT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
@@ -80,21 +80,6 @@ class FunctionTemplarCore(
           declareAndEvaluateFunctionBodyAndAdd(
               startingFullEnv, fullEnv, temputs, life, params2, isDestructor)
         }
-        case AbstractBodyS => {
-          val maybeRetCoord =
-            startingFullEnv.function.maybeRetCoordRune match {
-              case None => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Need return type for abstract function!"))
-              case Some(r) => fullEnv.lookupWithImpreciseName(profiler, RuneNameS(r.rune), Set(TemplataLookupContext), true).headOption
-            }
-          val retCoord =
-            maybeRetCoord match {
-              case None => vfail("wat")
-              case Some(CoordTemplata(r)) => r
-            }
-          val header =
-            makeInterfaceFunction(fullEnv.snapshot, temputs, Some(startingFullEnv.function), params2, retCoord)
-          (header)
-        }
         case ExternBodyS => {
           val maybeRetCoord =
             fullEnv.lookupWithImpreciseName(profiler, RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune), Set(TemplataLookupContext), true).headOption
@@ -114,7 +99,27 @@ class FunctionTemplarCore(
               Some(startingFullEnv.function))
           (header)
         }
-        case GeneratedBodyS(generatorId) => {
+//        case AbstractBodyS => {
+//          val maybeRetCoord =
+//            startingFullEnv.function.maybeRetCoordRune match {
+//              case None => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Need return type for abstract function!"))
+//              case Some(r) => fullEnv.lookupWithImpreciseName(profiler, RuneNameS(r.rune), Set(TemplataLookupContext), true).headOption
+//            }
+//          val retCoord =
+//            maybeRetCoord match {
+//              case None => vfail("wat")
+//              case Some(CoordTemplata(r)) => r
+//            }
+//          val header =
+//            makeInterfaceFunction(fullEnv.snapshot, temputs, Some(startingFullEnv.function), params2, retCoord)
+//          (header)
+//        }
+        case AbstractBodyS | GeneratedBodyS(_) => {
+          val generatorId =
+            startingFullEnv.function.body match {
+              case AbstractBodyS => "abstractBodyMacro"
+              case GeneratedBodyS(generatorId) => generatorId
+            }
           val signature2 = SignatureT(fullEnv.fullName);
           val maybeRetTemplata =
             startingFullEnv.function.maybeRetCoordRune match {
@@ -316,7 +321,7 @@ class FunctionTemplarCore(
     // Remember, the near env contains closure variables, which we
     // don't care about here. So find the difference between the near
     // env and our latest env.
-    vassert(fullEnv.liveLocals.startsWith(startingFullEnvSnapshot.liveLocals))
+    vassert(fullEnv.liveLocals.startsWith(startingFullEnvSnapshot.declaredLocals))
 
     temputs.lookupFunction(header.toSignature) match {
       case None => {
@@ -394,38 +399,6 @@ class FunctionTemplarCore(
     })
   }
 
-
-  def makeInterfaceFunction(
-    env: FunctionEnvironment,
-    temputs: Temputs,
-    origin: Option[FunctionA],
-    params2: Vector[ParameterT],
-    returnReferenceType2: CoordT):
-  (FunctionHeaderT) = {
-    vassert(params2.exists(_.virtuality == Some(AbstractT)))
-    val header =
-      ast.FunctionHeaderT(
-        env.fullName,
-        Vector.empty,
-        params2,
-        returnReferenceType2,
-        origin)
-    val function2 =
-      ast.FunctionT(
-        header,
-        BlockTE(
-            ReturnTE(
-              InterfaceFunctionCallTE(
-                header,
-                header.returnType,
-                header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })))))
-
-      temputs
-        .declareFunctionReturnType(header.toSignature, returnReferenceType2)
-      temputs.addFunction(function2)
-    vassert(temputs.getDeclaredSignatureOrigin(env.fullName).nonEmpty)
-    header
-  }
 
   def makeImplDestructor(
     env: FunctionEnvironment,

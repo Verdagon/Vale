@@ -2,6 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer._
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
 
@@ -16,10 +17,11 @@ case class TemplarCompilationOptions(
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class TemplarCompilation(
+  globalOptions: GlobalOptions,
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]],
   options: TemplarCompilationOptions = TemplarCompilationOptions()) {
-  var astronomerCompilation = new AstronomerCompilation(packagesToBuild, packageToContentsResolver)
+  var astronomerCompilation = new AstronomerCompilation(globalOptions, packagesToBuild, packageToContentsResolver)
   var hinputsCache: Option[Hinputs] = None
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = astronomerCompilation.getCodeMap()
@@ -33,7 +35,7 @@ class TemplarCompilation(
     hinputsCache match {
       case Some(temputs) => Ok(temputs)
       case None => {
-        val templar = new Templar(options.debugOut, options.verbose, options.profiler, options.useOptimization)
+        val templar = new Templar(options.debugOut, options.profiler, globalOptions)
         templar.evaluate(astronomerCompilation.expectAstrouts()) match {
           case Err(e) => Err(e)
           case Ok(hinputs) => {

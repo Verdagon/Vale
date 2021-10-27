@@ -1,15 +1,15 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
-import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, DropNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.scout.ScoutErrorHumanizer.humanizeRune
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, SenderRuneS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
-import net.verdagon.vale.templar.OverloadTemplar.{IScoutExpectedFunctionFailureReason, InferFailure, ScoutExpectedFunctionFailure, SpecificParamDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{IFindFunctionFailureReason, InferFailure, FindFunctionFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.ast.{AbstractT, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
-import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindIsNotConcrete, KindIsNotInterface}
+import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface}
 import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, TemplataNamer}
 import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
@@ -101,8 +101,8 @@ object TemplarErrorHumanizer {
         case InitializedWrongNumberOfElements(range, expectedNumElements, numElementsInitialized) => {
             ": Supplied " + numElementsInitialized + " elements, but expected " + expectedNumElements + "."
         }
-        case CouldntFindFunctionToCallT(range, seff) => {
-          humanizeScoutExpectedFunctionFailure(verbose, codeMap, range, seff)
+        case CouldntFindFunctionToCallT(range, fff) => {
+          humanizeScoutExpectedFunctionFailure(verbose, codeMap, range, fff)
         }
         case FunctionAlreadyExists(oldFunctionRange, newFunctionRange, signature) => {
             ": Function " + signature.fullName.last + " already exists! Previous declaration at:\n" +
@@ -149,19 +149,16 @@ object TemplarErrorHumanizer {
     verbose: Boolean,
     codeMap: FileCoordinateMap[String],
     invocationRange: RangeS,
-    seff: OverloadTemplar.ScoutExpectedFunctionFailure): String = {
+    fff: OverloadTemplar.FindFunctionFailure): String = {
 
-    val ScoutExpectedFunctionFailure(name, args, rejectedCalleeToReason) = seff
+    val FindFunctionFailure(name, args, rejectedCalleeToReason) = fff
     "Couldn't find a suitable function " +
-      (name match {
-        case GlobalFunctionFamilyNameS(humanName) => humanName
-        case other => other.toString
-      }) +
+      ScoutErrorHumanizer.humanizeName(name) +
       "(" +
       args.map({
-        case ParamFilter(tyype, Some(OverrideT(interface))) => TemplataNamer.getReferenceIdentifierName(tyype) + " impl " + TemplataNamer.getKindIdentifierName(interface)
-        case ParamFilter(tyype, Some(AbstractT)) => TemplataNamer.getReferenceIdentifierName(tyype) + " abstract"
-        case ParamFilter(tyype, None) => TemplataNamer.getReferenceIdentifierName(tyype)
+        case ParamFilter(tyype, Some(OverrideT(interface))) => humanizeTemplata(codeMap, CoordTemplata(tyype)) + " impl " + humanizeTemplata(codeMap, KindTemplata(interface))
+        case ParamFilter(tyype, Some(AbstractT)) => humanizeTemplata(codeMap, CoordTemplata(tyype)) + " abstract"
+        case ParamFilter(tyype, None) => humanizeTemplata(codeMap, CoordTemplata(tyype))
       }).mkString(", ") +
       "). " +
       (if (rejectedCalleeToReason.isEmpty) {
@@ -196,7 +193,7 @@ object TemplarErrorHumanizer {
       case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => humanizePos(codeMap, range.begin) + ": " + name
       case ImmConcreteDestructorNameS(_) => vimpl()
       case ImmInterfaceDestructorNameS(_) => vimpl()
-      case DropNameS(_) => vimpl()
+//      case DropNameS(_) => vimpl()
     }
   }
 
@@ -256,7 +253,7 @@ object TemplarErrorHumanizer {
       codeMap: FileCoordinateMap[String],
       invocationRange: RangeS,
       candidate: ICalleeCandidate,
-      reason: IScoutExpectedFunctionFailureReason): String = {
+      reason: IFindFunctionFailureReason): String = {
 
     (reason match {
       case WrongNumberOfArguments(supplied, expected) => {
@@ -267,9 +264,15 @@ object TemplarErrorHumanizer {
         "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Number of template params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
-      case SpecificParamDoesntMatch(index, reason) => {
+      case SpecificParamDoesntMatchExactly(index, arg, param) => {
         "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
-        "Param at index " + index + " doesn't match: " + reason
+          "Index " + index + " given argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
+          " isn't the same exact type as expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
+      }
+      case SpecificParamDoesntSend(index, arg, param) => {
+        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
+          " Index " + index + " argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
+          " can't be given to expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
       }
       case SpecificParamVirtualityDoesntMatch(index) => {
         "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
@@ -287,6 +290,9 @@ object TemplarErrorHumanizer {
     error: ITemplarSolverError
   ): String = {
     error match {
+      case KindDoesntImplementInterface(sub, suuper) => {
+        "Kind " + humanizeTemplata(codeMap, KindTemplata(sub)) + " does not implement interface " + humanizeTemplata(codeMap, KindTemplata(suuper))
+      }
       case KindIsNotConcrete(kind) => {
         "Expected kind to be concrete, but was not. Kind: " + kind
       }

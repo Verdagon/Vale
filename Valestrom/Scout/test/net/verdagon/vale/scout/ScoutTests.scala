@@ -1,5 +1,6 @@
 package net.verdagon.vale.scout
 
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS}
 import net.verdagon.vale.scout.rules._
@@ -19,7 +20,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
             case ParseFailure(error) => vwat(error.toString)
             case ParseSuccess(program0) => program0
           }
-        Scout.scoutProgram(FileCoordinate.test, program0) match {
+        new Scout(GlobalOptions(true, true, true)).scoutProgram(FileCoordinate.test, program0) match {
           case Err(e) => vfail(e.toString)
           case Ok(t) => t
         }
@@ -38,7 +39,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
             case ParseFailure(error) => vwat(error.toString)
             case ParseSuccess(program0) => program0
           }
-        Scout.scoutProgram(FileCoordinate.test, program0) match {
+        new Scout(GlobalOptions(true, true, true)).scoutProgram(FileCoordinate.test, program0) match {
           case Err(e) => e
           case Ok(t) => vfail("Successfully compiled!\n" + t.toString)
         }

@@ -140,9 +140,8 @@ case class CoordT(ownership: OwnershipT, permission: PermissionT, kind: KindT)  
     // See CSHROOR for why we don't assert this.
     // vassert(permission == Readwrite)
   }
-
-
 }
+
 sealed trait KindT  {
   def order: Int;
 

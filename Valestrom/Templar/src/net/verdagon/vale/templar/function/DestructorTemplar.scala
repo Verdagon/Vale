@@ -1,14 +1,14 @@
 package net.verdagon.vale.templar.function
 
 //import net.verdagon.vale.astronomer.{AbstractAP, CallAR, CodeRuneS, CodeTypeNameS, CodeVarNameS, ComponentsAR, EqualsAR, FunctionA, FunctionNameS, GeneratedBodyS, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmDropImpreciseNameS, ImmDropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS, LocalS, MutabilityAR, NameSR, OrAR, OverrideAP, OwnershipAR, ParameterS, PermissionAR, RuneSR, TemplexAR, UserFunctionA}
-import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, DropNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
+import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS, ImmInterfaceDestructorImpreciseNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
 import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
-import net.verdagon.vale.scout.{CodeRuneS, CodeNameS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, Used, UserFunctionS}
+import net.verdagon.vale.scout.{CodeNameS, CodeRuneS, CodeVarNameS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, LocalS, NotUsed, ParameterS, Used, UserFunctionS}
 import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, OverrideT, ParameterT, PrototypeT, ReferenceExpressionTE, ReturnTE, VoidLiteralTE}
 import net.verdagon.vale.templar.citizen.StructTemplar
@@ -30,28 +30,28 @@ class DestructorTemplar(
   (PrototypeT) = {
     type2.kind match {
       case PackTT(_, _) | StructTT(_) => { // | OrdinaryClosure2(_, _, _) | TemplatedClosure2(_, _, _) => {
-        overloadTemplar.scoutExpectedFunctionForPrototype(
+        overloadTemplar.findFunction(
           env,
           temputs,
           RangeS.internal(-1663),
 //          if (type2.ownership == ShareT) {
 //            ImmConcreteDestructorImpreciseNameS()
 //          } else {
-            CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME),
+            GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
 //          },
           Vector.empty,
           Array.empty,
           Vector(ParamFilter(type2, None)),
-          Vector.empty,
+          Vector(),
           true)
       }
       case InterfaceTT(fullName) => {
-        overloadTemplar.scoutExpectedFunctionForPrototype(
+        overloadTemplar.findFunction(
           env,
           temputs,
           RangeS.internal(-1668),
 //          if (type2.ownership == ShareT) {
-            DropNameS(fullName.packageCoord),
+          GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
 //          } else {
 //            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
 //          },
@@ -72,11 +72,11 @@ class DestructorTemplar(
     type2.kind match {
       case StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_) =>
     }
-    overloadTemplar.scoutExpectedFunctionForPrototype(
+    overloadTemplar.findFunction(
       env,
       temputs,
       RangeS.internal(-16721),
-      DropNameS(PackageCoordinate.BUILTIN),
+      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
 //      if (type2.ownership == ShareT) {
 //        ImmConcreteDestructorImpreciseNameS()
 //      } else {
@@ -213,7 +213,7 @@ class DestructorTemplar(
     vassert(Templar.getMutability(temputs, structTT) == ImmutableT)
     vassert(Templar.getMutability(temputs, implementedInterfaceRefT) == ImmutableT)
 
-    overloadTemplar.scoutExpectedFunctionForPrototype(
+    overloadTemplar.findFunction(
       env,
       temputs,
       RangeS.internal(-1674),

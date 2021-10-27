@@ -1,5 +1,6 @@
 package net.verdagon.vale.scout
 
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{CombinatorParsers, ParseFailure, ParseSuccess, Parser, VaryingP}
 import net.verdagon.vale.{Collector, Err, FileCoordinate, Ok, vassert, vfail, vimpl}
 import org.scalatest.{FunSuite, Matchers}
@@ -11,7 +12,7 @@ class ScoutVariableTests extends FunSuite with Matchers {
     Parser.runParser(code) match {
       case ParseFailure(err) => fail(err.toString)
       case ParseSuccess(program0) => {
-        Scout.scoutProgram(FileCoordinate.test, program0) match {
+        new Scout(GlobalOptions(true, true, true)).scoutProgram(FileCoordinate.test, program0) match {
           case Ok(_) => vfail("Expected an error")
           case Err(e) => e
         }
@@ -23,7 +24,7 @@ class ScoutVariableTests extends FunSuite with Matchers {
     Parser.runParser(code) match {
       case ParseFailure(err) => fail(err.toString)
       case ParseSuccess(program0) => {
-        Scout.scoutProgram(FileCoordinate.test, program0) match {
+        new Scout(GlobalOptions(true, true, true)).scoutProgram(FileCoordinate.test, program0) match {
           case Err(e) => vfail(e.toString)
           case Ok(t) => t
         }

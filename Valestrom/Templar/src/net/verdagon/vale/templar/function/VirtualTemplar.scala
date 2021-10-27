@@ -2,14 +2,14 @@ package net.verdagon.vale.templar.function
 
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
 import net.verdagon.vale.scout.GlobalFunctionFamilyNameS
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionHeaderT, OverrideT, ParameterT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.IEnvironment
-import net.verdagon.vale.templar.names.{FunctionNameT, ImmInterfaceDestructorNameT}
+import net.verdagon.vale.templar.names.{FunctionNameT}
 import net.verdagon.vale.{RangeS, vassert, vcurious, vfail, vimpl}
 
 import scala.collection.immutable.List
@@ -52,16 +52,16 @@ class VirtualTemplar(opts: TemplarOptions, overloadTemplar: OverloadTemplar) {
         val nameToScoutFor =
           sparkHeader.fullName.last match {
             case FunctionNameT(humanName, _, _) => GlobalFunctionFamilyNameS(humanName)
-            case ImmInterfaceDestructorNameT(_, _) => ImmInterfaceDestructorImpreciseNameS()
-            case _ => vcurious()
+//            case ImmInterfaceDestructorNameT(_, _) => ImmInterfaceDestructorImpreciseNameS()
+            case other => vimpl(other)
           }
 
         // See MLIOET
-        val superInterfaceEnv = temputs.getEnvForInterfaceRef(superInterfaceRef2)
+        val superInterfaceEnv = temputs.getEnvForKind(superInterfaceRef2)
         val extraEnvsToLookIn = Vector(superInterfaceEnv)
 
         // Throw away the result prototype, we just want it to be in the temputs.
-        overloadTemplar.scoutExpectedFunctionForPrototype(
+        overloadTemplar.findFunction(
           env, temputs, RangeS.internal(-1388), nameToScoutFor, Vector.empty,
           Array.empty, needleSuperFunctionParamFilters, extraEnvsToLookIn, true)
       }

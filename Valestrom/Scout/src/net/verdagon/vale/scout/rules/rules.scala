@@ -23,11 +23,15 @@ case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IR
   override def runeUsages: Array[RuneUsage] = Array(left, right)
 }
 
-// See IRFU and SRCAMP for what's going on with this rule.
-case class CoordReceivesSR(range: RangeS, receiverRune: RuneUsage, senderRune: RuneUsage) extends IRulexSR {
+// See SAIRFU and SRCAMP for what's going on with these rules.
+case class CoordSendSR(range: RangeS, senderRune: RuneUsage, receiverRune: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(receiverRune, senderRune)
-  vpass()
+  override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
+}
+// Only made by Templar, see SAIRFU.
+case class CoordSendFromDescendantSR(range: RangeS, senderRune: RuneUsage, receiverRune: RuneUsage) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
 }
 
 case class CoordIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
@@ -106,7 +110,7 @@ case class IsStructSR(
   override def runeUsages: Array[RuneUsage] = Array(rune)
 4}
 
-case class CoerceToCoord(
+case class CoerceToCoordSR(
   range: RangeS,
   coordRune: RuneUsage,
   kindRune: RuneUsage

@@ -115,6 +115,7 @@ case class ImplA(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplNameS,
+  identifyingRunes: Vector[RuneUsage],
   rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     structKindRune: RuneUsage,
@@ -126,6 +127,8 @@ case class ImplA(
     val that = obj.asInstanceOf[ImplA]
     return range == that.range && name == that.name;
   }
+
+  def isTemplate: Boolean = identifyingRunes.nonEmpty
 }
 
 case class ExportAsA(

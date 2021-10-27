@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
-import net.verdagon.vale.scout.rules.{CoordComponentsSR, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, OneOfSR}
+import net.verdagon.vale.scout.rules.{CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, OneOfSR}
 
 object ScoutErrorHumanizer {
   def humanize(
@@ -39,6 +39,8 @@ object ScoutErrorHumanizer {
 //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
       case ClosureParamNameS() => "(closure)"
       case CodeNameS(n) => n
+      case GlobalFunctionFamilyNameS(n) => n
+//      case DropNameS(_) => "(drop)"
       case MagicParamNameS(codeLocation) => "(magic)"
       case CodeVarNameS(name) => name
       case RuneNameS(rune) => humanizeRune(rune)
@@ -50,6 +52,7 @@ object ScoutErrorHumanizer {
   def humanizeRune(rune: IRuneS): String = {
     rune match {
       case ImplicitRuneS(lid) => "_" + lid.path.mkString("")
+      case MagicParamRuneS(lid) => "_" + lid.path.mkString("")
       case CodeRuneS(name) => name
       case SenderRuneS(paramRune) => "(arg for " + humanizeRune(paramRune) + ")"
       case other => vimpl(other)
@@ -88,6 +91,8 @@ object ScoutErrorHumanizer {
       }
       case IsInterfaceSR(range, resultRune) => "isInterface(" + humanizeRune(resultRune.rune) + ")"
       case IsStructSR(range, resultRune) => "isStruct(" + humanizeRune(resultRune.rune) + ")"
+      case CoordIsaSR(range, subRune, superRune) => "isa(" + humanizeRune(subRune.rune) + ", " + humanizeRune(superRune.rune) + ")"
+      case CoerceToCoordSR(range, coordRune, kindRune) => "coerceToCoord(" + humanizeRune(coordRune.rune) + ", " + humanizeRune(kindRune.rune) + ")"
       case other => vimpl(other)
     }
   }

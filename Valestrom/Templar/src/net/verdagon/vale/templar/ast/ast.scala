@@ -116,8 +116,10 @@ case class FunctionT(
 
   // We always end a function with a return, whose result is a Never.
   vassert(body.resultRegister.kind == NeverT())
+}
 
-
+object getFunctionLastName {
+  def unapply(f: FunctionT): Option[IFunctionNameT] = Some(f.header.fullName.last)
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!

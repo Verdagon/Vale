@@ -134,7 +134,7 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
       }
       case Receive(receiverRune, senderRune) => {
         val receiver = vassertSome(solverState.getConclusion(receiverRune))
-        if (receiver == "ISpaceship") {
+        if (receiver == "ISpaceship" || receiver == "IWeapon:int") {
           val ruleIndex =
             solverState.addRule(Implements(senderRune, receiverRune), Array(senderRune, receiverRune))
           solverState.addPuzzle(ruleIndex, Array(senderRune, receiverRune))
@@ -151,7 +151,8 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
           case (x, y) if x == y => Ok(Map())
           case ("Firefly", "ISpaceship") => Ok(Map())
           case ("Serenity", "ISpaceship") => Ok(Map())
-          case _ => vimpl()
+          case ("Flamethrower:int", "IWeapon:int") => Ok(Map())
+          case other => vimpl(other)
         }
       }
     }

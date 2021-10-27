@@ -26,7 +26,7 @@ object RuneTypeSolver {
         case IsConcreteSR(range, rune) => Array(rune)
         case IsInterfaceSR(range, rune) => Array(rune)
         case IsStructSR(range, rune) => Array(rune)
-        case CoerceToCoord(range, coordRune, kindRune) => Array(coordRune, kindRune)
+        case CoerceToCoordSR(range, coordRune, kindRune) => Array(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Array(rune)
         case AugmentSR(range, resultRune, literal, innerRune) => Array(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Array(resultRune, templateRune) ++ args
@@ -87,7 +87,7 @@ object RuneTypeSolver {
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
       case IsInterfaceSR(_, rune) => Array(Array())
       case IsStructSR(_, rune) => Array(Array())
-      case CoerceToCoord(_, coordRune, kindRune) => Array(Array())
+      case CoerceToCoordSR(_, coordRune, kindRune) => Array(Array())
       case LiteralSR(_, rune, literal) => Array(Array())
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array())
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune))
@@ -153,7 +153,7 @@ object RuneTypeSolver {
       case IsStructSR(_, rune) => {
         Ok(Map(rune.rune -> KindTemplataType))
       }
-      case CoerceToCoord(_, coordRune, kindRune) => {
+      case CoerceToCoordSR(_, coordRune, kindRune) => {
         Ok(Map(kindRune.rune -> KindTemplataType, coordRune.rune -> CoordTemplataType))
       }
       case LiteralSR(_, rune, literal) => {
@@ -224,6 +224,8 @@ object RuneTypeSolver {
   }
 
   def solve(
+    sanityCheck: Boolean,
+    useOptimizedSolver: Boolean,
     env: INameS => ITemplataType,
     range: RangeS,
     predicting: Boolean,
@@ -255,7 +257,7 @@ object RuneTypeSolver {
         })
     val solverState =
       Solver.makeInitialSolverState(
-        rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
+        sanityCheck, useOptimizedSolver, rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
     val conclusions =
       Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
         Unit,
@@ -272,7 +274,7 @@ object RuneTypeSolver {
         case Ok(c) => c.toMap
         case Err(e) => vfail(e)
       }
-    val allRunes = solverState.getAllRunes() ++ additionalRunes
+    val allRunes = solverState.getAllRunes().map(solverState.userifyRune) ++ additionalRunes
     val unsolvedRunes = allRunes -- conclusions.keySet
     if (expectCompleteSolve && unsolvedRunes.nonEmpty) {
       Err(RuneTypeSolveError(range, IncompleteSolve(conclusions, solverState.getUnsolvedRules(), unsolvedRunes)))

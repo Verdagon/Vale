@@ -92,6 +92,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
 case class FunctionEnvironment(
   // These things are the "environment"; they are the same for every line in a function.
   globalEnv: GlobalEnvironment,
+  // This points to the environment containing the function, not parent blocks, see WTHPFE.
   parentEnv: IEnvironment,
   fullName: FullNameT[IFunctionNameT], // Includes the name of the function
 
@@ -108,13 +109,14 @@ case class FunctionEnvironment(
   containingBlockS: Option[BlockSE],
 
   // The things below are the "state"; they can be different for any given line in a function.
-  liveLocals: Vector[IVariableT],
+  // This contains locals from parent blocks, see WTHPFE.
+  declaredLocals: Vector[IVariableT],
   // This can refer to vars in parent environments, see UCRTVPE.
-  unstackifieds: Set[FullNameT[IVarNameT]]
+  unstackifiedLocals: Set[FullNameT[IVarNameT]]
 ) extends IEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
 
-  vassert(liveLocals == liveLocals.distinct)
+  vassert(declaredLocals == declaredLocals.distinct)
 
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IEnvironment]) {
@@ -124,31 +126,31 @@ case class FunctionEnvironment(
   }
 
   def addVariables(newVars: Vector[IVariableT]): FunctionEnvironment = {
-    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, liveLocals ++ newVars, unstackifieds)
+    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, declaredLocals ++ newVars, unstackifiedLocals)
   }
   def addVariable(newVar: IVariableT): FunctionEnvironment = {
-    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, liveLocals :+ newVar, unstackifieds)
+    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, declaredLocals :+ newVar, unstackifiedLocals)
   }
   def markLocalUnstackified(newUnstackified: FullNameT[IVarNameT]): FunctionEnvironment = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
     vassert(getAllLocals().exists(_.id == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
-    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, liveLocals, unstackifieds + newUnstackified)
+    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, containingBlockS, declaredLocals, unstackifiedLocals + newUnstackified)
   }
 
-  def addEntry(useOptimization: Boolean, name: INameT, entry: IEnvEntry): FunctionEnvironment = {
+  def addEntry(name: INameT, entry: IEnvEntry): FunctionEnvironment = {
     FunctionEnvironment(
       globalEnv,
       parentEnv,
       fullName,
-      templatas.addEntry(useOptimization, name, entry),
+      templatas.addEntry(name, entry),
       function,
       maybeReturnType,
       containingBlockS,
-      liveLocals,
-      unstackifieds)
+      declaredLocals,
+      unstackifiedLocals)
   }
-  def addEntries(useOptimization: Boolean, newEntries: Map[INameT, Vector[IEnvEntry]]): FunctionEnvironment = {
+  def addEntries(newEntries: Map[INameT, Vector[IEnvEntry]]): FunctionEnvironment = {
     FunctionEnvironment(
       globalEnv,
       parentEnv,
@@ -157,8 +159,8 @@ case class FunctionEnvironment(
       function,
       maybeReturnType,
       containingBlockS,
-      liveLocals,
-      unstackifieds)
+      declaredLocals,
+      unstackifiedLocals)
   }
 
   override def lookupWithName(
@@ -182,7 +184,7 @@ case class FunctionEnvironment(
   }
 
   def getVariable(name: IVarNameT): Option[IVariableT] = {
-    liveLocals.find(_.id.last == name)
+    declaredLocals.find(_.id.last == name)
   }
 
   // Dont have a getAllUnstackifiedLocals or getAllLiveLocals here. We learned that the hard way.
@@ -190,24 +192,24 @@ case class FunctionEnvironment(
   // from parent envs.
 
   def getAllLocals(): Vector[ILocalVariableT] = {
-    liveLocals.collect({ case i : ILocalVariableT => i })
+    declaredLocals.collect({ case i : ILocalVariableT => i })
   }
 
   def getAllUnstackifiedLocals(): Vector[FullNameT[IVarNameT]] = {
-    unstackifieds.toVector
+    unstackifiedLocals.toVector
   }
 
-  def makeChildEnvironment( newContainingBlockS: Option[BlockSE]) = {
+  def makeChildBlockEnvironment( newContainingBlockS: Option[BlockSE]) = {
     FunctionEnvironment(
       globalEnv,
-      parentEnv,
+      this,
       fullName,
       TemplatasStore(Map(), Map()),
       function,
       maybeReturnType,
       newContainingBlockS,
-      Vector.empty,
-      Set())
+      declaredLocals, // See WTHPFE.
+      unstackifiedLocals) // See WTHPFE.
   }
 
   // No particular reason we don't have an addFunction like PackageEnvironment does
@@ -221,8 +223,8 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
   def containingBlockS: Option[BlockSE] = functionEnvironment.containingBlockS
-  def liveLocals: Vector[IVariableT] = functionEnvironment.liveLocals
-  def unstackifieds: Set[FullNameT[IVarNameT]] = functionEnvironment.unstackifieds
+  def liveLocals: Vector[IVariableT] = functionEnvironment.declaredLocals
+  def unstackifieds: Set[FullNameT[IVarNameT]] = functionEnvironment.unstackifiedLocals
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
 
   def setReturnType(returnType: Option[CoordT]): Unit = {
@@ -236,11 +238,11 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     functionEnvironment = functionEnvironment.markLocalUnstackified(newMoved)
   }
 
-  def addEntry(useOptimization: Boolean, name: INameT, entry: IEnvEntry): Unit = {
-    functionEnvironment = functionEnvironment.addEntry(useOptimization, name, entry)
+  def addEntry(name: INameT, entry: IEnvEntry): Unit = {
+    functionEnvironment = functionEnvironment.addEntry(name, entry)
   }
-  def addEntries(useOptimization: Boolean, newEntries: Map[INameT, Vector[IEnvEntry]]): Unit= {
-    functionEnvironment = functionEnvironment.addEntries(useOptimization, newEntries)
+  def addEntries(newEntries: Map[INameT, Vector[IEnvEntry]]): Unit= {
+    functionEnvironment = functionEnvironment.addEntries(newEntries)
   }
 
   override def lookupWithImpreciseName(
@@ -314,11 +316,11 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     unstackifiedAncestorLocals
   }
 
-  def makeChildEnvironment( containingBlockS: Option[BlockSE]):
+  def makeChildBlockEnvironment( containingBlockS: Option[BlockSE]):
   FunctionEnvironmentBox = {
     FunctionEnvironmentBox(
       functionEnvironment
-        .makeChildEnvironment(containingBlockS))
+        .makeChildBlockEnvironment(containingBlockS))
   }
 
   // No particular reason we don't have an addFunction like PackageEnvironment does

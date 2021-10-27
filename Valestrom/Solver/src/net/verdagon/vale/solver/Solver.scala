@@ -74,23 +74,33 @@ object Solver {
   def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
     state: State,
     env: Env,
-    solverState: SolverState[Rule, RuneID, Conclusion],
+    solverState: ISolverState[Rule, RuneID, Conclusion],
     solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
   ): Result[Stream[(RuneID, Conclusion)], FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
 
-    while (solverState.hasNextSolvable()) {
-      solveNextSolvableRule(env, state, solverState, solveRule) match {
-        case Err(toReturn) => return Err(toReturn)
-        case Ok(()) =>
+    while (solverState.getNextSolvable() match {
+      case None => false
+      case Some(ruleIndex) => {
+        solveNextSolvableRule(env, state, solverState, solveRule, ruleIndex) match {
+          case Err(toReturn) => return Err(toReturn)
+          case Ok(()) => true
+        }
       }
-    }
+    }) {}
 
     if (solverState.getUnsolvedRules().nonEmpty) {
       solveRule.complexSolve(makeSolverStateForRule(solverState)) match {
-        case Ok((solvingRuleIndices, conclusions)) => {
-          solverState.markRulesSolved[ErrType](solvingRuleIndices, conclusions) match {
+        case Ok((solvingRuleIndices, userConclusions)) => {
+          val canonicalConclusions =
+            userConclusions.map({ case (a, b) => (solverState.getCanonicalRune(a), b) })
+          solverState.markRulesSolved[ErrType](solvingRuleIndices, canonicalConclusions) match {
             case Ok(0) => // Do nothing, we're done
-            case Ok(_) => solve(state, env, solverState, solveRule)
+            case Ok(_) => {
+              solve(state, env, solverState, solveRule) match {
+                case Err(e) => return Err(e)
+                case Ok(_) =>
+              }
+            }
             case Err(e) => return Err(e)
           }
         }
@@ -106,7 +116,7 @@ object Solver {
   }
 
   private def makeSolverStateForRule[ErrType, Conclusion, State, Env, RuneID, Rule](
-    solverState: SolverState[Rule, RuneID, Conclusion]
+    solverState: ISolverState[Rule, RuneID, Conclusion]
   ): ISolverStateForRule[Rule, RuneID, Conclusion] = {
     new ISolverStateForRule[Rule, RuneID, Conclusion] {
       override def getConclusion(requestedUserRune: RuneID): Option[Conclusion] = {
@@ -119,7 +129,7 @@ object Solver {
       }
 
       override def addRule(rule: Rule, runes: Array[RuneID]): Int = {
-        solverState.addRule(rule, runes.map(solverState.getCanonicalRune))
+        solverState.addRule(rule)//, runes.map(solverState.getCanonicalRune))
       }
 
       override def getUnsolvedRules(): Vector[Rule] = {
@@ -129,17 +139,18 @@ object Solver {
   }
 
   private def solveNextSolvableRule[ErrType, Conclusion, State, Env, RuneID, Rule](
-      env: Env,
-      state: State,
-      solverState: SolverState[Rule, RuneID, Conclusion],
-      solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]):
+    env: Env,
+    state: State,
+    solverState: ISolverState[Rule, RuneID, Conclusion],
+    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType],
+    solvingRuleIndex: Int):
   Result[Unit, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
-    val (solvingRuleIndex, solvingPuzzleIndex, ruleRunes) = solverState.getNextSolvable()
-
     val rule = solverState.getRule(solvingRuleIndex)
     val newConclusions =
       solveRule.solve(state, env, solvingRuleIndex, rule, makeSolverStateForRule(solverState)) match {
-        case Ok(c) => c
+        case Ok(newUserConclusions) => {
+          newUserConclusions.map({ case (a, b) => (solverState.getCanonicalRune(a), b) })
+        }
         case Err(e) => return Err(
           FailedSolve(
             solverState.userifyConclusions().toMap,
@@ -157,24 +168,28 @@ object Solver {
   }
 
   def makeInitialSolverState[Rule, RuneID, Conclusion](
+    sanityCheck: Boolean,
+    useOptimizedSolver: Boolean,
     initialRules: IndexedSeq[Rule],
     ruleToRunes: Rule => Iterable[RuneID],
     ruleToPuzzles: Rule => Array[Array[RuneID]],
     initiallyKnownRunes: Map[RuneID, Conclusion]):
-  SolverState[Rule, RuneID, Conclusion] = {
-    val solverState = SolverState[Rule, RuneID, Conclusion]()
+  ISolverState[Rule, RuneID, Conclusion] = {
+    val solverState =
+//      if (useOptimizedSolver) {
+//        OptimizedSolverState[Rule, RuneID, Conclusion]()
+//      } else {
+        SimpleSolverState[Rule, RuneID, Conclusion]()
+//      }
+
+    (initialRules.flatMap(ruleToRunes) ++ initiallyKnownRunes.keys).distinct.foreach(solverState.addRune)
 
     initiallyKnownRunes.foreach({ case (rune, conclusion) =>
       solverState.concludeRune(solverState.getCanonicalRune(rune), conclusion)
     })
 
     initialRules.foreach(rule => {
-      val ruleRunes = ruleToRunes(rule)
-      val ruleCanonicalRunes =
-        ruleRunes.map(rune => {
-          solverState.getCanonicalRune(rune)
-        })
-      val ruleIndex = solverState.addRule(rule, ruleCanonicalRunes.toArray.distinct)
+      val ruleIndex = solverState.addRule(rule)
       ruleToPuzzles(rule).foreach(puzzleRunes => {
         solverState.addPuzzle(ruleIndex, puzzleRunes.map(solverState.getCanonicalRune).distinct)
       })

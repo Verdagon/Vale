@@ -14,6 +14,7 @@ object simpleName {
       case UnnamedLocalNameT(_) => None
       case ClosureParamNameT() => None
       case MagicParamNameT(_) => None
+      case DropNameT(_, _) => None
       case CodeVarNameT(name) => Some(name)
 //      case CodeRune2(name) => Some(name)
 //      case ImplicitRune2(_) => None
@@ -26,8 +27,8 @@ object simpleName {
       case TupleNameT(_) => None
       case LambdaCitizenNameT(_) => None
       case CitizenNameT(humanName, _) => Some(humanName)
-      case ImmConcreteDestructorNameT(_) => None
-      case ImmInterfaceDestructorNameT(_, _) => None
+//      case ImmConcreteDestructorNameT(_) => None
+//      case ImmInterfaceDestructorNameT(_, _) => None
     }
   }
 }

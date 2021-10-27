@@ -14,30 +14,36 @@ import scala.collection.mutable.ArrayBuffer
 import net.verdagon.vale.scout.rules.{IRulexSR, RuleScout}
 //import net.verdagon.vale.scout.templatepredictor.PredictorEvaluator
 
-object ExpressionScout {
-  sealed trait IScoutResult[+T <: IExpressionSE]
-  // Will contain the address of a local.
-  case class LocalLookupResult(range: RangeS, name: IVarNameS) extends IScoutResult[IExpressionSE] {
-    override def hashCode(): Int = vcurious()
-  }
-  // Looks up something that's not a local.
-  // Should be just a function, but its also super likely that the user just forgot
-  // to declare a variable, and we interpreted it as an outside lookup.
-  case class OutsideLookupResult(
-    range: RangeS,
-    name: String,
-    templateArgs: Option[Array[ITemplexPT]]
-  ) extends IScoutResult[IExpressionSE] {
-    override def hashCode(): Int = vcurious()
-  }
-  // Anything else, such as:
-  // - Result of a function call
-  // - Address inside a struct
-  case class NormalResult[+T <: IExpressionSE](range: RangeS, expr: T) extends IScoutResult[T] {
-    override def hashCode(): Int = vcurious()
-  }
+trait IExpressionScoutDelegate {
+  def scoutLambda(
+    parentStackFrame: StackFrame,
+    lambdaFunction0: FunctionP):
+  (FunctionS, VariableUses)
+}
 
+sealed trait IScoutResult[+T <: IExpressionSE]
+// Will contain the address of a local.
+case class LocalLookupResult(range: RangeS, name: IVarNameS) extends IScoutResult[IExpressionSE] {
+  override def hashCode(): Int = vcurious()
+}
+// Looks up something that's not a local.
+// Should be just a function, but its also super likely that the user just forgot
+// to declare a variable, and we interpreted it as an outside lookup.
+case class OutsideLookupResult(
+  range: RangeS,
+  name: String,
+  templateArgs: Option[Array[ITemplexPT]]
+) extends IScoutResult[IExpressionSE] {
+  override def hashCode(): Int = vcurious()
+}
+// Anything else, such as:
+// - Result of a function call
+// - Address inside a struct
+case class NormalResult[+T <: IExpressionSE](range: RangeS, expr: T) extends IScoutResult[T] {
+  override def hashCode(): Int = vcurious()
+}
 
+class ExpressionScout(delegate: IExpressionScoutDelegate) {
   def scoutBlock(
     functionBodyEnv: FunctionEnvironment,
     parentStackFrame: Option[StackFrame],
@@ -127,7 +133,7 @@ object ExpressionScout {
       case VoidPE(range) => (stackFrame0, NormalResult(evalRange(range), VoidSE(evalRange(range))), noVariableUses, noVariableUses)
       case lam @ LambdaPE(captures,_) => {
         val (function1, childUses) =
-          FunctionScout.scoutLambda(stackFrame0, lam.function)
+          delegate.scoutLambda(stackFrame0, lam.function)
 
         (stackFrame0, NormalResult(function1.range, FunctionSE(function1)), noVariableUses, childUses)
       }

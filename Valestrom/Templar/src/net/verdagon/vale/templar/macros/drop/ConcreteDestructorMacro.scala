@@ -1,19 +1,19 @@
-package net.verdagon.vale.templar.macros
+package net.verdagon.vale.templar.macros.drop
 
-import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmConcreteDestructorImpreciseNameS, ImmConcreteDestructorNameS}
+import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
-import net.verdagon.vale.scout.rules.{CoordComponentsSR, IsConcreteSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RuneUsage}
+import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT}
-import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, OverloadTemplar, Templar, Temputs}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment}
-import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
 import net.verdagon.vale.templar.templata.Conversions
-import net.verdagon.vale.templar.types.{CoordT, ImmutableT, MutabilityT, MutableT, PackTT, ParamFilter, ReadonlyT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT}
-import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vfail, vimpl}
+import net.verdagon.vale.templar.types._
+import net.verdagon.vale.templar._
+import net.verdagon.vale._
+import net.verdagon.vale.templar.expression.CallTemplar
 
 class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
 
@@ -23,7 +23,7 @@ class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
     val unevaluatedFunction =
     FunctionA(
       RangeS.internal(-68),
-      DropNameS(PackageCoordinate.BUILTIN),
+      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-16)),
 //      if (mutability == MutableT) {
 //        FunctionNameS(CallTemplar.MUT_DESTRUCTOR_NAME, CodeLocationS.internal(-16))
 //      } else {
@@ -110,7 +110,7 @@ class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
   PrototypeT = {
     vassert(Templar.getMutability(temputs, structTT) == ImmutableT)
 
-    overloadTemplar.scoutExpectedFunctionForPrototype(
+    overloadTemplar.findFunction(
       env,
       temputs,
       RangeS.internal(-1673),

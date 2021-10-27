@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.macros
 
 import net.verdagon.vale.{PackageCoordinate, RangeS}
-import net.verdagon.vale.astronomer.{FunctionA, StructA}
+import net.verdagon.vale.astronomer.{FunctionA, ImplA, InterfaceA, StructA}
 import net.verdagon.vale.templar.Temputs
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT}
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment}
@@ -31,8 +31,17 @@ trait IFunctionBodyMacro {
 }
 
 trait IOnStructDefinedMacro {
-  def onStructDefined(
-    packageCoordinate: PackageCoordinate, namespace: Vector[INameT], structName: INameT, structA: StructA):
+  def getStructSiblingEntries(
+    structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)]
+
+  def getStructChildEntries(
+    structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)]
+}
+
+trait IOnImplicitStructGeneratedMacro {
+  def onImplicitStructGenerated(struct: StructTT):
   Vector[(FullNameT[INameT], FunctionEnvEntry)]
 }
 
@@ -61,7 +70,19 @@ trait IOnInterfaceGeneratedMacro {
 }
 
 trait IOnInterfaceDefinedMacro {
-  def onInterfaceDefined()
+
+  def getInterfaceSiblingEntries(
+    structName: FullNameT[INameT], structA: InterfaceA):
+  Vector[(INameT, FunctionEnvEntry)]
+
+  def getInterfaceChildEntries(
+    structName: FullNameT[INameT], structA: InterfaceA):
+  Vector[(INameT, FunctionEnvEntry)]
+}
+
+trait IOnImplDefinedMacro {
+  def getImplSiblingEntries(implA: ImplA):
+  Vector[(INameT, FunctionEnvEntry)]
 }
 
 trait IOnImplGeneratedMacro {
