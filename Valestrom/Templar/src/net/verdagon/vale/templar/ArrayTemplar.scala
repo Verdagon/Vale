@@ -4,16 +4,17 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver}
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver, SelfNameS}
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, PrototypeT, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
-import net.verdagon.vale.templar.env.{FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
+import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvEntry, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.DestructorTemplar
+import net.verdagon.vale.templar.names.{FunctionNameT, FunctionTemplateNameT, SelfNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.{Err, IProfiler, Ok, RangeS, vassert, vassertOne, vassertSome, vimpl}
+import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, RangeS, vassert, vassertOne, vassertSome, vimpl}
 
 import scala.collection.immutable.{List, Set}
 
@@ -46,6 +47,8 @@ class ArrayTemplar(
   StaticArrayFromCallableTE = {
     val runeToType =
       RuneTypeSolver.solve(
+        vimpl(),
+        vimpl(),
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
@@ -79,6 +82,8 @@ class ArrayTemplar(
   ConstructArrayTE = {
     val runeToType =
       RuneTypeSolver.solve(
+        vimpl(),
+        vimpl(),
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
@@ -111,6 +116,8 @@ class ArrayTemplar(
    StaticArrayFromValuesTE = {
     val runeToType =
       RuneTypeSolver.solve(
+        vimpl(),
+        vimpl(),
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
@@ -218,8 +225,24 @@ class ArrayTemplar(
         val staticSizedArrayOwnership = if (mutability == MutableT) OwnT else ShareT
         val staticSizedArrayPermission = if (mutability == MutableT) ReadwriteT else ReadonlyT
         val staticSizedArrayRefType2 = CoordT(staticSizedArrayOwnership, staticSizedArrayPermission, staticSizedArrayType)
-        val prototype = delegate.getArrayDestructor(env, temputs, staticSizedArrayRefType2)
-        temputs.addDestructor(staticSizedArrayType, prototype)
+
+        // We declare the function into the environment that we use to compile the
+        // struct, so that those who use the struct can reach into its environment
+        // and see the function and use it.
+        // See CSFMSEO and SAFHE.
+        val arrayEnv =
+          CitizenEnvironment(
+            env.globalEnv,
+            env,
+            staticSizedArrayType.name,
+            TemplatasStore(Map(), Map())
+              .addEntries(
+                Map(
+                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
+                    Vector(FunctionEnvEntry(env.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
+                  SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2))))))
+        temputs.declareKindEnv(staticSizedArrayType, arrayEnv)
+
         (staticSizedArrayType)
       }
     }
@@ -239,10 +262,24 @@ class ArrayTemplar(
             if (arrayMutability == MutableT) OwnT else ShareT,
             if (arrayMutability == MutableT) ReadwriteT else ReadonlyT,
             runtimeSizedArrayType)
-        val prototype =
-          delegate.getArrayDestructor(
-            env, temputs, runtimeSizedArrayRefType2)
-        temputs.addDestructor(runtimeSizedArrayType, prototype)
+
+        // We declare the function into the environment that we use to compile the
+        // struct, so that those who use the struct can reach into its environment
+        // and see the function and use it.
+        // See CSFMSEO and SAFHE.
+        val arrayEnv =
+        CitizenEnvironment(
+          env.globalEnv,
+          env,
+          runtimeSizedArrayType.name,
+          TemplatasStore(Map(), Map())
+            .addEntries(
+              Map(
+                FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
+                  Vector(FunctionEnvEntry(env.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
+                SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))))))
+        temputs.declareKindEnv(runtimeSizedArrayType, arrayEnv)
+
         (runtimeSizedArrayType)
       }
     }

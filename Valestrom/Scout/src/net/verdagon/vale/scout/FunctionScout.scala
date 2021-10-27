@@ -1,8 +1,7 @@
 package net.verdagon.vale.scout
 
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.ExpressionScout.NormalResult
-import net.verdagon.vale.scout.Scout.{noDeclarations, predictRuneTypes}
+import net.verdagon.vale.scout.Scout.noDeclarations
 import net.verdagon.vale.scout.patterns._
 //import net.verdagon.vale.scout.predictor.{Conclusions, PredictorEvaluator}
 
@@ -36,7 +35,16 @@ import scala.collection.immutable.{List, Range}
 //  def countMagicParams(): Int = fate.countMagicParams()
 //}
 
-object FunctionScout {
+class FunctionScout(scout: Scout) {
+  val expressionScout =
+    new ExpressionScout(
+      new IExpressionScoutDelegate {
+        override def scoutLambda(parentStackFrame: StackFrame, lambdaFunction0: FunctionP): (FunctionS, VariableUses) = {
+          FunctionScout.this.scoutLambda(parentStackFrame, lambdaFunction0)
+        }
+      }
+    )
+
 //  // All closure structs start with this
 //  val CLOSURE_STRUCT_NAME = "__Closure:"
 //  // In a closure's environment, we also have this. This lets us easily know
@@ -169,7 +177,7 @@ object FunctionScout {
     val attrsS = translateFunctionAttributes(file, attributes.filter({ case AbstractAttributeP(_) => false case _ => true}))
 
     val runeToPredictedType =
-      predictRuneTypes(
+      scout.predictRuneTypes(
         rangeS,
         userSpecifiedIdentifyingRunes.map(_.rune),
         runeToExplicitType.toMap,
@@ -389,7 +397,7 @@ object FunctionScout {
     // 'm' will be turned into an expression, which means that's how it's
     // destroyed. So, thats how we destroy things before their time.
     val (NormalResult(_, block1), selfUses, childUses) =
-      ExpressionScout.scoutBlock(
+      expressionScout.scoutBlock(
         functionBodyEnv,
         parentStackFrame,
         lidb.child(),

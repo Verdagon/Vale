@@ -66,7 +66,6 @@ case class ImmConcreteDestructorNameS(packageCoordinate: PackageCoordinate) exte
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class ImmInterfaceDestructorNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class DropNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //
 //sealed trait IRuneS extends INameA with IRuneS
 

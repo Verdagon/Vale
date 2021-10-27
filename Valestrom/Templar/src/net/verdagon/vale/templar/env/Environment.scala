@@ -4,8 +4,10 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.TemplatasStore.{entryMatchesFilter, entryToTemplata, getImpreciseName}
-import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplGeneratedMacro, IOnInterfaceGeneratedMacro, IOnStructGeneratedMacro, StructConstructorMacro, StructDropMacro}
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, DropTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorTemplateNameT, ImmInterfaceDestructorTemplateNameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT}
+import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.macros.drop.{InterfaceDropMacro, StructDropMacro}
+import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplGeneratedMacro, IOnInterfaceGeneratedMacro, IOnStructGeneratedMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
@@ -138,6 +140,7 @@ case object ExpressionLookupContext extends ILookupContext
 case class GlobalEnvironment(
   structConstructorMacro: StructConstructorMacro,
   structDropMacro: StructDropMacro,
+  interfaceDropMacro: InterfaceDropMacro,
   anonymousInterfaceMacro: AnonymousInterfaceMacro,
   onStructGeneratedMacros: Vector[IOnStructGeneratedMacro],
   onInterfaceGeneratedMacros: Vector[IOnInterfaceGeneratedMacro],
@@ -365,9 +368,9 @@ object TemplatasStore {
       case RuneNameT(r) => Some(RuneNameS(r))
 
       case ImplDeclareNameT(subCitizenHumanName, _) => Some(ImplImpreciseNameS(subCitizenHumanName))
-      case DropTemplateNameT() => Some(CodeVarNameS("drop"))
-      case ImmConcreteDestructorTemplateNameT() => Some(ImmConcreteDestructorImpreciseNameS())
-      case ImmInterfaceDestructorTemplateNameT() => Some(ImmInterfaceDestructorImpreciseNameS())
+//      case DropTemplateNameT() => Some(CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME))
+//      case ImmConcreteDestructorTemplateNameT() => Some(ImmConcreteDestructorImpreciseNameS())
+//      case ImmInterfaceDestructorTemplateNameT() => Some(ImmInterfaceDestructorImpreciseNameS())
       //      case RuneNameT(ImplicitRuneS(_)) => None
       //      case RuneNameT(LetImplicitRuneS(_)) => None
       //      case RuneNameT(SolverKindRuneS(_)) => None
@@ -375,6 +378,7 @@ object TemplatasStore {
       //      case RuneNameT(MemberRuneS(_)) => None
       case LambdaCitizenNameT(codeLoc) => Some(LambdaStructNameS(LambdaNameS(codeLoc)))
       case ClosureParamNameT() => Some(ClosureParamNameS())
+      case SelfNameT() => Some(SelfNameS())
       //      case AnonymousSubstructParentInterfaceRuneS() => None
       case AnonymousSubstructImplNameT() => None
       //      case MagicImplicitRuneS(_) => None
@@ -476,13 +480,13 @@ case class TemplatasStore(
     TemplatasStore(combinedEntries, combinedEntriesByNameS)
   }
 
-  def addUnevaluatedFunction(useOptimization: Boolean, functionA: FunctionA): TemplatasStore = {
+  def addUnevaluatedFunction(functionA: FunctionA): TemplatasStore = {
     val functionName = NameTranslator.translateFunctionNameToTemplateName(functionA.name)
-    addEntry(useOptimization, functionName, FunctionEnvEntry(functionA))
+    addEntry(functionName, FunctionEnvEntry(functionA))
   }
 
 
-  def addEntry(useOptimization: Boolean, name: INameT, entry: IEnvEntry): TemplatasStore = {
+  def addEntry(name: INameT, entry: IEnvEntry): TemplatasStore = {
     addEntries(Map(name -> Vector(entry)))
   }
 

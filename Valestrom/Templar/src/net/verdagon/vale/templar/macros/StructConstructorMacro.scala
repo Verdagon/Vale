@@ -20,12 +20,16 @@ class StructConstructorMacro(
   profiler: IProfiler
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
-  override def onStructDefined(
-    packageCoordinate: PackageCoordinate, namespace: Vector[INameT], structName: INameT, structA: StructA):
-  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
+  override def getStructChildEntries(structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)] = {
+    Vector()
+  }
+
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)] = {
     val functionA = defineConstructorFunction(structA)
     Vector(
-      FullNameT(packageCoordinate, namespace, NameTranslator.translateNameStep(functionA.name)) ->
+      NameTranslator.translateNameStep(functionA.name) ->
         FunctionEnvEntry(functionA))
   }
 

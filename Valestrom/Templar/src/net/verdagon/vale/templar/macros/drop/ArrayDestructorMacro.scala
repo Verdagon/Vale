@@ -1,20 +1,14 @@
-package net.verdagon.vale.templar.macros
+package net.verdagon.vale.templar.macros.drop
 
-import net.verdagon.vale.astronomer.{DropNameS, FunctionA, ImmConcreteDestructorNameS}
-import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
-import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
-import net.verdagon.vale.scout.rules._
+import net.verdagon.vale._
+import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.scout._
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, PrototypeT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvironment, IEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.templata.Conversions
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, OverloadTemplar, Templar, TemplarOptions, Temputs, ast}
-import net.verdagon.vale._
-import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReturnTE, StructToInterfaceUpcastTE, VoidLiteralTE}
-import net.verdagon.vale.templar.names.CodeVarNameT
+import net.verdagon.vale.templar.{OverloadTemplar, TemplarOptions, Temputs}
 
 class ArrayDestructorMacro(
     opts: TemplarOptions,
@@ -143,12 +137,12 @@ class ArrayDestructorMacro(
   // - Unborrow. This is a no op.
   // This is quite useful for handing into array consumers.
   private def getDropFunction(env: IEnvironment, temputs: Temputs, type2: CoordT): PrototypeT = {
-    overloadTemplar.scoutExpectedFunctionForPrototype(
+    overloadTemplar.findFunction(
       env,
       temputs,
       RangeS.internal(-1676),
 //      if (type2.ownership == ShareT) {
-        DropNameS(PackageCoordinate.internal),
+      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
 //      } else {
 //        GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
 //      },

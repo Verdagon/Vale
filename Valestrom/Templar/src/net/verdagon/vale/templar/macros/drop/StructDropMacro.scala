@@ -1,19 +1,18 @@
-package net.verdagon.vale.templar.macros
+package net.verdagon.vale.templar.macros.drop
 
-import net.verdagon.vale.astronomer.{DropNameS, FunctionA, StructA}
+import net.verdagon.vale.astronomer.{FunctionA, StructA}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
-import net.verdagon.vale.scout.rules.{CallSR, CoordComponentsSR, EqualsSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, RuneParentEnvLookupSR, RuneUsage}
-import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, DestroyTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
-import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, Templar, Temputs}
-import net.verdagon.vale.templar.citizen.StructTemplar
+import net.verdagon.vale.scout.rules.{CallSR, EqualsSR, LookupSR, RuneUsage}
+import net.verdagon.vale.templar.ast._
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.names.{CodeVarNameT, FullNameT, INameT, NameTranslator}
-import net.verdagon.vale.templar.templata.{Conversions, CoordTemplata}
-import net.verdagon.vale.templar.types.{AddressMemberTypeT, ConstraintT, CoordT, FinalT, ImmutableT, MutabilityT, MutableT, OwnT, ReadonlyT, ReadwriteT, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT, VoidT}
-import net.verdagon.vale.{CodeLocationS, IProfiler, PackageCoordinate, RangeS, vassert, vimpl}
+import net.verdagon.vale.templar.function.DestructorTemplar
+import net.verdagon.vale.templar.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
+import net.verdagon.vale.templar.names.{FullNameT, INameT, NameTranslator}
+import net.verdagon.vale.templar.types._
+import net.verdagon.vale.templar.{Templar, Temputs}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS}
 
 class StructDropMacro(
   destructorTemplar: DestructorTemplar
@@ -21,9 +20,14 @@ class StructDropMacro(
 
   override def generatorId: String = "dropGenerator"
 
-  override def onStructDefined(
-    packageCoordinate: PackageCoordinate, namespace: Vector[INameT], structName: INameT, structA: StructA):
-  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)] = {
+    Vector()
+  }
+
+  override def getStructChildEntries(
+    structName: FullNameT[INameT], structA: StructA):
+  Vector[(INameT, FunctionEnvEntry)] = {
     val structNameS = CodeNameS(structA.name.name)
     val structType = structA.tyype
     val structIdentifyingRunes = structA.identifyingRunes
@@ -35,9 +39,13 @@ class StructDropMacro(
       makeDropFunction(
         structNameS, structType, structIdentifyingRunes.map(_.rune), structIdentifyingRuneToType)
 
-    val fullName =
-      FullNameT(packageCoordinate, namespace, NameTranslator.translateFunctionNameToTemplateName(functionA.name))
-    Vector((fullName, FunctionEnvEntry(functionA)))
+    val nameT = NameTranslator.translateFunctionNameToTemplateName(functionA.name)
+    Vector((nameT, FunctionEnvEntry(functionA)))
+
+//    DropTemplateNameT() ->
+//      Vector(FunctionEnvEntry(structRunesEnv.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
+//    fullName.last -> Vector(TemplataEnvEntry(KindTemplata(temporaryStructRef))),
+//    SelfNameT() -> Vector(TemplataEnvEntry(KindTemplata(temporaryStructRef))))))
   }
 
 //  def addDrop(
@@ -76,9 +84,10 @@ class StructDropMacro(
 //  }
 
   private def makeDropFunction(structNameS: CodeNameS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
+    val range = RangeS.internal(-66)
     FunctionA(
-      RangeS.internal(-66),
-      DropNameS(PackageCoordinate.internal),
+      range,
+      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-66)),
       Vector(UserFunctionS),
       structType match {
         case KindTemplataType => FunctionTemplataType
@@ -116,11 +125,13 @@ class StructDropMacro(
       GeneratedBodyS(generatorId))
   }
 
-  def makeClosureDropFunction():
+  // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
+  // defined by the user.
+  def makeImplicitDropFunction(selfName: INameS):
   FunctionA = {
     FunctionA(
       RangeS.internal(-66),
-      DropNameS(PackageCoordinate.internal),
+      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-66)),
       Vector(UserFunctionS),
       FunctionTemplataType,
       Vector(),
@@ -134,7 +145,7 @@ class StructDropMacro(
         LookupSR(
           RangeS.internal(-167213),
           RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
-          ClosureParamNameS()),
+          selfName),
         LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")), CodeNameS("void"))),
       GeneratedBodyS(generatorId))
   }

@@ -1,8 +1,10 @@
 package net.verdagon.vale.scout
 
 //import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.{CodeLocationS, RangeS}
 import net.verdagon.vale.parser._
+import net.verdagon.vale.scout.Scout.{determineDenizenType}
 import net.verdagon.vale.scout.patterns.PatternScout
 //import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules._
@@ -111,6 +113,61 @@ object Scout {
   def noVariableUses = VariableUses(Vector.empty)
   def noDeclarations = VariableDeclarations(Vector.empty)
 
+  def evalRange(file: FileCoordinate, range: Range): RangeS = {
+    RangeS(evalPos(file, range.begin), evalPos(file, range.end))
+  }
+
+  def evalPos(file: FileCoordinate, pos: Int): CodeLocationS = {
+    CodeLocationS(file, pos)
+  }
+
+  // Err is the missing rune
+  def determineDenizenType(
+    templateResultType: ITemplataType,
+    identifyingRunesS: Vector[IRuneS],
+    runeAToType: Map[IRuneS, ITemplataType]):
+  Result[ITemplataType, IRuneS] = {
+    val isTemplate = identifyingRunesS.nonEmpty
+
+    val tyype =
+      if (isTemplate) {
+        TemplateTemplataType(
+          identifyingRunesS.map(identifyingRuneA => {
+            runeAToType.get(identifyingRuneA) match {
+              case None => return Err(identifyingRuneA)
+              case Some(x) => x
+            }
+          }),
+          templateResultType)
+      } else {
+        templateResultType
+      }
+    Ok(tyype)
+  }
+
+  def getHumanName(templex: ITemplexPT): String = {
+    templex match {
+      //      case NullablePT(_, inner) => getHumanName(inner)
+      case InlinePT(_, inner) => getHumanName(inner)
+      //      case PermissionedPT(_, permission, inner) => getHumanName(inner)
+      case InterpretedPT(_, ownership, permission, inner) => getHumanName(inner)
+      case AnonymousRunePT(_) => vwat()
+      case NameOrRunePT(NameP(_, name)) => name
+      case CallPT(_, template, args) => getHumanName(template)
+      case RepeaterSequencePT(_, mutability, variability, size, element) => vwat()
+      case ManualSequencePT(_, members) => vwat()
+      case IntPT(_, value) => vwat()
+      case BoolPT(_, value) => vwat()
+      case OwnershipPT(_, ownership) => vwat()
+      case MutabilityPT(_, mutability) => vwat()
+      case LocationPT(_, location) => vwat()
+      case PermissionPT(_, permission) => vwat()
+    }
+  }
+}
+
+class Scout(globalOptions: GlobalOptions) {
+
 //  val unnamedParamNamePrefix = "__param_"
 //  val unrunedParamOverrideRuneSuffix = "Override"
 //  val unnamedMemberNameSeparator = "_mem_"
@@ -120,7 +177,7 @@ object Scout {
       val structsS = parsed.topLevelThings.collect({ case TopLevelStructP(s) => s }).map(scoutStruct(fileCoordinate, _));
       val interfacesS = parsed.topLevelThings.collect({ case TopLevelInterfaceP(i) => i }).map(scoutInterface(fileCoordinate, _));
       val implsS = parsed.topLevelThings.collect({ case TopLevelImplP(i) => i }).map(scoutImpl(fileCoordinate, _))
-      val functionsS = parsed.topLevelThings.collect({ case TopLevelFunctionP(f) => f }).map(FunctionScout.scoutTopLevelFunction(fileCoordinate, _))
+      val functionsS = parsed.topLevelThings.collect({ case TopLevelFunctionP(f) => f }).map(new FunctionScout(this).scoutTopLevelFunction(fileCoordinate, _))
       val exportsS = parsed.topLevelThings.collect({ case TopLevelExportAsP(e) => e }).map(scoutExportAs(fileCoordinate, _))
       val importsS = parsed.topLevelThings.collect({ case TopLevelImportP(e) => e }).map(scoutImport(fileCoordinate, _))
       val programS = ProgramS(structsS, interfacesS, implsS, functionsS, exportsS, importsS)
@@ -151,7 +208,7 @@ object Scout {
     val templateRulesP = maybeTemplateRulesP.toVector.flatMap(_.rules)
 
     val codeLocation = Scout.evalPos(file, range.begin)
-    val implName = ImplNameS(getHumanName(struct), codeLocation)
+    val implName = ImplNameS(Scout.getHumanName(struct), codeLocation)
 
     val identifyingRunes =
       identifyingRuneNames
@@ -252,22 +309,6 @@ object Scout {
     val pos = Scout.evalPos(file, range.begin)
 
     ImportS(Scout.evalRange(file, range), moduleName.str, packageNames.map(_.str), importeeName.str)
-  }
-
-  def predictRuneTypes(
-    rangeS: RangeS,
-    identifyingRunesS: Vector[IRuneS],
-    runeToExplicitType: Map[IRuneS, ITemplataType],
-    rulesS: Array[IRulexSR]):
-  Map[IRuneS, ITemplataType] = {
-    val runeSToLocallyPredictedTypes =
-      RuneTypeSolver.solve(
-        (n) => vimpl(), rangeS, true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
-        case Ok(t) => t
-        // This likely cannot happen because we aren't even asking for a complete solve.
-        case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
-      }
-    runeSToLocallyPredictedTypes
   }
 
   private def predictMutability(rangeS: RangeS, mutabilityRuneS: IRuneS, rulesS: Array[IRulexSR]):
@@ -373,29 +414,25 @@ object Scout {
     })
   }
 
-  // Err is the missing rune
-  def determineDenizenType(
-    templateResultType: ITemplataType,
-    identifyingRunesS: Vector[IRuneS],
-    runeAToType: Map[IRuneS, ITemplataType]):
-  Result[ITemplataType, IRuneS] = {
-    val isTemplate = identifyingRunesS.nonEmpty
 
-    val tyype =
-      if (isTemplate) {
-        TemplateTemplataType(
-          identifyingRunesS.map(identifyingRuneA => {
-            runeAToType.get(identifyingRuneA) match {
-              case None => return Err(identifyingRuneA)
-              case Some(x) => x
-            }
-          }),
-          templateResultType)
-      } else {
-        templateResultType
+  def predictRuneTypes(
+    rangeS: RangeS,
+    identifyingRunesS: Vector[IRuneS],
+    runeToExplicitType: Map[IRuneS, ITemplataType],
+    rulesS: Array[IRulexSR]):
+  Map[IRuneS, ITemplataType] = {
+    val runeSToLocallyPredictedTypes =
+      RuneTypeSolver.solve(
+        globalOptions.sanityCheck,
+        globalOptions.useOptimizedSolver,
+        (n) => vimpl(), rangeS, true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
+        case Ok(t) => t
+        // This likely cannot happen because we aren't even asking for a complete solve.
+        case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
       }
-    Ok(tyype)
+    runeSToLocallyPredictedTypes
   }
+
 
   private def scoutInterface(
     file: FileCoordinate,
@@ -443,7 +480,7 @@ object Scout {
 
     val internalMethodsS =
       internalMethodsP.map(
-        FunctionScout.scoutInterfaceMember(
+        new FunctionScout(this).scoutInterfaceMember(
           interfaceEnv, explicitIdentifyingRunes.toArray, rulesS, runeToExplicitType.toMap, _))
 
     val weakable = attributesP.exists({ case w @ WeakableP(_) => true case _ => false })
@@ -472,36 +509,10 @@ object Scout {
     interfaceS
   }
 
-  def evalRange(file: FileCoordinate, range: Range): RangeS = {
-    RangeS(evalPos(file, range.begin), evalPos(file, range.end))
-  }
-
-  def evalPos(file: FileCoordinate, pos: Int): CodeLocationS = {
-    CodeLocationS(file, pos)
-  }
-
-  def getHumanName(templex: ITemplexPT): String = {
-    templex match {
-//      case NullablePT(_, inner) => getHumanName(inner)
-      case InlinePT(_, inner) => getHumanName(inner)
-//      case PermissionedPT(_, permission, inner) => getHumanName(inner)
-      case InterpretedPT(_, ownership, permission, inner) => getHumanName(inner)
-      case AnonymousRunePT(_) => vwat()
-      case NameOrRunePT(NameP(_, name)) => name
-      case CallPT(_, template, args) => getHumanName(template)
-      case RepeaterSequencePT(_, mutability, variability, size, element) => vwat()
-      case ManualSequencePT(_, members) => vwat()
-      case IntPT(_, value) => vwat()
-      case BoolPT(_, value) => vwat()
-      case OwnershipPT(_, ownership) => vwat()
-      case MutabilityPT(_, mutability) => vwat()
-      case LocationPT(_, location) => vwat()
-      case PermissionPT(_, permission) => vwat()
-    }
-  }
 }
 
 class ScoutCompilation(
+  globalOptions: GlobalOptions,
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]]) {
   var parserCompilation = new ParserCompilation(packagesToBuild, packageToContentsResolver)
@@ -517,7 +528,7 @@ class ScoutCompilation(
       case None => {
         val scoutput =
           parserCompilation.expectParseds().map({ case (fileCoordinate, (code, commentsAndRanges)) =>
-            Scout.scoutProgram(fileCoordinate, code) match {
+            new Scout(globalOptions).scoutProgram(fileCoordinate, code) match {
               case Err(e) => return Err(e)
               case Ok(p) => p
             }

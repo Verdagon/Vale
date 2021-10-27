@@ -53,7 +53,7 @@ class StructTemplarTemplateArgsLayer(
 
           structA.maybePredictedMutability match {
             case None =>
-            case Some(predictedMutability) => temputs.declareStructMutability(temporaryStructRef, Conversions.evaluateMutability(predictedMutability))
+            case Some(predictedMutability) => temputs.declareCitizenMutability(temporaryStructRef, Conversions.evaluateMutability(predictedMutability))
           }
           vassert(structA.identifyingRunes.size == templateArgs.size)
           val inferences =
@@ -69,7 +69,7 @@ class StructTemplarTemplateArgsLayer(
           structA.maybePredictedMutability match {
             case None => {
               val MutabilityTemplata(mutability) = inferences(structA.mutabilityRune.rune)
-              temputs.declareStructMutability(temporaryStructRef, mutability)
+              temputs.declareCitizenMutability(temporaryStructRef, mutability)
             }
             case Some(_) =>
           }
@@ -108,7 +108,7 @@ class StructTemplarTemplateArgsLayer(
 
           interfaceS.maybePredictedMutability match {
             case None =>
-            case Some(predictedMutability) => temputs.declareInterfaceMutability(temporaryInterfaceRef, Conversions.evaluateMutability(predictedMutability))
+            case Some(predictedMutability) => temputs.declareCitizenMutability(temporaryInterfaceRef, Conversions.evaluateMutability(predictedMutability))
           }
           vassert(interfaceS.identifyingRunes.size == templateArgs.size)
 
@@ -125,7 +125,7 @@ class StructTemplarTemplateArgsLayer(
           interfaceS.maybePredictedMutability match {
             case None => {
               val MutabilityTemplata(mutability) = inferences(interfaceS.mutabilityRune.rune)
-              temputs.declareInterfaceMutability(temporaryInterfaceRef, mutability)
+              temputs.declareCitizenMutability(temporaryInterfaceRef, mutability)
             }
             case Some(_) =>
           }

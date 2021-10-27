@@ -92,10 +92,10 @@ class ExpressionTemplar(
       }
       case None => {
         fate.lookupWithName(profiler, name, Set(TemplataLookupContext), true) match {
-          case List(IntegerTemplata(num)) => (Some(ConstantIntTE(num, 32)))
-          case List(BooleanTemplata(bool)) => (Some(ConstantBoolTE(bool)))
-          case List() => (None)
-          case _ => vwat()
+          case Vector(IntegerTemplata(num)) => (Some(ConstantIntTE(num, 32)))
+          case Vector(BooleanTemplata(bool)) => (Some(ConstantBoolTE(bool)))
+          case Vector() => (None)
+          case other => vwat(other)
         }
       }
     }
@@ -477,7 +477,9 @@ class ExpressionTemplar(
           val name = NameTranslator.translateVarNameStep(nameA)
           val lookupExpr1 =
             evaluateLookupForLoad(temputs, fate, range, name, targetOwnership) match {
-              case (None) => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldnt find " + name))
+              case (None) => {
+                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldnt find " + name))
+              }
               case (Some(x)) => (x)
             }
           (lookupExpr1, Set())
@@ -513,7 +515,9 @@ class ExpressionTemplar(
         case LocalMutateSE(range, name, sourceExpr1) => {
           val destinationExpr2 =
             evaluateAddressibleLookupForMutate(temputs, fate, range, name) match {
-              case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldnt find " + name))
+              case None => {
+                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldnt find " + name))
+              }
               case Some(x) => x
             }
           val (unconvertedSourceExpr2, returnsFromSource) =
@@ -789,6 +793,8 @@ class ExpressionTemplar(
           val runeToInitiallyKnownType = PatternSUtils.getRuneTypesFromPattern(pattern)
           val runeToType =
             RuneTypeSolver.solve(
+                opts.globalOptions.sanityCheck,
+                opts.globalOptions.useOptimizedSolver,
                 nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
                 range,
                 false,
@@ -818,7 +824,7 @@ class ExpressionTemplar(
           // The then and else blocks are children of the block which contains the condition
           // so they can access any locals declared by the condition.
 
-          val ifBlockFate = fate.makeChildEnvironment(None)
+          val ifBlockFate = fate.makeChildBlockEnvironment(None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, ifBlockFate, life + 1, conditionSE)
@@ -827,7 +833,7 @@ class ExpressionTemplar(
           }
 
 
-          val thenFate = ifBlockFate.makeChildEnvironment(Some(thenBody1))
+          val thenFate = ifBlockFate.makeChildBlockEnvironment(Some(thenBody1))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(temputs, thenFate.snapshot, thenFate, life + 2, thenBody1.exprs)
@@ -836,7 +842,7 @@ class ExpressionTemplar(
           val thenUnstackifiedAncestorLocals = thenFate.getEffects()
           val thenContinues = uncoercedThenBlock2.resultRegister.reference.kind != NeverT()
 
-          val elseFate = ifBlockFate.makeChildEnvironment(Some(elseBody1))
+          val elseFate = ifBlockFate.makeChildBlockEnvironment(Some(elseBody1))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(temputs, elseFate.snapshot, elseFate, life + 3, elseBody1.exprs)
@@ -906,7 +912,7 @@ class ExpressionTemplar(
           // We make a block for the while-statement which contains its condition (the "if block"),
           // and the body block, so they can access any locals declared by the condition.
 
-          val whileBlockFate = fate.makeChildEnvironment(None)
+          val whileBlockFate = fate.makeChildBlockEnvironment(None)
 
           val (conditionExpr, returnsFromCondition) =
             evaluateAndCoerceToReferenceExpression(temputs, whileBlockFate, life + 0, conditionSE)
@@ -944,7 +950,7 @@ class ExpressionTemplar(
           (whileExpr2, returnsFromCondition ++ bodyReturnsFromExprs)
         }
         case b @ BlockSE(range, locals, blockExprs) => {
-          val childEnvironment = fate.makeChildEnvironment(Some(b))
+          val childEnvironment = fate.makeChildBlockEnvironment(Some(b))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(temputs, childEnvironment.functionEnvironment, childEnvironment, life, blockExprs)
@@ -1085,7 +1091,7 @@ class ExpressionTemplar(
     val someConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
         temputs, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(ParamFilter(containedCoord, None))) match {
-        case seff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, seff.toString))
+        case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
 
@@ -1097,7 +1103,7 @@ class ExpressionTemplar(
     val noneConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
         temputs, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
-        case seff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, seff.toString))
+        case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
     (ownOptCoord, someConstructor, noneConstructor)
@@ -1122,7 +1128,7 @@ class ExpressionTemplar(
     val okConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
         temputs, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedSuccessCoord, None))) match {
-        case seff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, seff.toString))
+        case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
 
@@ -1134,7 +1140,7 @@ class ExpressionTemplar(
     val errConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
         temputs, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedFailCoord, None))) match {
-        case seff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, seff.toString))
+        case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
 
@@ -1293,6 +1299,8 @@ class ExpressionTemplar(
         paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType).toMap
     val runeSToType =
       RuneTypeSolver.solve(
+        opts.globalOptions.sanityCheck,
+        opts.globalOptions.useOptimizedSolver,
         {
           // This is here because if we tried to look up this lambda struct, it wouldn't exist yet.
           // It's not an insurmountable problem, it will exist slightly later when we're inside StructTemplar,

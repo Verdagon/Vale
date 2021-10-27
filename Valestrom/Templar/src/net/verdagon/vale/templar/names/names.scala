@@ -143,37 +143,35 @@ case class BuildingFunctionNameWithClosuredsAndTemplateArgsT(
 
 }
 
-// We dont just use "destructor" as the name because we don't want the user to override it.
-case class ImmConcreteDestructorNameT(kind: KindT) extends IFunctionNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def templateArgs: Vector[ITemplata] = Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, kind)))
-  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, kind))
-
-  kind match {
-    case InterfaceTT(_) => vwat()
-    case _ =>
-  }
-
-  def order = 38;
-
-}
+//// We dont just use "destructor" as the name because we don't want the user to override it.
+//case class ImmConcreteDestructorNameT(kind: KindT) extends IFunctionNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  override def templateArgs: Vector[ITemplata] = Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, kind)))
+//  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, kind))
+//
+//  kind match {
+//    case InterfaceTT(_) => vwat()
+//    case _ =>
+//  }
+//
+//  def order = 38;
+//
+//}
 // We dont just use "idestructor" as the name because we don't want the user to override it.
-case class ImmInterfaceDestructorNameT(
-    templateArgs: Vector[ITemplata],
-    parameters: Vector[CoordT]
-) extends IFunctionNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def order = 38;
-
-}
+//case class ImmInterfaceDestructorNameT(
+//    templateArgs: Vector[ITemplata],
+//    parameters: Vector[CoordT]
+//) extends IFunctionNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 38;
+//
+//}
 // We dont just use "drop" as the name because we don't want the user to override it.
 case class DropNameT(templateArgs: Vector[ITemplata], coord: CoordT) extends IFunctionNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  override def templateArgs: Vector[ITemplata] = Vector()
   override def parameters: Vector[CoordT] = Vector(coord)
-
   def order = 39;
-
 }
 
 
@@ -222,20 +220,25 @@ case class ConstructorTemplateNameT(
   def order = 35;
 
 }
-case class ImmConcreteDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
+//case class ImmConcreteDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 43;
+//
+//}
+//case class ImmInterfaceDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 44;
+//
+//}
+//case class DropTemplateNameT() extends INameT with IFunctionTemplateNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 45;
+//}
+// Vale has no Self, its just a convenient first name parameter.
+// See also SelfNameS.
+case class SelfNameT() extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def order = 43;
-
-}
-case class ImmInterfaceDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def order = 44;
-
-}
-case class DropTemplateNameT() extends INameT with IFunctionTemplateNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def order = 45;
-
+  def order = 55;
 }
 case class ConstructorNameT(
   parameters: Vector[CoordT]

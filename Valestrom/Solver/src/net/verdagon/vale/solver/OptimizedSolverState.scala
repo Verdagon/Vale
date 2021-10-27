@@ -5,9 +5,9 @@ import net.verdagon.vale.{Err, Ok, Result, vassert, vfail, vimpl}
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-object SolverState {
-  def apply[Rule, RuneID, Conclusion](): SolverState[Rule, RuneID, Conclusion] = {
-    SolverState[Rule, RuneID, Conclusion](
+object OptimizedSolverState {
+  def apply[Rule, RuneID, Conclusion](): OptimizedSolverState[Rule, RuneID, Conclusion] = {
+    OptimizedSolverState[Rule, RuneID, Conclusion](
       mutable.HashMap[RuneID, Int](),
       mutable.ArrayBuffer[Rule](),
       mutable.ArrayBuffer[Array[Int]](),
@@ -26,15 +26,7 @@ object SolverState {
   }
 }
 
-trait ISolverStateForRule[Rule, RuneID, Conclusion] {
-  def getConclusion(rune: RuneID): Option[Conclusion]
-//  def concludeRune(rune: RuneID, conclusion: Conclusion)
-  def addRule(rule: Rule, runes: Array[RuneID]): Int
-  def addPuzzle(ruleIndex: Int, runes: Array[RuneID])
-  def getUnsolvedRules(): Vector[Rule]
-}
-
-case class SolverState[Rule, RuneID, Conclusion](
+case class OptimizedSolverState[Rule, RuneID, Conclusion](
   private val userRuneToCanonicalRune: mutable.HashMap[RuneID, Int],
 
   private val rules: mutable.ArrayBuffer[Rule],
@@ -88,13 +80,13 @@ case class SolverState[Rule, RuneID, Conclusion](
   private val numUnknownsToPuzzles: Array[mutable.ArrayBuffer[Int]],
 
   // For each rune, whether it's solved already
-  private val runeToConclusion: mutable.ArrayBuffer[Option[Conclusion]]) {
-
+  private val runeToConclusion: mutable.ArrayBuffer[Option[Conclusion]]
+) extends ISolverState[Rule, RuneID, Conclusion] {
 
   override def hashCode(): Int = vfail() // is mutable, should never be hashed
 
-  def deepClone(): SolverState[Rule, RuneID, Conclusion] = {
-    SolverState[Rule, RuneID, Conclusion](
+  override def deepClone(): OptimizedSolverState[Rule, RuneID, Conclusion] = {
+    OptimizedSolverState[Rule, RuneID, Conclusion](
       userRuneToCanonicalRune.clone(),
       rules.clone(),
       ruleToRunes.map(_.clone()).clone(),
@@ -112,11 +104,12 @@ case class SolverState[Rule, RuneID, Conclusion](
       runeToConclusion.clone())
   }
 
-  def getAllRunes(): Set[RuneID] = {
-    userRuneToCanonicalRune.keySet.toSet
+  override def getAllRunes(): Set[Int] = {
+    vimpl()
+//    userRuneToCanonicalRune.keySet.toSet
   }
 
-  def getCanonicalRune(rune: RuneID): Int = {
+  override def getCanonicalRune(rune: RuneID): Int = {
     userRuneToCanonicalRune.get(rune) match {
       case Some(s) => s
       case None => {
@@ -131,11 +124,11 @@ case class SolverState[Rule, RuneID, Conclusion](
     }
   }
 
-  def getRule(ruleIndex: Int): Rule = {
+  override def getRule(ruleIndex: Int): Rule = {
     rules(ruleIndex)
   }
 
-  def addRule(rule: Rule, runes: Array[Int]): Int = {
+  private def addRule(rule: Rule, runes: Array[Int]): Int = {
     vassert(runes sameElements runes.distinct)
 
     val ruleIndex = rules.size
@@ -148,7 +141,8 @@ case class SolverState[Rule, RuneID, Conclusion](
     ruleIndex
   }
 
-  def addPuzzle(ruleIndex: Int, runes: Array[Int]): Int = {
+  private def addPuzzle(ruleIndex: Int): Int = {
+    val runes: Array[Int] = vimpl()
     vassert(runes sameElements runes.distinct)
 
     val puzzleIndex = puzzleToRule.size
@@ -191,12 +185,16 @@ case class SolverState[Rule, RuneID, Conclusion](
     puzzleIndex
   }
 
-  def hasNextSolvable(): Boolean = {
+  private def hasNextSolvable(): Boolean = {
     numUnknownsToNumPuzzles(0) > 0
   }
 
-  def getNextSolvable(): (Int, Int, Array[Int]) = {
-    vassert(numUnknownsToPuzzles(0)(0) >= 0)
+  override def userifyRune(rune: Int): RuneID = vimpl()
+
+  override def getNextSolvable(): Option[Int] = {
+    if (numUnknownsToPuzzles(0)(0) == 0) {
+      return None
+    }
 
     val numSolvableRules = numUnknownsToNumPuzzles(0)
 
@@ -205,30 +203,74 @@ case class SolverState[Rule, RuneID, Conclusion](
     vassert(puzzleToIndexInNumUnknowns(solvingPuzzle) == numSolvableRules - 1)
 
     val solvingRule = puzzleToRule(solvingPuzzle)
-    val ruleRunes = ruleToRunes(solvingRule)
+//    val ruleRunes = ruleToRunes(solvingRule)
 
     ruleToPuzzles(solvingRule).foreach(rulePuzzle => {
       vassert(!puzzleToExecuted(rulePuzzle))
     })
 
-    (solvingRule, solvingPuzzle, ruleRunes.toArray)
+    Some(solvingRule)
   }
 
-  def getConclusion(rune: Int): Option[Conclusion] = {
+  override def getConclusion(rune: Int): Option[Conclusion] = {
     runeToConclusion(rune)
   }
 
-  def getConclusions(): Array[Option[Conclusion]] = {
-    runeToConclusion.toArray
+  override def addRune(rune: RuneID): Int = vimpl()
+
+  override def addRule(rule: Rule): Int = vimpl()
+
+  override def getConclusions(): Stream[(Int, Conclusion)] = vimpl()
+
+  override def getAllRules(): Set[Int] = vimpl()
+
+  override def addPuzzle(ruleIndex: Int, runes: Array[Int]): Unit = vimpl()
+
+  override def concludeRune[ErrType](newlySolvedRune: Int, conclusion: Conclusion): Result[Boolean, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = vimpl()
+
+  override def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[Int, Conclusion]): Result[Int, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
+    val numNewConclusions =
+      newConclusions.map({ case (newlySolvedCanonicalRune, newConclusion) =>
+        getConclusion(newlySolvedCanonicalRune) match {
+          case None => {
+            vimpl()//concludeRune(newlySolvedCanonicalRune, newConclusion)
+            1
+          }
+          case Some(existingConclusion) => {
+            if (existingConclusion != newConclusion) {
+              return Err(
+                FailedSolve(
+                  userifyConclusions().toMap,
+                  getUnsolvedRules(),
+                  SolverConflict(
+                    vimpl(),//newlySolvedCanonicalRune,
+                    existingConclusion,
+                    newConclusion)))
+            }
+            0
+          }
+        }
+      }).sum
+
+    ruleIndices.foreach(ruleIndex => {
+      removeRule(ruleIndex)
+    })
+
+    Ok(numNewConclusions)
   }
 
-  def userifyConclusions(): Stream[(RuneID, Conclusion)] = {
+
+//  override def getConclusions(): Array[Option[Conclusion]] = {
+//    runeToConclusion.toArray
+//  }
+
+  override def userifyConclusions(): Stream[(RuneID, Conclusion)] = {
     userRuneToCanonicalRune.toStream.flatMap({ case (userRune, canonicalRune) =>
       runeToConclusion(canonicalRune).map(userRune -> _)
     })
   }
 
-  def getUnsolvedRules(): Vector[Rule] = {
+  override def getUnsolvedRules(): Vector[Rule] = {
     puzzleToNumUnknownRunes
       .zipWithIndex
       .filter(_._1 > 0)
@@ -240,7 +282,7 @@ case class SolverState[Rule, RuneID, Conclusion](
       .toVector
   }
 
-  def concludeRune(newlySolvedRune: Int, conclusion: Conclusion): Unit = {
+  private def concludeRune(newlySolvedRune: Int, conclusion: Conclusion): Unit = {
     runeToConclusion(newlySolvedRune) match {
       case Some(x) => {
         vassert(x == conclusion)
@@ -307,75 +349,56 @@ case class SolverState[Rule, RuneID, Conclusion](
     })
   }
 
-  // Success returns number of new conclusions
-  def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[RuneID, Conclusion]):
-  Result[Int, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
-    val numNewConclusions =
-      newConclusions.map({ case (newlySolvedRune, newConclusion) =>
-        val newlySolvedCanonicalRune = getCanonicalRune(newlySolvedRune)
-        getConclusion(newlySolvedCanonicalRune) match {
-          case None => {
-            concludeRune(newlySolvedCanonicalRune, newConclusion)
-            1
-          }
-          case Some(existingConclusion) => {
-            if (existingConclusion != newConclusion) {
-              return Err(
-                FailedSolve(
-                  userifyConclusions().toMap,
-                  getUnsolvedRules(),
-                  SolverConflict(newlySolvedRune, existingConclusion, newConclusion)))
-            }
-            0
-          }
-        }
-      }).sum
+  private def removeRule(ruleIndex: Int) = {
+    // Here we used to check that the rule's runes were solved, but we don't do that anymore
+    // because some rules leave their runes as mysteries, see SAIRFU.
+    //val ruleRunes = ruleToRunes(ruleIndex)
+    //ruleRunes.foreach(canonicalRune => {
+    //  vassert(getConclusion(canonicalRune).nonEmpty, "Didn't conclude a rune!")
+    //})
 
-    ruleIndices.foreach(ruleIndex => {
-      val ruleRunes = ruleToRunes(ruleIndex)
-
-      ruleRunes.foreach(canonicalRune => {
-        vassert(getConclusion(canonicalRune).nonEmpty, "Didn't conclude a rune!")
-      })
-
-      ruleToPuzzles(ruleIndex).foreach(rulePuzzle => {
-        puzzleToExecuted(rulePuzzle) = true
-      })
-
-      val puzzlesForRule = ruleToPuzzles(ruleIndex)
-      puzzlesForRule.foreach(puzzle => {
-        val numUnknowns = puzzleToNumUnknownRunes(puzzle)
-        vassert(numUnknowns == 0)
-        puzzleToNumUnknownRunes(puzzle) = -1
-        val indexInNumUnknowns = puzzleToIndexInNumUnknowns(puzzle)
-
-        val oldNumPuzzlesInNumUnknownsBucket = numUnknownsToNumPuzzles(0)
-        val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-
-        // Swap the last one into this spot
-        val newPuzzleForThisSpot = numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
-        numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
-
-        // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
-        // where it is in the list.
-        puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
-
-        // Mark our position as -1
-        puzzleToIndexInNumUnknowns(puzzle) = -1
-
-        // Clear the last slot to -1
-        numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
-
-        // Reduce the number of puzzles in that bucket by 1
-        val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
-        numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
-      })
+    ruleToPuzzles(ruleIndex).foreach(rulePuzzle => {
+      puzzleToExecuted(rulePuzzle) = true
     })
 
-    Ok(numNewConclusions)
+    val puzzlesForRule = ruleToPuzzles(ruleIndex)
+    puzzlesForRule.foreach(puzzle => {
+      removePuzzle(puzzle)
+    })
   }
 
-  def sanityCheck() = {
+  private def removePuzzle(puzzle: Int) = {
+    // Here we used to check that the rule's runes were solved, but we don't do that anymore
+    // because some rules leave their runes as mysteries, see SAIRFU.
+    //val numUnknowns = puzzleToNumUnknownRunes(puzzle)
+    //vassert(numUnknowns == 0)
+
+    puzzleToNumUnknownRunes(puzzle) = -1
+    val indexInNumUnknowns = puzzleToIndexInNumUnknowns(puzzle)
+
+    val oldNumPuzzlesInNumUnknownsBucket = numUnknownsToNumPuzzles(0)
+    val lastSlotInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+
+    // Swap the last one into this spot
+    val newPuzzleForThisSpot = numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket)
+    numUnknownsToPuzzles(0)(indexInNumUnknowns) = newPuzzleForThisSpot
+
+    // We just moved something in the numUnknownsToPuzzle, so we have to update that thing's knowledge of
+    // where it is in the list.
+    puzzleToIndexInNumUnknowns(newPuzzleForThisSpot) = indexInNumUnknowns
+
+    // Mark our position as -1
+    puzzleToIndexInNumUnknowns(puzzle) = -1
+
+    // Clear the last slot to -1
+    numUnknownsToPuzzles(0)(lastSlotInNumUnknownsBucket) = -1
+
+    // Reduce the number of puzzles in that bucket by 1
+    val newNumPuzzlesInNumUnknownsBucket = oldNumPuzzlesInNumUnknownsBucket - 1
+    numUnknownsToNumPuzzles(0) = newNumPuzzlesInNumUnknownsBucket
+  }
+
+  override def sanityCheck() = {
     puzzleToRunes.foreach(runes => vassert(runes.distinct sameElements runes))
     runeToPuzzles.foreach(puzzles => vassert(puzzles.distinct sameElements puzzles))
     ruleToRunes.foreach(runes => vassert(runes.distinct sameElements runes))
@@ -397,8 +420,10 @@ case class SolverState[Rule, RuneID, Conclusion](
       if (executed) {
         vassert(puzzleToIndexInNumUnknowns(puzzle) == -1)
         vassert(puzzleToNumUnknownRunes(puzzle) == -1)
-        puzzleToRunes(puzzle).foreach(rune => vassert(runeToConclusion(rune).nonEmpty))
-        puzzleToUnknownRunes(puzzle).foreach(unknownRune => vassert(unknownRune == -1))
+        // Here we used to check that the puzzle's runes were solved, but we don't do that anymore
+        // because some rules leave their runes as mysteries, see SAIRFU.
+        //puzzleToRunes(puzzle).foreach(rune => vassert(runeToConclusion(rune).nonEmpty))
+        //puzzleToUnknownRunes(puzzle).foreach(unknownRune => vassert(unknownRune == -1))
         numUnknownsToPuzzles.foreach(_.foreach(p => vassert(p != puzzle)))
       } else {
         // An un-executed puzzle might have all known runes. It just means that it hasn't been
@@ -408,7 +433,8 @@ case class SolverState[Rule, RuneID, Conclusion](
         vassert(puzzleToNumUnknownRunes(puzzle) != -1)
 
         // Make sure it only appears in one place in numUnknownsToPuzzles
-        vassert(numUnknownsToPuzzles.flatMap(_.map(p => if (p == puzzle) 1 else 0)).sum == 1)
+        val appearances = numUnknownsToPuzzles.flatMap(_.map(p => if (p == puzzle) 1 else 0)).sum
+        vassert(appearances == 1)
       }
     })
 

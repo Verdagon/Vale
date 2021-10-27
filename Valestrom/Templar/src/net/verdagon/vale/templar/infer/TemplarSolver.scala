@@ -1,8 +1,9 @@
 package net.verdagon.vale.templar.infer
 
 import net.verdagon.vale._
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
-import net.verdagon.vale.scout.{CodeNameS, INameS, IRuneS, ITemplataType, RuneNameS, SenderRuneS}
+import net.verdagon.vale.scout.{CodeNameS, CoordTemplataType, INameS, IRuneS, ITemplataType, KindTemplataType, RuneNameS, SenderRuneS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverOutcome, ISolverStateForRule, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.ast.PrototypeT
@@ -39,6 +40,9 @@ trait IInfererDelegate[Env, State] {
   def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: INameS): ITemplata
 
   def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata
+
+  def isDescendant(env: Env, state: State, kind: KindT): Boolean
+  def isAncestor(env: Env, state: State, kind: KindT): Boolean
 
   def evaluateStructTemplata(
     state: State,
@@ -80,6 +84,7 @@ trait IInfererDelegate[Env, State] {
 }
 
 class TemplarSolver[Env, State](
+  globalOptions: GlobalOptions,
   delegate: IInfererDelegate[Env, State]
 ) {
 
@@ -98,7 +103,7 @@ class TemplarSolver[Env, State](
         case IsConcreteSR(range, rune) => Array(rune)
         case IsInterfaceSR(range, rune) => Array(rune)
         case IsStructSR(range, rune) => Array(rune)
-        case CoerceToCoord(range, coordRune, kindRune) => Array(coordRune, kindRune)
+        case CoerceToCoordSR(range, coordRune, kindRune) => Array(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Array(rune)
         case AugmentSR(range, resultRune, literal, innerRune) => Array(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Array(resultRune, templateRune) ++ args
@@ -107,7 +112,7 @@ class TemplarSolver[Env, State](
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
         case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
 //        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
-        case CoordReceivesSR(range, receiverRune, senderRune) => Array(receiverRune, senderRune)
+        case CoordSendSR(range, senderRune, receiverRune) => Array(senderRune, receiverRune)
       }
     val result = rule.runeUsages
     vassert(result.map(_.rune) sameElements sanityCheck.map(_.rune))
@@ -135,13 +140,14 @@ class TemplarSolver[Env, State](
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
       case IsInterfaceSR(_, rune) => Array(Array(rune.rune))
       case IsStructSR(_, rune) => Array(Array(rune.rune))
-      case CoerceToCoord(_, coordRune, kindRune) => Array(Array())
+      case CoerceToCoordSR(_, coordRune, kindRune) => Array(Array(coordRune.rune), Array(kindRune.rune))
       case LiteralSR(_, rune, literal) => Array(Array())
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array(innerRune.rune), Array(resultRune.rune))
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
       case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
 //      case CoordListSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
-      case CoordReceivesSR(_, receiverRune, senderRune) => Array(Array(receiverRune.rune))
+      // See SAIRFU, this will replace itself with other rules.
+      case CoordSendSR(_, senderRune, receiverRune) => Array(Array(senderRune.rune), Array(receiverRune.rune))
     }
   }
 
@@ -209,21 +215,40 @@ class TemplarSolver[Env, State](
           case Some(left) => Ok(Map(rightRune.rune -> left))
         }
       }
-      case CoordReceivesSR(range, receiverRune, senderRune) => {
+      case CoordSendSR(range, senderRune, receiverRune) => {
         // See IRFU and SRCAMP for what's going on here.
-        vassertSome(solverState.getConclusion(receiverRune.rune)) match {
-          case CoordTemplata(CoordT(_, _, InterfaceTT(_))) => {
-            // We know that the receiver is an interface, so we can't shortcut.
-            // We need to wait for the sender rune to be able to confirm the sender
-            // implements the receiver.
-            val ruleIndex = solverState.addRule(CoordIsaSR(range, senderRune, receiverRune), Array(senderRune.rune, receiverRune.rune))
-            solverState.addPuzzle(ruleIndex, Array(senderRune.rune, receiverRune.rune))
-            Ok(Map())
+        solverState.getConclusion(receiverRune.rune) match {
+          case None => {
+            solverState.getConclusion(senderRune.rune) match {
+              case None => vwat()
+              case Some(CoordTemplata(coord)) => {
+                if (delegate.isDescendant(env, state, coord.kind)) {
+                  // We know that the sender can be upcast, so we can't shortcut.
+                  // We need to wait for the receiver rune to know what to do.
+                  val ruleIndex = solverState.addRule(CoordSendFromDescendantSR(range, senderRune, receiverRune), Array(senderRune.rune, receiverRune.rune))
+                  solverState.addPuzzle(ruleIndex, Array(senderRune.rune, receiverRune.rune))
+                  Ok(Map())
+                } else {
+                  // We're sending something that can't be upcast, so both sides are definitely the same type.
+                  // We can shortcut things here, even knowing only the sender's type.
+                  Ok(Map(receiverRune.rune -> CoordTemplata(coord)))
+                }
+              }
+            }
           }
-          case CoordTemplata(tyype) => {
-            // We're receiving a concrete type, so both sides are definitely the same type.
-            // We can shortcut things here, even knowing only the receiver's type.
-            Ok(Map(senderRune.rune -> CoordTemplata(tyype)))
+          case Some(CoordTemplata(coord)) => {
+            if (delegate.isAncestor(env, state, coord.kind)) {
+              // We know that the receiver is an interface, so we can't shortcut.
+              // We need to wait for the sender rune to be able to confirm the sender
+              // implements the receiver.
+              val ruleIndex = solverState.addRule(CoordIsaSR(range, senderRune, receiverRune), Array(senderRune.rune, receiverRune.rune))
+              solverState.addPuzzle(ruleIndex, Array(senderRune.rune, receiverRune.rune))
+              Ok(Map())
+            } else {
+              // We're receiving a concrete type, so both sides are definitely the same type.
+              // We can shortcut things here, even knowing only the receiver's type.
+              Ok(Map(senderRune.rune -> CoordTemplata(coord)))
+            }
           }
           case other => vwat(other)
         }
@@ -255,9 +280,13 @@ class TemplarSolver[Env, State](
             case CoordTemplata(CoordT(_, _, i @ InterfaceTT(_))) => i
             case other => vwat(other)
           }
-        delegate.getAncestorInterfaceDistance(state, sub, suuper) match {
-          case None => Err(KindDoesntImplementInterface(sub, suuper))
-          case Some(_) => Ok(Map())
+        if (sub == suuper) {
+          Ok(Map())
+        } else {
+          delegate.getAncestorInterfaceDistance(state, sub, suuper) match {
+            case None => Err(KindDoesntImplementInterface(sub, suuper))
+            case Some(_) => Ok(Map())
+          }
         }
       }
       case rule @ OneOfSR(_, resultRune, literals) => {
@@ -307,10 +336,16 @@ class TemplarSolver[Env, State](
           case _ => vwat() // Should be impossible, all template rules are type checked
         }
       }
-      case CoerceToCoord(_, coordRune, kindRune) => {
-        vimpl()
-//        Ok(Map(kindRune.rune, KindTemplataType))
-//        Ok(Map(coordRune.rune, CoordTemplataType))
+      case CoerceToCoordSR(range, coordRune, kindRune) => {
+        solverState.getConclusion(kindRune.rune) match {
+          case None => {
+            val CoordTemplata(coord) = vassertSome(solverState.getConclusion(coordRune.rune))
+            Ok(Map(kindRune.rune -> KindTemplata(coord.kind)))
+          }
+          case Some(kind) => {
+            Ok(Map(coordRune.rune -> delegate.coerce(env, state, range, CoordTemplataType, kind)))
+          }
+        }
       }
       case LiteralSR(_, rune, literal) => {
         val templata = literalToTemplata(literal)
@@ -570,6 +605,8 @@ class TemplarSolver[Env, State](
 
     val solverState =
       Solver.makeInitialSolverState(
+        globalOptions.sanityCheck,
+        globalOptions.useOptimizedSolver,
         rules,
         getRunes,
         (rule: IRulexSR) => getPuzzles(rule),
@@ -603,7 +640,7 @@ class TemplarSolver[Env, State](
       case Err(f @ FailedSolve(_, _, _)) => f
       case Ok(conclusionsStream) => {
         val conclusions = conclusionsStream.toMap
-        val allRunes = runeToType.keySet ++ solverState.getAllRunes()
+        val allRunes = runeToType.keySet ++ solverState.getAllRunes().map(solverState.userifyRune)
         if (conclusions.keySet != allRunes) {
           IncompleteSolve(
             conclusions, solverState.getUnsolvedRules(), allRunes -- conclusions.keySet)

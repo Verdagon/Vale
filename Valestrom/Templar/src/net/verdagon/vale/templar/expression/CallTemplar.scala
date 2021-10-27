@@ -2,7 +2,7 @@ package net.verdagon.vale.templar.expression
 
 import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS}
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
@@ -15,10 +15,12 @@ import scala.collection.immutable.List
 object CallTemplar {
   val CALL_FUNCTION_NAME = "__call"
 
-//  val MUT_INTERFACE_DESTRUCTOR_NAME = "idestructor"
-//  val MUT_DESTRUCTOR_NAME = "destructor"
-
+  // Every type, including interfaces, has a function of this name. These won't be virtual.
   val DROP_FUNCTION_NAME = "drop"
+  // Every interface *also* has a function of this name. It's abstract, and an override is defined for each impl.
+  val VIRTUAL_DROP_FUNCTION_NAME = "vdrop"
+  // Interface's drop function simply calls vdrop.
+  // A struct's vdrop function calls the struct's drop function.
 }
 
 class CallTemplar(
@@ -64,7 +66,7 @@ class CallTemplar(
           })
 
         val prototype =
-          overloadTemplar.scoutExpectedFunctionForPrototype(
+          overloadTemplar.findFunction(
               fate.snapshot,
               temputs,
               range,
@@ -126,7 +128,7 @@ class CallTemplar(
       })
 
     val prototype =
-      overloadTemplar.scoutExpectedFunctionForPrototype(
+      overloadTemplar.findFunction(
         fate,
         temputs,
         range,
@@ -186,8 +188,8 @@ class CallTemplar(
 
     val env =
       citizenRef match {
-        case sr @ StructTT(_) => temputs.getEnvForStructRef(sr) // temputs.envByStructRef(sr)
-        case ir @ InterfaceTT(_) => temputs.getEnvForInterfaceRef(ir) // temputs.envByInterfaceRef(ir)
+        case sr @ StructTT(_) => temputs.getEnvForKind(sr) // temputs.envByStructRef(sr)
+        case ir @ InterfaceTT(_) => temputs.getEnvForKind(ir) // temputs.envByInterfaceRef(ir)
       }
 
     val argsTypes2 = givenArgsExprs2.map(_.resultRegister.reference)
@@ -200,7 +202,7 @@ class CallTemplar(
       Vector(ParamFilter(closureParamType, None)) ++
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
-      overloadTemplar.scoutExpectedFunctionForPrototype(
+      overloadTemplar.findFunction(
         env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false)
 
     val mutability = Templar.getMutability(temputs, citizenRef)

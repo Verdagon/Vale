@@ -112,7 +112,7 @@ class ConvertHelper(
       } else {
         (sourceType, targetType) match {
           case (s @ StructTT(_), i : InterfaceTT) => {
-            convert(vimpl(env.globalEnv), temputs, range, sourceExpr, s, i)
+            convert(env, temputs, range, sourceExpr, s, i)
           }
           case _ => vfail()
         }

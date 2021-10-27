@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.infer
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.IncompleteSolve
-import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, ScoutExpectedFunctionFailure}
+import net.verdagon.vale.templar.OverloadTemplar.{InferFailure, FindFunctionFailure}
 import net.verdagon.vale.templar.ast.{ProgramT, PrototypeT}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT, PackageTopLevelNameT, PrimitiveNameT}
 import net.verdagon.vale.templar.{CompileErrorExceptionT, CouldntFindFunctionToCallT, TemplarTestCompilation}
@@ -67,6 +67,14 @@ class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, Fa
     } else {
       vimpl()
     }
+  }
+
+  override def isDescendant(env: SimpleEnvironment, state: FakeState, kind: KindT): Boolean = {
+    vimpl()
+  }
+
+  override def isAncestor(env: SimpleEnvironment, state: FakeState, kind: KindT): Boolean = {
+    vimpl()
   }
 
   override def getMutability(state: FakeState, kind: KindT): MutabilityT = {
@@ -188,12 +196,12 @@ class InfererTests extends FunSuite with Matchers {
     // FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()),
     var entries: TemplatasStore = TemplatasStore(Map(), Map())
     val voidName = PrimitiveNameT("void")
-    entries = entries.addEntry(true, voidName, TemplataEnvEntry(KindTemplata(VoidT())))
+    entries = entries.addEntry(voidName, TemplataEnvEntry(KindTemplata(VoidT())))
     val intName = PrimitiveNameT("int")
-    entries = entries.addEntry(true, intName, TemplataEnvEntry(KindTemplata(IntT.i32)))
+    entries = entries.addEntry(intName, TemplataEnvEntry(KindTemplata(IntT.i32)))
     val boolName = PrimitiveNameT("bool")
-    entries = entries.addEntry(true, boolName, TemplataEnvEntry(KindTemplata(BoolT())))
-    entries = entries.addEntry(true,
+    entries = entries.addEntry(boolName, TemplataEnvEntry(KindTemplata(BoolT())))
+    entries = entries.addEntry(
       CitizenNameT("ImmInterface", Vector()),
         InterfaceEnvEntry(
           InterfaceA(
@@ -208,7 +216,7 @@ class InfererTests extends FunSuite with Matchers {
             Map(CodeRuneS("M") -> MutabilityTemplataType),
             Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")),MutabilityLiteralSL(ImmutableP))),
             Vector())))
-    entries = entries.addEntry(true,
+    entries = entries.addEntry(
       CitizenNameT("ImmStruct", Vector()),
         StructEnvEntry(
           StructA(
@@ -228,8 +236,8 @@ class InfererTests extends FunSuite with Matchers {
             Vector(
               StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("I"))),
               StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("B")))))))
-    entries = entries.addEntry(true, PrimitiveNameT("Array"), TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()))
-    entries = entries.addEntry(true,
+    entries = entries.addEntry(PrimitiveNameT("Array"), TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()))
+    entries = entries.addEntry(
         CitizenTemplateNameT("MutTStruct", CodeLocationS.internal(-25)),
           StructEnvEntry(
             StructA(
@@ -246,7 +254,7 @@ class InfererTests extends FunSuite with Matchers {
               Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("M") -> MutabilityTemplataType),
               Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
               Vector())))
-    entries = entries.addEntry(true, CitizenTemplateNameT("MutTInterface", CodeLocationS.internal(-27)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutTInterface", CodeLocationS.internal(-27)),
       InterfaceEnvEntry(
         InterfaceA(
           RangeS.internal(-75),
@@ -262,7 +270,7 @@ class InfererTests extends FunSuite with Matchers {
           Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("M") -> MutabilityTemplataType),
           Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
           Vector())))
-    entries = entries.addEntry(true, CitizenTemplateNameT("MutStruct", CodeLocationS.internal(-29)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutStruct", CodeLocationS.internal(-29)),
       StructEnvEntry(
         StructA(
           RangeS.internal(-73),
@@ -278,7 +286,7 @@ class InfererTests extends FunSuite with Matchers {
           Map(CodeRuneS("M") -> MutabilityTemplataType),
           Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
           Vector())))
-    entries = entries.addEntry(true, CitizenTemplateNameT("MutInterface", CodeLocationS.internal(-31)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutInterface", CodeLocationS.internal(-31)),
       InterfaceEnvEntry(
         InterfaceA(
           RangeS.internal(-72),
@@ -294,18 +302,18 @@ class InfererTests extends FunSuite with Matchers {
           Map(CodeRuneS("M") -> MutabilityTemplataType),
           Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
           Vector())))
-    entries = entries.addEntry(true, CitizenNameT("MutStructConstraint", Vector()),
+    entries = entries.addEntry(CitizenNameT("MutStructConstraint", Vector()),
       TemplataEnvEntry(CoordTemplata(CoordT(ConstraintT,ReadonlyT, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct", Vector())))))))
-    entries = entries.addEntry(true, CitizenNameT("MutStructConstraintRW", Vector()),
+    entries = entries.addEntry(CitizenNameT("MutStructConstraintRW", Vector()),
       TemplataEnvEntry(CoordTemplata(CoordT(ConstraintT,ReadwriteT, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct", Vector())))))))
-    entries = entries.addEntry(true, CitizenNameT("MutStructWeak", Vector()),
+    entries = entries.addEntry(CitizenNameT("MutStructWeak", Vector()),
       TemplataEnvEntry(CoordTemplata(CoordT(WeakT, ReadonlyT, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct", Vector())))))))
-    entries = entries.addEntry(true, CitizenNameT("MutStructWeakRW", Vector()),
+    entries = entries.addEntry(CitizenNameT("MutStructWeakRW", Vector()),
       TemplataEnvEntry(CoordTemplata(CoordT(WeakT, ReadwriteT, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct", Vector())))))))
-    entries = entries.addEntry(true, CitizenNameT("MutStaticSizedArrayOf4Int", Vector()),
+    entries = entries.addEntry(CitizenNameT("MutStaticSizedArrayOf4Int", Vector()),
       TemplataEnvEntry(KindTemplata(StaticSizedArrayTT(4, RawArrayTT(CoordT(ShareT, ReadonlyT, IntT.i32), MutableT, VaryingT)))))
     // Tuples are normally addressed by TupleNameT, but that's a detail this test doesn't need to care about.
-    entries = entries.addEntry(true, CitizenNameT("IntAndBoolTupName", Vector()),
+    entries = entries.addEntry(CitizenNameT("IntAndBoolTupName", Vector()),
       TemplataEnvEntry(
         KindTemplata(
           TupleTT(
@@ -313,7 +321,7 @@ class InfererTests extends FunSuite with Matchers {
             // Normally this would be backed by a struct simply named "Tup"
             StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ImmStruct", Vector())))))))
     val callPrototype = PrototypeTemplata(incrementPrototype)
-    entries = entries.addEntry(true, callPrototype.value.fullName.last, TemplataEnvEntry(callPrototype))
+    entries = entries.addEntry(callPrototype.value.fullName.last, TemplataEnvEntry(callPrototype))
     SimpleEnvironment(entries)
   }
 
@@ -357,7 +365,7 @@ class InfererTests extends FunSuite with Matchers {
         |fn main() export { bork<int>(); }
         |""".stripMargin)
     compile.getTemputs() match {
-      case Err(CouldntFindFunctionToCallT(_, ScoutExpectedFunctionFailure(_, _, rejectedReasonByBanner))) => {
+      case Err(CouldntFindFunctionToCallT(_, FindFunctionFailure(_, _, rejectedReasonByBanner))) => {
         val List(rejection) = rejectedReasonByBanner.values.toList
         rejection match {
           case InferFailure(IncompleteSolve(incompleteConclusions, unsolvedRules, unknownRunes)) => {

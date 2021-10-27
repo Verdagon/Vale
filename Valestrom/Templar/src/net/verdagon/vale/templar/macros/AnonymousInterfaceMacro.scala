@@ -48,7 +48,7 @@ class AnonymousInterfaceMacro(
 //    val structTT = StructTT(structFullName)
 //
 //    temputs.declareStruct(structTT)
-//    temputs.declareStructMutability(structTT, ImmutableT)
+//    temputs.declareCitizenMutability(structTT, ImmutableT)
 //
 //    val forwarderParams =
 //      Vector(
@@ -78,7 +78,7 @@ class AnonymousInterfaceMacro(
 //        newTemplataStore().addEntries(
 //          opts.useOptimization,
 //          Map(forwarderHeader.fullName.last -> Vector(TemplataEnvEntry(ExternFunctionTemplata(forwarderHeader))))))
-//    temputs.declareStructEnv(structTT, structInnerEnv)
+//    temputs.declareKindEnv(structTT, structInnerEnv)
 //
 //    val structDef =
 //      StructDefinitionT(
@@ -152,7 +152,7 @@ class AnonymousInterfaceMacro(
 //      case None =>
 //    }
 //
-//    val interfaceEnv = temputs.getEnvForInterfaceRef(interfaceTT)
+//    val interfaceEnv = temputs.getEnvForKind(interfaceTT)
 //
 //    val callables = anonymousSubstructName.last.callables
 //
@@ -225,8 +225,8 @@ class AnonymousInterfaceMacro(
 //    temputs.addImpl(structTT, interfaceTT)
 //
 //    temputs.declareStruct(structTT)
-//    temputs.declareStructMutability(structTT, mutability)
-//    temputs.declareStructEnv(structTT, structInnerEnv)
+//    temputs.declareCitizenMutability(structTT, mutability)
+//    temputs.declareKindEnv(structTT, structInnerEnv)
 //
 //    vassert(interfaceDef.internalMethods.size == callables.size)
 //

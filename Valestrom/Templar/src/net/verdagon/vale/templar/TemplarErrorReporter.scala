@@ -4,7 +4,7 @@ import net.verdagon.vale.astronomer.ICompileErrorA
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
 import net.verdagon.vale.templar.infer.ITemplarSolverError
 import net.verdagon.vale.templar.names.{FullNameT, INameT, IVarNameT}
@@ -32,7 +32,7 @@ case class BodyResultDoesntMatch(range: RangeS, functionName: IFunctionDeclarati
 case class CouldntConvertForReturnT(range: RangeS, expectedType: CoordT, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CouldntConvertForMutateT(range: RangeS, expectedType: CoordT, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantMoveOutOfMemberT(range: RangeS, name: IVarNameT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
-case class CouldntFindFunctionToCallT(range: RangeS, seff: ScoutExpectedFunctionFailure) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class CouldntFindFunctionToCallT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class ExportedFunctionDependedOnNonExportedKind(range: RangeS, paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class ExternFunctionDependedOnNonExportedKind(range: RangeS, paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class ExportedImmutableKindDependedOnNonExportedKind(range: RangeS, paackage: PackageCoordinate, exportedKind: KindT, nonExportedKind: KindT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }

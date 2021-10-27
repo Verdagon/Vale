@@ -8,9 +8,9 @@ import net.verdagon.vale.{CodeLocationS, vimpl, vwat}
 object NameTranslator {
   def translateFunctionNameToTemplateName(functionName: IFunctionDeclarationNameS): IFunctionTemplateNameT = {
     functionName match {
-      case ImmConcreteDestructorNameS(_) => ImmConcreteDestructorTemplateNameT()
-      case ImmInterfaceDestructorNameS(_) => ImmInterfaceDestructorTemplateNameT()
-      case DropNameS(_) => DropTemplateNameT()
+//      case ImmConcreteDestructorNameS(_) => ImmConcreteDestructorTemplateNameT()
+//      case ImmInterfaceDestructorNameS(_) => ImmInterfaceDestructorTemplateNameT()
+//      case DropNameS(_) => DropTemplateNameT()
       case LambdaNameS(/*parent, */ codeLocation) => {
         LambdaTemplateNameT(NameTranslator.translateCodeLocation(codeLocation))
       }
@@ -164,14 +164,14 @@ object NameTranslator {
     ImplDeclareNameT(subCitizenHumanName, translateCodeLocation(l))
   }
 
-  def getImplNameForNameInner(useOptimization: Boolean, nameSteps: Vector[INameT]): Option[ImplImpreciseNameS] = {
+  def getImplNameForNameInner(nameSteps: Vector[INameT]): Option[ImplImpreciseNameS] = {
     nameSteps.last match {
       case CitizenNameT(humanName, templateArgs) => Some(ImplImpreciseNameS(humanName))
       case TupleNameT(_) => None
       case LambdaCitizenNameT(_) => None
       case AnonymousSubstructNameT(_) => {
         // Use the paren'ts name, see INSHN.
-        getImplNameForNameInner(useOptimization, nameSteps.init)
+        getImplNameForNameInner(nameSteps.init)
       }
       case _ => vwat()
     }
@@ -179,7 +179,7 @@ object NameTranslator {
 
   // Gets the name of an impl that would be for this citizen.
   // Returns None if it can't be in an impl.
-  def getImplNameForName(useOptimization: Boolean, ref: CitizenRefT): Option[ImplImpreciseNameS] = {
-    getImplNameForNameInner(useOptimization, ref.fullName.steps)
+  def getImplNameForName(ref: CitizenRefT): Option[ImplImpreciseNameS] = {
+    getImplNameForNameInner(ref.fullName.steps)
   }
 }

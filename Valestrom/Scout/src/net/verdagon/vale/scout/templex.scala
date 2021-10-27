@@ -36,6 +36,7 @@ case class CodeVarNameS(name: String) extends IVarNameS {
 }
 case class ConstructingMemberNameS(name: String) extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class RuneNameS(rune: IRuneS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+//case class DropNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 // We differentiate rune names from regular names, we scout out what's actually
 // a rune so we can inform the templar. The templar wants to know so it can know
@@ -51,6 +52,8 @@ trait IRuneS
 case class CodeRuneS(name: String) extends IRuneS {
   vpass()
 }
+case class ImplDropCoordRuneS() extends IRuneS
+case class ImplDropVoidRuneS() extends IRuneS
 case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   vpass()
 }
@@ -82,3 +85,5 @@ case class ImpreciseCodeVarNameS(name: String) extends INameS { val hash = runti
 case class SenderRuneS(paramRune: IRuneS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ExplicitTemplateArgRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class AnonymousSubstructParentInterfaceRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+// Vale has no notion of Self, it's just a convenient name for a first parameter.
+case class SelfNameS() extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }

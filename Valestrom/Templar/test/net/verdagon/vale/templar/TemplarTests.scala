@@ -8,12 +8,12 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, AstronomerCompilation}
 import net.verdagon.vale.solver.{FailedSolve, RuleError}
-import net.verdagon.vale.templar.OverloadTemplar.{ScoutExpectedFunctionFailure, WrongNumberOfArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
-import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, DropNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ImmConcreteDestructorNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, DropNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -396,7 +396,7 @@ class TemplarTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT("drop", _, _)), _), _) => })
+    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, DropNameT(_, _)), _), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
   }
 
@@ -690,7 +690,7 @@ class TemplarTests extends FunSuite with Matchers {
 
     // Make sure there's a destroy in its destructor though.
     val destructor =
-        temputs.functions.find(_.header.fullName.last.isInstanceOf[ImmConcreteDestructorNameT]).get
+        temputs.functions.find(_.header.fullName.last.isInstanceOf[DropNameT]).get
     Collector.only(destructor, {
       case DestroyTE(_, StructTT(FullNameT(_, _, CitizenNameT("Vec3i", _))), _) =>
     })
@@ -1211,9 +1211,9 @@ class TemplarTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.getTemputs() match {
       // Err(     case WrongNumberOfArguments(_, _)) =>
-      case Err(CouldntFindFunctionToCallT(_, seff)) => {
-        vassert(seff.rejectedCalleeToReason.size == 1)
-        seff.rejectedCalleeToReason.head._2 match {
+      case Err(CouldntFindFunctionToCallT(_, fff)) => {
+        vassert(fff.rejectedCalleeToReason.size == 1)
+        fff.rejectedCalleeToReason.head._2 match {
           case WrongNumberOfArguments(4, 3) =>
         }
       }
@@ -1293,14 +1293,14 @@ class TemplarTests extends FunSuite with Matchers {
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         RangeS.testZero,
-        ScoutExpectedFunctionFailure(
+        FindFunctionFailure(
           CodeNameS("someFunc"),
           Vector(),
           Map()))).nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         RangeS.testZero,
-        ScoutExpectedFunctionFailure(GlobalFunctionFamilyNameS(""), Vector(), Map())))
+        FindFunctionFailure(GlobalFunctionFamilyNameS(""), Vector(), Map())))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CannotSubscriptT(
@@ -1419,8 +1419,7 @@ class TemplarTests extends FunSuite with Matchers {
           Map(
             CodeRuneS("X") -> KindTemplata(fireflyKind)),
           Vector(),
-          RuleError(
-            0, KindIsNotConcrete(ispaceshipKind)))))
+          RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
   }
 }

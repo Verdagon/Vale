@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.names
 import net.verdagon.vale.templar.ast.{AbstractT, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.vimpl
+import net.verdagon.vale.{CodeLocationS, vimpl}
 
 object TemplataNamer {
   // Identifier names need to come from the Templar output because some things are erased
@@ -37,7 +37,7 @@ object TemplataNamer {
   }
 
   def getFullNameIdentifierName(fullName: FullNameT[INameT]): String = {
-    // Some nice rune symbols: ᚠᚢᚣᚥᚨᚫᚬᚮᚱᚳᚴᚻᛃᛄᛇᛈᛉᛊᛋᛒᛗᛝᛞᛟᛥ
+    // Some nice rune symbols: ᚠᚢᚣᚥᚨᚫᚬᚮᚱᚳᚴᚻᛃᛄᛇᛈᛉᛋᛒᛗᛝᛞᛟᛥ
     // Here's the ones we haven't used below: ᚢᚨᚬᚮᚳᚴᛃᛄᛇ
     // We should probably not use these long term since they're super unrecognizable,
     // we can switch to nicer symbols once things settle.
@@ -57,13 +57,18 @@ object TemplataNamer {
       //      case LambdaName2(codeLocation, templateArgs, parameters) => "ᛈ" + codeLocation + stringifyTemplateArgs(templateArgs) + stringifyParametersArgs(parameters)
       //      case CitizenName2(humanName, templateArgs) => "ᛟ" + humanName + stringifyTemplateArgs(templateArgs)
       case CitizenNameT(humanName, templateArgs) => "ᛘ" + humanName + stringifyTemplateArgs(templateArgs)
-      case LambdaCitizenNameT(codeLocation) => "ᛊ" + codeLocation
+      case LambdaCitizenNameT(codeLocation) => "ᛊ" + forLoc(codeLocation)
       case AnonymousSubstructNameT(thing) =>
-      case AnonymousSubstructLambdaNameT(codeLocation) => "ᛘ" + codeLocation
+      case AnonymousSubstructLambdaNameT(codeLocation) => "ᛘ" + forLoc(codeLocation)
       case TupleNameT(members) => "tup#"
-      case DropNameT(kind) => "drop*" + getReferenceIdentifierName(kind)
+      case DropNameT(args, coord) => "drop*" + getReferenceIdentifierName(coord)
       case x => vimpl(x.toString)
     }).mkString(".")
+  }
+
+  def forLoc(loc: CodeLocationS): String = {
+    val CodeLocationS(file, offset) = loc
+    file.filepath + ":" + offset
   }
 
   def getKindIdentifierName(tyype: KindT): String = {

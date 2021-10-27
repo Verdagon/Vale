@@ -18,6 +18,11 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Equals(-6L, -7L))
   val complexRuleSetEqualsRules = Array(3, 5, 7)
 
+  def testSimpleAndOptimized(testName: String, testTags : org.scalatest.Tag*)(testFun : Boolean => scala.Any)(implicit pos : org.scalactic.source.Position) : scala.Unit = {
+    test(testName + " (simple solver)", testTags: _*){ testFun(false) }(pos)
+    test(testName + " (optimized solver)", testTags: _*){ testFun(true) }(pos)
+  }
+
   test("Simple int rule") {
     val rules =
       Array(
@@ -34,12 +39,14 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-1L -> "1337", -2L -> "1337")
   }
 
+
   test("Incomplete solve") {
     val rules =
       Array(
         OneOf(-1L, Array("1448", "1337")))
     getConclusions(rules, false) shouldEqual Map()
   }
+
 
   test("Half-complete solve") {
     // Note how these two rules aren't connected to each other at all
@@ -50,6 +57,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, false) shouldEqual Map(-2L -> "1337")
   }
 
+
   test("OneOf") {
     val rules =
       Array(
@@ -57,6 +65,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
+
 
   test("Solves a components rule") {
     val rules =
@@ -68,6 +77,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
 
+
   test("Reverse-solve a components rule") {
     val rules =
       Array(
@@ -76,6 +86,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337/1448", -2L -> "1337", -3L -> "1448")
   }
+
 
   test("Test infer Pack") {
     val rules =
@@ -87,6 +98,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
 
+
   test("Test infer Pack from result") {
     val rules =
       Array(
@@ -95,6 +107,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
+
 
   test("Test infer Pack from empty result") {
     val rules =
@@ -105,6 +118,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-3L -> "")
   }
 
+
   test("Test cant solve empty Pack") {
     val rules =
       Array(
@@ -112,10 +126,12 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, false) shouldEqual Map()
   }
 
+
   test("Complex rule set") {
     val conclusions = getConclusions(complexRuleSet, true)
     conclusions.get(-7L) shouldEqual Some("1337/1448/1337/1448")
   }
+
 
   test("Test receiving struct to struct") {
     val rules =
@@ -126,6 +142,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-1L -> "Firefly", -2L -> "Firefly")
   }
 
+
   test("Test receive struct from sent interface") {
     val rules =
       Array(
@@ -135,7 +152,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     expectSolveFailure(rules) match {
       case FailedSolve(conclusions, unsolvedRules, err) => {
         conclusions shouldEqual Map(-1 -> "Firefly", -2 -> "ISpaceship")
-        unsolvedRules shouldEqual Vector()
+        unsolvedRules shouldEqual Vector(Receive(-1,-2))
         err match {
           case SolverConflict(
             -2,
@@ -148,6 +165,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     }
   }
 
+
   test("Test receive interface from sent struct") {
     val rules =
       Array(
@@ -159,6 +177,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       Map(-1L -> "ISpaceship", -2L -> "Firefly")
   }
 
+
   test("Test complex solve: most specific ancestor") {
     val rules =
       Array(
@@ -168,6 +187,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "Firefly", -2L -> "Firefly")
   }
+
 
   test("Test complex solve: calculate common ancestor") {
     val rules =
@@ -180,6 +200,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "ISpaceship", -2L -> "Firefly", -3L -> "Serenity")
   }
+
 
   test("Test complex solve: most specific satisfying call") {
     val rules =
@@ -197,6 +218,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         -3 -> "IWeapon")
   }
 
+
   test("Partial Solve") {
     // It'll be nice to partially solve some rules, for example before we put them in the overload index.
 
@@ -209,6 +231,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
     val solverState =
       Solver.makeInitialSolverState[IRule, Long, String](
+        true,
+        true,
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
@@ -229,6 +253,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     secondConclusions.toMap shouldEqual
       Map(-1 -> "Firefly", -2 -> "A", -3 -> "Firefly:A")
   }
+
 
   test("Predicting") {
     // "Predicting" is when the rules arent completely solvable, but we can still run some of them
@@ -259,6 +284,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
       val solverState =
         Solver.makeInitialSolverState[IRule, Long, String](
+          true,
+          true,
           rules,
           (rule: IRule) => rule.allRunes.toVector,
           puzzler,
@@ -286,6 +313,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     conclusions shouldEqual Map(-1L -> "Firefly", -2L -> "1337", -3L -> "Firefly:1337")
   }
 
+
   test("Test conflict") {
     val rules =
       Array(
@@ -312,6 +340,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
     val solverState =
       Solver.makeInitialSolverState[IRule, Long, String](
+        true,
+        true,
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
@@ -329,6 +359,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
   Map[Long, String] = {
     val solverState =
       Solver.makeInitialSolverState[IRule, Long, String](
+        true,
+        true,
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,

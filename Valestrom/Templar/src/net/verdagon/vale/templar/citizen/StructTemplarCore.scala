@@ -5,14 +5,14 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.{FinalP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
-import net.verdagon.vale.templar.OverloadTemplar.ScoutExpectedFunctionFailure
+import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.{ast, _}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, FunctionTemplarMiddleLayer, FunctionTemplarOrdinaryOrTemplatedLayer}
 import net.verdagon.vale._
 import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttribute2, LocationInFunctionEnvironment, OverrideT, ParameterT, ProgramT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SoftLoadTE}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, DropTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT, TupleNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, RuneNameT, SelfNameT, TemplarTemporaryVarNameT, TupleNameT}
 
 import scala.collection.immutable.List
 
@@ -27,8 +27,8 @@ class StructTemplarCore(
     val emptyTupleEnv = CitizenEnvironment(env.globalEnv, env, emptyTupleFullName, TemplatasStore(Map(), Map()))
     val structDefT = StructDefinitionT(emptyTupleFullName, Vector(), false, ImmutableT, Vector.empty, false)
     temputs.declareStruct(structDefT.getRef)
-    temputs.declareStructMutability(structDefT.getRef, ImmutableT)
-    temputs.declareStructEnv(structDefT.getRef, emptyTupleEnv)
+    temputs.declareCitizenMutability(structDefT.getRef, ImmutableT)
+    temputs.declareKindEnv(structDefT.getRef, emptyTupleEnv)
     temputs.add(structDefT)
     // Normally after adding a struct we would add its destructor. Void is the only one we don't
     // have a destructor for.
@@ -54,8 +54,35 @@ class StructTemplarCore(
       })
     val maybeExport =
       structA.attributes.collectFirst { case e@ExportS(_) => e }
+//
+//    val type
+//    delegate.scoutExpectedFunctionForPrototype(
+//      structRunesEnv,
+//      temputs,
+//      RangeS.internal(-1663),
+//      //          if (type2.ownership == ShareT) {
+//      //            ImmConcreteDestructorImpreciseNameS()
+//      //          } else {
+//      CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME),
+//      //          },
+//      Vector.empty,
+//      Array.empty,
+//      Vector(ParamFilter(type2, None)),
+//      Vector(temputs.getEnvForKind(type2.kind)),
+//      true)
+//
+//    delegate.scoutExpectedFunctionForPrototype(
+//      structRunesEnv, temputs,
+//    )
 
-    val structInnerEnv = CitizenEnvironment(structRunesEnv.globalEnv, structRunesEnv, fullName, TemplatasStore(Map(), Map()))
+    val structInnerEnv =
+      CitizenEnvironment(
+        structRunesEnv.globalEnv, structRunesEnv, fullName,
+        TemplatasStore(Map(), Map())
+          .addEntries(
+            structRunesEnv.globalEnv.structDropMacro.getStructChildEntries(
+              structRunesEnv.fullName, structA).toMap.mapValues(Vector(_))))
+
     // when we have structs that contain functions, add this back in
 //        structA.members
 //          .map(_.origin)
@@ -64,7 +91,7 @@ class StructTemplarCore(
 
 
       temputs
-        .declareStructEnv(
+        .declareKindEnv(
           temporaryStructRef,
           structInnerEnv)
 
@@ -140,9 +167,9 @@ class StructTemplarCore(
           })
         }
       })
-
-      structDefT
     })
+
+    structDefT
   }
 
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttribute2] = {
@@ -181,9 +208,15 @@ class StructTemplarCore(
         fullName,
         TemplatasStore(Map(), Map())
           .addEntries(
+            interfaceRunesEnv.globalEnv.interfaceDropMacro.getInterfaceChildEntries(
+              interfaceRunesEnv.fullName, interfaceA)
+            .toMap.mapValues(Vector(_)))
+          .addEntries(
             interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
               .map({ case (rune, templata) => (RuneNameT(rune.rune), Vector(TemplataEnvEntry(templata))) })
               .toMap)
+          .addEntries(
+            Map(SelfNameT() -> Vector(TemplataEnvEntry(KindTemplata(temporaryInferfaceRef)))))
           .addEntries(
             interfaceA.internalMethods
               .map(internalMethod => {
@@ -193,7 +226,7 @@ class StructTemplarCore(
               .toMap))
 
     temputs
-      .declareInterfaceEnv(
+      .declareKindEnv(
         temporaryInferfaceRef,
         interfaceInnerEnv)
 
@@ -314,8 +347,8 @@ class StructTemplarCore(
 //          FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME -> Vector(TemplataEnvEntry(KindTemplata(structTT)))))
 //
 //    temputs.declareStruct(structTT);
-//    temputs.declareStructMutability(structTT, mutability)
-//    temputs.declareStructEnv(structTT, structEnv);
+//    temputs.declareCitizenMutability(structTT, mutability)
+//    temputs.declareKindEnv(structTT, structEnv);
 //
 //    val closureStructDefinition = StructDefinition2(fullName, mutability, Vector.empty, true);
 //    temputs.add(closureStructDefinition)
@@ -370,10 +403,10 @@ class StructTemplarCore(
             Map(
               FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, CodeLocationS.internal(-14)) ->
                 Vector(FunctionEnvEntry(functionA)),
-              DropTemplateNameT() ->
-                Vector(FunctionEnvEntry(containingFunctionEnv.globalEnv.structDropMacro.makeClosureDropFunction())),
+              FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
+                Vector(FunctionEnvEntry(containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
               nearName -> Vector(TemplataEnvEntry(KindTemplata(structTT))),
-              ClosureParamNameT() -> Vector(TemplataEnvEntry(KindTemplata(structTT))))))
+              SelfNameT() -> Vector(TemplataEnvEntry(KindTemplata(structTT))))))
     // We return this from the function in case we want to eagerly compile it (which we do
     // if it's not a template).
     val functionTemplata =
@@ -382,8 +415,8 @@ class StructTemplarCore(
           functionA)
 
     temputs.declareStruct(structTT);
-    temputs.declareStructMutability(structTT, mutability)
-    temputs.declareStructEnv(structTT, structEnv);
+    temputs.declareCitizenMutability(structTT, mutability)
+    temputs.declareKindEnv(structTT, structEnv);
 
     val closureStructDefinition = StructDefinitionT(fullName, Vector.empty, false, mutability, members, true);
     temputs.add(closureStructDefinition)
@@ -423,8 +456,8 @@ class StructTemplarCore(
       vfail("curiosity")
 
     temputs.declareStruct(newStructDef.getRef);
-    temputs.declareStructMutability(newStructDef.getRef, packMutability)
-    temputs.declareStructEnv(newStructDef.getRef, structInnerEnv);
+    temputs.declareCitizenMutability(newStructDef.getRef, packMutability)
+    temputs.declareKindEnv(newStructDef.getRef, structInnerEnv);
     temputs.add(newStructDef)
 
     outerEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {

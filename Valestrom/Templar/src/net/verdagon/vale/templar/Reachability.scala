@@ -1,10 +1,10 @@
 package net.verdagon.vale.templar
 
-import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, InterfaceEdgeBlueprint, LockWeakTE, ProgramT, SignatureT, StaticArrayFromCallableTE}
-import net.verdagon.vale.templar.names.FunctionNameT
+import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, FunctionT, InterfaceEdgeBlueprint, LockWeakTE, ProgramT, SignatureT, StaticArrayFromCallableTE, getFunctionLastName}
+import net.verdagon.vale.templar.names.{DropNameT, FunctionNameT, IFunctionNameT}
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
-import net.verdagon.vale.{Collector, PackageCoordinate, vassertSome, vcurious, vpass}
+import net.verdagon.vale.{Collector, PackageCoordinate, vassertOne, vassertSome, vcurious, vimpl, vpass}
 
 import scala.collection.mutable
 
@@ -89,7 +89,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (structDef.mutability == ImmutableT && structTT != ProgramT.emptyTupleStructRef) {
-      val destructorSignature = program.getDestructor(structTT).toSignature
+      val destructorSignature = program.findDestructor(structTT).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(structDef, {
@@ -108,7 +108,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (interfaceDef.mutability == ImmutableT) {
-      val destructorSignature = program.getDestructor(interfaceTT).toSignature
+      val destructorSignature = program.findDestructor(interfaceTT).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(interfaceDef, {
@@ -148,7 +148,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (ssa.array.mutability == ImmutableT) {
-      val destructorSignature = program.getDestructor(ssa).toSignature
+      val destructorSignature = vimpl()//program.getDestructor(ssa).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }
@@ -168,7 +168,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (rsa.array.mutability == ImmutableT) {
-      val destructorSignature = program.getDestructor(rsa).toSignature
+      val destructorSignature = vimpl()//program.getDestructor(rsa).toSignature
       visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }

@@ -1,5 +1,6 @@
 package net.verdagon.vale.astronomer
 
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{CaptureP, FailedParse, FileP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{ExportS, ExternS, RuneTypeSolver, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, AtomSP, CaptureS, OverrideSP}
@@ -35,7 +36,7 @@ case class Environment(
   }
 }
 
-object Astronomer {
+class Astronomer(globalOptions: GlobalOptions) {
   val primitives =
     Map(
       "int" -> KindTemplataType,
@@ -333,6 +334,7 @@ object Astronomer {
     ImplA(
       rangeS,
       nameS,
+      identifyingRunesS,
       rulesS.toVector,
       runeSToType,
       structKindRuneS,
@@ -420,7 +422,9 @@ object Astronomer {
         paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType)).toMap
     val runeSToType =
       RuneTypeSolver.solve(
-        (n) => Astronomer.lookupType(astrouts, env, rangeS, n),
+        globalOptions.sanityCheck,
+        globalOptions.useOptimizedSolver,
+        (n) => lookupType(astrouts, env, rangeS, n),
         rangeS,
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
@@ -496,7 +500,7 @@ object Astronomer {
       val suppliedFunctions = Vector()
       val suppliedInterfaces = Vector()
       val ProgramA(structsA, interfacesA, implsA, functionsA, exportsA) =
-        Astronomer.translateProgram(
+        translateProgram(
           mergedProgramS, primitives, suppliedFunctions, suppliedInterfaces)
 
       val packageToStructsA = structsA.groupBy(_.name.range.begin.file.packageCoordinate)
@@ -538,9 +542,10 @@ object Astronomer {
 }
 
 class AstronomerCompilation(
+  globalOptions: GlobalOptions,
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]]) {
-  var scoutCompilation = new ScoutCompilation(packagesToBuild, packageToContentsResolver)
+  var scoutCompilation = new ScoutCompilation(globalOptions, packagesToBuild, packageToContentsResolver)
   var astroutsCache: Option[PackageCoordinateMap[ProgramA]] = None
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = scoutCompilation.getCodeMap()
@@ -552,7 +557,7 @@ class AstronomerCompilation(
     astroutsCache match {
       case Some(astrouts) => Ok(astrouts)
       case None => {
-        Astronomer.runAstronomer(scoutCompilation.getScoutput().getOrDie()) match {
+        new Astronomer(globalOptions).runAstronomer(scoutCompilation.getScoutput().getOrDie()) match {
           case Right(err) => Err(err)
           case Left(astrouts) => {
             astroutsCache = Some(astrouts)
