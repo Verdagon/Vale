@@ -6,7 +6,7 @@ import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnv
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, IEnvironmentBox, TemplataLookupContext}
-import net.verdagon.vale.templar.names.{CitizenNameT, INameT, TupleNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, INameT}
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
@@ -47,8 +47,6 @@ trait ITemplataTemplarDelegate {
   StaticSizedArrayTT
 
   def getRuntimeSizedArrayKind(env: IEnvironment, temputs: Temputs, element: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT
-
-  def getTupleKind(env: IEnvironment, temputs: Temputs, elements: Vector[CoordT]): TupleTT
 }
 
 class TemplataTemplar(
@@ -95,10 +93,10 @@ class TemplataTemplar(
               case (Some(distance)) => (distance)
             }
           }
-          case (PackTT(Vector(), _), VoidT()) => vfail("figure out void<->emptypack")
-          case (VoidT(), PackTT(Vector(), _)) => vfail("figure out void<->emptypack")
-          case (PackTT(Vector(), _), _) => return (None)
-          case (_, PackTT(Vector(), _)) => return (None)
+//          case (PackTT(Vector(), _), VoidT()) => vfail("figure out void<->emptypack")
+//          case (VoidT(), PackTT(Vector(), _)) => vfail("figure out void<->emptypack")
+//          case (PackTT(Vector(), _), _) => return (None)
+//          case (_, PackTT(Vector(), _)) => return (None)
           case (_ : CitizenRefT, IntT(_) | BoolT() | StrT() | FloatT()) => return (None)
           case (IntT(_) | BoolT() | StrT() | FloatT(), _ : CitizenRefT) => return (None)
           case _ => {
@@ -195,10 +193,10 @@ class TemplataTemplar(
             case (Some(_)) =>
           }
         }
-        case (PackTT(Vector(), _), VoidT()) => vfail("figure out void<->emptypack")
-        case (VoidT(), PackTT(Vector(), _)) => vfail("figure out void<->emptypack")
-        case (PackTT(Vector(), _), _) => return (false)
-        case (_, PackTT(Vector(), _)) => return (false)
+//        case (PackTT(Vector(), _), VoidT()) => vfail("figure out void<->emptypack")
+//        case (VoidT(), PackTT(Vector(), _)) => vfail("figure out void<->emptypack")
+//        case (PackTT(Vector(), _), _) => return (false)
+//        case (_, PackTT(Vector(), _)) => return (false)
         case (_ : CitizenRefT, IntT(_) | BoolT() | StrT() | FloatT()) => return (false)
         case (IntT(_) | BoolT() | StrT() | FloatT(), _ : CitizenRefT) => return (false)
         case _ => {
@@ -229,9 +227,9 @@ class TemplataTemplar(
       case a @ StaticSizedArrayTT(_, RawArrayTT(_, mutability, variability)) => {
         CoordT(ownership, permission, a)
       }
-      case a @ PackTT(_, underlyingStruct) => {
-        CoordT(ownership, permission, a)
-      }
+//      case a @ PackTT(_, underlyingStruct) => {
+//        CoordT(ownership, permission, a)
+//      }
       case s @ StructTT(_) => {
         CoordT(ownership, permission, s)
       }
@@ -329,19 +327,6 @@ class TemplataTemplar(
     (templata)
   }
 
-  def getTupleKind(
-    env: IEnvironment,
-    temputs: Temputs,
-    callRange: RangeS,
-    elements: Vector[CoordT],
-    expectedType: ITemplataType):
-  (ITemplata) = {
-    val uncoercedTemplata = delegate.getTupleKind(env, temputs, elements)
-    val templata =
-      coerce(temputs, callRange, KindTemplata(uncoercedTemplata), expectedType)
-    (templata)
-  }
-
   def lookupTemplata(
     env: IEnvironment,
     temputs: Temputs,
@@ -366,6 +351,15 @@ class TemplataTemplar(
     vassertOne(env.lookupWithImpreciseName(profiler, name, Set(TemplataLookupContext), true))
   }
 
+  def coerceKindToCoord(temputs: Temputs, kind: KindT):
+  CoordT = {
+    val mutability = Templar.getMutability(temputs, kind)
+    CoordT(
+      if (mutability == MutableT) OwnT else ShareT,
+      if (mutability == MutableT) ReadwriteT else ReadonlyT,
+      kind)
+  }
+
   def coerce(
     temputs: Temputs,
     range: RangeS,
@@ -377,14 +371,7 @@ class TemplataTemplar(
     } else {
       (templata, tyype) match {
         case (KindTemplata(kind), CoordTemplataType) => {
-          val mutability = Templar.getMutability(temputs, kind)
-          val coerced =
-            CoordTemplata(
-              CoordT(
-                if (mutability == MutableT) OwnT else ShareT,
-                if (mutability == MutableT) ReadwriteT else ReadonlyT,
-                kind))
-          (coerced)
+          CoordTemplata(coerceKindToCoord(temputs, kind))
         }
         case (st@StructTemplata(_, structA), KindTemplataType) => {
           if (structA.isTemplate) {
@@ -514,7 +501,7 @@ class TemplataTemplar(
           return false
         }
       }
-      case TupleNameT(_) => return false
+//      case TupleNameT(_) => return false
       case _ => vwat()
     }
     return true

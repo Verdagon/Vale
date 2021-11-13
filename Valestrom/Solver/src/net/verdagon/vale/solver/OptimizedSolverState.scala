@@ -109,6 +109,14 @@ case class OptimizedSolverState[Rule, RuneID, Conclusion](
 //    userRuneToCanonicalRune.keySet.toSet
   }
 
+  override def complexStep[ErrType](ruleToPuzzles: Rule => Array[Array[RuneID]], step: IStepState[Rule, RuneID, Conclusion] => Result[Unit, ISolverError[RuneID, Conclusion, ErrType]]): Result[Step[Rule, RuneID, Conclusion], ISolverError[RuneID, Conclusion, ErrType]] = vimpl()
+
+  override def getSteps(): Vector[Step[Rule, RuneID, Conclusion]] = vimpl()
+
+  override def simpleStep[ErrType](ruleToPuzzles: Rule => Array[Array[RuneID]], ruleIndex: Int, rule: Rule, step: IStepState[Rule, RuneID, Conclusion] => Result[Unit, ISolverError[RuneID, Conclusion, ErrType]]): Result[Step[Rule, RuneID, Conclusion], ISolverError[RuneID, Conclusion, ErrType]] = vimpl()
+
+  override def initialStep[ErrType](ruleToPuzzles: Rule => Array[Array[RuneID]], step: IStepState[Rule, RuneID, Conclusion] => Result[Unit, ISolverError[RuneID, Conclusion, ErrType]]): Result[Step[Rule, RuneID, Conclusion], ISolverError[RuneID, Conclusion, ErrType]] = vimpl()
+
   override def getCanonicalRune(rune: RuneID): Int = {
     userRuneToCanonicalRune.get(rune) match {
       case Some(s) => s
@@ -189,7 +197,7 @@ case class OptimizedSolverState[Rule, RuneID, Conclusion](
     numUnknownsToNumPuzzles(0) > 0
   }
 
-  override def userifyRune(rune: Int): RuneID = vimpl()
+  override def getUserRune(rune: Int): RuneID = vimpl()
 
   override def getNextSolvable(): Option[Int] = {
     if (numUnknownsToPuzzles(0)(0) == 0) {
@@ -212,8 +220,8 @@ case class OptimizedSolverState[Rule, RuneID, Conclusion](
     Some(solvingRule)
   }
 
-  override def getConclusion(rune: Int): Option[Conclusion] = {
-    runeToConclusion(rune)
+  override def getConclusion(rune: RuneID): Option[Conclusion] = {
+    runeToConclusion(getCanonicalRune(rune))
   }
 
   override def addRune(rune: RuneID): Int = vimpl()
@@ -222,16 +230,15 @@ case class OptimizedSolverState[Rule, RuneID, Conclusion](
 
   override def getConclusions(): Stream[(Int, Conclusion)] = vimpl()
 
-  override def getAllRules(): Set[Int] = vimpl()
+  override def getAllRules(): Vector[Rule] = vimpl()
 
   override def addPuzzle(ruleIndex: Int, runes: Array[Int]): Unit = vimpl()
 
-  override def concludeRune[ErrType](newlySolvedRune: Int, conclusion: Conclusion): Result[Boolean, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = vimpl()
-
-  override def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[Int, Conclusion]): Result[Int, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
+  override def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[Int, Conclusion]):
+  Result[Int, ISolverError[RuneID, Conclusion, ErrType]] = {
     val numNewConclusions =
       newConclusions.map({ case (newlySolvedCanonicalRune, newConclusion) =>
-        getConclusion(newlySolvedCanonicalRune) match {
+        runeToConclusion(newlySolvedCanonicalRune) match {
           case None => {
             vimpl()//concludeRune(newlySolvedCanonicalRune, newConclusion)
             1
@@ -239,13 +246,10 @@ case class OptimizedSolverState[Rule, RuneID, Conclusion](
           case Some(existingConclusion) => {
             if (existingConclusion != newConclusion) {
               return Err(
-                FailedSolve(
-                  userifyConclusions().toMap,
-                  getUnsolvedRules(),
-                  SolverConflict(
-                    vimpl(),//newlySolvedCanonicalRune,
-                    existingConclusion,
-                    newConclusion)))
+                SolverConflict(
+                  vimpl(),//newlySolvedCanonicalRune,
+                  existingConclusion,
+                  newConclusion))
             }
             0
           }

@@ -15,7 +15,6 @@ import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
 import net.verdagon.vale.templar.ast.{SignatureT, StructToInterfaceUpcastTE}
 import net.verdagon.vale.templar.names.{FullNameT, FunctionNameT}
-import net.verdagon.vale.templar.templata.SignatureT
 import net.verdagon.vale.templar.types.{CoordT, IntT, ReadonlyT, ShareT, StrT}
 
 import scala.collection.immutable.List

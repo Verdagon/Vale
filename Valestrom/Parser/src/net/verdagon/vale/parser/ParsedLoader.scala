@@ -545,6 +545,7 @@ object ParsedLoader {
       case "PermissionTypePR" => PermissionTypePR
       case "LocationTypePR" => LocationTypePR
       case "CoordTypePR" => CoordTypePR
+      case "CoordListTypePR" => CoordListTypePR
       case "PrototypeTypePR" => PrototypeTypePR
       case "KindTypePR" => KindTypePR
       case "RegionTypePR" => RegionTypePR
@@ -705,6 +706,11 @@ object ParsedLoader {
         BorrowPT(
           loadRange(getObjectField(jobj, "range")),
           loadTemplex(getObjectField(jobj, "inner")))
+      }
+      case "PermissionT" => {
+        PermissionPT(
+          loadRange(getObjectField(jobj, "range")),
+          loadPermission(getObjectField(jobj, "permission")))
       }
       case "InlineT" => {
         InlinePT(

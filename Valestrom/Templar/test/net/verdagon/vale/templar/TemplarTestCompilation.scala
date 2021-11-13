@@ -11,7 +11,6 @@ import scala.collection.mutable
 object TemplarTestCompilation {
   def test(code: String*): TemplarCompilation = {
     new TemplarCompilation(
-      GlobalOptions(true, true, true),
       Vector(PackageCoordinate.TEST_TLD),
       Builtins.getModulizedCodeMap()
         .or(FileCoordinateMap.test(code.toVector))

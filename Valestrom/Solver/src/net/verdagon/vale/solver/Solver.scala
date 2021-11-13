@@ -3,190 +3,168 @@ package net.verdagon.vale.solver
 import net.verdagon.vale.{Err, Ok, Result, vassert, vcurious, vfail, vimpl, vpass}
 
 import scala.collection.immutable.Map
+import scala.collection.mutable
 
-sealed trait ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
-  def getOrDie(): Map[RuneID, Conclusion]
+case class Step[Rule, Rune, Conclusion](complex: Boolean, solvedRules: Vector[(Int, Rule)], addedRules: Vector[Rule], conclusions: Map[Rune, Conclusion])
+
+sealed trait ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
+  def getOrDie(): Map[Rune, Conclusion]
 }
-sealed trait IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] extends ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
+sealed trait IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] extends ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
   def unsolvedRules: Vector[Rule]
-  def incompleteConclusions: Map[RuneID, Conclusion]
+  def unsolvedRunes: Vector[Rune]
+  def steps: Vector[Step[Rule, Rune, Conclusion]]
 }
-case class CompleteSolve[Rule, RuneID, Conclusion, ErrType](
-  conclusions: Map[RuneID, Conclusion]
-) extends ISolverOutcome[Rule, RuneID, Conclusion, ErrType] {
-  override def getOrDie(): Map[RuneID, Conclusion] = conclusions
+case class CompleteSolve[Rule, Rune, Conclusion, ErrType](
+  conclusions: Map[Rune, Conclusion]
+) extends ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
+  override def getOrDie(): Map[Rune, Conclusion] = conclusions
 }
-case class IncompleteSolve[Rule, RuneID, Conclusion, ErrType](
-  incompleteConclusions: Map[RuneID, Conclusion],
+case class IncompleteSolve[Rule, Rune, Conclusion, ErrType](
+  steps: Vector[Step[Rule, Rune, Conclusion]],
   unsolvedRules: Vector[Rule],
-  unknownRunes: Set[RuneID]
-) extends IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] {
+  unknownRunes: Set[Rune]
+) extends IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] {
   vassert(unknownRunes.nonEmpty)
   vpass()
-  override def getOrDie(): Map[RuneID, Conclusion] = vfail()
+  override def getOrDie(): Map[Rune, Conclusion] = vfail()
+  override def unsolvedRunes: Vector[Rune] = unknownRunes.toVector
 }
 
-case class FailedSolve[Rule, RuneID, Conclusion, ErrType](
-  incompleteConclusions: Map[RuneID, Conclusion],
+case class FailedSolve[Rule, Rune, Conclusion, ErrType](
+  steps: Vector[Step[Rule, Rune, Conclusion]],
   unsolvedRules: Vector[Rule],
-  error: ISolverError[RuneID, Conclusion, ErrType]
-) extends IIncompleteOrFailedSolve[Rule, RuneID, Conclusion, ErrType] {
-  override def getOrDie(): Map[RuneID, Conclusion] = vfail()
+  error: ISolverError[Rune, Conclusion, ErrType]
+) extends IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] {
+  override def getOrDie(): Map[Rune, Conclusion] = vfail()
   vpass()
+  override def unsolvedRunes: Vector[Rune] = Vector()
 }
 
-sealed trait ISolverError[RuneID, Conclusion, ErrType]
-case class SolverConflict[RuneID, Conclusion, ErrType](
-  rune: RuneID,
+sealed trait ISolverError[Rune, Conclusion, ErrType]
+case class SolverConflict[Rune, Conclusion, ErrType](
+  rune: Rune,
   previousConclusion: Conclusion,
   newConclusion: Conclusion
-) extends ISolverError[RuneID, Conclusion, ErrType] {
+) extends ISolverError[Rune, Conclusion, ErrType] {
   vpass()
 }
-case class RuleError[RuneID, Conclusion, ErrType](
+case class RuleError[Rune, Conclusion, ErrType](
 //  ruleIndex: Int,
   err: ErrType
-) extends ISolverError[RuneID, Conclusion, ErrType]
+) extends ISolverError[Rune, Conclusion, ErrType]
 
 // Given enough user specified template params and param inputs, we should be able to
 // infer everything.
 // This class's purpose is to take those things, and see if it can figure out as many
 // inferences as possible.
 
-trait ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType] {
+trait ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType] {
   def solve(
     state: State,
     env: Env,
     ruleIndex: Int,
     rule: Rule,
-    solverState: ISolverStateForRule[Rule, RuneID, Conclusion]):
-  Result[Map[RuneID, Conclusion], ErrType]
+    stepState: IStepState[Rule, Rune, Conclusion]):
+  Result[Unit, ISolverError[Rune, Conclusion, ErrType]]
 
   // Called when we can't do any regular solves, we don't have enough
   // runes. This is where we do more interesting rules, like SMCMST.
   // See CSALR for more.
   def complexSolve(
-    solverState: ISolverStateForRule[Rule, RuneID, Conclusion]
-  ): Result[(Array[Int], Map[RuneID, Conclusion]), ErrType]
+    state: State,
+    env: Env,
+    stepState: IStepState[Rule, Rune, Conclusion]
+  ): Result[Unit, ISolverError[Rune, Conclusion, ErrType]]
 }
 
 object Solver {
-  def solve[Rule, RuneID, Env, State, Conclusion, ErrType](
+  def solve[Rule, Rune, Env, State, Conclusion, ErrType](
+    ruleToPuzzles: Rule => Array[Array[Rune]],
     state: State,
     env: Env,
-    solverState: ISolverState[Rule, RuneID, Conclusion],
-    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType]
-  ): Result[Stream[(RuneID, Conclusion)], FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
+    solverState: ISolverState[Rule, Rune, Conclusion],
+    solveRule: ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType]
+  ): Result[(Stream[Step[Rule, Rune, Conclusion]], Stream[(Rune, Conclusion)]), FailedSolve[Rule, Rune, Conclusion, ErrType]] = {
 
-    while (solverState.getNextSolvable() match {
-      case None => false
-      case Some(ruleIndex) => {
-        solveNextSolvableRule(env, state, solverState, solveRule, ruleIndex) match {
-          case Err(toReturn) => return Err(toReturn)
-          case Ok(()) => true
+    while ({
+      while ({
+        solverState.getNextSolvable() match {
+          case None => false
+          case Some(solvingRuleIndex) => {
+            val rule = solverState.getRule(solvingRuleIndex)
+            val step =
+              solverState.simpleStep[ErrType](ruleToPuzzles, solvingRuleIndex, rule, solveRule.solve(state, env, solvingRuleIndex, rule, _)) match {
+                case Ok(step) => step
+                case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
+              }
+
+            val canonicalConclusions =
+              step.conclusions.map({ case (userRune, conclusion) => solverState.getCanonicalRune(userRune) -> conclusion }).toMap
+            solverState.markRulesSolved[ErrType](Array(solvingRuleIndex), canonicalConclusions) match {
+              case Ok(_) =>
+              case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
+            }
+
+            solverState.sanityCheck()
+            true
+          }
         }
+      }) {}
+
+      if (solverState.getUnsolvedRules().nonEmpty) {
+        val step =
+          solverState.complexStep(ruleToPuzzles, solveRule.complexSolve(state, env, _)) match {
+            case Ok(step) => step
+            case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
+          }
+        val canonicalConclusions =
+          step.conclusions.map({ case (userRune, conclusion) => solverState.getCanonicalRune(userRune) -> conclusion }).toMap
+        val continue =
+          solverState.markRulesSolved[ErrType](step.solvedRules.map(_._1).toArray, canonicalConclusions) match {
+            case Ok(0) => false // Do nothing, we're done
+            case Ok(_) => true // continue
+            case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
+          }
+
+        solverState.sanityCheck()
+        continue
+      } else {
+        false // no more rules to solve, halt
       }
     }) {}
 
-    if (solverState.getUnsolvedRules().nonEmpty) {
-      solveRule.complexSolve(makeSolverStateForRule(solverState)) match {
-        case Ok((solvingRuleIndices, userConclusions)) => {
-          val canonicalConclusions =
-            userConclusions.map({ case (a, b) => (solverState.getCanonicalRune(a), b) })
-          solverState.markRulesSolved[ErrType](solvingRuleIndices, canonicalConclusions) match {
-            case Ok(0) => // Do nothing, we're done
-            case Ok(_) => {
-              solve(state, env, solverState, solveRule) match {
-                case Err(e) => return Err(e)
-                case Ok(_) =>
-              }
-            }
-            case Err(e) => return Err(e)
-          }
-        }
-        case Err(e) => return Err(
-          FailedSolve(
-            solverState.userifyConclusions().toMap,
-            solverState.getUnsolvedRules(),
-            RuleError(e)))
-      }
-    }
-
-    Ok(solverState.userifyConclusions())
+    Ok((solverState.getSteps().toStream, solverState.userifyConclusions()))
   }
 
-  private def makeSolverStateForRule[ErrType, Conclusion, State, Env, RuneID, Rule](
-    solverState: ISolverState[Rule, RuneID, Conclusion]
-  ): ISolverStateForRule[Rule, RuneID, Conclusion] = {
-    new ISolverStateForRule[Rule, RuneID, Conclusion] {
-      override def getConclusion(requestedUserRune: RuneID): Option[Conclusion] = {
-        val requestedCanonicalRune = solverState.getCanonicalRune(requestedUserRune)
-        solverState.getConclusion(requestedCanonicalRune)
-      }
-
-      override def addPuzzle(ruleIndex: Int, runes: Array[RuneID]): Unit = {
-        solverState.addPuzzle(ruleIndex, runes.map(solverState.getCanonicalRune))
-      }
-
-      override def addRule(rule: Rule, runes: Array[RuneID]): Int = {
-        solverState.addRule(rule)//, runes.map(solverState.getCanonicalRune))
-      }
-
-      override def getUnsolvedRules(): Vector[Rule] = {
-        solverState.getUnsolvedRules()
-      }
-    }
-  }
-
-  private def solveNextSolvableRule[ErrType, Conclusion, State, Env, RuneID, Rule](
-    env: Env,
-    state: State,
-    solverState: ISolverState[Rule, RuneID, Conclusion],
-    solveRule: ISolveRule[Rule, RuneID, Env, State, Conclusion, ErrType],
-    solvingRuleIndex: Int):
-  Result[Unit, FailedSolve[Rule, RuneID, Conclusion, ErrType]] = {
-    val rule = solverState.getRule(solvingRuleIndex)
-    val newConclusions =
-      solveRule.solve(state, env, solvingRuleIndex, rule, makeSolverStateForRule(solverState)) match {
-        case Ok(newUserConclusions) => {
-          newUserConclusions.map({ case (a, b) => (solverState.getCanonicalRune(a), b) })
-        }
-        case Err(e) => return Err(
-          FailedSolve(
-            solverState.userifyConclusions().toMap,
-            solverState.getUnsolvedRules(),
-            RuleError(e)))
-      }
-
-    solverState.markRulesSolved[ErrType](Array(solvingRuleIndex), newConclusions) match {
-      case Ok(_) =>
-      case Err(e) => return Err(e)
-    }
-
-    solverState.sanityCheck()
-    Ok(())
-  }
-
-  def makeInitialSolverState[Rule, RuneID, Conclusion](
+  def makeInitialSolverState[Rule, Rune, Conclusion](
     sanityCheck: Boolean,
     useOptimizedSolver: Boolean,
     initialRules: IndexedSeq[Rule],
-    ruleToRunes: Rule => Iterable[RuneID],
-    ruleToPuzzles: Rule => Array[Array[RuneID]],
-    initiallyKnownRunes: Map[RuneID, Conclusion]):
-  ISolverState[Rule, RuneID, Conclusion] = {
+    ruleToRunes: Rule => Iterable[Rune],
+    ruleToPuzzles: Rule => Array[Array[Rune]],
+    initiallyKnownRunes: Map[Rune, Conclusion]):
+  ISolverState[Rule, Rune, Conclusion] = {
     val solverState =
 //      if (useOptimizedSolver) {
-//        OptimizedSolverState[Rule, RuneID, Conclusion]()
+//        OptimizedSolverState[Rule, Rune, Conclusion]()
 //      } else {
-        SimpleSolverState[Rule, RuneID, Conclusion]()
+        SimpleSolverState[Rule, Rune, Conclusion]()
 //      }
 
     (initialRules.flatMap(ruleToRunes) ++ initiallyKnownRunes.keys).distinct.foreach(solverState.addRune)
 
-    initiallyKnownRunes.foreach({ case (rune, conclusion) =>
+    val step =
+      solverState.initialStep(ruleToPuzzles, (stepState: IStepState[Rule, Rune, Conclusion]) => {
+        initiallyKnownRunes.foreach({ case (rune, conclusion) =>
+          stepState.concludeRune(rune, conclusion)
+        })
+        Ok(())
+      }).getOrDie()
+    step.conclusions.foreach({ case (rune, conclusion) =>
       solverState.concludeRune(solverState.getCanonicalRune(rune), conclusion)
     })
+
 
     initialRules.foreach(rule => {
       val ruleIndex = solverState.addRule(rule)

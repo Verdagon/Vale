@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, FunctionT, InterfaceEdgeBlueprint, LockWeakTE, ProgramT, SignatureT, StaticArrayFromCallableTE, getFunctionLastName}
-import net.verdagon.vale.templar.names.{DropNameT, FunctionNameT, IFunctionNameT}
+import net.verdagon.vale.templar.names.{FunctionNameT, IFunctionNameT}
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Collector, PackageCoordinate, vassertOne, vassertSome, vcurious, vimpl, vpass}
@@ -20,7 +20,7 @@ class Reachables(
 }
 
 object Reachability {
-  def findReachables(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT]): Reachables = {
+  def findReachables(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT]): Reachables = {
     val structs = program.getAllStructs()
     val interfaces = program.getAllInterfaces()
     val functions = program.getAllFunctions()
@@ -42,14 +42,14 @@ object Reachability {
     do {
       vcurious(sizeBefore == 0) // do we ever need multiple iterations, or is the DFS good enough?
       sizeBefore = reachables.size
-      exposedFunctions.map(_.header.toSignature).foreach(visitFunction(program, edgeBlueprints, edges, reachables, _))
-      exposedStructs.map(_.getRef).foreach(visitStruct(program, edgeBlueprints, edges, reachables, _))
-      exposedInterfaces.map(_.getRef).foreach(visitInterface(program, edgeBlueprints, edges, reachables, _))
+      exposedFunctions.map(_.header.toSignature).foreach(visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
+      exposedStructs.map(_.getRef).foreach(visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
+      exposedInterfaces.map(_.getRef).foreach(visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
     } while (reachables.size != sizeBefore)
-    visitStruct(program, edgeBlueprints, edges, reachables, ProgramT.emptyTupleStructRef)
+    visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, emptyTupleStruct)
     reachables
   }
-  def visitFunction(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, calleeSignature: SignatureT): Unit = {
+  def visitFunction(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, calleeSignature: SignatureT): Unit = {
     if (reachables.functions.contains(calleeSignature)) {
       return
     }
@@ -59,28 +59,28 @@ object Reachability {
       case FunctionCallTE(calleePrototype, _) => {
         vpass()
         vpass()
-        visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
       }
-      case ConstructArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
-      case StaticArrayFromCallableTE(_, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
-      case DestroyStaticSizedArrayIntoFunctionTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
-      case DestroyRuntimeSizedArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
-      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
-      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
-      case ssa @ StaticSizedArrayTT(_, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
-      case rsa @ RuntimeSizedArrayTT(_) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
+      case ConstructArrayTE(_, _, _, calleePrototype) => visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      case StaticArrayFromCallableTE(_, _, calleePrototype) => visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      case DestroyStaticSizedArrayIntoFunctionTE(_, _, _, calleePrototype) => visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      case DestroyRuntimeSizedArrayTE(_, _, _, calleePrototype) => visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
+      case sr @ StructTT(_) => visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, sr)
+      case ir @ InterfaceTT(_) => visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, ir)
+      case ssa @ StaticSizedArrayTT(_, _) => visitStaticSizedArray(program, emptyTupleStruct, edgeBlueprints, edges, reachables, ssa)
+      case rsa @ RuntimeSizedArrayTT(_) => visitRuntimeSizedArray(program, emptyTupleStruct, edgeBlueprints, edges, reachables, rsa)
       case LockWeakTE(_, _, someConstructor, noneConstructor) => {
-        visitFunction(program, edgeBlueprints, edges, reachables, someConstructor.toSignature)
-        visitFunction(program, edgeBlueprints, edges, reachables, noneConstructor.toSignature)
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, someConstructor.toSignature)
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, noneConstructor.toSignature)
       }
       case AsSubtypeTE(_, _, _, someConstructor, noneConstructor) => {
-        visitFunction(program, edgeBlueprints, edges, reachables, someConstructor.toSignature)
-        visitFunction(program, edgeBlueprints, edges, reachables, noneConstructor.toSignature)
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, someConstructor.toSignature)
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, noneConstructor.toSignature)
       }
     })
   }
 
-  def visitStruct(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, structTT: StructTT): Unit = {
+  def visitStruct(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, structTT: StructTT): Unit = {
     if (reachables.structs.contains(structTT)) {
       return
     }
@@ -88,18 +88,18 @@ object Reachability {
     val structDef = program.lookupStruct(structTT)
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
-    if (structDef.mutability == ImmutableT && structTT != ProgramT.emptyTupleStructRef) {
+    if (structDef.mutability == ImmutableT && structTT != emptyTupleStruct) {
       val destructorSignature = program.findDestructor(structTT).toSignature
-      visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(structDef, {
-      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
-      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
+      case sr @ StructTT(_) => visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, sr)
+      case ir @ InterfaceTT(_) => visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, ir)
     })
-    edges.filter(_.struct == structTT).foreach(visitImpl(program, edgeBlueprints, edges, reachables, _))
+    edges.filter(_.struct == structTT).foreach(visitImpl(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
   }
 
-  def visitInterface(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, interfaceTT: InterfaceTT): Unit = {
+  def visitInterface(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, interfaceTT: InterfaceTT): Unit = {
     if (reachables.interfaces.contains(interfaceTT)) {
       return
     }
@@ -109,32 +109,33 @@ object Reachability {
     // that let go of a reference.
     if (interfaceDef.mutability == ImmutableT) {
       val destructorSignature = program.findDestructor(interfaceTT).toSignature
-      visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(interfaceDef, {
-      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
-      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
+      case sr @ StructTT(_) => visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, sr)
+      case ir @ InterfaceTT(_) => visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, ir)
     })
     edgeBlueprints.find(_.interface == interfaceTT).get.superFamilyRootBanners.foreach(f => {
-      visitFunction(program, edgeBlueprints, edges, reachables, f.toSignature)
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, f.toSignature)
     })
-    edges.filter(_.interface == interfaceTT).foreach(visitImpl(program, edgeBlueprints, edges, reachables, _))
+    edges.filter(_.interface == interfaceTT).foreach(visitImpl(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
   }
 
-  def visitImpl(program: Temputs, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, edge: EdgeT): Unit = {
+  def visitImpl(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, edge: EdgeT): Unit = {
     if (reachables.edges.contains(edge)) {
       return
     }
     reachables.edges.add(edge)
     edges.foreach(edge => {
-      visitStruct(program, edgeBlueprints, edges, reachables, edge.struct)
-      visitInterface(program, edgeBlueprints, edges, reachables, edge.interface)
-      edge.methods.map(_.toSignature).foreach(visitFunction(program, edgeBlueprints, edges, reachables, _))
+      visitStruct(program, emptyTupleStruct, edgeBlueprints, edges, reachables, edge.struct)
+      visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, edge.interface)
+      edge.methods.map(_.toSignature).foreach(visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
     })
   }
 
   def visitStaticSizedArray(
     program: Temputs,
+    emptyTupleStruct: StructTT,
     edgeBlueprints: Vector[InterfaceEdgeBlueprint],
     edges: Vector[EdgeT],
     reachables: Reachables,
@@ -149,12 +150,13 @@ object Reachability {
     // that let go of a reference.
     if (ssa.array.mutability == ImmutableT) {
       val destructorSignature = vimpl()//program.getDestructor(ssa).toSignature
-      visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }
 
   def visitRuntimeSizedArray(
     program: Temputs,
+    emptyTupleStruct: StructTT,
     edgeBlueprints: Vector[InterfaceEdgeBlueprint],
     edges: Vector[EdgeT],
     reachables: Reachables,
@@ -169,7 +171,7 @@ object Reachability {
     // that let go of a reference.
     if (rsa.array.mutability == ImmutableT) {
       val destructorSignature = vimpl()//program.getDestructor(rsa).toSignature
-      visitFunction(program, edgeBlueprints, edges, reachables, destructorSignature)
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }
 }

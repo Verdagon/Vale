@@ -4,11 +4,11 @@ import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{FunctionTemplataType, GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
 import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneUsage}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
-import net.verdagon.vale.templar.OverloadTemplar.{RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
-import net.verdagon.vale.templar.ast.{AbstractT, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, OverrideT, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidExternCalleeCandidate}
+import net.verdagon.vale.templar.OverloadTemplar.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
+import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, OverrideT, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
 import net.verdagon.vale.templar.infer.ITemplarSolverError
 import net.verdagon.vale.templar.names.TemplataNamer
-import net.verdagon.vale.{Err, Ok, RangeS, Result, vassertOne, vpass}
+import net.verdagon.vale.{Err, Ok, RangeS, Result, vassertOne, vassertSome, vpass}
 //import net.verdagon.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import net.verdagon.vale.scout.rules.{EqualsSR, TemplexSR, TypedSR}
 import net.verdagon.vale.templar.types._
@@ -32,7 +32,7 @@ object OverloadTemplar {
   case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
-//  case class Outscored() extends IScoutExpectedFunctionFailureReason { override def hashCode(): Int = vcurious() }
+  case class Outscored() extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class InferFailure(reason: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
 
@@ -153,7 +153,11 @@ class OverloadTemplar(
           interfaceEnv, temputs, callRange, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case ExternFunctionTemplata(header) => {
-        Vector(ExternCalleeCandidate(header))
+        Vector(HeaderCalleeCandidate(header))
+      }
+      case PrototypeTemplata(prototype) => {
+        val header = vassertSome(temputs.lookupFunction(prototype.toSignature)).header
+        Vector(HeaderCalleeCandidate(header))
       }
       case ft@FunctionTemplata(_, function) => {
         Vector(FunctionCalleeCandidate(ft))
@@ -226,8 +230,8 @@ class OverloadTemplar(
                       explicitTemplateArgRulesS,
                       explicitTemplateArgRuneToType ++ runeTypeConclusions,
                       callRange,
-                      Map(),
-                      Map()) match {
+                      Vector(),
+                      Vector()) match {
                       case (Err(e)) => {
                         Err(InferFailure(e))
                       }
@@ -275,9 +279,9 @@ class OverloadTemplar(
           }
         }
       }
-      case ExternCalleeCandidate(header) => {
+      case HeaderCalleeCandidate(header) => {
         paramsMatch(temputs, paramFilters, header.params, exact) match {
-          case Ok(_) => Ok(ValidExternCalleeCandidate(header))
+          case Ok(_) => Ok(ValidHeaderCalleeCandidate(header))
           case Err(fff) => Err(fff)
         }
       }
@@ -434,7 +438,7 @@ class OverloadTemplar(
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, function) => !function.function.isTemplate
-            case ValidExternCalleeCandidate(_) => true
+            case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
           // No ordinary banners, so include all the templated ones
@@ -483,11 +487,10 @@ class OverloadTemplar(
 
     val rejectedBanners =
       bannerByIsBestScore.getOrElse(false, Vector.empty).map(_._1)
-//    val rejectionReasonByBanner =
-//      rejectedBanners.map((_, Outscored())).toMap
-    vimpl()
+    val rejectionReasonByBanner =
+      rejectedBanners.map((_, Outscored())).toMap
 
-//    (bannerWithBestScore, rejectionReasonByBanner)
+    (bannerWithBestScore, rejectionReasonByBanner)
   }
 
   def stampPotentialFunctionForBanner(
@@ -508,7 +511,7 @@ class OverloadTemplar(
             temputs, callRange, ft)
         }
       }
-      case ValidExternCalleeCandidate(header) => {
+      case ValidHeaderCalleeCandidate(header) => {
         (header.toBanner)
       }
     }
@@ -537,7 +540,7 @@ class OverloadTemplar(
             temputs, range, ft)
         }
       }
-      case ValidExternCalleeCandidate(header) => {
+      case ValidHeaderCalleeCandidate(header) => {
         (header.toPrototype)
       }
     }

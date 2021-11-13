@@ -86,7 +86,7 @@ class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, Fa
       case IntT(_) | VoidT() | BoolT() => ImmutableT
       case StaticSizedArrayTT(_, RawArrayTT(_, mutability, _)) => mutability
       case RuntimeSizedArrayTT(RawArrayTT(_, mutability, _)) => mutability
-      case TupleTT(_, StructTT(FullNameT(_, _, CitizenNameT(humanName, _)))) if humanName.startsWith("Imm") => ImmutableT
+//      case TupleTT(_, StructTT(FullNameT(_, _, CitizenNameT(humanName, _)))) if humanName.startsWith("Imm") => ImmutableT
       case _ => vfail()
     }
   }
@@ -131,24 +131,30 @@ class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, Fa
     (StaticSizedArrayTT(size, RawArrayTT(element, mutability, variability)))
   }
 
-  override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: Vector[CoordT]): TupleTT = {
-    // Theres only one tuple in this test, and its backed by the ImmStruct.
-    TupleTT(elements, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ImmStruct", Vector()))))
+//  override def getTupleKind(env: SimpleEnvironment, state: FakeState, elements: Vector[CoordT]): TupleTT = {
+//    // Theres only one tuple in this test, and its backed by the ImmStruct.
+//    TupleTT(elements, StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ImmStruct", Vector()))))
+//  }
+
+//  override def getAncestorInterfaces(state: FakeState, descendantCitizenRef: CitizenRefT): (Set[InterfaceTT]) = {
+//    descendantCitizenRef match {
+//      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutTStruct",Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, IntT.i32)))))) => Set(InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutTInterface", Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, IntT.i32)))))))
+//      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct",Vector()))) => Set(InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutInterface", Vector()))))
+//      case InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutInterface",Vector()))) => Set()
+//      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutSoloStruct",Vector()))) => Set()
+//      case _ => vfail(descendantCitizenRef.toString)
+//    }
+//  }
+//
+//  override def getAncestorInterfaceDistance(temputs: FakeState, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): (Option[Int]) = {
+//    vfail()
+//  }
+
+  override def kindIsFromTemplate(state: FakeState, actualCitizenRef: KindT, expectedCitizenTemplata: ITemplata): Boolean = {
+    vimpl()
   }
-  override def getAncestorInterfaces(state: FakeState, descendantCitizenRef: CitizenRefT): (Set[InterfaceTT]) = {
-    descendantCitizenRef match {
-      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutTStruct",Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, IntT.i32)))))) => Set(InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutTInterface", Vector(CoordTemplata(CoordT(ShareT, ReadonlyT, IntT.i32)))))))
-      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutStruct",Vector()))) => Set(InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutInterface", Vector()))))
-      case InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutInterface",Vector()))) => Set()
-      case StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("MutSoloStruct",Vector()))) => Set()
-      case _ => vfail(descendantCitizenRef.toString)
-    }
-  }
-
-
-
-  override def getAncestorInterfaceDistance(temputs: FakeState, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): (Option[Int]) = {
-    vfail()
+  override def getAncestors(temputs: FakeState, descendant: KindT, includeSelf: Boolean): Set[KindT] = {
+    vimpl()
   }
 
   override def lookupMemberTypes(state: FakeState, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
@@ -182,10 +188,6 @@ class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, Fa
   override def getRuntimeSizedArrayKind(env: SimpleEnvironment, state: FakeState, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT): RuntimeSizedArrayTT = {
     RuntimeSizedArrayTT(RawArrayTT(type2, arrayMutability, arrayVariability))
   }
-
-  override def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata): Boolean = {
-    vimpl()
-  }
 }
 
 class InfererTests extends FunSuite with Matchers {
@@ -194,7 +196,7 @@ class InfererTests extends FunSuite with Matchers {
 
   def makeCannedEnvironment(): SimpleEnvironment = {
     // FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()),
-    var entries: TemplatasStore = TemplatasStore(Map(), Map())
+    var entries: TemplatasStore = TemplatasStore(ProgramT.topLevelName, Map(), Map())
     val voidName = PrimitiveNameT("void")
     entries = entries.addEntry(voidName, TemplataEnvEntry(KindTemplata(VoidT())))
     val intName = PrimitiveNameT("int")
@@ -238,7 +240,7 @@ class InfererTests extends FunSuite with Matchers {
               StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("B")))))))
     entries = entries.addEntry(PrimitiveNameT("Array"), TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()))
     entries = entries.addEntry(
-        CitizenTemplateNameT("MutTStruct", CodeLocationS.internal(-25)),
+        CitizenTemplateNameT("MutTStruct"),//, CodeLocationS.internal(-25)),
           StructEnvEntry(
             StructA(
               RangeS.internal(-74),
@@ -254,7 +256,7 @@ class InfererTests extends FunSuite with Matchers {
               Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("M") -> MutabilityTemplataType),
               Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
               Vector())))
-    entries = entries.addEntry(CitizenTemplateNameT("MutTInterface", CodeLocationS.internal(-27)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutTInterface"),//, CodeLocationS.internal(-27)),
       InterfaceEnvEntry(
         InterfaceA(
           RangeS.internal(-75),
@@ -270,7 +272,7 @@ class InfererTests extends FunSuite with Matchers {
           Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("M") -> MutabilityTemplataType),
           Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
           Vector())))
-    entries = entries.addEntry(CitizenTemplateNameT("MutStruct", CodeLocationS.internal(-29)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutStruct"),//, CodeLocationS.internal(-29)),
       StructEnvEntry(
         StructA(
           RangeS.internal(-73),
@@ -286,7 +288,7 @@ class InfererTests extends FunSuite with Matchers {
           Map(CodeRuneS("M") -> MutabilityTemplataType),
           Vector(LiteralSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("M")), MutabilityLiteralSL(MutableP))),
           Vector())))
-    entries = entries.addEntry(CitizenTemplateNameT("MutInterface", CodeLocationS.internal(-31)),
+    entries = entries.addEntry(CitizenTemplateNameT("MutInterface"),//, CodeLocationS.internal(-31)),
       InterfaceEnvEntry(
         InterfaceA(
           RangeS.internal(-72),
@@ -316,10 +318,7 @@ class InfererTests extends FunSuite with Matchers {
     entries = entries.addEntry(CitizenNameT("IntAndBoolTupName", Vector()),
       TemplataEnvEntry(
         KindTemplata(
-          TupleTT(
-            Vector(ProgramT.intType, ProgramT.boolType),
-            // Normally this would be backed by a struct simply named "Tup"
-            StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ImmStruct", Vector())))))))
+          StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Tup", Vector(CoordTemplata(ProgramT.intType), CoordTemplata(ProgramT.boolType))))))))
     val callPrototype = PrototypeTemplata(incrementPrototype)
     entries = entries.addEntry(callPrototype.value.fullName.last, TemplataEnvEntry(callPrototype))
     SimpleEnvironment(entries)

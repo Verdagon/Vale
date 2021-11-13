@@ -130,12 +130,23 @@ object RuleScout {
         vassert(args.length == 1)
         val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)
 
-        val resultRune = ImplicitRuneS(lidb.child().consume())
+//        val resultRune = ImplicitRuneS(lidb.child().consume())
         builder += IsInterfaceSR(evalRange(range), argRune)
-        runeToExplicitType.put(resultRune, KindTemplataType)
+//        runeToExplicitType.put(resultRune, KindTemplataType)
         runeToExplicitType.put(argRune.rune, KindTemplataType)
 
-        RuneUsage(evalRange(range), resultRune)
+        RuneUsage(evalRange(range), argRune.rune)
+      }
+      case BuiltinCallPR(range, NameP(_, "refListCompoundMutability"), args) => {
+        vassert(args.length == 1)
+        val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)
+
+        val resultRune = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+        builder += RefListCompoundMutabilitySR(evalRange(range), resultRune, argRune)
+        runeToExplicitType.put(resultRune.rune, MutabilityTemplataType)
+        runeToExplicitType.put(argRune.rune, PackTemplataType(CoordTemplataType))
+
+        RuneUsage(evalRange(range), resultRune.rune)
       }
     }
   }
@@ -150,6 +161,7 @@ object RuleScout {
       case PermissionTypePR => PermissionTemplataType
       case LocationTypePR => LocationTemplataType
       case CoordTypePR => CoordTemplataType
+      case CoordListTypePR => PackTemplataType(CoordTemplataType)
       case KindTypePR => KindTemplataType
       //      case StructTypePR => KindTypeSR
       //      case SequenceTypePR => KindTypeSR

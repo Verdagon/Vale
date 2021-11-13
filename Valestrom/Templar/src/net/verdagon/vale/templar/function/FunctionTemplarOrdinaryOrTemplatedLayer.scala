@@ -1,7 +1,8 @@
 package net.verdagon.vale.templar.function
 
 import net.verdagon.vale.astronomer.FunctionA
-import net.verdagon.vale.scout.patterns.OverrideSP
+import net.verdagon.vale.scout.patterns.{AtomSP, OverrideSP}
+import net.verdagon.vale.scout.rules.RuneUsage
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
@@ -46,7 +47,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.predictOrdinaryFunctionBanner(
@@ -65,7 +66,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForBanner(runedEnv, temputs, callRange, function)
@@ -129,8 +130,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
-    val receiverToSenderTemplata =
-      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
+    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
       inferTemplar.solveComplete(
         nearEnv,
@@ -138,8 +138,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
-        receiverToSenderTemplata,
-        assembleKnownTemplatas(function, args, explicitTemplateArgs)
+        assembleKnownTemplatas(function, args, explicitTemplateArgs),
+        initialSends
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -152,6 +152,14 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         runedEnv, temputs, callRange, function)
 
     (EvaluateFunctionSuccess(prototype))
+  }
+
+  private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[ParamFilter]):
+  Vector[InitialSend] = {
+    function.params.map(_.pattern.coordRune.get).zip(args).zipWithIndex
+      .map({ case ((paramRune, argTemplata), argIndex) =>
+        InitialSend(RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune, CoordTemplata(argTemplata.tyype))
+      })
   }
 
   // Preconditions:
@@ -170,8 +178,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
-    val receiverToSenderTemplata =
-      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
+    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
       inferTemplar.solveComplete(
         nearEnv,
@@ -179,8 +186,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
-        receiverToSenderTemplata,
-        assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs)
+        assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs),
+        initialSends
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -250,7 +257,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
@@ -276,15 +283,15 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     // See IMCBT for why we can look up identifying runes in the environment.
-    val alreadyKnownTemplatas =
+    val initialKnowns =
       function.identifyingRunes.flatMap(identifyingRune => {
         nearEnv.lookupNearestWithName(
           profiler, RuneNameT(identifyingRune.rune), Set(TemplataLookupContext))
-          .map(identifyingRune.rune -> _)
-      }).toMap
+          .map(InitialKnown(identifyingRune, _))
+      })
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), alreadyKnownTemplatas)
+        nearEnv, temputs, function.rules, function.runeToType, function.range, initialKnowns, Vector())
 
     // See FunctionTemplar doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
@@ -309,7 +316,7 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferTemplar.solveExpectComplete(
-        nearEnv, temputs, function.rules, function.runeToType, function.range, Map(), Map())
+        nearEnv, temputs, function.rules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForPrototype(
@@ -336,9 +343,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     }
     vassert(nearEnv.function.isTemplate)
 
-    val receiverToSenderTemplata =
-      function.params.map(_.pattern.coordRune.get).zip(args.map(_.tyype).map(CoordTemplata)).toMap
-    val alreadyKnownTemplatas = assembleKnownTemplatas(function, args, explicitTemplateArgs)
+    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
+    val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
     val inferences =
       inferTemplar.solveComplete(
         nearEnv,
@@ -346,8 +352,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
         function.rules,
         function.runeToType,
         callRange,
-        receiverToSenderTemplata,
-        alreadyKnownTemplatas) match {
+        initialKnowns,
+        initialSends) match {
       case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
       case Ok(inferredTemplatas) => inferredTemplatas
     }
@@ -366,10 +372,18 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
     function: FunctionA,
     args: Vector[ParamFilter],
     explicitTemplateArgs: Vector[ITemplata]):
-  Map[IRuneS, ITemplata] = {
-    function.params.flatMap(_.pattern.virtuality).collect({ case OverrideSP(_, rune) => rune.rune })
-      .zip(args.flatMap(_.virtuality).collect({ case OverrideT(i) => i }).map(KindTemplata)).toMap ++
-      function.identifyingRunes.map(_.rune).zip(explicitTemplateArgs).toMap
+  Vector[InitialKnown] = {
+    // Sometimes we look for an overload for a given override, assemble knowns from that here
+    args.zip(function.params).collect({
+      case (ParamFilter(_, Some(OverrideT(argOverrideKind))), ParameterS(AtomSP(_, _, Some(OverrideSP(_, paramOverrideRune)), _, _))) => {
+        InitialKnown(paramOverrideRune, KindTemplata(argOverrideKind))
+      }
+    }) ++
+    function.identifyingRunes.zip(explicitTemplateArgs).map({
+      case (identifyingRune, explicitArg) => {
+        InitialKnown(identifyingRune, explicitArg)
+      }
+    })
   }
 
   private def checkClosureConcernsHandled(

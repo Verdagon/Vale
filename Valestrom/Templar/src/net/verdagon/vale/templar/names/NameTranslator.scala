@@ -85,7 +85,7 @@ object NameTranslator {
 
   def translateCitizenName(name: TopLevelCitizenDeclarationNameS): CitizenTemplateNameT = {
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = name
-    CitizenTemplateNameT(humanName, NameTranslator.translateCodeLocation(codeLocation.begin))
+    CitizenTemplateNameT(humanName)//, NameTranslator.translateCodeLocation(codeLocation.begin))
   }
 
   def translateNameStep(name: INameS): INameT = {
@@ -167,7 +167,7 @@ object NameTranslator {
   def getImplNameForNameInner(nameSteps: Vector[INameT]): Option[ImplImpreciseNameS] = {
     nameSteps.last match {
       case CitizenNameT(humanName, templateArgs) => Some(ImplImpreciseNameS(humanName))
-      case TupleNameT(_) => None
+//      case TupleNameT(_) => None
       case LambdaCitizenNameT(_) => None
       case AnonymousSubstructNameT(_) => {
         // Use the paren'ts name, see INSHN.

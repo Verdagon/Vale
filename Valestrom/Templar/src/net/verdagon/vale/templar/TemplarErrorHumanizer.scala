@@ -4,14 +4,14 @@ import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS}
 import net.verdagon.vale.scout.ScoutErrorHumanizer.humanizeRune
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, SenderRuneS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{ArgumentRuneS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
-import net.verdagon.vale.templar.OverloadTemplar.{IFindFunctionFailureReason, InferFailure, FindFunctionFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
-import net.verdagon.vale.templar.ast.{AbstractT, ExternCalleeCandidate, FunctionBannerT, FunctionCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
+import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface}
 import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, TemplataNamer}
-import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
@@ -130,6 +130,7 @@ object TemplarErrorHumanizer {
               humanizeRuleError,
               (rule: IRulexSR) => rule.range,
               (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
+              (rule: IRulexSR) => rule.runeUsages.map(_.rune),
               ScoutErrorHumanizer.humanizeRule,
               failedSolve)
           text
@@ -319,11 +320,12 @@ object TemplarErrorHumanizer {
         humanizeRuleError,
         (rule: IRulexSR) => rule.range,
         (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
+        (rule: IRulexSR) => rule.runeUsages.map(_.rune),
         ScoutErrorHumanizer.humanizeRule,
         result)
 
     (candidate match {
-      case ExternCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
+      case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
       case FunctionCalleeCandidate(ft) => {
         if (ft.function.range.file.isInternal) {
           ScoutErrorHumanizer.humanizeName(ft.function.name) + " (builtin " + ft.function.range.begin.offset + ")\n"
@@ -342,7 +344,7 @@ object TemplarErrorHumanizer {
 
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
-      case ExternCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
+      case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
       case FunctionCalleeCandidate(ft) => {
         val begin = lineBegin(codeMap, ft.function.range.begin)
         humanizePos(codeMap, begin) + ":\n" +
@@ -418,6 +420,9 @@ object TemplarErrorHumanizer {
           }
         }
       }
+      case CoordListTemplata(coords) => {
+        "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+      }
       case other => vimpl(other)
     }
   }
@@ -430,6 +435,9 @@ object TemplarErrorHumanizer {
       case LambdaCitizenNameT(codeLocation) => {
         "λ:" + humanizePos(codeMap, codeLocation)
       }
+//      case TupleNameT(members) => {
+//        "Tup<" + members.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+//      }
       case FunctionNameT(humanName, templateArgs, parameters) => {
         humanName +
           (if (templateArgs.nonEmpty) {

@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.ast
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer.FunctionA
 import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.names.{FullNameT, IFunctionNameT, IVarNameT, TupleNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, IFunctionNameT, IVarNameT, PackageTopLevelNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 
@@ -76,10 +76,12 @@ case class EdgeT(
   methods: Vector[PrototypeT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 object ProgramT {
-  val emptyTupleStructRef = StructTT(FullNameT(PackageCoordinate.BUILTIN, Vector.empty, TupleNameT(Vector.empty)))
-  val emptyTupleType: PackTT = PackTT(Vector.empty, ProgramT.emptyTupleStructRef)
-  val emptyTupleReference: CoordT = CoordT(ShareT, ReadonlyT, emptyTupleType)
-  val emptyPackExpression: PackTE = PackTE(Vector.empty, CoordT(ShareT, ReadonlyT, ProgramT.emptyTupleType), ProgramT.emptyTupleType)
+  val topLevelName = FullNameT(PackageCoordinate.BUILTIN, Vector.empty, PackageTopLevelNameT())
+  val tupleHumanName = "Tup"
+//  val emptyTupleStructRef = StructTT(FullNameT(PackageCoordinate.BUILTIN, Vector.empty, CitizenNameT(tupleHumanName, Vector(CoordListTemplata(Vector())))))
+//  val emptyTupleType: PackTT = PackTT(Vector.empty, ProgramT.emptyTupleStructRef)
+//  val emptyTupleReference: CoordT = CoordT(ShareT, ReadonlyT, emptyTupleType)
+//  val emptyPackExpression: PackTE = PackTE(Vector.empty, CoordT(ShareT, ReadonlyT, ProgramT.emptyTupleType), ProgramT.emptyTupleType)
 
   val intType = CoordT(ShareT, ReadonlyT, IntT.i32)
   val boolType = CoordT(ShareT, ReadonlyT, BoolT())
@@ -158,14 +160,14 @@ case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidat
 //case class BannerCalleeCandidate(banner: FunctionBannerT) extends ICalleeCandidate {
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //}
-case class ExternCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
+case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
 sealed trait IValidCalleeCandidate {
   def banner: FunctionBannerT
 }
-case class ValidExternCalleeCandidate(
+case class ValidHeaderCalleeCandidate(
   header: FunctionHeaderT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;

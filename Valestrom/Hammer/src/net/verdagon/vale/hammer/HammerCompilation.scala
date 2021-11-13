@@ -3,6 +3,7 @@ package net.verdagon.vale.hammer
 import net.verdagon.vale.{FileCoordinateMap, IPackageResolver, IProfiler, NullProfiler, PackageCoordinate, PackageCoordinateMap, Result, vimpl}
 import net.verdagon.vale.astronomer.{ICompileErrorA, ProgramA}
 import net.verdagon.vale.metal.ProgramH
+import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{FailedParse, FileP}
 import net.verdagon.vale.scout.{ICompileErrorS, ProgramS}
 import net.verdagon.vale.templar.{Hinputs, ICompileErrorT, TemplarCompilation, TemplarCompilationOptions}
@@ -13,9 +14,8 @@ case class HammerCompilationOptions(
   debugOut: (=> String) => Unit = (x => {
     println("##: " + x)
   }),
-  verbose: Boolean = true,
   profiler: IProfiler = new NullProfiler(),
-  useOptimization: Boolean = false,
+  globalOptions: GlobalOptions = GlobalOptions()
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class HammerCompilation(
@@ -27,10 +27,9 @@ class HammerCompilation(
       packagesToBuild,
       packageToContentsResolver,
       TemplarCompilationOptions(
+        options.globalOptions,
         options.debugOut,
-        options.verbose,
-        options.profiler,
-        options.useOptimization))
+        options.profiler))
   var hamutsCache: Option[ProgramH] = None
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = templarCompilation.getCodeMap()

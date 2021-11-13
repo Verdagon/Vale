@@ -186,7 +186,7 @@ class BodyTemplar(
       // We don't want the user to accidentally just move it somewhere, they need to
       // promise it gets destroyed.
       val destructeeName = params2.head.name
-      if (!funcOuterEnv.unstackifieds.exists(_.last == destructeeName)) {
+      if (!env.unstackifieds.exists(_.last == destructeeName)) {
         throw CompileErrorExceptionT(RangedInternalErrorT(body1.range, "Destructee wasn't moved/destroyed!"))
       }
     }

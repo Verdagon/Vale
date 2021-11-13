@@ -28,11 +28,6 @@ case class CoordSendSR(range: RangeS, senderRune: RuneUsage, receiverRune: RuneU
   override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
 }
-// Only made by Templar, see SAIRFU.
-case class CoordSendFromDescendantSR(range: RangeS, senderRune: RuneUsage, receiverRune: RuneUsage) extends IRulexSR {
-  override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
-}
 
 case class CoordIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
   override def hashCode(): Int = vcurious()
@@ -117,6 +112,15 @@ case class CoerceToCoordSR(
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(coordRune, kindRune)
+}
+
+case class RefListCompoundMutabilitySR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  coordListRune: RuneUsage,
+) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, coordListRune)
 }
 
 case class LiteralSR(
@@ -212,15 +216,22 @@ case class ManualSequenceSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
 }
 
-//case class CoordListSR(
+//case class ReceiveSR(
 //  range: RangeS,
-//  resultRune: RuneUsage,
-//  elements: Array[RuneUsage]
+//  receiverRune: RuneUsage,
+//  senderRune: RuneUsage
 //) extends IRulexSR {
 //  override def hashCode(): Int = vcurious()
-//  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
+//  override def runeUsages: Array[RuneUsage] = Array(receiverRune, senderRune)
 //}
-
+//case class ImplementsSR(
+//  range: RangeS,
+//  subRune: RuneUsage,
+//  superRune: RuneUsage
+//) extends IRulexSR {
+//  override def hashCode(): Int = vcurious()
+//  override def runeUsages: Array[RuneUsage] = Array(subRune, superRune)
+//}
 
 sealed trait ILiteralSL {
   def getType(): ITemplataType

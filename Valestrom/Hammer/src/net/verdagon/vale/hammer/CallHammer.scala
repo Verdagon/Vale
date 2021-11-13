@@ -5,7 +5,6 @@ import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vwat, metal => 
 import net.verdagon.vale.metal.{ShareH => _, _}
 import net.verdagon.vale.templar.{Hinputs, _}
 import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, ExpressionT, FunctionHeaderT, IfTE, PrototypeT, ReferenceExpressionTE, StaticArrayFromCallableTE, WhileTE}
-import net.verdagon.vale.templar.templata.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import net.verdagon.vale.templar.types._
 
 object CallHammer {

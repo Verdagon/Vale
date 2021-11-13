@@ -85,6 +85,7 @@ case class FullNameT[+T <: INameT](
 sealed trait INameT  {
   def order: Int
 }
+sealed trait ITemplateNameT extends INameT
 sealed trait IFunctionNameT extends INameT {
   def templateArgs: Vector[ITemplata]
   def parameters: Vector[CoordT]
@@ -167,12 +168,12 @@ case class BuildingFunctionNameWithClosuredsAndTemplateArgsT(
 //
 //}
 // We dont just use "drop" as the name because we don't want the user to override it.
-case class DropNameT(templateArgs: Vector[ITemplata], coord: CoordT) extends IFunctionNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-//  override def templateArgs: Vector[ITemplata] = Vector()
-  override def parameters: Vector[CoordT] = Vector(coord)
-  def order = 39;
-}
+//case class DropNameT(templateArgs: Vector[ITemplata], coord: CoordT) extends IFunctionNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+////  override def templateArgs: Vector[ITemplata] = Vector()
+//  override def parameters: Vector[CoordT] = Vector(coord)
+//  def order = 39;
+//}
 
 
 case class ExternFunctionNameT(
@@ -240,6 +241,10 @@ case class SelfNameT() extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 55;
 }
+case class ArbitraryNameT() extends INameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 56;
+}
 case class ConstructorNameT(
   parameters: Vector[CoordT]
 ) extends IFunctionNameT {
@@ -277,16 +282,17 @@ case class CitizenNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 15;
 
-}
-case class TupleNameT(
-  members: Vector[CoordT]
-) extends ICitizenNameT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
-  override def templateArgs: Vector[ITemplata] = members.map(CoordTemplata)
-  def order = 16;
-
 }
+//case class TupleNameT(
+//  members: Vector[CoordT]
+//) extends ICitizenNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  vpass()
+//  override def templateArgs: Vector[ITemplata] = members.map(CoordTemplata)
+//  def order = 16;
+//
+//}
 case class LambdaCitizenNameT(
   codeLocation: CodeLocationS
 ) extends ICitizenNameT {
@@ -309,8 +315,13 @@ case class AnonymousSubstructLambdaNameT(
 }
 case class CitizenTemplateNameT(
   humanName: String,
-  codeLocation: CodeLocationS
-) extends INameT {
+  // We don't include a CodeLocation here because:
+  // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
+  //   with code locations
+  // - It makes it easier to determine the CitizenTemplateNameT from a CitizenNameT which doesn't
+  //   remember its code location.
+  //codeLocation: CodeLocationS
+) extends ITemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 30;
 

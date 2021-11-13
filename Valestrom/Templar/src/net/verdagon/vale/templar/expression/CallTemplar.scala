@@ -15,6 +15,7 @@ import scala.collection.immutable.List
 object CallTemplar {
   val CALL_FUNCTION_NAME = "__call"
 
+  // See NSIDN for more on this.
   // Every type, including interfaces, has a function of this name. These won't be virtual.
   val DROP_FUNCTION_NAME = "drop"
   // Every interface *also* has a function of this name. It's abstract, and an override is defined for each impl.
@@ -52,7 +53,7 @@ class CallTemplar(
         evaluateClosureCall(
           fate, temputs, life, range, interfaceTT, explicitTemplateArgRulesS, explicitTemplateArgRunesS, callableExpr, givenArgsExprs2)
       }
-      case OverloadSet(_, functionName, _) => {
+      case OverloadSet(overloadSetEnv, functionName, _) => {
         val unconvertedArgsPointerTypes2 =
           givenArgsExprs2.map(_.resultRegister.expectReference().reference)
 
@@ -67,7 +68,7 @@ class CallTemplar(
 
         val prototype =
           overloadTemplar.findFunction(
-              fate.snapshot,
+              overloadSetEnv,
               temputs,
               range,
               functionName,

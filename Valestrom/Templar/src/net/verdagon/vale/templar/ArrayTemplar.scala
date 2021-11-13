@@ -6,12 +6,12 @@ import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver, SelfNameS}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
-import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, PrototypeT, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
+import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, ProgramT, PrototypeT, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
-import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvEntry, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvEntry, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.DestructorTemplar
-import net.verdagon.vale.templar.names.{FunctionNameT, FunctionTemplateNameT, SelfNameT}
+import net.verdagon.vale.templar.names.{FullNameT, FunctionNameT, FunctionTemplateNameT, PackageTopLevelNameT, SelfNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, RangeS, vassert, vassertOne, vassertSome, vimpl}
@@ -60,12 +60,12 @@ class ArrayTemplar(
         case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
       }
     val templatas =
-      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Vector(), Vector())
     val IntegerTemplata(size) = vassertSome(templatas.get(sizeRuneA))
     val mutability = getArrayMutability(templatas, mutabilityRune)
     val variability = getArrayVariability(templatas, variabilityRune)
     val prototype = overloadTemplar.getArrayGeneratorPrototype(temputs, fate, range, callableTE)
-    val ssaMT = getStaticSizedArrayKind(fate.snapshot, temputs, mutability, variability, size.toInt, prototype.returnType)
+    val ssaMT = getStaticSizedArrayKind(fate.snapshot.globalEnv, temputs, mutability, variability, size.toInt, prototype.returnType)
     val expr2 = StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
     expr2
   }
@@ -82,8 +82,8 @@ class ArrayTemplar(
   ConstructArrayTE = {
     val runeToType =
       RuneTypeSolver.solve(
-        vimpl(),
-        vimpl(),
+        opts.globalOptions.sanityCheck,
+        opts.globalOptions.useOptimizedSolver,
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
@@ -95,11 +95,11 @@ class ArrayTemplar(
         case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
       }
     val templatas =
-      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
+      inferTemplar.solveExpectComplete(fate.snapshot, temputs, rulesA, runeToType, range, Vector(), Vector())
     val mutability = getArrayMutability(templatas, mutabilityRune)
     val variability = getArrayVariability(templatas, variabilityRune)
     val prototype = overloadTemplar.getArrayGeneratorPrototype(temputs, fate, range, callableTE)
-    val rsaMT = getRuntimeSizedArrayKind(fate.snapshot, temputs, prototype.returnType, mutability, variability)
+    val rsaMT = getRuntimeSizedArrayKind(fate.snapshot.globalEnv, temputs, prototype.returnType, mutability, variability)
     val expr2 = ConstructArrayTE(rsaMT, sizeTE, callableTE, prototype)
     expr2
   }
@@ -136,7 +136,7 @@ class ArrayTemplar(
 
     val templatas =
       inferTemplar.solveExpectComplete(
-        fate.snapshot, temputs, rulesA, runeToType, range, Map(), Map())
+        fate.snapshot, temputs, rulesA, runeToType, range, Vector(), Vector())
     val size = getArraySize(templatas, sizeRuneA)
     val mutability = getArrayMutability(templatas, mutabilityRuneA)
     val variability = getArrayVariability(templatas, variabilityRuneA)
@@ -145,7 +145,7 @@ class ArrayTemplar(
           throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
         }
 
-    val staticSizedArrayType = getStaticSizedArrayKind(fate.snapshot, temputs, mutability, variability, exprs2.size, memberType)
+    val staticSizedArrayType = getStaticSizedArrayKind(fate.snapshot.globalEnv, temputs, mutability, variability, exprs2.size, memberType)
     val ownership = if (staticSizedArrayType.array.mutability == MutableT) OwnT else ShareT
     val permission = if (staticSizedArrayType.array.mutability == MutableT) ReadwriteT else ReadonlyT
     val finalExpr = StaticArrayFromValuesTE(exprs2, CoordT(ownership, permission, staticSizedArrayType), staticSizedArrayType)
@@ -205,7 +205,7 @@ class ArrayTemplar(
   }
 
   def getStaticSizedArrayKind(
-    env: IEnvironment,
+    globalEnv: GlobalEnvironment,
     temputs: Temputs,
     mutability: MutabilityT,
     variability: VariabilityT,
@@ -232,15 +232,16 @@ class ArrayTemplar(
         // See CSFMSEO and SAFHE.
         val arrayEnv =
           CitizenEnvironment(
-            env.globalEnv,
-            env,
+            globalEnv,
+            PackageEnvironment(globalEnv, staticSizedArrayType.name, globalEnv.nameToTopLevelEnvironment.values.toVector),
             staticSizedArrayType.name,
-            TemplatasStore(Map(), Map())
+            TemplatasStore(staticSizedArrayType.name, Map(), Map())
               .addEntries(
                 Map(
                   FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
-                    Vector(FunctionEnvEntry(env.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
+                    Vector(FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74)))),
                   SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2))))))
+        temputs.declareKind(staticSizedArrayType)
         temputs.declareKindEnv(staticSizedArrayType, arrayEnv)
 
         (staticSizedArrayType)
@@ -248,7 +249,7 @@ class ArrayTemplar(
     }
   }
 
-  def getRuntimeSizedArrayKind(env: IEnvironment, temputs: Temputs, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT):
+  def getRuntimeSizedArrayKind(globalEnv: GlobalEnvironment, temputs: Temputs, type2: CoordT, arrayMutability: MutabilityT, arrayVariability: VariabilityT):
   (RuntimeSizedArrayTT) = {
     val rawArrayT2 = RawArrayTT(type2, arrayMutability, arrayVariability)
 
@@ -268,16 +269,17 @@ class ArrayTemplar(
         // and see the function and use it.
         // See CSFMSEO and SAFHE.
         val arrayEnv =
-        CitizenEnvironment(
-          env.globalEnv,
-          env,
-          runtimeSizedArrayType.name,
-          TemplatasStore(Map(), Map())
-            .addEntries(
-              Map(
-                FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
-                  Vector(FunctionEnvEntry(env.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS()))),
-                SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))))))
+          CitizenEnvironment(
+            globalEnv,
+            PackageEnvironment(globalEnv, runtimeSizedArrayType.name, globalEnv.nameToTopLevelEnvironment.values.toVector),
+            runtimeSizedArrayType.name,
+            TemplatasStore(runtimeSizedArrayType.name, Map(), Map())
+              .addEntries(
+                Map(
+                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
+                    Vector(FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73)))),
+                  SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))))))
+        temputs.declareKind(runtimeSizedArrayType)
         temputs.declareKindEnv(runtimeSizedArrayType, arrayEnv)
 
         (runtimeSizedArrayType)

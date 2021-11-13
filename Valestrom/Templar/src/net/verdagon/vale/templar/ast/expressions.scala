@@ -148,7 +148,7 @@ case class UnletTE(variable: ILocalVariableT) extends ReferenceExpressionTE {
   override def hashCode(): Int = vcurious()
   override def resultRegister = ReferenceResultT(variable.reference)
 
-
+  vpass()
 }
 
 // Throws away a reference.
@@ -328,19 +328,18 @@ case class ConsecutorTE(exprs: Vector[ReferenceExpressionTE]) extends ReferenceE
 
 }
 
-case class PackTE(
-    elements: Vector[ReferenceExpressionTE],
-    resultReference: CoordT,
-    packType: PackTT) extends ReferenceExpressionTE {
-  override def hashCode(): Int = vcurious()
-  override def resultRegister = ReferenceResultT(resultReference)
-
-}
+//case class PackTE(
+//    elements: Vector[ReferenceExpressionTE],
+//    resultReference: CoordT,
+//    packType: PackTT) extends ReferenceExpressionTE {
+//  override def hashCode(): Int = vcurious()
+//  override def resultRegister = ReferenceResultT(resultReference)
+//
+//}
 
 case class TupleTE(
     elements: Vector[ReferenceExpressionTE],
-    resultReference: CoordT,
-    tupleType: TupleTT) extends ReferenceExpressionTE {
+    resultReference: CoordT) extends ReferenceExpressionTE {
   override def hashCode(): Int = vcurious()
   override def resultRegister = ReferenceResultT(resultReference)
 
