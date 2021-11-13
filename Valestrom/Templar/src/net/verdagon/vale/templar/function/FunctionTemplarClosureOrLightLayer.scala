@@ -80,7 +80,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()).addEntries(entries),
+        TemplatasStore(name, Map(), Map()).addEntries(entries),
         function,
         variables)
 
@@ -106,7 +106,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()).addEntries(entries),
+        TemplatasStore(name, Map(), Map()).addEntries(entries),
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
@@ -186,7 +186,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()),
+        TemplatasStore(name, Map(), Map()),
         function,
         Vector.empty)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForPrototype(
@@ -209,7 +209,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()).addEntries(entries),
+        TemplatasStore(name, Map(), Map()).addEntries(entries),
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForBanner(
@@ -234,7 +234,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()).addEntries(entries),
+        TemplatasStore(name, Map(), Map()).addEntries(entries),
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
@@ -259,7 +259,7 @@ class FunctionTemplarClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        TemplatasStore(Map(), Map()).addEntries(entries),
+        TemplatasStore(name, Map(), Map()).addEntries(entries),
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
@@ -323,7 +323,7 @@ class FunctionTemplarClosureOrLightLayer(
       outerEnv.globalEnv,
       outerEnv,
       name,
-      TemplatasStore(Map(), Map()),
+      TemplatasStore(name, Map(), Map()),
       function,
       Vector.empty)
   }

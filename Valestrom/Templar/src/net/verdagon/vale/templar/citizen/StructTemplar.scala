@@ -94,13 +94,13 @@ class StructTemplar(
 //    })
   }
 
-  // Makes a struct to back a pack or tuple
-  def makeSeqOrPackUnderstruct(env: PackageEnvironment[INameT], temputs: Temputs, memberTypes2: Vector[CoordT], name: ICitizenNameT):
-  (StructTT, MutabilityT) = {
-//    profiler.newProfile("StructTemplar-makeSeqOrPackUnderstruct", "[" + memberTypes2.map(_.toString).mkString(", ") + "]", () => {
-      templateArgsLayer.makeSeqOrPackUnerstruct(env, temputs, memberTypes2, name)
-//    })
-  }
+//  // Makes a struct to back a pack or tuple
+//  def makeSeqOrPackUnderstruct(env: PackageEnvironment[INameT], temputs: Temputs, memberTypes2: Vector[CoordT], name: ICitizenNameT):
+//  (StructTT, MutabilityT) = {
+////    profiler.newProfile("StructTemplar-makeSeqOrPackUnderstruct", "[" + memberTypes2.map(_.toString).mkString(", ") + "]", () => {
+//      templateArgsLayer.makeSeqOrPackUnerstruct(env, temputs, memberTypes2, name)
+////    })
+//  }
 
 
 //  // Makes a functor for the given prototype.

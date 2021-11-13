@@ -5,7 +5,6 @@ import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnv
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{AddressMemberLookupTE, ConstructTE, FunctionCallTE, LetNormalTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, ParameterT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}

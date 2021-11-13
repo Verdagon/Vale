@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.function.FunctionTemplar.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
-import net.verdagon.vale.templar.names.{ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, TemplarFunctionResultVarNameT, TemplarTemporaryVarNameT}
+import net.verdagon.vale.templar.names.{ArbitraryNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, IVarNameT, NameTranslator, TemplarFunctionResultVarNameT, TemplarTemporaryVarNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 
@@ -349,7 +349,7 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
+              newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name)),
               rules.toVector,
               maybeTemplateArgs.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
@@ -365,7 +365,7 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name)),
+              newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name)),
               rules.toVector,
               templateArgTemplexesS.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
@@ -499,7 +499,7 @@ class ExpressionTemplar(
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range, "Can't move from globals. Name: " + name))
                 }
-                newGlobalFunctionGroupExpression(fate, GlobalFunctionFamilyNameS(name))
+                newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name))
               }
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, "Found too many different things named \"" + name + "\" in env:\n" + things.map("\n" + _)))
@@ -553,9 +553,9 @@ class ExpressionTemplar(
                   case s @ StructTT(_) => {
                     throw CompileErrorExceptionT(CantMutateFinalMember(range, s.fullName, memberName))
                   }
-                  case s @ TupleTT(_, _) => {
-                    throw CompileErrorExceptionT(CantMutateFinalMember(range, s.underlyingStruct.fullName, memberName))
-                  }
+//                  case s @ TupleTT(_, _) => {
+//                    throw CompileErrorExceptionT(CantMutateFinalMember(range, s.underlyingStruct.fullName, memberName))
+//                  }
                   case _ => vimpl(structExpr.kind.toString)
                 }
               }
@@ -618,10 +618,10 @@ class ExpressionTemplar(
               case at@StaticSizedArrayTT(_, _) => {
                 arrayTemplar.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
-              case at@TupleTT(members, understruct) => {
+              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(), CitizenNameT(ProgramT.tupleHumanName, _))) => {
                 indexExpr2 match {
                   case ConstantIntTE(index, _) => {
-                    val understructDef = temputs.lookupStruct(understruct);
+                    val understructDef = temputs.lookupStruct(at);
                     val memberName = understructDef.fullName.addStep(understructDef.members(index.toInt).name)
                     val memberType = understructDef.members(index.toInt).tyype
 
@@ -676,26 +676,6 @@ class ExpressionTemplar(
 
                 ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
               }
-              case TupleTT(_, structTT) => {
-                temputs.lookupStruct(structTT) match {
-                  case structDef@StructDefinitionT(_, _, _, _, _, _) => {
-                    val (structMember, memberIndex) = vassertSome(structDef.getMemberAndIndex(memberName))
-                    val memberFullName = structDef.fullName.addStep(structDef.members(memberIndex).name)
-                    val memberType = structMember.tyype.expectReferenceMember().reference;
-
-                    vassert(structDef.members.exists(member => structDef.fullName.addStep(member.name) == memberFullName))
-                    vassert(structDef.members.exists(_.name == memberFullName.last))
-
-                    val (effectiveVariability, targetPermission) =
-                      Templar.factorVariabilityAndPermission(
-                        containerExpr2.resultRegister.reference.permission,
-                        structMember.variability,
-                        memberType.permission)
-
-                    ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, targetPermission, effectiveVariability)
-                  }
-                }
-              }
               case as@StaticSizedArrayTT(_, _) => {
                 if (memberNameStr.forall(Character.isDigit)) {
                   arrayTemplar.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(memberNameStr.toInt, 32), as)
@@ -726,8 +706,7 @@ class ExpressionTemplar(
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life + 0, elements1);
 
           // would we need a sequence templata? probably right?
-          val expr2 =
-            sequenceTemplar.evaluate(fate, temputs, exprs2)
+          val expr2 = sequenceTemplar.evaluate(fate.snapshot, temputs, exprs2)
           (expr2, returnsFromElements)
         }
         case StaticArrayFromValuesSE(range, rules, mutabilityRune, variabilityRune, sizeRuneA, elements1) => {
@@ -816,6 +795,13 @@ class ExpressionTemplar(
           val templata = vassertOne(fate.lookupWithImpreciseName(profiler, RuneNameS(runeA), Set(TemplataLookupContext), true))
           templata match {
             case IntegerTemplata(value) => (ConstantIntTE(value, 32), Set())
+            case PrototypeTemplata(value) => {
+              val tinyEnv =
+                fate.functionEnvironment.makeChildBlockEnvironment(None)
+                  .addEntries(Map(ArbitraryNameT() -> Vector(TemplataEnvEntry(PrototypeTemplata(value)))))
+              val expr = newGlobalFunctionGroupExpression(tinyEnv, temputs, ArbitraryNameS())
+              (expr, Set())
+            }
           }
         }
         case IfSE(range, conditionSE, thenBody1, elseBody1) => {
@@ -1174,22 +1160,22 @@ class ExpressionTemplar(
     WeakAliasTE(expr)
   }
 
-  private def decaySoloPack(
-    fate: FunctionEnvironmentBox,
-    life: LocationInFunctionEnvironment,
-    refExpr: ReferenceExpressionTE):
-  (ReferenceExpressionTE) = {
-    refExpr.resultRegister.reference.kind match {
-      case PackTT(Vector(onlyMember), understruct) => {
-        val varId = fate.fullName.addStep(TemplarTemporaryVarNameT(life))
-        val localVar = ReferenceLocalVariableT(varId, FinalT, onlyMember)
-        val destroy2 = DestroyTE(refExpr, understruct, Vector(localVar))
-        val unletExpr = localHelper.unletLocal(fate, localVar)
-        (Templar.consecutive(Vector(destroy2, unletExpr)))
-      }
-      case _ => (refExpr)
-    }
-  }
+//  private def decaySoloPack(
+//    fate: FunctionEnvironmentBox,
+//    life: LocationInFunctionEnvironment,
+//    refExpr: ReferenceExpressionTE):
+//  (ReferenceExpressionTE) = {
+//    refExpr.resultRegister.reference.kind match {
+//      case PackTT(Vector(onlyMember), understruct) => {
+//        val varId = fate.fullName.addStep(TemplarTemporaryVarNameT(life))
+//        val localVar = ReferenceLocalVariableT(varId, FinalT, onlyMember)
+//        val destroy2 = DestroyTE(refExpr, understruct, Vector(localVar))
+//        val unletExpr = localHelper.unletLocal(fate, localVar)
+//        (Templar.consecutive(Vector(destroy2, unletExpr)))
+//      }
+//      case _ => (refExpr)
+//    }
+//  }
 
   // Borrow like the . does. If it receives an owning reference, itll make a temporary.
   // If it receives an owning address, that's fine, just borrowsoftload from it.
@@ -1205,7 +1191,7 @@ class ExpressionTemplar(
         (localHelper.borrowSoftLoad(temputs, a))
       }
       case r: ReferenceExpressionTE => {
-        val unborrowedContainerExpr2 = decaySoloPack(fate, life + 0, r)
+        val unborrowedContainerExpr2 = r// decaySoloPack(fate, life + 0, r)
         unborrowedContainerExpr2.resultRegister.reference.ownership match {
           case OwnT => localHelper.makeTemporaryLocal(temputs, fate, life + 1, unborrowedContainerExpr2)
           case ConstraintT | ShareT => (unborrowedContainerExpr2)
@@ -1253,16 +1239,16 @@ class ExpressionTemplar(
     constructExpr2
   }
 
-  private def newGlobalFunctionGroupExpression(env: IEnvironmentBox, name: GlobalFunctionFamilyNameS): ReferenceExpressionTE = {
+  private def newGlobalFunctionGroupExpression(env: IEnvironment, temputs: Temputs, name: INameS): ReferenceExpressionTE = {
     TemplarReinterpretTE(
-      ProgramT.emptyPackExpression,
+      sequenceTemplar.makeEmptyTuple(env, temputs),
       CoordT(
         ShareT,
         ReadonlyT,
         OverloadSet(
-          env.snapshot,
+          env,
           name,
-          ProgramT.emptyTupleStructRef)))
+          sequenceTemplar.makeTupleKind(env, temputs, Vector()))))
   }
 
   def evaluateBlockStatements(

@@ -7,13 +7,13 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, AstronomerCompilation}
-import net.verdagon.vale.solver.{FailedSolve, RuleError}
+import net.verdagon.vale.solver.{FailedSolve, RuleError, Step}
 import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, WrongNumberOfArguments}
-import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
+import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
-import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, DropNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -31,7 +31,12 @@ class TemplarTests extends FunSuite with Matchers {
 
 
   test("Simple program returning an int, inferred") {
-    val compile = TemplarTestCompilation.test("fn main() infer-ret {3}")
+    val compile =
+      TemplarTestCompilation.test(
+        """
+          |import v.builtins.tup.*;
+          |fn main() infer-ret {3}
+          |""".stripMargin)
     val temputs = compile.expectTemputs()
 
     val main = temputs.lookupFunction("main")
@@ -147,7 +152,7 @@ class TemplarTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
     Collector.only(main, {
-      case FunctionCallTE(PrototypeT(FullNameT(_, _, DropNameT(_, _)), _), _) =>
+      case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT("drop", _, _)), _), _) =>
     })
   }
 
@@ -288,77 +293,6 @@ class TemplarTests extends FunSuite with Matchers {
     }
   }
 
-  test("Report when downcasting between unrelated types") {
-    val compile = TemplarTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISpaceship { }
-        |struct Spoon { }
-        |
-        |fn main() export {
-        |  ship = __pretend<ISpaceship>();
-        |  ship.as<Spoon>();
-        |}
-        |""".stripMargin)
-    compile.getTemputs() match {
-      case Err(CantDowncastUnrelatedTypes(_, _, _)) =>
-    }
-  }
-
-  test("Report when downcasting to interface") {
-    val compile = TemplarTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISuper { }
-        |interface ISub { }
-        |impl ISuper for ISub;
-        |
-        |fn main() export {
-        |  ship = __pretend<ISuper>();
-        |  ship.as<ISub>();
-        |}
-        |""".stripMargin)
-    compile.getTemputs() match {
-      case Err(CantDowncastToInterface(_, _)) =>
-    }
-  }
-
-  test("Report when multiple types in array") {
-    val compile = TemplarTestCompilation.test(
-      """
-        |fn main() int export {
-        |  arr = [][true, 42];
-        |  = arr.1;
-        |}
-        |""".stripMargin)
-    compile.getTemputs() match {
-      case Err(ArrayElementsHaveDifferentTypes(_, types)) => {
-        types shouldEqual Set(CoordT(ShareT, ReadonlyT, IntT.i32), CoordT(ShareT, ReadonlyT, BoolT()))
-      }
-    }
-  }
-
-  test("Report when num elements mismatch") {
-    val compile = TemplarTestCompilation.test(
-      """
-        |struct Spaceship imm {
-        |  name! str;
-        |  numWings int;
-        |}
-        |fn main() bool export {
-        |  arr = [4][true, false, false];
-        |  = arr.0;
-        |}
-        |""".stripMargin)
-    compile.getTemputs() match {
-      case Err(InitializedWrongNumberOfElements(_, 4, 3)) =>
-    }
-  }
-
   test("Test templates") {
     val compile = TemplarTestCompilation.test(
       """
@@ -396,7 +330,7 @@ class TemplarTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, DropNameT(_, _)), _), _) => })
+    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT("drop", _, _)), _), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
   }
 
@@ -690,9 +624,16 @@ class TemplarTests extends FunSuite with Matchers {
 
     // Make sure there's a destroy in its destructor though.
     val destructor =
-        temputs.functions.find(_.header.fullName.last.isInstanceOf[DropNameT]).get
+      vassertOne(
+        temputs.functions.collect({
+          case f if (f.header.fullName.last match { case FunctionNameT("drop", _, _) => true case _ => false }) => f
+        }))
     Collector.only(destructor, {
-      case DestroyTE(_, StructTT(FullNameT(_, _, CitizenNameT("Vec3i", _))), _) =>
+      case DiscardTE(expr) => {
+        expr.resultRegister.reference.kind match {
+          case StructTT(FullNameT(_, _, CitizenNameT("Vec3i", _))) =>
+        }
+      }
     })
   }
 
@@ -774,7 +715,7 @@ class TemplarTests extends FunSuite with Matchers {
 
   test("Tests calling a templated function with an upcast") {
 
-    vimpl()
+    //vimpl()
     // it seems to have trouble matching against the idestructor.
     // idestructor receives any kind of struct, as long as its mutability is whatever,
     // but we send something in with a Receives rule, which doesn't know how to deal with
@@ -920,7 +861,7 @@ class TemplarTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main")
     val destructorCalls =
-      Collector.all(main, { case fpc @ FunctionCallTE(PrototypeT(FullNameT(_, Vector(), FunctionNameT("destructor",Vector(CoordTemplata(CoordT(OwnT,ReadwriteT,StructTT(simpleName("Marine"))))), _)), _),_) => fpc })
+      Collector.all(main, { case fpc @ FunctionCallTE(PrototypeT(FullNameT(_, Vector(), FunctionNameT("drop",Vector(CoordTemplata(CoordT(OwnT,ReadwriteT,StructTT(simpleName("Marine"))))), _)), _),_) => fpc })
     destructorCalls.size shouldEqual 2
   }
 
@@ -928,6 +869,59 @@ class TemplarTests extends FunSuite with Matchers {
     val compile = TemplarTestCompilation.test(
         Tests.loadExpected("programs/genericvirtuals/templatedinterface.vale"))
     val temputs = compile.expectTemputs()
+  }
+
+  test("Lambda is incompatible anonymous interface") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |interface AFunction1<P> rules(P Ref) {
+        |  fn __call(virtual this &AFunction1<P>, a P) int;
+        |}
+        |fn main() export {
+        |  arr = &AFunction1<int>((_){ true });
+        |}
+        |""".stripMargin)
+
+    compile.getTemputs() match {
+      case Err(LambdaReturnDoesntMatchInterfaceConstructor(_)) =>
+    }
+  }
+
+  test("Lock weak member") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.opt.*;
+        |import v.builtins.weak.*;
+        |import v.builtins.logic.*;
+        |import panicutils.*;
+        |import printutils.*;
+        |
+        |struct Base {
+        |  name str;
+        |}
+        |struct Spaceship {
+        |  name str;
+        |  origin &&Base;
+        |}
+        |fn printShipBase(ship &Spaceship) {
+        |  maybeOrigin = lock(ship.origin); «14»«15»
+        |  if (not maybeOrigin.isEmpty()) { «16»
+        |    o = maybeOrigin.get();
+        |    println("Ship base: " + o.name);
+        |  } else {
+        |    println("Ship base unknown!");
+        |  }
+        |}
+        |fn main() export {
+        |  base = Base("Zion");
+        |  ship = Spaceship("Neb", &&base);
+        |  printShipBase(&ship);
+        |  (base).drop(); // Destroys base.
+        |  printShipBase(&ship);
+        |}
+        |""".stripMargin)
+
+    compile.expectTemputs()
   }
 
   test("Lambda inside template") {
@@ -1220,59 +1214,6 @@ class TemplarTests extends FunSuite with Matchers {
     }
   }
 
-  test("Lambda is incompatible anonymous interface") {
-    val compile = TemplarTestCompilation.test(
-        """
-          |interface AFunction1<P> rules(P Ref) {
-          |  fn __call(virtual this &AFunction1<P>, a P) int;
-          |}
-          |fn main() export {
-          |  arr = &AFunction1<int>((_){ true });
-          |}
-          |""".stripMargin)
-
-    compile.getTemputs() match {
-      case Err(LambdaReturnDoesntMatchInterfaceConstructor(_)) =>
-    }
-  }
-
-  test("Lock weak member") {
-    val compile = TemplarTestCompilation.test(
-        """
-          |import v.builtins.opt.*;
-          |import v.builtins.weak.*;
-          |import v.builtins.logic.*;
-          |import panicutils.*;
-          |import printutils.*;
-          |
-          |struct Base {
-          |  name str;
-          |}
-          |struct Spaceship {
-          |  name str;
-          |  origin &&Base;
-          |}
-          |fn printShipBase(ship &Spaceship) {
-          |  maybeOrigin = lock(ship.origin); «14»«15»
-          |  if (not maybeOrigin.isEmpty()) { «16»
-          |    o = maybeOrigin.get();
-          |    println("Ship base: " + o.name);
-          |  } else {
-          |    println("Ship base unknown!");
-          |  }
-          |}
-          |fn main() export {
-          |  base = Base("Zion");
-          |  ship = Spaceship("Neb", &&base);
-          |  printShipBase(&ship);
-          |  (base).drop(); // Destroys base.
-          |  printShipBase(&ship);
-          |}
-          |""".stripMargin)
-
-    compile.expectTemputs()
-  }
-
   test("Humanize errors") {
     val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Firefly", Vector())))
     val fireflyCoord = CoordT(OwnT,ReadwriteT,fireflyKind)
@@ -1416,10 +1357,87 @@ class TemplarTests extends FunSuite with Matchers {
       TemplarSolverError(
         RangeS.testZero,
         FailedSolve(
-          Map(
-            CodeRuneS("X") -> KindTemplata(fireflyKind)),
+          Vector(
+            Step(
+              false,
+              Vector(),
+              Vector(),
+              Map(
+                CodeRuneS("X") -> KindTemplata(fireflyKind)))),
           Vector(),
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
   }
+
+  test("Report when downcasting between unrelated types") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.as.*;
+        |import panicutils.*;
+        |
+        |interface ISpaceship { }
+        |struct Spoon { }
+        |
+        |fn main() export {
+        |  ship = __pretend<ISpaceship>();
+        |  ship.as<Spoon>();
+        |}
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(CantDowncastUnrelatedTypes(_, _, _)) =>
+    }
+  }
+
+  test("Report when downcasting to interface") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.as.*;
+        |import panicutils.*;
+        |
+        |interface ISuper { }
+        |interface ISub { }
+        |impl ISuper for ISub;
+        |
+        |fn main() export {
+        |  ship = __pretend<ISuper>();
+        |  ship.as<ISub>();
+        |}
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(CantDowncastToInterface(_, _)) =>
+    }
+  }
+
+  test("Report when multiple types in array") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |fn main() int export {
+        |  arr = [][true, 42];
+        |  = arr.1;
+        |}
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(ArrayElementsHaveDifferentTypes(_, types)) => {
+        types shouldEqual Set(CoordT(ShareT, ReadonlyT, IntT.i32), CoordT(ShareT, ReadonlyT, BoolT()))
+      }
+    }
+  }
+
+  test("Report when num elements mismatch") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |struct Spaceship imm {
+        |  name! str;
+        |  numWings int;
+        |}
+        |fn main() bool export {
+        |  arr = [4][true, false, false];
+        |  = arr.0;
+        |}
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(InitializedWrongNumberOfElements(_, 4, 3)) =>
+    }
+  }
+
 }

@@ -1,6 +1,7 @@
 package net.verdagon.vale.templar.citizen
 
 import net.verdagon.vale.astronomer._
+import net.verdagon.vale.scout.rules.RuneUsage
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
@@ -49,7 +50,7 @@ class StructTemplarTemplateArgsLayer(
             vfail("wat?")
           }
           val temporaryStructRef = StructTT(fullName)
-          temputs.declareStruct(temporaryStructRef)
+          temputs.declareKind(temporaryStructRef)
 
           structA.maybePredictedMutability match {
             case None =>
@@ -63,8 +64,9 @@ class StructTemplarTemplateArgsLayer(
               structA.rules,
               structA.runeToType,
               callRange,
-              Map(),
-              structA.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
+              structA.identifyingRunes.map(_.rune).zip(templateArgs)
+                .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
+              Vector())
 
           structA.maybePredictedMutability match {
             case None => {
@@ -87,9 +89,9 @@ class StructTemplarTemplateArgsLayer(
     templateArgs: Vector[ITemplata]):
   (InterfaceTT) = {
     profiler.newProfile("getInterfaceRef", interfaceTemplata.debugString + "<" + templateArgs.map(_.toString).mkString(", ") + ">", () => {
-      val InterfaceTemplata(env, interfaceS) = interfaceTemplata
-      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceS.name
-      val interfaceTemplateName = NameTranslator.translateCitizenName(interfaceS.name)
+      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
+      val interfaceTemplateName = NameTranslator.translateCitizenName(interfaceA.name)
       val interfaceLastName = interfaceTemplateName.makeCitizenName(templateArgs)
       val fullName = env.fullName.addStep(interfaceLastName)
 
@@ -99,38 +101,39 @@ class StructTemplarTemplateArgsLayer(
         }
         case None => {
           // not sure if this is okay or not, do we allow this?
-          if (templateArgs.size != interfaceS.identifyingRunes.size) {
+          if (templateArgs.size != interfaceA.identifyingRunes.size) {
             vfail("wat?")
           }
           val temporaryInterfaceRef = InterfaceTT(fullName)
-          temputs.declareInterface(temporaryInterfaceRef)
+          temputs.declareKind(temporaryInterfaceRef)
 
 
-          interfaceS.maybePredictedMutability match {
+          interfaceA.maybePredictedMutability match {
             case None =>
             case Some(predictedMutability) => temputs.declareCitizenMutability(temporaryInterfaceRef, Conversions.evaluateMutability(predictedMutability))
           }
-          vassert(interfaceS.identifyingRunes.size == templateArgs.size)
+          vassert(interfaceA.identifyingRunes.size == templateArgs.size)
 
           val inferences =
             inferTemplar.solveExpectComplete(
               env,
               temputs,
-              interfaceS.rules,
-              interfaceS.runeToType,
+              interfaceA.rules,
+              interfaceA.runeToType,
               callRange,
-              Map(),
-              interfaceS.identifyingRunes.map(_.rune).zip(templateArgs).toMap)
+              interfaceA.identifyingRunes.map(_.rune).zip(templateArgs)
+                .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
+              Vector())
 
-          interfaceS.maybePredictedMutability match {
+          interfaceA.maybePredictedMutability match {
             case None => {
-              val MutabilityTemplata(mutability) = inferences(interfaceS.mutabilityRune.rune)
+              val MutabilityTemplata(mutability) = inferences(interfaceA.mutabilityRune.rune)
               temputs.declareCitizenMutability(temporaryInterfaceRef, mutability)
             }
             case Some(_) =>
           }
 
-          middle.getInterfaceRef(env, temputs, callRange, interfaceS, inferences)
+          middle.getInterfaceRef(env, temputs, callRange, interfaceA, inferences)
         }
       }
     })
@@ -147,9 +150,9 @@ class StructTemplarTemplateArgsLayer(
     middle.makeClosureUnderstruct(containingFunctionEnv, temputs, name, functionS, members)
   }
 
-  // Makes a struct to back a pack or tuple
-  def makeSeqOrPackUnerstruct(env: PackageEnvironment[INameT], temputs: Temputs, memberTypes2: Vector[CoordT], name: ICitizenNameT):
-  (StructTT, MutabilityT) = {
-    middle.makeSeqOrPackUnderstruct(env, temputs, memberTypes2, name)
-  }
+//  // Makes a struct to back a pack or tuple
+//  def makeSeqOrPackUnerstruct(env: PackageEnvironment[INameT], temputs: Temputs, memberTypes2: Vector[CoordT], name: ICitizenNameT):
+//  (StructTT, MutabilityT) = {
+//    middle.makeSeqOrPackUnderstruct(env, temputs, memberTypes2, name)
+//  }
 }

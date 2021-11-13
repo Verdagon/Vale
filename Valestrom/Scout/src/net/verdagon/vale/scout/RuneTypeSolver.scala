@@ -2,7 +2,7 @@ package net.verdagon.vale.scout
 
 import net.verdagon.vale._
 import net.verdagon.vale.scout.rules._
-import net.verdagon.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverStateForRule, IncompleteSolve, Solver}
+import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, ISolveRule, ISolverError, IStepState, IncompleteSolve, Solver}
 
 import scala.collection.immutable.Map
 
@@ -34,6 +34,7 @@ object RuneTypeSolver {
         case PackSR(range, resultRune, members) => Array(resultRune) ++ members
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
         case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
+        case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(resultRune, coordListRune)
 //        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
       }
     val result = rule.runeUsages
@@ -92,6 +93,8 @@ object RuneTypeSolver {
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array())
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune))
       case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune))
+      case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(Array())
+        // solverState.addPuzzle(ruleIndex, Array(senderRune, receiverRune))
 //      case CoordListSR(_, resultRune, elements) => Array(Array())
     }
   }
@@ -101,122 +104,125 @@ object RuneTypeSolver {
     env: INameS => ITemplataType,
     ruleIndex: Int,
     rule: IRulexSR,
-    solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]):
-  Result[Map[IRuneS, ITemplataType], Unit] = {
+    stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
+  Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
     rule match {
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
-        Ok(Map(resultRune.rune -> KindTemplataType, mutabilityRune.rune -> MutabilityTemplataType))
+        stepState.concludeRune(resultRune.rune, KindTemplataType)
+        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType)
+        Ok(())
       }
       case CallSR(range, resultRune, templateRune, argRunes) => {
-        vassertSome(solverState.getConclusion(templateRune.rune)) match {
+        vassertSome(stepState.getConclusion(templateRune.rune)) match {
           case TemplateTemplataType(paramTypes, returnType) => {
-            Ok(argRunes.map(_.rune).zip(paramTypes).toMap)
+            argRunes.map(_.rune).zip(paramTypes).foreach({ case (argRune, paramType) =>
+              stepState.concludeRune(argRune, paramType)
+            })
+            Ok(())
           }
           case other => vwat(other)
         }
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => {
-        Ok(
-          Map(
-            resultRune.rune -> CoordTemplataType,
-            ownershipRune.rune -> OwnershipTemplataType,
-            permissionRune.rune -> PermissionTemplataType,
-            kindRune.rune -> KindTemplataType))
+        stepState.concludeRune(resultRune.rune, CoordTemplataType)
+        stepState.concludeRune(ownershipRune.rune, OwnershipTemplataType)
+        stepState.concludeRune(permissionRune.rune, PermissionTemplataType)
+        stepState.concludeRune(kindRune.rune, KindTemplataType)
+        Ok(())
       }
       case PrototypeComponentsSR(_, resultRune, nameRune, paramListRune, returnRune) => {
-        Ok(
-          Map(
-            resultRune.rune -> PrototypeTemplataType,
-            nameRune.rune -> StringTemplataType,
-            paramListRune.rune -> PackTemplataType(CoordTemplataType),
-            returnRune.rune -> CoordTemplataType))
+        stepState.concludeRune(resultRune.rune, PrototypeTemplataType)
+        stepState.concludeRune(nameRune.rune, StringTemplataType)
+        stepState.concludeRune(paramListRune.rune, PackTemplataType(CoordTemplataType))
+        stepState.concludeRune(returnRune.rune, CoordTemplataType)
+        Ok(())
       }
       case OneOfSR(_, resultRune, literals) => {
         val types = literals.map(_.getType()).toSet
         if (types.size > 1) {
           vfail("OneOf rule's possibilities must all be the same type!")
         }
-        Ok(Map(resultRune.rune -> types.head))
+        stepState.concludeRune(resultRune.rune, types.head)
+        Ok(())
       }
       case EqualsSR(_, leftRune, rightRune) => {
-        solverState.getConclusion(leftRune.rune) match {
-          case None => Ok(Map(leftRune.rune -> vassertSome(solverState.getConclusion(rightRune.rune))))
-          case Some(left) => Ok(Map(rightRune.rune -> left))
+        stepState.getConclusion(leftRune.rune) match {
+          case None => {
+            stepState.concludeRune(leftRune.rune, vassertSome(stepState.getConclusion(rightRune.rune)))
+            Ok(())
+          }
+          case Some(left) => {
+            stepState.concludeRune(rightRune.rune, left)
+            Ok(())
+          }
         }
       }
       case IsConcreteSR(_, rune) => {
-        Ok(Map(rune.rune -> KindTemplataType))
+        stepState.concludeRune(rune.rune, KindTemplataType)
+        Ok(())
       }
       case IsInterfaceSR(_, rune) => {
-        Ok(Map(rune.rune -> KindTemplataType))
+        stepState.concludeRune(rune.rune, KindTemplataType)
+        Ok(())
       }
       case IsStructSR(_, rune) => {
-        Ok(Map(rune.rune -> KindTemplataType))
+        stepState.concludeRune(rune.rune, KindTemplataType)
+        Ok(())
+      }
+      case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => {
+        stepState.concludeRune(resultRune.rune, MutabilityTemplataType)
+        stepState.concludeRune(coordListRune.rune, PackTemplataType(CoordTemplataType))
+        Ok(())
       }
       case CoerceToCoordSR(_, coordRune, kindRune) => {
-        Ok(Map(kindRune.rune -> KindTemplataType, coordRune.rune -> CoordTemplataType))
+        stepState.concludeRune(kindRune.rune, KindTemplataType)
+        stepState.concludeRune(coordRune.rune, CoordTemplataType)
+        Ok(())
       }
       case LiteralSR(_, rune, literal) => {
-        Ok(Map(rune.rune -> literal.getType()))
+        stepState.concludeRune(rune.rune, literal.getType())
+        Ok(())
       }
       case LookupSR(range, rune, name) => {
-        (env(name), vassertSome(solverState.getConclusion(rune.rune))) match {
+        (env(name), vassertSome(stepState.getConclusion(rune.rune))) match {
           case (KindTemplataType, CoordTemplataType) =>
           case (TemplateTemplataType(Vector(), KindTemplataType), CoordTemplataType) =>
           case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
           case (from, to) if from == to =>
           case (from, to) => vfail((from, to))
         }
-        Ok(Map())
+        Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        (env(RuneNameS(rune.rune)), vassertSome(solverState.getConclusion(rune.rune))) match {
+        (env(RuneNameS(rune.rune)), vassertSome(stepState.getConclusion(rune.rune))) match {
           case (KindTemplataType, CoordTemplataType) =>
           case (TemplateTemplataType(Vector(), KindTemplataType), CoordTemplataType) =>
           case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
           case (from, to) if from == to =>
           case (from, to) => vfail((from, to))
         }
-        Ok(Map())
+        Ok(())
       }
       case LookupSR(range, rune, name) => {
-        Ok(Map(rune.rune -> KindTemplataType))
+        stepState.concludeRune(rune.rune, KindTemplataType)
+        Ok(())
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
-        Ok(Map(resultRune.rune -> CoordTemplataType, innerRune.rune -> CoordTemplataType))
+        stepState.concludeRune(resultRune.rune, CoordTemplataType)
+        stepState.concludeRune(innerRune.rune, CoordTemplataType)
+        Ok(())
       }
       case PackSR(_, resultRune, memberRunes) => {
-        Ok(
-          memberRunes.map(_.rune -> CoordTemplataType).toMap +
-            (resultRune.rune -> PackTemplataType(CoordTemplataType)))
-//        solverState.getConclusion(resultRune.rune) match {
-//          case Some(PackTemplataType(elementType)) => {
-//            Ok(memberRunes.map(memberRune => (memberRune.rune -> elementType)).toMap)
-//          }
-//          case Some(_) => {
-//            vfail("Pack rule's result must be a pack!")
-//          }
-//          case None => {
-//            val memberTypes =
-//              memberRunes.map(memberRune => vassertSome(solverState.getConclusion(memberRune.rune)))
-//            val distinctMemberTypes = memberTypes.distinct
-//            val memberType =
-//              if (distinctMemberTypes.size != 1) {
-//                vfail("Pack's members must all be the same type! Instead, got: " + memberTypes.mkString(""))
-//              } else {
-//                distinctMemberTypes.head
-//              }
-//            Ok(Map(resultRune.rune -> PackTemplataType(memberType)))
-//          }
-//        }
+        memberRunes.foreach(x => stepState.concludeRune(x.rune, CoordTemplataType))
+        stepState.concludeRune(resultRune.rune, PackTemplataType(CoordTemplataType))
+        Ok(())
       }
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        Ok(
-          Map(
-            mutabilityRune.rune -> MutabilityTemplataType,
-            variabilityRune.rune -> VariabilityTemplataType,
-            sizeRune.rune -> IntegerTemplataType,
-            elementRune.rune -> CoordTemplataType))
+        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType)
+        stepState.concludeRune(variabilityRune.rune, VariabilityTemplataType)
+        stepState.concludeRune(sizeRune.rune, IntegerTemplataType)
+        stepState.concludeRune(elementRune.rune, CoordTemplataType)
+        Ok(())
       }
       case ManualSequenceSR(_, resultRune, elements) => vimpl()
 //      case CoordListSR(_, resultRune, elements) => vimpl()
@@ -258,26 +264,34 @@ object RuneTypeSolver {
     val solverState =
       Solver.makeInitialSolverState(
         sanityCheck, useOptimizedSolver, rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
-    val conclusions =
+    val (steps, conclusions) =
       Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
+        (rule: IRulexSR) => getPuzzles(predicting, rule),
         Unit,
         env,
         solverState,
         new ISolveRule[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit] {
-          override def complexSolve(solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]): Result[(Array[Int], Map[IRuneS, ITemplataType]), Unit] = {
-            Ok((Array(), Map()))
+          override def complexSolve(state: Unit, env: INameS => ITemplataType, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
+            Ok(())
           }
-          override def solve(state: Unit, env: INameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, solverState: ISolverStateForRule[IRulexSR, IRuneS, ITemplataType]): Result[Map[IRuneS, ITemplataType], Unit] = {
-            solveRule(state, env, ruleIndex, rule, solverState)
+          override def solve(state: Unit, env: INameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
+          Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
+            solveRule(state, env, ruleIndex, rule, stepState)
           }
         }) match {
-        case Ok(c) => c.toMap
-        case Err(e) => vfail(e)
+        case Ok((steps, conclusionsStream)) => (steps.toVector, conclusionsStream.toMap)
+        case Err(e) => return Err(RuneTypeSolveError(range, e))
       }
-    val allRunes = solverState.getAllRunes().map(solverState.userifyRune) ++ additionalRunes
+    val allRunes = solverState.getAllRunes().map(solverState.getUserRune) ++ additionalRunes
     val unsolvedRunes = allRunes -- conclusions.keySet
     if (expectCompleteSolve && unsolvedRunes.nonEmpty) {
-      Err(RuneTypeSolveError(range, IncompleteSolve(conclusions, solverState.getUnsolvedRules(), unsolvedRunes)))
+      Err(
+        RuneTypeSolveError(
+          range,
+          IncompleteSolve(
+            steps,
+            solverState.getUnsolvedRules(),
+            unsolvedRunes)))
     } else {
       Ok(conclusions)
     }

@@ -1,11 +1,11 @@
 package net.verdagon.vale.hammer
 
 import net.verdagon.vale.metal.{Immutable => _, Mutable => _, Variability => _, Varying => _, _}
-import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vfail, metal => m}
+import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vfail, vimpl, metal => m}
 import net.verdagon.vale.templar.{Hinputs, _}
 import net.verdagon.vale.templar.ast.{EdgeT, ProgramT}
-import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, ImmConcreteDestructorNameT}
-import net.verdagon.vale.templar.templata.{CoordTemplata, FunctionHeaderT}
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT}
+import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
 
 import scala.collection.immutable.ListMap
@@ -106,7 +106,8 @@ object StructHammer {
             if (structTT != ProgramT.emptyTupleStructRef) {
               vassertSome(
                 hinputs.functions.find(function => {
-                  function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
+                  vimpl()
+                  //function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
                 }))
             }
           }

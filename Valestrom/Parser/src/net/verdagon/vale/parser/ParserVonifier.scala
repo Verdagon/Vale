@@ -424,6 +424,7 @@ object ParserVonifier {
       case PermissionTypePR => VonObject("PermissionTypePR", None, Vector())
       case LocationTypePR => VonObject("LocationTypePR", None, Vector())
       case CoordTypePR => VonObject("CoordTypePR", None, Vector())
+      case CoordListTypePR => VonObject("CoordListTypePR", None, Vector())
       case PrototypeTypePR => VonObject("PrototypeTypePR", None, Vector())
       case KindTypePR => VonObject("KindTypePR", None, Vector())
       case RegionTypePR => VonObject("RegionTypePR", None, Vector())

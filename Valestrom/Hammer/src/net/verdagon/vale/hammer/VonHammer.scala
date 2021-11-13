@@ -6,7 +6,7 @@ import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vimp
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.{Hinputs, _}
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, DropNameT, ImmInterfaceDestructorNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
+import net.verdagon.vale.templar.names._
 import net.verdagon.vale.templar.types._
 import net.verdagon.von._
 
@@ -996,13 +996,13 @@ object VonHammer {
           Vector(
             VonMember("name", VonStr(name))))
       }
-      case ImmConcreteDestructorNameT(kind) => {
-        VonObject(
-          "ImmConcreteDestructorName2",
-          None,
-          Vector(
-            VonMember("kind", vonifyKind(TypeHammer.translateKind(hinputs, hamuts, kind)))))
-      }
+//      case ImmConcreteDestructorNameT(kind) => {
+//        VonObject(
+//          "ImmConcreteDestructorName2",
+//          None,
+//          Vector(
+//            VonMember("kind", vonifyKind(TypeHammer.translateKind(hinputs, hamuts, kind)))))
+//      }
       case ImplDeclareNameT(subCitizenHumanName, codeLocation) => {
         VonObject(
           "ImplDeclareName",
@@ -1150,36 +1150,36 @@ object VonHammer {
                   .map(vonifyCoord)
                   .toVector))))
       }
-      case DropNameT(kind) => {
-        VonObject(
-          "ImmInterfaceDestructorName",
-          None,
-          Vector(
-            VonMember(
-              "kind",
-              vonifyKind(TypeHammer.translateKind(hinputs, hamuts, kind)))))
-      }
-      case ImmInterfaceDestructorNameT(templateArgs, parameters) => {
-        VonObject(
-          "ImmInterfaceDestructorName",
-          None,
-          Vector(
-            VonMember(
-              "templateArgs",
-              VonArray(
-                None,
-                templateArgs
-                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
-                  .toVector)),
-            VonMember(
-              "parameters",
-              VonArray(
-                None,
-                parameters
-                  .map(templateArg => TypeHammer.translateReference(hinputs, hamuts, templateArg))
-                  .map(vonifyCoord)
-                  .toVector))))
-      }
+//      case DropNameT(kind) => {
+//        VonObject(
+//          "ImmInterfaceDestructorName",
+//          None,
+//          Vector(
+//            VonMember(
+//              "kind",
+//              vonifyKind(TypeHammer.translateKind(hinputs, hamuts, kind)))))
+//      }
+//      case ImmInterfaceDestructorNameT(templateArgs, parameters) => {
+//        VonObject(
+//          "ImmInterfaceDestructorName",
+//          None,
+//          Vector(
+//            VonMember(
+//              "templateArgs",
+//              VonArray(
+//                None,
+//                templateArgs
+//                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
+//                  .toVector)),
+//            VonMember(
+//              "parameters",
+//              VonArray(
+//                None,
+//                parameters
+//                  .map(templateArg => TypeHammer.translateReference(hinputs, hamuts, templateArg))
+//                  .map(vonifyCoord)
+//                  .toVector))))
+//      }
       case FunctionTemplateNameT(humanName, codeLocation) => {
         VonObject(
           "FunctionTemplateName",

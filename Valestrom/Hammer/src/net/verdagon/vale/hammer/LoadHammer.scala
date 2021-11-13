@@ -7,7 +7,6 @@ import net.verdagon.vale.templar.{Hinputs, types => t, _}
 import net.verdagon.vale.templar.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import net.verdagon.vale.templar.names.{FullNameT, IVarNameT}
-import net.verdagon.vale.templar.templata.FunctionHeaderT
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail}
 

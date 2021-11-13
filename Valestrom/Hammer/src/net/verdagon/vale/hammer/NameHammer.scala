@@ -4,7 +4,7 @@ import net.verdagon.vale.metal._
 import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeRuneS, ExplicitTemplateArgRuneS}
 import net.verdagon.vale.templar.{Hinputs, _}
 import net.verdagon.vale.templar.env.{IEnvironment, PackageEnvironment}
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ConstructorTemplateNameT, ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImmConcreteDestructorNameT, ImmConcreteDestructorTemplateNameT, DropNameT, DropTemplateNameT, ImmInterfaceDestructorNameT, ImmInterfaceDestructorTemplateNameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TemplarBlockResultVarNameT, TemplarFunctionResultVarNameT, TemplarPatternDestructureeNameT, TemplarPatternMemberNameT, TemplarTemporaryVarNameT, TupleNameT, UnnamedLocalNameT}
+import net.verdagon.vale.templar.names._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, vassert, vfail, vimpl, vwat}
@@ -44,12 +44,12 @@ object NameHammer {
       case FunctionNameT(humanName, templateArgs, params) => humanName
       case FunctionTemplateNameT(humanName, codeLoc) => humanName
       case PackageTopLevelNameT() => vwat() // Does this ever make it to hammer?
-      case ImmConcreteDestructorNameT(kind) => "immConcreteDestructor"
-      case ImmConcreteDestructorTemplateNameT() => "immConcreteDestructorTemplate"
-      case DropNameT(kind) => "immDrop"
-      case DropTemplateNameT() => "immDropTemplate"
-      case ImmInterfaceDestructorNameT(templateArgs, params) => "immInterfaceDestructor"
-      case ImmInterfaceDestructorTemplateNameT() => "immInterfaceDestructorTemplate"
+//      case ImmConcreteDestructorNameT(kind) => "immConcreteDestructor"
+//      case ImmConcreteDestructorTemplateNameT() => "immConcreteDestructorTemplate"
+//      case DropNameT(kind) => "immDrop"
+//      case DropTemplateNameT() => "immDropTemplate"
+//      case ImmInterfaceDestructorNameT(templateArgs, params) => "immInterfaceDestructor"
+//      case ImmInterfaceDestructorTemplateNameT() => "immInterfaceDestructorTemplate"
       case ImplDeclareNameT(subCitizenHumanName, codeLoc) => "impl" + subCitizenHumanName
 //      case ImplicitRuneS(parentName, name) => "implicitRune" + name
       case StaticSizedArrayNameT(size, arr) => "ssa" + size

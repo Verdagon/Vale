@@ -21,7 +21,7 @@ class ImplDropMacro() extends IOnImplDefinedMacro {
   override def getImplSiblingEntries(implA: ImplA): Vector[(INameT, FunctionEnvEntry)] = {
     val dropFunctionA =
       FunctionA(
-        RangeS.internal(-64),
+        implA.range,
         FunctionNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, implA.range.begin),
         Vector(UserFunctionS),
         if (implA.isTemplate) {

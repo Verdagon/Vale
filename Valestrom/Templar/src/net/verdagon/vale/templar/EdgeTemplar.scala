@@ -3,9 +3,9 @@ package net.verdagon.vale.templar
 //import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
 import net.verdagon.vale.scout.{CodeVarNameS, GlobalFunctionFamilyNameS, INameS}
-import net.verdagon.vale.templar.ast.{FunctionT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
+import net.verdagon.vale.templar.ast.{FunctionT, ImplT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{DropNameT, FunctionNameT}
+import net.verdagon.vale.templar.names.FunctionNameT
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
 
@@ -47,7 +47,7 @@ object EdgeTemplar {
                     })
                   superFunction.fullName.last match {
                     case FunctionNameT(humanName, _, _) => NeededOverride(GlobalFunctionFamilyNameS(humanName), overrideParamFilters)
-                    case DropNameT(_, _) => NeededOverride(CodeVarNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME), overrideParamFilters)
+//                    case DropNameT(_, _) => NeededOverride(CodeVarNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME), overrideParamFilters)
                     case other => vwat(other)
                   }
                 }
@@ -69,7 +69,10 @@ object EdgeTemplar {
     temputs: Temputs,
     interfaceEdgeBlueprints: Vector[InterfaceEdgeBlueprint]
   ): Map[(StructTT, InterfaceTT), Vector[(FunctionT, Int)]] = {
-    temputs.getAllFunctions().toVector.flatMap({ case overrideFunction =>
+    // This makes an empty entry for all impls. Most of these will be overwritten below.
+    // Without this, if an impl had no functions in it, it wouldn't be included in the result.
+    temputs.getAllImpls().map({ case ImplT(struct, interface) => (struct, interface) -> Vector() }).toMap ++
+    (temputs.getAllFunctions().toVector.flatMap({ case overrideFunction =>
       overrideFunction.header.getOverride match {
         case None => Vector.empty
         case Some((struct, superInterface)) => {
@@ -110,9 +113,9 @@ object EdgeTemplar {
                       possibleSuperFunctionHumanName == overrideFunctionHumanName
                     }
 //                    case (ImmInterfaceDestructorNameT(_, _), ImmInterfaceDestructorNameT(_, _)) => true
-                    case (DropNameT(_, possibleSuperFunctionCoord), FunctionNameT(humanName, _, parameters)) => {
-                      humanName == CallTemplar.DROP_FUNCTION_NAME && parameters.size == 1 && possibleSuperFunctionCoord == parameters.head
-                    }
+//                    case (DropNameT(_, possibleSuperFunctionCoord), FunctionNameT(humanName, _, parameters)) => {
+//                      humanName == CallTemplar.DROP_FUNCTION_NAME && parameters.size == 1 && possibleSuperFunctionCoord == parameters.head
+//                    }
                     case other => vimpl(other)
 //                    case _ => false
                   }
@@ -133,7 +136,7 @@ object EdgeTemplar {
       }
     })
       .groupBy(_._1)
-      .mapValues(_.map(_._2))
+      .mapValues(_.map(_._2)))
   }
 
   def makeInterfaceEdgeBlueprints(temputs: Temputs): Vector[InterfaceEdgeBlueprint] = {

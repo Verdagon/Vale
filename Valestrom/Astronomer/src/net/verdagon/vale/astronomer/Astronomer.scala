@@ -557,7 +557,7 @@ class AstronomerCompilation(
     astroutsCache match {
       case Some(astrouts) => Ok(astrouts)
       case None => {
-        new Astronomer(globalOptions).runAstronomer(scoutCompilation.getScoutput().getOrDie()) match {
+        new Astronomer(globalOptions).runAstronomer(scoutCompilation.expectScoutput()) match {
           case Right(err) => Err(err)
           case Left(astrouts) => {
             astroutsCache = Some(astrouts)

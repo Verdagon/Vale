@@ -55,6 +55,8 @@ case class FunctionTemplata(
   // structs and interfaces. See NTKPRR for more.
   function: FunctionA
 ) extends ITemplata {
+  vassert(outerEnv.fullName.packageCoord == function.name.packageCoordinate)
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def order: Int = 6
@@ -157,6 +159,8 @@ case class StructTemplata(
   // structs and interfaces. See NTKPRR for more.
   originStruct: StructA,
 ) extends ITemplata {
+  vassert(env.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 7
   override def tyype: ITemplataType = {
@@ -178,7 +182,7 @@ case class StructTemplata(
 
 
   def getTemplateName(): INameT = {
-    CitizenTemplateNameT(originStruct.name.name, NameTranslator.translateCodeLocation(originStruct.name.range.begin))
+    CitizenTemplateNameT(originStruct.name.name)//, NameTranslator.translateCodeLocation(originStruct.name.range.begin))
   }
 
   def debugString: String = env.fullName + ":" + originStruct.name
@@ -206,6 +210,9 @@ case class InterfaceTemplata(
   // structs and interfaces. See NTKPRR for more.
   originInterface: InterfaceA
 ) extends ITemplata {
+  vassert(env.fullName.packageCoord == originInterface.name.range.file.packageCoordinate)
+
+  vpass()
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 8
   override def tyype: ITemplataType = {
@@ -227,7 +234,7 @@ case class InterfaceTemplata(
 
 
   def getTemplateName(): INameT = {
-    CitizenTemplateNameT(originInterface.name.name, NameTranslator.translateCodeLocation(originInterface.name.range.begin))
+    CitizenTemplateNameT(originInterface.name.name)//, NameTranslator.translateCodeLocation(originInterface.name.range.begin))
   }
 
   def debugString: String = env.fullName + ":" + originInterface.name

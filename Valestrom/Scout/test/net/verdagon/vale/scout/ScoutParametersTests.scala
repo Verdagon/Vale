@@ -13,7 +13,7 @@ class ScoutParametersTests extends FunSuite with Matchers with Collector {
     Parser.runParser(code) match {
       case ParseFailure(err) => fail(err.toString)
       case ParseSuccess(program0) => {
-        new Scout(GlobalOptions(true, true, true)).scoutProgram(FileCoordinate.test, program0) match {
+        new Scout(GlobalOptions.test()).scoutProgram(FileCoordinate.test, program0) match {
           case Err(e) => vfail(e.toString)
           case Ok(t) => t
         }

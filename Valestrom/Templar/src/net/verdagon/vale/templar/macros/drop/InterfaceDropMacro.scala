@@ -23,8 +23,8 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
   override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(INameT, FunctionEnvEntry)] = {
     val dropFunctionA =
       FunctionA(
-        RangeS.internal(-64),
-        FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-17)),
+        interfaceA.name.range,
+        FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, interfaceA.name.range.begin),
         Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
         Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),
@@ -56,8 +56,8 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
 
     val virtualDropFunctionA =
       FunctionA(
-        RangeS.internal(-64),
-        FunctionNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, CodeLocationS.internal(-17)),
+        interfaceA.range,
+        FunctionNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, interfaceA.range.begin),
         Vector(UserFunctionS),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
         Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),

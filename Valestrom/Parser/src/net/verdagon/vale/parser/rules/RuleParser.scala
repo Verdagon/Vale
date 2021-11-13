@@ -25,6 +25,7 @@ trait RuleParser extends RegexParsers with ParserUtils {
     "Mutability" ^^^ MutabilityTypePR |
     "Permission" ^^^ PermissionTypePR |
     "Location" ^^^ LocationTypePR |
+    "RefList" ^^^ CoordListTypePR |
     "Ref" ^^^ CoordTypePR |
     "Prot" ^^^ PrototypeTypePR |
 //    "Struct" ^^^ StructTypePR |
@@ -75,6 +76,7 @@ trait RuleParser extends RegexParsers with ParserUtils {
 
   private[parser] def level3PR: Parser[IRulexPR] = {
     implementsPR |
+    refListCompoundMutabilityPR |
     isInterfacePR |
     existsPR |
     dotPR(level2PR) |
@@ -140,6 +142,15 @@ trait RuleParser extends RegexParsers with ParserUtils {
     pos ~ pstr("implements") ~ (optWhite ~> "(" ~> optWhite ~> rulePR <~ optWhite <~ "," <~ optWhite) ~
         (rulePR <~ optWhite <~ ")") ~ pos ^^ {
       case begin ~ impl ~ struct ~ interface ~ end => BuiltinCallPR(Range(begin, end), impl, Vector(struct, interface))
+    }
+  }
+
+  // Add any new rules to the "Nothing matches empty string" test!
+
+  // Atomic means no neighboring, see parser doc.
+  private[parser] def refListCompoundMutabilityPR: Parser[IRulexPR] = {
+    pos ~ pstr("refListCompoundMutability") ~ (optWhite ~> "(" ~> optWhite ~> (rulePR <~ optWhite <~ ")")) ~ pos ^^ {
+      case begin ~ name ~ arg ~ end => BuiltinCallPR(Range(begin, end), name, Vector(arg))
     }
   }
 

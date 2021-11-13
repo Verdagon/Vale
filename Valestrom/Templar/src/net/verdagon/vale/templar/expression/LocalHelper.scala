@@ -204,14 +204,14 @@ class LocalHelper(
       case StrT() => ShareT
       case VoidT() => ShareT
       //      case FunctionT2(_, _) => Raw
-      case PackTT(_, understruct2) => {
-        val mutability = Templar.getMutability(temputs, understruct2)
-        if (mutability == MutableT) ConstraintT else ShareT
-      }
-      case TupleTT(_, understruct2) => {
-        val mutability = Templar.getMutability(temputs, understruct2)
-        if (mutability == MutableT) ConstraintT else ShareT
-      }
+//      case PackTT(_, understruct2) => {
+//        val mutability = Templar.getMutability(temputs, understruct2)
+//        if (mutability == MutableT) ConstraintT else ShareT
+//      }
+//      case TupleTT(_, understruct2) => {
+//        val mutability = Templar.getMutability(temputs, understruct2)
+//        if (mutability == MutableT) ConstraintT else ShareT
+//      }
       case StaticSizedArrayTT(_, RawArrayTT(_, mutability, _)) => {
         if (mutability == MutableT) ConstraintT else ShareT
       }

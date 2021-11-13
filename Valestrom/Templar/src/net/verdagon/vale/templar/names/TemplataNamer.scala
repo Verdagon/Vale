@@ -60,8 +60,8 @@ object TemplataNamer {
       case LambdaCitizenNameT(codeLocation) => "ᛊ" + forLoc(codeLocation)
       case AnonymousSubstructNameT(thing) =>
       case AnonymousSubstructLambdaNameT(codeLocation) => "ᛘ" + forLoc(codeLocation)
-      case TupleNameT(members) => "tup#"
-      case DropNameT(args, coord) => "drop*" + getReferenceIdentifierName(coord)
+//      case TupleNameT(members) => "tup#"
+//      case DropNameT(args, coord) => "drop*" + getReferenceIdentifierName(coord)
       case x => vimpl(x.toString)
     }).mkString(".")
   }
@@ -78,13 +78,13 @@ object TemplataNamer {
       case BoolT() => "bool" // "𝒷"
       case StrT() => "str" // "𝓈"
       case VoidT() => "void" // "∅"
-      case TupleTT(_, _) => "tup"
+//      case TupleTT(_, _) => "tup"
       case NeverT() => "never"
       case RuntimeSizedArrayTT(array) => "𝔸" + getReferenceIdentifierName(array.elementType)
       case StaticSizedArrayTT(size, arrayT2) => "𝔸" + size + getReferenceIdentifierName(arrayT2.elementType)
-      case PackTT(_, underlyingStruct) => {
-        getKindIdentifierName(underlyingStruct)
-      }
+//      case PackTT(_, underlyingStruct) => {
+//        getKindIdentifierName(underlyingStruct)
+//      }
       case StructTT(fullName) => "𝕊" + getFullNameIdentifierName(fullName)
       case InterfaceTT(fullName) => "𝕋" + getFullNameIdentifierName(fullName)
       case OverloadSet(env, name, _) => {

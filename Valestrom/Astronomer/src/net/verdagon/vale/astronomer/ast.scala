@@ -260,6 +260,8 @@ case class FunctionA(
   val hash = range.hashCode() + name.hashCode()
   vpass()
 
+  vassert(range.begin.file.packageCoordinate == name.packageCoordinate)
+
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[FunctionA]) { return false }

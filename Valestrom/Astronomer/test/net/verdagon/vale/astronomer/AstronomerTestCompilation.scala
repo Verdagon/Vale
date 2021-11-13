@@ -6,7 +6,7 @@ import net.verdagon.vale.options.GlobalOptions
 object AstronomerTestCompilation {
   def test(code: String*): AstronomerCompilation = {
     new AstronomerCompilation(
-      new GlobalOptions(true, true, true),
+      GlobalOptions.test(),
       Vector(PackageCoordinate.TEST_TLD),
       FileCoordinateMap.test(code.toVector)
         .or(Tests.getPackageToResourceResolver))

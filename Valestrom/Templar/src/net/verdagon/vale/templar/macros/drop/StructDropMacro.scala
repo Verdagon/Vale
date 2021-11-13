@@ -37,7 +37,7 @@ class StructDropMacro(
 
     val functionA =
       makeDropFunction(
-        structNameS, structType, structIdentifyingRunes.map(_.rune), structIdentifyingRuneToType)
+        structNameS, structA.range, structType, structIdentifyingRunes.map(_.rune), structIdentifyingRuneToType)
 
     val nameT = NameTranslator.translateFunctionNameToTemplateName(functionA.name)
     Vector((nameT, FunctionEnvEntry(functionA)))
@@ -83,11 +83,10 @@ class StructDropMacro(
 //    (unevaluatedFunctionA, generator)
 //  }
 
-  private def makeDropFunction(structNameS: CodeNameS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
-    val range = RangeS.internal(-66)
+  def makeDropFunction(structNameS: CodeNameS, structRange: RangeS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
     FunctionA(
-      range,
-      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-66)),
+      structRange,
+      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, structRange.begin),
       Vector(UserFunctionS),
       structType match {
         case KindTemplataType => FunctionTemplataType
@@ -98,55 +97,55 @@ class StructDropMacro(
       structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(-64002), r)),
       structIdentifyingRuneToType ++
         Map(
-          CodeRuneS("__S") -> structType,
-          CodeRuneS("__P1") -> CoordTemplataType,
-          CodeRuneS("__V") -> CoordTemplataType),
+          CodeRuneS("DropStruct") -> structType,
+          CodeRuneS("DropP1") -> CoordTemplataType,
+          CodeRuneS("DropV") -> CoordTemplataType),
       Vector(
-        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1"))), None))),
-      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__V"))),
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1"))), None))),
+      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV"))),
       Vector(
         structType match {
           case KindTemplataType => {
             EqualsSR(
               RangeS.internal(-167215),
-              RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
-              RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")))
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1")),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("DropStruct")))
           }
           case TemplateTemplataType(_, KindTemplataType) => {
             CallSR(
               RangeS.internal(-167215),
-              RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
-              RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1")),
+              RuneUsage(RangeS.internal(-64002), CodeRuneS("DropStruct")),
               structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(-64002), r)).toArray)
           }
         },
-        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__S")), structNameS),
-        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")), CodeNameS("void"))),
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropStruct")), structNameS),
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV")), CodeNameS("void"))),
       GeneratedBodyS(generatorId))
   }
 
   // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
   // defined by the user.
-  def makeImplicitDropFunction(selfName: INameS):
+  def makeImplicitDropFunction(selfName: INameS, range: RangeS):
   FunctionA = {
     FunctionA(
-      RangeS.internal(-66),
-      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-66)),
+      range,
+      FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, range.begin),
       Vector(UserFunctionS),
       FunctionTemplataType,
       Vector(),
       Map(
-        CodeRuneS("__P1") -> CoordTemplataType,
-        CodeRuneS("__V") -> CoordTemplataType),
+        CodeRuneS("DropP1") -> CoordTemplataType,
+        CodeRuneS("DropV") -> CoordTemplataType),
       Vector(
-        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1"))), None))),
-      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("__V"))),
+        ParameterS(AtomSP(RangeS.internal(-1342), Some(CaptureS(CodeVarNameS("x"))), None, Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1"))), None))),
+      Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV"))),
       Vector(
         LookupSR(
           RangeS.internal(-167213),
-          RuneUsage(RangeS.internal(-64002), CodeRuneS("__P1")),
+          RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1")),
           selfName),
-        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("__V")), CodeNameS("void"))),
+        LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV")), CodeNameS("void"))),
       GeneratedBodyS(generatorId))
   }
 
@@ -184,7 +183,11 @@ class StructDropMacro(
     val body =
       structDef.mutability match {
         case ImmutableT => {
-          BlockTE(ReturnTE(VoidLiteralTE()))
+          BlockTE(
+            ConsecutorTE(
+              Vector(
+                DiscardTE(ArgLookupTE(0, structType)),
+                ReturnTE(VoidLiteralTE()))))
         }
         case MutableT => {
           val structArgument = ArgLookupTE(0, structType)

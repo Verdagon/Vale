@@ -1,7 +1,7 @@
 package net.verdagon.vale
 
+import net.verdagon.vale.templar.ast.{AbstractT, SignatureT}
 import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT}
-import net.verdagon.vale.templar.templata.{AbstractT, SignatureT, simpleName}
 import net.verdagon.vale.templar.types._
 import org.scalatest.{FunSuite, Matchers}
 import net.verdagon.vale.vivem.IntV

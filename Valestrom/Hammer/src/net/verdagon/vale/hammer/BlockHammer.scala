@@ -4,8 +4,7 @@ import net.verdagon.vale.hammer.ExpressionHammer.translateDeferreds
 import net.verdagon.vale.{metal => m}
 import net.verdagon.vale.metal._
 import net.verdagon.vale.templar.Hinputs
-import net.verdagon.vale.templar.ast.BlockTE
-import net.verdagon.vale.templar.templata.FunctionHeaderT
+import net.verdagon.vale.templar.ast.{BlockTE, FunctionHeaderT}
 import net.verdagon.vale.{vassert, vfail}
 
 object BlockHammer {

@@ -539,6 +539,9 @@ class ScoutCompilation(
     }
   }
   def expectScoutput(): FileCoordinateMap[ProgramS] = {
-    getScoutput().getOrDie()
+    getScoutput() match {
+      case Ok(x) => x
+      case Err(e) => vfail(ScoutErrorHumanizer.humanize(getCodeMap().getOrDie(), e))
+    }
   }
 }

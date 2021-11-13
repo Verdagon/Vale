@@ -39,7 +39,7 @@ class StructTemplarMiddle(
         structOuterEnv.globalEnv,
         structOuterEnv,
         structOuterEnv.fullName,
-        TemplatasStore(Map(), Map())
+        TemplatasStore(structOuterEnv.fullName, Map(), Map())
           .addEntries(
             templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
     val structDefinition2 =
@@ -63,7 +63,7 @@ class StructTemplarMiddle(
         interfaceOuterEnv.globalEnv,
         interfaceOuterEnv,
         interfaceOuterEnv.fullName,
-        TemplatasStore(Map(), Map())
+        TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
           .addEntries(
             templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
     val interfaceDefinition2 =
@@ -92,13 +92,13 @@ class StructTemplarMiddle(
     core.makeClosureUnderstruct(containingFunctionEnv, temputs, name, functionS, members)
   }
 
-  // Makes a struct to back a pack or tuple
-  def makeSeqOrPackUnderstruct(
-    env: PackageEnvironment[INameT],
-    temputs: Temputs,
-    memberTypes2: Vector[CoordT],
-    name: ICitizenNameT):
-  (StructTT, MutabilityT) = {
-    core.makeSeqOrPackUnderstruct(env, temputs, memberTypes2, name)
-  }
+//  // Makes a struct to back a pack or tuple
+//  def makeSeqOrPackUnderstruct(
+//    env: PackageEnvironment[INameT],
+//    temputs: Temputs,
+//    memberTypes2: Vector[CoordT],
+//    name: ICitizenNameT):
+//  (StructTT, MutabilityT) = {
+//    core.makeSeqOrPackUnderstruct(env, temputs, memberTypes2, name)
+//  }
 }

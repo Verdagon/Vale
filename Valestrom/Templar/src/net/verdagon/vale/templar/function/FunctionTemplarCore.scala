@@ -117,7 +117,7 @@ class FunctionTemplarCore(
         case AbstractBodyS | GeneratedBodyS(_) => {
           val generatorId =
             startingFullEnv.function.body match {
-              case AbstractBodyS => "abstractBodyMacro"
+              case AbstractBodyS => "abstractBody"
               case GeneratedBodyS(generatorId) => generatorId
             }
           val signature2 = SignatureT(fullEnv.fullName);

@@ -8,7 +8,9 @@ import net.verdagon.vale.templar.{ArrayTemplar, Temputs, ast}
 import net.verdagon.vale.{IProfiler, RangeS}
 
 
-class RSALenMacro() {
+class RSALenMacro() extends IFunctionBodyMacro {
+  override def generatorId: String = "vale_runtime_sized_array_len"
+
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,

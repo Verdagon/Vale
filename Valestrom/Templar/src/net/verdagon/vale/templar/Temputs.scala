@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, ReturnTE, SignatureT, getFunctionLastName}
 import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{CitizenNameT, DropNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
 import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertOne, vassertSome, vfail}
 
@@ -52,7 +52,7 @@ case class Temputs() {
   private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
   // Only PackTemplar can make a PackT2.
-  private val packTypes: mutable.HashMap[Vector[CoordT], StructTT] = mutable.HashMap()
+//  private val packTypes: mutable.HashMap[Vector[CoordT], StructTT] = mutable.HashMap()
   // Only ArrayTemplar can make an RawArrayT2.
   private val staticSizedArrayTypes: mutable.HashMap[(Int, RawArrayTT), StaticSizedArrayTT] = mutable.HashMap()
   // Only ArrayTemplar can make an RawArrayT2.
@@ -82,7 +82,7 @@ case class Temputs() {
     vassertOne(
       functions
         .filter({
-          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
+//          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
           case getFunctionLastName(FunctionNameT(name, _, Vector(CoordT(_, _, k))))
             if name == CallTemplar.DROP_FUNCTION_NAME && k == kind => true
           case _ => false
@@ -138,20 +138,11 @@ case class Temputs() {
 
   // We can't declare the struct at the same time as we declare its mutability or environment,
   // see MFDBRE.
-  def declareStruct(
-    structTT: StructTT
+  def declareKind(
+    kind: KindT
   ): Unit = {
-    vassert(!declaredKinds.contains(structTT))
-    declaredKinds += structTT
-  }
-
-  // We can't declare the struct at the same time as we declare its mutability or environment,
-  // see MFDBRE.
-  def declareInterface(
-    interfaceTT: InterfaceTT
-  ): Unit = {
-    vassert(!declaredKinds.contains(interfaceTT))
-    declaredKinds += interfaceTT
+    vassert(!declaredKinds.contains(kind))
+    declaredKinds += kind
   }
 
   def declareCitizenMutability(
@@ -172,9 +163,9 @@ case class Temputs() {
     envByKind += (kindTT -> env)
   }
 
-  def declarePack(members: Vector[CoordT], understructTT: StructTT): Unit = {
-    packTypes += (members -> understructTT)
-  }
+//  def declarePack(members: Vector[CoordT], understructTT: StructTT): Unit = {
+//    packTypes += (members -> understructTT)
+//  }
 
   def add(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == ImmutableT) {
@@ -328,9 +319,9 @@ case class Temputs() {
   def getInterfaceDefForRef(ir: InterfaceTT): InterfaceDefinitionT = {
     interfaceDefsByRef(ir)
   }
-  def getPackType(coords: Vector[CoordT]): Option[StructTT] = {
-    packTypes.get(coords)
-  }
+//  def getPackType(coords: Vector[CoordT]): Option[StructTT] = {
+//    packTypes.get(coords)
+//  }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)
   }

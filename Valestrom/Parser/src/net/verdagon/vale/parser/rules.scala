@@ -34,6 +34,7 @@ case object MutabilityTypePR extends ITypePR
 case object PermissionTypePR extends ITypePR
 case object LocationTypePR extends ITypePR
 case object CoordTypePR extends ITypePR
+case object CoordListTypePR extends ITypePR
 case object PrototypeTypePR extends ITypePR
 case object KindTypePR extends ITypePR
 case object RegionTypePR extends ITypePR

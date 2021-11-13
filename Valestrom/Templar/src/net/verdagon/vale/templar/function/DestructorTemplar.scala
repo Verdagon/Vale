@@ -24,44 +24,20 @@ class DestructorTemplar(
     structTemplar: StructTemplar,
     overloadTemplar: OverloadTemplar) {
   def getCitizenDestructor(
-    env: IEnvironment,
+//    env: IEnvironment,
     temputs: Temputs,
     type2: CoordT):
   (PrototypeT) = {
-    type2.kind match {
-      case PackTT(_, _) | StructTT(_) => { // | OrdinaryClosure2(_, _, _) | TemplatedClosure2(_, _, _) => {
-        overloadTemplar.findFunction(
-          env,
-          temputs,
-          RangeS.internal(-1663),
-//          if (type2.ownership == ShareT) {
-//            ImmConcreteDestructorImpreciseNameS()
-//          } else {
-            GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
-//          },
-          Vector.empty,
-          Array.empty,
-          Vector(ParamFilter(type2, None)),
-          Vector(),
-          true)
-      }
-      case InterfaceTT(fullName) => {
-        overloadTemplar.findFunction(
-          env,
-          temputs,
-          RangeS.internal(-1668),
-//          if (type2.ownership == ShareT) {
-          GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
-//          } else {
-//            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME)
-//          },
-          Vector.empty,
-          Array.empty,
-          Vector(ParamFilter(type2, None)),
-          Vector.empty,
-          true)
-      }
-    }
+    overloadTemplar.findFunction(
+      temputs.getEnvForKind(type2.kind),
+      temputs,
+      RangeS.internal(-1663),
+      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
+      Vector.empty,
+      Array.empty,
+      Vector(ParamFilter(type2, None)),
+      Vector(),
+      true)
   }
 
   def getArrayDestructor(
@@ -99,11 +75,11 @@ class DestructorTemplar(
         case r@CoordT(OwnT, ReadwriteT, kind) => {
           val destructorPrototype =
             kind match {
-              case PackTT(_, understructTT) => {
-                getCitizenDestructor(fate.snapshot, temputs, CoordT(OwnT, ReadwriteT, understructTT))
-              }
+//              case PackTT(_, understructTT) => {
+//                getCitizenDestructor(temputs, CoordT(OwnT, ReadwriteT, understructTT))
+//              }
               case StructTT(_) | InterfaceTT(_) => {
-                getCitizenDestructor(fate.snapshot, temputs, r)
+                getCitizenDestructor(temputs, r)
               }
               case StaticSizedArrayTT(_, _) | RuntimeSizedArrayTT(_) => {
                 getArrayDestructor(fate.snapshot, temputs, r)
@@ -116,7 +92,7 @@ class DestructorTemplar(
         case CoordT(ShareT, ReadonlyT, _) => {
           val destroySharedCitizen =
             (temputs: Temputs, Coord: CoordT) => {
-              val destructorHeader = getCitizenDestructor(fate.snapshot, temputs, Coord)
+              val destructorHeader = getCitizenDestructor(temputs, Coord)
               // We just needed to ensure it's in the temputs, so that the backend can use it
               // for when reference counts drop to zero.
               // If/when we have a GC backend, we can skip generating share destructors.
@@ -160,14 +136,14 @@ class DestructorTemplar(
                 val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = voidStructRef)
                 destroySharedCitizen(temputs, understructReference2)
               }
-              case PackTT(_, understruct2) => {
-                val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
-                destroySharedCitizen(temputs, understructReference2)
-              }
-              case TupleTT(_, understruct2) => {
-                val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
-                destroySharedCitizen(temputs, understructReference2)
-              }
+//              case PackTT(_, understruct2) => {
+//                val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
+//                destroySharedCitizen(temputs, understructReference2)
+//              }
+//              case TupleTT(_, understruct2) => {
+//                val understructReference2 = undestructedExpr2.resultRegister.reference.copy(kind = understruct2)
+//                destroySharedCitizen(temputs, understructReference2)
+//              }
               case StructTT(_) | InterfaceTT(_) => {
                 destroySharedCitizen(temputs, undestructedExpr2.resultRegister.reference)
               }

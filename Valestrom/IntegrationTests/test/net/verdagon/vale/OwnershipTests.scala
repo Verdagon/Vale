@@ -6,7 +6,7 @@ import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{FunctionCallTE, LetAndLendTE, LetNormalTE, UnletTE}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
-import net.verdagon.vale.templar.templata.{FunctionHeaderT, PrototypeT, functionName, simpleName}
+import net.verdagon.vale.templar.templata.{functionName, simpleName}
 import net.verdagon.vale.templar.types._
 import net.verdagon.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
@@ -70,7 +70,7 @@ class OwnershipTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(main, { case FunctionCallTE(functionName("drop"), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
@@ -94,7 +94,7 @@ class OwnershipTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(main, { case FunctionCallTE(functionName("drop"), _) => })
 
     compile.evalForKindAndStdout(Vector()) shouldEqual (VonInt(10), "Destroying!\n")
   }
@@ -117,7 +117,7 @@ class OwnershipTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(main, { case FunctionCallTE(functionName("drop"), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
@@ -148,7 +148,7 @@ class OwnershipTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
 
     // Destructor should only be calling println, NOT the destructor (itself)
-    val destructor = temputs.lookupUserFunction(CallTemplar.MUT_DESTRUCTOR_NAME)
+    val destructor = temputs.lookupUserFunction("drop")
     // The only function lookup should be println
     Collector.only(destructor, { case FunctionCallTE(functionName("println"), _) => })
     // Only one call (the above println)
@@ -156,12 +156,12 @@ class OwnershipTests extends FunSuite with Matchers {
 
     // moo should be calling the destructor
     val moo = temputs.lookupFunction("moo")
-    Collector.only(moo, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(moo, { case FunctionCallTE(functionName("drop"), _) => })
     Collector.only(moo, { case FunctionCallTE(_, _) => })
 
     // main should not be calling the destructor
     val main = temputs.lookupFunction("main")
-    Collector.all(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => true }).size shouldEqual 0
+    Collector.all(main, { case FunctionCallTE(functionName("drop"), _) => true }).size shouldEqual 0
 
     compile.evalForStdout(Vector()) shouldEqual "Destroying!\n"
   }
@@ -185,7 +185,7 @@ class OwnershipTests extends FunSuite with Matchers {
       """.stripMargin)
 
     val main = compile.expectTemputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(functionName(CallTemplar.MUT_DESTRUCTOR_NAME), _) => })
+    Collector.only(main, { case FunctionCallTE(functionName("drop"), _) => })
     Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
 
     compile.evalForKindAndStdout(Vector()) shouldEqual (VonInt(10), "Destroying!\n")

@@ -204,7 +204,7 @@ case class FunctionEnvironment(
       globalEnv,
       this,
       fullName,
-      TemplatasStore(Map(), Map()),
+      TemplatasStore(fullName, Map(), Map()),
       function,
       maybeReturnType,
       newContainingBlockS,

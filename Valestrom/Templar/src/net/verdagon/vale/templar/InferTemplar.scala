@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.{CoordSendSR, IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{CoordTemplataType, IRuneS, ITemplataType, SenderRuneS}
+import net.verdagon.vale.scout.{CoordTemplataType, IRuneS, ITemplataType, ArgumentRuneS}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve, RuleError, SolverConflict}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
@@ -17,6 +17,15 @@ import scala.collection.immutable.List
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
+case class InitialSend(
+  senderRune: RuneUsage,
+  receiverRune: RuneUsage,
+  sendTemplata: ITemplata)
+
+case class InitialKnown(
+  rune: RuneUsage,
+  templata: ITemplata)
+
 class InferTemplar(
     opts: TemplarOptions,
     profiler: IProfiler,
@@ -27,10 +36,10 @@ class InferTemplar(
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
-    receiverToSenderTemplata: Map[RuneUsage, ITemplata],
-    alreadyKnown: Map[IRuneS, ITemplata]):
+    initialKnowns: Vector[InitialKnown],
+    initialSends: Vector[InitialSend]):
   Result[Map[IRuneS, ITemplata], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]] = {
-    solve(env, temputs, rules, runeToType, invocationRange, receiverToSenderTemplata, alreadyKnown) match {
+    solve(env, temputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _) => Err(i)
       case CompleteSolve(conclusions) => Ok(conclusions)
@@ -43,10 +52,10 @@ class InferTemplar(
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
-    receiverToSenderTemplata: Map[RuneUsage, ITemplata],
-    alreadyKnown: Map[IRuneS, ITemplata]):
+    initialKnowns: Vector[InitialKnown],
+    initialSends: Vector[InitialSend]):
   Map[IRuneS, ITemplata] = {
-    solve(env, temputs, rules, runeToType, invocationRange, receiverToSenderTemplata, alreadyKnown) match {
+    solve(env, temputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(TemplarSolverError(invocationRange, f))
       }
@@ -63,29 +72,25 @@ class InferTemplar(
     initialRules: Vector[IRulexSR],
     initialRuneToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
-    receiverToSenderTemplata: Map[RuneUsage, ITemplata],
-    initialAlreadyKnown: Map[IRuneS, ITemplata]
+    initialKnowns: Vector[InitialKnown],
+    initialSends: Vector[InitialSend]
   ): ISolverOutcome[IRulexSR, IRuneS, ITemplata, ITemplarSolverError] = {
     profiler.newProfile("infer", "", () => {
 
-      val receiverAndSenderAndTemplata =
-        receiverToSenderTemplata.map({ case (ru @ RuneUsage(receiverRange, receiverRune), senderTemplata) =>
-          (ru, RuneUsage(receiverRange, SenderRuneS(receiverRune)), senderTemplata)
-        })
       val runeToType =
         initialRuneToType ++
-        receiverAndSenderAndTemplata.map({ case (_, sender, _) =>
-          sender.rune -> CoordTemplataType
+        initialSends.map({ case InitialSend(senderRune, _, _) =>
+          senderRune.rune -> CoordTemplataType
         })
       val rules =
         initialRules ++
-        receiverAndSenderAndTemplata.map({ case (receiver, sender, _) =>
-          CoordSendSR(invocationRange, sender, receiver)
+        initialSends.map({ case InitialSend(senderRune, receiverRune, _) =>
+          CoordSendSR(receiverRune.range, senderRune, receiverRune)
         })
       val alreadyKnown =
-        initialAlreadyKnown ++
-        receiverAndSenderAndTemplata.map({ case (_, sender, senderTemplata) =>
-          (sender.rune -> senderTemplata)
+        initialKnowns.map({ case InitialKnown(rune, templata) => rune.rune -> templata }).toMap ++
+        initialSends.map({ case InitialSend(senderRune, _, senderTemplata) =>
+          (senderRune.rune -> senderTemplata)
         })
 
       new TemplarSolver[IEnvironment, Temputs](opts.globalOptions, delegate).solve(

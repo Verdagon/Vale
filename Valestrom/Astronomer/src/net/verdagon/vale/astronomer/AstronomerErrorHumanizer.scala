@@ -30,6 +30,7 @@ object AstronomerErrorHumanizer {
       (codeMap, u: Unit) => "",
       (rule: IRulexSR) => rule.range,
       (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
+      (rule: IRulexSR) => rule.runeUsages.map(_.rune),
       ScoutErrorHumanizer.humanizeRule,
       err.failedSolve)._1
   }
@@ -55,6 +56,7 @@ object AstronomerErrorHumanizer {
             (codeMap, u: Unit) => "",
             (rule: IRulexSR) => rule.range,
             (rule: IRulexSR) => rule.runeUsages.map(u => (u.rune, u.range)),
+            (rule: IRulexSR) => rule.runeUsages.map(_.rune),
             ScoutErrorHumanizer.humanizeRule,
             err.failedSolve)._1
         }

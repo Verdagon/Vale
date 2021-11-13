@@ -56,6 +56,7 @@ class RuleTests extends FunSuite with Matchers with Collector {
     checkFail(ruleTemplexPR, "")
     checkFail(ruleTemplexSetPR, "")
     checkFail(templateRulesPR, "")
+    checkFail(refListCompoundMutabilityPR, "")
     checkFail(packPR, "")
   }
 

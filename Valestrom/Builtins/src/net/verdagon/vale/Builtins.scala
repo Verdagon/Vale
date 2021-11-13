@@ -15,6 +15,7 @@ object Builtins {
       "mainargs" -> "mainargs.vale",
       "as" -> "as.vale",
       "print" -> "print.vale",
+      "tup" -> "tup.vale",
       "panic" -> "panic.vale",
       "opt" -> "opt.vale",
       "result" -> "result.vale",

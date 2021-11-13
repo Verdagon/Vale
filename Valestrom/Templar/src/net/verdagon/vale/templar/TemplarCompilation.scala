@@ -10,18 +10,16 @@ import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
 
 case class TemplarCompilationOptions(
+  globalOptions: GlobalOptions = GlobalOptions(),
   debugOut: (=> String) => Unit = DefaultPrintyThing.print,
-  verbose: Boolean = true,
   profiler: IProfiler = new NullProfiler(),
-  useOptimization: Boolean = false,
 ) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 class TemplarCompilation(
-  globalOptions: GlobalOptions,
   packagesToBuild: Vector[PackageCoordinate],
   packageToContentsResolver: IPackageResolver[Map[String, String]],
   options: TemplarCompilationOptions = TemplarCompilationOptions()) {
-  var astronomerCompilation = new AstronomerCompilation(globalOptions, packagesToBuild, packageToContentsResolver)
+  var astronomerCompilation = new AstronomerCompilation(options.globalOptions, packagesToBuild, packageToContentsResolver)
   var hinputsCache: Option[Hinputs] = None
 
   def getCodeMap(): Result[FileCoordinateMap[String], FailedParse] = astronomerCompilation.getCodeMap()
@@ -35,7 +33,7 @@ class TemplarCompilation(
     hinputsCache match {
       case Some(temputs) => Ok(temputs)
       case None => {
-        val templar = new Templar(options.debugOut, options.profiler, globalOptions)
+        val templar = new Templar(options.debugOut, options.profiler, options.globalOptions)
         templar.evaluate(astronomerCompilation.expectAstrouts()) match {
           case Err(e) => Err(e)
           case Ok(hinputs) => {

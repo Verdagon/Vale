@@ -5,7 +5,7 @@ import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnv
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, ICitizenAttribute2, VirtualityT}
 import net.verdagon.vale.templar.env.IEnvironment
-import net.verdagon.vale.templar.names.{CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, IVarNameT, ImplDeclareNameT, LambdaCitizenNameT, LetNameT, MagicParamNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, TupleNameT, UnnamedLocalNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, IVarNameT, ImplDeclareNameT, LambdaCitizenNameT, LetNameT, MagicParamNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, UnnamedLocalNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vcurious, vfail, vimpl}
@@ -198,15 +198,15 @@ case class FloatT() extends KindT {
 
 }
 
-case class PackTT(members: Vector[CoordT], underlyingStruct: StructTT) extends KindT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def order: Int = 21;
-}
-
-case class TupleTT(members: Vector[CoordT], underlyingStruct: StructTT) extends KindT {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def order: Int = 20;
-}
+//case class PackTT(members: Vector[CoordT], underlyingStruct: StructTT) extends KindT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  override def order: Int = 21;
+//}
+//
+//case class TupleTT(members: Vector[CoordT], underlyingStruct: StructTT) extends KindT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  override def order: Int = 20;
+//}
 
 case class RawArrayTT(
   elementType: CoordT,
@@ -283,7 +283,7 @@ case class StructDefinitionT(
   mutability: MutabilityT,
   members: Vector[StructMemberT],
   isClosure: Boolean
-) extends CitizenDefinitionT  {
+) extends CitizenDefinitionT {
   override def hashCode(): Int = vcurious()
   // debt: move this to somewhere else. let's allow packs to have packs, just nothing else.
 //  all({
@@ -346,9 +346,10 @@ case class StructTT(fullName: FullNameT[ICitizenNameT]) extends CitizenRefT {
 // See ROS.
 // Lowers to an empty struct.
 case class OverloadSet(
-    env: IEnvironment,
-    name: GlobalFunctionFamilyNameS,
-    voidStructRef: StructTT
+  env: IEnvironment,
+  // The name to look for in the environment.
+  name: INameS,
+  voidStructRef: StructTT
 ) extends KindT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -407,7 +408,7 @@ object KindComparator extends Ordering[KindT] {
         }
         case BoolT() => 0
         case StrT() => 0
-        case PackTT(innerTypes, underlyingStruct) => compare(underlyingStruct, b.asInstanceOf[PackTT].underlyingStruct)
+//        case PackTT(innerTypes, underlyingStruct) => compare(underlyingStruct, b.asInstanceOf[PackTT].underlyingStruct)
         case StructTT(thisFullName) => {
           val StructTT(thatFullName) = b.asInstanceOf[StructTT];
           FullNameComparator.compare(thisFullName, thatFullName)
@@ -464,9 +465,9 @@ object FullNameComparator extends Ordering[FullNameT[INameT]] {
                 return nameDiff
               TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
             }
-            case (TupleNameT(membersA), TupleNameT(membersB)) => {
-              TemplataTypeListComparator.compare(membersA.map(CoordTemplata), membersB.map(CoordTemplata))
-            }
+//            case (TupleNameT(membersA), TupleNameT(membersB)) => {
+//              TemplataTypeListComparator.compare(membersA.map(CoordTemplata), membersB.map(CoordTemplata))
+//            }
             case (LambdaCitizenNameT(codeLocationA), LambdaCitizenNameT(codeLocationB)) => {
               compare(codeLocationA, codeLocationB)
             }
