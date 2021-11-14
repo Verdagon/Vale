@@ -236,8 +236,8 @@ class InfererTests extends FunSuite with Matchers {
               LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("I")), CodeNameS("int")),
               LookupSR(RangeS.testZero,RuneUsage(RangeS.internal(-70001), CodeRuneS("B")), CodeNameS("bool"))),
             Vector(
-              StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("I"))),
-              StructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("B")))))))
+              NormalStructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("I"))),
+              NormalStructMemberS(RangeS.testZero,"i", FinalP, RuneUsage(RangeS.internal(-70001), CodeRuneS("B")))))))
     entries = entries.addEntry(PrimitiveNameT("Array"), TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()))
     entries = entries.addEntry(
         CitizenTemplateNameT("MutTStruct"),//, CodeLocationS.internal(-25)),

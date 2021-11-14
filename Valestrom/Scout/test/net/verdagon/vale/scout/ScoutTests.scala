@@ -68,7 +68,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       case LookupSR(_, m, CodeNameS("int")) => vassert(m == imoo.members(0).typeRune)
     }
     imoo.members match {
-      case Vector(StructMemberS(_, "x", FinalP, _)) =>
+      case Vector(NormalStructMemberS(_, "x", FinalP, _)) =>
     }
   }
 

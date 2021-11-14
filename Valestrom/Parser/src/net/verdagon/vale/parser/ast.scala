@@ -73,11 +73,17 @@ case class StructMembersP(
   contents: Vector[IStructContent]) { override def hashCode(): Int = vcurious() }
 sealed trait IStructContent
 case class StructMethodP(func: FunctionP) extends IStructContent { override def hashCode(): Int = vcurious() }
-case class StructMemberP(
+case class NormalStructMemberP(
   range: Range,
   name: NameP,
   variability: VariabilityP,
-  tyype: ITemplexPT) extends IStructContent { override def hashCode(): Int = vcurious() }
+  tyype: ITemplexPT
+) extends IStructContent { override def hashCode(): Int = vcurious() }
+case class VariadicStructMemberP(
+  range: Range,
+  variability: VariabilityP,
+  tyype: ITemplexPT
+) extends IStructContent { override def hashCode(): Int = vcurious() }
 
 case class InterfaceP(
   range: Range,

@@ -81,17 +81,28 @@ case class StructS(
 //    isTemplate: Boolean,
     rules: Array[IRulexSR],
 //    runeSToCanonicalRune: collection.Map[IRuneS, Int],
-    members: Vector[StructMemberS]) {
+    members: Vector[IStructMemberS]) {
   override def hashCode(): Int = vcurious()
 
 //  vassert(isTemplate == identifyingRunes.nonEmpty)
 }
 
-case class StructMemberS(
+sealed trait IStructMemberS {
+  def range: RangeS
+  def variability: VariabilityP
+  def typeRune: RuneUsage
+}
+case class NormalStructMemberS(
     range: RangeS,
     name: String,
     variability: VariabilityP,
-    typeRune: RuneUsage) {
+    typeRune: RuneUsage) extends IStructMemberS {
+  override def hashCode(): Int = vcurious()
+}
+case class VariadicStructMemberS(
+  range: RangeS,
+  variability: VariabilityP,
+  typeRune: RuneUsage) extends IStructMemberS {
   override def hashCode(): Int = vcurious()
 }
 

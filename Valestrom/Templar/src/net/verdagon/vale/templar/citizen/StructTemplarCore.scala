@@ -159,7 +159,10 @@ class StructTemplarCore(
             ImmStructCantHaveVaryingMember(
               structA.members(index).range,
               structA.name,
-              structA.members(index).name))
+              structA.members(index) match {
+                case NormalStructMemberS(range, name, variability, typeRune) => name
+                case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
+              }))
         }
       })
     }
@@ -352,24 +355,32 @@ class StructTemplarCore(
     (interfaceDef2)
   }
 
-  private def makeStructMembers(env: IEnvironment, temputs: Temputs, members: Vector[StructMemberS]): (Vector[StructMemberT]) = {
-    members.map(makeStructMember(env, temputs, _))
+  private def makeStructMembers(env: IEnvironment, temputs: Temputs, members: Vector[IStructMemberS]): (Vector[StructMemberT]) = {
+    members.flatMap(makeStructMember(env, temputs, _))
   }
 
   private def makeStructMember(
     env: IEnvironment,
     temputs: Temputs,
-    member: StructMemberS):
-  (StructMemberT) = {
-    start
-    // lets maybe add a ...T
-    // to structs so we can explode it into members
-
-    val CoordTemplata(coord) =
+    member: IStructMemberS):
+  Vector[StructMemberT] = {
+    val typeTemplata =
       vassertOne(
         env.lookupWithImpreciseName(
           profiler, RuneNameS(member.typeRune.rune), Set(TemplataLookupContext), true))
-    (StructMemberT(CodeVarNameT(member.name), Conversions.evaluateVariability(member.variability), ReferenceMemberTypeT(coord)))
+    val variabilityT = Conversions.evaluateVariability(member.variability)
+    member match {
+      case NormalStructMemberS(_, name, _, _) => {
+        val CoordTemplata(coord) = typeTemplata
+        Vector(StructMemberT(CodeVarNameT(name), variabilityT, ReferenceMemberTypeT(coord)))
+      }
+      case VariadicStructMemberS(_, _, _) => {
+        val CoordListTemplata(coords) = typeTemplata
+        coords.zipWithIndex.map({ case (coord, index) =>
+          StructMemberT(CodeVarNameT(index.toString), variabilityT, ReferenceMemberTypeT(coord))
+        })
+      }
+    }
   }
 
 //  // Makes a functor for the given prototype.

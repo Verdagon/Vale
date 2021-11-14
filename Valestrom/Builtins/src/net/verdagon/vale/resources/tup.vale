@@ -1,7 +1,7 @@
 
 struct Tup<T>
-rules(T RefList, M Mutability, M = refListCompoundMutability(T)) {
-  members T;
+rules(T RefList, M Mutability, M = refListCompoundMutability(T)) M {
+  _ ...T;
 }
 
 //      StructA(

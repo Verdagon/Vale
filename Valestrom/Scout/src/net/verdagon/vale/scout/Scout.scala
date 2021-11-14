@@ -350,10 +350,15 @@ class Scout(globalOptions: GlobalOptions) {
 
     val membersS =
       members.flatMap({
-        case StructMemberP(range, name, variability, memberType) => {
+        case NormalStructMemberP(range, name, variability, memberType) => {
           val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
           runeToExplicitType.put(memberRune.rune, CoordTemplataType)
-          Vector(StructMemberS(Scout.evalRange(structEnv.file, range), name.str, variability, memberRune))
+          Vector(NormalStructMemberS(Scout.evalRange(structEnv.file, range), name.str, variability, memberRune))
+        }
+        case VariadicStructMemberP(range, variability, memberType) => {
+          val memberRune = TemplexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
+          runeToExplicitType.put(memberRune.rune, CoordTemplataType)
+          Vector(VariadicStructMemberS(Scout.evalRange(structEnv.file, range), variability, memberRune))
         }
         case StructMethodP(_) => {
           // Implement struct methods one day

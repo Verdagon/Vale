@@ -142,6 +142,17 @@ case class LookupSR(
   override def runeUsages: Array[RuneUsage] = Array(rune)
 }
 
+case class IndexListSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  listRune: RuneUsage,
+  index: Int
+) extends IRulexSR {
+  override def hashCode(): Int = vcurious()
+  vpass()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, listRune)
+}
+
 case class RuneParentEnvLookupSR(
   range: RangeS,
   rune: RuneUsage

@@ -87,18 +87,30 @@ object ParserVonifier {
   def vonifyStructContents(thing: IStructContent) = {
     thing match {
       case sm @ StructMethodP(_) => vonifyStructMethod(sm)
-      case sm @ StructMemberP(_, _, _, _) => vonifyStructMember(sm)
+      case sm @ NormalStructMemberP(_, _, _, _) => vonifyStructMember(sm)
+      case sm @ VariadicStructMemberP(_, _, _) => vonifyVariadicStructMember(sm)
     }
   }
 
-  def vonifyStructMember(thing: StructMemberP) = {
-    val StructMemberP(range, name, variability, tyype) = thing
+  def vonifyStructMember(thing: NormalStructMemberP) = {
+    val NormalStructMemberP(range, name, variability, tyype) = thing
     VonObject(
-      "StructMember",
+      "NormalStructMember",
       None,
       Vector(
         VonMember("range", vonifyRange(range)),
         VonMember("name", vonifyName(name)),
+        VonMember("variability", vonifyVariability(variability)),
+        VonMember("type", vonifyTemplex(tyype))))
+  }
+
+  def vonifyVariadicStructMember(thing: VariadicStructMemberP) = {
+    val VariadicStructMemberP(range, variability, tyype) = thing
+    VonObject(
+      "VariadicStructMember",
+      None,
+      Vector(
+        VonMember("range", vonifyRange(range)),
         VonMember("variability", vonifyVariability(variability)),
         VonMember("type", vonifyTemplex(tyype))))
   }

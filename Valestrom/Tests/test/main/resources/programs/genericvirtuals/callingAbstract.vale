@@ -1,4 +1,6 @@
 
+import v.builtins.tup.*;
+
 interface MyInterface<T> rules(T Ref) { }
 fn doThing<T>(virtual x MyInterface<T>) int abstract;
 
