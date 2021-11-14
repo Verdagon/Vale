@@ -99,15 +99,22 @@ object CombinatorParsers
     }
   }
 
-  def structMember: Parser[StructMemberP] = {
+  def normalStructMember: Parser[NormalStructMemberP] = {
     pos ~ (exprIdentifier ~ opt("!") <~ optWhite) ~ (templex <~ optWhite <~ ";") ~ pos ^^ {
-      case begin ~ (name ~ None) ~ tyype ~ end => StructMemberP(Range(begin, end), name, FinalP, tyype)
-      case begin ~ (name ~ Some(_)) ~ tyype ~ end => StructMemberP(Range(begin, end), name, VaryingP, tyype)
+      case begin ~ (name ~ None) ~ tyype ~ end => NormalStructMemberP(Range(begin, end), name, FinalP, tyype)
+      case begin ~ (name ~ Some(_)) ~ tyype ~ end => NormalStructMemberP(Range(begin, end), name, VaryingP, tyype)
+    }
+  }
+
+  def variadicStructMember: Parser[VariadicStructMemberP] = {
+    pos ~ ("_" ~> opt("!") <~ white) ~ ("..." ~> optWhite ~> templex <~ optWhite <~ ";") ~ pos ^^ {
+      case begin ~ (None) ~ tyype ~ end => VariadicStructMemberP(Range(begin, end), FinalP, tyype)
+      case begin ~ (Some(_)) ~ tyype ~ end => VariadicStructMemberP(Range(begin, end), VaryingP, tyype)
     }
   }
 
   def structContent: Parser[IStructContent] = {
-    structMember | (topLevelFunction ^^ StructMethodP)
+    variadicStructMember | normalStructMember | (topLevelFunction ^^ StructMethodP)
   }
 
   def citizenAttribute: Parser[ICitizenAttributeP] = {

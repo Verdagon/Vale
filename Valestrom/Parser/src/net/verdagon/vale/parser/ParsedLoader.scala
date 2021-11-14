@@ -466,10 +466,16 @@ object ParsedLoader {
 
   def loadStructContent(jobj: JObject): IStructContent = {
     getType(jobj) match {
-      case "StructMember" => {
-        StructMemberP(
+      case "NormalStructMember" => {
+        NormalStructMemberP(
           loadRange(getObjectField(jobj, "range")),
           loadName(getObjectField(jobj, "name")),
+          loadVariability(getObjectField(jobj, "variability")),
+          loadTemplex(getObjectField(jobj, "type")))
+      }
+      case "VariadicStructMember" => {
+        VariadicStructMemberP(
+          loadRange(getObjectField(jobj, "range")),
           loadVariability(getObjectField(jobj, "variability")),
           loadTemplex(getObjectField(jobj, "type")))
       }

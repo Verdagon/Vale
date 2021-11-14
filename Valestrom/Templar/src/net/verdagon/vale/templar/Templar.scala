@@ -728,7 +728,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
           allKinds
             .filter({
               // No destructor for empty tuple type, see NDFETT.
-              case x if x == emptyTupleStructRef => false
+              case x if x == emptyTupleStruct => false
               case s @ StructTT(_) => temputs.lookupMutability(s) == ImmutableT
               case i @ InterfaceTT(_) => temputs.lookupMutability(i) == ImmutableT
               case StaticSizedArrayTT(_, RawArrayTT(_, m, _)) => m == ImmutableT

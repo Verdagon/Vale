@@ -2,9 +2,9 @@ package net.verdagon.vale.templar.macros
 
 import net.verdagon.vale.{IProfiler, PackageCoordinate, RangeS, vassert}
 import net.verdagon.vale.astronomer.{ConstructorNameS, FunctionA, StructA}
-import net.verdagon.vale.scout.{CodeNameS, CodeVarNameS, CoordTemplataType, FunctionTemplataType, GeneratedBodyS, IRuneS, ITemplataType, KindTemplataType, ParameterS, ReturnRuneS, RuneNameS, StructNameRuneS, TemplateTemplataType, UserFunctionS}
+import net.verdagon.vale.scout.{CodeNameS, CodeVarNameS, CoordTemplataType, FunctionTemplataType, GeneratedBodyS, IRuneS, ITemplataType, KindTemplataType, NormalStructMemberS, ParameterS, ReturnRuneS, RuneNameS, StructNameRuneS, TemplateTemplataType, UserFunctionS, VariadicStructMemberS}
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
-import net.verdagon.vale.scout.rules.{CallSR, IRulexSR, LookupSR, RuneUsage}
+import net.verdagon.vale.scout.rules.{CallSR, IRulexSR, IndexListSR, LookupSR, RuneUsage}
 import net.verdagon.vale.templar.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment, PackageEnvironment}
@@ -27,6 +27,11 @@ class StructConstructorMacro(
 
   override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(INameT, FunctionEnvEntry)] = {
+    if (structA.members.collect({ case VariadicStructMemberS(_, _, _) => }).nonEmpty) {
+      // Dont generate constructors for variadic structs, not supported yet.
+      // Only one we have right now is tuple, which has its own special syntax for constructing.
+      return Vector()
+    }
     val functionA = defineConstructorFunction(structA)
     Vector(
       NameTranslator.translateNameStep(functionA.name) ->
@@ -54,9 +59,14 @@ class StructConstructorMacro(
       }
 
       val params =
-        structA.members.map(member => {
-          val capture = CaptureS(CodeVarNameS(member.name))
-          ParameterS(AtomSP(member.range, Some(capture), None, Some(member.typeRune), None))
+        structA.members.zipWithIndex.flatMap({
+          case (NormalStructMemberS(range, name, variability, typeRune), index) => {
+            val capture = CaptureS(CodeVarNameS(name))
+            Vector(ParameterS(AtomSP(range, Some(capture), None, Some(typeRune), None)))
+          }
+          case (VariadicStructMemberS(range, variability, typeRune), index) => {
+            Vector()
+          }
         })
 
       val functionA =

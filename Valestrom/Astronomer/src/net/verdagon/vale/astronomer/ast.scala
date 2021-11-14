@@ -83,7 +83,7 @@ case class StructA(
 //    localRunes: Set[IRuneS],
     runeToType: Map[IRuneS, ITemplataType],
     rules: Vector[IRulexSR],
-    members: Vector[StructMemberS]
+    members: Vector[IStructMemberS]
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
