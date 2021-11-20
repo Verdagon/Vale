@@ -47,8 +47,8 @@ class ArrayTemplar(
   StaticArrayFromCallableTE = {
     val runeToType =
       RuneTypeSolver.solve(
-        vimpl(),
-        vimpl(),
+        opts.globalOptions.sanityCheck,
+        opts.globalOptions.useOptimizedSolver,
         (nameS: IImpreciseNameS) => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,

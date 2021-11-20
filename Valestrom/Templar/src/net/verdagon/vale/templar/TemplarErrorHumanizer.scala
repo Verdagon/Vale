@@ -11,8 +11,8 @@ import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface}
 import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, TemplataNamer}
-import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
-import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
+import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
 object TemplarErrorHumanizer {
@@ -368,6 +368,7 @@ object TemplarErrorHumanizer {
           case VaryingT => "vary"
         }
       }
+      case IntegerTemplata(value) => value.toString
       case MutabilityTemplata(mutability) => {
         mutability match {
           case MutableT => "mut"
@@ -414,6 +415,13 @@ object TemplarErrorHumanizer {
           case StructTT(name) => humanizeName(codeMap, name)
           case RuntimeSizedArrayTT(RawArrayTT(elementType, mutability, variability)) => {
             "Array<" +
+              humanizeTemplata(codeMap, MutabilityTemplata(mutability)) + ", " +
+              humanizeTemplata(codeMap, VariabilityTemplata(variability)) + ", " +
+              humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
+          }
+          case StaticSizedArrayTT(size, RawArrayTT(elementType, mutability, variability)) => {
+            "StaticArray<" +
+              humanizeTemplata(codeMap, IntegerTemplata(size)) + ", " +
               humanizeTemplata(codeMap, MutabilityTemplata(mutability)) + ", " +
               humanizeTemplata(codeMap, VariabilityTemplata(variability)) + ", " +
               humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"

@@ -129,7 +129,7 @@ class TemplarSolver[Env, State](
         case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Array(resultRune) ++ parameters ++ Array(returnTypeRune)
         case PackSR(range, resultRune, members) => Array(resultRune) ++ members
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
-        case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
+//        case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
 //        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
         case CoordSendSR(range, senderRune, receiverRune) => Array(senderRune, receiverRune)
         case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(resultRune, coordListRune)
@@ -164,7 +164,7 @@ class TemplarSolver[Env, State](
       case LiteralSR(_, rune, literal) => Array(Array())
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array(innerRune.rune), Array(resultRune.rune))
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
-      case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
+//      case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
 //      case CoordListSR(_, resultRune, elements) => Array(Array(resultRune.rune), elements.map(_.rune))
       // See SAIRFU, this will replace itself with other rules.
       case CoordSendSR(_, senderRune, receiverRune) => Array(Array(senderRune.rune), Array(receiverRune.rune))
@@ -514,7 +514,9 @@ class TemplarSolver[Env, State](
           }
         }
       }
-      case ManualSequenceSR(_, resultRune, elements) => vimpl()
+//      case ManualSequenceSR(_, resultRune, elements) => {
+//
+//      }
 //      case CoordListSR(_, resultRune, elements) => vimpl()
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => {
         val CoordListTemplata(coords) = vassertSome(stepState.getConclusion(coordListRune.rune))
@@ -620,6 +622,10 @@ class TemplarSolver[Env, State](
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 val kind = delegate.evaluateInterfaceTemplata(state, range, it, args.toVector)
                 stepState.concludeRune[ITemplarSolverError](resultRune.rune, KindTemplata(kind))
+                Ok(())
+              }
+              case kt @ KindTemplata(_) => {
+                stepState.concludeRune[ITemplarSolverError](resultRune.rune, kt)
                 Ok(())
               }
               case other => vimpl(other)

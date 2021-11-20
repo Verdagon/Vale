@@ -218,14 +218,14 @@ case class RepeaterSequenceSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
 }
 
-case class ManualSequenceSR(
-  range: RangeS,
-  resultRune: RuneUsage,
-  elements: Array[RuneUsage]
-) extends IRulexSR {
-  override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
-}
+//case class ManualSequenceSR(
+//  range: RangeS,
+//  resultRune: RuneUsage,
+//  elements: Array[RuneUsage]
+//) extends IRulexSR {
+//  override def hashCode(): Int = vcurious()
+//  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ elements
+//}
 
 //case class ReceiveSR(
 //  range: RangeS,

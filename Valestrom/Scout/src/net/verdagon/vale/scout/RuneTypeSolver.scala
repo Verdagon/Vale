@@ -33,7 +33,7 @@ object RuneTypeSolver {
         case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Array(resultRune) ++ parameters ++ Array(returnTypeRune)
         case PackSR(range, resultRune, members) => Array(resultRune) ++ members
         case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
-        case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
+//        case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
         case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(resultRune, coordListRune)
 //        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
       }
@@ -81,6 +81,7 @@ object RuneTypeSolver {
 //          Array(Array(resultRune.rune))
 //        }
       }
+      case CoordIsaSR(_, subRune, superRune) => Array(Array())
       case KindComponentsSR(_, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(_, resultRune, ownershipRune, permissionRune, kindRune) => Array(Array())
       case PrototypeComponentsSR(_, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
@@ -92,7 +93,7 @@ object RuneTypeSolver {
       case LiteralSR(_, rune, literal) => Array(Array())
       case AugmentSR(_, resultRune, literals, innerRune) => Array(Array())
       case RepeaterSequenceSR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune))
-      case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune))
+//      case ManualSequenceSR(_, resultRune, elements) => Array(Array(resultRune.rune))
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(Array())
         // solverState.addPuzzle(ruleIndex, Array(senderRune, receiverRune))
 //      case CoordListSR(_, resultRune, elements) => Array(Array())
@@ -135,6 +136,11 @@ object RuneTypeSolver {
         stepState.concludeRune(nameRune.rune, StringTemplataType)
         stepState.concludeRune(paramListRune.rune, PackTemplataType(CoordTemplataType))
         stepState.concludeRune(returnRune.rune, CoordTemplataType)
+        Ok(())
+      }
+      case CoordIsaSR(_, subRune, superRune) => {
+        stepState.concludeRune(subRune.rune, CoordTemplataType)
+        stepState.concludeRune(superRune.rune, CoordTemplataType)
         Ok(())
       }
       case OneOfSR(_, resultRune, literals) => {
@@ -224,7 +230,12 @@ object RuneTypeSolver {
         stepState.concludeRune(elementRune.rune, CoordTemplataType)
         Ok(())
       }
-      case ManualSequenceSR(_, resultRune, elements) => vimpl()
+//      case ManualSequenceSR(_, resultRune, elements) => {
+//        elements.foreach(element => {
+//          stepState.concludeRune(element.rune, CoordTemplataType)
+//        })
+//        Ok(())
+//      }
 //      case CoordListSR(_, resultRune, elements) => vimpl()
     }
   }

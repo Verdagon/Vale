@@ -185,4 +185,6 @@ case class BlockPE(range: Range, elements: Vector[IExpressionPE]) extends IExpre
 
 case class ShortcallPE(range: Range, argExprs: Vector[IExpressionPE]) extends IExpressionPE {
   override def hashCode(): Int = vcurious()
+
+  vpass()
 }

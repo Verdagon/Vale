@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
 import net.verdagon.vale.parser.{ConstraintP, ExclusiveReadwriteP, ImmutableP, MutabilityP, MutableP, OwnP, OwnershipP, PermissionP, ReadonlyP, ReadwriteP, ShareP, WeakP}
-import net.verdagon.vale.scout.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, ILiteralSL, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PermissionLiteralSL, RefListCompoundMutabilitySR, RuneParentEnvLookupSR}
+import net.verdagon.vale.scout.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, ILiteralSL, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PermissionLiteralSL, RefListCompoundMutabilitySR, RuneParentEnvLookupSR}
 import net.verdagon.vale.solver.SolverErrorHumanizer
 
 object ScoutErrorHumanizer {
@@ -144,6 +144,7 @@ object ScoutErrorHumanizer {
       case AugmentSR(range, resultRune, literal, innerRune) => humanizeRune(resultRune.rune) + " = " + literal.map(humanizeLiteral).mkString("") + humanizeRune(innerRune.rune)
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)
       case RuneParentEnvLookupSR(range, rune) => "inherit " + humanizeRune(rune.rune)
+      case PackSR(range, resultRune, members) => humanizeRune(resultRune.rune) + " = (" + members.map(x => humanizeRune(x.rune)).mkString(", ") + ")"
       case other => vimpl(other)
     }
   }
