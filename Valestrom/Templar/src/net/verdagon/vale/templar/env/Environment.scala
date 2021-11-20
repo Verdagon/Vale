@@ -7,7 +7,7 @@ import net.verdagon.vale.templar.env.TemplatasStore.{entryMatchesFilter, entryTo
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.macros.drop.{InterfaceDropMacro, StructDropMacro}
 import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplGeneratedMacro, IOnInterfaceGeneratedMacro, IOnStructGeneratedMacro, StructConstructorMacro}
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
@@ -29,7 +29,7 @@ trait IEnvironment {
 
   def lookupWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata]
@@ -43,7 +43,7 @@ trait IEnvironment {
 
   def lookupAllWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata] = {
     lookupWithImpreciseName(profiler, nameS, lookupFilter, false)
@@ -71,7 +71,7 @@ trait IEnvironment {
 
   def lookupNearestWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Option[ITemplata] = {
     lookupWithImpreciseName(profiler, nameS, lookupFilter, true).toList match {
@@ -93,7 +93,7 @@ trait IEnvironmentBox {
 
   def lookupWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata]
@@ -107,7 +107,7 @@ trait IEnvironmentBox {
 
   def lookupAllWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata]
 
@@ -119,7 +119,7 @@ trait IEnvironmentBox {
 
   def lookupNearestWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Option[ITemplata]
 
@@ -152,7 +152,7 @@ case class GlobalEnvironment(
   // This isn't just packages, structs can have entries here too, because their
   // environments might have things, like a struct's methods might be here.
   // Any particular IEnvironment subclass has a subset of these.
-  nameToTopLevelEnvironment: Map[FullNameT[INameT], TemplatasStore],
+  nameToTopLevelEnvironment: Map[FullNameT[PackageTopLevelNameT], TemplatasStore],
   // Primitives and other builtins
   builtins: TemplatasStore
 )
@@ -357,16 +357,16 @@ object TemplatasStore {
   //    }
   //  }
 
-  def getImpreciseName(name2: INameT): Option[INameS] = {
+  def getImpreciseName(name2: INameT): Option[IImpreciseNameS] = {
     name2 match {
       case CitizenTemplateNameT(humanName) => Some(CodeNameS(humanName))
       case PrimitiveNameT(humanName) => Some(CodeNameS(humanName))
-      case CitizenNameT(humanName, _) => Some(CodeNameS(humanName))
-      case FunctionTemplateNameT(humanName, _) => Some(GlobalFunctionFamilyNameS(humanName))
-      case FunctionNameT(humanName, _, _) => Some(GlobalFunctionFamilyNameS(humanName))
+      case CitizenNameT(templateName, _) => getImpreciseName(templateName)
+      case FunctionTemplateNameT(humanName, _) => Some(CodeNameS(humanName))
+      case FunctionNameT(humanName, _, _) => Some(CodeNameS(humanName))
       case RuneNameT(r) => Some(RuneNameS(r))
 
-      case ImplDeclareNameT(subCitizenHumanName, _) => Some(ImplImpreciseNameS(subCitizenHumanName))
+
 //      case DropTemplateNameT() => Some(CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME))
 //      case ImmConcreteDestructorTemplateNameT() => Some(ImmConcreteDestructorImpreciseNameS())
 //      case ImmInterfaceDestructorTemplateNameT() => Some(ImmInterfaceDestructorImpreciseNameS())
@@ -375,13 +375,32 @@ object TemplatasStore {
       //      case RuneNameT(SolverKindRuneS(_)) => None
       //      case RuneNameT(ReturnRuneS()) => None
       //      case RuneNameT(MemberRuneS(_)) => None
-      case LambdaCitizenNameT(codeLoc) => Some(LambdaStructNameS(LambdaNameS(codeLoc)))
+      case LambdaCitizenNameT(template) => getImpreciseName(template)
+      case LambdaCitizenTemplateNameT(loc) => Some(LambdaStructNameS(LambdaNameS(loc)))
       case ClosureParamNameT() => Some(ClosureParamNameS())
       case SelfNameT() => Some(SelfNameS())
       case ArbitraryNameT() => Some(ArbitraryNameS())
       //      case AnonymousSubstructParentInterfaceRuneS() => None
       case AnonymousSubstructImplNameT() => None
-      //      case MagicImplicitRuneS(_) => None
+      case AnonymousSubstructConstructorTemplateNameT(CitizenTemplateNameT(humanName)) => {
+        Some(CodeNameS(humanName))
+      }
+      case AnonymousSubstructTemplateNameT(ctn) => {
+        getImpreciseName(ctn).map(AnonymousSubstructTemplateImpreciseNameS)
+      }
+      case AnonymousSubstructConstructorTemplateNameT(AnonymousSubstructTemplateNameT(CitizenTemplateNameT(humanName))) => {
+        Some(CodeNameS(humanName))
+      }
+      case AnonymousSubstructNameT(interfaceName, _) => getImpreciseName(interfaceName)
+//      case AnonymousSubstructNameT(interfaceNameT, _) => {
+//        vassert(steps.nonEmpty)
+//
+//      }
+      case ImplDeclareNameT(_) => {
+        // We shouldn't get here, caller shouldn't pass these in. Should instead get the impl
+        // imprecise name from the ImplA or somewhere else.
+        vwat()
+      }
       case other => vimpl(other.toString)
     }
   }
@@ -407,17 +426,17 @@ object TemplatasStore {
 case class TemplatasStore(
   name: FullNameT[INameT],
   // This is the source of truth. Anything in the environment is in here.
-  entriesByNameT: Map[INameT, Vector[IEnvEntry]],
+  entriesByNameT: Map[INameT, IEnvEntry],
   // This is just an index for quick looking up of things by their imprecise name.
   // Not everything in the above entriesByNameT will have something in here.
   // Vector because multiple things can share an INameS; function overloads.
-  entriesByImpreciseNameS: Map[INameS, Vector[IEnvEntry]]
+  entriesByImpreciseNameS: Map[IImpreciseNameS, Vector[IEnvEntry]]
 ) {
   override def hashCode(): Int = vcurious()
 
-  entriesByNameT.values.flatten.foreach({
+  entriesByNameT.values.foreach({
     case FunctionEnvEntry(function) => vassert(function.name.packageCoordinate == name.packageCoord)
-    case StructEnvEntry(struct) => vassert(struct.name.range.file.packageCoordinate == name.packageCoord)
+    case StructEnvEntry(struct) => vassert(struct.range.file.packageCoordinate == name.packageCoord)
     case InterfaceEnvEntry(interface) => vassert(interface.name.range.file.packageCoordinate == name.packageCoord)
     case _ =>
   })
@@ -425,43 +444,42 @@ case class TemplatasStore(
   //  // The above map, indexed by human name. If it has no human name, it won't be in here.
   //  private var entriesByHumanName = Map[String, Vector[IEnvEntry]]()
 
-  def addEntries(newEntries: Map[INameT, Vector[IEnvEntry]]): TemplatasStore = {
+  def addEntries(newEntries: Map[INameT, IEnvEntry]): TemplatasStore = {
     val oldEntries = entriesByNameT
 
-    val combinedEntries =
-      oldEntries ++
-        newEntries ++
-        oldEntries.keySet.intersect(newEntries.keySet)
-          .map(key => (key -> (oldEntries(key) ++ newEntries(key))))
-          .toMap
+    val combinedEntries = oldEntries ++ newEntries
+    vassert(oldEntries.size + newEntries.size == combinedEntries.size)
 
-    newEntries.keys.foreach(newEntryName => {
-      val entriesWithThisName = combinedEntries(newEntryName)
-      val (unflattenedNumTemplatas, unflattenedNumNonTemplatas) =
-        entriesWithThisName
-          .map({
-            case tee @ TemplataEnvEntry(_) => (1, 0)
-            case other => (0, 1)
-          })
-          .unzip
-      val numTemplatas = unflattenedNumTemplatas.sum
-      val numNonTemplatas = unflattenedNumNonTemplatas.sum
-      // Itd be weird to have two templatas directly in this env, there would be
-      // no way to distinguish them.
-      vassert(numTemplatas <= 1)
-      // We dont want both a templata and a non templata directly in this env,
-      // the templata would always take precedence.
-      vassert(numTemplatas == 0 || numNonTemplatas == 0)
-    })
+//    newEntries.keys.foreach(newEntryName => {
+//      val entryWithThisName = combinedEntries(newEntryName)
+//      val (unflattenedNumTemplatas, unflattenedNumNonTemplatas) =
+//        entriesWithThisName
+//          .map({
+//            case tee @ TemplataEnvEntry(_) => (1, 0)
+//            case other => (0, 1)
+//          })
+//          .unzip
+//      val numTemplatas = unflattenedNumTemplatas.sum
+//      val numNonTemplatas = unflattenedNumNonTemplatas.sum
+//      // Itd be weird to have two templatas directly in this env, there would be
+//      // no way to distinguish them.
+//      vassert(numTemplatas <= 1)
+//      // We dont want both a templata and a non templata directly in this env,
+//      // the templata would always take precedence.
+//      vassert(numTemplatas == 0 || numNonTemplatas == 0)
+//    })
 
     val newEntriesByNameS =
       newEntries
         .toVector
-        .map({ case (key, value) => (getImpreciseName(key), value) })
+        .map({
+          case (key, value @ ImplEnvEntry(implA)) => (Some(implA.impreciseName), value)
+          case (key, value) => (getImpreciseName(key), value)
+        })
         .filter(_._1.nonEmpty)
         .map({ case (key, value) => (key.get, value) })
         .groupBy(_._1)
-        .mapValues(_.flatMap(_._2))
+        .mapValues(_.map(_._2))
     vassert(newEntriesByNameS.size <= newEntries.size)
     val combinedEntriesByNameS =
       entriesByImpreciseNameS ++
@@ -469,22 +487,6 @@ case class TemplatasStore(
         entriesByImpreciseNameS.keySet.intersect(newEntriesByNameS.keySet)
           .map(key => (key -> (entriesByImpreciseNameS(key) ++ newEntriesByNameS(key))))
           .toMap
-
-//    val newImplEntriesByStringName =
-//      newEntries
-//        .mapValues({ _.collect({ case i @ ImplEnvEntry(_) => i }) })
-//        .values
-//        .flatten
-//        .toVector
-//        .groupBy(_.impl.name.subCitizenHumanName)
-//        .toMap
-//    vassert(newImplEntriesByStringName.size <= newEntries.size)
-//    val combinedImplEntriesByStringName =
-//      implEntriesBySubCitizenName ++
-//        newImplEntriesByStringName ++
-//        implEntriesBySubCitizenName.keySet.intersect(newImplEntriesByStringName.keySet)
-//          .map(key => (key -> (implEntriesBySubCitizenName(key) ++ newImplEntriesByStringName(key))))
-//          .toMap
 
     TemplatasStore(name, combinedEntries, combinedEntriesByNameS)
   }
@@ -496,7 +498,7 @@ case class TemplatasStore(
 
 
   def addEntry(name: INameT, entry: IEnvEntry): TemplatasStore = {
-    addEntries(Map(name -> Vector(entry)))
+    addEntries(Map(name -> entry))
   }
 
   def lookupWithName(
@@ -506,7 +508,7 @@ case class TemplatasStore(
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata] = {
     profiler.childFrame("lookupWithName", () => {
-      entriesByNameT.getOrElse(name, Vector())
+      entriesByNameT.get(name)
         .filter(entryMatchesFilter(_, lookupFilter))
         .map(entryToTemplata(definingEnv, _))
     })
@@ -515,7 +517,7 @@ case class TemplatasStore(
   def lookupWithImpreciseName(
     definingEnv: IEnvironment,
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata] = {
     profiler.childFrame("lookupWithImpreciseName", () => {
@@ -593,7 +595,7 @@ case class PackageEnvironment[+T <: INameT](
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
@@ -643,7 +645,7 @@ case class CitizenEnvironment[+T <: INameT](
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {

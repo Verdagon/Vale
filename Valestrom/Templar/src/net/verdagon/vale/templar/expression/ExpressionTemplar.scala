@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.DestructorTemplar
 import net.verdagon.vale.templar.function.FunctionTemplar.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
-import net.verdagon.vale.templar.names.{ArbitraryNameT, CitizenNameT, ClosureParamNameT, CodeVarNameT, FullNameT, IVarNameT, NameTranslator, TemplarFunctionResultVarNameT, TemplarTemporaryVarNameT}
+import net.verdagon.vale.templar.names.{ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FullNameT, IVarNameT, NameTranslator, TemplarFunctionResultVarNameT, TemplarTemporaryVarNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 
@@ -349,7 +349,7 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name)),
+              newGlobalFunctionGroupExpression(fate.snapshot, temputs, CodeNameS(name)),
               rules.toVector,
               maybeTemplateArgs.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
@@ -365,7 +365,7 @@ class ExpressionTemplar(
               fate,
               life + 1,
               range,
-              newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name)),
+              newGlobalFunctionGroupExpression(fate.snapshot, temputs, CodeNameS(name)),
               rules.toVector,
               templateArgTemplexesS.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
@@ -376,7 +376,7 @@ class ExpressionTemplar(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life, argsExprs1)
           val callExpr2 =
-            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameS(name), rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
+            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, CodeNameS(name), rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsPackExpr1) => {
@@ -384,7 +384,7 @@ class ExpressionTemplar(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(temputs, fate, life, argsPackExpr1)
           val callExpr2 =
-            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, GlobalFunctionFamilyNameS(name), rules.toVector, Vector(), argsExprs2)
+            callTemplar.evaluateNamedPrefixCall(temputs, fate, range, CodeNameS(name), rules.toVector, Vector(), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, callableExpr1, argsExprs1) => {
@@ -492,14 +492,14 @@ class ExpressionTemplar(
           // not in templata context.
 
           val templataFromEnv =
-            fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS(name), Set(ExpressionLookupContext), false) match {
+            fate.lookupWithImpreciseName(profiler, CodeNameS(name), Set(ExpressionLookupContext), false) match {
               case Vector(BooleanTemplata(value)) => ConstantBoolTE(value)
               case Vector(IntegerTemplata(value)) => ConstantIntTE(value, 32)
               case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplata(_, _) => case ExternFunctionTemplata(_) => }).size == templatas.size => {
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range, "Can't move from globals. Name: " + name))
                 }
-                newGlobalFunctionGroupExpression(fate.snapshot, temputs, GlobalFunctionFamilyNameS(name))
+                newGlobalFunctionGroupExpression(fate.snapshot, temputs, CodeNameS(name))
               }
               case things if things.size > 1 => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, "Found too many different things named \"" + name + "\" in env:\n" + things.map("\n" + _)))
@@ -618,7 +618,7 @@ class ExpressionTemplar(
               case at@StaticSizedArrayTT(_, _) => {
                 arrayTemplar.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
-              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(), CitizenNameT(ProgramT.tupleHumanName, _))) => {
+              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(), CitizenNameT(CitizenTemplateNameT(ProgramT.tupleHumanName), _))) => {
                 indexExpr2 match {
                   case ConstantIntTE(index, _) => {
                     val understructDef = temputs.lookupStruct(at);
@@ -798,7 +798,7 @@ class ExpressionTemplar(
             case PrototypeTemplata(value) => {
               val tinyEnv =
                 fate.functionEnvironment.makeChildBlockEnvironment(None)
-                  .addEntries(Map(ArbitraryNameT() -> Vector(TemplataEnvEntry(PrototypeTemplata(value)))))
+                  .addEntries(Map(ArbitraryNameT() -> TemplataEnvEntry(PrototypeTemplata(value))))
               val expr = newGlobalFunctionGroupExpression(tinyEnv, temputs, ArbitraryNameS())
               (expr, Set())
             }
@@ -1070,7 +1070,7 @@ class ExpressionTemplar(
     val ownOptCoord = CoordT(OwnT, ReadwriteT, optInterfaceRef)
 
     val someConstructorTemplata =
-      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Some"), Set(ExpressionLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("Some"), Set(ExpressionLookupContext), true).toList match {
         case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
@@ -1082,7 +1082,7 @@ class ExpressionTemplar(
       }
 
     val noneConstructorTemplata =
-      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("None"), Set(ExpressionLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("None"), Set(ExpressionLookupContext), true).toList match {
         case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
@@ -1107,7 +1107,7 @@ class ExpressionTemplar(
     val ownResultCoord = CoordT(OwnT, ReadwriteT, resultInterfaceRef)
 
     val okConstructorTemplata =
-      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Ok"), Set(ExpressionLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("Ok"), Set(ExpressionLookupContext), true).toList match {
         case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
@@ -1119,7 +1119,7 @@ class ExpressionTemplar(
       }
 
     val errConstructorTemplata =
-      fate.lookupWithImpreciseName(profiler, GlobalFunctionFamilyNameS("Err"), Set(ExpressionLookupContext), true).toList match {
+      fate.lookupWithImpreciseName(profiler, CodeNameS("Err"), Set(ExpressionLookupContext), true).toList match {
         case List(ft@FunctionTemplata(_, _)) => ft
         case _ => vwat();
       }
@@ -1239,7 +1239,7 @@ class ExpressionTemplar(
     constructExpr2
   }
 
-  private def newGlobalFunctionGroupExpression(env: IEnvironment, temputs: Temputs, name: INameS): ReferenceExpressionTE = {
+  private def newGlobalFunctionGroupExpression(env: IEnvironment, temputs: Temputs, name: IImpreciseNameS): ReferenceExpressionTE = {
     TemplarReinterpretTE(
       sequenceTemplar.makeEmptyTuple(env, temputs),
       CoordT(

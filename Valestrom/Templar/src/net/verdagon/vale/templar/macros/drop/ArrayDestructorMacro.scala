@@ -142,7 +142,7 @@ class ArrayDestructorMacro(
       temputs,
       RangeS.internal(-1676),
 //      if (type2.ownership == ShareT) {
-      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
+      CodeNameS(CallTemplar.DROP_FUNCTION_NAME),
 //      } else {
 //        GlobalFunctionFamilyNameS(CallTemplar.MUT_DROP_FUNCTION_NAME)
 //      },

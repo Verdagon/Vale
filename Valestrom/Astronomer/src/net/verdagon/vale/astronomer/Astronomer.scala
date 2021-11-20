@@ -54,7 +54,7 @@ class Astronomer(globalOptions: GlobalOptions) {
   // Returns whether the imprecise name could be referring to the absolute name.
   // See MINAAN for what we're doing here.
   def impreciseNameMatchesAbsoluteName(
-    needleImpreciseNameS: INameS,
+    needleImpreciseNameS: IImpreciseNameS,
     absoluteName: INameS):
   Boolean = {
     (needleImpreciseNameS, absoluteName) match {
@@ -64,7 +64,7 @@ class Astronomer(globalOptions: GlobalOptions) {
     }
   }
 
-  def lookupTypes(astrouts: Astrouts, env: Environment, needleImpreciseNameS: INameS): Vector[ITemplataType] = {
+  def lookupTypes(astrouts: Astrouts, env: Environment, needleImpreciseNameS: IImpreciseNameS): Vector[ITemplataType] = {
     // See MINAAN for what we're doing here.
 
     // When the scout comes across a lambda, it doesn't put the e.g. main:lam1:__Closure struct into
@@ -72,18 +72,18 @@ class Astronomer(globalOptions: GlobalOptions) {
     // However, this means that when the lambda function gets to the astronomer, the astronomer doesn't
     // know what to do with it.
     needleImpreciseNameS match {
-      case LambdaNameS(_) =>
-      case FunctionNameS(_, _) =>
+//      case LambdaNameS(_) =>
+//      case FunctionNameS(_, _) =>
       case CodeNameS(_) =>
       case RuneNameS(_) =>
-      case TopLevelCitizenDeclarationNameS(_, _) =>
-      case LambdaStructNameS(_) => return Vector(KindTemplataType)
-      case ImplNameS(_, _) => vwat()
-      case LetNameS(_) => vwat()
+//      case TopLevelCitizenDeclarationNameS(_, _) =>
+//      case LambdaStructNameS(_) => return Vector(KindTemplataType)
+//      case ImplNameS(_, _) => vwat()
+//      case LetNameS(_) => vwat()
       //      case UnnamedLocalNameS(_) => vwat()
-      case ClosureParamNameS() => vwat()
-      case MagicParamNameS(_) => vwat()
-      case CodeVarNameS(_) => vwat()
+//      case ClosureParamNameS() => vwat()
+//      case MagicParamNameS(_) => vwat()
+//      case CodeVarNameS(_) => vwat()
     }
 
     needleImpreciseNameS match {
@@ -126,7 +126,7 @@ class Astronomer(globalOptions: GlobalOptions) {
     }
   }
 
-  def lookupType(astrouts: Astrouts,  env: Environment, range: RangeS, name: INameS): ITemplataType = {
+  def lookupType(astrouts: Astrouts,  env: Environment, range: RangeS, name: IImpreciseNameS): ITemplataType = {
     lookupTypes(astrouts, env, name) match {
       case Vector() => ErrorReporter.report(CouldntFindTypeA(range, name))
       case Vector(only) => only
@@ -334,6 +334,8 @@ class Astronomer(globalOptions: GlobalOptions) {
     ImplA(
       rangeS,
       nameS,
+      // Just getting the template name (or the kind name if not template), see INSHN.
+      ImplImpreciseNameS(RuleScout.getRuneKindTemplate(rulesS, structKindRuneS.rune)),
       identifyingRunesS,
       rulesS.toVector,
       runeSToType,
@@ -503,7 +505,7 @@ class Astronomer(globalOptions: GlobalOptions) {
         translateProgram(
           mergedProgramS, primitives, suppliedFunctions, suppliedInterfaces)
 
-      val packageToStructsA = structsA.groupBy(_.name.range.begin.file.packageCoordinate)
+      val packageToStructsA = structsA.groupBy(_.range.begin.file.packageCoordinate)
       val packageToInterfacesA = interfacesA.groupBy(_.name.range.begin.file.packageCoordinate)
       val packageToFunctionsA = functionsA.groupBy(_.name.packageCoordinate)
       val packageToImplsA = implsA.groupBy(_.name.codeLocation.file.packageCoordinate)

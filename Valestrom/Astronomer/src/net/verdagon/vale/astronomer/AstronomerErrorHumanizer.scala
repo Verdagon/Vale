@@ -45,7 +45,7 @@ object AstronomerErrorHumanizer {
           ": internal error: " + message
         }
         case CouldntFindTypeA(range, name) => {
-          ": Couldn't find type `" + ScoutErrorHumanizer.humanizeName(name) + "`:\n"
+          ": Couldn't find type `" + ScoutErrorHumanizer.humanizeImpreciseName(name) + "`:\n"
         }
         case CouldntSolveRulesA(range, err) => {
           ": Couldn't solve generics rules:\n" +

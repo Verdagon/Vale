@@ -101,7 +101,7 @@ object RuneTypeSolver {
 
   private def solveRule(
     state: Unit,
-    env: INameS => ITemplataType,
+    env: IImpreciseNameS => ITemplataType,
     ruleIndex: Int,
     rule: IRulexSR,
     stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
@@ -232,7 +232,7 @@ object RuneTypeSolver {
   def solve(
     sanityCheck: Boolean,
     useOptimizedSolver: Boolean,
-    env: INameS => ITemplataType,
+    env: IImpreciseNameS => ITemplataType,
     range: RangeS,
     predicting: Boolean,
     rules: IndexedSeq[IRulexSR],
@@ -265,16 +265,16 @@ object RuneTypeSolver {
       Solver.makeInitialSolverState(
         sanityCheck, useOptimizedSolver, rules, getRunes, (rule: IRulexSR) => getPuzzles(predicting, rule), initiallyKnownRunes)
     val (steps, conclusions) =
-      Solver.solve[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit](
+      Solver.solve[IRulexSR, IRuneS, IImpreciseNameS => ITemplataType, Unit, ITemplataType, Unit](
         (rule: IRulexSR) => getPuzzles(predicting, rule),
         Unit,
         env,
         solverState,
-        new ISolveRule[IRulexSR, IRuneS, INameS => ITemplataType, Unit, ITemplataType, Unit] {
-          override def complexSolve(state: Unit, env: INameS => ITemplataType, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
+        new ISolveRule[IRulexSR, IRuneS, IImpreciseNameS => ITemplataType, Unit, ITemplataType, Unit] {
+          override def complexSolve(state: Unit, env: IImpreciseNameS => ITemplataType, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
             Ok(())
           }
-          override def solve(state: Unit, env: INameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
+          override def solve(state: Unit, env: IImpreciseNameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
           Result[Unit, ISolverError[IRuneS, ITemplataType, Unit]] = {
             solveRule(state, env, ruleIndex, rule, stepState)
           }

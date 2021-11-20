@@ -4,7 +4,7 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.parser.MutableP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IRuneS, RuneTypeSolver, SelfNameS}
+import net.verdagon.vale.scout.{IImpreciseNameS, IRuneS, RuneTypeSolver, SelfNameS}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, ProgramT, PrototypeT, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import net.verdagon.vale.templar.citizen.{StructTemplar, StructTemplarCore}
@@ -49,7 +49,7 @@ class ArrayTemplar(
       RuneTypeSolver.solve(
         vimpl(),
         vimpl(),
-        nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+        (nameS: IImpreciseNameS) => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
         rulesA,
@@ -239,8 +239,8 @@ class ArrayTemplar(
               .addEntries(
                 Map(
                   FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
-                    Vector(FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74)))),
-                  SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2))))))
+                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74))),
+                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2)))))
         temputs.declareKind(staticSizedArrayType)
         temputs.declareKindEnv(staticSizedArrayType, arrayEnv)
 
@@ -277,8 +277,8 @@ class ArrayTemplar(
               .addEntries(
                 Map(
                   FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
-                    Vector(FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73)))),
-                  SelfNameT() -> Vector(TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))))))
+                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73))),
+                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2)))))
         temputs.declareKind(runtimeSizedArrayType)
         temputs.declareKindEnv(runtimeSizedArrayType, arrayEnv)
 

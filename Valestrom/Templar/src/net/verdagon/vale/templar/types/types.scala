@@ -348,16 +348,12 @@ case class StructTT(fullName: FullNameT[ICitizenNameT]) extends CitizenRefT {
 case class OverloadSet(
   env: IEnvironment,
   // The name to look for in the environment.
-  name: INameS,
+  name: IImpreciseNameS,
   voidStructRef: StructTT
 ) extends KindT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def order: Int = 19;
-
-  if (name == GlobalFunctionFamilyNameS("true")) {
-    vcurious()
-  }
 
 
 }
@@ -384,173 +380,168 @@ case class ParamFilter(
 }
 
 
-object ReferenceComparator extends Ordering[CoordT] {
-  override def compare(a: CoordT, b: CoordT): Int = {
-    val orderDiff = a.ownership.order compare b.ownership.order;
-    if (orderDiff != 0) {
-      orderDiff
-    } else {
-      KindComparator.compare(a.kind, b.kind)
-    }
-  }
-}
+//object ReferenceComparator extends Ordering[CoordT] {
+//  override def compare(a: CoordT, b: CoordT): Int = {
+//    val orderDiff = a.ownership.order compare b.ownership.order;
+//    if (orderDiff != 0) {
+//      orderDiff
+//    } else {
+//      KindComparator.compare(a.kind, b.kind)
+//    }
+//  }
+//}
 
-object KindComparator extends Ordering[KindT] {
-  override def compare(a: KindT, b: KindT): Int = {
-    val orderDiff = a.order compare b.order;
-    if (orderDiff != 0) {
-      orderDiff
-    } else {
-      a match {
-        case IntT(aBits) => {
-          val IntT(bBits) = b
-          aBits compare bBits
-        }
-        case BoolT() => 0
-        case StrT() => 0
-//        case PackTT(innerTypes, underlyingStruct) => compare(underlyingStruct, b.asInstanceOf[PackTT].underlyingStruct)
-        case StructTT(thisFullName) => {
-          val StructTT(thatFullName) = b.asInstanceOf[StructTT];
-          FullNameComparator.compare(thisFullName, thatFullName)
-        }
-        case _ => vfail("wat " + a)
-      }
-    }
-  }
-}
-
-object FullNameComparator extends Ordering[FullNameT[INameT]] {
-  override def compare(a: FullNameT[INameT], b: FullNameT[INameT]): Int = {
-    val aSteps = a.steps
-    val bSteps = b.steps
-
-    if (aSteps.length == 0) {
-      if (bSteps.length == 0) {
-        0
-      } else {
-        -1
-      }
-    } else {
-      if (bSteps.length == 0) {
-        1
-      } else {
-        val humanNameDiff = aSteps.head.order.compare(bSteps.head.order)
-        if (humanNameDiff != 0) {
-          humanNameDiff
-        } else {
-          (aSteps.head, bSteps.head) match {
-            case (ImplDeclareNameT(subCitizenHumanNameS, codeLocationA), ImplDeclareNameT(subCitizenHumanName2, codeLocationB)) => {
-              val nameDiff = subCitizenHumanNameS.compareTo(subCitizenHumanName2)
-              if (nameDiff != 0)
-                return nameDiff
-              compare(codeLocationA, codeLocationB)
-            }
-            case (LetNameT(codeLocationA), LetNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
-            case (UnnamedLocalNameT(codeLocationA), UnnamedLocalNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
-            case (ClosureParamNameT(), ClosureParamNameT()) => 0
-            case (MagicParamNameT(codeLocationA), MagicParamNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
-            case (CodeVarNameT(nameA), CodeVarNameT(nameB)) => nameA.compareTo(nameB)
-            case (FunctionNameT(humanNameS, templateArgsA, parametersA), FunctionNameT(humanNameB, templateArgsB, parametersB)) => {
-              val nameDiff = humanNameS.compareTo(humanNameB)
-              if (nameDiff != 0)
-                return nameDiff
-              val templateArgsDiff = TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
-              if (templateArgsDiff != 0)
-                return templateArgsDiff
-              TemplataTypeListComparator.compare(parametersA.map(CoordTemplata), parametersB.map(CoordTemplata))
-            }
-            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
-              val nameDiff = humanNameS.compareTo(humanNameB)
-              if (nameDiff != 0)
-                return nameDiff
-              TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
-            }
-//            case (TupleNameT(membersA), TupleNameT(membersB)) => {
-//              TemplataTypeListComparator.compare(membersA.map(CoordTemplata), membersB.map(CoordTemplata))
+//object KindComparator extends Ordering[KindT] {
+//  override def compare(a: KindT, b: KindT): Int = {
+//    val orderDiff = a.order compare b.order;
+//    if (orderDiff != 0) {
+//      orderDiff
+//    } else {
+//      a match {
+//        case IntT(aBits) => {
+//          val IntT(bBits) = b
+//          aBits compare bBits
+//        }
+//        case BoolT() => 0
+//        case StrT() => 0
+////        case PackTT(innerTypes, underlyingStruct) => compare(underlyingStruct, b.asInstanceOf[PackTT].underlyingStruct)
+//        case StructTT(thisFullName) => {
+//          val StructTT(thatFullName) = b.asInstanceOf[StructTT];
+//          FullNameComparator.compare(thisFullName, thatFullName)
+//        }
+//        case _ => vfail("wat " + a)
+//      }
+//    }
+//  }
+//}
+//
+//object FullNameComparator extends Ordering[FullNameT[INameT]] {
+//  override def compare(a: FullNameT[INameT], b: FullNameT[INameT]): Int = {
+//    val aSteps = a.steps
+//    val bSteps = b.steps
+//
+//    if (aSteps.length == 0) {
+//      if (bSteps.length == 0) {
+//        0
+//      } else {
+//        -1
+//      }
+//    } else {
+//      if (bSteps.length == 0) {
+//        1
+//      } else {
+//        val humanNameDiff = aSteps.head.order.compare(bSteps.head.order)
+//        if (humanNameDiff != 0) {
+//          humanNameDiff
+//        } else {
+//          (aSteps.head, bSteps.head) match {
+//            case (ImplDeclareNameT(codeLocationA), ImplDeclareNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
+//            case (LetNameT(codeLocationA), LetNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
+//            case (UnnamedLocalNameT(codeLocationA), UnnamedLocalNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
+//            case (ClosureParamNameT(), ClosureParamNameT()) => 0
+//            case (MagicParamNameT(codeLocationA), MagicParamNameT(codeLocationB)) => compare(codeLocationA, codeLocationB)
+//            case (CodeVarNameT(nameA), CodeVarNameT(nameB)) => nameA.compareTo(nameB)
+//            case (FunctionNameT(humanNameS, templateArgsA, parametersA), FunctionNameT(humanNameB, templateArgsB, parametersB)) => {
+//              val nameDiff = humanNameS.compareTo(humanNameB)
+//              if (nameDiff != 0)
+//                return nameDiff
+//              val templateArgsDiff = TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
+//              if (templateArgsDiff != 0)
+//                return templateArgsDiff
+//              TemplataTypeListComparator.compare(parametersA.map(CoordTemplata), parametersB.map(CoordTemplata))
 //            }
-            case (LambdaCitizenNameT(codeLocationA), LambdaCitizenNameT(codeLocationB)) => {
-              compare(codeLocationA, codeLocationB)
-            }
-            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
-              val nameDiff = humanNameS.compareTo(humanNameB)
-              if (nameDiff != 0)
-                return nameDiff
-              TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
-            }
-          }
-        }
-      }
-    }
-  }
-
-  def compare(a: CodeLocationS, b: CodeLocationS): Int = {
-    val fileDiff = a.file.compareTo(b.file)
-    if (fileDiff != 0)
-      return fileDiff
-    a.offset.compareTo(b.offset)
-  }
-}
-
-object TemplataTypeComparator extends Ordering[ITemplata] {
-  override def compare(a: ITemplata, b: ITemplata):Int = {
-    if (a.order != b.order) {
-      Math.signum(a.order - b.order).toInt
-    } else {
-      (a, b) match {
-        case _ => vfail("impl")
-//        case (StructTemplateTemplata(struct1A), StructTemplateTemplata(struct1B)) => {
-//          Math.signum(struct1A.struct1Id - struct1B.struct1Id).toInt
+//            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
+//              val nameDiff = humanNameS.compareTo(humanNameB)
+//              if (nameDiff != 0)
+//                return nameDiff
+//              TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
+//            }
+////            case (TupleNameT(membersA), TupleNameT(membersB)) => {
+////              TemplataTypeListComparator.compare(membersA.map(CoordTemplata), membersB.map(CoordTemplata))
+////            }
+//            case (LambdaCitizenNameT(codeLocationA), LambdaCitizenNameT(codeLocationB)) => {
+//              compare(codeLocationA, codeLocationB)
+//            }
+//            case (CitizenNameT(humanNameS, templateArgsA), CitizenNameT(humanNameB, templateArgsB)) => {
+//              val nameDiff = humanNameS.compareTo(humanNameB)
+//              if (nameDiff != 0)
+//                return nameDiff
+//              TemplataTypeListComparator.compare(templateArgsA, templateArgsB)
+//            }
+//          }
 //        }
-//        case (InterfaceTemplateTemplata(interface1A), InterfaceTemplateTemplata(interface1B)) => {
-//          Math.signum(interface1A.interface1Id - interface1B.interface1Id).toInt
+//      }
+//    }
+//  }
+//
+//  def compare(a: CodeLocationS, b: CodeLocationS): Int = {
+//    val fileDiff = a.file.compareTo(b.file)
+//    if (fileDiff != 0)
+//      return fileDiff
+//    a.offset.compareTo(b.offset)
+//  }
+//}
+
+//object TemplataTypeComparator extends Ordering[ITemplata] {
+//  override def compare(a: ITemplata, b: ITemplata):Int = {
+//    if (a.order != b.order) {
+//      Math.signum(a.order - b.order).toInt
+//    } else {
+//      (a, b) match {
+//        case _ => vfail("impl")
+////        case (StructTemplateTemplata(struct1A), StructTemplateTemplata(struct1B)) => {
+////          Math.signum(struct1A.struct1Id - struct1B.struct1Id).toInt
+////        }
+////        case (InterfaceTemplateTemplata(interface1A), InterfaceTemplateTemplata(interface1B)) => {
+////          Math.signum(interface1A.interface1Id - interface1B.interface1Id).toInt
+////        }
+//      }
+//    }
+//  }
+//}
+
+//object ReferenceListComparator extends Ordering[Vector[CoordT]] {
+//  override def compare(a: Vector[CoordT], b: Vector[CoordT]):Int = {
+//    if (a.length == 0) {
+//      if (b.length == 0) {
+//        0
+//      } else {
+//        -1
+//      }
+//    } else {
+//      if (b.length == 0) {
+//        1
+//      } else {
+//        val firstDiff = ReferenceComparator.compare(a.head, b.head);
+//        if (firstDiff != 0) {
+//          firstDiff
+//        } else {
+//          compare(a.tail, b.tail)
 //        }
-      }
-    }
-  }
-}
+//      }
+//    }
+//  }
+//}
 
-object ReferenceListComparator extends Ordering[Vector[CoordT]] {
-  override def compare(a: Vector[CoordT], b: Vector[CoordT]):Int = {
-    if (a.length == 0) {
-      if (b.length == 0) {
-        0
-      } else {
-        -1
-      }
-    } else {
-      if (b.length == 0) {
-        1
-      } else {
-        val firstDiff = ReferenceComparator.compare(a.head, b.head);
-        if (firstDiff != 0) {
-          firstDiff
-        } else {
-          compare(a.tail, b.tail)
-        }
-      }
-    }
-  }
-}
-
-object TemplataTypeListComparator extends Ordering[Vector[ITemplata]] {
-  override def compare(a: Vector[ITemplata], b: Vector[ITemplata]):Int = {
-    if (a.length == 0) {
-      if (b.length == 0) {
-        0
-      } else {
-        -1
-      }
-    } else {
-      if (b.length == 0) {
-        1
-      } else {
-        val firstDiff = TemplataTypeComparator.compare(a.head, b.head);
-        if (firstDiff != 0) {
-          firstDiff
-        } else {
-          compare(a.tail, b.tail)
-        }
-      }
-    }
-  }
-}
+//object TemplataTypeListComparator extends Ordering[Vector[ITemplata]] {
+//  override def compare(a: Vector[ITemplata], b: Vector[ITemplata]):Int = {
+//    if (a.length == 0) {
+//      if (b.length == 0) {
+//        0
+//      } else {
+//        -1
+//      }
+//    } else {
+//      if (b.length == 0) {
+//        1
+//      } else {
+//        val firstDiff = TemplataTypeComparator.compare(a.head, b.head);
+//        if (firstDiff != 0) {
+//          firstDiff
+//        } else {
+//          compare(a.tail, b.tail)
+//        }
+//      }
+//    }
+//  }
+//}

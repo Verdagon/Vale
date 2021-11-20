@@ -14,7 +14,7 @@ import net.verdagon.vale.templar.ast.{FunctionBannerT, FunctionHeaderT, Location
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.function.FunctionTemplar.IEvaluateFunctionResult
-import net.verdagon.vale.templar.names.{LambdaCitizenNameT, NameTranslator}
+import net.verdagon.vale.templar.names.{LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 
 import scala.collection.immutable.{List, Set}
 
@@ -212,7 +212,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
+              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -245,7 +245,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
+              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -288,7 +288,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
+              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -454,7 +454,7 @@ class FunctionTemplar(
   IEvaluateFunctionResult[PrototypeT] = {
     val lambdaCitizenName2 =
       function.name match {
-        case LambdaNameS(codeLocation) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
+        case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
         case _ => vwat()
       }
     val KindTemplata(closureStructRef @ StructTT(_)) =

@@ -26,13 +26,16 @@ trait IStructTemplarDelegate {
     functionTemplata: FunctionTemplata):
   FunctionHeaderT
 
-  def evaluateTemplatedFunctionFromNonCallForHeader(temputs: Temputs, functionTemplata: FunctionTemplata): FunctionHeaderT
+  def evaluateTemplatedFunctionFromNonCallForHeader(
+    temputs: Temputs,
+    functionTemplata: FunctionTemplata):
+  FunctionHeaderT
 
   def scoutExpectedFunctionForPrototype(
     env: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
-    functionName: INameS,
+    functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[ParamFilter],

@@ -332,9 +332,8 @@ class FunctionTemplarClosureOrLightLayer(
     outerEnv: IEnvironment,
     functionName: IFunctionDeclarationNameS
   ): FullNameT[BuildingFunctionNameWithClosuredsT] = {
-    outerEnv.fullName.addStep(
-      BuildingFunctionNameWithClosuredsT(
-        NameTranslator.translateFunctionNameToTemplateName(functionName)))
+    val templateName = NameTranslator.translateFunctionNameToTemplateName(functionName)
+    outerEnv.fullName.addStep(BuildingFunctionNameWithClosuredsT(templateName))
   }
 
   private def checkNotClosure(function: FunctionA) = {
@@ -348,7 +347,7 @@ class FunctionTemplarClosureOrLightLayer(
   }
 
   private def makeClosureVariablesAndEntries(temputs: Temputs, closureStructRef: StructTT):
-  (Vector[IVariableT], Map[INameT, Vector[IEnvEntry]]) = {
+  (Vector[IVariableT], Map[INameT, IEnvEntry]) = {
     val closureStructDef = temputs.lookupStruct(closureStructRef);
     val variables =
       closureStructDef.members.map(member => {
@@ -363,9 +362,9 @@ class FunctionTemplarClosureOrLightLayer(
         }
       })
     val entries =
-      Map[INameT, Vector[IEnvEntry]](
+      Map[INameT, IEnvEntry](
         closureStructRef.fullName.last ->
-          Vector(TemplataEnvEntry(KindTemplata(closureStructRef))))
+          TemplataEnvEntry(KindTemplata(closureStructRef)))
     (variables, entries)
   }
 }

@@ -6,7 +6,7 @@ import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnv
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env.{IEnvironment, IEnvironmentBox, TemplataLookupContext}
-import net.verdagon.vale.templar.names.{CitizenNameT, INameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, CitizenNameT, INameT, NameTranslator}
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
@@ -343,7 +343,7 @@ class TemplataTemplar(
     env: IEnvironment,
     temputs: Temputs,
     range: RangeS,
-    name: INameS):
+    name: IImpreciseNameS):
   (ITemplata) = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructTemplar to figure out its members.
@@ -482,46 +482,40 @@ class TemplataTemplar(
 //  }
 
   def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata): Boolean = {
-    val (citizenTemplateNameInitSteps, citizenTemplateName) =
+    val citizenTemplateFullName =
       expectedCitizenTemplata match {
-        case StructTemplata(env, originStruct) => (env.fullName.steps, originStruct.name.name)
-        case InterfaceTemplata(env, originInterface) => (env.fullName.steps, originInterface.name.name)
+        case StructTemplata(env, originStruct) => {
+          env.fullName.addStep(NameTranslator.translateCitizenName(originStruct.name))
+        }
+        case InterfaceTemplata(env, originInterface) => {
+          env.fullName.addStep(NameTranslator.translateCitizenName(originInterface.name))
+        }
         case KindTemplata(expectedKind) => return actualCitizenRef == expectedKind
         case CoordTemplata(CoordT(OwnT | ShareT, ReadonlyT, actualKind)) => return actualCitizenRef == actualKind
         case _ => return false
       }
-    if (actualCitizenRef.fullName.initSteps != citizenTemplateNameInitSteps) {
+    if (actualCitizenRef.fullName.initSteps != citizenTemplateFullName.initSteps) {
       // Packages dont match, bail
       return false
     }
-    actualCitizenRef.fullName.last match {
-      case CitizenNameT(humanName, templateArgs) => {
-        if (humanName != citizenTemplateName) {
-          // Names dont match, bail
-          return false
-        }
-      }
-//      case TupleNameT(_) => return false
-      case _ => vwat()
-    }
-    return true
+    citizenTemplateFullName.last == actualCitizenRef.fullName.last.template
   }
 
-  def citizenMatchesTemplata(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata, expectedCitizenTemplateArgs: Vector[ITemplata]): (Boolean) = {
-    vassert(expectedCitizenTemplateArgs.isEmpty) // implement
-
-    if (!citizenIsFromTemplate(actualCitizenRef, expectedCitizenTemplata)) {
-      return false
-    }
-
-    if (actualCitizenRef.fullName.last.templateArgs.nonEmpty) {
-      // This function doesnt support template args yet (hence above assert)
-      // If the actualCitizenRef has template args, it sure doesnt match the template when its made with no args.
-      return false
-    }
-
-    return true
-  }
+//  def citizenMatchesTemplata(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata, expectedCitizenTemplateArgs: Vector[ITemplata]): (Boolean) = {
+//    vassert(expectedCitizenTemplateArgs.isEmpty) // implement
+//
+//    if (!citizenIsFromTemplate(actualCitizenRef, expectedCitizenTemplata)) {
+//      return false
+//    }
+//
+//    if (actualCitizenRef.fullName.last.templateArgs.nonEmpty) {
+//      // This function doesnt support template args yet (hence above assert)
+//      // If the actualCitizenRef has template args, it sure doesnt match the template when its made with no args.
+//      return false
+//    }
+//
+//    return true
+//  }
 
 }
 

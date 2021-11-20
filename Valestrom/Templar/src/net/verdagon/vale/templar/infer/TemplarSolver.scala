@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.infer
 import net.verdagon.vale._
 import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.{ConstraintP, ShareP}
-import net.verdagon.vale.scout.{ArgumentRuneS, CodeNameS, CoordTemplataType, INameS, IRuneS, ITemplataType, KindTemplataType, RuneNameS}
+import net.verdagon.vale.scout.{ArgumentRuneS, CodeNameS, CoordTemplataType, IImpreciseNameS, INameS, IRuneS, ITemplataType, KindTemplataType, RuneNameS}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import net.verdagon.vale.templar.ast.PrototypeT
@@ -23,10 +23,13 @@ case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extend
 case class ReceivingDifferentPermissions(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITemplarSolverError
 case class NoCommonAncestors(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
+case class NoAncestorsSatisfyCall(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
 case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITemplarSolverError
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITemplarSolverError
 case class PermissionDidntMatch(coord: CoordT, expectedPermission: PermissionT) extends ITemplarSolverError
-case class CallResultWasntExpectedType(expected: ITemplata, actual: ITemplata) extends ITemplarSolverError
+case class CallResultWasntExpectedType(expected: ITemplata, actual: ITemplata) extends ITemplarSolverError {
+  vpass()
+}
 case class OneOfFailed(rule: OneOfSR) extends ITemplarSolverError
 case class KindDoesntImplementInterface(sub: CitizenRefT, suuper: InterfaceTT) extends ITemplarSolverError
 
@@ -43,7 +46,7 @@ trait IInfererDelegate[Env, State] {
 
   def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata
 
-  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: INameS): ITemplata
+  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): ITemplata
 
   def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata
 
@@ -140,7 +143,7 @@ class TemplarSolver[Env, State](
     rule match {
       // This means we can solve this puzzle and dont need anything to do it.
       case LookupSR(_, _, _) => Array(Array())
-      case RuneParentEnvLookupSR(_, _) => Array(Array())
+      case RuneParentEnvLookupSR(_, rune) => Array(Array())
       case CallSR(range, resultRune, templateRune, args) => {
         Array(
           Array(resultRune.rune, templateRune.rune),
@@ -389,8 +392,9 @@ class TemplarSolver[Env, State](
         Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
-        stepState.concludeRune[ITemplarSolverError](rune.rune, result)
+        // This rule does nothing. Not sure why we have it.
+//        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
+//        stepState.concludeRune[ITemplarSolverError](rune.rune, result)
         Ok(())
       }
       case AugmentSR(_, resultRune, literals, innerRune) => {
@@ -783,7 +787,9 @@ class TemplarSolver[Env, State](
 
           val narrowedCommonAncestor =
             if (commonAncestorsCallConstrained.size == 0) {
-              vwat() // impossible
+              // If we get here, it means we passed in a bunch of nonsense that doesn't match our Call rules.
+              // For example, passing in a Some<T> when a List<T> is expected.
+              return Err(NoAncestorsSatisfyCall(senders))
             } else if (commonAncestorsCallConstrained.size == 1) {
               // If we get here, it doesn't matter if there are any other senders or calls, we know
               // it has to be this.
@@ -866,44 +872,5 @@ class TemplarSolver[Env, State](
         }
       }
     }
-  }
-}
-
-class Equivalencies(rules: IndexedSeq[IRulexSR]) {
-  val runeToKindEquivalentRunes: mutable.HashMap[IRuneS, mutable.HashSet[IRuneS]] = mutable.HashMap()
-  def markKindEquivalent(runeA: IRuneS, runeB: IRuneS): Unit = {
-    runeToKindEquivalentRunes.getOrElseUpdate(runeA, mutable.HashSet()) += runeB
-    runeToKindEquivalentRunes.getOrElseUpdate(runeB, mutable.HashSet()) += runeA
-  }
-  rules.foreach({
-    case CoordComponentsSR(_, resultRune, _, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
-    case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
-    case CallSR(range, resultRune, templateRune, args) =>
-    case CoordIsaSR(range, subRune, superRune) =>
-    case CoordSendSR(range, senderRune, receiverRune) =>
-    case AugmentSR(range, resultRune, literal, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
-    case other => vimpl(other)
-  })
-
-  private def findTransitivelyEquivalentInto(foundSoFar: mutable.HashSet[IRuneS], rune: IRuneS): Unit = {
-    runeToKindEquivalentRunes.getOrElse(rune, Vector()).foreach(r => {
-      if (!foundSoFar.contains(r)) {
-        foundSoFar += r
-        findTransitivelyEquivalentInto(foundSoFar, r)
-      }
-    })
-  }
-
-  def getKindEquivalentRunes(rune: IRuneS): Set[IRuneS] = {
-    val set = mutable.HashSet[IRuneS]()
-    set += rune
-    findTransitivelyEquivalentInto(set, rune)
-    set.toSet
-  }
-
-  def getKindEquivalentRunes(runes: Iterable[IRuneS]): Set[IRuneS] = {
-    runes
-      .map(getKindEquivalentRunes)
-      .foldLeft(Set[IRuneS]())(_ ++ _)
   }
 }

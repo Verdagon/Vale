@@ -122,8 +122,8 @@ object MutateHammer {
     val structTT =
       structExpr2.resultRegister.reference.kind match {
         case sr @ StructTT(_) => sr
-        case TupleTT(_, sr) => sr
-        case PackTT(_, sr) => sr
+//        case TupleTT(_, sr) => sr
+//        case PackTT(_, sr) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
@@ -193,7 +193,7 @@ object MutateHammer {
         .indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
 
-    val structDefH = hamuts.structDefsByRef2(structTT)
+    val structDefH = hamuts.structDefsByRefT(structTT)
 
     // We're storing into a regular reference member of a struct.
     val storeNode =

@@ -9,7 +9,7 @@ import net.verdagon.vale.templar.ast.{ConstantIntTE, FunctionCallTE, KindExportT
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
-import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.types._
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
@@ -28,13 +28,13 @@ class TemplarSolverTests extends FunSuite with Matchers {
 
 
   test("Humanize errors") {
-    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Firefly", Vector())))
+    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("Firefly"), Vector())))
     val fireflyCoord = CoordT(OwnT,ReadwriteT,fireflyKind)
-    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Serenity", Vector())))
+    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("Serenity"), Vector())))
     val serenityCoord = CoordT(OwnT,ReadwriteT,serenityKind)
-    val ispaceshipKind = InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("ISpaceship", Vector())))
+    val ispaceshipKind = InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("ISpaceship"), Vector())))
     val ispaceshipCoord = CoordT(OwnT,ReadwriteT,ispaceshipKind)
-    val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT("Spoon", Vector())))
+    val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("Spoon"), Vector())))
     val unrelatedCoord = CoordT(OwnT,ReadwriteT,unrelatedKind)
     val fireflySignature = SignatureT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("myFunc", Vector(), Vector(fireflyCoord))))
     val fireflyExport = KindExportT(RangeS.testZero, fireflyKind, PackageCoordinate.TEST_TLD, "Firefly");
@@ -93,14 +93,15 @@ class TemplarSolverTests extends FunSuite with Matchers {
               ImplicitRuneS(LocationInDenizen(Vector(7)))))))
     println(errorText)
     vassert(errorText.nonEmpty)
-    vassert(errorText.contains("\n  A:       ^ own"))
-    vassert(errorText.contains("\n  I:  ^ (unknown)"))
-    vassert(errorText.contains("\n  _7:                            ^^^^^^^^^^^^^^^^^^^ (unknown)"))
+    vassert(errorText.contains("\n           ^ A: own"))
+    vassert(errorText.contains("\n      ^ I: (unknown)"))
+    vassert(errorText.contains("\n                                 ^^^^^^^^^^^^^^^^^^^ _7: (unknown)"))
   }
 
   test("Simple int rule") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |fn main() rules(N int = 3) int export {
         |  N
         |}
@@ -113,6 +114,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Equals transitive") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |fn main() rules(N int = 3, M int = N) int export {
         |  M
         |}
@@ -125,6 +127,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("OneOf") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |fn main() rules(N int = 2 | 3 | 4, N = 3) int export {
         |  N
         |}
@@ -137,6 +140,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Components") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct MyStruct export { }
         |fn main()
         |rules(
@@ -156,6 +160,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Prototype rule") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |fn moo(i int, b bool) str { "hello" }
         |fn main()
         |rules(
@@ -174,6 +179,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Send struct to struct") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct MyStruct {}
         |fn moo(m MyStruct) { }
         |fn main() export {
@@ -187,6 +193,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Send struct to interface") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct MyStruct {}
         |interface MyInterface {}
         |impl MyInterface for MyStruct;
@@ -202,6 +209,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Assume most specific generic param") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct MyStruct {}
         |interface MyInterface {}
         |impl MyInterface for MyStruct;
@@ -221,6 +229,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Assume most specific common ancestor") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |interface IShip {}
         |struct Firefly {}
         |impl IShip for Firefly;
@@ -247,6 +256,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Descendant satisfying call") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |interface IShip<T> rules(T Ref) {}
         |struct Firefly<T> rules(T Ref) {}
         |impl<T> IShip<T> for Firefly<T>;
@@ -267,6 +277,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Reports incomplete solve") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |fn main() rules(N int) int export {
         |  M
         |}
@@ -283,6 +294,7 @@ class TemplarSolverTests extends FunSuite with Matchers {
   test("Stamps an interface template via a function return") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |interface MyInterface<X> rules(X Ref) { }
         |
         |struct SomeStruct<X> rules(X Ref) { x X; }

@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.names
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout._
 import net.verdagon.vale.templar.types.CitizenRefT
-import net.verdagon.vale.{CodeLocationS, vimpl, vwat}
+import net.verdagon.vale.{CodeLocationS, vassert, vimpl, vwat}
 
 object NameTranslator {
   def translateFunctionNameToTemplateName(functionName: IFunctionDeclarationNameS): IFunctionTemplateNameT = {
@@ -19,6 +19,9 @@ object NameTranslator {
       }
       case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, codeLocation)) => {
         FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation.begin))
+      }
+      case ConstructorNameS(thing @ AnonymousSubstructTemplateNameS(_)) => {
+        AnonymousSubstructConstructorTemplateNameT(translateCitizenName(thing))
       }
     }
   }
@@ -83,36 +86,27 @@ object NameTranslator {
   //    FullName2(file, initS.map(translateNameStep), translateNameStep(lastS))
   //  }
 
-  def translateCitizenName(name: TopLevelCitizenDeclarationNameS): CitizenTemplateNameT = {
-    val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = name
-    CitizenTemplateNameT(humanName)//, NameTranslator.translateCodeLocation(codeLocation.begin))
+  def translateCitizenName(name: ICitizenDeclarationNameS): ICitizenTemplateNameT = {
+    name match {
+      case TopLevelCitizenDeclarationNameS(humanName, codeLocation) => {
+        CitizenTemplateNameT(humanName)
+      }
+      case AnonymousSubstructTemplateNameS(interfaceName) => {
+        // Now strip it off, stuff it inside our new name. See LNASC.
+        AnonymousSubstructTemplateNameT(translateCitizenName(interfaceName))
+      }
+    }
   }
 
   def translateNameStep(name: INameS): INameT = {
     name match {
-      //      case LambdaNameS(codeLocation) => LambdaName2(codeLocation)
-      //      case FunctionNameS(name, codeLocation) => FunctionName2(name, codeLocation)
-      //      case TopLevelCitizenDeclarationNameS(name, codeLocation) => TopLevelCitizenDeclarationName2(name, codeLocation)
-      case CodeNameS(n@("int" | "str")) => PrimitiveNameT(n)
-      case LambdaStructNameS(LambdaNameS(codeLocation)) => LambdaCitizenNameT(NameTranslator.translateCodeLocation(codeLocation))
-      case ImplNameS(subCitizenHumanName, codeLocation) => ImplDeclareNameT(subCitizenHumanName, translateCodeLocation(codeLocation))
+      case LambdaStructNameS(LambdaNameS(codeLocation)) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
       case LetNameS(codeLocation) => LetNameT(translateCodeLocation(codeLocation))
       case ExportAsNameS(codeLocation) => ExportAsNameT(translateCodeLocation(codeLocation))
-      //      case UnnamedLocalNameS(codeLocation) => UnnamedLocalNameT(translateCodeLocation(codeLocation))
       case ClosureParamNameS() => ClosureParamNameT()
       case MagicParamNameS(codeLocation) => MagicParamNameT(translateCodeLocation(codeLocation))
       case CodeVarNameS(name) => CodeVarNameT(name)
-      //      case ImplicitRuneS(parentName, name) => ImplicitRuneT(translateNameStep(parentName), name)
       case t@TopLevelCitizenDeclarationNameS(_, _) => translateCitizenName(t)
-      //      case CodeRuneS(name) => CodeRuneT(name)
-      //      case MagicImplicitRuneS(codeLocationS) => MagicImplicitRuneT(codeLocationS)
-      //      case AnonymousSubstructParentInterfaceRuneS() => AnonymousSubstructParentInterfaceRuneT()
-      //      case LetImplicitRuneS(codeLocation, name) => LetImplicitRuneT(translateCodeLocation(codeLocation), name)
-      //      case ImplicitRuneS(name) => ImplicitRune2(name)
-      //      case MagicImplicitRuneS(magicParamIndex) => MagicImplicitRune2(magicParamIndex)
-      //      case MemberRuneS(memberIndex) => MemberRuneT(memberIndex)
-      //      case ReturnRuneS() => ReturnRuneT()
-
       case LambdaNameS(codeLocation) => {
         LambdaTemplateNameT(NameTranslator.translateCodeLocation(codeLocation))
       }
@@ -122,7 +116,33 @@ object NameTranslator {
       case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, codeLocation)) => {
         FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation.begin))
       }
+      case ConstructorNameS(astn @ AnonymousSubstructTemplateNameS(_)) => {
+        // See LNASC.
+        AnonymousSubstructConstructorTemplateNameT(translateCitizenName(astn))
+      }
+      case AnonymousSubstructTemplateNameS(tlcd) => {
+        // See LNASC.
+        AnonymousSubstructTemplateNameT(translateCitizenName(tlcd))
+      }
+      case ImplDeclarationNameS(codeLocation) => {
+        ImplDeclareNameT(codeLocation)
+      }
       case _ => vimpl(name.toString)
+      //      case LambdaNameS(codeLocation) => LambdaName2(codeLocation)
+      //      case FunctionNameS(name, codeLocation) => FunctionName2(name, codeLocation)
+      //      case TopLevelCitizenDeclarationNameS(name, codeLocation) => TopLevelCitizenDeclarationName2(name, codeLocation)
+      //      case CodeNameS(n@("int" | "str")) => PrimitiveNameT(n)
+      //      case ImplNameS(subCitizenName, codeLocation) => ImplDeclareNameT(translateNameStep(subCitizenName), translateCodeLocation(codeLocation))
+      //      case UnnamedLocalNameS(codeLocation) => UnnamedLocalNameT(translateCodeLocation(codeLocation))
+      //      case ImplicitRuneS(parentName, name) => ImplicitRuneT(translateNameStep(parentName), name)
+      //      case CodeRuneS(name) => CodeRuneT(name)
+      //      case MagicImplicitRuneS(codeLocationS) => MagicImplicitRuneT(codeLocationS)
+      //      case AnonymousSubstructParentInterfaceRuneS() => AnonymousSubstructParentInterfaceRuneT()
+      //      case LetImplicitRuneS(codeLocation, name) => LetImplicitRuneT(translateCodeLocation(codeLocation), name)
+      //      case ImplicitRuneS(name) => ImplicitRune2(name)
+      //      case MagicImplicitRuneS(magicParamIndex) => MagicImplicitRune2(magicParamIndex)
+      //      case MemberRuneS(memberIndex) => MemberRuneT(memberIndex)
+      //      case ReturnRuneS() => ReturnRuneT()
     }
   }
 
@@ -135,6 +155,7 @@ object NameTranslator {
     name match {
       //      case UnnamedLocalNameS(codeLocation) => UnnamedLocalNameT(translateCodeLocation(codeLocation))
       case ClosureParamNameS() => ClosureParamNameT()
+      case SelfNameS() => SelfNameT()
       case MagicParamNameS(codeLocation) => MagicParamNameT(translateCodeLocation(codeLocation))
       case ConstructingMemberNameS(n) => ConstructingMemberNameT(n)
       case CodeVarNameS(name) => CodeVarNameT(name)
@@ -159,27 +180,27 @@ object NameTranslator {
   //    }
   //  }
 
-  def translateImplName(n: ImplNameS): ImplDeclareNameT = {
-    val ImplNameS(subCitizenHumanName, l) = n
-    ImplDeclareNameT(subCitizenHumanName, translateCodeLocation(l))
+  def translateImplName(n: ImplDeclarationNameS): ImplDeclareNameT = {
+    val ImplDeclarationNameS(l) = n
+    ImplDeclareNameT(translateCodeLocation(l))
   }
 
-  def getImplNameForNameInner(nameSteps: Vector[INameT]): Option[ImplImpreciseNameS] = {
-    nameSteps.last match {
-      case CitizenNameT(humanName, templateArgs) => Some(ImplImpreciseNameS(humanName))
-//      case TupleNameT(_) => None
-      case LambdaCitizenNameT(_) => None
-      case AnonymousSubstructNameT(_) => {
-        // Use the paren'ts name, see INSHN.
-        getImplNameForNameInner(nameSteps.init)
-      }
-      case _ => vwat()
-    }
-  }
-
-  // Gets the name of an impl that would be for this citizen.
-  // Returns None if it can't be in an impl.
-  def getImplNameForName(ref: CitizenRefT): Option[ImplImpreciseNameS] = {
-    getImplNameForNameInner(ref.fullName.steps)
-  }
+//  def getImplNameForNameInner(name: INameT): Option[ImplImpreciseNameS] = {
+//    name match {
+//      case CitizenNameT(humanName, templateArgs) => Some(ImplImpreciseNameS(humanName))
+////      case TupleNameT(_) => None
+//      case LambdaCitizenNameT(_) => None
+//      case AnonymousSubstructNameT(interfaceName, _) => {
+//        // Use the paren'ts name, see INSHN.
+//        getImplNameForNameInner(interfaceName)
+//      }
+//      case _ => vwat()
+//    }
+//  }
+//
+//  // Gets the name of an impl that would be for this citizen.
+//  // Returns None if it can't be in an impl.
+//  def getImplNameForName(ref: CitizenRefT): Option[ImplImpreciseNameS] = {
+//    getImplNameForNameInner(ref.fullName.last)
+//  }
 }

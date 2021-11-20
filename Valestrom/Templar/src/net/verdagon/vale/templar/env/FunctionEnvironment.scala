@@ -1,7 +1,7 @@
 package net.verdagon.vale.templar.env
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{BlockSE, INameS, LocalS}
+import net.verdagon.vale.scout.{BlockSE, IImpreciseNameS, INameS, LocalS}
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, INameT, IVarNameT}
 import net.verdagon.vale.templar.templata.ITemplata
@@ -40,7 +40,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
@@ -79,7 +79,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
@@ -150,7 +150,7 @@ case class FunctionEnvironment(
       declaredLocals,
       unstackifiedLocals)
   }
-  def addEntries(newEntries: Map[INameT, Vector[IEnvEntry]]): FunctionEnvironment = {
+  def addEntries(newEntries: Map[INameT, IEnvEntry]): FunctionEnvironment = {
     FunctionEnvironment(
       globalEnv,
       parentEnv,
@@ -175,7 +175,7 @@ case class FunctionEnvironment(
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
@@ -241,13 +241,13 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def addEntry(name: INameT, entry: IEnvEntry): Unit = {
     functionEnvironment = functionEnvironment.addEntry(name, entry)
   }
-  def addEntries(newEntries: Map[INameT, Vector[IEnvEntry]]): Unit= {
+  def addEntries(newEntries: Map[INameT, IEnvEntry]): Unit= {
     functionEnvironment = functionEnvironment.addEntries(newEntries)
   }
 
   override def lookupWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {
@@ -265,7 +265,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
   override def lookupAllWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata] = {
     functionEnvironment.lookupAllWithImpreciseName(profiler, nameS, lookupFilter)
@@ -281,7 +281,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
   override def lookupNearestWithImpreciseName(
     profiler: IProfiler,
-    nameS: INameS,
+    nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Option[ITemplata] = {
     functionEnvironment.lookupNearestWithImpreciseName(profiler, nameS, lookupFilter)
@@ -398,7 +398,7 @@ object EnvironmentHelper {
     templatas: TemplatasStore,
     parent: IEnvironment,
     profiler: IProfiler,
-    name: INameS,
+    name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
   Iterable[ITemplata] = {

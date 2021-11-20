@@ -53,7 +53,7 @@ case class Hinputs(
   def lookupStruct(humanName: String): StructDefinitionT = {
     val matches = structs.filter(s => {
       s.fullName.last match {
-        case CitizenNameT(n, _) if n == humanName => true
+        case CitizenNameT(CitizenTemplateNameT(n), _) if n == humanName => true
         case _ => false
       }
     })
@@ -72,7 +72,7 @@ case class Hinputs(
   def lookupInterface(humanName: String): InterfaceDefinitionT = {
     val matches = interfaces.filter(s => {
       s.fullName.last match {
-        case CitizenNameT(n, _) if n == humanName => true
+        case CitizenNameT(CitizenTemplateNameT(n), _) if n == humanName => true
         case _ => false
       }
     })

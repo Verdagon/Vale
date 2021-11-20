@@ -21,6 +21,7 @@ class TemplarOwnershipTests extends FunSuite with Matchers {
   test("Parenthesized method syntax will move instead of borrow") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct Bork { a int; }
         |fn consumeBork(bork Bork) int {
         |  ret bork.a;

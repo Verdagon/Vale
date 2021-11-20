@@ -19,6 +19,12 @@ case class FullNameT[+T <: INameT](
   // PackageTopLevelName2 is just here because names have to have a last step.
   vassert(!initSteps.contains(PackageTopLevelNameT()))
 
+  vassert(!initSteps.exists({
+    case AnonymousSubstructTemplateNameT(_) => true
+    case _ => false
+  }))
+  vcurious(initSteps.distinct == initSteps)
+
   this match {
     case FullNameT(PackageCoordinate.TEST_TLD, Vector(), FunctionNameT("main", Vector(), Vector())) =>
     case _ =>
@@ -86,14 +92,21 @@ sealed trait INameT  {
   def order: Int
 }
 sealed trait ITemplateNameT extends INameT
+sealed trait IFunctionTemplateNameT extends ITemplateNameT {
+  def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT
+}
 sealed trait IFunctionNameT extends INameT {
   def templateArgs: Vector[ITemplata]
   def parameters: Vector[CoordT]
 }
+sealed trait ICitizenTemplateNameT extends ITemplateNameT {
+  def makeCitizenName(templateArgs: Vector[ITemplata]): ICitizenNameT
+}
 sealed trait ICitizenNameT extends INameT {
+  def template: ICitizenTemplateNameT
   def templateArgs: Vector[ITemplata]
 }
-case class ImplDeclareNameT(subCitizenHumanName: String, codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 1;  }
+case class ImplDeclareNameT(codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 1;  }
 case class LetNameT(codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2;  }
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; def order = 2;  }
 
@@ -195,9 +208,7 @@ case class FunctionNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   def order = 13;
-
 }
-sealed trait IFunctionTemplateNameT extends INameT
 
 case class FunctionTemplateNameT(
     humanName: String,
@@ -206,6 +217,8 @@ case class FunctionTemplateNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 31;
 
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
+
 }
 case class LambdaTemplateNameT(
   codeLocation: CodeLocationS
@@ -213,12 +226,16 @@ case class LambdaTemplateNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 36;
 
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
+
 }
 case class ConstructorTemplateNameT(
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 35;
+
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
 
 }
 //case class ImmConcreteDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
@@ -237,7 +254,7 @@ case class ConstructorTemplateNameT(
 //}
 // Vale has no Self, its just a convenient first name parameter.
 // See also SelfNameS.
-case class SelfNameT() extends INameT {
+case class SelfNameT() extends IVarNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 55;
 }
@@ -276,7 +293,7 @@ case class ConstructorNameT(
 //  }
 //}
 case class CitizenNameT(
-  humanName: String,
+  template: ICitizenTemplateNameT,
   templateArgs: Vector[ITemplata]
 ) extends ICitizenNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -293,8 +310,22 @@ case class CitizenNameT(
 //  def order = 16;
 //
 //}
-case class LambdaCitizenNameT(
+case class LambdaCitizenTemplateNameT(
   codeLocation: CodeLocationS
+) extends ICitizenTemplateNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  vpass()
+
+  def templateArgs: Vector[ITemplata] = Vector.empty
+  def order = 17;
+
+  override def makeCitizenName(templateArgs: Vector[ITemplata]): ICitizenNameT = {
+    vassert(templateArgs.isEmpty)
+    LambdaCitizenNameT(this)
+  }
+}
+case class LambdaCitizenNameT(
+  template: LambdaCitizenTemplateNameT
 ) extends ICitizenNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
@@ -303,8 +334,22 @@ case class LambdaCitizenNameT(
   def order = 17;
 
 }
-case class AnonymousSubstructLambdaNameT(
+case class AnonymousSubstructLambdaTemplateNameT(
   codeLocation: CodeLocationS
+) extends ICitizenTemplateNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  vpass()
+
+  def templateArgs: Vector[ITemplata] = Vector.empty
+  def order = 54;
+
+  override def makeCitizenName(templateArgs: Vector[ITemplata]): ICitizenNameT = {
+    vassert(templateArgs.isEmpty)
+    AnonymousSubstructLambdaNameT(this)
+  }
+}
+case class AnonymousSubstructLambdaNameT(
+  template: AnonymousSubstructLambdaTemplateNameT
 ) extends ICitizenNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
@@ -321,20 +366,57 @@ case class CitizenTemplateNameT(
   // - It makes it easier to determine the CitizenTemplateNameT from a CitizenNameT which doesn't
   //   remember its code location.
   //codeLocation: CodeLocationS
-) extends ITemplateNameT {
+) extends ICitizenTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 30;
 
-
-  def makeCitizenName(templateArgs: Vector[ITemplata]): CitizenNameT = {
-    CitizenNameT(humanName, templateArgs)
+  override def makeCitizenName(templateArgs: Vector[ITemplata]): ICitizenNameT = {
+    CitizenNameT(this, templateArgs)
   }
 }
-case class AnonymousSubstructNameT(callables: Vector[CoordT]) extends ICitizenNameT {
+case class AnonymousSubstructTemplateNameT(
+  // This happens to be the same thing that appears before this AnonymousSubstructNameT in a FullNameT.
+  // This is really only here to help us calculate the imprecise name for this thing.
+  interface: ICitizenTemplateNameT
+) extends ICitizenTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 27;
-  def templateArgs: Vector[ITemplata] = callables.map(CoordTemplata)
 
+  interface match {
+    case AnonymousSubstructTemplateNameT(_) => vwat()
+    case _ =>
+  }
+
+  override def makeCitizenName(templateArgs: Vector[ITemplata]): ICitizenNameT = {
+    AnonymousSubstructNameT(this, templateArgs)
+  }
+}
+case class AnonymousSubstructConstructorTemplateNameT(
+  substruct: ICitizenTemplateNameT
+) extends IFunctionTemplateNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 27;
+
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+    AnonymousSubstructConstructorNameT(templateArgs, params)
+  }
+}
+case class AnonymousSubstructConstructorNameT(
+  templateArgs: Vector[ITemplata],
+  parameters: Vector[CoordT]
+) extends IFunctionNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 27;
+}
+case class AnonymousSubstructNameT(
+  // This happens to be the same thing that appears before this AnonymousSubstructNameT in a FullNameT.
+  // This is really only here to help us calculate the imprecise name for this thing.
+  template: AnonymousSubstructTemplateNameT,
+  templateArgs: Vector[ITemplata]
+) extends ICitizenNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 27;
+//  def templateArgs: Vector[ITemplata] = callables.map(CoordTemplata)
 }
 case class AnonymousSubstructImplNameT() extends INameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;

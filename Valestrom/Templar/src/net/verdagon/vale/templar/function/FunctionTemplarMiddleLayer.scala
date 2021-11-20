@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructConstructorTemplateNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -333,6 +333,7 @@ class FunctionTemplarMiddleLayer(
         case ConstructorTemplateNameT(_) => vimpl() // no idea
         case FunctionTemplateNameT(humanName, _) => FunctionNameT(humanName, templateArgs, params)
         case LambdaTemplateNameT(_) => FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, templateArgs, params)
+        case AnonymousSubstructConstructorTemplateNameT(template) => AnonymousSubstructConstructorNameT(templateArgs, params)
 //        case ImmConcreteDestructorTemplateNameT() => {
 //          val Vector(CoordT(ShareT, ReadonlyT, immRef)) = params
 //          ImmConcreteDestructorNameT(immRef)

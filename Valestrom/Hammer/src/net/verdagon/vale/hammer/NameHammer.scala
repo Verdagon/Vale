@@ -1,7 +1,7 @@
 package net.verdagon.vale.hammer
 
 import net.verdagon.vale.metal._
-import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceRuneS, CodeRuneS, ExplicitTemplateArgRuneS}
+import net.verdagon.vale.scout.{AnonymousSubstructParentInterfaceTemplateRuneS, CodeRuneS, ExplicitTemplateArgRuneS}
 import net.verdagon.vale.templar.{Hinputs, _}
 import net.verdagon.vale.templar.env.{IEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.names._
@@ -32,7 +32,7 @@ object NameHammer {
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
       case BuildingFunctionNameWithClosuredsAndTemplateArgsT(_, _) => vwat() // Shouldnt see this in hammer
       case CitizenNameT(humanName, templateArgs) => humanName
-      case CitizenTemplateNameT(humanName, codeLocation) => humanName
+      case CitizenTemplateNameT(humanName) => humanName
       case ClosureParamNameT() => "closure"
 //      case CodeRuneS(name) => name
       case CodeVarNameT(name) => name
@@ -69,7 +69,7 @@ object NameHammer {
       case TemplarPatternDestructureeNameT(num) => "patDestrName" + num
       case TemplarPatternMemberNameT(life) => "patMemName" + life
       case TemplarTemporaryVarNameT(num) => "tempVarName" + num
-      case TupleNameT(members) => "Tup" + members.size
+//      case TupleNameT(members) => "Tup" + members.size
       case RuntimeSizedArrayNameT(arr) => "rsa"
       case UnnamedLocalNameT(codeLoc) => "unnamedLocal"
     }

@@ -145,14 +145,14 @@ object Scout {
     Ok(tyype)
   }
 
-  def getHumanName(templex: ITemplexPT): String = {
+  def getHumanName(templex: ITemplexPT): IImpreciseNameS = {
     templex match {
       //      case NullablePT(_, inner) => getHumanName(inner)
       case InlinePT(_, inner) => getHumanName(inner)
       //      case PermissionedPT(_, permission, inner) => getHumanName(inner)
       case InterpretedPT(_, ownership, permission, inner) => getHumanName(inner)
       case AnonymousRunePT(_) => vwat()
-      case NameOrRunePT(NameP(_, name)) => name
+      case NameOrRunePT(NameP(_, name)) => CodeNameS(name)
       case CallPT(_, template, args) => getHumanName(template)
       case RepeaterSequencePT(_, mutability, variability, size, element) => vwat()
       case ManualSequencePT(_, members) => vwat()
@@ -208,7 +208,7 @@ class Scout(globalOptions: GlobalOptions) {
     val templateRulesP = maybeTemplateRulesP.toVector.flatMap(_.rules)
 
     val codeLocation = Scout.evalPos(file, range.begin)
-    val implName = ImplNameS(Scout.getHumanName(struct), codeLocation)
+    val implName = ImplDeclarationNameS(codeLocation)
 
     val identifyingRunes =
       identifyingRuneNames

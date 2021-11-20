@@ -35,10 +35,10 @@ class StructTemplarTemplateArgsLayer(
   (StructTT) = {
     profiler.newProfile("getStructRef", structTemplata.debugString + "<" + templateArgs.map(_.toString).mkString(", ") + ">", () => {
       val StructTemplata(env, structA) = structTemplata
-      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = structA.name
       val structTemplateName = NameTranslator.translateCitizenName(structA.name)
-      val structLastName = structTemplateName.makeCitizenName(templateArgs)
-      val fullName = env.fullName.addStep(structLastName)
+      val structName = structTemplateName.makeCitizenName(templateArgs)
+      val fullName = env.fullName.addStep(structName)
+//      val fullName = env.fullName.addStep(structLastName)
 
       temputs.structDeclared(fullName) match {
         case Some(structTT) => {
@@ -90,10 +90,10 @@ class StructTemplarTemplateArgsLayer(
   (InterfaceTT) = {
     profiler.newProfile("getInterfaceRef", interfaceTemplata.debugString + "<" + templateArgs.map(_.toString).mkString(", ") + ">", () => {
       val InterfaceTemplata(env, interfaceA) = interfaceTemplata
-      val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
       val interfaceTemplateName = NameTranslator.translateCitizenName(interfaceA.name)
-      val interfaceLastName = interfaceTemplateName.makeCitizenName(templateArgs)
-      val fullName = env.fullName.addStep(interfaceLastName)
+      val interfaceName = interfaceTemplateName.makeCitizenName(templateArgs)
+      val fullName = env.fullName.addStep(interfaceName)
+//      val fullName = env.fullName.addStep(interfaceLastName)
 
       temputs.interfaceDeclared(fullName) match {
         case Some(interfaceTT) => {

@@ -21,12 +21,12 @@ class StructConstructorMacro(
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
   override def getStructChildEntries(structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)] = {
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
 
   override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)] = {
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     if (structA.members.collect({ case VariadicStructMemberS(_, _, _) => }).nonEmpty) {
       // Dont generate constructors for variadic structs, not supported yet.
       // Only one we have right now is tuple, which has its own special syntax for constructing.
@@ -34,28 +34,28 @@ class StructConstructorMacro(
     }
     val functionA = defineConstructorFunction(structA)
     Vector(
-      NameTranslator.translateNameStep(functionA.name) ->
+      structName.copy(last = NameTranslator.translateNameStep(functionA.name)) ->
         FunctionEnvEntry(functionA))
   }
 
   private def defineConstructorFunction(structA: StructA):
   FunctionA = {
-    profiler.newProfile("StructTemplarGetConstructor", structA.name.name, () => {
+    profiler.newProfile("StructTemplarGetConstructor", structA.name.toString, () => {
       val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
       runeToType ++= structA.runeToType
 
       val rules = mutable.ArrayBuffer[IRulexSR]()
       rules ++= structA.rules
 
-      val retRune = RuneUsage(structA.name.range, ReturnRuneS())
+      val retRune = RuneUsage(structA.range, ReturnRuneS())
       runeToType += (retRune.rune -> CoordTemplataType)
       if (structA.isTemplate) {
         val structNameRune = StructNameRuneS(structA.name)
         runeToType += (structNameRune -> structA.tyype)
-        rules += LookupSR(structA.range, RuneUsage(structA.name.range, structNameRune), CodeNameS(structA.name.name))
+        rules += LookupSR(structA.range, RuneUsage(structA.range, structNameRune), structA.name.getImpreciseName)
         rules += CallSR(structA.range, retRune, RuneUsage(structA.range, structNameRune), structA.identifyingRunes.toArray)
       } else {
-        rules += LookupSR(structA.range, retRune, CodeNameS(structA.name.name))
+        rules += LookupSR(structA.range, retRune, structA.name.getImpreciseName)
       }
 
       val params =

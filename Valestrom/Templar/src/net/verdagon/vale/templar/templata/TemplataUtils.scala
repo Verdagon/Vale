@@ -9,7 +9,7 @@ object simpleName {
 //  }
   def unapply(fullName: FullNameT[INameT]): Option[String] = {
     fullName.last match {
-      case ImplDeclareNameT(_, _) => None
+      case ImplDeclareNameT(_) => None
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
       case ClosureParamNameT() => None
@@ -26,7 +26,7 @@ object simpleName {
 //      case CitizenName2(humanName, _) => Some(humanName)
 //      case TupleNameT(_) => None
       case LambdaCitizenNameT(_) => None
-      case CitizenNameT(humanName, _) => Some(humanName)
+      case CitizenNameT(CitizenTemplateNameT(humanName), _) => Some(humanName)
 //      case ImmConcreteDestructorNameT(_) => None
 //      case ImmInterfaceDestructorNameT(_, _) => None
     }

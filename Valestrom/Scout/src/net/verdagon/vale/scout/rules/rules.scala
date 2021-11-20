@@ -135,7 +135,7 @@ case class LiteralSR(
 case class LookupSR(
   range: RangeS,
   rune: RuneUsage,
-  name: INameS
+  name: IImpreciseNameS
 ) extends IRulexSR {
   override def hashCode(): Int = vcurious()
   vpass()

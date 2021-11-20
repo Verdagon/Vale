@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.expression
 
-import net.verdagon.vale.scout.{GlobalFunctionFamilyNameS, IRuneS}
+import net.verdagon.vale.scout.{CodeNameS, GlobalFunctionFamilyNameS, IImpreciseNameS, IRuneS}
 import net.verdagon.vale.scout.rules.IRulexSR
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.env.{FunctionEnvironment, FunctionEnvironmentBox}
@@ -111,7 +111,7 @@ class CallTemplar(
     temputs: Temputs,
     fate: FunctionEnvironment,
     range: RangeS,
-    functionName: GlobalFunctionFamilyNameS,
+    functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     givenArgsExprs2: Vector[ReferenceExpressionTE]):
@@ -204,7 +204,7 @@ class CallTemplar(
         argsTypes2.map(argType => ParamFilter(argType, None))
     val prototype2 =
       overloadTemplar.findFunction(
-        env, temputs, range, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false)
+        env, temputs, range, CodeNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false)
 
     val mutability = Templar.getMutability(temputs, citizenRef)
     val ownership = if (mutability == MutableT) ConstraintT else ShareT
@@ -285,7 +285,7 @@ class CallTemplar(
     temputs: Temputs,
     fate: FunctionEnvironmentBox,
     rangeS: RangeS,
-    functionName: GlobalFunctionFamilyNameS,
+    functionName: IImpreciseNameS,
     rules: Vector[IRulexSR],
     templateArgs: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):

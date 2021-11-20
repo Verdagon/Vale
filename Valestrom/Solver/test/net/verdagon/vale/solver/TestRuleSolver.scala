@@ -91,12 +91,15 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
         stepState.getConclusion(coordRune) match {
           case Some(combined) => {
             val Array(ownership, kind) = combined.split("/")
-            Ok(Map(ownershipRune -> ownership, kindRune -> kind))
+            stepState.concludeRune(ownershipRune, ownership)
+            stepState.concludeRune(kindRune, kind)
+            Ok(())
           }
           case None => {
             (stepState.getConclusion(ownershipRune), stepState.getConclusion(kindRune)) match {
               case (Some(ownership), Some(kind)) => {
-                Ok(Map(coordRune -> (ownership + "/" + kind)))
+                stepState.concludeRune(coordRune, ownership + "/" + kind)
+                Ok(())
               }
               case _ => vfail()
             }
@@ -107,11 +110,15 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
         stepState.getConclusion(resultRune) match {
           case Some(result) => {
             val parts = result.split(",")
-            Ok(memberRunes.zip(parts).toMap)
+            memberRunes.zip(parts).foreach({ case (rune, part) =>
+              stepState.concludeRune(rune, part)
+            })
+            Ok(())
           }
           case None => {
             val result = memberRunes.map(stepState.getConclusion).map(_.get).mkString(",")
-            Ok(Map(resultRune -> result))
+            stepState.concludeRune(resultRune, result)
+            Ok(())
           }
         }
       }
@@ -123,9 +130,13 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
           case (Some(result), Some(templateName), _) => {
             val prefix = templateName + ":"
             vassert(result.startsWith(prefix))
-            Ok(Map(argRune -> result.slice(prefix.length, result.length)))
+            stepState.concludeRune(argRune, result.slice(prefix.length, result.length))
+            Ok(())
           }
-          case (_, Some(templateName), Some(arg)) => Ok(Map(resultRune -> (templateName + ":" + arg)))
+          case (_, Some(templateName), Some(arg)) => {
+            stepState.concludeRune(resultRune, (templateName + ":" + arg))
+            Ok(())
+          }
           case other => vwat(other)
         }
       }
@@ -144,10 +155,10 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
         val sub = vassertSome(stepState.getConclusion(subRune))
         val suuper = vassertSome(stepState.getConclusion(superRune))
         (sub, suuper) match {
-          case (x, y) if x == y => Ok(Map())
-          case ("Firefly", "ISpaceship") => Ok(Map())
-          case ("Serenity", "ISpaceship") => Ok(Map())
-          case ("Flamethrower:int", "IWeapon:int") => Ok(Map())
+          case (x, y) if x == y => Ok(())
+          case ("Firefly", "ISpaceship") => Ok(())
+          case ("Serenity", "ISpaceship") => Ok(())
+          case ("Flamethrower:int", "IWeapon:int") => Ok(())
           case other => vimpl(other)
         }
       }
