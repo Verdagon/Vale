@@ -137,6 +137,18 @@ object RuleScout {
 
         RuneUsage(evalRange(range), argRune.rune)
       }
+      case BuiltinCallPR(range, NameP(_, "implements"), args) => {
+        vassert(args.length == 2)
+        val Vector(structRule, interfaceRule) = args
+        val structRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, structRule)
+        runeToExplicitType.put(structRune.rune, CoordTemplataType)
+        val interfaceRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, interfaceRule)
+        runeToExplicitType.put(interfaceRune.rune, CoordTemplataType)
+
+        builder += CoordIsaSR(evalRange(range), structRune, interfaceRune)
+
+        RuneUsage(evalRange(range), structRune.rune)
+      }
       case BuiltinCallPR(range, NameP(_, "refListCompoundMutability"), args) => {
         vassert(args.length == 1)
         val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)

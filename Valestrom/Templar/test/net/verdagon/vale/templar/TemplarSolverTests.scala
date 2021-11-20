@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale._
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
-import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, RuleError, Step}
+import net.verdagon.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, WrongNumberOfArguments}
 import net.verdagon.vale.templar.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
 import net.verdagon.vale.templar.env.ReferenceLocalVariableT
@@ -310,5 +310,179 @@ class TemplarSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val temputs = compile.expectTemputs()
+  }
+
+  test("Constraint becomes share if kind is immutable") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |struct SomeStruct imm { i int; }
+        |
+        |fn bork(x &SomeStruct) int {
+        |  x.i
+        |}
+        |
+        |fn main() int export {
+        |  bork(SomeStruct(7))
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("bork").header.params.head.tyype.ownership shouldEqual ShareT
+  }
+
+  test("Detects conflict between types") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |struct ShipA {}
+        |struct ShipB {}
+        |fn main() rules(N Kind = ShipA, N Kind = ShipB) export {
+        |}
+        |""".stripMargin
+    )
+    compile.getTemputs() match {
+      case Err(TemplarSolverError(_, FailedSolve(_, _, SolverConflict(_, KindTemplata(StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT("ShipA"),_)))), KindTemplata(StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT("ShipB"),_)))))))) =>
+      case Err(TemplarSolverError(_, FailedSolve(_, _, SolverConflict(_, KindTemplata(StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT("ShipB"),_)))), KindTemplata(StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT("ShipA"),_)))))))) =>
+      case other => vfail(other)
+    }
+  }
+
+  test("Can match KindTemplataType against StructEnvEntry / StructTemplata") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |struct SomeStruct<T> { x T; }
+        |
+        |fn bork<X, Z>() Z
+        |rules(X Kind = SomeStruct<int>, X = SomeStruct<Z>) {
+        |  9
+        |}
+        |
+        |fn main() int export {
+        |  bork()
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("bork").header.fullName.last.templateArgs.last shouldEqual CoordTemplata(CoordT(ShareT, ReadonlyT, IntT(32)))
+  }
+
+  test("Can turn a borrow coord into an owning coord") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |struct SomeStruct { }
+        |
+        |fn bork<T>(x T) ^T {
+        |  SomeStruct()
+        |}
+        |
+        |fn main() export {
+        |  bork(SomeStruct());
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("bork").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(OwnT, _, _)) =>
+    }
+  }
+
+  test("Can destructure and assemble tuple") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |fn swap<T, Y>(x [T, Y]) [Y, T] {
+        |  (a, b) = x;
+        |  ret [b, a];
+        |}
+        |
+        |fn main() bool export {
+        |  swap([5, true]).0
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(ShareT, ReadonlyT, BoolT())) =>
+    }
+  }
+
+  test("Can destructure and assemble static sized array") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |import v.builtins.arrays.*;
+        |
+        |fn swap<N, T>(x [N * T]) [N * T] {
+        |  (a, b) = x;
+        |  ret [][b, a];
+        |}
+        |
+        |fn main() int export {
+        |  swap([][5, 7]).0
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(ShareT, ReadonlyT, IntT(32))) =>
+    }
+  }
+
+  test("Impl rule") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |interface IShip {
+        |  fn getFuel(virtual self &IShip) int;
+        |}
+        |struct Firefly {}
+        |fn getFuel(self &Firefly impl IShip) int { 7 }
+        |impl IShip for Firefly;
+        |
+        |fn genericGetFuel<T>(x T) int
+        |rules(implements(T, IShip)) {
+        |  x.getFuel()
+        |}
+        |
+        |fn main() int export {
+        |  genericGetFuel(Firefly())
+        |}
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("genericGetFuel").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(_,_,StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT("Firefly"),_))))) =>
+    }
+  }
+
+  test("Prototype rule to get return type") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |import v.builtins.panic.*;
+        |
+        |fn moo(i int, b bool) str { "hello" }
+        |
+        |fn main()
+        |rules(
+        |  mooFunc Prot("moo", (int, bool), R Ref))
+        |R export {
+        |  __vbi_panic()
+        |}
+        |
+        |""".stripMargin
+    )
+    val temputs = compile.expectTemputs()
+    temputs.lookupFunction("main").header.returnType match {
+      case CoordT(_,_,StrT()) =>
+    }
   }
 }

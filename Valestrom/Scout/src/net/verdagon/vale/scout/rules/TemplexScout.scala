@@ -157,10 +157,24 @@ object TemplexScout {
           }
           case ManualSequencePT(range, elements) => {
             val resultRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-            ManualSequenceSR(
-              evalRange(range),
-              resultRuneS,
-              elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+            val templateRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+            val packRuneS = RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+            ruleBuilder +=
+              LookupSR(
+                evalRange(range),
+                templateRuneS,
+                CodeNameS("Tup"))
+            ruleBuilder +=
+              CallSR(
+                evalRange(range),
+                resultRuneS,
+                templateRuneS,
+                Array(packRuneS))
+            ruleBuilder +=
+              PackSR(
+                evalRange(range),
+                packRuneS,
+                elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
             resultRuneS
           }
         }
