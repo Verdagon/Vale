@@ -103,13 +103,13 @@ object StructHammer {
         structDefT.mutability match {
           case MutableT => None
           case ImmutableT => {
-            if (structTT != ProgramT.emptyTupleStructRef) {
-              vassertSome(
-                hinputs.functions.find(function => {
-                  vimpl()
-                  //function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
-                }))
-            }
+            vimpl()
+//            if (structTT != ProgramT.emptyTupleStructRef) {
+//              vassertSome(
+//                hinputs.functions.find(function => {
+//                  function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
+//                }))
+//            }
           }
         }
 
@@ -137,7 +137,7 @@ object StructHammer {
   (StructRefH) = {
     val boxFullName2 = FullNameT(PackageCoordinate.BUILTIN, Vector.empty, CitizenNameT(BOX_HUMAN_NAME, Vector(CoordTemplata(type2))))
     val boxFullNameH = NameHammer.translateFullName(hinputs, hamuts, boxFullName2)
-    hamuts.structDefsByRef2.find(_._2.fullName == boxFullNameH) match {
+    hamuts.structDefsByRefT.find(_._2.fullName == boxFullNameH) match {
       case Some((_, structDefH)) => (structDefH.getRef)
       case None => {
         val temporaryStructRefH = StructRefH(boxFullNameH);

@@ -1,6 +1,6 @@
 package net.verdagon.vale.hammer
 
-import net.verdagon.vale.hammer.NameHammer.translateFileCoordinate
+import net.verdagon.vale.hammer.NameHammer.{translateFileCoordinate, translateFullName}
 import net.verdagon.vale.metal._
 import net.verdagon.vale.{CodeLocationS, PackageCoordinate, vassert, vfail, vimpl, metal => m}
 import net.verdagon.vale.scout._
@@ -925,7 +925,7 @@ object VonHammer {
             VonMember("envName", vonifyTemplarName(hinputs, hamuts, env.fullName)),
             VonMember(
               "function",
-              translateName(hinputs, hamuts, ft.getTemplateName()))))
+              translateFullName(hinputs, hamuts, ft.getTemplateName()))))
       }
       case st @ StructTemplata(env, struct) => {
         VonObject(
@@ -933,7 +933,7 @@ object VonHammer {
           None,
           Vector(
             VonMember("envName", vonifyTemplarName(hinputs, hamuts, env.fullName)),
-            VonMember("structName", translateName(hinputs, hamuts, st.getTemplateName()))))
+            VonMember("structName", translateName(hinputs, hamuts, NameTranslator.translateCitizenName(st.originStruct.name)))))
       }
       case it @ InterfaceTemplata(env, interface) => {
         VonObject(
@@ -1215,20 +1215,20 @@ object VonHammer {
                   .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
                   .toVector))))
       }
-      case TupleNameT(members) => {
-        VonObject(
-          "Tup",
-          None,
-          Vector(
-            VonMember(
-              "members",
-              VonArray(
-                None,
-                members
-                  .map(coord => TypeHammer.translateReference(hinputs, hamuts, coord))
-                  .map(vonifyCoord)
-                  .toVector))))
-      }
+//      case TupleNameT(members) => {
+//        VonObject(
+//          "Tup",
+//          None,
+//          Vector(
+//            VonMember(
+//              "members",
+//              VonArray(
+//                None,
+//                members
+//                  .map(coord => TypeHammer.translateReference(hinputs, hamuts, coord))
+//                  .map(vonifyCoord)
+//                  .toVector))))
+//      }
       case LambdaCitizenNameT(codeLocation) => {
         VonObject(
           "LambdaCitizenName",
@@ -1236,13 +1236,13 @@ object VonHammer {
           Vector(
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case CitizenTemplateNameT(humanName, codeLocation) => {
+      case CitizenTemplateNameT(humanName) => {
         VonObject(
           "CitizenTemplateName",
           None,
           Vector(
-            VonMember(humanName, VonStr(humanName)),
-            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+            VonMember(humanName, VonStr(humanName))))
+//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
       case AnonymousSubstructNameT(callables) => {
         VonObject(

@@ -1,6 +1,8 @@
 package net.verdagon.vale.templar.citizen
 
-import net.verdagon.vale.astronomer.ImplA
+import net.verdagon.vale.astronomer.{ImplA, ImplImpreciseNameS}
+import net.verdagon.vale.scout.rules.Equivalencies
+import net.verdagon.vale.solver.SolverErrorHumanizer
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar._
@@ -33,7 +35,7 @@ class AncestorHelper(
     implTemplata: ImplTemplata):
   (Option[InterfaceTT]) = {
     val ImplTemplata(env, impl) = implTemplata
-    val ImplA(range, codeLocation, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
+    val ImplA(range, name, impreciseName, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
 
     val result =
       profiler.childFrame("getMaybeImplementedInterface", () => {
@@ -62,7 +64,7 @@ class AncestorHelper(
           }
           case it @ InterfaceTemplata(_, _) => {
             val interfaceTT =
-              delegate.getInterfaceRef(temputs, vimpl(), it, Vector.empty)
+              delegate.getInterfaceRef(temputs, RangeS.internal(-1875), it, Vector.empty)
             (Some(interfaceTT))
           }
         }
@@ -74,10 +76,11 @@ class AncestorHelper(
     temputs: Temputs,
     childCitizenRef: CitizenRefT):
   (Vector[InterfaceTT]) = {
+    // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
     val needleImplName =
-      NameTranslator.getImplNameForName(childCitizenRef) match {
+      TemplatasStore.getImpreciseName(childCitizenRef.fullName.last) match {
         case None => return Vector.empty
-        case Some(x) => x
+        case Some(x) => ImplImpreciseNameS(x)
       }
 
     val citizenEnv =

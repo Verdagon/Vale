@@ -6,7 +6,7 @@ import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.UseP
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, INameS, IRuneS, ITemplataType, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeNameS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, ITemplataType, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, ConsecutorTE, EdgeT, FunctionCallTE, FunctionHeaderT, FunctionT, IsSameInstanceTE, LocationInFunctionEnvironment, LockWeakTE, ParameterT, ProgramT, PrototypeT, ReferenceExpressionTE, ReturnTE}
@@ -155,7 +155,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
           templataTemplar.coerce(state, range, templata, toType)
         }
 
-        override def lookupTemplataImprecise(env: IEnvironment, state: Temputs, range: RangeS, name: INameS): ITemplata = {
+        override def lookupTemplataImprecise(env: IEnvironment, state: Temputs, range: RangeS, name: IImpreciseNameS): ITemplata = {
           templataTemplar.lookupTemplata(env, state, range, name)
         }
 
@@ -279,7 +279,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
 
         override def resolveExactSignature(env: IEnvironment, state: Temputs, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {
           profiler.childFrame("InferTemplarDelegate.resolveExactSignature", () => {
-            overloadTemplar.findFunction(env, state, range, GlobalFunctionFamilyNameS(name), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
+            overloadTemplar.findFunction(env, state, range, CodeNameS(name), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
           })
         }
       })
@@ -315,7 +315,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: INameS,
+          env: IEnvironment, temputs: Temputs, callRange: RangeS, functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
           args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
@@ -425,62 +425,41 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val interfaceDropMacro = new InterfaceDropMacro(overloadTemplar)
   val abstractBodyMacro = new AbstractBodyMacro()
   val anonymousInterfaceMacro =
-    new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro)
+    new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
     try {
       profiler.newProfile("Templar.evaluate", "", () => {
-        val packageAndNamespaceAndNameAndEnvEntry: Vector[(PackageCoordinate, Vector[INameT], INameT, IEnvEntry)] =
+        val fullNameAndEnvEntry: Vector[(FullNameT[INameT], IEnvEntry)] =
           packageToProgramA.flatMap({ case (coord, programA) =>
+            val packageName = FullNameT(coord, Vector(), PackageTopLevelNameT())
             programA.structs.map(structA => {
-              val structNameT = NameTranslator.translateNameStep(structA.name)
-              Vector((
-                coord,
-                Vector(),
-                structNameT,
-                StructEnvEntry(structA))) ++
-              structConstructorMacro.getStructSiblingEntries(FullNameT(coord, Vector(), structNameT), structA)
-                .map({ case (last, envEntry) => (coord, Vector(), last, envEntry) })
+              val structNameT = packageName.addStep(NameTranslator.translateNameStep(structA.name))
+              Vector((structNameT, StructEnvEntry(structA))) ++
+              structConstructorMacro.getStructSiblingEntries(structNameT, structA)
             }) ++
             programA.interfaces.map(interfaceA => {
-              Vector((
-                coord,
-                Vector(),
-                NameTranslator.translateNameStep(interfaceA.name),
-                InterfaceEnvEntry(interfaceA)))
-//                  ++
-//                    anonymousInterfaceMacro.onInterfaceDefined(coord, interfaceA)
+              val interfaceNameT = packageName.addStep(NameTranslator.translateNameStep(interfaceA.name))
+              Vector((interfaceNameT, InterfaceEnvEntry(interfaceA))) ++
+              anonymousInterfaceMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA)
             }) ++
             programA.impls.map(implA => {
-              Vector((
-                coord,
-                Vector(),
-                NameTranslator.translateImplName(implA.name),
-                ImplEnvEntry(implA))) ++
-              implDropMacro.getImplSiblingEntries(implA)
-                .map({ case (last, envEntry) => (coord, Vector(), last, envEntry) })
+              val implNameT = packageName.addStep(NameTranslator.translateImplName(implA.name))
+              Vector((implNameT, ImplEnvEntry(implA))) ++
+              implDropMacro.getImplSiblingEntries(implNameT, implA)
             }) ++
             programA.functions.map(functionA => {
-              Vector((
-                coord,
-                Vector(),
-                NameTranslator.translateFunctionNameToTemplateName(functionA.name),
-                FunctionEnvEntry(functionA)))
+              val functionNameT = packageName.addStep(NameTranslator.translateFunctionNameToTemplateName(functionA.name))
+              Vector((functionNameT, FunctionEnvEntry(functionA)))
             })
           }).flatten.flatten.toVector
 
         val namespaceNameToTemplatas =
-          packageAndNamespaceAndNameAndEnvEntry
+          fullNameAndEnvEntry
             .map({
-              case (paackage, namespace, name, envEntry) => {
-                val namespaceFullName =
-                  if (namespace.isEmpty) {
-                    FullNameT(paackage, Vector(), PackageTopLevelNameT())
-                  } else {
-                    FullNameT(paackage, namespace.init, namespace.last)
-                  }
-                (namespaceFullName, name, envEntry)
+              case (name, envEntry) => {
+                (name.copy(last = PackageTopLevelNameT()), name.last, envEntry)
               }
             })
             .groupBy(_._1)
@@ -491,7 +470,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
                   envEntries
                     .map({ case (_, b, c) => (b, c) })
                     .groupBy(_._1)
-                    .mapValues(_.map(_._2)))
+                    .mapValues(a => vassertOne(a.map(x => x._2))))
              }).toMap
 
         val globalEnv =
@@ -513,15 +492,15 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             namespaceNameToTemplatas,
             // Bulitins
             TemplatasStore(FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()), Map(), Map()).addEntries(
-              Map[INameT, Vector[IEnvEntry]](
-                PrimitiveNameT("int") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i32))),
-                PrimitiveNameT("i64") -> Vector(TemplataEnvEntry(KindTemplata(IntT.i64))),
-                PrimitiveNameT("Array") -> Vector(TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata())),
-                PrimitiveNameT("bool") -> Vector(TemplataEnvEntry(KindTemplata(BoolT()))),
-                PrimitiveNameT("float") -> Vector(TemplataEnvEntry(KindTemplata(FloatT()))),
-                PrimitiveNameT("__Never") -> Vector(TemplataEnvEntry(KindTemplata(NeverT()))),
-                PrimitiveNameT("str") -> Vector(TemplataEnvEntry(KindTemplata(StrT()))),
-                PrimitiveNameT("void") -> Vector(TemplataEnvEntry(KindTemplata(VoidT()))))))
+              Map[INameT, IEnvEntry](
+                PrimitiveNameT("int") -> TemplataEnvEntry(KindTemplata(IntT.i32)),
+                PrimitiveNameT("i64") -> TemplataEnvEntry(KindTemplata(IntT.i64)),
+                PrimitiveNameT("Array") -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()),
+                PrimitiveNameT("bool") -> TemplataEnvEntry(KindTemplata(BoolT())),
+                PrimitiveNameT("float") -> TemplataEnvEntry(KindTemplata(FloatT())),
+                PrimitiveNameT("__Never") -> TemplataEnvEntry(KindTemplata(NeverT())),
+                PrimitiveNameT("str") -> TemplataEnvEntry(KindTemplata(StrT())),
+                PrimitiveNameT("void") -> TemplataEnvEntry(KindTemplata(VoidT())))))
 
         val temputs = Temputs()
 
@@ -541,8 +520,8 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
           val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
 
-          templatas.entriesByNameT.map({ case (name, entries) =>
-            entries.map({
+          templatas.entriesByNameT.map({ case (name, entry) =>
+            entry match {
               case TemplataEnvEntry(_) =>
               case FunctionEnvEntry(functionA) => {
                 if (functionA.isTemplate) {
@@ -584,7 +563,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
 
                 }
               }
-            })
+            }
           })
         })
 

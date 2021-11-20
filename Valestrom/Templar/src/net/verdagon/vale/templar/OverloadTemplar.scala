@@ -1,8 +1,8 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer._
-import net.verdagon.vale.scout.{FunctionTemplataType, GlobalFunctionFamilyNameS, IRuneS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
-import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneUsage}
+import net.verdagon.vale.scout.{FunctionTemplataType, GlobalFunctionFamilyNameS, IImpreciseNameS, IRuneS, RuneNameS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
+import net.verdagon.vale.scout.rules.{EqualsSR, IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import net.verdagon.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, OverrideT, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
@@ -27,7 +27,11 @@ import scala.collection.immutable.List
 object OverloadTemplar {
 
   sealed trait IFindFunctionFailureReason
-  case class WrongNumberOfArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
+  case class WrongNumberOfArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason {
+    vpass()
+
+    override def hashCode(): Int = vcurious()
+  }
   case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
@@ -37,7 +41,7 @@ object OverloadTemplar {
   case class InferFailure(reason: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
 
   case class FindFunctionFailure(
-    name: INameS,
+    name: IImpreciseNameS,
     args: Vector[ParamFilter],
 //    // All the ones that could have worked, but were outscored by the best match
 //    outscoredCalleeToReason: Map[IPotentialCallee, IScoutExpectedFunctionFailureReason],
@@ -46,7 +50,6 @@ object OverloadTemplar {
   ) {
     vpass()
     override def hashCode(): Int = vcurious()
-    override def toString: String = vfail() // shouldnt use toString
   }
 }
 
@@ -60,7 +63,7 @@ class OverloadTemplar(
     env: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
-    functionName: INameS,
+    functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[ParamFilter],
@@ -127,7 +130,7 @@ class OverloadTemplar(
     env: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
-    functionName: INameS,
+    functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     paramFilters: Vector[ParamFilter],
@@ -145,12 +148,12 @@ class OverloadTemplar(
       case KindTemplata(sr@StructTT(_)) => {
         val structEnv = temputs.getEnvForKind(sr)
         getCandidateBanners(
-          structEnv, temputs, callRange, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
+          structEnv, temputs, callRange, CodeNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case KindTemplata(sr@InterfaceTT(_)) => {
         val interfaceEnv = temputs.getEnvForKind(sr)
         getCandidateBanners(
-          interfaceEnv, temputs, callRange, GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
+          interfaceEnv, temputs, callRange, CodeNameS(CallTemplar.CALL_FUNCTION_NAME), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case ExternFunctionTemplata(header) => {
         Vector(HeaderCalleeCandidate(header))
@@ -169,7 +172,6 @@ class OverloadTemplar(
     env: IEnvironment,
     temputs: Temputs,
     callRange: RangeS,
-    functionName: INameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     paramFilters: Vector[ParamFilter],
@@ -208,7 +210,7 @@ class OverloadTemplar(
               RuneTypeSolver.solve(
                 opts.globalOptions.sanityCheck,
                 opts.globalOptions.useOptimizedSolver,
-                nameS => vassertOne(env.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
+                (nameS: IImpreciseNameS) => vassertOne(env.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
                 callRange,
                 false,
                 explicitTemplateArgRulesS,
@@ -222,15 +224,31 @@ class OverloadTemplar(
                   // rulesA is the equals rules, but rule typed. Now we'll run them through the solver to get
                   // some actual templatas.
 
+                  // We preprocess out the rune parent env lookups, see MKRFA.
+                  val (initialKnowns, rulesWithoutRuneParentEnvLookups) =
+                    explicitTemplateArgRulesS.foldLeft((Vector[InitialKnown](), Vector[IRulexSR]()))({
+                      case ((previousConclusions, remainingRules), RuneParentEnvLookupSR(_, rune)) => {
+                        val templata =
+                          vassertSome(
+                            env.lookupNearestWithImpreciseName(
+                              profiler, RuneNameS(rune.rune), Set(TemplataLookupContext)))
+                        val newConclusions = previousConclusions :+ InitialKnown(rune, templata)
+                        (newConclusions, remainingRules)
+                      }
+                      case ((previousConclusions, remainingRules), rule) => {
+                        (previousConclusions, remainingRules :+ rule)
+                      }
+                    })
+
                   // We only want to solve the template arg runes
-                  profiler.childFrame("late astronoming", () => {
+                  profiler.childFrame("solve template args", () => {
                     inferTemplar.solveComplete(
                       env,
                       temputs,
-                      explicitTemplateArgRulesS,
+                      rulesWithoutRuneParentEnvLookups,
                       explicitTemplateArgRuneToType ++ runeTypeConclusions,
                       callRange,
-                      Vector(),
+                      initialKnowns,
                       Vector()) match {
                       case (Err(e)) => {
                         Err(InferFailure(e))
@@ -338,7 +356,7 @@ class OverloadTemplar(
   private def findHayTemplatas(
       env: IEnvironment,
       temputs: Temputs,
-      impreciseName: INameS,
+      impreciseName: IImpreciseNameS,
       paramFilters: Vector[ParamFilter],
       extraEnvsToLookIn: Vector[IEnvironment]):
   Vector[ITemplata] = {
@@ -359,7 +377,7 @@ class OverloadTemplar(
       env: IEnvironment,
       temputs: Temputs,
       callRange: RangeS,
-      functionName: INameS,
+      functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
       args: Vector[ParamFilter],
@@ -373,7 +391,7 @@ class OverloadTemplar(
     val attempted =
       candidates.map(candidate => {
         attemptCandidateBanner(
-          env, temputs, callRange, functionName, explicitTemplateArgRulesS,
+          env, temputs, callRange, explicitTemplateArgRulesS,
           explicitTemplateArgRunesS, args, candidate, exact)
           .mapError(e => (candidate -> e))
       })
@@ -552,7 +570,7 @@ class OverloadTemplar(
     range: RangeS,
     callableTE: ReferenceExpressionTE):
   PrototypeT = {
-    val funcName = GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME)
+    val funcName = CodeNameS(CallTemplar.CALL_FUNCTION_NAME)
     val paramFilters =
       Vector(
         ParamFilter(callableTE.resultRegister.underlyingReference, None),
@@ -569,7 +587,7 @@ class OverloadTemplar(
     callableTE: ReferenceExpressionTE,
     elementType: CoordT):
   PrototypeT = {
-    val funcName = GlobalFunctionFamilyNameS(CallTemplar.CALL_FUNCTION_NAME)
+    val funcName = CodeNameS(CallTemplar.CALL_FUNCTION_NAME)
     val paramFilters =
       Vector(
         ParamFilter(callableTE.resultRegister.underlyingReference, None),

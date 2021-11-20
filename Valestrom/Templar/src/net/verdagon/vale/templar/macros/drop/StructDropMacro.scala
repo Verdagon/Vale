@@ -21,14 +21,14 @@ class StructDropMacro(
   override def generatorId: String = "dropGenerator"
 
   override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)] = {
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
 
   override def getStructChildEntries(
     structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)] = {
-    val structNameS = CodeNameS(structA.name.name)
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
+    val structNameS = structA.name.getImpreciseName
     val structType = structA.tyype
     val structIdentifyingRunes = structA.identifyingRunes
     val structIdentifyingRuneToType =
@@ -39,7 +39,7 @@ class StructDropMacro(
       makeDropFunction(
         structNameS, structA.range, structType, structIdentifyingRunes.map(_.rune), structIdentifyingRuneToType)
 
-    val nameT = NameTranslator.translateFunctionNameToTemplateName(functionA.name)
+    val nameT = structName.addStep(NameTranslator.translateFunctionNameToTemplateName(functionA.name))
     Vector((nameT, FunctionEnvEntry(functionA)))
 
 //    DropTemplateNameT() ->
@@ -83,7 +83,7 @@ class StructDropMacro(
 //    (unevaluatedFunctionA, generator)
 //  }
 
-  def makeDropFunction(structNameS: CodeNameS, structRange: RangeS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
+  def makeDropFunction(structNameS: IImpreciseNameS, structRange: RangeS, structType: ITemplataType, structIdentifyingRunes: Vector[IRuneS], structIdentifyingRuneToType: Map[IRuneS, ITemplataType]) = {
     FunctionA(
       structRange,
       FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, structRange.begin),
@@ -126,7 +126,7 @@ class StructDropMacro(
 
   // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
   // defined by the user.
-  def makeImplicitDropFunction(selfName: INameS, range: RangeS):
+  def makeImplicitDropFunction(selfName: IImpreciseNameS, range: RangeS):
   FunctionA = {
     FunctionA(
       range,

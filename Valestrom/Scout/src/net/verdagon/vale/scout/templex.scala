@@ -3,14 +3,20 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS, vassert, vcheck, vcurious, vimpl, vpass, vwat}
 
 trait INameS
+trait IImpreciseNameS
 sealed trait IVarNameS extends INameS
 trait IFunctionDeclarationNameS extends INameS {
   def packageCoordinate: PackageCoordinate
 }
+trait ICitizenDeclarationNameS extends INameS {
+  def range: RangeS
+  def packageCoordinate: PackageCoordinate
+  def getImpreciseName: IImpreciseNameS
+}
 case class LambdaNameS(
 //  parentName: INameS,
   codeLocation: CodeLocationS
-) extends IFunctionDeclarationNameS {
+) extends IFunctionDeclarationNameS with IImpreciseNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 }
@@ -18,24 +24,38 @@ case class FunctionNameS(name: String, codeLocation: CodeLocationS) extends IFun
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 }
-case class TopLevelCitizenDeclarationNameS(name: String, range: RangeS) extends INameS {
+case class TopLevelCitizenDeclarationNameS(name: String, range: RangeS) extends ICitizenDeclarationNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
+  override def packageCoordinate: PackageCoordinate = range.file.packageCoordinate
+  override def getImpreciseName: IImpreciseNameS = CodeNameS(name)
 }
-case class LambdaStructNameS(lambdaName: LambdaNameS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class ImplNameS(subCitizenHumanName: String, codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class LambdaStructNameS(lambdaName: LambdaNameS) extends INameS with IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ImplDeclarationNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ExportAsNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class LetNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class UnnamedLocalNameS(codeLocation: CodeLocationS) extends IVarNameS {  override def hashCode(): Int = vcurious() }
-case class ClosureParamNameS() extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class ClosureParamNameS() extends IVarNameS with IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class MagicParamNameS(codeLocation: CodeLocationS) extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class AnonymousSubstructTemplateNameS(interfaceName: TopLevelCitizenDeclarationNameS) extends ICitizenDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def packageCoordinate: PackageCoordinate = interfaceName.packageCoordinate
+  override def getImpreciseName: IImpreciseNameS = AnonymousSubstructTemplateImpreciseNameS(interfaceName.getImpreciseName)
+  override def range: RangeS = interfaceName.range
+}
+case class AnonymousSubstructTemplateImpreciseNameS(interfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
+case class AnonymousSubstructConstructorTemplateImpreciseNameS(interfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
 case class AnonymousSubstructMemberNameS(index: Int) extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class CodeVarNameS(name: String) extends IVarNameS {
   vcheck(name != "set", "Can't name a variable 'set'")
   vcheck(name != "mut", "Can't name a variable 'mut'")
 }
 case class ConstructingMemberNameS(name: String) extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class RuneNameS(rune: IRuneS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class RuneNameS(rune: IRuneS) extends INameS with IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 //case class DropNameS(packageCoordinate: PackageCoordinate) extends IFunctionDeclarationNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
 // We differentiate rune names from regular names, we scout out what's actually
@@ -69,8 +89,14 @@ case class ArrayMutabilityImplicitRuneS() extends IRuneS { val hash = runtime.Sc
 // Used to type the templex handed to the variability part of the static sized array expressions
 case class ArrayVariabilityImplicitRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ReturnRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class StructNameRuneS(structName: TopLevelCitizenDeclarationNameS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
-case class CodeNameS(name: String) extends INameS {
+case class StructNameRuneS(structName: ICitizenDeclarationNameS) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+// Vale has no notion of Self, it's just a convenient name for a first parameter.
+case class SelfRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class SelfOwnershipRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class SelfPermissionRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class SelfKindRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class SelfKindTemplateRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class CodeNameS(name: String) extends IImpreciseNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   vpass()
   vassert(name != "_")
@@ -85,8 +111,12 @@ case class ImpreciseCodeVarNameS(name: String) extends INameS { val hash = runti
 case class ArgumentRuneS(argIndex: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class PatternInputRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ExplicitTemplateArgRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class AnonymousSubstructParentInterfaceTemplateRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class AnonymousSubstructParentInterfaceRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class AnonymousSubstructTemplateRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class AnonymousSubstructRuneS() extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class AnonymousSubstructMemberRuneS(index: Int) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 // Vale has no notion of Self, it's just a convenient name for a first parameter.
-case class SelfNameS() extends IVarNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class SelfNameS() extends IVarNameS with IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 // A miscellaneous name, for when a name doesn't really make sense, like it's the only entry in the environment or something.
-case class ArbitraryNameS() extends INameS
+case class ArbitraryNameS() extends INameS with IImpreciseNameS

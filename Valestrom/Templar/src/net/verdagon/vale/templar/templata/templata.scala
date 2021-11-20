@@ -88,8 +88,8 @@ case class FunctionTemplata(
 
 
 
-  def getTemplateName(): INameT = {
-    NameTranslator.translateFunctionNameToTemplateName(function.name)
+  def getTemplateName(): FullNameT[INameT] = {
+    outerEnv.fullName.addStep(NameTranslator.translateFunctionNameToTemplateName(function.name))
   }
 
   def debugString: String = outerEnv.fullName + ":" + function.name
@@ -148,12 +148,6 @@ case class StructTemplata(
   // has the name of the surrounding environment, does NOT include struct's name.
   // See TMRE for more on these environments.
   env: IEnvironment,
-//
-//  // The containers are the structs/interfaces/impls/functions that this thing is inside.
-//  // E.g. if LinkedList has a Node substruct, then the Node's templata will have one
-//  // container, the LinkedList.
-//  // See NTKPRR for why we have these parents.
-//  containers: Vector[IContainer],
 
   // This is the env entry that the struct came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
@@ -181,9 +175,9 @@ case class StructTemplata(
 
 
 
-  def getTemplateName(): INameT = {
-    CitizenTemplateNameT(originStruct.name.name)//, NameTranslator.translateCodeLocation(originStruct.name.range.begin))
-  }
+//  def getTemplateName(): INameT = {
+//    CitizenTemplateNameT(originStruct.name.name)//, NameTranslator.translateCodeLocation(originStruct.name.range.begin))
+//  }
 
   def debugString: String = env.fullName + ":" + originStruct.name
 }
@@ -283,14 +277,14 @@ case class MutabilityTemplata(mutability: MutabilityT) extends ITemplata {
 
 
 }
-case class PermissionTemplata(mutability: PermissionT) extends ITemplata {
+case class PermissionTemplata(permission: PermissionT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 13;
   override def tyype: ITemplataType = PermissionTemplataType
 
 
 }
-case class LocationTemplata(mutability: LocationT) extends ITemplata {
+case class LocationTemplata(location: LocationT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 14;
   override def tyype: ITemplataType = LocationTemplataType

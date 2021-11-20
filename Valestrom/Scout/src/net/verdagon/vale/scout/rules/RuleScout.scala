@@ -2,7 +2,7 @@ package net.verdagon.vale.scout.rules
 
 import net.verdagon.vale.parser._
 import net.verdagon.vale.scout.{IEnvironment, Environment => _, FunctionEnvironment => _, _}
-import net.verdagon.vale.{vassert, vassertSome, vfail, vimpl}
+import net.verdagon.vale.{vassert, vassertSome, vcurious, vfail, vimpl}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -201,5 +201,66 @@ object RuleScout {
       }
       case TemplexPR(innerPR) => // Do nothing, we can't declare runes inside templexes
     }
+  }
+
+  // Gets the template name (or the kind name if not template)
+  def getRuneKindTemplate(rulesS: IndexedSeq[IRulexSR], rune: IRuneS) = {
+    val equivalencies = new Equivalencies(rulesS)
+    val structKindEquivalentRunes = equivalencies.getKindEquivalentRunes(rune)
+    val templateRunes =
+      rulesS.collect({
+        case CallSR(_, resultRune, templateRune, _)
+          if structKindEquivalentRunes.contains(resultRune.rune) => templateRune.rune
+      })
+    val runesToLookFor = structKindEquivalentRunes ++ templateRunes
+    val templateNames =
+      rulesS.collect({
+        case LookupSR(_, rune, name) if runesToLookFor.contains(rune.rune) => name
+      })
+    vassert(templateNames.nonEmpty)
+    vcurious(templateNames.size == 1)
+    val templateName = templateNames.head
+    templateName
+  }
+}
+
+class Equivalencies(rules: IndexedSeq[IRulexSR]) {
+  val runeToKindEquivalentRunes: mutable.HashMap[IRuneS, mutable.HashSet[IRuneS]] = mutable.HashMap()
+  def markKindEquivalent(runeA: IRuneS, runeB: IRuneS): Unit = {
+    runeToKindEquivalentRunes.getOrElseUpdate(runeA, mutable.HashSet()) += runeB
+    runeToKindEquivalentRunes.getOrElseUpdate(runeB, mutable.HashSet()) += runeA
+  }
+  rules.foreach({
+    case CoordComponentsSR(_, resultRune, _, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
+    case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
+    case CallSR(range, resultRune, templateRune, args) =>
+    case CoordIsaSR(range, subRune, superRune) =>
+    case CoordSendSR(range, senderRune, receiverRune) =>
+    case AugmentSR(range, resultRune, literal, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
+    case LiteralSR(range, rune, literal) =>
+    case LookupSR(range, rune, name) =>
+    case other => vimpl(other)
+  })
+
+  private def findTransitivelyEquivalentInto(foundSoFar: mutable.HashSet[IRuneS], rune: IRuneS): Unit = {
+    runeToKindEquivalentRunes.getOrElse(rune, Vector()).foreach(r => {
+      if (!foundSoFar.contains(r)) {
+        foundSoFar += r
+        findTransitivelyEquivalentInto(foundSoFar, r)
+      }
+    })
+  }
+
+  def getKindEquivalentRunes(rune: IRuneS): Set[IRuneS] = {
+    val set = mutable.HashSet[IRuneS]()
+    set += rune
+    findTransitivelyEquivalentInto(set, rune)
+    set.toSet
+  }
+
+  def getKindEquivalentRunes(runes: Iterable[IRuneS]): Set[IRuneS] = {
+    runes
+      .map(getKindEquivalentRunes)
+      .foldLeft(Set[IRuneS]())(_ ++ _)
   }
 }

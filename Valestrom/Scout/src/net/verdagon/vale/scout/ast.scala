@@ -142,7 +142,7 @@ case class InterfaceS(
 case class ImplS(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
-    name: ImplNameS,
+    name: ImplDeclarationNameS,
     userSpecifiedIdentifyingRunes: Vector[RuneUsage],
     rules: Array[IRulexSR],
 //    runeSToCanonicalRune: collection.Map[IRuneS, Int],

@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS}
-import net.verdagon.vale.scout.ScoutErrorHumanizer.humanizeRune
+import net.verdagon.vale.scout.ScoutErrorHumanizer.{humanizePermission, humanizeRune}
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
 import net.verdagon.vale.scout.{ArgumentRuneS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
@@ -10,8 +10,8 @@ import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, IFindFunc
 import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface}
-import net.verdagon.vale.templar.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, TemplataNamer}
-import net.verdagon.vale.templar.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, TemplataNamer}
+import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
 
@@ -59,7 +59,7 @@ object TemplarErrorHumanizer {
             ": Couldn't find member " + memberName + "!"
         }
         case BodyResultDoesntMatch(range, functionName, expectedReturnType, resultType) => {
-            ": Function " + printableName(codeMap, functionName) + " return type " + expectedReturnType + " doesn't match body's result: " + resultType
+            ": Function " + printableName(codeMap, functionName) + " return type " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType)) + " doesn't match body's result: " + humanizeTemplata(codeMap, CoordTemplata(resultType))
         }
         case CouldntFindIdentifierToLoadT(range, name) => {
             ": Couldn't find anything named `" + name + "`!"
@@ -154,7 +154,7 @@ object TemplarErrorHumanizer {
 
     val FindFunctionFailure(name, args, rejectedCalleeToReason) = fff
     "Couldn't find a suitable function " +
-      ScoutErrorHumanizer.humanizeName(name) +
+      ScoutErrorHumanizer.humanizeImpreciseName(name) +
       "(" +
       args.map({
         case ParamFilter(tyype, Some(OverrideT(interface))) => humanizeTemplata(codeMap, CoordTemplata(tyype)) + " impl " + humanizeTemplata(codeMap, KindTemplata(interface))
@@ -361,7 +361,7 @@ object TemplarErrorHumanizer {
       case RuntimeSizedArrayTemplateTemplata() => "[*]"
       case StaticSizedArrayTemplateTemplata() => "[]"
       case InterfaceTemplata(env, originInterface) => originInterface.name.name
-      case StructTemplata(env, originStruct) => originStruct.name.name
+      case StructTemplata(env, originStruct) => ScoutErrorHumanizer.humanizeName(originStruct.name)
       case VariabilityTemplata(variability) => {
         variability match {
           case FinalT => "final"
@@ -423,6 +423,7 @@ object TemplarErrorHumanizer {
       case CoordListTemplata(coords) => {
         "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
+      case PermissionTemplata(permission) => humanizePermission(Conversions.unevaluatePermission(permission))
       case other => vimpl(other)
     }
   }
@@ -431,10 +432,18 @@ object TemplarErrorHumanizer {
     codeMap: FileCoordinateMap[String],
     name: FullNameT[T]):
   String = {
-    name.last match {
-      case LambdaCitizenNameT(codeLocation) => {
+    humanizeName(codeMap, name.last)
+  }
+
+  def humanizeName(
+    codeMap: FileCoordinateMap[String],
+    name: INameT):
+  String = {
+    name match {
+      case LambdaCitizenTemplateNameT(codeLocation) => {
         "λ:" + humanizePos(codeMap, codeLocation)
       }
+      case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
 //      case TupleNameT(members) => {
 //        "Tup<" + members.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
 //      }
@@ -459,6 +468,11 @@ object TemplarErrorHumanizer {
             ""
           })
       }
+      case AnonymousSubstructNameT(interface, templateArgs) => {
+        humanizeName(codeMap, interface) +
+          ".anonymous<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+      }
+      case CitizenTemplateNameT(humanName) => humanName
     }
   }
 }

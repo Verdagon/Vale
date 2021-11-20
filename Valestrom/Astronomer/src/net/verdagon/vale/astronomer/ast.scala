@@ -67,7 +67,7 @@ trait TypeDefinitionA {
 
 case class StructA(
     range: RangeS,
-    name: TopLevelCitizenDeclarationNameS,
+    name: ICitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
     mutabilityRune: RuneUsage,
@@ -112,14 +112,15 @@ case class StructA(
 //}
 
 case class ImplA(
-    range: RangeS,
-    // The name of an impl is the human name of the subcitizen, see INSHN.
-    name: ImplNameS,
+  range: RangeS,
+  name: ImplDeclarationNameS,
+  impreciseName: ImplImpreciseNameS, // The name of an impl is the human name of the subcitizen, see INSHN.
   identifyingRunes: Vector[RuneUsage],
   rules: Vector[IRulexSR],
-    runeToType: Map[IRuneS, ITemplataType],
-    structKindRune: RuneUsage,
-    interfaceKindRune: RuneUsage) {
+  runeToType: Map[IRuneS, ITemplataType],
+  structKindRune: RuneUsage,
+  interfaceKindRune: RuneUsage) {
+
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

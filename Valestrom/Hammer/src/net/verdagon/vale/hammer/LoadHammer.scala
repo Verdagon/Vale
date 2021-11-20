@@ -164,8 +164,8 @@ object LoadHammer {
     val structTT =
       structExpr2.resultRegister.reference.kind match {
         case sr @ StructTT(_) => sr
-        case TupleTT(_, sr) => sr
-        case PackTT(_, sr) => sr
+//        case TupleTT(_, sr) => sr
+//        case PackTT(_, sr) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
@@ -236,8 +236,8 @@ object LoadHammer {
     val structTT =
       structExpr2.resultRegister.reference.kind match {
         case sr @ StructTT(_) => sr
-        case TupleTT(_, sr) => sr
-        case PackTT(_, sr) => sr
+//        case TupleTT(_, sr) => sr
+//        case PackTT(_, sr) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
@@ -383,8 +383,8 @@ object LoadHammer {
     val structTT =
       structExpr2.resultRegister.reference.kind match {
         case sr @ StructTT(_) => sr
-        case TupleTT(_, sr) => sr
-        case PackTT(_, sr) => sr
+//        case TupleTT(_, sr) => sr
+//        case PackTT(_, sr) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)

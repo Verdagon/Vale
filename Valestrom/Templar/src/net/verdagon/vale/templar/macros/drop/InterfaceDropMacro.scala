@@ -16,11 +16,11 @@ import net.verdagon.vale.{CodeLocationS, RangeS, vassert}
 
 class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceDefinedMacro {
 
-  override def getInterfaceSiblingEntries(structName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(INameT, FunctionEnvEntry)] = {
+  override def getInterfaceSiblingEntries(structName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
 
-  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(INameT, FunctionEnvEntry)] = {
+  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     val dropFunctionA =
       FunctionA(
         interfaceA.name.range,
@@ -76,9 +76,9 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
         GeneratedBodyS("abstractBody"))
 
     Vector(
-      FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-76)) ->
+      interfaceName.addStep(FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-76))) ->
         FunctionEnvEntry(dropFunctionA),
-      FunctionTemplateNameT(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, CodeLocationS.internal(-77)) ->
+      interfaceName.addStep(FunctionTemplateNameT(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, CodeLocationS.internal(-77))) ->
         FunctionEnvEntry(virtualDropFunctionA))
   }
 

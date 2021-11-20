@@ -32,7 +32,7 @@ class DestructorTemplar(
       temputs.getEnvForKind(type2.kind),
       temputs,
       RangeS.internal(-1663),
-      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
+      CodeNameS(CallTemplar.DROP_FUNCTION_NAME),
       Vector.empty,
       Array.empty,
       Vector(ParamFilter(type2, None)),
@@ -52,7 +52,7 @@ class DestructorTemplar(
       env,
       temputs,
       RangeS.internal(-16721),
-      GlobalFunctionFamilyNameS(CallTemplar.DROP_FUNCTION_NAME),
+      CodeNameS(CallTemplar.DROP_FUNCTION_NAME),
 //      if (type2.ownership == ShareT) {
 //        ImmConcreteDestructorImpreciseNameS()
 //      } else {

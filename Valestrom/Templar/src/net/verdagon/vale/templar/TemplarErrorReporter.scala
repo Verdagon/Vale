@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer.ICompileErrorA
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{IFunctionDeclarationNameS, INameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
@@ -18,7 +18,7 @@ case class CompileErrorExceptionT(err: ICompileErrorT) extends RuntimeException 
 }
 
 sealed trait ICompileErrorT { def range: RangeS }
-case class ImmStructCantHaveVaryingMember(range: RangeS, structName: TopLevelCitizenDeclarationNameS, memberName: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class ImmStructCantHaveVaryingMember(range: RangeS, structName: INameS, memberName: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantDowncastUnrelatedTypes(range: RangeS, sourceKind: KindT, targetKind: KindT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantDowncastToInterface(range: RangeS, targetKind: InterfaceTT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CouldntFindTypeT(range: RangeS, name: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }

@@ -4,7 +4,7 @@ import net.verdagon.vale.{PackageCoordinate, RangeS}
 import net.verdagon.vale.astronomer.{FunctionA, ImplA, InterfaceA, StructA}
 import net.verdagon.vale.templar.Temputs
 import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT}
-import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment}
+import net.verdagon.vale.templar.env.{IEnvEntry, FunctionEnvironment}
 import net.verdagon.vale.templar.names.{CitizenTemplateNameT, FullNameT, INameT}
 import net.verdagon.vale.templar.types.{CoordT, InterfaceTT, StructTT}
 
@@ -33,16 +33,16 @@ trait IFunctionBodyMacro {
 trait IOnStructDefinedMacro {
   def getStructSiblingEntries(
     structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)]
+  Vector[(FullNameT[INameT], IEnvEntry)]
 
   def getStructChildEntries(
     structName: FullNameT[INameT], structA: StructA):
-  Vector[(INameT, FunctionEnvEntry)]
+  Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
 trait IOnImplicitStructGeneratedMacro {
   def onImplicitStructGenerated(struct: StructTT):
-  Vector[(FullNameT[INameT], FunctionEnvEntry)]
+  Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
 trait IOnStructGeneratedMacro {
@@ -72,17 +72,17 @@ trait IOnInterfaceGeneratedMacro {
 trait IOnInterfaceDefinedMacro {
 
   def getInterfaceSiblingEntries(
-    structName: FullNameT[INameT], structA: InterfaceA):
-  Vector[(INameT, FunctionEnvEntry)]
+    interfaceName: FullNameT[INameT], interfaceA: InterfaceA):
+  Vector[(FullNameT[INameT], IEnvEntry)]
 
   def getInterfaceChildEntries(
-    structName: FullNameT[INameT], structA: InterfaceA):
-  Vector[(INameT, FunctionEnvEntry)]
+    interfaceName: FullNameT[INameT], interfaceA: InterfaceA):
+  Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
 trait IOnImplDefinedMacro {
-  def getImplSiblingEntries(implA: ImplA):
-  Vector[(INameT, FunctionEnvEntry)]
+  def getImplSiblingEntries(implName: FullNameT[INameT], implA: ImplA):
+  Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
 trait IOnImplGeneratedMacro {

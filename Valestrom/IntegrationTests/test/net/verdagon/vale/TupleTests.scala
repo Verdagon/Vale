@@ -25,7 +25,7 @@ class TupleTests extends FunSuite with Matchers {
     val temputs = compile.expectTemputs()
     temputs.lookupFunction("main").header.returnType.kind shouldEqual IntT.i32
     // Funny story, theres no such thing as a one element tuple! It becomes a one element array.
-    Collector.only(temputs.lookupFunction("main"), { case TupleTE(_, _, _) => })
+    Collector.only(temputs.lookupFunction("main"), { case TupleTE(_, _) => })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(9)
   }

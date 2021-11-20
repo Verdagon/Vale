@@ -18,7 +18,8 @@ import net.verdagon.vale._
 import net.verdagon.vale.templar.expression.CallTemplar
 
 class ImplDropMacro() extends IOnImplDefinedMacro {
-  override def getImplSiblingEntries(implA: ImplA): Vector[(INameT, FunctionEnvEntry)] = {
+  override def getImplSiblingEntries(implName: FullNameT[INameT], implA: ImplA):
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     val dropFunctionA =
       FunctionA(
         implA.range,
@@ -59,7 +60,9 @@ class ImplDropMacro() extends IOnImplDefinedMacro {
                     None,
                     LendConstraintP(None)),
                   Vector(LocalLoadSE(RangeS.internal(-167213), CodeVarNameS("this"), MoveP))))))))
-    Vector((NameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name), FunctionEnvEntry(dropFunctionA)))
+    Vector((
+      implName.addStep(NameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name)),
+      FunctionEnvEntry(dropFunctionA)))
   }
 //
 //  def addImplDestructor(

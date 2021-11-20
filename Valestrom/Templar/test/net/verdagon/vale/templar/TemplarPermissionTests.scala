@@ -22,7 +22,9 @@ class TemplarPermissionTests extends FunSuite with Matchers {
 
   test("Templex readonly") {
     val compile = TemplarTestCompilation.test(
-      """struct Bork {}
+      """
+        |import v.builtins.tup.*;
+        |struct Bork {}
         |fn main(a &Bork) int {
         |  = 7;
         |}
@@ -37,7 +39,9 @@ class TemplarPermissionTests extends FunSuite with Matchers {
 
   test("Templex readwrite") {
     val compile = TemplarTestCompilation.test(
-      """struct Bork {}
+      """
+        |import v.builtins.tup.*;
+        |struct Bork {}
         |fn main(a &!Bork) int {
         |  = 7;
         |}
@@ -53,6 +57,7 @@ class TemplarPermissionTests extends FunSuite with Matchers {
   test("Borrow readwrite member from a readonly container") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct Engine {}
         |struct Bork {
         |  engine Engine;
@@ -72,6 +77,7 @@ class TemplarPermissionTests extends FunSuite with Matchers {
   test("Borrow-method-call on readwrite member") {
     val compile = TemplarTestCompilation.test(
       """
+        |import v.builtins.tup.*;
         |struct Engine { }
         |struct Bork {
         |  engine Engine;

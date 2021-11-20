@@ -150,8 +150,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
         Literal(-2L, "ISpaceship"),
         Receive(-1L, -2L))
     expectSolveFailure(rules) match {
-      case FailedSolve(conclusions, unsolvedRules, err) => {
-        conclusions shouldEqual Map(-1 -> "Firefly", -2 -> "ISpaceship")
+      case FailedSolve(steps, unsolvedRules, err) => {
+        steps.flatMap(_.conclusions) shouldEqual Vector((-1,"Firefly"), (-2,"ISpaceship"), (-2,"Firefly"))
         unsolvedRules shouldEqual Vector(Receive(-1,-2))
         err match {
           case SolverConflict(

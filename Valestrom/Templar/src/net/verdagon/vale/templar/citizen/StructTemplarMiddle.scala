@@ -41,7 +41,7 @@ class StructTemplarMiddle(
         structOuterEnv.fullName,
         TemplatasStore(structOuterEnv.fullName, Map(), Map())
           .addEntries(
-            templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
+            templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), TemplataEnvEntry(templata)) })))
     val structDefinition2 =
       core.makeStruct(
         localEnv, temputs, structS, coercedFinalTemplateArgs2);
@@ -65,7 +65,7 @@ class StructTemplarMiddle(
         interfaceOuterEnv.fullName,
         TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
           .addEntries(
-            templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), Vector(TemplataEnvEntry(templata))) })))
+            templatasByRune.map({ case (rune, templata) => (RuneNameT(rune), TemplataEnvEntry(templata)) })))
     val interfaceDefinition2 =
       core.makeInterface(
         localEnv, temputs, interfaceA, coercedFinalTemplateArgs2);

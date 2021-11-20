@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 //import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
-import net.verdagon.vale.scout.{CodeVarNameS, GlobalFunctionFamilyNameS, INameS}
+import net.verdagon.vale.scout.{CodeNameS, CodeVarNameS, GlobalFunctionFamilyNameS, IImpreciseNameS, INameS}
 import net.verdagon.vale.templar.ast.{FunctionT, ImplT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.names.FunctionNameT
@@ -12,7 +12,7 @@ import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
 object EdgeTemplar {
   sealed trait IMethod
   case class NeededOverride(
-    name: INameS,
+    name: IImpreciseNameS,
     paramFilters: Vector[ParamFilter]
   ) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
   case class FoundFunction(prototype: PrototypeT) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
@@ -46,7 +46,7 @@ object EdgeTemplar {
                       case (tyype, _) => ParamFilter(tyype, None)
                     })
                   superFunction.fullName.last match {
-                    case FunctionNameT(humanName, _, _) => NeededOverride(GlobalFunctionFamilyNameS(humanName), overrideParamFilters)
+                    case FunctionNameT(humanName, _, _) => NeededOverride(CodeNameS(humanName), overrideParamFilters)
 //                    case DropNameT(_, _) => NeededOverride(CodeVarNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME), overrideParamFilters)
                     case other => vwat(other)
                   }

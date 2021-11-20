@@ -268,7 +268,7 @@ case class Temputs() {
     }
   }
 
-  def interfaceDeclared(fullName: FullNameT[CitizenNameT]): Option[InterfaceTT] = {
+  def interfaceDeclared(fullName: FullNameT[ICitizenNameT]): Option[InterfaceTT] = {
     // This is the only place besides InterfaceDefinition2 and declareInterface thats allowed to make one of these
     val interfaceTT = InterfaceTT(fullName)
     if (declaredKinds.contains(interfaceTT)) {
