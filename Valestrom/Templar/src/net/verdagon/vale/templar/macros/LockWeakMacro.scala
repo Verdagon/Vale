@@ -11,7 +11,9 @@ import net.verdagon.vale.templar.{Temputs, ast}
 
 class LockWeakMacro(
   expressionTemplar: ExpressionTemplar
-) {
+) extends IFunctionBodyMacro {
+  override def generatorId: String = "vale_lock_weak"
+
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,

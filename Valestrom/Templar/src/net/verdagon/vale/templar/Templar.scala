@@ -18,7 +18,7 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
 import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceDropMacro, RSADropIntoMacro, SSADropIntoMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, RSALenMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, StructConstructorMacro}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
@@ -417,6 +417,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
 
   val structConstructorMacro = new StructConstructorMacro(opts, profiler)
   val structDropMacro = new StructDropMacro(destructorTemplar)
+  val asSubtypeMacro = new AsSubtypeMacro(ancestorHelper, expressionTemplar)
   val rsaLenMacro = new RSALenMacro()
   val rsaDropMacro = new RSADropIntoMacro(arrayTemplar)
   val ssaDropMacro = new SSADropIntoMacro(arrayTemplar)
@@ -424,6 +425,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val implDropMacro = new ImplDropMacro()
   val interfaceDropMacro = new InterfaceDropMacro(overloadTemplar)
   val abstractBodyMacro = new AbstractBodyMacro()
+  val lockWeakMacro = new LockWeakMacro(expressionTemplar)
   val anonymousInterfaceMacro =
     new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro)
 
@@ -488,7 +490,9 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
               structDropMacro.generatorId -> structDropMacro,
               rsaLenMacro.generatorId -> rsaLenMacro,
               rsaDropMacro.generatorId -> rsaDropMacro,
-              ssaDropMacro.generatorId -> ssaDropMacro),
+              ssaDropMacro.generatorId -> ssaDropMacro,
+              lockWeakMacro.generatorId -> lockWeakMacro,
+              asSubtypeMacro.generatorId -> asSubtypeMacro),
             namespaceNameToTemplatas,
             // Bulitins
             TemplatasStore(FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()), Map(), Map()).addEntries(

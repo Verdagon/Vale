@@ -223,7 +223,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
   def containingBlockS: Option[BlockSE] = functionEnvironment.containingBlockS
-  def liveLocals: Vector[IVariableT] = functionEnvironment.declaredLocals
+  def declaredLocals: Vector[IVariableT] = functionEnvironment.declaredLocals
   def unstackifieds: Set[FullNameT[IVarNameT]] = functionEnvironment.unstackifiedLocals
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
 
@@ -309,10 +309,17 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
   // Gets the effects that this environment had on the outside world (on its parent
   // environments).
-  def getEffects(): Set[FullNameT[IVarNameT]] = {
+  def getEffectsSince(earlierFate: FunctionEnvironment): Set[FullNameT[IVarNameT]] = {
     // We may have unstackified outside locals from inside the block, make sure
     // the parent environment knows about that.
-    val unstackifiedAncestorLocals = unstackifieds -- liveLocals.map(_.id)
+
+    // declaredLocals contains things from parent environment, which is why we need to receive
+    // an earlier environment to compare to, see WTHPFE.
+    val earlierFateDeclaredLocals = earlierFate.declaredLocals.map(_.id).toSet
+    val liveLocalsIntroducedSinceEarlier =
+      declaredLocals.map(_.id).filter(x => !earlierFateDeclaredLocals.contains(x))
+
+    val unstackifiedAncestorLocals = unstackifieds -- liveLocalsIntroducedSinceEarlier
     unstackifiedAncestorLocals
   }
 

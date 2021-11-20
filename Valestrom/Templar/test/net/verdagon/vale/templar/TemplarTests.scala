@@ -1110,7 +1110,7 @@ class TemplarTests extends FunSuite with Matchers {
     val compile = TemplarTestCompilation.test(
       """
         |import v.builtins.tup.*;
-        |import ifunction.ifunction1.*;
+        |import v.builtins.arrays.*;
         |export Array<imm, final, Raza> as RazaArray;
         |struct Raza imm { }
         |""".stripMargin)
@@ -1139,7 +1139,7 @@ class TemplarTests extends FunSuite with Matchers {
     val compile = TemplarTestCompilation.test(
       """
         |import v.builtins.tup.*;
-        |import ifunction.ifunction1.*;
+        |import v.builtins.arrays.*;
         |export [<imm> 5 * Raza] as RazaArray;
         |struct Raza imm { }
         |""".stripMargin)

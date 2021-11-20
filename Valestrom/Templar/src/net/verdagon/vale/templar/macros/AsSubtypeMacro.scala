@@ -12,7 +12,9 @@ import net.verdagon.vale.templar.{ArrayTemplar, CantDowncastToInterface, CantDow
 
 class AsSubtypeMacro(
   ancestorHelper: AncestorHelper,
-  expressionTemplar: ExpressionTemplar) {
+  expressionTemplar: ExpressionTemplar) extends IFunctionBodyMacro {
+  override def generatorId: String = "vale_as_subtype"
+
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
