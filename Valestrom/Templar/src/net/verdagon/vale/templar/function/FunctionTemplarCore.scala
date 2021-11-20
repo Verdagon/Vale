@@ -321,7 +321,7 @@ class FunctionTemplarCore(
     // Remember, the near env contains closure variables, which we
     // don't care about here. So find the difference between the near
     // env and our latest env.
-    vassert(fullEnv.liveLocals.startsWith(startingFullEnvSnapshot.declaredLocals))
+    vassert(fullEnv.declaredLocals.startsWith(startingFullEnvSnapshot.declaredLocals))
 
     temputs.lookupFunction(header.toSignature) match {
       case None => {

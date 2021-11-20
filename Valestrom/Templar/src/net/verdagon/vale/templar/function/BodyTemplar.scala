@@ -214,7 +214,7 @@ class BodyTemplar(
 
     params1.foreach({
       case ParameterS(AtomSP(_, Some(CaptureS(name)), _, _, _)) => {
-        if (!fate.liveLocals.exists(_.id.last == NameTranslator.translateVarNameStep(name))) {
+        if (!fate.declaredLocals.exists(_.id.last == NameTranslator.translateVarNameStep(name))) {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot couldnt find " + name))
         }
       }

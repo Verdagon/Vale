@@ -49,7 +49,7 @@ class BlockTemplar(
 
     val block2 = BlockTE(expressionsWithResult)
 
-    val (unstackifiedAncestorLocals) = fate.getEffects()
+    val (unstackifiedAncestorLocals) = fate.getEffectsSince(startingFate)
     (block2, unstackifiedAncestorLocals, returnsFromExprs)
   }
 
@@ -109,7 +109,7 @@ class BlockTemplar(
         case x @ AddressibleLocalVariableT(_, _, _) => x
       })
     val localsAsOfNow =
-      currentFate.liveLocals.collect({
+      currentFate.declaredLocals.collect({
         case x @ ReferenceLocalVariableT(_, _, _) => x
         case x @ AddressibleLocalVariableT(_, _, _) => x
       })

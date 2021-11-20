@@ -12,7 +12,7 @@ import net.verdagon.vale.templar.macros.{IFunctionBodyMacro, IOnStructDefinedMac
 import net.verdagon.vale.templar.names.{FullNameT, INameT, NameTranslator}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{Templar, Temputs}
-import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS}
+import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS, vwat}
 
 class StructDropMacro(
   destructorTemplar: DestructorTemplar
@@ -162,7 +162,11 @@ class StructDropMacro(
 
     val bodyEnv = FunctionEnvironmentBox(env)
 
-    val structTT @ StructTT(_) = params2.head.tyype.kind
+    val structTT =
+      params2.head.tyype.kind match {
+        case structTT @ StructTT(_) => structTT
+        case other => vwat(other)
+      }
     val structDef = temputs.lookupStruct(structTT)
     val structOwnership = if (structDef.mutability == MutableT) OwnT else ShareT
     val structPermission = if (structDef.mutability == MutableT) ReadwriteT else ReadonlyT

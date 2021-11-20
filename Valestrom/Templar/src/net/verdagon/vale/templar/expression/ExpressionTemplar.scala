@@ -825,7 +825,7 @@ class ExpressionTemplar(
             evaluateBlockStatements(temputs, thenFate.snapshot, thenFate, life + 2, thenBody1.exprs)
           val uncoercedThenBlock2 = BlockTE(thenExpressionsWithResult)
 
-          val thenUnstackifiedAncestorLocals = thenFate.getEffects()
+          val thenUnstackifiedAncestorLocals = thenFate.getEffectsSince(ifBlockFate.snapshot)
           val thenContinues = uncoercedThenBlock2.resultRegister.reference.kind != NeverT()
 
           val elseFate = ifBlockFate.makeChildBlockEnvironment(Some(elseBody1))
@@ -834,7 +834,7 @@ class ExpressionTemplar(
             evaluateBlockStatements(temputs, elseFate.snapshot, elseFate, life + 3, elseBody1.exprs)
           val uncoercedElseBlock2 = BlockTE(elseExpressionsWithResult)
 
-          val elseUnstackifiedAncestorLocals = elseFate.getEffects()
+          val elseUnstackifiedAncestorLocals = elseFate.getEffectsSince(ifBlockFate.snapshot)
           val elseContinues = uncoercedElseBlock2.resultRegister.reference.kind != NeverT()
 
           val commonType =
@@ -888,7 +888,7 @@ class ExpressionTemplar(
           }
 
 
-          val ifBlockUnstackifiedAncestorLocals = ifBlockFate.getEffects()
+          val ifBlockUnstackifiedAncestorLocals = ifBlockFate.getEffectsSince(fate.snapshot)
           ifBlockUnstackifiedAncestorLocals.foreach(fate.markLocalUnstackified)
 
 
@@ -914,7 +914,7 @@ class ExpressionTemplar(
           val bodyContinues = uncoercedBodyBlock2.resultRegister.reference.kind != NeverT()
 
 
-          val bodyUnstackifiedAncestorLocals = whileBlockFate.getEffects()
+          val bodyUnstackifiedAncestorLocals = whileBlockFate.getEffectsSince(fate.snapshot)
           if (bodyUnstackifiedAncestorLocals.nonEmpty) {
             throw CompileErrorExceptionT(CantUnstackifyOutsideLocalFromInsideWhile(range, bodyUnstackifiedAncestorLocals.head.last))
           }
@@ -942,7 +942,7 @@ class ExpressionTemplar(
             evaluateBlockStatements(temputs, childEnvironment.functionEnvironment, childEnvironment, life, blockExprs)
           val block2 = BlockTE(expressionsWithResult)
 
-          val unstackifiedAncestorLocals = childEnvironment.getEffects()
+          val unstackifiedAncestorLocals = childEnvironment.getEffectsSince(fate.snapshot)
           unstackifiedAncestorLocals.foreach(fate.markLocalUnstackified)
 
           (block2, returnsFromExprs)

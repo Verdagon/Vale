@@ -116,8 +116,8 @@ class ArrayTemplar(
    StaticArrayFromValuesTE = {
     val runeToType =
       RuneTypeSolver.solve(
-        vimpl(),
-        vimpl(),
+        opts.globalOptions.sanityCheck,
+        opts.globalOptions.useOptimizedSolver,
         nameS => vassertOne(fate.lookupWithImpreciseName(profiler, nameS, Set(TemplataLookupContext), true)).tyype,
         range,
         false,
@@ -238,9 +238,10 @@ class ArrayTemplar(
             TemplatasStore(staticSizedArrayType.name, Map(), Map())
               .addEntries(
                 Map(
-                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
-                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74))),
-                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2)))))
+//                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
+//                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74))),
+//                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2))
+                )))
         temputs.declareKind(staticSizedArrayType)
         temputs.declareKindEnv(staticSizedArrayType, arrayEnv)
 
@@ -276,9 +277,10 @@ class ArrayTemplar(
             TemplatasStore(runtimeSizedArrayType.name, Map(), Map())
               .addEntries(
                 Map(
-                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
-                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73))),
-                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2)))))
+//                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
+//                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73))),
+//                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))
+                )))
         temputs.declareKind(runtimeSizedArrayType)
         temputs.declareKindEnv(runtimeSizedArrayType, arrayEnv)
 
