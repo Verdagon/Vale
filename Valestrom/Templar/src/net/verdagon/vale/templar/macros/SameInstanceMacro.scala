@@ -9,10 +9,9 @@ import net.verdagon.vale.templar.env.FunctionEnvironment
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
 import net.verdagon.vale.templar.types.CoordT
 
-object SameInstanceMacro {
-  val NAME = "vale_same_instance"
-}
-class SameInstanceMacro(profiler: IProfiler) {
+class SameInstanceMacro(profiler: IProfiler) extends IFunctionBodyMacro {
+  override def generatorId: String = "vale_same_instance"
+
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,

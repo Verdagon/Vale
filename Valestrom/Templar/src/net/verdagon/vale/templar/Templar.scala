@@ -18,7 +18,7 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
 import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceDropMacro, RSADropIntoMacro, SSADropIntoMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, SameInstanceMacro, StructConstructorMacro}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
@@ -426,6 +426,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val interfaceDropMacro = new InterfaceDropMacro(overloadTemplar)
   val abstractBodyMacro = new AbstractBodyMacro()
   val lockWeakMacro = new LockWeakMacro(expressionTemplar)
+  val sameInstanceMacro = new SameInstanceMacro(profiler)
   val anonymousInterfaceMacro =
     new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro)
 
@@ -492,6 +493,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
               rsaDropMacro.generatorId -> rsaDropMacro,
               ssaDropMacro.generatorId -> ssaDropMacro,
               lockWeakMacro.generatorId -> lockWeakMacro,
+              sameInstanceMacro.generatorId -> sameInstanceMacro,
               asSubtypeMacro.generatorId -> asSubtypeMacro),
             namespaceNameToTemplatas,
             // Bulitins

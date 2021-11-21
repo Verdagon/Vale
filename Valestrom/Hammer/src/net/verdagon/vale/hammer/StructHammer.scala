@@ -4,7 +4,7 @@ import net.verdagon.vale.metal.{Immutable => _, Mutable => _, Variability => _, 
 import net.verdagon.vale.{PackageCoordinate, vassert, vassertSome, vfail, vimpl, metal => m}
 import net.verdagon.vale.templar.{Hinputs, _}
 import net.verdagon.vale.templar.ast.{EdgeT, ProgramT}
-import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT}
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
 
@@ -99,20 +99,6 @@ object StructHammer {
 
         val (edgesH) = translateEdgesForStruct(hinputs, hamuts, temporaryStructRefH, structTT)
 
-        // Make sure there's a destructor for this shared struct.
-        structDefT.mutability match {
-          case MutableT => None
-          case ImmutableT => {
-            vimpl()
-//            if (structTT != ProgramT.emptyTupleStructRef) {
-//              vassertSome(
-//                hinputs.functions.find(function => {
-//                  function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
-//                }))
-//            }
-          }
-        }
-
         val structDefH =
           StructDefinitionH(
             fullNameH,
@@ -122,6 +108,20 @@ object StructHammer {
             membersH);
         hamuts.addStructOriginatingFromTemplar(structTT, structDefH)
         vassert(structDefH.getRef == temporaryStructRefH)
+
+//        // Make sure there's a destructor for this shared struct.
+//        structDefT.mutability match {
+//          case MutableT => None
+//          case ImmutableT => {
+//            if (structDefH.getRef != ProgramH.emptyTupleStructRef) {
+//              vassertSome(
+//                hinputs.functions.find(function => {
+//                  function.header.fullName == FullNameT(PackageCoordinate.BUILTIN, Vector.empty, ImmConcreteDestructorNameT(structTT))
+//                }))
+//            }
+//          }
+//        }
+
 
         (structDefH.getRef)
       }
@@ -135,7 +135,7 @@ object StructHammer {
     type2: CoordT,
     typeH: ReferenceH[KindH]):
   (StructRefH) = {
-    val boxFullName2 = FullNameT(PackageCoordinate.BUILTIN, Vector.empty, CitizenNameT(BOX_HUMAN_NAME, Vector(CoordTemplata(type2))))
+    val boxFullName2 = FullNameT(PackageCoordinate.BUILTIN, Vector.empty, CitizenNameT(CitizenTemplateNameT(BOX_HUMAN_NAME), Vector(CoordTemplata(type2))))
     val boxFullNameH = NameHammer.translateFullName(hinputs, hamuts, boxFullName2)
     hamuts.structDefsByRefT.find(_._2.fullName == boxFullNameH) match {
       case Some((_, structDefH)) => (structDefH.getRef)

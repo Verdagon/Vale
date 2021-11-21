@@ -118,7 +118,7 @@ class PatternTemplar(
                 Vector(),
                 Vector(
                   InitialSend(
-                    RuneUsage(pattern.range, PatternInputRuneS()),
+                    RuneUsage(pattern.range, PatternInputRuneS(pattern.range.begin)),
                     receiverRune,
                     CoordTemplata(unconvertedInputExpr.resultRegister.reference))))
             fate.addEntries(

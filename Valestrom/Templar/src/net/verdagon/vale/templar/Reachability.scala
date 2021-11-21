@@ -149,8 +149,9 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (ssa.array.mutability == ImmutableT) {
-      val destructorSignature = vimpl()//program.getDestructor(ssa).toSignature
-      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+      // DO NOT SUBMIT
+//      val destructorSignature = vimpl()//program.getDestructor(ssa).toSignature
+//      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }
 
@@ -169,9 +170,10 @@ object Reachability {
 
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
-    if (rsa.array.mutability == ImmutableT) {
-      val destructorSignature = vimpl()//program.getDestructor(rsa).toSignature
-      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
-    }
+    // DO NOT SUBMIT
+//    if (rsa.array.mutability == ImmutableT) {
+//      val destructorSignature = vimpl()//program.getDestructor(rsa).toSignature
+//      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+//    }
   }
 }

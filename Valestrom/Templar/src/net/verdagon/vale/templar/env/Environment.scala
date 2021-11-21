@@ -448,7 +448,10 @@ case class TemplatasStore(
     val oldEntries = entriesByNameT
 
     val combinedEntries = oldEntries ++ newEntries
-    vassert(oldEntries.size + newEntries.size == combinedEntries.size)
+    oldEntries.keySet.intersect(newEntries.keySet).foreach(key => {
+      vassert(oldEntries(key) == newEntries(key))
+    })
+
 
 //    newEntries.keys.foreach(newEntryName => {
 //      val entryWithThisName = combinedEntries(newEntryName)
