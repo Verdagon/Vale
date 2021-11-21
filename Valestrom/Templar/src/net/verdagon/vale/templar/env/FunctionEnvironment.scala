@@ -316,8 +316,9 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     // declaredLocals contains things from parent environment, which is why we need to receive
     // an earlier environment to compare to, see WTHPFE.
     val earlierFateDeclaredLocals = earlierFate.declaredLocals.map(_.id).toSet
+    val earlierFateLiveLocals = earlierFateDeclaredLocals -- earlierFate.unstackifiedLocals
     val liveLocalsIntroducedSinceEarlier =
-      declaredLocals.map(_.id).filter(x => !earlierFateDeclaredLocals.contains(x))
+      declaredLocals.map(_.id).filter(x => !earlierFateLiveLocals.contains(x))
 
     val unstackifiedAncestorLocals = unstackifieds -- liveLocalsIntroducedSinceEarlier
     unstackifiedAncestorLocals

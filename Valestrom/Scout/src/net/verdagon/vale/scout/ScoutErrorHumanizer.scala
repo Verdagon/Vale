@@ -95,9 +95,11 @@ object ScoutErrorHumanizer {
       case SelfOwnershipRuneS() => "(self ownership)"
       case SelfPermissionRuneS() => "(self permission)"
       case SelfKindTemplateRuneS() => "(self kind template)"
-      case PatternInputRuneS() => "(pattern input)"
+      case PatternInputRuneS(codeLoc) => "(pattern input " + codeLoc + ")"
       case SelfRuneS() => "(self)"
       case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent interface)"
+      case ImplDropVoidRuneS() => "(impl drop void)"
+      case ImplDropCoordRuneS() => "(impl drop coord)"
       case other => vimpl(other)
     }
   }

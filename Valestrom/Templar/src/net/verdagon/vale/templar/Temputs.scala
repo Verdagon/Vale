@@ -3,9 +3,9 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, ReturnTE, SignatureT, getFunctionLastName}
 import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{CitizenNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
-import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertOne, vassertSome, vfail}
+import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertOne, vassertSome, vfail, vpass}
 
 import scala.collection.immutable.{List, Map}
 import scala.collection.mutable
@@ -149,6 +149,13 @@ case class Temputs() {
     kindTT: CitizenRefT,
     mutability: MutabilityT
   ): Unit = {
+    kindTT match {
+      case StructTT(FullNameT(_, _, AnonymousSubstructNameT(AnonymousSubstructTemplateNameT(CitizenTemplateNameT("IFunction1")), _))) => {
+        vpass()
+      }
+      case _ =>
+    }
+
     vassert(declaredKinds.contains(kindTT))
     vassert(!mutabilitiesByCitizenRef.contains(kindTT))
     mutabilitiesByCitizenRef += (kindTT -> mutability)

@@ -1006,6 +1006,12 @@ object VonHammer {
           Vector(
             VonMember("name", VonStr(name))))
       }
+      case SelfNameT() => {
+        VonObject(
+          "SelfName",
+          None,
+          Vector())
+      }
 //      case ImmConcreteDestructorNameT(kind) => {
 //        VonObject(
 //          "ImmConcreteDestructorName2",

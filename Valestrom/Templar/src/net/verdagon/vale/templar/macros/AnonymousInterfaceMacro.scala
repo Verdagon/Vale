@@ -114,7 +114,7 @@ class AnonymousInterfaceMacro(
       Vector(),
       false,
       interfaceA.mutabilityRune,
-      Some(MutableP),
+      interfaceA.maybePredictedMutability,
       TemplateTemplataType(
         (interfaceA.tyype match {
           case KindTemplataType => Vector()

@@ -25,9 +25,10 @@ object NameHammer {
 
   def getReadableName(namePart: INameT): String = {
     namePart match {
-      case AnonymousSubstructImplNameT() => "AnonSubstructImplName"
+      case SelfNameT() => "self"
+      case AnonymousSubstructImplNameT() => "AnonSubstructImpl"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
-      case AnonymousSubstructConstructorNameT(templateArgs, params) => "anonSubstructConstructorName"
+      case AnonymousSubstructConstructorNameT(templateArgs, params) => "anonSubstructConstructor"
       case AnonymousSubstructNameT(_, _) => "AnonSubstruct"
 //      case AnonymousSubstructParentInterfaceRuneS() => "anonSubstructParentInterfaceRune"
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
@@ -57,7 +58,7 @@ object NameHammer {
       case LambdaCitizenNameT(codeLoc) => "lam"
       case LambdaTemplateNameT(codeLoc) => "lamTemplate"
 //      case LetImplicitRuneS(codeLoc, name) => "letImplicitRune" + name
-      case LetNameT(codeLoc) => "letName"
+      case LetNameT(codeLoc) => "let"
 //      case MagicImplicitRuneS(codeLoc) => "magicRune"
       case MagicParamNameT(codeLoc) => "magicParam"
 //      case MemberRuneS(memberIndex) => "memberRune" + memberIndex
@@ -67,9 +68,9 @@ object NameHammer {
 //      case SolverKindRuneS(paramRune) => "solverKindRune"
       case TemplarBlockResultVarNameT(num) => "blockResult" + num
       case TemplarFunctionResultVarNameT() => "funcResult"
-      case TemplarPatternDestructureeNameT(num) => "patDestrName" + num
-      case TemplarPatternMemberNameT(life) => "patMemName" + life
-      case TemplarTemporaryVarNameT(num) => "tempVarName" + num
+      case TemplarPatternDestructureeNameT(num) => "patDestr" + num
+      case TemplarPatternMemberNameT(life) => "patMem" + life
+      case TemplarTemporaryVarNameT(num) => "tempVar" + num
 //      case TupleNameT(members) => "Tup" + members.size
       case RuntimeSizedArrayNameT(arr) => "rsa"
       case UnnamedLocalNameT(codeLoc) => "unnamedLocal"

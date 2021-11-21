@@ -10,7 +10,7 @@ import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, IFindFunc
 import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, ReceivingDifferentOwnerships}
-import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, TemplataNamer}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, TemplataNamer}
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VaryingT, VoidT, WeakT}
 import net.verdagon.vale.{CodeLocationS, FileCoordinate, FileCoordinateMap, RangeS, repeatStr, vimpl}
@@ -484,7 +484,10 @@ object TemplarErrorHumanizer {
       }
       case AnonymousSubstructNameT(interface, templateArgs) => {
         humanizeName(codeMap, interface) +
-          ".anonymous<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+          "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+      }
+      case AnonymousSubstructTemplateNameT(interface) => {
+        humanizeName(codeMap, interface) + ".anonymous"
       }
       case CitizenTemplateNameT(humanName) => humanName
     }
