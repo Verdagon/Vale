@@ -87,6 +87,9 @@ case class StructA(
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
+
+  vpass()
+
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[StructA]) { return false }
     val that = obj.asInstanceOf[StructA]

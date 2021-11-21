@@ -329,12 +329,13 @@ class ArrayTests extends FunSuite with Matchers {
 
   test("array map with interface") {
     val compile = RunCompilation.test(
-        """import array.make.*;
+        """
+          |import array.make.*;
           |fn main() int export {
           |  a = MakeImmArray(10, &!IFunction1<imm, int, int>({_}));
           |  = a.3;
           |}
-        """.stripMargin)
+          |""".stripMargin)
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("MakeImmArray")
