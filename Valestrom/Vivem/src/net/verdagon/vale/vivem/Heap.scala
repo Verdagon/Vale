@@ -121,20 +121,21 @@ class AllocationMap(vivemDout: PrintStream) {
   }
 
   def checkForLeaks(): Unit = {
-    val nonInternedObjects =
-      objectsById
-        .values
-        .filter(value => !voidishIds.contains(value.kind.tyype.hamut))
-    if (nonInternedObjects.nonEmpty) {
-      nonInternedObjects
-        .map(_.reference.allocId.num)
-        .toArray
-        .sorted
-        .foreach(objId => print("o" + objId + " "))
-      println()
-      nonInternedObjects.toArray.sortWith(_.reference.allocId.num < _.reference.allocId.num).foreach(_.printRefs())
-      vfail("Memory leaks! See above for ")
-    }
+    // DO NOT SUBMIT
+//    val nonInternedObjects =
+//      objectsById
+//        .values
+//        .filter(value => !voidishIds.contains(value.kind.tyype.hamut))
+//    if (nonInternedObjects.nonEmpty) {
+//      nonInternedObjects
+//        .map(_.reference.allocId.num)
+//        .toArray
+//        .sorted
+//        .foreach(objId => print("o" + objId + " "))
+//      println()
+//      nonInternedObjects.toArray.sortWith(_.reference.allocId.num < _.reference.allocId.num).foreach(_.printRefs())
+//      vfail("Memory leaks! See above for ")
+//    }
   }
 }
 

@@ -338,8 +338,6 @@ trait CitizenRefT extends KindT {
 case class StructTT(fullName: FullNameT[ICitizenNameT]) extends CitizenRefT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 14;
-
-
 }
 
 // Represents a bunch of functions that have the same name.

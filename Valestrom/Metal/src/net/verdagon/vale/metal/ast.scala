@@ -8,7 +8,8 @@ import scala.collection.immutable.ListMap
 object ProgramH {
   val emptyTupleStructRef =
     // If the templar ever decides to change this things name, update this to match templar's.
-    StructRefH(FullNameH("Tup0", 0, PackageCoordinate.BUILTIN, Vector(VonObject("Tup",None,Vector(VonMember("members",VonArray(None,Vector())))))))
+//    StructRefH(FullNameH("Tup0", 0, PackageCoordinate.BUILTIN, Vector(VonObject("Tup",None,Vector(VonMember("members",VonArray(None,Vector())))))))
+    StructRefH(FullNameH("Tup",0, PackageCoordinate.BUILTIN, Vector(VonObject("CitizenName",None,Vector(VonMember("humanName",VonObject("CitizenTemplateName",None,Vector(VonMember("Tup",VonStr("Tup"))))), VonMember("templateArgs",VonArray(None,Vector(VonObject("CoordListTemplata",None,Vector(VonMember("coords",VonArray(None,Vector()))))))))))))
 
   def emptyTupleStructType = ReferenceH(ShareH, InlineH, ReadonlyH, emptyTupleStructRef)
 

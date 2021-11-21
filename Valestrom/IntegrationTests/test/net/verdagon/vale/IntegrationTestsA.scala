@@ -177,7 +177,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
   test("Test taking a callable param") {
     val compile = RunCompilation.test(
       """
-        |fn do(callable) infer-ret {callable()}
+        |fn do<T>(callable T) infer-ret {callable()}
         |fn main() int export {do({ 3 })}
       """.stripMargin)
     compile.evalForKind(Vector()) shouldEqual VonInt(3)
@@ -431,11 +431,11 @@ class IntegrationTestsA extends FunSuite with Matchers {
   // Virtual starts a function family.
   // So, this checks that it and its three ancestors are all stamped and all get their own
   // function families.
-  test("Stamp multiple ancestors") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/genericvirtuals/stampMultipleAncestors.vale"))
-    val temputs = compile.expectTemputs()
-    compile.evalForKind(Vector())
-  }
+//  test("Stamp multiple ancestors") {
+//    val compile = RunCompilation.test(Tests.loadExpected("programs/genericvirtuals/stampMultipleAncestors.vale"))
+//    val temputs = compile.expectTemputs()
+//    compile.evalForKind(Vector())
+//  }
 
   test("Tests recursion") {
     val compile = RunCompilation.test(Tests.loadExpected("programs/functions/recursion.vale"))

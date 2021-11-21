@@ -251,6 +251,11 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case AugmentSR(range, resultRune, literal, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
     case LiteralSR(range, rune, literal) =>
     case LookupSR(range, rune, name) =>
+    case CoerceToCoordSR(range, coordRune, kindRune) => markKindEquivalent(coordRune.rune, kindRune.rune)
+    case RepeaterSequenceSR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) =>
+    case OneOfSR(range, rune, literals) =>
+    case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) =>
+    case PackSR(range, resultRune, members) =>
     case other => vimpl(other)
   })
 

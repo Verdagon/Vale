@@ -27,11 +27,12 @@ object NameHammer {
     namePart match {
       case AnonymousSubstructImplNameT() => "AnonSubstructImplName"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
-      case AnonymousSubstructNameT(callables) => "AnonSubstruct"
+      case AnonymousSubstructConstructorNameT(templateArgs, params) => "anonSubstructConstructorName"
+      case AnonymousSubstructNameT(_, _) => "AnonSubstruct"
 //      case AnonymousSubstructParentInterfaceRuneS() => "anonSubstructParentInterfaceRune"
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
       case BuildingFunctionNameWithClosuredsAndTemplateArgsT(_, _) => vwat() // Shouldnt see this in hammer
-      case CitizenNameT(humanName, templateArgs) => humanName
+      case CitizenNameT(templateName, templateArgs) => getReadableName(templateName)
       case CitizenTemplateNameT(humanName) => humanName
       case ClosureParamNameT() => "closure"
 //      case CodeRuneS(name) => name
@@ -50,7 +51,7 @@ object NameHammer {
 //      case DropTemplateNameT() => "immDropTemplate"
 //      case ImmInterfaceDestructorNameT(templateArgs, params) => "immInterfaceDestructor"
 //      case ImmInterfaceDestructorTemplateNameT() => "immInterfaceDestructorTemplate"
-      case ImplDeclareNameT(subCitizenHumanName, codeLoc) => "impl" + subCitizenHumanName
+      case ImplDeclareNameT(codeLoc) => "impl" + codeLoc
 //      case ImplicitRuneS(parentName, name) => "implicitRune" + name
       case StaticSizedArrayNameT(size, arr) => "ssa" + size
       case LambdaCitizenNameT(codeLoc) => "lam"
