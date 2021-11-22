@@ -73,7 +73,7 @@ class StructConstructorMacro(
         FunctionA(
           structA.range,
           ConstructorNameS(structA.name),
-          Vector(UserFunctionS),
+          Vector(),
           structA.tyype match {
             case KindTemplataType => FunctionTemplataType
             case TemplateTemplataType(params, KindTemplataType) => TemplateTemplataType(params, FunctionTemplataType)

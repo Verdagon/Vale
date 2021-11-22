@@ -12,7 +12,7 @@ class VirtualTests extends FunSuite with Matchers {
     test("Simple program containing a virtual function") {
       val compile = RunCompilation.test(
         """
-          |interface I {}
+          |interface I sealed {}
           |fn doThing(virtual i I) int {4}
           |fn main(i I) int {
           |  doThing(i)
@@ -45,7 +45,7 @@ class VirtualTests extends FunSuite with Matchers {
   test("Can call virtual function") {
     val compile = RunCompilation.test(
       """
-        |interface I {}
+        |interface I sealed {}
         |fn doThing(virtual i I) int {4}
         |fn main(i I) int {
         |  doThing(i)

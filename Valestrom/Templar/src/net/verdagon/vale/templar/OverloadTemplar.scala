@@ -34,7 +34,10 @@ object OverloadTemplar {
   }
   case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
-  case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
+  case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason {
+    override def hashCode(): Int = vcurious()
+    vpass()
+  }
   case class SpecificParamVirtualityDoesntMatch(index: Int) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class Outscored() extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }
   case class RuleTypeSolveFailure(reason: RuneTypeSolveError) extends IFindFunctionFailureReason { override def hashCode(): Int = vcurious() }

@@ -94,16 +94,20 @@ class ClosureTests extends FunSuite with Matchers {
 
     val main = temputs.lookupLambdaIn("main")
     Collector.only(main, {
-      case ReferenceLocalVariableT(
-        FullNameT(_, Vector(FunctionNameT("main", _, _), LambdaCitizenNameT(_), FunctionNameT("__call", _, _)), ClosureParamNameT()),
-        FinalT,
-        CoordT(ShareT, ReadonlyT, StructTT(FullNameT(_, Vector(FunctionNameT("main", Vector(), Vector())), LambdaCitizenNameT(_))))) =>
+      case LetNormalTE(
+        ReferenceLocalVariableT(
+          FullNameT(_, Vector(FunctionNameT("main", _, _), LambdaCitizenNameT(_), FunctionNameT("__call", _, _)), ClosureParamNameT()),
+          FinalT,
+          CoordT(ShareT, ReadonlyT, StructTT(FullNameT(_, Vector(FunctionNameT("main", Vector(), Vector())), LambdaCitizenNameT(_))))),
+        _) =>
     })
     Collector.only(main, {
-      case ReferenceLocalVariableT(
+      case LetNormalTE(
+        ReferenceLocalVariableT(
           FullNameT(_, Vector(FunctionNameT("main",_,_), LambdaCitizenNameT(_), FunctionNameT("__call",_,_)),TemplarBlockResultVarNameT(_)),
           FinalT,
-          CoordT(ShareT,ReadonlyT, IntT.i32)) =>
+          CoordT(ShareT,ReadonlyT, IntT.i32)),
+        _) =>
     })
   }
 
@@ -184,9 +188,6 @@ class ClosureTests extends FunSuite with Matchers {
     val main = temputs.lookupFunction("main")
     Collector.only(main, {
       case LetNormalTE(AddressibleLocalVariableT(_, VaryingT, _), _) =>
-    })
-    Collector.only(main, {
-      case AddressibleLocalVariableT(_, VaryingT, _) =>
     })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(5)

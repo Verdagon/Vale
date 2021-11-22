@@ -29,7 +29,14 @@ case class AtomSP(
 }
 
 sealed trait VirtualitySP
-case object AbstractSP extends VirtualitySP
+
+case class AbstractSP(
+  range: RangeS,
+  // True if this is defined inside an interface
+  // False if this is a free function somewhere else
+  isInternalMethod: Boolean
+) extends VirtualitySP
+
 case class OverrideSP(range: RangeS, kindRune: RuneUsage) extends VirtualitySP {
   override def hashCode(): Int = vcurious()
 }

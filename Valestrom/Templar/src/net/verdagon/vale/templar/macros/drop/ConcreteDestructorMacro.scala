@@ -29,7 +29,7 @@ class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
 //      } else {
 //        ImmConcreteDestructorNameS(PackageCoordinate.internal)
 //      },
-      Vector(UserFunctionS),
+      Vector(),
       TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
       Vector(RuneUsage(RangeS.internal(-68001), CodeRuneS("T"))),
       Map(

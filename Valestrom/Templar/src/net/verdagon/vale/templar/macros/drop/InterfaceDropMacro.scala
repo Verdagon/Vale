@@ -25,7 +25,7 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
       FunctionA(
         interfaceA.name.range,
         FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, interfaceA.name.range.begin),
-        Vector(UserFunctionS),
+        Vector(),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
         Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),
         Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("V") -> CoordTemplataType),
@@ -58,7 +58,7 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
       FunctionA(
         interfaceA.range,
         FunctionNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, interfaceA.range.begin),
-        Vector(UserFunctionS),
+        Vector(),
         TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
         Vector(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))),
         Map(CodeRuneS("T") -> CoordTemplataType, CodeRuneS("V") -> CoordTemplataType),
@@ -67,7 +67,7 @@ class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceD
             AtomSP(
               RangeS.internal(-1340),
               Some(CaptureS(CodeVarNameS("this"))),
-              Some(AbstractSP),
+              Some(AbstractSP(RangeS.internal(-1340), true)),
               Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("T"))), None))),
         Some(RuneUsage(RangeS.internal(-64002), CodeRuneS("V"))),
         Vector(

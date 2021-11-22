@@ -460,7 +460,10 @@ object ParsedLoader {
           loadRange(getObjectField(jobj, "range")),
           loadTemplex(getObjectField(jobj, "type")))
       }
-      case "Abstract" => AbstractP
+      case "Abstract" => {
+        AbstractP(
+          loadRange(getObjectField(jobj, "range")))
+      }
     }
   }
 

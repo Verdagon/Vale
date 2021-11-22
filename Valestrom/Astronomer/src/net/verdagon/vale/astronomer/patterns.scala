@@ -12,7 +12,7 @@ object PatternSUtils {
     val runesFromVirtuality =
       pattern.virtuality match {
         case None => Vector.empty
-        case Some(AbstractSP) => Vector.empty
+        case Some(AbstractSP(_)) => Vector.empty
         case Some(OverrideSP(range, kindRune)) => Vector((kindRune.rune -> KindTemplataType))
       }
     val runesFromDestructures =

@@ -24,7 +24,7 @@ class ImplDropMacro() extends IOnImplDefinedMacro {
       FunctionA(
         implA.range,
         FunctionNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME, implA.range.begin),
-        Vector(UserFunctionS),
+        Vector(),
         if (implA.isTemplate) {
           TemplateTemplataType(implA.identifyingRunes.map(_.rune).map(implA.runeToType), FunctionTemplataType)
         } else {
@@ -61,7 +61,7 @@ class ImplDropMacro() extends IOnImplDefinedMacro {
                     LendConstraintP(None)),
                   Vector(LocalLoadSE(RangeS.internal(-167213), CodeVarNameS("this"), MoveP))))))))
     Vector((
-      implName.addStep(NameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name)),
+      implName.copy(last = NameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name)),
       FunctionEnvEntry(dropFunctionA)))
   }
 //

@@ -19,7 +19,9 @@ case class KindIsNotConcrete(kind: KindT) extends ITemplarSolverError
 case class KindIsNotInterface(kind: KindT) extends ITemplarSolverError
 case class KindIsNotStruct(kind: KindT) extends ITemplarSolverError
 case class CantShareMutable(kind: KindT) extends ITemplarSolverError
-case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
+case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError {
+  vpass()
+}
 case class ReceivingDifferentPermissions(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITemplarSolverError
 case class NoCommonAncestors(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
@@ -576,6 +578,20 @@ class TemplarSolver[Env, State](
                   case _ => return Err(RuleError(CallResultWasntExpectedType(template, result)))
                 }
               }
+              case it @ KindTemplata(templateInterface @ InterfaceTT(_)) => {
+                result match {
+                  case KindTemplata(instantiationInterface @ InterfaceTT(_)) => {
+                    if (templateInterface != instantiationInterface) {
+                      return Err(RuleError(CallResultWasntExpectedType(it, result)))
+                    }
+                    argRunes.zip(instantiationInterface.fullName.last.templateArgs).foreach({ case (rune, templateArg) =>
+                      stepState.concludeRune[ITemplarSolverError](rune.rune, templateArg)
+                    })
+                    Ok(())
+                  }
+                  case _ => return Err(RuleError(CallResultWasntExpectedType(template, result)))
+                }
+              }
               case st @ StructTemplata(_, _) => {
                 result match {
                   case KindTemplata(struct @ StructTT(_)) => {
@@ -723,7 +739,7 @@ class TemplarSolver[Env, State](
                   val possibleCoords =
                     unsolvedRules.collect({
                       case AugmentSR(range, resultRune, literal, innerRune)
-                        if equivalencies.getKindEquivalentRunes(resultRune.rune).contains(receiver) => {
+                        if resultRune.rune == receiver => {
                         val ownership = vassertOne(literal.collect({ case OwnershipLiteralSL(ownership) => ownership }))
                         val permission = vassertOne(literal.collect({ case PermissionLiteralSL(permission) => permission }))
                         CoordT(

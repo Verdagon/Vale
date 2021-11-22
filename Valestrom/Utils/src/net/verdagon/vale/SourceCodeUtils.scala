@@ -3,11 +3,7 @@ package net.verdagon.vale
 object SourceCodeUtils {
   def humanizeFile(coordinate: FileCoordinate): String = {
     val FileCoordinate(module, packages, filepath) = coordinate
-    if (coordinate.isInternal) {
-      "(internal file)"
-    } else {
-      module + packages.map("." + _).mkString("") + ":" + filepath
-    }
+    module + packages.map("." + _).mkString("") + ":" + filepath
   }
 
   def humanizePos(

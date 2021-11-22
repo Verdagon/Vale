@@ -1537,4 +1537,8 @@ class TemplarTests extends FunSuite with Matchers {
     }
   }
 
+  test("Report when abstract method defined outside open interface") {
+    vimpl()
+    // AbstractMethodOutsideOpenInterface
+  }
 }

@@ -1,6 +1,6 @@
 package net.verdagon.vale.scout.patterns
 
-import net.verdagon.vale.parser._
+import net.verdagon.vale.parser.{AbstractP, _}
 import net.verdagon.vale.scout.rules._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, _}
 import net.verdagon.vale.{RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -50,7 +50,9 @@ object PatternScout {
     val maybeVirtualityS =
       maybeVirtualityP match {
         case None => None
-        case Some(AbstractP) => Some(AbstractSP)
+        case Some(AbstractP(range)) => {
+          Some(AbstractSP(Scout.evalRange(stackFrame.file, range), stackFrame.parentEnv.isInterfaceInternalMethod))
+        }
         case Some(OverrideP(range, typeP)) => {
           typeP match {
             case InterpretedPT(range, _, _, _) => {

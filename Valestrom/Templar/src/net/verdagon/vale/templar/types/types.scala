@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.types
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar._
-import net.verdagon.vale.templar.ast.{FunctionHeaderT, ICitizenAttribute2, VirtualityT}
+import net.verdagon.vale.templar.ast.{FunctionHeaderT, ICitizenAttributeT, VirtualityT}
 import net.verdagon.vale.templar.env.IEnvironment
 import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, IVarNameT, ImplDeclareNameT, LambdaCitizenNameT, LetNameT, MagicParamNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, UnnamedLocalNameT}
 import net.verdagon.vale.templar.templata._
@@ -278,7 +278,7 @@ trait CitizenDefinitionT {
 // We include templateArgTypes to aid in looking this up... same reason we have name
 case class StructDefinitionT(
   fullName: FullNameT[ICitizenNameT],
-  attributes: Vector[ICitizenAttribute2],
+  attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: MutabilityT,
   members: Vector[StructMemberT],
@@ -317,7 +317,7 @@ case class StructDefinitionT(
 
 case class InterfaceDefinitionT(
     fullName: FullNameT[CitizenNameT],
-    attributes: Vector[ICitizenAttribute2],
+    attributes: Vector[ICitizenAttributeT],
     weakable: Boolean,
     mutability: MutabilityT,
     // This does not include abstract functions declared outside the interface.

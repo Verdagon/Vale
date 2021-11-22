@@ -6,12 +6,12 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.scout.patterns.{AbstractSP, OverrideSP, VirtualitySP}
 import net.verdagon.vale.templar.{ast, names, _}
-import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionT, OverrideT, ParameterT, PrototypeT, SignatureT, VirtualityT}
+import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionT, OverrideT, ParameterT, PrototypeT, SealedT, SignatureT, VirtualityT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructConstructorTemplateNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructConstructorTemplateNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -55,21 +55,35 @@ class FunctionTemplarMiddleLayer(
   private def evaluateMaybeVirtuality(
       env: IEnvironment,
       temputs: Temputs,
+      paramKind: KindT,
       maybeVirtuality1: Option[VirtualitySP]):
   (Option[VirtualityT]) = {
     maybeVirtuality1 match {
       case None => (None)
-      case Some(AbstractSP) => (Some(AbstractT))
-      case Some(OverrideSP(range, interfaceRuneA)) => {
-        env.lookupNearestWithImpreciseName(profiler, RuneNameS(interfaceRuneA.rune), Set(TemplataLookupContext)) match {
-          case None => vcurious()
-          case Some(KindTemplata(ir @ InterfaceTT(_))) => (Some(OverrideT(ir)))
-          case Some(it @ InterfaceTemplata(_, _)) => {
-            val ir =
-              structTemplar.getInterfaceRef(temputs, range, it, Vector.empty)
-            (Some(OverrideT(ir)))
+      case Some(AbstractSP(rangeS, isInternalMethod)) => {
+        val interfaceTT =
+          paramKind match {
+            case i @ InterfaceTT(_) => i
+            case _ => throw CompileErrorExceptionT(RangedInternalErrorT(rangeS, "Can only have virtual parameters for interfaces"))
+          }
+        // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
+        // See https://github.com/ValeLang/Vale/issues/374
+        if (!isInternalMethod) {
+          val interfaceDef = temputs.getInterfaceDefForRef(interfaceTT)
+          if (!interfaceDef.attributes.contains(SealedT)) {
+            throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS))
           }
         }
+        (Some(AbstractT))
+      }
+      case Some(OverrideSP(range, interfaceRuneA)) => {
+        val interface =
+          env.lookupNearestWithImpreciseName(profiler, RuneNameS(interfaceRuneA.rune), Set(TemplataLookupContext)) match {
+            case None => vcurious()
+            case Some(KindTemplata(ir @ InterfaceTT(_))) => ir
+            case Some(it @ InterfaceTemplata(_, _)) => structTemplar.getInterfaceRef(temputs, range, it, Vector.empty)
+          }
+        Some(OverrideT(interface))
       }
     }
   }
@@ -270,7 +284,7 @@ class FunctionTemplarMiddleLayer(
                 profiler,
                 RuneNameS(param1.pattern.coordRune.get.rune),
                 Set(TemplataLookupContext)))
-        val maybeVirtuality = evaluateMaybeVirtuality(env, temputs, param1.pattern.virtuality)
+        val maybeVirtuality = evaluateMaybeVirtuality(env, temputs, coord.kind, param1.pattern.virtuality)
         val nameT =
           param1.pattern.name match {
             case None => TemplarIgnoredParamNameT(index)
