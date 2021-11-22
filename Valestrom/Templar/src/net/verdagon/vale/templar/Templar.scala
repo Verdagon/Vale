@@ -6,7 +6,7 @@ import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.UseP
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{CodeNameS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, ITemplataType, LambdaNameS, ProgramS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeNameS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, ITemplataType, LambdaNameS, ProgramS, SealedS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, ConsecutorTE, EdgeT, FunctionCallTE, FunctionHeaderT, FunctionT, IsSameInstanceTE, LocationInFunctionEnvironment, LockWeakTE, ParameterT, ProgramT, PrototypeT, ReferenceExpressionTE, ReturnTE}
@@ -18,7 +18,7 @@ import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
 import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceDropMacro, RSADropIntoMacro, SSADropIntoMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, SameInstanceMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, SSALenMacro, SameInstanceMacro, StructConstructorMacro}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
@@ -419,6 +419,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val structDropMacro = new StructDropMacro(destructorTemplar)
   val asSubtypeMacro = new AsSubtypeMacro(ancestorHelper, expressionTemplar)
   val rsaLenMacro = new RSALenMacro()
+  val ssaLenMacro = new SSALenMacro()
   val rsaDropMacro = new RSADropIntoMacro(arrayTemplar)
   val ssaDropMacro = new SSADropIntoMacro(arrayTemplar)
 //  val ssaLenMacro = new SSALenMacro()
@@ -428,7 +429,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val lockWeakMacro = new LockWeakMacro(expressionTemplar)
   val sameInstanceMacro = new SameInstanceMacro(profiler)
   val anonymousInterfaceMacro =
-    new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro)
+    new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro, implDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
@@ -445,7 +446,11 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             programA.interfaces.map(interfaceA => {
               val interfaceNameT = packageName.addStep(NameTranslator.translateNameStep(interfaceA.name))
               Vector((interfaceNameT, InterfaceEnvEntry(interfaceA))) ++
-              anonymousInterfaceMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA)
+                (if (interfaceA.attributes.contains(SealedS)) {
+                  Vector()
+                } else {
+                  anonymousInterfaceMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA)
+                })
             }) ++
             programA.impls.map(implA => {
               val implNameT = packageName.addStep(NameTranslator.translateImplName(implA.name))
@@ -490,6 +495,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
               structConstructorMacro.generatorId -> structConstructorMacro,
               structDropMacro.generatorId -> structDropMacro,
               rsaLenMacro.generatorId -> rsaLenMacro,
+              ssaLenMacro.generatorId -> ssaLenMacro,
               rsaDropMacro.generatorId -> rsaDropMacro,
               ssaDropMacro.generatorId -> ssaDropMacro,
               lockWeakMacro.generatorId -> lockWeakMacro,

@@ -87,7 +87,7 @@ class StructDropMacro(
     FunctionA(
       structRange,
       FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, structRange.begin),
-      Vector(UserFunctionS),
+      Vector(),
       structType match {
         case KindTemplataType => FunctionTemplataType
         case TemplateTemplataType(paramTypes, KindTemplataType) => {
@@ -131,7 +131,7 @@ class StructDropMacro(
     FunctionA(
       range,
       FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, range.begin),
-      Vector(UserFunctionS),
+      Vector(),
       FunctionTemplataType,
       Vector(),
       Map(

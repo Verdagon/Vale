@@ -108,6 +108,9 @@ object TemplarErrorHumanizer {
             ": Function " + signature.fullName.last + " already exists! Previous declaration at:\n" +
             humanizePos(codeMap, oldFunctionRange.begin)
         }
+        case AbstractMethodOutsideOpenInterface(range) => {
+          "Open (non-sealed) interfaces can't have abstract methods defined outside the interface."
+        }
         case IfConditionIsntBoolean(range, actualType) => {
             ": If condition should be a bool, but was: " + actualType
         }
@@ -267,7 +270,7 @@ object TemplarErrorHumanizer {
       }
       case SpecificParamDoesntMatchExactly(index, arg, param) => {
         "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
-          "Index " + index + " given argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
+          "Index " + index + " argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
           " isn't the same exact type as expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
       }
       case SpecificParamDoesntSend(index, arg, param) => {
@@ -475,7 +478,7 @@ object TemplarErrorHumanizer {
           })
       }
       case CitizenNameT(humanName, templateArgs) => {
-        humanName +
+        humanizeName(codeMap, humanName) +
           (if (templateArgs.nonEmpty) {
             "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
           } else {

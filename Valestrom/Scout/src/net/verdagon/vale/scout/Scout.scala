@@ -2,9 +2,9 @@ package net.verdagon.vale.scout
 
 //import net.verdagon.vale.astronomer.{Astronomer, AstroutsBox, Environment, IRuneS, ITemplataType}
 import net.verdagon.vale.options.GlobalOptions
-import net.verdagon.vale.{CodeLocationS, RangeS}
+import net.verdagon.vale.{CodeLocationS, RangeS, vpass}
 import net.verdagon.vale.parser._
-import net.verdagon.vale.scout.Scout.{determineDenizenType}
+import net.verdagon.vale.scout.Scout.determineDenizenType
 import net.verdagon.vale.scout.patterns.PatternScout
 //import net.verdagon.vale.scout.predictor.RuneTypeSolveError
 import net.verdagon.vale.scout.rules._
@@ -30,7 +30,10 @@ case class CantOwnershipInterfaceInImpl(range: RangeS) extends ICompileErrorS { 
 case class CantOwnershipStructInImpl(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class CantOverrideOwnershipped(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class VariableNameAlreadyExists(range: RangeS, name: IVarNameS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
-case class InterfaceMethodNeedsSelf(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
+case class InterfaceMethodNeedsSelf(range: RangeS) extends ICompileErrorS {
+  vpass()
+  override def hashCode(): Int = vcurious()
+}
 case class VirtualAndAbstractGoTogether(range: RangeS) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class CouldntSolveRulesS(range: RangeS, error: RuneTypeSolveError) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
 case class RangedInternalErrorS(range: RangeS, message: String) extends ICompileErrorS { override def hashCode(): Int = vcurious() }
@@ -69,7 +72,10 @@ case class FunctionEnvironment(
   private val declaredRunes: Set[IRuneS],
   // So that when we run into a magic param, we can add this to the number of previous magic
   // params to get the final param index.
-  numExplicitParams: Int
+  numExplicitParams: Int,
+  // Whether this is an abstract method inside defined inside an interface.
+  // (Maybe we can instead determine this by looking at parentEnv?)
+  isInterfaceInternalMethod: Boolean
 ) extends IEnvironment {
   override def hashCode(): Int = vcurious()
   override def localDeclaredRunes(): Set[IRuneS] = {
@@ -79,7 +85,7 @@ case class FunctionEnvironment(
     declaredRunes ++ parentEnv.toVector.flatMap(_.allDeclaredRunes()).toSet
   }
   def child(): FunctionEnvironment = {
-    FunctionEnvironment(file, name, Some(this), Set(), numExplicitParams)
+    FunctionEnvironment(file, name, Some(this), Set(), numExplicitParams, false)
   }
 }
 
@@ -415,6 +421,7 @@ class Scout(globalOptions: GlobalOptions) {
   def translateCitizenAttributes(file: FileCoordinate, attrsP: Vector[ICitizenAttributeP]): Vector[ICitizenAttributeS] = {
     attrsP.map({
       case ExportP(_) => ExportS(file.packageCoordinate)
+      case SealedP(_) => SealedS
       case x => vimpl(x.toString)
     })
   }

@@ -6,7 +6,7 @@ import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.scout.{AbstractBodyS, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.{ast, _}
-import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, Extern2, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, FunctionT, IFunctionAttribute2, InterfaceFunctionCallTE, LocationInFunctionEnvironment, OverrideT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
+import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, ExternT, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, FunctionT, IFunctionAttributeT, InterfaceFunctionCallTE, LocationInFunctionEnvironment, OverrideT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import net.verdagon.vale.templar.citizen.{AncestorHelper, StructTemplar}
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.templar.expression.CallTemplar
@@ -273,7 +273,7 @@ class FunctionTemplarCore(
   def finalizeHeader(
       fullEnv: FunctionEnvironmentBox,
       temputs: Temputs,
-      attributesT: Vector[IFunctionAttribute2],
+      attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       returnCoord: CoordT) = {
     val header = ast.FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
@@ -287,7 +287,7 @@ class FunctionTemplarCore(
       fullEnvSnapshot: FunctionEnvironment,
       startingFullEnvSnapshot: FunctionEnvironment,
       life: LocationInFunctionEnvironment,
-      attributesT: Vector[IFunctionAttribute2],
+      attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       isDestructor: Boolean,
       maybeExplicitReturnCoord: Option[CoordT],
@@ -347,7 +347,7 @@ class FunctionTemplarCore(
       temputs: Temputs,
       fullName: FullNameT[IFunctionNameT],
       range: RangeS,
-      attributes: Vector[IFunctionAttribute2],
+      attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],
       returnType2: CoordT,
       maybeOrigin: Option[FunctionA]):
@@ -367,7 +367,7 @@ class FunctionTemplarCore(
         val header =
           ast.FunctionHeaderT(
             fullName,
-            Vector(Extern2(range.file.packageCoordinate)) ++ attributes,
+            Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
             params2,
             returnType2,
             maybeOrigin)
@@ -391,10 +391,10 @@ class FunctionTemplarCore(
     }
   }
 
-  def translateFunctionAttributes(a: Vector[IFunctionAttributeS]): Vector[IFunctionAttribute2] = {
+  def translateFunctionAttributes(a: Vector[IFunctionAttributeS]): Vector[IFunctionAttributeT] = {
     a.map({
       case UserFunctionS => UserFunctionT
-      case ExternS(packageCoord) => Extern2(packageCoord)
+      case ExternS(packageCoord) => ExternT(packageCoord)
       case x => vimpl(x.toString)
     })
   }

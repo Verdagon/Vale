@@ -48,6 +48,7 @@ case class IfConditionIsntBoolean(range: RangeS, actualType: CoordT) extends ICo
 case class WhileConditionIsntBoolean(range: RangeS, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CantMoveFromGlobal(range: RangeS, name: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class InferAstronomerError(range: RangeS, err: RuneTypeSolveError) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class AbstractMethodOutsideOpenInterface(range: RangeS) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 //case class NotEnoughToSolveError(range: RangeS, conclusions: Map[IRuneS, ITemplata], unknownRunes: Iterable[IRuneS]) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class TemplarSolverError(range: RangeS, failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITemplarSolverError]) extends ICompileErrorT {
   override def hashCode(): Int = vcurious()

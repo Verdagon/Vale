@@ -248,19 +248,20 @@ case class FunctionBannerT(
   }
 }
 
-sealed trait IFunctionAttribute2
-sealed trait ICitizenAttribute2
-case class Extern2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2 { // For optimization later
+sealed trait IFunctionAttributeT
+sealed trait ICitizenAttributeT
+case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 // There's no Export2 here, we use separate KindExport and FunctionExport constructs.
 //case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
-case object PureT extends IFunctionAttribute2 with ICitizenAttribute2
-case object UserFunctionT extends IFunctionAttribute2 // Whether it was written by a human. Mostly for tests right now.
+case object PureT extends IFunctionAttributeT
+case object SealedT extends ICitizenAttributeT
+case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
 
 case class FunctionHeaderT(
   fullName: FullNameT[IFunctionNameT],
-  attributes: Vector[IFunctionAttribute2],
+  attributes: Vector[IFunctionAttributeT],
   params: Vector[ParameterT],
   returnType: CoordT,
   maybeOriginFunction: Option[FunctionA])  {
@@ -271,7 +272,7 @@ case class FunctionHeaderT(
 
   vassert(fullName.last.parameters == paramTypes)
 
-  def isExtern = attributes.exists({ case Extern2(_) => true case _ => false })
+  def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
   //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
   def isUserFunction = attributes.contains(UserFunctionT)
   def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface

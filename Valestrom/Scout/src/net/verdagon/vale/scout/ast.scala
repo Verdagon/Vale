@@ -48,7 +48,8 @@ sealed trait IFunctionAttributeS
 case class ExternS(packageCoord: PackageCoordinate) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case object PureS extends IFunctionAttributeS with ICitizenAttributeS
+case object PureS extends IFunctionAttributeS
+case object SealedS extends ICitizenAttributeS
 case class BuiltinS(generatorName: String) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }

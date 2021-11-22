@@ -89,7 +89,7 @@ class FunctionScout(scout: Scout) {
         .map({ case NameP(range, identifyingRuneName) => RuneUsage(Scout.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val userDeclaredRunes = (userSpecifiedIdentifyingRunes ++ userRunesFromRules).distinct
 
-    val functionEnv = FunctionEnvironment(file, name, None, userDeclaredRunes.map(_.rune).toSet, paramsP.size)
+    val functionEnv = FunctionEnvironment(file, name, None, userDeclaredRunes.map(_.rune).toSet, paramsP.size, false)
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
@@ -228,7 +228,8 @@ class FunctionScout(scout: Scout) {
         lambdaName,
         Some(parentStackFrame.parentEnv),
         Set(),
-        paramsP.size)
+        paramsP.size,
+        false)
 
 
     val myStackFrameWithoutParams = StackFrame(parentStackFrame.file, lambdaName, functionEnv, None, noDeclarations)
@@ -483,7 +484,7 @@ class FunctionScout(scout: Scout) {
     maybeParamsP match {
       case None =>
       case Some(paramsP) => {
-        if (!paramsP.patterns.exists(_.virtuality == Some(AbstractP))) {
+        if (!paramsP.patterns.exists(_.virtuality match { case Some(AbstractP(_)) => true case _ => false })) {
           throw CompileErrorExceptionS(InterfaceMethodNeedsSelf(Scout.evalRange(interfaceEnv.file, range)))
         }
       }
@@ -518,7 +519,9 @@ class FunctionScout(scout: Scout) {
 
     RuleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP.toVector.flatMap(_.rules))
 
-    val functionEnv = FunctionEnvironment(interfaceEnv.file, funcName, Some(interfaceEnv), userDeclaredRunes.map(_.rune).toSet, maybeParamsP.size)
+    val functionEnv =
+      FunctionEnvironment(
+        interfaceEnv.file, funcName, Some(interfaceEnv), userDeclaredRunes.map(_.rune).toSet, maybeParamsP.size, true)
     val myStackFrame = StackFrame(interfaceEnv.file, funcName, functionEnv, None, noDeclarations)
     val patternsS =
       PatternScout.scoutPatterns(myStackFrame, lidb.child(), ruleBuilder, runeToExplicitType, maybeParamsP.toVector.flatMap(_.patterns))

@@ -155,13 +155,15 @@ class StructTests extends FunSuite with Matchers {
   test("Panic function") {
     val compile = RunCompilation.test(
       """
-        |interface XOpt<T> rules(T Ref) { }
+        |interface XOpt<T> rules(T Ref) {
+        |  fn get(virtual opt &XOpt<T>) &T;
+        |}
         |struct XSome<T> rules(T Ref) { value T; }
         |impl<T> XOpt<T> for XSome<T>;
         |struct XNone<T> rules(T Ref) { }
         |impl<T> XOpt<T> for XNone<T>;
         |
-        |fn get<T>(virtual opt &XOpt<T>) &T abstract;
+        |
         |fn get<T>(opt &XNone<T> impl XOpt<T>) &T { __vbi_panic() }
         |fn get<T>(opt &XSome<T> impl XOpt<T>) &T { opt.value }
         |

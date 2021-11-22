@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplataLookupContext}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.macros.drop.StructDropMacro
+import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, StructDropMacro}
 import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructLambdaNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, ConstructorNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, ImplDeclareNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT}
 import net.verdagon.vale.templar.templata.{CoordTemplata, ExternFunctionTemplata, ExternImplTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata}
 import net.verdagon.vale.templar.{ArrayTemplar, CompileErrorExceptionT, IFunctionGenerator, LambdaReturnDoesntMatchInterfaceConstructor, OverloadTemplar, RangedInternalErrorT, Templar, TemplarOptions, Temputs, ast}
@@ -26,7 +26,8 @@ class AnonymousInterfaceMacro(
   overloadTemplar: OverloadTemplar,
   structTemplar: StructTemplar,
   structConstructorMacro: StructConstructorMacro,
-  structDropMacro: StructDropMacro) extends IOnInterfaceDefinedMacro {
+  structDropMacro: StructDropMacro,
+  implDropMacro: ImplDropMacro) extends IOnInterfaceDefinedMacro {
 
 //  override def generatorId: String = "interfaceConstructorGenerator"
 
@@ -99,12 +100,15 @@ class AnonymousInterfaceMacro(
         structKindRuneS,
         interfaceKindRuneS)
     val implNameT = structNameT.copy(last = NameTranslator.translateNameStep(implA.name))
+    val implSiblingEntries =
+      implDropMacro.getImplSiblingEntries(implNameT, implA)
 
     Vector[(FullNameT[INameT], IEnvEntry)](
       (structNameT, StructEnvEntry(structA)),
       (implNameT, ImplEnvEntry(implA))) ++
       moreEntries ++
-      forwarderMethods
+      forwarderMethods ++
+      implSiblingEntries
   }
 
   private def makeStruct(interfaceA: InterfaceA, memberRunes: Vector[RuneUsage], members: Vector[NormalStructMemberS], structTemplateNameS: AnonymousSubstructTemplateNameS) = {
@@ -141,7 +145,13 @@ class AnonymousInterfaceMacro(
 
     val runeToType = methodOriginalRuneToType ++ struct.runeToType
 
-    val abstractParamIndex = originalParams.indexWhere(_.pattern.virtuality == Some(AbstractSP))
+    val abstractParamIndex =
+      originalParams.indexWhere(param => {
+        param.pattern.virtuality match {
+          case Some(AbstractSP(_, _)) => true
+          case _ => false
+        }
+      })
     vassert(abstractParamIndex >= 0)
     val abstractParam = originalParams(abstractParamIndex)
     val abstractParamCoordRune = vassertSome(abstractParam.pattern.coordRune) // https://github.com/ValeLang/Vale/issues/370

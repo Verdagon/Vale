@@ -597,7 +597,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
       """
         |import panicutils.*;
         |
-        |interface XOpt<T> rules(T Ref) { }
+        |interface XOpt<T> sealed rules(T Ref) { }
         |struct XNone<T> rules(T Ref) { }
         |impl<T> XOpt<T> for XNone<T>;
         |

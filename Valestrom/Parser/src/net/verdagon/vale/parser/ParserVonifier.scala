@@ -272,7 +272,13 @@ object ParserVonifier {
 
   def vonifyVirtuality(thing: IVirtualityP): VonObject = {
     thing match {
-      case AbstractP => VonObject("Abstract", None, Vector())
+      case AbstractP(range) => {
+        VonObject(
+          "Abstract",
+          None,
+          Vector(
+            VonMember("range", vonifyRange(range))))
+      }
       case ov @ OverrideP(_, _) => vonifyOverride(ov)
     }
   }

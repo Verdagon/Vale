@@ -1,5 +1,6 @@
 package net.verdagon.vale
 
+import net.verdagon.vale.templar.ast.LetNormalTE
 import net.verdagon.vale.templar.env.AddressibleLocalVariableT
 import net.verdagon.vale.templar.names.{CodeVarNameT, FullNameT}
 import net.verdagon.vale.templar.types.VaryingT
@@ -166,7 +167,11 @@ class ArrayListTest extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main");
-    Collector.only(main, { case AddressibleLocalVariableT(FullNameT(_, _, CodeVarNameT("m")), VaryingT, _) => })
+    Collector.only(main, {
+      case LetNormalTE(AddressibleLocalVariableT(FullNameT(_, _, CodeVarNameT("m")), VaryingT, _), _) => {
+        vpass()
+      }
+    })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(9)
   }
@@ -188,7 +193,7 @@ class ArrayListTest extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val main = temputs.lookupFunction("main");
-    Collector.only(main, { case AddressibleLocalVariableT(FullNameT(_, _, CodeVarNameT("m")), VaryingT, _) => })
+    Collector.only(main, { case LetNormalTE(AddressibleLocalVariableT(FullNameT(_, _, CodeVarNameT("m")), VaryingT, _), _) => })
 
     compile.evalForKind(Vector()) shouldEqual VonInt(6)
   }
