@@ -798,7 +798,7 @@ class ExpressionTemplar(
             case PrototypeTemplata(value) => {
               val tinyEnv =
                 fate.functionEnvironment.makeChildBlockEnvironment(None)
-                  .addEntries(Map(ArbitraryNameT() -> TemplataEnvEntry(PrototypeTemplata(value))))
+                  .addEntries(Vector(ArbitraryNameT() -> TemplataEnvEntry(PrototypeTemplata(value))))
               val expr = newGlobalFunctionGroupExpression(tinyEnv, temputs, ArbitraryNameS())
               (expr, Set())
             }

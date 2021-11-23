@@ -174,6 +174,25 @@ class TemplarTests extends FunSuite with Matchers {
     })
   }
 
+  test("Custom destructor") {
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |struct Moo #!DeriveStructDrop export { hp int; }
+        |fn drop(self ^Moo) {
+        |  (_) = self;
+        |}
+        |fn main() int export {
+        |  Moo(42).hp
+        |}
+        |""".stripMargin)
+    val temputs = compile.expectTemputs()
+    val main = temputs.lookupFunction("main")
+    Collector.only(main, {
+      case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT("drop", _, _)), _), _) =>
+    })
+  }
+
   test("Make constraint reference") {
     val compile = TemplarTestCompilation.test(
       """
@@ -1538,7 +1557,18 @@ class TemplarTests extends FunSuite with Matchers {
   }
 
   test("Report when abstract method defined outside open interface") {
-    vimpl()
-    // AbstractMethodOutsideOpenInterface
+    val compile = TemplarTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |import v.builtins.panic.*;
+        |interface IBlah { }
+        |fn bork(virtual moo &IBlah) abstract;
+        |fn main() export {
+        |  bork(__vbi_panic());
+        |}
+        |""".stripMargin)
+    compile.getTemputs() match {
+      case Err(AbstractMethodOutsideOpenInterface(_)) =>
+    }
   }
 }

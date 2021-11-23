@@ -18,6 +18,8 @@ class StructDropMacro(
   destructorTemplar: DestructorTemplar
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
+  override def macroName: String = "DeriveStructDrop"
+
   override def generatorId: String = "dropGenerator"
 
   override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):

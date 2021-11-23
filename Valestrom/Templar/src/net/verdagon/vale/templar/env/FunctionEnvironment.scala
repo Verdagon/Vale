@@ -150,7 +150,7 @@ case class FunctionEnvironment(
       declaredLocals,
       unstackifiedLocals)
   }
-  def addEntries(newEntries: Map[INameT, IEnvEntry]): FunctionEnvironment = {
+  def addEntries(newEntries: Vector[(INameT, IEnvEntry)]): FunctionEnvironment = {
     FunctionEnvironment(
       globalEnv,
       parentEnv,
@@ -241,7 +241,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def addEntry(name: INameT, entry: IEnvEntry): Unit = {
     functionEnvironment = functionEnvironment.addEntry(name, entry)
   }
-  def addEntries(newEntries: Map[INameT, IEnvEntry]): Unit= {
+  def addEntries(newEntries: Vector[(INameT, IEnvEntry)]): Unit= {
     functionEnvironment = functionEnvironment.addEntries(newEntries)
   }
 

@@ -347,7 +347,7 @@ class FunctionTemplarClosureOrLightLayer(
   }
 
   private def makeClosureVariablesAndEntries(temputs: Temputs, closureStructRef: StructTT):
-  (Vector[IVariableT], Map[INameT, IEnvEntry]) = {
+  (Vector[IVariableT], Vector[(INameT, IEnvEntry)]) = {
     val closureStructDef = temputs.lookupStruct(closureStructRef);
     val variables =
       closureStructDef.members.map(member => {
@@ -362,7 +362,7 @@ class FunctionTemplarClosureOrLightLayer(
         }
       })
     val entries =
-      Map[INameT, IEnvEntry](
+      Vector[(INameT, IEnvEntry)](
         closureStructRef.fullName.last ->
           TemplataEnvEntry(KindTemplata(closureStructRef)))
     (variables, entries)

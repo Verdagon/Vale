@@ -568,6 +568,12 @@ object ParsedLoader {
       case "ExportAttribute" => ExportP(loadRange(getObjectField(jobj, "range")))
       case "SealedAttribute" => SealedP(loadRange(getObjectField(jobj, "range")))
       case "WeakableAttribute" => WeakableP(loadRange(getObjectField(jobj, "range")))
+      case "MacroCall" => {
+        MacroCallP(
+          loadRange(getObjectField(jobj, "range")),
+          if (getBooleanField(jobj, "dontCall")) DontCallMacro else CallMacro,
+          loadName(getObjectField(jobj, "name")))
+      }
       case x => vimpl(x.toString)
     }
   }

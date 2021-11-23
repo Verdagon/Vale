@@ -38,6 +38,15 @@ object ParserVonifier {
       case WeakableP(range) => VonObject("WeakableAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case SealedP(range) => VonObject("SealedAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ExportP(range) => VonObject("ExportAttribute", None, Vector(VonMember("range", vonifyRange(range))))
+      case MacroCallP(range, dontCall, name) => {
+        VonObject(
+          "MacroCall",
+          None,
+          Vector(
+            VonMember("range", vonifyRange(range)),
+            VonMember("dontCall", VonBool(dontCall == DontCallMacro)),
+            VonMember("name", vonifyName(name))))
+      }
     }
   }
 

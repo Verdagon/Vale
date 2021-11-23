@@ -3,7 +3,7 @@ package net.verdagon.vale.templar.citizen
 import net.verdagon.vale.astronomer._
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.templata._
-import net.verdagon.vale.parser.{FinalP, ImmutableP, MutabilityP, MutableP}
+import net.verdagon.vale.parser.{CallMacro, DontCallMacro, FinalP, ImmutableP, MutabilityP, MutableP}
 import net.verdagon.vale.scout.{SealedS, Environment => _, FunctionEnvironment => _, IEnvironment => _, _}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.{ast, _}
@@ -93,11 +93,13 @@ class StructTemplarCore(
     val fullNameT = structRunesEnv.fullName.addStep(structNameT)
     val temporaryStructRef = StructTT(fullNameT)
 
-    val attributesWithoutExport =
+    val attributesWithoutExportOrMacros =
       structA.attributes.filter({
         case ExportS(_) => false
+        case MacroCallS(range, dontCall, macroName) => false
         case _ => true
       })
+
     val maybeExport =
       structA.attributes.collectFirst { case e@ExportS(_) => e }
 //
@@ -121,19 +123,40 @@ class StructTemplarCore(
 //      structRunesEnv, temputs,
 //    )
 
+    val macrosToCall =
+      structA.attributes.foldLeft(Vector(MacroCallS(structA.range, CallMacro, "DeriveStructDrop")))({
+        case (macrosToCall, mc @ MacroCallS(range, CallMacro, macroName)) => {
+          if (macrosToCall.exists(_.macroName == macroName)) {
+            throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
+          }
+          macrosToCall :+ mc
+        }
+        case (macrosToCall, MacroCallS(_, DontCallMacro, macroName)) => macrosToCall.filter(_.macroName != macroName)
+        case (macrosToCall, _) => macrosToCall
+      })
+
+    val envEntriesFromMacros =
+      macrosToCall.flatMap({ case MacroCallS(range, CallMacro, macroName) =>
+        val maacro =
+          structRunesEnv.globalEnv.nameToStructDefinedMacro.get(macroName) match {
+            case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            case Some(m) => m
+          }
+        val newEntriesList = maacro.getStructChildEntries(fullNameT, structA)
+        val newEntries =
+          newEntriesList.map({ case (entryName, value) =>
+            vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
+            val last = entryName.last
+            last -> value
+          })
+        newEntries
+      })
+
     val structInnerEnv =
       CitizenEnvironment(
         structRunesEnv.globalEnv, structRunesEnv, fullNameT,
         TemplatasStore(fullNameT, Map(), Map())
-          .addEntries(
-            structRunesEnv.globalEnv.structDropMacro.getStructChildEntries(
-              fullNameT, structA).toMap.map({ case (entryName, value) =>
-
-                vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
-                val last = entryName.last
-
-                last -> value
-              })))
+          .addEntries(envEntriesFromMacros))
 
     // when we have structs that contain functions, add this back in
 //        structA.members
@@ -177,7 +200,7 @@ class StructTemplarCore(
     val structDefT =
       StructDefinitionT(
         fullNameT,
-        translateCitizenAttributes(attributesWithoutExport),
+        translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
         mutability,
         members,
@@ -201,10 +224,6 @@ class StructTemplarCore(
       }
     }
 
-    structRunesEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {
-      maacro.onStructGenerated(structDefT.getRef)
-    })
-
     profiler.childFrame("struct ancestor interfaces", () => {
       val ancestorInterfaces =
         ancestorHelper.getAncestorInterfaces(temputs, temporaryStructRef)
@@ -216,10 +235,6 @@ class StructTemplarCore(
             throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
           }
           temputs.addImpl(temporaryStructRef, ancestorInterface)
-
-          structRunesEnv.globalEnv.onImplGeneratedMacros.foreach(maacro => {
-            maacro.onImplGenerated(structDefT.getRef, ancestorInterface)
-          })
         }
       })
     })
@@ -230,6 +245,7 @@ class StructTemplarCore(
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
     attrs.map({
       case SealedS => SealedT
+      case MacroCallS(_, _, _) => vwat() // Should have been processed
       case x => vimpl(x.toString)
     })
   }
@@ -246,8 +262,8 @@ class StructTemplarCore(
     coercedFinalTemplateArgs2: Vector[ITemplata]):
   (InterfaceDefinitionT) = {
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
-    val fullName = interfaceRunesEnv.fullName.addStep(CitizenNameT(CitizenTemplateNameT(humanName), coercedFinalTemplateArgs2))
-    val temporaryInferfaceRef = InterfaceTT(fullName)
+    val fullNameT = interfaceRunesEnv.fullName.addStep(CitizenNameT(CitizenTemplateNameT(humanName), coercedFinalTemplateArgs2))
+    val temporaryInferfaceRef = InterfaceTT(fullNameT)
 
     val attributesWithoutExport =
       interfaceA.attributes.filter({
@@ -257,29 +273,50 @@ class StructTemplarCore(
     val maybeExport =
       interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
+
+    val macrosToCall =
+      interfaceA.attributes.foldLeft(Vector(MacroCallS(interfaceA.range, CallMacro, "DeriveInterfaceDrop")))({
+        case (macrosToCall, mc @ MacroCallS(_, CallMacro, _)) => macrosToCall :+ mc
+        case (macrosToCall, MacroCallS(_, DontCallMacro, macroName)) => macrosToCall.filter(_.macroName != macroName)
+        case (macrosToCall, _) => macrosToCall
+      })
+
+    val envEntriesFromMacros =
+      macrosToCall.flatMap({ case MacroCallS(range, CallMacro, macroName) =>
+        val maacro =
+          interfaceRunesEnv.globalEnv.nameToInterfaceDefinedMacro.get(macroName) match {
+            case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            case Some(m) => m
+          }
+        val newEntriesList = maacro.getInterfaceChildEntries(fullNameT, interfaceA)
+        val newEntries =
+          newEntriesList.map({ case (entryName, value) =>
+            vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
+            val last = entryName.last
+            last -> value
+          })
+        newEntries
+      })
+
+
     val interfaceInnerEnv =
       CitizenEnvironment(
         interfaceRunesEnv.globalEnv,
         interfaceRunesEnv,
-        fullName,
-        TemplatasStore(fullName, Map(), Map())
-          .addEntries(
-            interfaceRunesEnv.globalEnv.interfaceDropMacro.getInterfaceChildEntries(
-              interfaceRunesEnv.fullName, interfaceA)
-            .toMap.map({ case (entryName, value) => entryName.last -> value }))
+        fullNameT,
+        TemplatasStore(fullNameT, Map(), Map())
+          .addEntries(envEntriesFromMacros)
           .addEntries(
             interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
-              .map({ case (rune, templata) => (RuneNameT(rune.rune), TemplataEnvEntry(templata)) })
-              .toMap)
+              .map({ case (rune, templata) => (RuneNameT(rune.rune), TemplataEnvEntry(templata)) }))
           .addEntries(
-            Map(SelfNameT() -> TemplataEnvEntry(KindTemplata(temporaryInferfaceRef))))
+            Vector(SelfNameT() -> TemplataEnvEntry(KindTemplata(temporaryInferfaceRef))))
           .addEntries(
             interfaceA.internalMethods
               .map(internalMethod => {
                 val functionName = NameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
                 (functionName -> FunctionEnvEntry(internalMethod))
-              })
-              .toMap))
+              })))
 
     temputs
       .declareKindEnv(
@@ -315,7 +352,7 @@ class StructTemplarCore(
 
     val interfaceDef2 =
       InterfaceDefinitionT(
-        fullName,
+        fullNameT,
         translateCitizenAttributes(attributesWithoutExport),
         interfaceA.weakable,
         mutability,
@@ -326,7 +363,7 @@ class StructTemplarCore(
       case None =>
       case Some(exportPackageCoord) => {
         val exportedName =
-          fullName.last match {
+          fullNameT.last match {
             case CitizenNameT(CitizenTemplateNameT(humanName), _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
@@ -337,10 +374,6 @@ class StructTemplarCore(
           exportedName)
       }
     }
-
-    interfaceRunesEnv.globalEnv.onInterfaceGeneratedMacros.foreach(maacro => {
-      maacro.onInterfaceGenerated(interfaceDef2.getRef)
-    })
 
     profiler.childFrame("interface ancestor interfaces", () => {
       val _ = ancestorHelper.getParentInterfaces(temputs, temporaryInferfaceRef)
@@ -472,7 +505,7 @@ class StructTemplarCore(
         fullName,
         TemplatasStore(fullName, Map(), Map())
           .addEntries(
-            Map(
+            Vector(
               FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, functionA.range.begin) ->
                 FunctionEnvEntry(functionA),
               FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, functionA.range.begin) ->
@@ -493,10 +526,6 @@ class StructTemplarCore(
 
     val closureStructDefinition = StructDefinitionT(fullName, Vector.empty, false, mutability, members, true);
     temputs.add(closureStructDefinition)
-
-    structEnv.globalEnv.onStructGeneratedMacros.foreach(maacro => {
-      maacro.onStructGenerated(structTT)
-    })
 
     val closuredVarsStructRef = closureStructDefinition.getRef;
 

@@ -53,6 +53,9 @@ case object SealedS extends ICitizenAttributeS
 case class BuiltinS(generatorName: String) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
+case class MacroCallS(range: RangeS, include: IMacroInclusion, macroName: String) extends ICitizenAttributeS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
 case class ExportS(packageCoordinate: PackageCoordinate) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }

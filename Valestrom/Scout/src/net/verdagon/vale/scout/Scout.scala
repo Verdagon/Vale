@@ -422,6 +422,7 @@ class Scout(globalOptions: GlobalOptions) {
     attrsP.map({
       case ExportP(_) => ExportS(file.packageCoordinate)
       case SealedP(_) => SealedS
+      case MacroCallP(range, dontCall, NameP(_, str)) => MacroCallS(Scout.evalRange(file, range), dontCall, str)
       case x => vimpl(x.toString)
     })
   }

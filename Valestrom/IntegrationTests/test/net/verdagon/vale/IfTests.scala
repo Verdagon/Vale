@@ -112,8 +112,8 @@ class IfTests extends FunSuite with Matchers {
   test("Ret from inside if will destroy locals") {
     val compile = RunCompilation.test(
       """import printutils.*;
-        |struct Marine { hp int; }
-        |fn destructor(marine Marine) void {
+        |struct Marine #!DeriveStructDrop { hp int; }
+        |fn drop(marine Marine) void {
         |  println("Destroying marine!");
         |  Marine(weapon) = marine;
         |}
@@ -140,8 +140,8 @@ class IfTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Marine { hp int; }
-        |fn destructor(marine Marine) void {
+        |struct Marine #!DeriveStructDrop { hp int; }
+        |fn drop(marine Marine) void {
         |  println("Destroying marine!");
         |  Marine(weapon) = marine;
         |}

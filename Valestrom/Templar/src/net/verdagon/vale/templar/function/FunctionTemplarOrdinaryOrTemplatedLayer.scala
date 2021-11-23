@@ -422,7 +422,8 @@ class FunctionTemplarOrdinaryOrTemplatedLayer(
       parentEnv,
       newName,
       templatas.addEntries(
-        templatasByRune.map({ case (k, v) => (RuneNameT(k), TemplataEnvEntry(v)) }).toMap),
+        templatasByRune.toVector
+          .map({ case (k, v) => (RuneNameT(k), TemplataEnvEntry(v)) })),
       function,
       variables)
   }

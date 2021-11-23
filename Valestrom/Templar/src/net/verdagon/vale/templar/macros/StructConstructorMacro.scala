@@ -20,6 +20,8 @@ class StructConstructorMacro(
   profiler: IProfiler
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
+  override def macroName: String = ""
+
   override def getStructChildEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
