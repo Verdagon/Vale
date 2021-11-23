@@ -6,7 +6,7 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.TemplatasStore.{entryMatchesFilter, entryToTemplata, getImpreciseName}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.macros.drop.{InterfaceDropMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplGeneratedMacro, IOnInterfaceGeneratedMacro, IOnStructGeneratedMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, StructConstructorMacro}
 import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
@@ -142,9 +142,9 @@ case class GlobalEnvironment(
   structDropMacro: StructDropMacro,
   interfaceDropMacro: InterfaceDropMacro,
   anonymousInterfaceMacro: AnonymousInterfaceMacro,
-  onStructGeneratedMacros: Vector[IOnStructGeneratedMacro],
-  onInterfaceGeneratedMacros: Vector[IOnInterfaceGeneratedMacro],
-  onImplGeneratedMacros: Vector[IOnImplGeneratedMacro],
+  nameToStructDefinedMacro: Map[String, IOnStructDefinedMacro],
+  nameToInterfaceDefinedMacro: Map[String, IOnInterfaceDefinedMacro],
+  nameToImplDefinedMacro: Map[String, IOnImplDefinedMacro],
   nameToFunctionBodyMacro: Map[String, IFunctionBodyMacro],
   // We *dont* search through these in lookupWithName etc.
   // This doesn't just contain the user's things, it can contain generated things
@@ -444,7 +444,10 @@ case class TemplatasStore(
   //  // The above map, indexed by human name. If it has no human name, it won't be in here.
   //  private var entriesByHumanName = Map[String, Vector[IEnvEntry]]()
 
-  def addEntries(newEntries: Map[INameT, IEnvEntry]): TemplatasStore = {
+  def addEntries(newEntriesList: Vector[(INameT, IEnvEntry)]): TemplatasStore = {
+    val newEntries = newEntriesList.toMap
+    vassert(newEntries.size == newEntriesList.size)
+
     val oldEntries = entriesByNameT
 
     val combinedEntries = oldEntries ++ newEntries
@@ -501,7 +504,7 @@ case class TemplatasStore(
 
 
   def addEntry(name: INameT, entry: IEnvEntry): TemplatasStore = {
-    addEntries(Map(name -> entry))
+    addEntries(Vector(name -> entry))
   }
 
   def lookupWithName(

@@ -237,7 +237,7 @@ class ArrayTemplar(
             staticSizedArrayType.name,
             TemplatasStore(staticSizedArrayType.name, Map(), Map())
               .addEntries(
-                Map(
+                Vector(
 //                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-74)) ->
 //                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-74))),
 //                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(staticSizedArrayRefType2))
@@ -276,7 +276,7 @@ class ArrayTemplar(
             runtimeSizedArrayType.name,
             TemplatasStore(runtimeSizedArrayType.name, Map(), Map())
               .addEntries(
-                Map(
+                Vector(
 //                  FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, CodeLocationS.internal(-73)) ->
 //                    FunctionEnvEntry(globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), RangeS.internal(-73))),
 //                  SelfNameT() -> TemplataEnvEntry(CoordTemplata(runtimeSizedArrayRefType2))

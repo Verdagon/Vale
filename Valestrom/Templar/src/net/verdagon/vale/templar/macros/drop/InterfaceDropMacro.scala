@@ -16,6 +16,8 @@ import net.verdagon.vale.{CodeLocationS, RangeS, vassert}
 
 class InterfaceDropMacro(overloadTemplar: OverloadTemplar) extends IOnInterfaceDefinedMacro {
 
+  override def macroName: String = "DeriveInterfaceDrop"
+
   override def getInterfaceSiblingEntries(structName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }

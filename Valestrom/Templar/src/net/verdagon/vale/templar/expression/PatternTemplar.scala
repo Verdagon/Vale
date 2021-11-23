@@ -122,8 +122,8 @@ class PatternTemplar(
                     receiverRune,
                     CoordTemplata(unconvertedInputExpr.resultRegister.reference))))
             fate.addEntries(
-              templatasByRune.map({ case (key, value) => (RuneNameT(key), value) })
-                .mapValues(v => TemplataEnvEntry(v)).toMap)
+              templatasByRune.toVector
+                .map({ case (key, value) => (RuneNameT(key), TemplataEnvEntry(value)) }))
             val CoordTemplata(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))
 
             // Now we convert m to a Marine. This also checks that it *can* be

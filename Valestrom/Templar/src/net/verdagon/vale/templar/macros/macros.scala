@@ -31,6 +31,8 @@ trait IFunctionBodyMacro {
 }
 
 trait IOnStructDefinedMacro {
+  def macroName: String
+
   def getStructSiblingEntries(
     structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], IEnvEntry)]
@@ -44,32 +46,33 @@ trait IOnImplicitStructGeneratedMacro {
   def onImplicitStructGenerated(struct: StructTT):
   Vector[(FullNameT[INameT], IEnvEntry)]
 }
+//
+//trait IOnStructGeneratedMacro {
+//// make this one:
+////  // If it's immutable, make sure there's a zero-arg destructor.
+////  if (mutability == ImmutableT) {
+////    temputs.addDestructor(
+////      structDefT.getRef,
+////      delegate.makeImmConcreteDestructor(temputs, structInnerEnv, structDefT.getRef))
+////  }
+//
+//  def onStructGenerated(ref: StructTT)
+//}
 
-trait IOnStructGeneratedMacro {
-// make this one:
-//  // If it's immutable, make sure there's a zero-arg destructor.
-//  if (mutability == ImmutableT) {
-//    temputs.addDestructor(
-//      structDefT.getRef,
-//      delegate.makeImmConcreteDestructor(temputs, structInnerEnv, structDefT.getRef))
-//  }
-
-  def onStructGenerated(ref: StructTT)
-}
-
-trait IOnInterfaceGeneratedMacro {
-
-  // add this:
-//  // If it's immutable, make sure there's a zero-arg destructor.
-//  if (mutability == ImmutableT) {
-//    temputs.addDestructor(
-//      interfaceDef2.getRef,
-//      delegate.getImmInterfaceDestructor(temputs, interfaceInnerEnv, interfaceDef2.getRef))
-//  }
-  def onInterfaceGenerated(interface: InterfaceTT)
-}
+//trait IOnInterfaceGeneratedMacro {
+//
+//  // add this:
+////  // If it's immutable, make sure there's a zero-arg destructor.
+////  if (mutability == ImmutableT) {
+////    temputs.addDestructor(
+////      interfaceDef2.getRef,
+////      delegate.getImmInterfaceDestructor(temputs, interfaceInnerEnv, interfaceDef2.getRef))
+////  }
+//  def onInterfaceGenerated(interface: InterfaceTT)
+//}
 
 trait IOnInterfaceDefinedMacro {
+  def macroName: String
 
   def getInterfaceSiblingEntries(
     interfaceName: FullNameT[INameT], interfaceA: InterfaceA):
@@ -85,30 +88,30 @@ trait IOnImplDefinedMacro {
   Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
-trait IOnImplGeneratedMacro {
-
-//  implementedInterfaceRefs2.foreach({
-//    case (implementedInterfaceRefT) => {
-//      structDefT.mutability match {
-//        case MutableT => {
-//          delegate.scoutExpectedFunctionForPrototype(
-//            structInnerEnv,
-//            temputs,
-//            structA.range,
-//            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
-//            Vector.empty,
-//            Array.empty,
-//            Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
-//            Vector.empty,
-//            true)
-//        }
-//        case ImmutableT => {
-//          // If it's immutable, make sure there's a zero-arg destructor.
-//          delegate.getImmInterfaceDestructorOverride(temputs, structInnerEnv, structDefT.getRef, implementedInterfaceRefT)
-//        }
-//      }
-//    }
-//  })
-
-  def onImplGenerated(struct: StructTT, interface: InterfaceTT)
-}
+//trait IOnImplGeneratedMacro {
+//
+////  implementedInterfaceRefs2.foreach({
+////    case (implementedInterfaceRefT) => {
+////      structDefT.mutability match {
+////        case MutableT => {
+////          delegate.scoutExpectedFunctionForPrototype(
+////            structInnerEnv,
+////            temputs,
+////            structA.range,
+////            GlobalFunctionFamilyNameS(CallTemplar.MUT_INTERFACE_DESTRUCTOR_NAME),
+////            Vector.empty,
+////            Array.empty,
+////            Vector(ParamFilter(CoordT(OwnT,ReadwriteT, structDefT.getRef), Some(OverrideT(implementedInterfaceRefT)))),
+////            Vector.empty,
+////            true)
+////        }
+////        case ImmutableT => {
+////          // If it's immutable, make sure there's a zero-arg destructor.
+////          delegate.getImmInterfaceDestructorOverride(temputs, structInnerEnv, structDefT.getRef, implementedInterfaceRefT)
+////        }
+////      }
+////    }
+////  })
+//
+//  def onImplGenerated(struct: StructTT, interface: InterfaceTT)
+//}

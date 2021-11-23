@@ -9,7 +9,7 @@ import net.verdagon.vale.templar.ast.{FunctionHeaderT, LocationInFunctionEnviron
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment}
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.macros.{IOnImplDefinedMacro, IOnImplGeneratedMacro}
+import net.verdagon.vale.templar.macros.{IOnImplDefinedMacro}
 import net.verdagon.vale.templar.names.{FullNameT, FunctionTemplateNameT, INameT, NameTranslator}
 import net.verdagon.vale.templar.templata.{CoordTemplata, KindTemplata}
 import net.verdagon.vale.templar.types._

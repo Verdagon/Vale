@@ -52,14 +52,33 @@ class OwnershipTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) shouldEqual VonInt(9)
   }
 
-  test("When statement result is an owning ref, calls destructor") {
+  test("Derive drop") {
     val compile = RunCompilation.test(
       """
         |import printutils.*;
         |
         |struct Muta { }
         |
-        |fn destructor(m ^Muta) void {
+        |fn main() export {
+        |  Muta();
+        |}
+      """.stripMargin)
+
+    val main = compile.expectTemputs().lookupFunction("main")
+    Collector.only(main, { case FunctionCallTE(functionName("drop"), _) => })
+    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
+
+    compile.evalForKind(Vector())
+  }
+
+  test("Custom drop result is an owning ref, calls destructor") {
+    val compile = RunCompilation.test(
+      """
+        |import printutils.*;
+        |
+        |struct Muta #!DeriveStructDrop { }
+        |
+        |fn drop(m ^Muta) void {
         |  println("Destroying!");
         |  Muta() = m;
         |}
@@ -81,9 +100,9 @@ class OwnershipTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Muta { hp int; }
+        |struct Muta #!DeriveStructDrop { hp int; }
         |
-        |fn destructor(m ^Muta) {
+        |fn drop(m ^Muta) {
         |  println("Destroying!");
         |  Muta(hp) = m;
         |}
@@ -104,9 +123,9 @@ class OwnershipTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Muta { }
+        |struct Muta #!DeriveStructDrop { }
         |
-        |fn destructor(m ^Muta) {
+        |fn drop(m ^Muta) {
         |  println("Destroying!");
         |  Muta() = m;
         |}
@@ -129,9 +148,9 @@ class OwnershipTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Muta { }
+        |struct Muta #!DeriveStructDrop { }
         |
-        |fn destructor(m ^Muta) {
+        |fn drop(m ^Muta) {
         |  println("Destroying!");
         |  Muta() = m;
         |}
@@ -171,9 +190,9 @@ class OwnershipTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Muta { hp int; }
+        |struct Muta #!DeriveStructDrop { hp int; }
         |
-        |fn destructor(m ^Muta) {
+        |fn drop(m ^Muta) {
         |  println("Destroying!");
         |  Muta(hp) = m;
         |}
@@ -224,8 +243,7 @@ class OwnershipTests extends FunSuite with Matchers {
 
     val main = compile.expectTemputs().lookupFunction("main")
 
-    val numVariables = Collector.all(main, { case ReferenceLocalVariableT(_, _, _) => }).size
-    Collector.all(main, { case LetAndLendTE(_, _) => case LetNormalTE(_, _) => }).size shouldEqual numVariables
+    val numVariables = Collector.all(main, { case LetAndLendTE(_, _) => case LetNormalTE(_, _) => }).size
     Collector.all(main, { case UnletTE(_) => }).size shouldEqual numVariables
   }
 

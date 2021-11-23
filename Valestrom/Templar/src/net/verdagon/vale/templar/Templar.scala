@@ -474,11 +474,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             .map({ case (namespaceFullName, envEntries) =>
               namespaceFullName ->
               TemplatasStore(namespaceFullName, Map(), Map())
-                .addEntries(
-                  envEntries
-                    .map({ case (_, b, c) => (b, c) })
-                    .groupBy(_._1)
-                    .mapValues(a => vassertOne(a.map(x => x._2))))
+                .addEntries(envEntries.map({ case (_, b, c) => (b, c) }))
              }).toMap
 
         val globalEnv =
@@ -487,9 +483,9 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             structDropMacro,
             interfaceDropMacro,
             anonymousInterfaceMacro,
-            Vector(),
-            Vector(),
-            Vector(),
+            Map(structDropMacro.macroName -> structDropMacro),
+            Map(interfaceDropMacro.macroName -> interfaceDropMacro),
+            Map(),
             Map(
               abstractBodyMacro.generatorId -> abstractBodyMacro,
               structConstructorMacro.generatorId -> structConstructorMacro,
@@ -504,7 +500,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             namespaceNameToTemplatas,
             // Bulitins
             TemplatasStore(FullNameT(PackageCoordinate.BUILTIN, Vector(), PackageTopLevelNameT()), Map(), Map()).addEntries(
-              Map[INameT, IEnvEntry](
+              Vector[(INameT, IEnvEntry)](
                 PrimitiveNameT("int") -> TemplataEnvEntry(KindTemplata(IntT.i32)),
                 PrimitiveNameT("i64") -> TemplataEnvEntry(KindTemplata(IntT.i64)),
                 PrimitiveNameT("Array") -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()),

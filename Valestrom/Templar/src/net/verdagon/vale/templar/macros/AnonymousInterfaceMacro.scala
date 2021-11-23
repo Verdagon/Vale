@@ -29,6 +29,8 @@ class AnonymousInterfaceMacro(
   structDropMacro: StructDropMacro,
   implDropMacro: ImplDropMacro) extends IOnInterfaceDefinedMacro {
 
+  override def macroName: String = "DeriveAnonymousSubstruct"
+
 //  override def generatorId: String = "interfaceConstructorGenerator"
 
   override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {

@@ -84,15 +84,15 @@ class StructTests extends FunSuite with Matchers {
       """
         |import printutils.*;
         |
-        |struct Weapon { }
-        |fn destructor(weapon Weapon) {
+        |struct Weapon #!DeriveStructDrop { }
+        |fn drop(weapon Weapon) {
         |  println("Destroying weapon!");
         |  Weapon() = weapon;
         |}
-        |struct Marine {
+        |struct Marine #!DeriveStructDrop {
         |  weapon Weapon;
         |}
-        |fn destructor(marine Marine) {
+        |fn drop(marine Marine) {
         |  println("Destroying marine!");
         |  Marine(weapon) = marine;
         |}

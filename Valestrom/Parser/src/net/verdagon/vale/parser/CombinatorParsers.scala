@@ -120,7 +120,12 @@ object CombinatorParsers
   def citizenAttribute: Parser[ICitizenAttributeP] = {
     pos ~ "export" ~ pos ^^ { case begin ~ _ ~ end => ExportP(Range(begin, end)) } |
       pos ~ "weakable" ~ pos ^^ { case begin ~ _ ~ end => WeakableP(Range(begin, end)) } |
-      pos ~ "sealed" ~ pos ^^ { case begin ~ _ ~ end => SealedP(Range(begin, end)) }
+      pos ~ "sealed" ~ pos ^^ { case begin ~ _ ~ end => SealedP(Range(begin, end)) } |
+      pos ~ ("#" ~> opt("!")) ~ typeIdentifier ~ pos ^^ {
+        case begin ~ dontCall ~ name ~ end => {
+          MacroCallP(Range(begin, end), if (dontCall.isEmpty) CallMacro else DontCallMacro, name)
+        }
+      }
   }
 
   private[parser] def interface: Parser[InterfaceP] = {
