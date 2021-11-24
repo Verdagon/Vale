@@ -87,7 +87,7 @@ object CallHammer {
 
     val (arrayRefTypeH) =
       TypeHammer.translateReference(
-        hinputs, hamuts, constructArray2.resultRegister.reference)
+        hinputs, hamuts, constructArray2.result.reference)
 
     val (arrayTypeH) =
       TypeHammer.translateRuntimeSizedArray(hinputs, hamuts, arrayType2)
@@ -125,7 +125,7 @@ object CallHammer {
 
     val (arrayRefTypeH) =
       TypeHammer.translateReference(
-        hinputs, hamuts, exprTE.resultRegister.reference)
+        hinputs, hamuts, exprTE.result.reference)
 
     val (arrayTypeH) =
       TypeHammer.translateStaticSizedArray(hinputs, hamuts, arrayType2)
@@ -159,7 +159,7 @@ object CallHammer {
     val (arrayTypeH) =
       TypeHammer.translateStaticSizedArray(hinputs, hamuts, staticSizedArrayType)
     val (arrayRefTypeH) =
-      TypeHammer.translateReference(hinputs, hamuts, arrayExpr2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, arrayExpr2.result.reference)
     vassert(arrayRefTypeH.expectStaticSizedArrayReference().kind == arrayTypeH)
 
     val (arrayExprResultLine, arrayExprDeferreds) =
@@ -207,7 +207,7 @@ object CallHammer {
     val (arrayTypeH) =
       TypeHammer.translateRuntimeSizedArray(hinputs, hamuts, runtimeSizedArrayType2)
     val (arrayRefTypeH) =
-      TypeHammer.translateReference(hinputs, hamuts, arrayExpr2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, arrayExpr2.result.reference)
     vassert(arrayRefTypeH.expectRuntimeSizedArrayReference().kind == arrayTypeH)
 
     val (arrayExprResultLine, arrayExprDeferreds) =
@@ -263,7 +263,7 @@ object CallHammer {
     parentLocals.setNextLocalIdNumber(elseLocals.nextLocalIdNumber)
 
     val commonSupertypeH =
-      TypeHammer.translateReference(hinputs, hamuts, if2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, if2.result.reference)
 
     val ifCallNode = IfH(conditionBlockH.expectBoolAccess(), thenBlockH, elseBlockH, commonSupertypeH)
 

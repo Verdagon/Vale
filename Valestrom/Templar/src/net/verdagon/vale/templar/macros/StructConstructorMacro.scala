@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment, Pac
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
 import net.verdagon.vale.templar.names.{CitizenTemplateNameT, FullNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT}
 import net.verdagon.vale.templar.{ArrayTemplar, IFunctionGenerator, TemplarOptions, Temputs}
-import net.verdagon.vale.templar.types.{CoordT, InterfaceTT, MutableT, OwnT, ReadonlyT, ReadwriteT, ReferenceMemberTypeT, ShareT, StructDefinitionT, StructMemberT, StructTT}
+import net.verdagon.vale.templar.types.{CoordT, InterfaceTT, MutabilityT, MutableT, OwnT, ReadonlyT, ReadwriteT, ReferenceMemberTypeT, ShareT, StructDefinitionT, StructMemberT, StructTT}
 
 import scala.collection.mutable
 
@@ -20,14 +20,14 @@ class StructConstructorMacro(
   profiler: IProfiler
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
-  override def macroName: String = ""
+  val macroName: String = "DeriveStructConstructor"
 
-  override def getStructChildEntries(structName: FullNameT[INameT], structA: StructA):
+  override def getStructChildEntries(macroName: String, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
 
-  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
+  override def getStructSiblingEntries(macroName: String, structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     if (structA.members.collect({ case VariadicStructMemberS(_, _, _) => }).nonEmpty) {
       // Dont generate constructors for variadic structs, not supported yet.
@@ -90,11 +90,12 @@ class StructConstructorMacro(
     })
   }
 
-  override def generatorId: String = "structConstructorGenerator"
+  val generatorId: String = "structConstructorGenerator"
 
   override def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
+    generatorId: String,
     life: LocationInFunctionEnvironment,
     callRange: RangeS,
     originFunction: Option[FunctionA],

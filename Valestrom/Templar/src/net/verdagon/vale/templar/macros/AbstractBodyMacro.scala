@@ -8,11 +8,12 @@ import net.verdagon.vale.templar.types.CoordT
 import net.verdagon.vale.{RangeS, vassert, vassertSome}
 
 class AbstractBodyMacro() extends IFunctionBodyMacro {
-  override def generatorId: String = "abstractBody"
+  val generatorId: String = "abstractBody"
 
   override def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
+    generatorId: String,
     life: LocationInFunctionEnvironment,
     callRange: RangeS,
     originFunction: Option[FunctionA],

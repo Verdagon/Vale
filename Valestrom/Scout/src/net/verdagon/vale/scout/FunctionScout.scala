@@ -57,7 +57,7 @@ class FunctionScout(scout: Scout) {
     val FunctionP(
       range,
       FunctionHeaderP(_,
-        Some(NameP(_, codeName)),
+        Some(NameP(originalNameRange, originalCodeName)),
         attributes,
         userSpecifiedIdentifyingRuneNames,
         templateRulesP,
@@ -65,9 +65,20 @@ class FunctionScout(scout: Scout) {
         FunctionReturnP(retRange, maybeInferRet, maybeRetType)),
       maybeBody0
     ) = functionP
+
     val rangeS = Scout.evalRange(file, retRange)
     val codeLocation = Scout.evalPos(file, range.begin)
-    val name = FunctionNameS(codeName, codeLocation)
+    val name =
+      (file, originalCodeName) match {
+        case (FileCoordinate("v", Vector("builtins", "arrays"), "arrays.vale"), "__free_replaced") => {
+          FreeDeclarationNameS(Scout.evalPos(file, originalNameRange.begin))
+        }
+        case (FileCoordinate("", Vector(), "arrays.vale"), "__free_replaced") => {
+          FreeDeclarationNameS(Scout.evalPos(file, originalNameRange.begin))
+        }
+        case (_, n) => FunctionNameS(n, codeLocation)
+      }
+
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
@@ -218,9 +229,9 @@ class FunctionScout(scout: Scout) {
 
     vcurious(userSpecifiedIdentifyingRuneNames.isEmpty)
 
-    val lambdaName = LambdaNameS(/*parentStackFrame.name,*/ codeLocation)
+    val lambdaName = LambdaDeclarationNameS(/*parentStackFrame.name,*/ codeLocation)
     // Every lambda has a closure as its first arg, even if its empty
-    val closureStructName = LambdaStructNameS(lambdaName)
+    val closureStructName = LambdaStructDeclarationNameS(lambdaName)
 
     val functionEnv =
       FunctionEnvironment(
@@ -302,7 +313,7 @@ class FunctionScout(scout: Scout) {
     val closureStructRune = RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
     ruleBuilder +=
       LookupSR(
-        closureParamRange, closureStructRune, closureStructName)
+        closureParamRange, closureStructRune, closureStructName.getImpreciseName)
     val closureParamTypeRune = RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
     ruleBuilder +=
       AugmentSR(

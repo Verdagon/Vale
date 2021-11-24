@@ -2,7 +2,7 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.astronomer.ICompileErrorA
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{IFunctionDeclarationNameS, INameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{KindExportT, SignatureT}
@@ -26,7 +26,7 @@ case class ArrayElementsHaveDifferentTypes(range: RangeS, types: Set[CoordT]) ex
 case class InitializedWrongNumberOfElements(range: RangeS, expectedNumElements: Int, numElementsInitialized: Int) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CannotSubscriptT(range: RangeS, tyype: KindT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class NonReadonlyReferenceFoundInPureFunctionParameter(range: RangeS, paramName: IVarNameT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
-case class CouldntFindIdentifierToLoadT(range: RangeS, name: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
+case class CouldntFindIdentifierToLoadT(range: RangeS, name: IImpreciseNameS) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CouldntFindMemberT(range: RangeS, memberName: String) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class BodyResultDoesntMatch(range: RangeS, functionName: IFunctionDeclarationNameS, expectedReturnType: CoordT, resultType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }
 case class CouldntConvertForReturnT(range: RangeS, expectedType: CoordT, actualType: CoordT) extends ICompileErrorT { override def hashCode(): Int = vcurious() }

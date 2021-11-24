@@ -23,6 +23,7 @@ case class CallPT(range: Range, template: ITemplexPT, args: Vector[ITemplexPT]) 
 case class FunctionPT(range: Range, mutability: Option[ITemplexPT], parameters: PackPT, returnType: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class InlinePT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class IntPT(range: Range, value: Long) extends ITemplexPT { override def hashCode(): Int = vcurious() }
+case class RegionRune(range: Range, name: NameP) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class LocationPT(range: Range, location: LocationP) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class ManualSequencePT(range: Range, elements: Vector[ITemplexPT]) extends ITemplexPT { override def hashCode(): Int = vcurious() }
 case class MutabilityPT(range: Range, mutability: MutabilityP) extends ITemplexPT { override def hashCode(): Int = vcurious() }

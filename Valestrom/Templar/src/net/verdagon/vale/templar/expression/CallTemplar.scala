@@ -41,9 +41,9 @@ class CallTemplar(
       explicitTemplateArgRunesS: Array[IRuneS],
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
-    callableExpr.resultRegister.reference.kind match {
+    callableExpr.result.reference.kind match {
       case NeverT() | BoolT() => {
-        throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot " + callableExpr.resultRegister.reference.kind))
+        throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot " + callableExpr.result.reference.kind))
       }
       case structTT @ StructTT(_) => {
         evaluateClosureCall(
@@ -55,7 +55,7 @@ class CallTemplar(
       }
       case OverloadSet(overloadSetEnv, functionName, _) => {
         val unconvertedArgsPointerTypes2 =
-          givenArgsExprs2.map(_.resultRegister.expectReference().reference)
+          givenArgsExprs2.map(_.result.expectReference().reference)
 
         // We want to get the prototype here, not the entire header, because
         // we might be in the middle of a recursive call like:
@@ -84,7 +84,7 @@ class CallTemplar(
         checkTypes(
           temputs,
           prototype.paramTypes,
-          argsExprs2.map(a => a.resultRegister.reference),
+          argsExprs2.map(a => a.result.reference),
           exact = true)
 
         (FunctionCallTE(prototype, argsExprs2))
@@ -117,7 +117,7 @@ class CallTemplar(
     givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val unconvertedArgsPointerTypes2 =
-      givenArgsExprs2.map(_.resultRegister.expectReference().reference)
+      givenArgsExprs2.map(_.result.expectReference().reference)
 
     // We want to get the prototype here, not the entire header, because
     // we might be in the middle of a recursive call like:
@@ -146,7 +146,7 @@ class CallTemplar(
     checkTypes(
       temputs,
       prototype.paramTypes,
-      argsExprs2.map(a => a.resultRegister.reference),
+      argsExprs2.map(a => a.result.reference),
       exact = true)
 
     (FunctionCallTE(prototype, argsExprs2))
@@ -179,7 +179,7 @@ class CallTemplar(
       (FunctionCallTE) = {
     // Whether we're given a borrow or an own, the call itself will be given a borrow.
     val givenCallableBorrowExpr2 =
-      givenCallableUnborrowedExpr2.resultRegister.reference match {
+      givenCallableUnborrowedExpr2.result.reference match {
         case CoordT(ConstraintT, _, _) => (givenCallableUnborrowedExpr2)
         case CoordT(ShareT, _, _) => (givenCallableUnborrowedExpr2)
         case CoordT(OwnT, _, _) => {
@@ -193,11 +193,11 @@ class CallTemplar(
         case ir @ InterfaceTT(_) => temputs.getEnvForKind(ir) // temputs.envByInterfaceRef(ir)
       }
 
-    val argsTypes2 = givenArgsExprs2.map(_.resultRegister.reference)
+    val argsTypes2 = givenArgsExprs2.map(_.result.reference)
     val closureParamType =
       CoordT(
-        givenCallableBorrowExpr2.resultRegister.reference.ownership,
-        givenCallableUnborrowedExpr2.resultRegister.reference.permission,
+        givenCallableBorrowExpr2.result.reference.ownership,
+        givenCallableUnborrowedExpr2.result.reference.permission,
         citizenRef)
     val paramFilters =
       Vector(ParamFilter(closureParamType, None)) ++
@@ -212,12 +212,12 @@ class CallTemplar(
 //    if (givenCallableBorrowExpr2.resultRegister.reference.permission != Readwrite) {
 //      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can only call readwrite callables! (LHRSP)"))
 //    }
-    vassert(givenCallableBorrowExpr2.resultRegister.reference.ownership == ownership)
+    vassert(givenCallableBorrowExpr2.result.reference.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
 
     val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
-    val argTypes = actualArgsExprs2.map(_.resultRegister.reference)
+    val argTypes = actualArgsExprs2.map(_.result.reference)
     if (argTypes != prototype2.paramTypes) {
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.paramTypes + " args: " + argTypes))
     }

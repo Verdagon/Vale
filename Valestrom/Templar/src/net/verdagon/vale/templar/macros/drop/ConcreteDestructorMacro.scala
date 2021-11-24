@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.macros.drop
 
-import net.verdagon.vale.astronomer.{FunctionA, ImmConcreteDestructorImpreciseNameS}
+import net.verdagon.vale.astronomer.{FunctionA}
 import net.verdagon.vale.parser.{OwnP, ReadonlyP, ReadwriteP, ShareP}
 import net.verdagon.vale.scout._
 import net.verdagon.vale.scout.patterns.{AtomSP, CaptureS}
@@ -114,7 +114,7 @@ class ConcreteDestructorMacro(overloadTemplar: OverloadTemplar) {
       env,
       temputs,
       RangeS.internal(-1673),
-      ImmConcreteDestructorImpreciseNameS(),
+      FreeImpreciseNameS(),
       Vector.empty,
       Array.empty,
       Vector(ParamFilter(CoordT(ShareT, ReadonlyT, structTT), None)),

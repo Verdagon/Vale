@@ -9,11 +9,11 @@ import net.verdagon.vale._
 import net.verdagon.vale.astronomer.{Astronomer, AstronomerCompilation}
 import net.verdagon.vale.solver.{FailedSolve, RuleError, Step}
 import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, WrongNumberOfArguments}
-import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT}
+import net.verdagon.vale.templar.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
 import net.verdagon.von.{JsonSyntax, VonPrinter}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.infer.KindIsNotConcrete
-import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
+import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
 //import net.verdagon.vale.templar.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -625,8 +625,8 @@ class TemplarTests extends FunSuite with Matchers {
     Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(FullNameT(_,_,CodeVarNameT("x")),FinalT,CoordT(OwnT,ReadwriteT,InterfaceTT(simpleName("MyInterface")))), _) => })
 
     val upcast = Collector.onlyOf(main, classOf[StructToInterfaceUpcastTE])
-    vassert(upcast.resultRegister.reference == CoordT(OwnT,ReadwriteT,InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("MyInterface"), Vector())))))
-    vassert(upcast.innerExpr.resultRegister.reference == CoordT(OwnT,ReadwriteT,StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("MyStruct"), Vector())))))
+    vassert(upcast.result.reference == CoordT(OwnT,ReadwriteT,InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("MyInterface"), Vector())))))
+    vassert(upcast.innerExpr.result.reference == CoordT(OwnT,ReadwriteT,StructTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("MyStruct"), Vector())))))
   }
 
   test("Tests calling a virtual function") {
@@ -636,10 +636,10 @@ class TemplarTests extends FunSuite with Matchers {
     val main = temputs.lookupFunction("main")
     Collector.only(main, {
       case up @ StructToInterfaceUpcastTE(innerExpr, InterfaceTT(simpleName("Car"))) => {
-        Collector.only(innerExpr.resultRegister, {
+        Collector.only(innerExpr.result, {
           case StructTT(simpleName("Toyota")) =>
         })
-        vassert(up.resultRegister.reference.kind == InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("Car"), Vector()))))
+        vassert(up.result.reference.kind == InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD, Vector(), CitizenNameT(CitizenTemplateNameT("Car"), Vector()))))
       }
     })
   }
@@ -698,15 +698,11 @@ class TemplarTests extends FunSuite with Matchers {
     val destructor =
       vassertOne(
         temputs.functions.collect({
-          case f if (f.header.fullName.last match { case FunctionNameT("drop", _, _) => true case _ => false }) => f
+          case f if (f.header.fullName.last match { case FreeNameT(_, _) => true case _ => false }) => f
         }))
-    Collector.only(destructor, {
-      case DiscardTE(expr) => {
-        expr.resultRegister.reference.kind match {
-          case StructTT(FullNameT(_, _, CitizenNameT(CitizenTemplateNameT("Vec3i"), _))) =>
-        }
-      }
-    })
+
+    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName("Vec3i"), _, _) => })
+    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
   // See DSDCTD
@@ -1130,6 +1126,7 @@ class TemplarTests extends FunSuite with Matchers {
       """
         |import v.builtins.tup.*;
         |import v.builtins.arrays.*;
+        |import v.builtins.ifunction1.*;
         |export Array<imm, final, Raza> as RazaArray;
         |struct Raza imm { }
         |""".stripMargin)
@@ -1159,6 +1156,7 @@ class TemplarTests extends FunSuite with Matchers {
       """
         |import v.builtins.tup.*;
         |import v.builtins.arrays.*;
+        |import v.builtins.ifunction1.*;
         |export [<imm> 5 * Raza] as RazaArray;
         |struct Raza imm { }
         |""".stripMargin)
@@ -1176,7 +1174,7 @@ class TemplarTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.getTemputs() match {
-      case Err(CouldntFindIdentifierToLoadT(_, "moo")) =>
+      case Err(CouldntFindIdentifierToLoadT(_, CodeNameS("moo"))) =>
     }
   }
 
@@ -1363,7 +1361,7 @@ class TemplarTests extends FunSuite with Matchers {
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindIdentifierToLoadT(
         RangeS.testZero,
-        "spaceship"))
+        CodeNameS("spaceship")))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindMemberT(

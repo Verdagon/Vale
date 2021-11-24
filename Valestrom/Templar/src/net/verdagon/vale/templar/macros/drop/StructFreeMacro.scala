@@ -12,16 +12,16 @@ import net.verdagon.vale.templar.macros.{IFunctionBodyMacro, IOnStructDefinedMac
 import net.verdagon.vale.templar.names.{FullNameT, INameT, NameTranslator}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.templar.{OverloadTemplar, Templar, Temputs}
-import net.verdagon.vale.{CodeLocationS, PackageCoordinate, RangeS, vwat}
+import net.verdagon.vale.{RangeS, vwat}
 
-class StructDropMacro(
+class StructFreeMacro(
   overloadTemplar: OverloadTemplar,
   destructorTemplar: DestructorTemplar
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
-  val macroName: String = "DeriveStructDrop"
+  val macroName: String = "DeriveStructFree"
 
-  val dropGeneratorId: String = "dropGenerator"
+  val freeGeneratorId: String = "freeGenerator"
 
   override def getStructSiblingEntries(macroName: String, structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
@@ -31,39 +31,36 @@ class StructDropMacro(
   override def getStructChildEntries(
     macroName: String, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    val structNameS = structA.name
-    val structType = structA.tyype
-    val structIdentifyingRunes = structA.identifyingRunes
-    val structIdentifyingRuneToType =
-      structIdentifyingRunes.map(_.rune)
-        .zip(structIdentifyingRunes.map(_.rune).map(structA.runeToType)).toMap
+    if (mutability == ImmutableT) {
+      val structNameS = structA.name
+      val structType = structA.tyype
+      val structIdentifyingRunes = structA.identifyingRunes
+      val structIdentifyingRuneToType =
+        structIdentifyingRunes.map(_.rune)
+          .zip(structIdentifyingRunes.map(_.rune).map(structA.runeToType)).toMap
 
-    val dropFunctionA =
-      makeFunction(
-        true,
-        structNameS,
-        structA.range,
-        structType,
-        structIdentifyingRunes.map(_.rune),
-        structIdentifyingRuneToType)
-    val dropNameT = structName.addStep(NameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name))
-    Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
+      val freeFunctionA =
+        makeFunction(
+          structNameS,
+          structA.range,
+          structType,
+          structIdentifyingRunes.map(_.rune),
+          structIdentifyingRuneToType)
+      val freeNameT = structName.addStep(NameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+      Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
+    } else {
+      Vector()
+    }
   }
 
   def makeFunction(
-    isDrop: Boolean, // If false, generate the free() function
     structNameS: ICitizenDeclarationNameS,
     structRange: RangeS,
     structType: ITemplataType,
     structIdentifyingRunes: Vector[IRuneS],
     structIdentifyingRuneToType: Map[IRuneS, ITemplataType]):
   FunctionA = {
-    val nameS =
-      if (isDrop) {
-        FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, structRange.begin)
-      } else {
-        FreeDeclarationNameS(structRange.begin)
-      }
+    val nameS = FreeDeclarationNameS(structRange.begin)
     FunctionA(
       structRange,
       nameS,
@@ -101,12 +98,12 @@ class StructDropMacro(
         },
         LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropStruct")), structNameS.getImpreciseName),
         LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV")), CodeNameS("void"))),
-      GeneratedBodyS(dropGeneratorId))
+      GeneratedBodyS(freeGeneratorId))
   }
 
   // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
   // defined by the user.
-  def makeImplicitDropFunction(
+  def makeImplicitFreeFunction(
     dropOrFreeFunctionNameS: IFunctionDeclarationNameS,
     structRange: RangeS):
   FunctionA = {
@@ -128,7 +125,7 @@ class StructDropMacro(
           RuneUsage(RangeS.internal(-64002), CodeRuneS("DropP1")),
           SelfNameS()),
         LookupSR(RangeS.internal(-167213), RuneUsage(RangeS.internal(-64002), CodeRuneS("DropV")), CodeNameS("void"))),
-      GeneratedBodyS(dropGeneratorId))
+      GeneratedBodyS(freeGeneratorId))
   }
 
   override def generateFunctionBody(
@@ -171,12 +168,14 @@ class StructDropMacro(
       })
     val expr =
       structDef.mutability match {
-        case ImmutableT => DiscardTE(ArgLookupTE(0, structType))
-        case MutableT => {
+        case ImmutableT => {
           Templar.consecutive(
             Vector(DestroyTE(ArgLookupTE(0, structType), structTT, memberLocalVariables)) ++
-              memberLocalVariables.map(v => destructorTemplar.drop(bodyEnv, temputs, UnletTE(v))))
+              memberLocalVariables.map(v => {
+                destructorTemplar.drop(bodyEnv, temputs, UnletTE(v))
+              }))
         }
+        case MutableT => vwat() // Shouldnt be a free for mutables
       }
 
     val function2 = FunctionT(header, BlockTE(Templar.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))

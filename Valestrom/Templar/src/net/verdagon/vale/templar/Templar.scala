@@ -6,7 +6,7 @@ import net.verdagon.vale.options.GlobalOptions
 import net.verdagon.vale.parser.UseP
 import net.verdagon.vale.scout.patterns.AtomSP
 import net.verdagon.vale.scout.rules.IRulexSR
-import net.verdagon.vale.scout.{CodeNameS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, ITemplataType, LambdaNameS, ProgramS, SealedS, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{CodeNameS, ExportS, ExternS, FunctionNameS, GeneratedBodyS, GlobalFunctionFamilyNameS, ICompileErrorS, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, ITemplataType, ProgramS, SealedS, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.templar.EdgeTemplar.{FoundFunction, NeededOverride, PartialEdgeT}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.ast.{ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, ConsecutorTE, EdgeT, FunctionCallTE, FunctionHeaderT, FunctionT, IsSameInstanceTE, LocationInFunctionEnvironment, LockWeakTE, ParameterT, ProgramT, PrototypeT, ReferenceExpressionTE, ReturnTE}
@@ -17,8 +17,8 @@ import net.verdagon.vale.templar.types.{CoordT, _}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplar, FunctionTemplarCore, IFunctionTemplarDelegate, VirtualTemplar}
 import net.verdagon.vale.templar.infer.IInfererDelegate
-import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceDropMacro, RSADropIntoMacro, SSADropIntoMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, LockWeakMacro, RSALenMacro, SSALenMacro, SameInstanceMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, RSADropIntoMacro, RSAFreeMacro, SSADropIntoMacro, SSAFreeMacro, StructDropMacro, StructFreeMacro}
+import net.verdagon.vale.templar.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, LockWeakMacro, RSALenMacro, SSALenMacro, SameInstanceMacro, StructConstructorMacro}
 import net.verdagon.vale.templar.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
@@ -70,7 +70,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
       profiler,
       new ITemplataTemplarDelegate {
         override def getAncestorInterfaceDistance(temputs: Temputs, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): Option[Int] = {
-          ancestorHelper.getAncestorInterfaceDistance(temputs, descendantCitizenRef, ancestorInterfaceRef)
+          ancestorHelper.getAncestorInterfaceDistance(temputs, descendantCitizenRef, ancestorInterfaceRef).map(_._2)
         }
 
         override def getStructRef(temputs: Temputs, callRange: RangeS,structTemplata: StructTemplata, uncoercedTemplateArgs: Vector[ITemplata]): StructTT = {
@@ -155,7 +155,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
           templataTemplar.coerce(state, range, templata, toType)
         }
 
-        override def lookupTemplataImprecise(env: IEnvironment, state: Temputs, range: RangeS, name: IImpreciseNameS): ITemplata = {
+        override def lookupTemplataImprecise(env: IEnvironment, state: Temputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata] = {
           templataTemplar.lookupTemplata(env, state, range, name)
         }
 
@@ -245,7 +245,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
           profiler.childFrame("InferTemplarDelegate.getAncestorInterfaces", () => {
             (if (includeSelf) Set[KindT](descendant) else Set[KindT]()) ++
               (descendant match {
-                case s : CitizenRefT => ancestorHelper.getAncestorInterfaces(temputs, s)
+                case s : CitizenRefT => ancestorHelper.getAncestorInterfaces(temputs, s).keys
                 case _ => Set()
               })
           })
@@ -379,15 +379,6 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
   val arrayTemplar =
     new ArrayTemplar(
       opts,
-      new IArrayTemplarDelegate {
-        def getArrayDestructor(
-          env: IEnvironment,
-          temputs: Temputs,
-          type2: CoordT):
-        (PrototypeT) = {
-          destructorTemplar.getArrayDestructor(env, temputs, type2)
-        }
-      },
       profiler,
       inferTemplar,
       overloadTemplar)
@@ -415,21 +406,28 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
         }
       })
 
+  val functorHelper = new FunctorHelper(profiler, structTemplar)
   val structConstructorMacro = new StructConstructorMacro(opts, profiler)
-  val structDropMacro = new StructDropMacro(destructorTemplar)
+  val structDropMacro = new StructDropMacro(overloadTemplar, destructorTemplar)
+  val structFreeMacro = new StructFreeMacro(overloadTemplar, destructorTemplar)
+  val interfaceFreeMacro = new InterfaceFreeMacro(overloadTemplar)
   val asSubtypeMacro = new AsSubtypeMacro(ancestorHelper, expressionTemplar)
   val rsaLenMacro = new RSALenMacro()
   val ssaLenMacro = new SSALenMacro()
   val rsaDropMacro = new RSADropIntoMacro(arrayTemplar)
   val ssaDropMacro = new SSADropIntoMacro(arrayTemplar)
+  val rsaFreeMacro = new RSAFreeMacro(arrayTemplar, destructorTemplar)
+  val ssaFreeMacro = new SSAFreeMacro(arrayTemplar, destructorTemplar)
 //  val ssaLenMacro = new SSALenMacro()
   val implDropMacro = new ImplDropMacro()
+  val implFreeMacro = new ImplFreeMacro(overloadTemplar)
   val interfaceDropMacro = new InterfaceDropMacro(overloadTemplar)
   val abstractBodyMacro = new AbstractBodyMacro()
   val lockWeakMacro = new LockWeakMacro(expressionTemplar)
   val sameInstanceMacro = new SameInstanceMacro(profiler)
   val anonymousInterfaceMacro =
-    new AnonymousInterfaceMacro(opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro, implDropMacro)
+    new AnonymousInterfaceMacro(
+      opts, profiler, overloadTemplar, structTemplar, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
@@ -441,7 +439,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
             programA.structs.map(structA => {
               val structNameT = packageName.addStep(NameTranslator.translateNameStep(structA.name))
               Vector((structNameT, StructEnvEntry(structA))) ++
-              structConstructorMacro.getStructSiblingEntries(structNameT, structA)
+              structConstructorMacro.getStructSiblingEntries(structConstructorMacro.macroName, structNameT, structA)
             }) ++
             programA.interfaces.map(interfaceA => {
               val interfaceNameT = packageName.addStep(NameTranslator.translateNameStep(interfaceA.name))
@@ -479,21 +477,33 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
 
         val globalEnv =
           GlobalEnvironment(
+            functorHelper,
             structConstructorMacro,
             structDropMacro,
+            structFreeMacro,
             interfaceDropMacro,
+            interfaceFreeMacro,
             anonymousInterfaceMacro,
-            Map(structDropMacro.macroName -> structDropMacro),
-            Map(interfaceDropMacro.macroName -> interfaceDropMacro),
+            Map(
+              structDropMacro.macroName -> structDropMacro,
+              structFreeMacro.macroName -> structFreeMacro,
+              implFreeMacro.macroName -> implFreeMacro),
+            Map(
+              interfaceDropMacro.macroName -> interfaceDropMacro,
+              interfaceFreeMacro.macroName -> interfaceFreeMacro),
             Map(),
             Map(
               abstractBodyMacro.generatorId -> abstractBodyMacro,
               structConstructorMacro.generatorId -> structConstructorMacro,
-              structDropMacro.generatorId -> structDropMacro,
+              structFreeMacro.freeGeneratorId -> structFreeMacro,
+              interfaceFreeMacro.generatorId -> interfaceFreeMacro,
+              structDropMacro.dropGeneratorId -> structDropMacro,
               rsaLenMacro.generatorId -> rsaLenMacro,
               ssaLenMacro.generatorId -> ssaLenMacro,
               rsaDropMacro.generatorId -> rsaDropMacro,
               ssaDropMacro.generatorId -> ssaDropMacro,
+              rsaFreeMacro.generatorId -> rsaFreeMacro,
+              ssaFreeMacro.generatorId -> ssaFreeMacro,
               lockWeakMacro.generatorId -> lockWeakMacro,
               sameInstanceMacro.generatorId -> sameInstanceMacro,
               asSubtypeMacro.generatorId -> asSubtypeMacro),
@@ -602,22 +612,26 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
           while (true) {
             temputs.getAllStructs().foreach(struct => {
               if (struct.mutability == ImmutableT && struct.getRef != emptyTupleStruct) {
-                destructorTemplar.getCitizenDestructor(temputs, CoordT(ShareT, ReadonlyT, struct.getRef))
+                destructorTemplar.getDropFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, struct.getRef))
+                destructorTemplar.getFreeFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, struct.getRef))
               }
             })
             temputs.getAllInterfaces().foreach(interface => {
               if (interface.mutability == ImmutableT) {
-                destructorTemplar.getCitizenDestructor(temputs, CoordT(ShareT, ReadonlyT, interface.getRef))
+                destructorTemplar.getDropFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, interface.getRef))
+                destructorTemplar.getFreeFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, interface.getRef))
               }
             })
             temputs.getAllRuntimeSizedArrays().foreach(rsa => {
               if (rsa.array.mutability == ImmutableT) {
-                destructorTemplar.getCitizenDestructor(temputs, CoordT(ShareT, ReadonlyT, rsa))
+                destructorTemplar.getDropFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, rsa))
+                destructorTemplar.getFreeFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, rsa))
               }
             })
             temputs.getAllStaticSizedArrays().foreach(ssa => {
               if (ssa.array.mutability == ImmutableT) {
-                destructorTemplar.getCitizenDestructor(temputs, CoordT(ShareT, ReadonlyT, ssa))
+                destructorTemplar.getDropFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, ssa))
+                destructorTemplar.getFreeFunction(globalEnv, temputs, CoordT(ShareT, ReadonlyT, ssa))
               }
             })
 
@@ -723,7 +737,7 @@ class Templar(debugOut: (=> String) => Unit, profiler: IProfiler, globalOptions:
               case _ => true
             })
             .toVector
-        val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(temputs.findDestructor)).toMap
+        val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(temputs.findImmDestructor)).toMap
 //        val reachableDestructors = categorizedDestructors.getOrElse(true, Vector.empty)
 //        val unreachableDestructors = categorizedDestructors.getOrElse(false, Vector.empty)
 //        unreachableDestructors.foreach(f => debugOut("Shaking out unreachable: " + f))

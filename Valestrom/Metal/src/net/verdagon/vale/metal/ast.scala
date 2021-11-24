@@ -101,23 +101,23 @@ case class ProgramH(
   }
   def lookupFunction(prototype: PrototypeH): FunctionH = {
     val paackage = lookupPackage(prototype.fullName.packageCoordinate)
-    paackage.functions.find(_.fullName == prototype.fullName).get
+    vassertSome(paackage.functions.find(_.fullName == prototype.fullName))
   }
   def lookupStruct(structRefH: StructRefH): StructDefinitionH = {
     val paackage = lookupPackage(structRefH.fullName.packageCoordinate)
-    paackage.structs.find(_.getRef == structRefH).get
+    vassertSome(paackage.structs.find(_.getRef == structRefH))
   }
   def lookupInterface(interfaceRefH: InterfaceRefH): InterfaceDefinitionH = {
     val paackage = lookupPackage(interfaceRefH.fullName.packageCoordinate)
-    paackage.interfaces.find(_.getRef == interfaceRefH).get
+    vassertSome(paackage.interfaces.find(_.getRef == interfaceRefH))
   }
   def lookupStaticSizedArray(ssaTH: StaticSizedArrayTH): StaticSizedArrayDefinitionTH = {
     val paackage = lookupPackage(ssaTH.name.packageCoordinate)
-    paackage.staticSizedArrays.find(_.name == ssaTH.name).get
+    vassertSome(paackage.staticSizedArrays.find(_.name == ssaTH.name))
   }
   def lookupRuntimeSizedArray(rsaTH: RuntimeSizedArrayTH): RuntimeSizedArrayDefinitionTH = {
     val paackage = lookupPackage(rsaTH.name.packageCoordinate)
-    paackage.runtimeSizedArrays.find(_.name == rsaTH.name).get
+    vassertSome(paackage.runtimeSizedArrays.find(_.name == rsaTH.name))
   }
 }
 

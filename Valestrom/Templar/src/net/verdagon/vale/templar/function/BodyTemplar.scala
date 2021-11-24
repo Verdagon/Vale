@@ -74,9 +74,9 @@ class BodyTemplar(
             }
 
           val returnType2 =
-            if (returns.isEmpty && body2.resultRegister.kind == NeverT()) {
+            if (returns.isEmpty && body2.result.kind == NeverT()) {
               // No returns yet the body results in a Never. This can happen if we call panic from inside.
-              body2.resultRegister.reference
+              body2.result.reference
             } else {
               vassert(returns.nonEmpty)
               if (returns.size > 1) {
@@ -108,7 +108,7 @@ class BodyTemplar(
             // Let it through, it returns the expected type.
           } else if (returns == Set(CoordT(ShareT, ReadonlyT, NeverT()))) {
             // Let it through, it returns a never but we expect something else, that's fine
-          } else if (returns == Set() && body2.resultRegister.kind == NeverT()) {
+          } else if (returns == Set() && body2.result.kind == NeverT()) {
             // Let it through, it doesn't return anything yet it results in a never, which means
             // we called panic or something from inside.
           } else {
@@ -149,14 +149,14 @@ class BodyTemplar(
       maybeExpectedResultType match {
         case None => unconvertedBodyWithoutReturn
         case Some(expectedResultType) => {
-          if (templataTemplar.isTypeTriviallyConvertible(temputs, unconvertedBodyWithoutReturn.resultRegister.reference, expectedResultType)) {
+          if (templataTemplar.isTypeTriviallyConvertible(temputs, unconvertedBodyWithoutReturn.result.reference, expectedResultType)) {
             if (unconvertedBodyWithoutReturn.kind == NeverT()) {
               unconvertedBodyWithoutReturn
             } else {
               convertHelper.convert(funcOuterEnv.snapshot, temputs, body1.range, unconvertedBodyWithoutReturn, expectedResultType);
             }
           } else {
-            return Err(ResultTypeMismatchError(expectedResultType, unconvertedBodyWithoutReturn.resultRegister.reference))
+            return Err(ResultTypeMismatchError(expectedResultType, unconvertedBodyWithoutReturn.result.reference))
           }
         }
       }
@@ -167,7 +167,7 @@ class BodyTemplar(
       if (convertedBodyWithoutReturn.kind == NeverT()) {
         (convertedBodyWithoutReturn, returnsFromInsideMaybeWithNever)
       } else {
-        (ReturnTE(convertedBodyWithoutReturn), returnsFromInsideMaybeWithNever + convertedBodyWithoutReturn.resultRegister.reference)
+        (ReturnTE(convertedBodyWithoutReturn), returnsFromInsideMaybeWithNever + convertedBodyWithoutReturn.result.reference)
       }
     // If we already had a return, then the above will add a Never to the returns, but that's fine, it will be filtered
     // out below.

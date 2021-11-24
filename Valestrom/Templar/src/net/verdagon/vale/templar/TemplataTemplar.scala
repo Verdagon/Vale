@@ -99,6 +99,10 @@ class TemplataTemplar(
 //          case (_, PackTT(Vector(), _)) => return (None)
           case (_ : CitizenRefT, IntT(_) | BoolT() | StrT() | FloatT()) => return (None)
           case (IntT(_) | BoolT() | StrT() | FloatT(), _ : CitizenRefT) => return (None)
+          case (_, RuntimeSizedArrayTT(_)) => return None
+          case (RuntimeSizedArrayTT(_), _) => return None
+          case (_, StaticSizedArrayTT(_, _)) => return None
+          case (StaticSizedArrayTT(_, _), _) => return None
           case _ => {
             vfail("Can't convert from " + sourceType + " to " + targetType)
           }
@@ -344,11 +348,15 @@ class TemplataTemplar(
     temputs: Temputs,
     range: RangeS,
     name: IImpreciseNameS):
-  (ITemplata) = {
+  Option[ITemplata] = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructTemplar to figure out its members.
     // We could instead pipe a lookup context through, if this proves problematic.
-    vassertOne(env.lookupWithImpreciseName(profiler, name, Set(TemplataLookupContext), true))
+    val results = env.lookupWithImpreciseName(profiler, name, Set(TemplataLookupContext), true)
+    if (results.size > 1) {
+      vfail()
+    }
+    results.headOption
   }
 
   def coerceKindToCoord(temputs: Temputs, kind: KindT):

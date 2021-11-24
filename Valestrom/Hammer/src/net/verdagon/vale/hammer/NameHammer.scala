@@ -27,6 +27,8 @@ object NameHammer {
     namePart match {
       case SelfNameT() => "self"
       case AnonymousSubstructImplNameT() => "AnonSubstructImpl"
+      case VirtualFreeNameT(_, _) => "VirtualFree"
+      case FreeNameT(templateArgs, parameters) => "Free"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
       case AnonymousSubstructConstructorNameT(templateArgs, params) => "anonSubstructConstructor"
       case AnonymousSubstructNameT(_, _) => "AnonSubstruct"

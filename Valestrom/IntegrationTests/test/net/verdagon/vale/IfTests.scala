@@ -47,7 +47,7 @@ class IfTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val ifs = Collector.all(temputs.lookupFunction("main"), { case if2 @ IfTE(_, _, _) => if2 })
-    ifs.foreach(iff => iff.resultRegister.reference shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32))
+    ifs.foreach(iff => iff.result.reference shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32))
     ifs.size shouldEqual 2
     val userFuncs = temputs.getAllUserFunctions
     userFuncs.foreach(func => {
@@ -78,7 +78,7 @@ class IfTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val ifs = Collector.all(temputs.lookupFunction("main"), { case if2 @ IfTE(_, _, _) => if2 })
-    ifs.foreach(iff => iff.resultRegister.reference shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32))
+    ifs.foreach(iff => iff.result.reference shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32))
     val userFuncs = temputs.getAllUserFunctions
     userFuncs.foreach(func => {
       func.header.returnType match {
@@ -104,7 +104,7 @@ class IfTests extends FunSuite with Matchers {
 
     val temputs = compile.expectTemputs()
     val ifs = Collector.all(temputs.lookupFunction("main"), { case if2 @ IfTE(_, _, _) => if2 })
-    ifs.foreach(iff => iff.resultRegister.reference shouldEqual CoordT(ShareT, ReadonlyT, StrT()))
+    ifs.foreach(iff => iff.result.reference shouldEqual CoordT(ShareT, ReadonlyT, StrT()))
 
     compile.evalForKind(Vector()) shouldEqual VonStr("#")
   }

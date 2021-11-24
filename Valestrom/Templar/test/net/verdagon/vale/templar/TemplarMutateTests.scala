@@ -35,7 +35,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     Collector.only(main, { case MutateTE(LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_,_, CodeVarNameT("a")), VaryingT, _), _, VaryingT), ConstantIntTE(4, _)) => })
 
     val lookup = Collector.only(main, { case l @ LocalLookupTE(range, localVariable, reference, variability) => l })
-    val resultCoord = lookup.resultRegister.reference
+    val resultCoord = lookup.result.reference
     resultCoord shouldEqual CoordT(ShareT, ReadonlyT, IntT.i32)
   }
 
@@ -55,7 +55,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     val main = temputs.lookupFunction("main")
 
     val lookup = Collector.only(main, { case l @ ReferenceMemberLookupTE(_, _, _, _, _, _) => l })
-    val resultCoord = lookup.resultRegister.reference
+    val resultCoord = lookup.result.reference
     // See RMLRMO, it should result in the same type as the member.
     resultCoord match {
       case CoordT(OwnT, ReadwriteT, StructTT(_)) =>
@@ -234,7 +234,7 @@ class TemplarMutateTests extends FunSuite with Matchers {
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindIdentifierToLoadT(
         RangeS.testZero,
-        "spaceship"))
+        CodeNameS("spaceship")))
       .nonEmpty)
     vassert(TemplarErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindMemberT(

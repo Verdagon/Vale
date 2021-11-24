@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.{FunctionEnvEntry, FunctionEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplataLookupContext}
 import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
-import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, StructDropMacro}
+import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructLambdaNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, ConstructorNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, ImplDeclareNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT}
 import net.verdagon.vale.templar.templata.{CoordTemplata, ExternFunctionTemplata, ExternImplTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata}
 import net.verdagon.vale.templar.{ArrayTemplar, CompileErrorExceptionT, IFunctionGenerator, LambdaReturnDoesntMatchInterfaceConstructor, OverloadTemplar, RangedInternalErrorT, Templar, TemplarOptions, Temputs, ast}
@@ -27,13 +27,15 @@ class AnonymousInterfaceMacro(
   structTemplar: StructTemplar,
   structConstructorMacro: StructConstructorMacro,
   structDropMacro: StructDropMacro,
+  structFreeMacro: StructFreeMacro,
+  interfaceFreeMacro: InterfaceFreeMacro,
   implDropMacro: ImplDropMacro) extends IOnInterfaceDefinedMacro {
 
-  override def macroName: String = "DeriveAnonymousSubstruct"
+  val macroName: String = "DeriveAnonymousSubstruct"
 
-//  override def generatorId: String = "interfaceConstructorGenerator"
+//  val generatorId: String = "interfaceConstructorGenerator"
 
-  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
     vimpl()
   }
 
@@ -52,8 +54,10 @@ class AnonymousInterfaceMacro(
     val structA = makeStruct(interfaceA, memberRunes, members, structNameS)
 
     val moreEntries =
-        structConstructorMacro.getStructSiblingEntries(structNameT, structA) ++
-        structDropMacro.getStructSiblingEntries(structNameT, structA)
+        interfaceFreeMacro.getInterfaceSiblingEntries(structNameT, interfaceA) ++
+        structConstructorMacro.getStructSiblingEntries(structConstructorMacro.macroName, structNameT, structA) ++
+        structDropMacro.getStructSiblingEntries(structDropMacro.macroName, structNameT, structA) ++
+        structFreeMacro.getStructSiblingEntries(structFreeMacro.macroName, structNameT, structA)
 
     val forwarderMethods =
       interfaceA.internalMethods.zip(memberRunes).zipWithIndex.map({ case ((method, rune), methodIndex) =>

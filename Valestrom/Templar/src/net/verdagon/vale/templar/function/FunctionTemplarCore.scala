@@ -156,7 +156,8 @@ class FunctionTemplarCore(
               val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
               val header =
                 generator.generateFunctionBody(
-                  fullEnv.snapshot, temputs, life, callRange, Some(startingFullEnv.function), params2, maybeRetCoord)
+                  fullEnv.snapshot, temputs, generatorId, life, callRange,
+                  Some(startingFullEnv.function), params2, maybeRetCoord)
               if (header.toSignature != signature2) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
                 "Expected:  " + signature2 + "\n" +

@@ -9,11 +9,12 @@ import net.verdagon.vale.templar.{CompileErrorExceptionT, RangedInternalErrorT, 
 
 
 class SSALenMacro() extends IFunctionBodyMacro {
-  override def generatorId: String = "vale_static_sized_array_len"
+  val generatorId: String = "vale_static_sized_array_len"
 
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
+    generatorId: String,
     life: LocationInFunctionEnvironment,
     callRange: RangeS,
     originFunction: Option[FunctionA],

@@ -77,7 +77,7 @@ class TemplarVirtualTests extends FunSuite with Matchers {
 
     Collector.only(temputs.lookupFunction("as"), {
       case as @ AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor) => {
-        sourceExpr.resultRegister.reference match {
+        sourceExpr.result.reference match {
           case CoordT(ConstraintT,ReadonlyT,InterfaceTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT("IShip"),Vector())))) =>
         }
         targetSubtype match {
@@ -107,7 +107,7 @@ class TemplarVirtualTests extends FunSuite with Matchers {
               InterfaceTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT("IShip"),Vector()))))) =>
         }
         vassert(okConstructor.paramTypes.head.kind == targetSubtype)
-        vassert(errConstructor.paramTypes.head == sourceExpr.resultRegister.reference)
+        vassert(errConstructor.paramTypes.head == sourceExpr.result.reference)
         as
       }
     })

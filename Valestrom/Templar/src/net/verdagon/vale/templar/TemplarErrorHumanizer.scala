@@ -2,14 +2,14 @@ package net.verdagon.vale.templar
 
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
 import net.verdagon.vale.astronomer.{AstronomerErrorHumanizer, ConstructorNameS, FunctionA, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS}
-import net.verdagon.vale.scout.ScoutErrorHumanizer.{humanizePermission, humanizeRune}
+import net.verdagon.vale.scout.ScoutErrorHumanizer.{humanizeImpreciseName, humanizePermission, humanizeRune}
 import net.verdagon.vale.scout.rules.{IRulexSR, RuneUsage}
-import net.verdagon.vale.scout.{ArgumentRuneS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaNameS, ScoutErrorHumanizer, TopLevelCitizenDeclarationNameS}
+import net.verdagon.vale.scout.{ArgumentRuneS, CodeRuneS, CodeVarNameS, FunctionNameS, GlobalFunctionFamilyNameS, INameS, IRuneS, ImplicitRuneS, LambdaDeclarationNameS, ScoutErrorHumanizer, TopLevelCitizenDeclarationNameS}
 import net.verdagon.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverConflict, SolverErrorHumanizer}
 import net.verdagon.vale.templar.OverloadTemplar.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import net.verdagon.vale.templar.names.TemplataNamer.getFullNameIdentifierName
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, OverrideT, PrototypeT}
-import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, ReceivingDifferentOwnerships}
+import net.verdagon.vale.templar.infer.{CallResultWasntExpectedType, ITemplarSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, ReceivingDifferentOwnerships}
 import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, TemplataNamer}
 import net.verdagon.vale.templar.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PermissionTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
 import net.verdagon.vale.templar.types.{BoolT, ConstraintT, CoordT, FinalT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, OwnT, ParamFilter, RawArrayTT, ReadonlyT, ReadwriteT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VaryingT, VoidT, WeakT}
@@ -192,7 +192,7 @@ object TemplarErrorHumanizer {
     name match {
       case CodeVarNameS(name) => name
       case TopLevelCitizenDeclarationNameS(name, codeLocation) => name
-      case LambdaNameS(codeLocation) => humanizePos(codeMap, codeLocation) + ": " + "(lambda)"
+      case LambdaDeclarationNameS(codeLocation) => humanizePos(codeMap, codeLocation) + ": " + "(lambda)"
       case FunctionNameS(name, codeLocation) => humanizePos(codeMap, codeLocation) + ": " + name
       case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, range)) => humanizePos(codeMap, range.begin) + ": " + name
       case ImmConcreteDestructorNameS(_) => vimpl()
@@ -297,6 +297,7 @@ object TemplarErrorHumanizer {
       case KindDoesntImplementInterface(sub, suuper) => {
         "Kind " + humanizeTemplata(codeMap, KindTemplata(sub)) + " does not implement interface " + humanizeTemplata(codeMap, KindTemplata(suuper))
       }
+      case LookupFailed(name) => "Couldn't find anything named: " + humanizeImpreciseName(name)
       case KindIsNotConcrete(kind) => {
         "Expected kind to be concrete, but was not. Kind: " + kind
       }

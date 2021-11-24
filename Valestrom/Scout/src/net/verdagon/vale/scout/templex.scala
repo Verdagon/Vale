@@ -7,22 +7,36 @@ trait IImpreciseNameS
 sealed trait IVarNameS extends INameS
 trait IFunctionDeclarationNameS extends INameS {
   def packageCoordinate: PackageCoordinate
+  def getImpreciseName: IImpreciseNameS
 }
 trait ICitizenDeclarationNameS extends INameS {
   def range: RangeS
   def packageCoordinate: PackageCoordinate
   def getImpreciseName: IImpreciseNameS
 }
-case class LambdaNameS(
+case class FreeDeclarationNameS(codeLocationS: CodeLocationS) extends IFunctionDeclarationNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def packageCoordinate: PackageCoordinate = codeLocationS.file.packageCoordinate
+  override def getImpreciseName: IImpreciseNameS = FreeImpreciseNameS()
+}
+case class FreeImpreciseNameS() extends IImpreciseNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
+case class LambdaDeclarationNameS(
 //  parentName: INameS,
   codeLocation: CodeLocationS
-) extends IFunctionDeclarationNameS with IImpreciseNameS {
+) extends IFunctionDeclarationNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
+  override def getImpreciseName: LambdaImpreciseNameS = LambdaImpreciseNameS()
+}
+case class LambdaImpreciseNameS() extends IImpreciseNameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class FunctionNameS(name: String, codeLocation: CodeLocationS) extends IFunctionDeclarationNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
+  override def getImpreciseName: IImpreciseNameS = CodeNameS(name)
 }
 case class TopLevelCitizenDeclarationNameS(name: String, range: RangeS) extends ICitizenDeclarationNameS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -30,7 +44,11 @@ case class TopLevelCitizenDeclarationNameS(name: String, range: RangeS) extends 
   override def packageCoordinate: PackageCoordinate = range.file.packageCoordinate
   override def getImpreciseName: IImpreciseNameS = CodeNameS(name)
 }
-case class LambdaStructNameS(lambdaName: LambdaNameS) extends INameS with IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
+case class LambdaStructDeclarationNameS(lambdaName: LambdaDeclarationNameS) extends INameS {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash
+  def getImpreciseName: LambdaStructImpreciseNameS = LambdaStructImpreciseNameS(lambdaName.getImpreciseName)
+}
+case class LambdaStructImpreciseNameS(lambdaName: LambdaImpreciseNameS) extends IImpreciseNameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ImplDeclarationNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ExportAsNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class LetNameS(codeLocation: CodeLocationS) extends INameS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
@@ -77,6 +95,9 @@ case class ImplDropVoidRuneS() extends IRuneS
 case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   vpass()
 }
+case class FreeOverrideStructTemplateRuneS() extends IRuneS
+case class FreeOverrideStructRuneS() extends IRuneS
+case class FreeOverrideInterfaceRuneS() extends IRuneS
 case class LetImplicitRuneS(lid: LocationInDenizen) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class MagicParamRuneS(lid: LocationInDenizen) extends IRuneS { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class MemberRuneS(memberIndex: Int) extends IRuneS {

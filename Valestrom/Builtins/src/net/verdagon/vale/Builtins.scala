@@ -11,6 +11,7 @@ object Builtins {
       "ifunction1" -> "ifunction1.vale",
       "logic" -> "logic.vale",
       "str" -> "str.vale",
+      "drop" -> "drop.vale",
       "arrays" -> "arrays.vale",
       "mainargs" -> "mainargs.vale",
       "as" -> "as.vale",

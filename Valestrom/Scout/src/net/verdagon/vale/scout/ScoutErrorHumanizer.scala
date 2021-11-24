@@ -3,7 +3,7 @@ package net.verdagon.vale.scout
 import net.verdagon.vale.{FileCoordinateMap, vimpl}
 import net.verdagon.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
 import net.verdagon.vale.parser.{ConstraintP, ExclusiveReadwriteP, ImmutableP, MutabilityP, MutableP, OwnP, OwnershipP, PermissionP, ReadonlyP, ReadwriteP, ShareP, WeakP}
-import net.verdagon.vale.scout.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, ILiteralSL, IRulexSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PermissionLiteralSL, RefListCompoundMutabilitySR, RuneParentEnvLookupSR}
+import net.verdagon.vale.scout.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, ILiteralSL, IRulexSR, IntLiteralSL, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PermissionLiteralSL, RefListCompoundMutabilitySR, RuneParentEnvLookupSR}
 import net.verdagon.vale.solver.SolverErrorHumanizer
 
 object ScoutErrorHumanizer {
@@ -53,6 +53,7 @@ object ScoutErrorHumanizer {
     name match {
 //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
       case ClosureParamNameS() => "(closure)"
+      case FreeDeclarationNameS(_) => "(free)"
 //      case CodeNameS(n) => n
       case GlobalFunctionFamilyNameS(n) => n
 //      case DropNameS(_) => "(drop)"
@@ -72,6 +73,7 @@ object ScoutErrorHumanizer {
       //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
 //      case ClosureParamNameS() => "(closure)"
       case CodeNameS(n) => n
+      case FreeImpreciseNameS() => "(free)"
 //      case GlobalFunctionFamilyNameS(n) => n
       //      case DropNameS(_) => "(drop)"
 //      case MagicParamNameS(codeLocation) => "(magic)"
@@ -100,6 +102,8 @@ object ScoutErrorHumanizer {
       case AnonymousSubstructParentInterfaceTemplateRuneS() => "(anon sub parent interface)"
       case ImplDropVoidRuneS() => "(impl drop void)"
       case ImplDropCoordRuneS() => "(impl drop coord)"
+      case FreeOverrideInterfaceRuneS() => "(freeing interface)"
+      case FreeOverrideStructRuneS() => "(freeing struct)"
       case other => vimpl(other)
     }
   }
@@ -156,6 +160,7 @@ object ScoutErrorHumanizer {
       case OwnershipLiteralSL(ownership) => humanizeOwnership(ownership)
       case PermissionLiteralSL(permission) => humanizePermission(permission)
       case MutabilityLiteralSL(mutability) => humanizeMutability(mutability)
+      case IntLiteralSL(value) => value.toString
       case other => vimpl(other)
     }
   }

@@ -343,10 +343,10 @@ case class ExternFunctionTemplata(header: FunctionHeaderT) extends ITemplata {
 
 }
 
-case class ExternImplTemplata(struct: StructTT, interface: InterfaceTT) extends ITemplata {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def order: Int = 1338
-  override def tyype: ITemplataType = vfail()
-
-
-}
+//case class ExternImplTemplata(struct: StructTT, interface: InterfaceTT) extends ITemplata {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  override def order: Int = 1338
+//  override def tyype: ITemplataType = vfail()
+//
+//
+//}

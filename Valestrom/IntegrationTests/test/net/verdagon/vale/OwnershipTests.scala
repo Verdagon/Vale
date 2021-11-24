@@ -26,7 +26,7 @@ class OwnershipTests extends FunSuite with Matchers {
     val main = compile.expectTemputs().lookupFunction("main")
     Collector.only(main, {
       case LetAndLendTE(ReferenceLocalVariableT(FullNameT(_, Vector(FunctionNameT("main",Vector(),Vector())),TemplarTemporaryVarNameT(_)),FinalT,_),refExpr) => {
-        refExpr.resultRegister.reference match {
+        refExpr.result.reference match {
           case CoordT(OwnT, ReadwriteT, StructTT(simpleName("Muta"))) =>
         }
       }

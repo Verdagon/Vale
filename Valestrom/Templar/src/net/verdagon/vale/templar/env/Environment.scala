@@ -5,9 +5,9 @@ import net.verdagon.vale.scout.{Environment => _, FunctionEnvironment => _, IEnv
 import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.env.TemplatasStore.{entryMatchesFilter, entryToTemplata, getImpreciseName}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.macros.drop.{InterfaceDropMacro, StructDropMacro}
-import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, IFunctionBodyMacro, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, StructConstructorMacro}
-import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
+import net.verdagon.vale.templar.macros.drop._
+import net.verdagon.vale.templar.macros.{AnonymousInterfaceMacro, FunctorHelper, IFunctionBodyMacro, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, StructConstructorMacro}
+import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, FreeTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, LambdaTemplateNameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT, VirtualFreeTemplateNameT}
 import net.verdagon.vale.templar.templata._
 import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, PackageCoordinate, Result, vassert, vcurious, vfail, vimpl, vwat}
 
@@ -138,9 +138,12 @@ case object TemplataLookupContext extends ILookupContext
 case object ExpressionLookupContext extends ILookupContext
 
 case class GlobalEnvironment(
+  functorHelper: FunctorHelper,
   structConstructorMacro: StructConstructorMacro,
   structDropMacro: StructDropMacro,
+  structFreeMacro: StructFreeMacro,
   interfaceDropMacro: InterfaceDropMacro,
+  interfaceFreeMacro: InterfaceFreeMacro,
   anonymousInterfaceMacro: AnonymousInterfaceMacro,
   nameToStructDefinedMacro: Map[String, IOnStructDefinedMacro],
   nameToInterfaceDefinedMacro: Map[String, IOnInterfaceDefinedMacro],
@@ -286,7 +289,7 @@ object TemplatasStore {
           case OwnershipTemplata(_) => contexts.contains(TemplataLookupContext)
           case PermissionTemplata(_) => contexts.contains(TemplataLookupContext)
           case VariabilityTemplata(_) => contexts.contains(TemplataLookupContext)
-          case ExternImplTemplata(_, _) => contexts.contains(TemplataLookupContext)
+//          case ExternImplTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case ExternFunctionTemplata(_) => contexts.contains(ExpressionLookupContext)
         }
       }
@@ -376,7 +379,7 @@ object TemplatasStore {
       //      case RuneNameT(ReturnRuneS()) => None
       //      case RuneNameT(MemberRuneS(_)) => None
       case LambdaCitizenNameT(template) => getImpreciseName(template)
-      case LambdaCitizenTemplateNameT(loc) => Some(LambdaStructNameS(LambdaNameS(loc)))
+      case LambdaCitizenTemplateNameT(loc) => Some(LambdaStructImpreciseNameS(LambdaImpreciseNameS()))
       case ClosureParamNameT() => Some(ClosureParamNameS())
       case SelfNameT() => Some(SelfNameS())
       case ArbitraryNameT() => Some(ArbitraryNameS())
@@ -401,6 +404,10 @@ object TemplatasStore {
         // imprecise name from the ImplA or somewhere else.
         vwat()
       }
+      case FreeTemplateNameT(codeLocation) => Some(FreeImpreciseNameS())
+      case LambdaTemplateNameT(codeLocation) => Some(LambdaImpreciseNameS())
+      case FreeTemplateNameT(codeLoc) => Some(FreeImpreciseNameS())
+      case VirtualFreeTemplateNameT(codeLoc) => Some(VirtualFreeImpreciseNameS())
       case other => vimpl(other.toString)
     }
   }

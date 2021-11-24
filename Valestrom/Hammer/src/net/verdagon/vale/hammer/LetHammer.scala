@@ -24,7 +24,7 @@ object LetHammer {
     val (sourceExprResultLine, deferreds) =
       translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.result.reference)
 
     val stackifyNode =
       localVariable match {
@@ -54,7 +54,7 @@ object LetHammer {
     val (sourceExprResultLine, deferreds) =
       translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.result.reference)
 
     val borrowAccess =
       localVariable match {
@@ -123,9 +123,9 @@ object LetHammer {
         locals,
         varId,
         variability,
-        sourceExpr2.resultRegister.reference,
-        let2.resultRegister.reference.ownership,
-        let2.resultRegister.reference.permission)
+        sourceExpr2.result.reference,
+        let2.result.reference.ownership,
+        let2.result.reference.permission)
     ConsecutorH(Vector(stackifyH, borrowAccess))
   }
 
@@ -180,9 +180,9 @@ object LetHammer {
         currentFunctionHeader,
         locals,
         varId,
-        sourceExpr2.resultRegister.reference,
-        let2.resultRegister.reference.ownership,
-        let2.resultRegister.reference.permission)
+        sourceExpr2.result.reference,
+        let2.result.reference.ownership,
+        let2.result.reference.permission)
 
       ConsecutorH(Vector(stackifyH, borrowAccess))
   }

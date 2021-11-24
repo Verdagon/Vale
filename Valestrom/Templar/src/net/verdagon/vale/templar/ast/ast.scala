@@ -117,7 +117,7 @@ case class FunctionT(
   override def hashCode(): Int = vcurious()
 
   // We always end a function with a return, whose result is a Never.
-  vassert(body.resultRegister.kind == NeverT())
+  vassert(body.result.kind == NeverT())
 }
 
 object getFunctionLastName {
