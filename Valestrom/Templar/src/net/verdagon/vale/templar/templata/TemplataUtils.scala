@@ -12,7 +12,7 @@ object simpleName {
       case ImplDeclareNameT(_) => None
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
-      case FreeNameT(_) => None
+      case FreeNameT(_, _) => None
       case ClosureParamNameT() => None
       case MagicParamNameT(_) => None
 //      case DropNameT(_, _) => None

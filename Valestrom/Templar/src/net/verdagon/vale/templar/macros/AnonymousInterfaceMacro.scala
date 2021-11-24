@@ -13,7 +13,7 @@ import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.function.{DestructorTemplar, FunctionTemplarCore}
 import net.verdagon.vale.templar.macros.drop.{ImplDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructLambdaNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, ConstructorNameT, FullNameT, FunctionNameT, ICitizenNameT, INameT, ImplDeclareNameT, NameTranslator, RuneNameT, TemplarTemporaryVarNameT}
-import net.verdagon.vale.templar.templata.{CoordTemplata, ExternFunctionTemplata, ExternImplTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata}
+import net.verdagon.vale.templar.templata.{CoordTemplata, ExternFunctionTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata}
 import net.verdagon.vale.templar.{ArrayTemplar, CompileErrorExceptionT, IFunctionGenerator, LambdaReturnDoesntMatchInterfaceConstructor, OverloadTemplar, RangedInternalErrorT, Templar, TemplarOptions, Temputs, ast}
 import net.verdagon.vale.templar.types.{ConstraintT, CoordT, FinalT, ImmutableT, InterfaceTT, MutabilityT, MutableT, NeverT, ParamFilter, ReadonlyT, ReadwriteT, ReferenceMemberTypeT, ShareT, StructDefinitionT, StructMemberT, StructTT}
 
