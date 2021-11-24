@@ -83,7 +83,7 @@ case class Temputs() {
       functions
         .filter({
 //          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
-          case getFunctionLastName(FreeNameT(k)) if k == kind => true
+          case getFunctionLastName(FreeNameT(_, k)) if k == kind => true
           case _ => false
         }))
       .header.toPrototype
