@@ -36,7 +36,7 @@ class LocalHelper(
     life: LocationInFunctionEnvironment,
     r: ReferenceExpressionTE):
   (DeferTE) = {
-    val rlv = makeTemporaryLocal(fate, life, r.resultRegister.reference)
+    val rlv = makeTemporaryLocal(fate, life, r.result.reference)
     val letExpr2 = LetAndLendTE(rlv, r)
 
     val unlet = unletLocal(fate, rlv)
@@ -130,7 +130,7 @@ class LocalHelper(
       a: AddressExpressionTE,
       loadAsP: LoadAsP):
   ReferenceExpressionTE = {
-    a.resultRegister.reference.ownership match {
+    a.result.reference.ownership match {
       case ShareT => {
         SoftLoadTE(a, ShareT, ReadonlyT)
       }
@@ -143,10 +143,10 @@ class LocalHelper(
                 UnletTE(lv)
               }
               // See CSHROOR for why these aren't just Readwrite.
-              case l @ RuntimeSizedArrayLookupTE(_, _, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.resultRegister.reference.permission)
-              case l @ StaticSizedArrayLookupTE(_, _, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.resultRegister.reference.permission)
-              case l @ ReferenceMemberLookupTE(_,_, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.resultRegister.reference.permission)
-              case l @ AddressMemberLookupTE(_, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.resultRegister.reference.permission)
+              case l @ RuntimeSizedArrayLookupTE(_, _, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.result.reference.permission)
+              case l @ StaticSizedArrayLookupTE(_, _, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.result.reference.permission)
+              case l @ ReferenceMemberLookupTE(_,_, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.result.reference.permission)
+              case l @ AddressMemberLookupTE(_, _, _, _, _) => SoftLoadTE(l, ConstraintT, a.result.reference.permission)
             }
           }
           case MoveP => {
@@ -163,7 +163,7 @@ class LocalHelper(
               }
             }
           }
-          case LendConstraintP(None) => SoftLoadTE(a, ConstraintT, a.resultRegister.reference.permission)
+          case LendConstraintP(None) => SoftLoadTE(a, ConstraintT, a.result.reference.permission)
           case LendConstraintP(Some(permission)) => SoftLoadTE(a, ConstraintT, Conversions.evaluatePermission(permission))
           case LendWeakP(permission) => SoftLoadTE(a, WeakT, Conversions.evaluatePermission(permission))
         }
@@ -171,17 +171,17 @@ class LocalHelper(
       case ConstraintT => {
         loadAsP match {
           case MoveP => vfail()
-          case UseP => SoftLoadTE(a, ConstraintT, a.resultRegister.reference.permission)
-          case LendConstraintP(None) => SoftLoadTE(a, ConstraintT, a.resultRegister.reference.permission)
+          case UseP => SoftLoadTE(a, ConstraintT, a.result.reference.permission)
+          case LendConstraintP(None) => SoftLoadTE(a, ConstraintT, a.result.reference.permission)
           case LendConstraintP(Some(permission)) => SoftLoadTE(a, ConstraintT, Conversions.evaluatePermission(permission))
           case LendWeakP(permission) => SoftLoadTE(a, WeakT, Conversions.evaluatePermission(permission))
         }
       }
       case WeakT => {
         loadAsP match {
-          case UseP => SoftLoadTE(a, WeakT, a.resultRegister.reference.permission)
+          case UseP => SoftLoadTE(a, WeakT, a.result.reference.permission)
           case MoveP => vfail()
-          case LendConstraintP(None) => SoftLoadTE(a, WeakT, a.resultRegister.reference.permission)
+          case LendConstraintP(None) => SoftLoadTE(a, WeakT, a.result.reference.permission)
           case LendConstraintP(Some(permission)) => SoftLoadTE(a, WeakT, Conversions.evaluatePermission(permission))
           case LendWeakP(permission) => SoftLoadTE(a, WeakT, Conversions.evaluatePermission(permission))
         }
@@ -191,8 +191,8 @@ class LocalHelper(
 
   def borrowSoftLoad(temputs: Temputs, expr2: AddressExpressionTE):
   ReferenceExpressionTE = {
-    val ownership = getBorrowOwnership(temputs, expr2.resultRegister.reference.kind)
-    SoftLoadTE(expr2, ownership, expr2.resultRegister.reference.permission)
+    val ownership = getBorrowOwnership(temputs, expr2.result.reference.kind)
+    SoftLoadTE(expr2, ownership, expr2.result.reference.permission)
   }
 
   def getBorrowOwnership(temputs: Temputs, kind: KindT):

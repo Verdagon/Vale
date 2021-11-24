@@ -3,6 +3,7 @@ package net.verdagon.vale.templar.names
 import net.verdagon.vale._
 import net.verdagon.vale.scout.IRuneS
 import net.verdagon.vale.templar.ast.LocationInFunctionEnvironment
+import net.verdagon.vale.templar.expression.CallTemplar
 import net.verdagon.vale.templar.templata.{CoordTemplata, ITemplata}
 import net.verdagon.vale.templar.types._
 
@@ -217,16 +218,39 @@ case class FunctionTemplateNameT(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 31;
 
-  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
-
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+    FunctionNameT(humanName, templateArgs, params)
+  }
 }
+
+//case class FreeTemplateNameT(
+//  codeLocation: CodeLocationS
+//) extends INameT with IFunctionTemplateNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 31;
+//  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+//    FreeNameT(codeLocation, templateArgs, params)
+//  }
+//}
+//
+//case class FreeNameT(
+//  codeLocation: CodeLocationS,
+//  templateArgs: Vector[ITemplata],
+//  parameters: Vector[CoordT]
+//) extends INameT with IFunctionNameT {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//  def order = 31;
+//}
+
 case class LambdaTemplateNameT(
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def order = 36;
 
-  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+    FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, templateArgs, params)
+  }
 
 }
 case class ConstructorTemplateNameT(
@@ -236,13 +260,38 @@ case class ConstructorTemplateNameT(
   def order = 35;
 
   override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = vimpl()
-
 }
-//case class ImmConcreteDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
-//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-//  def order = 43;
-//
-//}
+
+case class FreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 43;
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+    val Vector(CoordT(ShareT, ReadonlyT, kind)) = params
+    FreeNameT(templateArgs, kind)
+  }
+}
+case class FreeNameT(templateArgs: Vector[ITemplata], kind: KindT) extends IFunctionNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 43;
+  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, kind))
+}
+
+// See NSIDN for why we have these virtual names
+case class VirtualFreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 43;
+  override def makeFunctionName(templateArgs: Vector[ITemplata], params: Vector[CoordT]): IFunctionNameT = {
+    val Vector(CoordT(ShareT, ReadonlyT, kind)) = params
+    VirtualFreeNameT(templateArgs, kind)
+  }
+}
+// See NSIDN for why we have these virtual names
+case class VirtualFreeNameT(templateArgs: Vector[ITemplata], param: KindT) extends IFunctionNameT {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  def order = 43;
+  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, ReadonlyT, param))
+}
+
 //case class ImmInterfaceDestructorTemplateNameT() extends INameT with IFunctionTemplateNameT {
 //  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 //  def order = 44;

@@ -14,7 +14,7 @@ import net.verdagon.vale.scout.rules.RuneUsage
 import net.verdagon.vale.templar.ast.ProgramT.tupleHumanName
 import net.verdagon.vale.templar.ast.{AbstractT, ArgLookupTE, BlockTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, ICitizenAttributeT, LocationInFunctionEnvironment, OverrideT, ParameterT, ProgramT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SealedT, SoftLoadTE}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT, TemplarTemporaryVarNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT, FreeTemplateNameT, TemplarTemporaryVarNameT}
 
 import scala.collection.immutable.List
 
@@ -102,29 +102,24 @@ class StructTemplarCore(
 
     val maybeExport =
       structA.attributes.collectFirst { case e@ExportS(_) => e }
-//
-//    val type
-//    delegate.scoutExpectedFunctionForPrototype(
-//      structRunesEnv,
-//      temputs,
-//      RangeS.internal(-1663),
-//      //          if (type2.ownership == ShareT) {
-//      //            ImmConcreteDestructorImpreciseNameS()
-//      //          } else {
-//      CodeVarNameS(CallTemplar.DROP_FUNCTION_NAME),
-//      //          },
-//      Vector.empty,
-//      Array.empty,
-//      Vector(ParamFilter(type2, None)),
-//      Vector(temputs.getEnvForKind(type2.kind)),
-//      true)
-//
-//    delegate.scoutExpectedFunctionForPrototype(
-//      structRunesEnv, temputs,
-//    )
 
+    val mutability =
+      structRunesEnv.lookupWithImpreciseName(
+        profiler,
+        RuneNameS(structA.mutabilityRune.rune),
+        Set(TemplataLookupContext),
+        true).toList match {
+        case List(MutabilityTemplata(m)) => m
+        case _ => vwat()
+      }
+
+    val defaultCalledMacros =
+      Vector(
+        MacroCallS(structA.range, CallMacro, "DeriveStructDrop"),
+        MacroCallS(structA.range, CallMacro, "DeriveStructFree"),
+        MacroCallS(structA.range, CallMacro, "DeriveImplFree"))
     val macrosToCall =
-      structA.attributes.foldLeft(Vector(MacroCallS(structA.range, CallMacro, "DeriveStructDrop")))({
+      structA.attributes.foldLeft(defaultCalledMacros)({
         case (macrosToCall, mc @ MacroCallS(range, CallMacro, macroName)) => {
           if (macrosToCall.exists(_.macroName == macroName)) {
             throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
@@ -142,7 +137,7 @@ class StructTemplarCore(
             case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
             case Some(m) => m
           }
-        val newEntriesList = maacro.getStructChildEntries(fullNameT, structA)
+        val newEntriesList = maacro.getStructChildEntries(macroName, fullNameT, structA, mutability)
         val newEntries =
           newEntriesList.map({ case (entryName, value) =>
             vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
@@ -158,29 +153,9 @@ class StructTemplarCore(
         TemplatasStore(fullNameT, Map(), Map())
           .addEntries(envEntriesFromMacros))
 
-    // when we have structs that contain functions, add this back in
-//        structA.members
-//          .map(_.origin)
-//          .map(FunctionEnvEntry)
-//          .groupBy(_.function.name))
-
-
-      temputs
-        .declareKindEnv(
-          temporaryStructRef,
-          structInnerEnv)
+    temputs.declareKindEnv(temporaryStructRef, structInnerEnv)
 
     val members = makeStructMembers(structInnerEnv, temputs, structA.members)
-
-    val mutability =
-      structInnerEnv.lookupWithImpreciseName(
-        profiler,
-        RuneNameS(structA.mutabilityRune.rune),
-        Set(TemplataLookupContext),
-        true).toList match {
-        case List(MutabilityTemplata(m)) => m
-        case _ => vwat()
-      }
 
     if (mutability == ImmutableT) {
       members.zipWithIndex.foreach({ case (member, index) =>
@@ -225,11 +200,31 @@ class StructTemplarCore(
     }
 
     profiler.childFrame("struct ancestor interfaces", () => {
-      val ancestorInterfaces =
+      val ancestorImplsAndInterfaces =
         ancestorHelper.getAncestorInterfaces(temputs, temporaryStructRef)
 
-      ancestorInterfaces.foreach({
-        case (ancestorInterface) => {
+      ancestorImplsAndInterfaces.foreach({
+        case (ancestorInterface, implTemplata) => {
+//          if (structDefT.mutability == ImmutableT) {
+//            val freeEnvEntries =
+//              structRunesEnv.globalEnv.implFreeMacro
+//                .getImplStructChildEntries(structDefT.getRef, ancestorInterface, implTemplata.impl)
+//                .map({ case (entryName, value) =>
+//                  vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
+//                  val last = entryName.last
+//                  last -> value
+//                })
+//            val implNameT = structInnerEnv.fullName.addStep(ImplDeclareNameT(implTemplata.impl.name.codeLocation))
+//            val freeEnv =
+//              CitizenEnvironment(
+//                structRunesEnv.globalEnv,
+//                structInnerEnv,
+//                implNameT,
+//                TemplatasStore(implNameT, Map(), Map())
+//                  .addEntries(freeEnvEntries))
+//
+//          }
+
           val interfaceDefinition2 = temputs.lookupInterface(ancestorInterface)
           if (structDefT.weakable != interfaceDefinition2.weakable) {
             throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
@@ -274,8 +269,22 @@ class StructTemplarCore(
       interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
 
+    val mutability =
+      interfaceRunesEnv.lookupWithImpreciseName(
+        profiler,
+        RuneNameS(interfaceA.mutabilityRune.rune),
+        Set(TemplataLookupContext),
+        true).toList match {
+        case List(MutabilityTemplata(m)) => m
+        case _ => vwat()
+      }
+
+    val defaultCalledMacros =
+      Vector(
+        MacroCallS(interfaceA.range, CallMacro, "DeriveInterfaceDrop"),
+        MacroCallS(interfaceA.range, CallMacro, "DeriveInterfaceFree"))
     val macrosToCall =
-      interfaceA.attributes.foldLeft(Vector(MacroCallS(interfaceA.range, CallMacro, "DeriveInterfaceDrop")))({
+      interfaceA.attributes.foldLeft(defaultCalledMacros)({
         case (macrosToCall, mc @ MacroCallS(_, CallMacro, _)) => macrosToCall :+ mc
         case (macrosToCall, MacroCallS(_, DontCallMacro, macroName)) => macrosToCall.filter(_.macroName != macroName)
         case (macrosToCall, _) => macrosToCall
@@ -288,7 +297,7 @@ class StructTemplarCore(
             case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
             case Some(m) => m
           }
-        val newEntriesList = maacro.getInterfaceChildEntries(fullNameT, interfaceA)
+        val newEntriesList = maacro.getInterfaceChildEntries(fullNameT, interfaceA, mutability)
         val newEntries =
           newEntriesList.map({ case (entryName, value) =>
             vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
@@ -339,16 +348,6 @@ class StructTemplarCore(
               internalMethod))
         }
       })
-
-    val mutability =
-      interfaceInnerEnv.lookupWithImpreciseName(
-        profiler,
-        RuneNameS(interfaceA.mutabilityRune.rune),
-        Set(TemplataLookupContext),
-        true).toList match {
-        case List(MutabilityTemplata(m)) => m
-        case _ => vwat()
-      }
 
     val interfaceDef2 =
       InterfaceDefinitionT(
@@ -424,44 +423,6 @@ class StructTemplarCore(
     }
   }
 
-//  // Makes a functor for the given prototype.
-//  def functionToLambda(
-//    outerEnv: IEnvironment,
-//    temputs: Temputs,
-//    header: FunctionHeader2):
-//  structTT = {
-//    val mutability = Immutable
-//
-//    val nearName = FunctionScout.CLOSURE_STRUCT_NAME // For example "__Closure<main>:lam1"
-//    val fullName = FullName2(header.fullName.steps :+ NamePart2(nearName, Some(Vector.empty), None, None))
-//
-//    val structTT = structTT(fullName)
-//
-//    // We declare the function into the environment that we use to compile the
-//    // struct, so that those who use the struct can reach into its environment
-//    // and see the function and use it.
-//    // See CSFMSEO and SAFHE.
-//    val structEnv =
-//      PackageEnvironment(
-//        Some(outerEnv),
-//        fullName,
-//        Map(
-//          CallTemplar.CALL_FUNCTION_NAME -> Vector(TemplataEnvEntry(ExternFunctionTemplata(header))),
-//          nearName -> Vector(TemplataEnvEntry(KindTemplata(structTT))),
-//          FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME -> Vector(TemplataEnvEntry(KindTemplata(structTT)))))
-//
-//    temputs.declareStruct(structTT);
-//    temputs.declareCitizenMutability(structTT, mutability)
-//    temputs.declareKindEnv(structTT, structEnv);
-//
-//    val closureStructDefinition = StructDefinition2(fullName, mutability, Vector.empty, true);
-//    temputs.add(closureStructDefinition)
-//
-//    val closuredVarsStructRef = closureStructDefinition.getRef;
-//
-//    closuredVarsStructRef
-//  }
-
   // Makes a struct to back a closure
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
@@ -509,9 +470,20 @@ class StructTemplarCore(
               FunctionTemplateNameT(CallTemplar.CALL_FUNCTION_NAME, functionA.range.begin) ->
                 FunctionEnvEntry(functionA),
               FunctionTemplateNameT(CallTemplar.DROP_FUNCTION_NAME, functionA.range.begin) ->
-                FunctionEnvEntry(containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(SelfNameS(), functionA.range)),
+                FunctionEnvEntry(
+                  containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
+                    FunctionNameS(CallTemplar.DROP_FUNCTION_NAME, functionA.range.begin), functionA.range)),
               nearName -> TemplataEnvEntry(KindTemplata(structTT)),
-              SelfNameT() -> TemplataEnvEntry(KindTemplata(structTT)))))
+              SelfNameT() -> TemplataEnvEntry(KindTemplata(structTT))) ++
+              (if (mutability == ImmutableT) {
+                Vector(
+                  FreeTemplateNameT(functionA.range.begin) ->
+                    FunctionEnvEntry(
+                      containingFunctionEnv.globalEnv.structFreeMacro.makeImplicitFreeFunction(
+                        FreeDeclarationNameS(functionA.range.begin), functionA.range)))
+              } else {
+                Vector()
+              })))
     // We return this from the function in case we want to eagerly compile it (which we do
     // if it's not a template).
     val functionTemplata =

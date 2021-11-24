@@ -1163,6 +1163,39 @@ object VonHammer {
           Vector(
             VonMember("humanName", VonStr(humanName))))
       }
+      case FreeNameT(templateArgs, kind) => {
+        VonObject(
+          "StructFreeName",
+          None,
+          Vector(
+//            VonMember("codeLoc", vonifyCodeLocation2(NameTranslator.translateCodeLocation(codeLoc))),
+            VonMember(
+              "templateArgs",
+              VonArray(
+                None,
+                templateArgs
+                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
+                  .toVector)),
+            VonMember(
+              "kind",
+              vonifyKind(TypeHammer.translateKind(hinputs, hamuts, kind)))))
+      }
+      case VirtualFreeNameT(templateArgs, param) => {
+        VonObject(
+          "F",
+          None,
+          Vector(
+            VonMember(
+              "templateArgs",
+              VonArray(
+                None,
+                templateArgs
+                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
+                  .toVector)),
+            VonMember(
+              "param",
+              vonifyKind(TypeHammer.translateKind(hinputs, hamuts, param)))))
+      }
       case FunctionNameT(humanName, templateArgs, parameters) => {
         VonObject(
           "F",

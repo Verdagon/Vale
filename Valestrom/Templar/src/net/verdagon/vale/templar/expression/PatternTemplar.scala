@@ -120,7 +120,7 @@ class PatternTemplar(
                   InitialSend(
                     RuneUsage(pattern.range, PatternInputRuneS(pattern.range.begin)),
                     receiverRune,
-                    CoordTemplata(unconvertedInputExpr.resultRegister.reference))))
+                    CoordTemplata(unconvertedInputExpr.result.reference))))
             fate.addEntries(
               templatasByRune.toVector
                 .map({ case (key, value) => (RuneNameT(key), TemplataEnvEntry(value)) }))
@@ -170,7 +170,7 @@ class PatternTemplar(
         case None => (None, inputExpr)
         case Some(captureS) => {
           val localS = vassertSome(vassertSome(fate.containingBlockS).locals.find(_.varName == captureS.name))
-          val localT = localHelper.makeUserLocalVariable(temputs, fate, range, localS, inputExpr.resultRegister.reference)
+          val localT = localHelper.makeUserLocalVariable(temputs, fate, range, localS, inputExpr.result.reference)
           currentInstructions = currentInstructions :+ LetNormalTE(localT, inputExpr)
           val capturedLocalAliasTE =
             localHelper.softLoad(fate, range, LocalLookupTE(range, localT, localT.reference, FinalT), LendConstraintP(None))
@@ -179,7 +179,7 @@ class PatternTemplar(
       }
     // If we captured it as a local, then the exprToDestructureOrDropOrPassTE should be a non-owning alias of it
     if (maybeCaptureLocalVarT.nonEmpty) {
-      vassert(exprToDestructureOrDropOrPassTE.resultRegister.reference.ownership != OwnT)
+      vassert(exprToDestructureOrDropOrPassTE.result.reference.ownership != OwnT)
     }
 
     val liveCaptureLocals = previousLiveCaptureLocals ++ maybeCaptureLocalVarT.toVector
@@ -193,7 +193,7 @@ class PatternTemplar(
           afterSubPatternSuccessContinuation(temputs, fate, life + 0, liveCaptureLocals)
         }
         case Some(listOfMaybeDestructureMemberPatterns) => {
-          exprToDestructureOrDropOrPassTE.resultRegister.reference.ownership match {
+          exprToDestructureOrDropOrPassTE.result.reference.ownership match {
             case OwnT => {
               // We aren't capturing the var, so the destructuring should consume the incoming value.
               destructureOwning(
@@ -220,7 +220,7 @@ class PatternTemplar(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals == initialLiveCaptureLocals.distinct)
 
-    val CoordT(OwnT, expectedContainerPermission, expectedContainerKind) = inputExpr.resultRegister.reference
+    val CoordT(OwnT, expectedContainerPermission, expectedContainerKind) = inputExpr.result.reference
     expectedContainerKind match {
       case StructTT(_) => {
         // Example:
@@ -274,7 +274,7 @@ class PatternTemplar(
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals == liveCaptureLocals.distinct)
 
-    val localT = localHelper.makeTemporaryLocal(fate, life + 0, containerTE.resultRegister.reference)
+    val localT = localHelper.makeTemporaryLocal(fate, life + 0, containerTE.result.reference)
     val letTE = LetNormalTE(localT, containerTE)
     val containerAliasingExprTE =
       localHelper.softLoad(fate, range, LocalLookupTE(range, localT, localT.reference, FinalT), LendConstraintP(None))
@@ -283,7 +283,7 @@ class PatternTemplar(
       Vector(
         letTE,
         iterateDestructureNonOwningAndMaybeContinue(
-          temputs, fate, life + 1, range, liveCaptureLocals, containerTE.resultRegister.reference, containerAliasingExprTE, 0, listOfMaybeDestructureMemberPatterns.toList, afterDestructureSuccessContinuation)))
+          temputs, fate, life + 1, range, liveCaptureLocals, containerTE.result.reference, containerAliasingExprTE, 0, listOfMaybeDestructureMemberPatterns.toList, afterDestructureSuccessContinuation)))
   }
 
   private def iterateDestructureNonOwningAndMaybeContinue(
@@ -336,7 +336,7 @@ class PatternTemplar(
             case _ => vfail("impl!")
           }
 
-        val memberOwnershipInStruct = memberAddrExprTE.resultRegister.reference.ownership
+        val memberOwnershipInStruct = memberAddrExprTE.result.reference.ownership
         val coerceToOwnership = loadResultOwnership(memberOwnershipInStruct)
         val loadExpr = SoftLoadTE(memberAddrExprTE, coerceToOwnership, expectedContainerPermission)
         innerTranslateSubPatternAndMaybeContinue(
@@ -373,7 +373,7 @@ class PatternTemplar(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals == initialLiveCaptureLocals.distinct)
 
-    val CoordT(_, _, structTT @ StructTT(_)) = inputStructExpr.resultRegister.reference
+    val CoordT(_, _, structTT @ StructTT(_)) = inputStructExpr.result.reference
     val structDefT = temputs.getStructDefForRef(structTT)
     // We don't pattern match against closure structs.
 

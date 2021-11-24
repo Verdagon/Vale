@@ -136,7 +136,7 @@ class BlockTemplar(
     vassert(exprs.nonEmpty)
     val lastExpr = exprs.last
     val resultVarId = fate.fullName.addStep(TemplarBlockResultVarNameT(life))
-    val resultVariable = ReferenceLocalVariableT(resultVarId, FinalT, lastExpr.resultRegister.reference)
+    val resultVariable = ReferenceLocalVariableT(resultVarId, FinalT, lastExpr.result.reference)
     val resultLet = LetNormalTE(resultVariable, lastExpr)
     fate.addVariable(resultVariable)
     (exprs.init :+ resultLet, resultVariable)
@@ -162,7 +162,7 @@ class BlockTemplar(
             (perhapsUndestructedFirstExpr2) // Do nothing
           } else {
             // This isn't the last expression
-            perhapsUndestructedFirstExpr2.resultRegister.kind match {
+            perhapsUndestructedFirstExpr2.result.kind match {
               case VoidT() => perhapsUndestructedFirstExpr2
               case _ => destructorTemplar.drop(fate, temputs, perhapsUndestructedFirstExpr2)
             }

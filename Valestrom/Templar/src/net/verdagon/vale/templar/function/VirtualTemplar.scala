@@ -1,6 +1,6 @@
 package net.verdagon.vale.templar.function
 
-import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
+import net.verdagon.vale.astronomer.VirtualFreeImpreciseNameS
 import net.verdagon.vale.scout.{CodeNameS, GlobalFunctionFamilyNameS}
 import net.verdagon.vale.templar.OverloadTemplar.FindFunctionFailure
 import net.verdagon.vale.templar.types._
@@ -9,7 +9,7 @@ import net.verdagon.vale.templar._
 import net.verdagon.vale.templar.ast.{AbstractT, FunctionHeaderT, OverrideT, ParameterT}
 import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env.IEnvironment
-import net.verdagon.vale.templar.names.FunctionNameT
+import net.verdagon.vale.templar.names.{FunctionNameT, VirtualFreeNameT}
 import net.verdagon.vale.{RangeS, vassert, vcurious, vfail, vimpl}
 
 import scala.collection.immutable.List
@@ -52,6 +52,7 @@ class VirtualTemplar(opts: TemplarOptions, overloadTemplar: OverloadTemplar) {
         val nameToScoutFor =
           sparkHeader.fullName.last match {
             case FunctionNameT(humanName, _, _) => CodeNameS(humanName)
+            case VirtualFreeNameT(_, _) => VirtualFreeImpreciseNameS()
 //            case ImmInterfaceDestructorNameT(_, _) => ImmInterfaceDestructorImpreciseNameS()
             case other => vimpl(other)
           }

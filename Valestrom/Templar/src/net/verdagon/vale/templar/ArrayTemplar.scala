@@ -18,17 +18,8 @@ import net.verdagon.vale.{CodeLocationS, Err, IProfiler, Ok, RangeS, vassert, va
 
 import scala.collection.immutable.{List, Set}
 
-trait IArrayTemplarDelegate {
-  def getArrayDestructor(
-    env: IEnvironment,
-    temputs: Temputs,
-    type2: CoordT):
-  (PrototypeT)
-}
-
 class ArrayTemplar(
     opts: TemplarOptions,
-    delegate: IArrayTemplarDelegate,
     profiler: IProfiler,
     inferTemplar: InferTemplar,
     overloadTemplar: OverloadTemplar) {
@@ -128,7 +119,7 @@ class ArrayTemplar(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(InferAstronomerError(range, e))
       }
-    val memberTypes = exprs2.map(_.resultRegister.reference).toSet
+    val memberTypes = exprs2.map(_.result.reference).toSet
     if (memberTypes.size > 1) {
       throw CompileErrorExceptionT(ArrayElementsHaveDifferentTypes(range, memberTypes))
     }
@@ -160,7 +151,7 @@ class ArrayTemplar(
     callableTE: ReferenceExpressionTE):
   DestroyStaticSizedArrayIntoFunctionTE = {
     val arrayTT =
-      arrTE.resultRegister.reference match {
+      arrTE.result.reference match {
         case CoordT(_, _, s @ StaticSizedArrayTT(_, RawArrayTT(_, _, _))) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
@@ -186,7 +177,7 @@ class ArrayTemplar(
     callableTE: ReferenceExpressionTE):
   DestroyRuntimeSizedArrayTE = {
     val arrayTT =
-      arrTE.resultRegister.reference match {
+      arrTE.result.reference match {
         case CoordT(_, _, s @ RuntimeSizedArrayTT(RawArrayTT(_, _, _))) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
@@ -311,7 +302,7 @@ class ArrayTemplar(
     val RawArrayTT(memberType, mutability, variability) = at.array
     val (effectiveVariability, targetPermission) =
       Templar.factorVariabilityAndPermission(
-        containerExpr2.resultRegister.reference.permission,
+        containerExpr2.result.reference.permission,
         variability,
         memberType.permission)
     StaticSizedArrayLookupTE(range, containerExpr2, at, indexExpr2, targetPermission, effectiveVariability)
@@ -326,7 +317,7 @@ class ArrayTemplar(
     val RawArrayTT(memberType, mutability, variability) = rsa.array
     val (effectiveVariability, targetPermission) =
       Templar.factorVariabilityAndPermission(
-        containerExpr2.resultRegister.reference.permission,
+        containerExpr2.result.reference.permission,
         variability,
         memberType.permission)
     RuntimeSizedArrayLookupTE(range, containerExpr2, rsa, indexExpr2, targetPermission, effectiveVariability)

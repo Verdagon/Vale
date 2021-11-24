@@ -1137,24 +1137,23 @@ object ExpressionVivem {
 
     heap.decrementReferenceRefCount(RegisterToObjectReferrer(callId, actualReference.ownership), actualReference)
 
-    // DO NOT SUBMIT
-//    if (heap.getTotalRefCount(actualReference) == 0) {
-//      expectedReference.ownership match {
-//        case OwnH => // Do nothing, Vivem often discards owning things, if we're making a new owning reference to it.
-//        case WeakH => {
-//          heap.deallocateIfNoWeakRefs(actualReference)
-//        }
-//        case BorrowH => // Do nothing.
-//        case ShareH => {
-//          expectedReference.kind match {
-//            case IntH(_) | BoolH() | StrH() | FloatH() => {
-//              heap.zero(actualReference)
-//              heap.deallocateIfNoWeakRefs(actualReference)
-//            }
-//            case x if x == ProgramH.emptyTupleStructRef => {
-//              heap.zero(actualReference)
-//              heap.deallocateIfNoWeakRefs(actualReference)
-//            }
+    if (heap.getTotalRefCount(actualReference) == 0) {
+      expectedReference.ownership match {
+        case OwnH => // Do nothing, Vivem often discards owning things, if we're making a new owning reference to it.
+        case WeakH => {
+          heap.deallocateIfNoWeakRefs(actualReference)
+        }
+        case BorrowH => // Do nothing.
+        case ShareH => {
+          expectedReference.kind match {
+            case IntH(_) | BoolH() | StrH() | FloatH() => {
+              heap.zero(actualReference)
+              heap.deallocateIfNoWeakRefs(actualReference)
+            }
+            case x if x == ProgramH.emptyTupleStructRef => {
+              heap.zero(actualReference)
+              heap.deallocateIfNoWeakRefs(actualReference)
+            }
 //            case ir @ InterfaceRefH(_) => {
 //              heap.vivemDout.println()
 //              heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (discard icall)")
@@ -1168,22 +1167,22 @@ object ExpressionVivem {
 //              vassert(returnRef.actualKind.hamut == ProgramH.emptyTupleStructRef)
 //              discard(programH, heap, stdout, stdin, callId, prototypeH.returnType, returnRef)
 //            }
-//            case StructRefH(_) | RuntimeSizedArrayTH(_) | StaticSizedArrayTH(_) => {
-//              heap.vivemDout.println()
-//              heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (discard call)")
-//              val prototypeH = vassertSome(programH.lookupPackage(expectedReference.kind.packageCoord).immDestructorsByKind.get(expectedReference.kind))
-//              val functionH = programH.lookupFunction(prototypeH)
-//              val (calleeCallId, retuurn) =
-//                FunctionVivem.executeFunction(
-//                  programH, stdin, stdout, heap, Vector(actualReference), functionH)
-//              heap.vivemDout.print("  " * callId.callDepth + "Getting return reference")
-//              val returnRef = possessCalleeReturn(heap, callId, calleeCallId, retuurn)
-//              vassert(returnRef.actualKind.hamut == ProgramH.emptyTupleStructRef)
-//              discard(programH, heap, stdout, stdin, callId, prototypeH.returnType, returnRef)
-//            }
-//          }
-//        }
-//      }
-//    }
+            case InterfaceRefH(_) | StructRefH(_) | RuntimeSizedArrayTH(_) | StaticSizedArrayTH(_) => {
+              heap.vivemDout.println()
+              heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (discard call)")
+              val prototypeH = vassertSome(programH.lookupPackage(expectedReference.kind.packageCoord).immDestructorsByKind.get(expectedReference.kind))
+              val functionH = programH.lookupFunction(prototypeH)
+              val (calleeCallId, retuurn) =
+                FunctionVivem.executeFunction(
+                  programH, stdin, stdout, heap, Vector(actualReference), functionH)
+              heap.vivemDout.print("  " * callId.callDepth + "Getting return reference")
+              val returnRef = possessCalleeReturn(heap, callId, calleeCallId, retuurn)
+              vassert(returnRef.actualKind.hamut == ProgramH.emptyTupleStructRef)
+              discard(programH, heap, stdout, stdin, callId, prototypeH.returnType, returnRef)
+            }
+          }
+        }
+      }
+    }
   }
 }

@@ -13,11 +13,12 @@ import net.verdagon.vale.templar.{ArrayTemplar, CantDowncastToInterface, CantDow
 class AsSubtypeMacro(
   ancestorHelper: AncestorHelper,
   expressionTemplar: ExpressionTemplar) extends IFunctionBodyMacro {
-  override def generatorId: String = "vale_as_subtype"
+  val generatorId: String = "vale_as_subtype"
 
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
+    generatorId: String,
     life: LocationInFunctionEnvironment,
     callRange: RangeS,
     originFunction: Option[FunctionA],

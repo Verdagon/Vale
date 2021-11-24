@@ -162,7 +162,7 @@ object LoadHammer {
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structTT =
-      structExpr2.resultRegister.reference.kind match {
+      structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
@@ -234,7 +234,7 @@ object LoadHammer {
 //      TypeHammer.translateReference(hinputs, hamuts, resultCoord);
 
     val structTT =
-      structExpr2.resultRegister.reference.kind match {
+      structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
@@ -381,7 +381,7 @@ object LoadHammer {
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structTT =
-      structExpr2.resultRegister.reference.kind match {
+      structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr

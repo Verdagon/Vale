@@ -87,7 +87,7 @@ object ExpressionHammer {
       case call2 @ FunctionCallTE(callableExpr, args) => {
         val access =
           CallHammer.translateFunctionPointerCall(
-            hinputs, hamuts, currentFunctionHeader, locals, callableExpr, args, call2.resultRegister.reference)
+            hinputs, hamuts, currentFunctionHeader, locals, callableExpr, args, call2.result.reference)
         (access, Vector.empty)
       }
 
@@ -271,7 +271,7 @@ object ExpressionHammer {
 
       case TemplarReinterpretTE(innerExpr, resultType2) => {
         // Check types; it's overkill because reinterprets are rather scary.
-        val innerExprResultType2 = innerExpr.resultRegister.reference
+        val innerExprResultType2 = innerExpr.result.reference
         val (innerExprResultTypeH) = TypeHammer.translateReference(hinputs, hamuts, innerExprResultType2);
         val (resultTypeH) = TypeHammer.translateReference(hinputs, hamuts, resultType2);
         if (innerExprResultTypeH.kind != NeverH()) {
@@ -304,8 +304,8 @@ object ExpressionHammer {
       }
 
       case up @ InterfaceToInterfaceUpcastTE(innerExpr, targetInterfaceRef2) => {
-        val targetPointerType2 = up.resultRegister.reference;
-        val sourcePointerType2 = innerExpr.resultRegister.reference
+        val targetPointerType2 = up.result.reference;
+        val sourcePointerType2 = innerExpr.result.reference
 
         val (sourcePointerTypeH) =
           TypeHammer.translateReference(hinputs, hamuts, sourcePointerType2);
@@ -327,8 +327,8 @@ object ExpressionHammer {
       }
 
       case up @ StructToInterfaceUpcastTE(innerExpr, targetInterfaceRef2) => {
-        val targetPointerType2 = up.resultRegister.reference;
-        val sourcePointerType2 = innerExpr.resultRegister.reference
+        val targetPointerType2 = up.result.reference;
+        val sourcePointerType2 = innerExpr.result.reference
 
         val (sourcePointerTypeH) =
           TypeHammer.translateReference(hinputs, hamuts, sourcePointerType2);
@@ -387,8 +387,8 @@ object ExpressionHammer {
             translateDeferreds(hinputs, hamuts, currentFunctionHeader, locals, innerExprResultLine, innerDeferreds)
 
         vassert(
-          innerExpr.resultRegister.kind == NeverT() ||
-          innerExpr.resultRegister.reference == currentFunctionHeader.returnType)
+          innerExpr.result.kind == NeverT() ||
+          innerExpr.result.reference == currentFunctionHeader.returnType)
         (ReturnH(innerWithDeferreds), Vector.empty)
       }
       case ArgLookupTE(paramIndex, type2) => {

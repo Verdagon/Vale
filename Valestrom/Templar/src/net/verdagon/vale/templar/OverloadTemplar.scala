@@ -576,7 +576,7 @@ class OverloadTemplar(
     val funcName = CodeNameS(CallTemplar.CALL_FUNCTION_NAME)
     val paramFilters =
       Vector(
-        ParamFilter(callableTE.resultRegister.underlyingReference, None),
+        ParamFilter(callableTE.result.underlyingReference, None),
         ParamFilter(CoordT(ShareT, ReadonlyT, IntT.i32), None))
       findFunction(
         fate.snapshot, temputs, range, funcName, Vector.empty, Array.empty,
@@ -593,7 +593,7 @@ class OverloadTemplar(
     val funcName = CodeNameS(CallTemplar.CALL_FUNCTION_NAME)
     val paramFilters =
       Vector(
-        ParamFilter(callableTE.resultRegister.underlyingReference, None),
+        ParamFilter(callableTE.result.underlyingReference, None),
         ParamFilter(elementType, None))
     findFunction(
       fate.snapshot, temputs, range, funcName, Vector.empty, Array.empty, paramFilters, Vector.empty, false)

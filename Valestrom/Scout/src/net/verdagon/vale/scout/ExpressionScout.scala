@@ -149,7 +149,7 @@ class ExpressionScout(delegate: IExpressionScoutDelegate) {
               val addCallRange = RangeS(prevExpr.range.end, partSE.range.begin)
               FunctionCallSE(
                 addCallRange,
-                OutsideLoadSE(addCallRange, Array(), "+", None, LendConstraintP(None)),
+                OutsideLoadSE(addCallRange, Array(), CodeNameS("+"), None, LendConstraintP(None)),
                 Vector(prevExpr, partSE))
             }
           })
@@ -549,7 +549,7 @@ class ExpressionScout(delegate: IExpressionScoutDelegate) {
                   stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT)
               })
             })
-          val load = OutsideLoadSE(range, ruleBuilder.toArray, name, maybeTemplateArgRunes, targetOwnershipIfLookupResult)
+          val load = OutsideLoadSE(range, ruleBuilder.toArray, CodeNameS(name), maybeTemplateArgRunes, targetOwnershipIfLookupResult)
           (load, firstInnerSelfUses)
         }
         case NormalResult(range, innerExpr1) => {

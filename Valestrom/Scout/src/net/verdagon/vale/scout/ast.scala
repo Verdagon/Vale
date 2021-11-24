@@ -270,14 +270,14 @@ case class FunctionS(
   body match {
     case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => {
       name match {
-        case LambdaNameS(_) => vwat()
+        case LambdaDeclarationNameS(_) => vwat()
         case _ =>
       }
     }
     case CodeBodyS(body) => {
       if (body.closuredNames.nonEmpty) {
         name match {
-          case LambdaNameS(_) =>
+          case LambdaDeclarationNameS(_) =>
           case _ => vwat()
         }
       }

@@ -214,7 +214,7 @@ case class LocalLoadSE(range: RangeS, name: IVarNameS, targetOwnership: LoadAsP)
 case class OutsideLoadSE(
   range: RangeS,
   rules: Array[IRulexSR],
-  name: String,
+  name: IImpreciseNameS,
   maybeTemplateArgs: Option[Array[RuneUsage]],
   targetOwnership: LoadAsP
 ) extends IExpressionSE {
@@ -222,10 +222,6 @@ case class OutsideLoadSE(
   vpass()
 }
 case class RuneLookupSE(range: RangeS, rune: IRuneS) extends IExpressionSE {
-  override def hashCode(): Int = vcurious()
-}
-
-case class UnletSE(range: RangeS, name: String) extends IExpressionSE {
   override def hashCode(): Int = vcurious()
 }
 

@@ -26,7 +26,7 @@ class SequenceTemplar(
     temputs: Temputs,
     exprs2: Vector[ReferenceExpressionTE]):
   (ReferenceExpressionTE) = {
-    val types2 = exprs2.map(_.resultRegister.expectReference().reference)
+    val types2 = exprs2.map(_.result.expectReference().reference)
     val finalExpr = TupleTE(exprs2, makeTupleCoord(env, temputs, types2))
     (finalExpr)
   }

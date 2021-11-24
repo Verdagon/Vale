@@ -3,7 +3,7 @@ package net.verdagon.vale.templar
 import net.verdagon.vale.templar.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, ReturnTE, SignatureT, getFunctionLastName}
 import net.verdagon.vale.templar.env.{CitizenEnvironment, FunctionEnvironment, PackageEnvironment}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, IFunctionNameT, INameT, FreeNameT, FreeTemplateNameT}
 import net.verdagon.vale.templar.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RawArrayTT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT}
 import net.verdagon.vale.{Collector, PackageCoordinate, RangeS, vassert, vassertOne, vassertSome, vfail, vpass}
 
@@ -78,13 +78,12 @@ case class Temputs() {
     functions.find(_.header.toSignature == signature2)
   }
 
-  def findDestructor(kind: KindT): PrototypeT = {
+  def findImmDestructor(kind: KindT): PrototypeT = {
     vassertOne(
       functions
         .filter({
 //          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
-          case getFunctionLastName(FunctionNameT(name, _, Vector(CoordT(_, _, k))))
-            if name == CallTemplar.DROP_FUNCTION_NAME && k == kind => true
+          case getFunctionLastName(FreeNameT(k)) if k == kind => true
           case _ => false
         }))
       .header.toPrototype
@@ -119,13 +118,13 @@ case class Temputs() {
   def addFunction(function: FunctionT): Unit = {
     vassert(declaredSignatures.contains(function.header.toSignature))
     vassert(
-      function.body.resultRegister.reference.kind == NeverT() ||
-      function.body.resultRegister.reference == function.header.returnType)
+      function.body.result.reference.kind == NeverT() ||
+      function.body.result.reference == function.header.returnType)
     Collector.all(function, {
       case ReturnTE(innerExpr) => {
         vassert(
-          innerExpr.resultRegister.reference.kind == NeverT() ||
-          innerExpr.resultRegister.reference == function.header.returnType)
+          innerExpr.result.reference.kind == NeverT() ||
+          innerExpr.result.reference == function.header.returnType)
       }
     })
 

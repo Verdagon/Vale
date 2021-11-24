@@ -173,8 +173,12 @@ class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, Fa
     vassertOne(env.lookupWithName(new NullProfiler(), name, Set(TemplataLookupContext), true))
   }
 
-  override def lookupTemplataImprecise(env: SimpleEnvironment, state: FakeState, range: RangeS, name: IImpreciseNameS): ITemplata = {
-    vassertOne(env.lookupWithImpreciseName(new NullProfiler(), name, Set(TemplataLookupContext), true))
+  override def lookupTemplataImprecise(env: SimpleEnvironment, state: FakeState, range: RangeS, name: IImpreciseNameS): Option[ITemplata] = {
+    val results = env.lookupWithImpreciseName(new NullProfiler(), name, Set(TemplataLookupContext), true)
+    if (results.size > 1) {
+      vfail()
+    }
+    results.headOption
   }
 
   override def resolveExactSignature(env: SimpleEnvironment, state: FakeState, range: RangeS, name: String, coords: Vector[CoordT]): PrototypeT = {

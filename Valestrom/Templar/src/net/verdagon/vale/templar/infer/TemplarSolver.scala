@@ -25,6 +25,9 @@ case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extend
 case class ReceivingDifferentPermissions(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITemplarSolverError
 case class NoCommonAncestors(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
+case class LookupFailed(name: IImpreciseNameS) extends ITemplarSolverError {
+  vpass()
+}
 case class NoAncestorsSatisfyCall(params: Vector[(IRuneS, CoordT)]) extends ITemplarSolverError
 case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITemplarSolverError
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITemplarSolverError
@@ -48,7 +51,7 @@ trait IInfererDelegate[Env, State] {
 
   def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata
 
-  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): ITemplata
+  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): Option[ITemplata]
 
   def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata
 
@@ -389,7 +392,11 @@ class TemplarSolver[Env, State](
         Ok(())
       }
       case LookupSR(range, rune, name) => {
-        val result = delegate.lookupTemplataImprecise(env, state, range, name)
+        val result =
+          delegate.lookupTemplataImprecise(env, state, range, name) match {
+            case None => return Err(RuleError(LookupFailed(name)))
+            case Some(x) => x
+          }
         stepState.concludeRune[ITemplarSolverError](rune.rune, result)
         Ok(())
       }

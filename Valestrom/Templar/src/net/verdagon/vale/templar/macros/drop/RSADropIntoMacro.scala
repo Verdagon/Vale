@@ -9,11 +9,12 @@ import net.verdagon.vale.templar.types.CoordT
 import net.verdagon.vale.templar.{ArrayTemplar, Temputs, ast}
 
 class RSADropIntoMacro(arrayTemplar: ArrayTemplar) extends IFunctionBodyMacro {
-  override def generatorId: String = "vale_runtime_sized_array_drop_into"
+  val generatorId: String = "vale_runtime_sized_array_drop_into"
 
   def generateFunctionBody(
     env: FunctionEnvironment,
     temputs: Temputs,
+    generatorId: String,
     life: LocationInFunctionEnvironment,
     callRange: RangeS,
     originFunction: Option[FunctionA],

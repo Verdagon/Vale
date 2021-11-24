@@ -1,7 +1,8 @@
 package net.verdagon.vale.templar
 
 import net.verdagon.vale.templar.ast.{AsSubtypeTE, ConstructArrayTE, DestroyRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, EdgeT, FunctionCallTE, FunctionT, InterfaceEdgeBlueprint, LockWeakTE, ProgramT, SignatureT, StaticArrayFromCallableTE, getFunctionLastName}
-import net.verdagon.vale.templar.names.{FunctionNameT, IFunctionNameT}
+import net.verdagon.vale.templar.expression.CallTemplar
+import net.verdagon.vale.templar.names.{FreeNameT, FullNameT, FunctionNameT, IFunctionNameT, VirtualFreeNameT}
 import net.verdagon.vale.templar.templata.CoordTemplata
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{Collector, PackageCoordinate, vassertOne, vassertSome, vcurious, vimpl, vpass}
@@ -89,7 +90,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (structDef.mutability == ImmutableT && structTT != emptyTupleStruct) {
-      val destructorSignature = program.findDestructor(structTT).toSignature
+      val destructorSignature = program.findImmDestructor(structTT).toSignature
       visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(structDef, {
@@ -97,6 +98,21 @@ object Reachability {
       case ir @ InterfaceTT(_) => visitInterface(program, emptyTupleStruct, edgeBlueprints, edges, reachables, ir)
     })
     edges.filter(_.struct == structTT).foreach(visitImpl(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
+
+    if (structDef.mutability == ImmutableT) {
+      if (structTT != emptyTupleStruct) {
+        val destructorSignature =
+          vassertOne(
+            program.getAllFunctions().find(func => {
+              func.header.toSignature match {
+                case SignatureT(FullNameT(_, _, FreeNameT(_, kind))) if kind == structTT => true
+                case SignatureT(FullNameT(_, _, VirtualFreeNameT(_, kind))) if kind == structTT => true
+                case _ => false
+              }
+            })).header.toSignature
+        visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+      }
+    }
   }
 
   def visitInterface(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, interfaceTT: InterfaceTT): Unit = {
@@ -108,7 +124,7 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (interfaceDef.mutability == ImmutableT) {
-      val destructorSignature = program.findDestructor(interfaceTT).toSignature
+      val destructorSignature = program.findImmDestructor(interfaceTT).toSignature
       visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
     Collector.all(interfaceDef, {
@@ -119,6 +135,19 @@ object Reachability {
       visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, f.toSignature)
     })
     edges.filter(_.interface == interfaceTT).foreach(visitImpl(program, emptyTupleStruct, edgeBlueprints, edges, reachables, _))
+
+    if (interfaceDef.mutability == ImmutableT) {
+      val destructorSignature =
+        vassertOne(
+          program.getAllFunctions().find(func => {
+            func.header.toSignature match {
+              case SignatureT(FullNameT(_, _, FreeNameT(_, kind))) if kind == interfaceTT => true
+              case SignatureT(FullNameT(_, _, VirtualFreeNameT(_, kind))) if kind == interfaceTT => true
+              case _ => false
+            }
+          })).header.toSignature
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+    }
   }
 
   def visitImpl(program: Temputs, emptyTupleStruct: StructTT, edgeBlueprints: Vector[InterfaceEdgeBlueprint], edges: Vector[EdgeT], reachables: Reachables, edge: EdgeT): Unit = {
@@ -149,9 +178,16 @@ object Reachability {
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
     if (ssa.array.mutability == ImmutableT) {
-      // DO NOT SUBMIT
-//      val destructorSignature = vimpl()//program.getDestructor(ssa).toSignature
-//      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+      val destructorSignature =
+        vassertOne(
+          program.getAllFunctions().find(func => {
+            func.header.toSignature match {
+              case SignatureT(FullNameT(_, _, FreeNameT(_, kind))) if kind == ssa => true
+              case SignatureT(FullNameT(_, _, VirtualFreeNameT(_, kind))) if kind == ssa => true
+              case _ => false
+            }
+          })).header.toSignature
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
     }
   }
 
@@ -170,10 +206,17 @@ object Reachability {
 
     // Make sure the destructor got in, because for immutables, it's implicitly called by lots of instructions
     // that let go of a reference.
-    // DO NOT SUBMIT
-//    if (rsa.array.mutability == ImmutableT) {
-//      val destructorSignature = vimpl()//program.getDestructor(rsa).toSignature
-//      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
-//    }
+    if (rsa.array.mutability == ImmutableT) {
+      val destructorSignature =
+        vassertOne(
+          program.getAllFunctions().find(func => {
+            func.header.toSignature match {
+              case SignatureT(FullNameT(_, _, FreeNameT(_, kind))) if kind == rsa => true
+              case SignatureT(FullNameT(_, _, VirtualFreeNameT(_, kind))) if kind == rsa => true
+              case _ => false
+            }
+          })).header.toSignature
+      visitFunction(program, emptyTupleStruct, edgeBlueprints, edges, reachables, destructorSignature)
+    }
   }
 }

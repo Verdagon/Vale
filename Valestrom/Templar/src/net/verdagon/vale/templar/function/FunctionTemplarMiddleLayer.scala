@@ -11,7 +11,7 @@ import net.verdagon.vale.templar.citizen.StructTemplar
 import net.verdagon.vale.templar.env._
 import net.verdagon.vale.{IProfiler, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructConstructorTemplateNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, TemplarIgnoredParamNameT}
+import net.verdagon.vale.templar.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructConstructorTemplateNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, ConstructorTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, LambdaTemplateNameT, NameTranslator, FreeTemplateNameT, TemplarIgnoredParamNameT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -342,24 +342,14 @@ class FunctionTemplarMiddleLayer(
     params: Vector[CoordT]):
   FullNameT[IFunctionNameT] = {
     val BuildingFunctionNameWithClosuredsAndTemplateArgsT(templateName, templateArgs) = name.last
-    val newLastStep =
-      templateName match {
-        case ConstructorTemplateNameT(_) => vimpl() // no idea
-        case FunctionTemplateNameT(humanName, _) => FunctionNameT(humanName, templateArgs, params)
-        case LambdaTemplateNameT(_) => FunctionNameT(CallTemplar.CALL_FUNCTION_NAME, templateArgs, params)
-        case AnonymousSubstructConstructorTemplateNameT(template) => AnonymousSubstructConstructorNameT(templateArgs, params)
-//        case ImmConcreteDestructorTemplateNameT() => {
-//          val Vector(CoordT(ShareT, ReadonlyT, immRef)) = params
-//          ImmConcreteDestructorNameT(immRef)
-//        }
-//        case ImmInterfaceDestructorTemplateNameT() => {
-//          ImmInterfaceDestructorNameT(templateArgs, params)
-//        }
-//        case DropTemplateNameT() => {
-//          val Vector(coord) = params
-//          DropNameT(templateArgs, coord)
-//        }
-      }
+    val newLastStep = templateName.makeFunctionName(templateArgs, params)
+//      templateName match {
+//        case ConstructorTemplateNameT(_) => vimpl() // no idea
+//        case FunctionTemplateNameT(humanName, _) =>
+//        case LambdaTemplateNameT(_) =>
+//        case AnonymousSubstructConstructorTemplateNameT(template) => AnonymousSubstructConstructorNameT(templateArgs, params)
+//        case StructFreeTemplateNameT(codeLocation) =>
+//      }
     names.FullNameT(name.packageCoord, name.initSteps, newLastStep)
   }
 

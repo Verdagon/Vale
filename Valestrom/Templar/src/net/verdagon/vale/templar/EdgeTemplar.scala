@@ -1,11 +1,11 @@
 package net.verdagon.vale.templar
 
 //import net.verdagon.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
-import net.verdagon.vale.astronomer.ImmInterfaceDestructorImpreciseNameS
+import net.verdagon.vale.astronomer.VirtualFreeImpreciseNameS
 import net.verdagon.vale.scout.{CodeNameS, CodeVarNameS, GlobalFunctionFamilyNameS, IImpreciseNameS, INameS}
 import net.verdagon.vale.templar.ast.{FunctionT, ImplT, InterfaceEdgeBlueprint, OverrideT, PrototypeT}
 import net.verdagon.vale.templar.expression.CallTemplar
-import net.verdagon.vale.templar.names.FunctionNameT
+import net.verdagon.vale.templar.names.{FreeNameT, FunctionNameT, VirtualFreeNameT}
 import net.verdagon.vale.templar.types._
 import net.verdagon.vale.{vassert, vfail, vimpl, vwat}
 
@@ -47,6 +47,7 @@ object EdgeTemplar {
                     })
                   superFunction.fullName.last match {
                     case FunctionNameT(humanName, _, _) => NeededOverride(CodeNameS(humanName), overrideParamFilters)
+                    case VirtualFreeNameT(_, _) => NeededOverride(VirtualFreeImpreciseNameS(), overrideParamFilters)
 //                    case DropNameT(_, _) => NeededOverride(CodeVarNameS(CallTemplar.VIRTUAL_DROP_FUNCTION_NAME), overrideParamFilters)
                     case other => vwat(other)
                   }
@@ -112,7 +113,12 @@ object EdgeTemplar {
                     case (FunctionNameT(possibleSuperFunctionHumanName, _, _), FunctionNameT(overrideFunctionHumanName, _, _)) => {
                       possibleSuperFunctionHumanName == overrideFunctionHumanName
                     }
-//                    case (ImmInterfaceDestructorNameT(_, _), ImmInterfaceDestructorNameT(_, _)) => true
+                    case (FunctionNameT(_, _, _), _) => false
+                    case (_, FunctionNameT(_, _, _)) => false
+                    case (VirtualFreeNameT(_, _), VirtualFreeNameT(_, _)) => true
+                    case (VirtualFreeNameT(_, _), _) => false
+                    case (_, VirtualFreeNameT(_, _)) => false
+                    //                    case (ImmInterfaceDestructorNameT(_, _), ImmInterfaceDestructorNameT(_, _)) => true
 //                    case (DropNameT(_, possibleSuperFunctionCoord), FunctionNameT(humanName, _, parameters)) => {
 //                      humanName == CallTemplar.DROP_FUNCTION_NAME && parameters.size == 1 && possibleSuperFunctionCoord == parameters.head
 //                    }

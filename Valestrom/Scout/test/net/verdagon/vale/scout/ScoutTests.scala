@@ -53,7 +53,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(FunctionCallSE(_, OutsideLoadSE(_, _, "+", _, _), _))) =>
+      case BlockSE(_, _, Vector(FunctionCallSE(_, OutsideLoadSE(_, _, CodeNameS("+"), _, _), _))) =>
     }
   }
 
@@ -131,7 +131,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, "shout", _, _), Vector(LocalLoadSE(_, name, LendConstraintP(Some(ReadonlyP))))))) => {
+      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, CodeNameS("shout"), _, _), Vector(LocalLoadSE(_, name, LendConstraintP(Some(ReadonlyP))))))) => {
         name match {
           case CodeVarNameS("x") =>
         }
@@ -145,7 +145,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
 
     val CodeBodyS(BodySE(_, _, block)) = main.body
     block match {
-      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, "shout", _, _),Vector(LocalLoadSE(_,CodeVarNameS("x"), UseP))))) =>
+      case BlockSE(_, _, Vector(_, FunctionCallSE(_, OutsideLoadSE(_, _, CodeNameS("shout"), _, _),Vector(LocalLoadSE(_,CodeVarNameS("x"), UseP))))) =>
     }
   }
 
@@ -200,7 +200,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
       ConstantBoolSE(_, true)),
       FunctionCallSE(_,
-      OutsideLoadSE(_, _, "MyStruct", _, _),
+      OutsideLoadSE(_, _, CodeNameS("MyStruct"), _, _),
       Vector(
       LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
       LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
@@ -309,7 +309,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       case BlockSE(
       _,Vector(),
       Vector(
-      DotSE(_,OutsideLoadSE(_,_,"moo",None,LendConstraintP(None)),x,true))) =>
+      DotSE(_,OutsideLoadSE(_,_,CodeNameS("moo"),None,LendConstraintP(None)),x,true))) =>
     }
 
   }
@@ -328,7 +328,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       _,Vector(),
       Vector(
       OwnershippedSE(_,
-      DotSE(_,OutsideLoadSE(_,_,"moo",None,LendConstraintP(None)),x,true),LendConstraintP(Some(ReadonlyP))))) =>
+      DotSE(_,OutsideLoadSE(_,_,CodeNameS("moo"),None,LendConstraintP(None)),x,true),LendConstraintP(Some(ReadonlyP))))) =>
     }
 
   }
@@ -356,7 +356,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       AtomSP(_, Some(CaptureS(ConstructingMemberNameS("y"))), None, _, None),
       LocalLoadSE(_, ConstructingMemberNameS("x"), LendConstraintP(Some(ReadonlyP)))),
       FunctionCallSE(_,
-      OutsideLoadSE(_, _, "MyStruct", _, _),
+      OutsideLoadSE(_, _, CodeNameS("MyStruct"), _, _),
       Vector(
       LocalLoadSE(_, ConstructingMemberNameS("x"), UseP),
       LocalLoadSE(_, ConstructingMemberNameS("y"), UseP))))) =>
@@ -378,7 +378,7 @@ class ScoutTests extends FunSuite with Matchers with Collector {
       Vector(LocalS(CodeVarNameS("this"), Used, NotUsed, NotUsed, NotUsed, NotUsed, NotUsed)),
       Vector(
       FunctionCallSE(_,
-      OutsideLoadSE(_, _, "println", _, _),
+      OutsideLoadSE(_, _, CodeNameS("println"), _, _),
       Vector(DotSE(_, LocalLoadSE(_, CodeVarNameS("this"), LendConstraintP(None)), "x", true))),
       VoidSE(_))))) =>
     }

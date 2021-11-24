@@ -1,7 +1,7 @@
 package net.verdagon.vale.scout.rules
 
 import net.verdagon.vale.RangeS
-import net.verdagon.vale.parser.{AnonymousRunePT, BoolPT, BorrowPT, CallPT, ConstraintP, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, ManualSequencePT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PermissionPT, PrototypePT, Range, RepeaterSequencePT, StringPT, VariabilityPT}
+import net.verdagon.vale.parser.{AnonymousRunePT, BoolPT, BorrowPT, CallPT, ConstraintP, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, ManualSequencePT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PermissionPT, PrototypePT, Range, RegionRune, RepeaterSequencePT, StringPT, VariabilityPT}
 import net.verdagon.vale.scout.{CodeNameS, CodeRuneS, IEnvironment, IImpreciseNameS, INameS, IRuneS, ImplicitRuneS, LocationInDenizenBuilder, Scout}
 
 import scala.collection.mutable.ArrayBuffer
@@ -67,6 +67,15 @@ object TemplexScout {
       case None => {
         templex match {
           case AnonymousRunePT(range) => RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+          case RegionRune(range, NameP(_, name)) => {
+            val isRuneFromLocalEnv = env.localDeclaredRunes().contains(CodeRuneS(name))
+            if (isRuneFromLocalEnv) {
+              RuneUsage(evalRange(range), CodeRuneS(name))
+            } else {
+              // It's from a parent env
+              addRuneParentEnvLookupRule(lidb.child(), ruleBuilder, evalRange(range), CodeRuneS(name))
+            }
+          }
           case NameOrRunePT(NameP(range, nameOrRune)) => {
             val isRuneFromEnv = env.allDeclaredRunes().contains(CodeRuneS(nameOrRune))
             if (isRuneFromEnv) {

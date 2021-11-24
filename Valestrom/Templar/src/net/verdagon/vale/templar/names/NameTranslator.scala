@@ -11,8 +11,14 @@ object NameTranslator {
 //      case ImmConcreteDestructorNameS(_) => ImmConcreteDestructorTemplateNameT()
 //      case ImmInterfaceDestructorNameS(_) => ImmInterfaceDestructorTemplateNameT()
 //      case DropNameS(_) => DropTemplateNameT()
-      case LambdaNameS(/*parent, */ codeLocation) => {
+      case LambdaDeclarationNameS(/*parent, */ codeLocation) => {
         LambdaTemplateNameT(NameTranslator.translateCodeLocation(codeLocation))
+      }
+      case FreeDeclarationNameS(codeLocationS) => {
+        FreeTemplateNameT(NameTranslator.translateCodeLocation(codeLocationS))
+      }
+      case VirtualFreeDeclarationNameS(codeLoc) => {
+        VirtualFreeTemplateNameT(codeLoc)
       }
       case FunctionNameS(name, codeLocation) => {
         FunctionTemplateNameT(name, NameTranslator.translateCodeLocation(codeLocation))
@@ -100,14 +106,14 @@ object NameTranslator {
 
   def translateNameStep(name: INameS): INameT = {
     name match {
-      case LambdaStructNameS(LambdaNameS(codeLocation)) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
+      case LambdaStructDeclarationNameS(LambdaDeclarationNameS(codeLocation)) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
       case LetNameS(codeLocation) => LetNameT(translateCodeLocation(codeLocation))
       case ExportAsNameS(codeLocation) => ExportAsNameT(translateCodeLocation(codeLocation))
       case ClosureParamNameS() => ClosureParamNameT()
       case MagicParamNameS(codeLocation) => MagicParamNameT(translateCodeLocation(codeLocation))
       case CodeVarNameS(name) => CodeVarNameT(name)
       case t@TopLevelCitizenDeclarationNameS(_, _) => translateCitizenName(t)
-      case LambdaNameS(codeLocation) => {
+      case LambdaDeclarationNameS(codeLocation) => {
         LambdaTemplateNameT(NameTranslator.translateCodeLocation(codeLocation))
       }
       case FunctionNameS(name, codeLocation) => {

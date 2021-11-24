@@ -24,7 +24,7 @@ object MutateHammer {
     val (sourceExprResultLine, sourceDeferreds) =
       translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.resultRegister.reference)
+      TypeHammer.translateReference(hinputs, hamuts, sourceExpr2.result.reference)
 
     val (oldValueAccess, destinationDeferreds) =
       destinationExpr2 match {
@@ -120,7 +120,7 @@ object MutateHammer {
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structTT =
-      structExpr2.resultRegister.reference.kind match {
+      structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
@@ -184,7 +184,7 @@ object MutateHammer {
       translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structTT =
-      structExpr2.resultRegister.reference.kind match {
+      structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT)

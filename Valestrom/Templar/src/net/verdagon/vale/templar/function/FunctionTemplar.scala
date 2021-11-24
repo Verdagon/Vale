@@ -212,7 +212,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
+              case LambdaDeclarationNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -245,7 +245,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
+              case LambdaDeclarationNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -288,7 +288,7 @@ class FunctionTemplar(
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
-              case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
+              case LambdaDeclarationNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
               case _ => vwat()
             }
 
@@ -454,7 +454,7 @@ class FunctionTemplar(
   IEvaluateFunctionResult[PrototypeT] = {
     val lambdaCitizenName2 =
       function.name match {
-        case LambdaNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
+        case LambdaDeclarationNameS(codeLocation) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(NameTranslator.translateCodeLocation(codeLocation)))
         case _ => vwat()
       }
     val KindTemplata(closureStructRef @ StructTT(_)) =

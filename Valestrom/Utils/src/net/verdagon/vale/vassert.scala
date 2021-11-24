@@ -1,5 +1,15 @@
 package net.verdagon.vale
 
+// We use this instead of a regular RuntimeException because ScalaTest likes to print out
+// theException.getMessage then theException.toString then theException.printStackTrace().
+// Since RuntimeException's getMessage and toString both return the message, it means
+// ScalaTest prints out its message twice. Rather irksome to see a giant error message twice
+// when debugging test failures.
+class VAssertionFailException(message: String) extends RuntimeException {
+  override def getMessage: String = message
+  override def toString: String = "Assertion failed!"
+}
+
 // A condition that reflects a user error.
 object vcheck {
   def apply[T <: Throwable](condition: Boolean, message: String): Unit = {
@@ -74,7 +84,7 @@ object vassertOne {
 
 object vfail {
   def apply(message: Object): Nothing = {
-    throw new RuntimeException(message.toString)
+    throw new VAssertionFailException(message.toString)
   }
   def apply(): Nothing = {
     vfail("fail!")
