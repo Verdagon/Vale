@@ -72,7 +72,7 @@ class AncestorHelper(
     }
   }
 
-  def getMatchingImpls(
+  private def getMatchingImpls(
     temputs: Temputs,
     childCitizenRef: CitizenRefT):
   (Vector[ImplTemplata]) = {
@@ -88,7 +88,7 @@ class AncestorHelper(
         case sr @ StructTT(_) => temputs.getEnvForKind(sr)
         case ir @ InterfaceTT(_) => temputs.getEnvForKind(ir)
       }
-    citizenEnv.lookupWithImpreciseName(profiler, needleImplName, Set(TemplataLookupContext, ExpressionLookupContext), false)
+    citizenEnv.lookupAllWithImpreciseName(profiler, needleImplName, Set(TemplataLookupContext, ExpressionLookupContext))
       .map({
         case it @ ImplTemplata(_, _) => it
         //        case ExternImplTemplata(structTT, interfaceTT) => if (structTT == childCitizenRef) Vector(interfaceTT) else Vector.empty
@@ -101,9 +101,11 @@ class AncestorHelper(
     temputs: Temputs,
     childCitizenRef: CitizenRefT):
   (Vector[(InterfaceTT, ImplTemplata)]) = {
-    getMatchingImpls(temputs, childCitizenRef).flatMap({
-      case it @ ImplTemplata(_, _) => getMaybeImplementedInterface(temputs, childCitizenRef, it)
-      case other => vwat(other.toString)
+    profiler.newProfile("getParentInterfaces", "", () => {
+      getMatchingImpls(temputs, childCitizenRef).flatMap({
+        case it@ImplTemplata(_, _) => getMaybeImplementedInterface(temputs, childCitizenRef, it)
+        case other => vwat(other.toString)
+      })
     })
   }
 
@@ -111,11 +113,9 @@ class AncestorHelper(
     temputs: Temputs,
     descendantCitizenRef: CitizenRefT):
   (Map[InterfaceTT, ImplTemplata]) = {
-    profiler.childFrame("getAncestorInterfaces", () => {
-      val ancestorInterfacesWithDistance =
-        getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
-      (ancestorInterfacesWithDistance.mapValues(_._1))
-    })
+    val ancestorInterfacesWithDistance =
+      getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
+    (ancestorInterfacesWithDistance.mapValues(_._1))
   }
 
   def isAncestor(
@@ -123,11 +123,9 @@ class AncestorHelper(
     descendantCitizenRef: CitizenRefT,
     ancestorInterfaceRef: InterfaceTT):
   (Boolean) = {
-    profiler.childFrame("isAncestor", () => {
-      val ancestorInterfacesWithDistance =
-        getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
-      (ancestorInterfacesWithDistance.contains(ancestorInterfaceRef))
-    })
+    val ancestorInterfacesWithDistance =
+      getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
+    (ancestorInterfacesWithDistance.contains(ancestorInterfaceRef))
   }
 
   def getAncestorInterfaceDistance(
@@ -135,11 +133,9 @@ class AncestorHelper(
     descendantCitizenRef: CitizenRefT,
     ancestorInterfaceRef: InterfaceTT):
   (Option[(ImplTemplata, Int)]) = {
-    profiler.childFrame("getAncestorInterfaceDistance", () => {
-      val ancestorInterfacesWithDistance =
-        getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
-      (ancestorInterfacesWithDistance.get(ancestorInterfaceRef))
-    })
+    val ancestorInterfacesWithDistance =
+      getAncestorInterfacesWithDistance(temputs, descendantCitizenRef)
+    (ancestorInterfacesWithDistance.get(ancestorInterfaceRef))
   }
 
   // Doesn't include self
@@ -147,18 +143,20 @@ class AncestorHelper(
     temputs: Temputs,
     descendantCitizenRef: CitizenRefT):
   (Map[InterfaceTT, (ImplTemplata, Int)]) = {
-    val parentInterfacesAndImpls =
-      getParentInterfaces(temputs, descendantCitizenRef)
+    profiler.newProfile("getAncestorInterfacesWithDistance", "", () => {
+      val parentInterfacesAndImpls =
+        getParentInterfaces(temputs, descendantCitizenRef)
 
-    // Make a map that contains all the parent interfaces, with distance 1
-    val foundSoFar =
-      parentInterfacesAndImpls.map({ case (interfaceRef, impl) => (interfaceRef, (impl, 1)) }).toMap
+      // Make a map that contains all the parent interfaces, with distance 1
+      val foundSoFar =
+        parentInterfacesAndImpls.map({ case (interfaceRef, impl) => (interfaceRef, (impl, 1)) }).toMap
 
-    getAncestorInterfacesInner(
-      temputs,
-      foundSoFar,
-      1,
-      parentInterfacesAndImpls.toMap)
+      getAncestorInterfacesInner(
+        temputs,
+        foundSoFar,
+        1,
+        parentInterfacesAndImpls.toMap)
+    })
   }
 
   private def getAncestorInterfacesInner(

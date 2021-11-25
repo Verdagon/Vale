@@ -104,11 +104,10 @@ class StructTemplarCore(
       structA.attributes.collectFirst { case e@ExportS(_) => e }
 
     val mutability =
-      structRunesEnv.lookupWithImpreciseName(
+      structRunesEnv.lookupNearestWithImpreciseName(
         profiler,
         RuneNameS(structA.mutabilityRune.rune),
-        Set(TemplataLookupContext),
-        true).toList match {
+        Set(TemplataLookupContext)).toList match {
         case List(MutabilityTemplata(m)) => m
         case _ => vwat()
       }
@@ -270,11 +269,10 @@ class StructTemplarCore(
 
 
     val mutability =
-      interfaceRunesEnv.lookupWithImpreciseName(
+      interfaceRunesEnv.lookupNearestWithImpreciseName(
         profiler,
         RuneNameS(interfaceA.mutabilityRune.rune),
-        Set(TemplataLookupContext),
-        true).toList match {
+        Set(TemplataLookupContext)).toList match {
         case List(MutabilityTemplata(m)) => m
         case _ => vwat()
       }
@@ -406,8 +404,8 @@ class StructTemplarCore(
   Vector[StructMemberT] = {
     val typeTemplata =
       vassertOne(
-        env.lookupWithImpreciseName(
-          profiler, RuneNameS(member.typeRune.rune), Set(TemplataLookupContext), true))
+        env.lookupNearestWithImpreciseName(
+          profiler, RuneNameS(member.typeRune.rune), Set(TemplataLookupContext)))
     val variabilityT = Conversions.evaluateVariability(member.variability)
     member match {
       case NormalStructMemberS(_, name, _, _) => {

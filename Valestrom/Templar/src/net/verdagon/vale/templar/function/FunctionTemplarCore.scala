@@ -82,7 +82,7 @@ class FunctionTemplarCore(
         }
         case ExternBodyS => {
           val maybeRetCoord =
-            fullEnv.lookupWithImpreciseName(profiler, RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune), Set(TemplataLookupContext), true).headOption
+            fullEnv.lookupNearestWithImpreciseName(profiler, RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune), Set(TemplataLookupContext)).headOption
           val retCoord =
             maybeRetCoord match {
               case None => vfail("wat")
@@ -125,7 +125,7 @@ class FunctionTemplarCore(
             startingFullEnv.function.maybeRetCoordRune match {
               case None => (None)
               case Some(retCoordRune) => {
-                fullEnv.lookupWithImpreciseName(profiler, RuneNameS(retCoordRune.rune), Set(TemplataLookupContext), true).headOption
+                fullEnv.lookupNearestWithImpreciseName(profiler, RuneNameS(retCoordRune.rune), Set(TemplataLookupContext)).headOption
               }
             }
           val maybeRetCoord =

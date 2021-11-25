@@ -157,11 +157,10 @@ class FunctionTemplar(
             env, temputs, function)
         } else {
           val List(KindTemplata(closureStructRef@StructTT(_))) =
-            env.lookupWithImpreciseName(
+            env.lookupNearestWithImpreciseName(
               profiler,
               vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
-              Set(TemplataLookupContext),
-              true).toList
+              Set(TemplataLookupContext)).toList
           val header =
             evaluateOrdinaryClosureFunctionFromNonCallForHeader(
               env, temputs, closureStructRef, function)
@@ -182,11 +181,10 @@ class FunctionTemplar(
           env, temputs, function)
       } else {
         val List(KindTemplata(closureStructRef@StructTT(_))) =
-          env.lookupWithImpreciseName(
+          env.lookupNearestWithImpreciseName(
             profiler,
             vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
-            Set(TemplataLookupContext),
-            true).toList
+            Set(TemplataLookupContext)).toList
         val header =
           evaluateTemplatedClosureFunctionFromNonCallForHeader(
             env, temputs, closureStructRef, function)
@@ -218,11 +216,10 @@ class FunctionTemplar(
 
           val KindTemplata(closureStructRef@StructTT(_)) =
             vassertOne(
-              env.lookupWithName(
+              env.lookupNearestWithName(
                 profiler,
                 lambdaCitizenName2,
-                Set(TemplataLookupContext),
-                true))
+                Set(TemplataLookupContext)))
           val header =
             evaluateOrdinaryClosureFunctionFromNonCallForHeader(
               env, temputs, closureStructRef, function)
@@ -251,11 +248,10 @@ class FunctionTemplar(
 
           val KindTemplata(closureStructRef@StructTT(_)) =
             vassertOne(
-              env.lookupWithName(
+              env.lookupNearestWithName(
                 profiler,
                 lambdaCitizenName2,
-                Set(TemplataLookupContext),
-                true))
+                Set(TemplataLookupContext)))
           evaluateOrdinaryClosureFunctionFromNonCallForBanner(
             env, temputs, callRange, closureStructRef, function)
         }
@@ -294,11 +290,10 @@ class FunctionTemplar(
 
           val KindTemplata(closureStructRef@StructTT(_)) =
             vassertOne(
-              env.lookupWithName(
+              env.lookupNearestWithName(
                 profiler,
                 lambdaCitizenName2,
-                Set(TemplataLookupContext),
-                true))
+                Set(TemplataLookupContext)))
           val banner =
             evaluateTemplatedClosureFunctionFromCallForBanner(
               env, temputs, callRange, closureStructRef, function, alreadySpecifiedTemplateArgs, paramFilters)
@@ -459,11 +454,10 @@ class FunctionTemplar(
       }
     val KindTemplata(closureStructRef @ StructTT(_)) =
       vassertOne(
-        env.lookupWithName(
+        env.lookupNearestWithName(
           profiler,
           lambdaCitizenName2,
-          Set(TemplataLookupContext),
-          true))
+          Set(TemplataLookupContext)))
     closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForPrototype(
       env, temputs, callRange, closureStructRef, function, explicitTemplateArgs, args)
   }

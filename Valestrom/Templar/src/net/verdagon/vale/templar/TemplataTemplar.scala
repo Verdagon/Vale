@@ -340,7 +340,7 @@ class TemplataTemplar(
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructTemplar to figure out its members.
     // We could instead pipe a lookup context through, if this proves problematic.
-    vassertOne(env.lookupWithName(profiler, name, Set(TemplataLookupContext), true))
+    vassertOne(env.lookupNearestWithName(profiler, name, Set(TemplataLookupContext)))
   }
 
   def lookupTemplata(
@@ -352,7 +352,7 @@ class TemplataTemplar(
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructTemplar to figure out its members.
     // We could instead pipe a lookup context through, if this proves problematic.
-    val results = env.lookupWithImpreciseName(profiler, name, Set(TemplataLookupContext), true)
+    val results = env.lookupNearestWithImpreciseName(profiler, name, Set(TemplataLookupContext))
     if (results.size > 1) {
       vfail()
     }
