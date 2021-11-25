@@ -76,6 +76,12 @@ class VirtualTests extends FunSuite with Matchers {
     vassert(doThing.header.params(0).virtuality.get == AbstractT)
   }
 
+  test("Imm interface") {
+    val compile = RunCompilation.test(
+      Tests.loadExpected("programs/virtuals/interfaceimm.vale"))
+    compile.evalForKind(Vector()) shouldEqual VonInt(42)
+  }
+
   test("Can call interface env's function from outside") {
     val compile = RunCompilation.test(
       """
