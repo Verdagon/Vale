@@ -52,13 +52,17 @@ case class SimpleEnvironment(templatas: TemplatasStore) extends IEnvironment {
     vimpl()
 //    templatas.lookupWithName(profiler, this, nameS, lookupFilter, getOnlyNearest)
   }
+
+  def lookupWithImpreciseNameInner(profiler: net.verdagon.vale.IProfiler,nameS: net.verdagon.vale.scout.IImpreciseNameS,lookupFilter: scala.collection.immutable.Set[net.verdagon.vale.templar.env.ILookupContext],getOnlyNearest: Boolean): Iterable[net.verdagon.vale.templar.templata.ITemplata] = vimpl()
+  def lookupWithNameInner(profiler: net.verdagon.vale.IProfiler,nameS: net.verdagon.vale.templar.names.INameT,lookupFilter: scala.collection.immutable.Set[net.verdagon.vale.templar.env.ILookupContext],getOnlyNearest: Boolean): Iterable[net.verdagon.vale.templar.templata.ITemplata] = vimpl()
+
 }
 
 class FakeTemplataTemplarDelegate extends IInfererDelegate[SimpleEnvironment, FakeState] {
 //  override def lookupTemplata(profiler: IProfiler, env: SimpleEnvironment, range: RangeS, name: INameS): ITemplata = {
 //    val results = env.getAllTemplatasWithName(profiler, name, Set(TemplataLookupContext))
 //    vassert(results.size == 1)
-//    results.head
+//    results.headgetAncestorInterfaces
 //  }
 
   override def coerce(env: SimpleEnvironment, state: FakeState, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata = {

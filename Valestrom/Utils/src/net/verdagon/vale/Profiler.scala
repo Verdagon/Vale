@@ -149,7 +149,7 @@ class Profiler extends IProfiler {
     vassert(currentProfile.isEmpty)
     val builder = new mutable.StringBuilder()
     profiles.foreach({ case (name, profiles) =>
-      builder.append(name + " overall: avg " + profiles.map(_.profileTotalNanoseconds).sum / profiles.size + " sum " + profiles.map(_.profileTotalNanoseconds).sum + ". ")
+      builder.append(name + " overall: avg " + profiles.map(_.profileTotalNanoseconds).sum / profiles.size + " x " + profiles.size + " = " + profiles.map(_.profileTotalNanoseconds).sum + ". ")
       printFrames(builder, 0, "root", profiles.map(_.rootFrame))
     })
     builder.append("Total over all profiles: " + totalNanoseconds)
@@ -157,7 +157,7 @@ class Profiler extends IProfiler {
   }
 
   def printFrames(builder: mutable.StringBuilder, indent: Int, name: String, frames: Vector[FinishedFrame]): Unit = {
-    builder.append(repeatStr("  ", indent * 2) + name + ": avg " + frames.map(_.totalTime).sum / frames.size + " sum " + frames.map(_.totalTime).sum + "\n")
+    builder.append(repeatStr("  ", indent * 2) + name + ": avg " + frames.map(_.totalTime).sum / frames.size + " x " + frames.size + " sum " + frames.map(_.totalTime).sum + "\n")
     val combinedChildren = frames.flatMap(_.children).groupBy(_._1).mapValues(_.flatMap(_._2))
     combinedChildren.foreach({ case (childName, combinedChildren) =>
       printFrames(builder, indent + 1, childName, combinedChildren)
