@@ -3,7 +3,7 @@ package dev.vale
 import dev.vale.typing.{ast, types}
 import dev.vale.typing.ast.{AbstractT, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT}
-import dev.vale.typing.types.{CoordT, IntT, InterfaceTT, OwnT, ShareT}
+import dev.vale.typing.types._
 import dev.vale.testvm.IntV
 import dev.vale.typing.ast._
 import dev.vale.typing.names.CitizenTemplateNameT

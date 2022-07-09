@@ -11,7 +11,7 @@ import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateA
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, IFunctionNameT, NameTranslator, TypingIgnoredParamNameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{CoordT, InterfaceTT, KindT}
+import dev.vale.typing.types._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.postparsing.patterns._
@@ -194,6 +194,52 @@ class FunctionCompilerMiddleLayer(
         (header)
       }
     }
+  }
+
+  // Preconditions:
+  // - already spawned local env
+  // - either no template args, or they were already added to the env.
+  // - either no closured vars, or they were already added to the env.
+  def getOrEvaluateGenericFunction(
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    function1: FunctionA):
+  (FunctionHeaderT) = {
+
+    // Check preconditions
+    function1.runeToType.keySet.foreach(templateParam => {
+      vassert(
+        runedEnv
+          .lookupNearestWithImpreciseName(
+            interner.intern(RuneNameS(templateParam)),
+            Set(TemplataLookupContext, ExpressionLookupContext))
+          .nonEmpty);
+    })
+
+    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
+    val functionFullName = assembleName(runedEnv.fullName, paramTypes2)
+    val needleSignature = SignatureT(functionFullName)
+    coutputs.lookupFunction(needleSignature) match {
+      case Some(FunctionT(header, _)) => {
+        (header)
+      }
+      case None => {
+        val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+
+        val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
+        val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+
+        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
+
+        val header =
+          core.evaluateFunctionForHeader(
+            namedEnv, coutputs, callRange, params2)
+        vassert(header.toSignature == needleSignature)
+        (header)
+      }
+    }
+    vimpl()
   }
 
   // We would want only the prototype instead of the entire header if, for example,

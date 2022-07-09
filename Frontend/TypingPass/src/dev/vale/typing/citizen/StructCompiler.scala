@@ -9,7 +9,7 @@ import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
 import dev.vale.typing.names.NameTranslator
 import dev.vale.typing.templata.{FunctionTemplata, ITemplata, InterfaceTemplata, StructTemplata}
-import dev.vale.typing.types.{AddressMemberTypeT, CoordT, ImmutableT, InterfaceTT, MutabilityT, MutableT, ParamFilter, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._

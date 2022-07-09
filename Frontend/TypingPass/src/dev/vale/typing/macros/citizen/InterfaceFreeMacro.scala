@@ -10,7 +10,7 @@ import dev.vale.typing.env.FunctionEnvEntry
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.macros.IOnInterfaceDefinedMacro
 import dev.vale.typing.names.{FreeTemplateNameT, FullNameT, INameT}
-import dev.vale.typing.types.{ImmutableT, MutabilityT}
+import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AbstractSP

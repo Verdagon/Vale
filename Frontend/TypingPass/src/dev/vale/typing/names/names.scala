@@ -5,7 +5,7 @@ import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
 import dev.vale.typing.templata.ITemplata
-import dev.vale.typing.types.{CoordT, KindT, MutabilityT, ShareT}
+import dev.vale.typing.types._
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 

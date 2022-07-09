@@ -20,7 +20,7 @@ import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FunctionTemplateNameT, INameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT}
 import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, MutabilityTemplata}
-import dev.vale.typing.types.{AddressMemberTypeT, BorrowT, ImmutableT, InterfaceDefinitionT, InterfaceTT, MutabilityT, MutableT, OwnT, ReferenceMemberTypeT, ShareT, StructDefinitionT, StructMemberT, StructTT, VaryingT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.AnonymousSubstructImplNameT
 

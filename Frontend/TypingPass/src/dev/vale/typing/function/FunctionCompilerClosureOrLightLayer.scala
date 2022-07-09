@@ -16,7 +16,7 @@ import dev.vale.typing.env.{AddressibleClosureVariableT, BuildingFunctionEnviron
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, TemplataCompiler, TypingPassOptions, env}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator}
 import dev.vale.typing.templata.{ITemplata, KindTemplata}
-import dev.vale.typing.types.{AddressMemberTypeT, ParamFilter, ReferenceMemberTypeT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.names.BuildingFunctionNameWithClosuredsT
 
 import scala.collection.immutable.{List, Map}
@@ -147,6 +147,16 @@ class FunctionCompilerClosureOrLightLayer(
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
+      newEnv, coutputs)
+  }
+
+  def evaluateGenericLightFunctionFromNonCall(
+    outerEnv: IEnvironment,
+    coutputs: CompilerOutputs,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       newEnv, coutputs)
   }
 

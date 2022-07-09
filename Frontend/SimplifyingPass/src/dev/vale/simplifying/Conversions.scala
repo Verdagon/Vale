@@ -3,7 +3,7 @@ package dev.vale.simplifying
 import dev.vale.{CodeLocationS, finalast, vimpl}
 import dev.vale.finalast.{BorrowH, CodeLocation, Final, Immutable, InlineH, LocationH, Mutability, Mutable, OwnH, OwnershipH, ShareH, Variability, Varying, WeakH, YonderH}
 import dev.vale.postparsing.{BooleanTemplataType, CoordTemplataType, ITemplataType, IntegerTemplataType, KindTemplataType, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, TemplateTemplataType, VariabilityTemplataType}
-import dev.vale.typing.types.{BorrowT, FinalT, ImmutableT, InlineT, LocationT, MutabilityT, MutableT, OwnT, OwnershipT, ShareT, VariabilityT, VaryingT, WeakT, YonderT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.finalast._
 import dev.vale.postparsing.TemplateTemplataType

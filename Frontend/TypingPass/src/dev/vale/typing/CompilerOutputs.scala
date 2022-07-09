@@ -4,7 +4,7 @@ import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, 
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, IFunctionNameT, INameT}
-import dev.vale.typing.types.{CitizenDefinitionT, CitizenRefT, CoordT, ImmutableT, InterfaceDefinitionT, InterfaceTT, KindT, MutabilityT, NeverT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructDefinitionT, StructTT, VariabilityT}
+import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
 import dev.vale.typing.env.CitizenEnvironment

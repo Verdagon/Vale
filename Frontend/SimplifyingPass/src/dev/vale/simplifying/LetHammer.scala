@@ -5,7 +5,7 @@ import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, FunctionHeaderT, LetAndLendTE, LetNormalTE, ReferenceExpressionTE, UnletTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{FullNameT, IVarNameT}
-import dev.vale.typing.types.{AddressMemberTypeT, CoordT, ReferenceMemberTypeT, VariabilityT}
+import dev.vale.typing.types._
 import dev.vale.{finalast, vassert, vfail, vwat}
 import dev.vale.{finalast => m}
 import dev.vale.finalast._

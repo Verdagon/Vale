@@ -8,16 +8,15 @@ import dev.vale.postparsing.{CoordTemplataType, IImpreciseNameS, IRuneS, ITempla
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.names.{FunctionNameT, INameT}
+import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, INameT}
 import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
-import dev.vale.typing.types.{CitizenRefT, CoordT, ImmutableT, InterfaceTT, KindT, MutabilityT, MutableT, OwnT, OwnershipT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT, VariabilityT}
+import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
 import dev.vale.solver.IStepState
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{templata, types}
-import dev.vale.typing.names.CitizenNameT
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types._
 
@@ -91,9 +90,6 @@ trait IInfererDelegate[Env, State] {
 
   def structIsClosure(state: State, structTT: StructTT): Boolean
 
-  def resolveExactSignature(env: Env, state: State, range: RangeS, name: String, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure]
-
-
   def kindIsFromTemplate(
     state: State,
     actualCitizenRef: KindT,
@@ -103,6 +99,7 @@ trait IInfererDelegate[Env, State] {
 
 class CompilerSolver[Env, State](
   globalOptions: GlobalOptions,
+  interner: Interner,
   delegate: IInfererDelegate[Env, State]
 ) {
 
@@ -157,7 +154,7 @@ class CompilerSolver[Env, State](
       case KindComponentsSR(_, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
       // Notice how there is no return rune in here; we can solve the entire rule with just the name and the parameter list.
-      case PrototypeComponentsSR(range, resultRune, nameRune, paramListRune, returnRune) => Array(Array(resultRune.rune), Array(nameRune.rune, paramListRune.rune))
+      case PrototypeComponentsSR(range, resultRune, nameRune, paramListRune, returnRune) => Array(Array(resultRune.rune), Array(nameRune.rune, paramListRune.rune, returnRune.rune))
       case OneOfSR(_, rune, literals) => Array(Array(rune.rune))
       case EqualsSR(_, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
@@ -213,23 +210,17 @@ class CompilerSolver[Env, State](
           case None => {
             val StringTemplata(name) = vassertSome(stepState.getConclusion(nameRune.rune))
             val CoordListTemplata(coords) = vassertSome(stepState.getConclusion(paramListRune.rune))
-            val prototype =
-              delegate.resolveExactSignature(env, state, rule.range, name, coords) match {
-                case Err(e) => return Err(CouldntFindFunction(range, e))
-                case Ok(x) => x
-              }
-            stepState.concludeRune[ITypingPassSolverError](resultRune.rune, PrototypeTemplata(prototype))
-            stepState.concludeRune[ITypingPassSolverError](returnRune.rune, CoordTemplata(prototype.returnType))
+            val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
+
+            val prototypeTemplata = PrototypeTemplata(interner.intern(StrI(name)), coords.toArray, returnCoord)
+            stepState.concludeRune[ITypingPassSolverError](resultRune.rune, prototypeTemplata)
             Ok(())
           }
-          case Some(prototype) => {
-            val PrototypeTemplata(PrototypeT(fullName, returnType)) = prototype
-            val humanName =
-              fullName.last match {
-                case FunctionNameT(humanName, _, _) => humanName
-              }
-            stepState.concludeRune[ITypingPassSolverError](nameRune.rune, templata.StringTemplata(humanName.str))
-            stepState.concludeRune[ITypingPassSolverError](returnRune.rune, CoordTemplata(returnType))
+          case Some(prototypeTemplata) => {
+            val PrototypeTemplata(name, paramCoords, returnCoord) = prototypeTemplata
+            stepState.concludeRune[ITypingPassSolverError](nameRune.rune, StringTemplata(name.str))
+            stepState.concludeRune[ITypingPassSolverError](paramListRune.rune, CoordListTemplata(paramCoords.toVector))
+            stepState.concludeRune[ITypingPassSolverError](returnRune.rune, CoordTemplata(returnCoord))
             Ok(())
           }
         }

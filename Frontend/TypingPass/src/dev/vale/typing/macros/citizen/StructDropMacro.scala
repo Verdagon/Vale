@@ -3,7 +3,7 @@ package dev.vale.typing.macros.citizen
 import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, EqualsSR, LookupSR, RuneUsage}
-import dev.vale.{Interner, Keywords, RangeS, StrI, vwat}
+import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing.{CodeNameS, CodeRuneS, CodeVarNameS, CoordTemplataType, FreeDeclarationNameS, FunctionNameS, FunctionTemplataType, GeneratedBodyS, ICitizenDeclarationNameS, IFunctionDeclarationNameS, IRuneS, ITemplataType, KindTemplataType, ParameterS, SelfNameS, TemplateTemplataType}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
@@ -12,7 +12,7 @@ import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
 import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
-import dev.vale.typing.types.{AddressMemberTypeT, CoordT, FinalT, ImmutableT, MutabilityT, MutableT, OwnT, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT, VoidT}
+import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.CallSR
@@ -195,7 +195,7 @@ class StructDropMacro(
         }
       }
 
-    val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
+    val function2 = FunctionT(header, vimpl(), BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
     coutputs.addFunction(function2)
     function2.header
   }

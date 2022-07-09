@@ -6,7 +6,7 @@ import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{FullNameT, IVarNameT}
-import dev.vale.typing.types.{CoordT, OwnershipT, StructTT, VariabilityT, VaryingT}
+import dev.vale.typing.types._
 import dev.vale.finalast._
 import dev.vale.typing.{types => t, _}
 import dev.vale.typing.ast._

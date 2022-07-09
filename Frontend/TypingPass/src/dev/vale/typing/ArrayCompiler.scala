@@ -5,7 +5,7 @@ import dev.vale.postparsing.{CodeNameS, CodeRuneS, CoordTemplataType, IImprecise
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.types.{CoordT, FinalT, ImmutableT, IntT, MutabilityT, MutableT, OwnT, ParamFilter, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, VariabilityT, VaryingT}
+import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -368,11 +368,11 @@ class ArrayCompiler(
         // and see the function and use it.
         // See CSFMSEO and SAFHE.
         val arrayEnv =
-          env.CitizenEnvironment(
+          CitizenEnvironment(
             globalEnv,
-            env.PackageEnvironment(globalEnv, runtimeSizedArrayType.getName(interner, keywords), globalEnv.nameToTopLevelEnvironment.values.toVector),
+            PackageEnvironment(globalEnv, runtimeSizedArrayType.getName(interner, keywords), globalEnv.nameToTopLevelEnvironment.values.toVector),
             runtimeSizedArrayType.getName(interner, keywords),
-            env.TemplatasStore(runtimeSizedArrayType.getName(interner, keywords), Map(), Map())
+            TemplatasStore(runtimeSizedArrayType.getName(interner, keywords), Map(), Map())
               .addEntries(
                 interner,
                 Vector()))

@@ -10,7 +10,7 @@ import dev.vale.typing.env.{FunctionEnvironment, FunctionEnvironmentBox, NodeEnv
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, IFunctionNameT, NameTranslator}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{CoordT, OwnT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -309,7 +309,7 @@ class FunctionCompilerCore(
 
     coutputs.lookupFunction(header.toSignature) match {
       case None => {
-        val function2 = FunctionT(header, body2);
+        val function2 = FunctionT(header, vimpl(), body2);
         coutputs.addFunction(function2)
         (function2.header)
       }
@@ -355,6 +355,7 @@ class FunctionCompilerCore(
         val function2 =
           FunctionT(
             header,
+            vimpl(),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)

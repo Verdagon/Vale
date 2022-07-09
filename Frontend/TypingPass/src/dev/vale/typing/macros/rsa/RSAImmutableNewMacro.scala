@@ -7,8 +7,8 @@ import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, Lo
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata, PrototypeTemplata}
-import dev.vale.typing.types.{CoordT, FinalT, ImmutableT, MutableT, RuntimeSizedArrayTT, VaryingT}
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome}
+import dev.vale.typing.types._
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
@@ -45,7 +45,7 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords) extends IFunc
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext)))
 
-    val PrototypeTemplata(generatorPrototype) =
+    val PrototypeTemplata(generatorName, generatorParamCoords, generatorReturnCoord) =
       vassertSome(
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.F))), Set(TemplataLookupContext)))
@@ -61,13 +61,14 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords) extends IFunc
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             NewImmRuntimeSizedArrayTE(
               arrayTT,
               ArgLookupTE(0, paramCoords(0).tyype),
               ArgLookupTE(1, paramCoords(1).tyype),
-              generatorPrototype)))))
+              vimpl())))))//generatorPrototype)))))
     header
   }
 }

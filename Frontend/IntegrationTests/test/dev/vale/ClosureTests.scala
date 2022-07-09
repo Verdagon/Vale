@@ -5,7 +5,7 @@ import dev.vale.typing.ast.{AddressMemberLookupTE, ConstructTE, FunctionCallTE, 
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.names.{ClosureParamNameT, CodeVarNameT, FullNameT, FunctionNameT, LambdaCitizenNameT, TypingPassBlockResultVarNameT}
-import dev.vale.typing.types.{AddressMemberTypeT, CoordT, FinalT, ImmutableT, IntT, MutableT, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT, VaryingT}
+import dev.vale.typing.types._
 import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast._

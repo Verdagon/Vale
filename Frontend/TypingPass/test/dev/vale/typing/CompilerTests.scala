@@ -17,7 +17,7 @@ import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT}
 import dev.vale.typing.templata.{CoordTemplata, KindTemplata, functionName, simpleName}
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, FinalT, IntT, InterfaceDefinitionT, InterfaceTT, MutableT, NeverT, OwnT, ReferenceMemberTypeT, ShareT, StructDefinitionT, StructMemberT, StructTT, VoidT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.CitizenTemplateNameT
 //import dev.vale.typingpass.infer.NotEnoughToSolveError

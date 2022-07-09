@@ -8,7 +8,7 @@ import dev.vale.typing.env.{ExpressionLookupContext, TemplataLookupContext, Temp
 import dev.vale.typing.{CantImplNonInterface, CompileErrorExceptionT, InferCompiler, InitialKnown, TypingPassOptions, CompilerOutputs}
 import dev.vale.typing.names.NameTranslator
 import dev.vale.typing.templata.{ITemplata, ImplTemplata, InterfaceTemplata, KindTemplata}
-import dev.vale.typing.types.{CitizenRefT, InterfaceTT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Err, Interner, Ok, Profiler, RangeS, postparsing, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._

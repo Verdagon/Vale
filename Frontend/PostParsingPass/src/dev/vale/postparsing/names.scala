@@ -122,23 +122,16 @@ case class FreeOverrideStructRuneS() extends IRuneS
 case class FreeOverrideInterfaceRuneS() extends IRuneS
 case class LetImplicitRuneS(lid: LocationInDenizen) extends IRuneS {  }
 case class MagicParamRuneS(lid: LocationInDenizen) extends IRuneS {  }
-case class MemberRuneS(memberIndex: Int) extends IRuneS {
+case class MemberRuneS(memberIndex: Int) extends IRuneS
 
-}
 // Used to type the templex handed to the size part of the static sized array expressions
 case class ArraySizeImplicitRuneS() extends IRuneS {  }
 // Used to type the templex handed to the mutability part of the static sized array expressions
 case class ArrayMutabilityImplicitRuneS() extends IRuneS {  }
 // Used to type the templex handed to the variability part of the static sized array expressions
 case class ArrayVariabilityImplicitRuneS() extends IRuneS {  }
-case class ReturnRuneS() extends IRuneS {
-
-  vpass()
-}
-case class StructNameRuneS(structName: ICitizenDeclarationNameS) extends IRuneS {
-
-  vpass()
-}
+case class ReturnRuneS() extends IRuneS
+case class StructNameRuneS(structName: ICitizenDeclarationNameS) extends IRuneS
 // Vale has no notion of Self, it's just a convenient name for a first parameter.
 case class SelfRuneS() extends IRuneS {  }
 case class SelfOwnershipRuneS() extends IRuneS {  }

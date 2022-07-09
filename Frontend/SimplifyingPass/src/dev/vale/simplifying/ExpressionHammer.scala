@@ -4,7 +4,7 @@ import dev.vale.finalast.{ArgumentH, ArrayCapacityH, ArrayLengthH, AsSubtypeH, B
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, BorrowToWeakTE, BreakTE, ConsecutorTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DeferTE, DestroyImmRuntimeSizedArrayTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, DiscardTE, ExpressionT, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, IfTE, InterfaceFunctionCallTE, InterfaceToInterfaceUpcastTE, IsSameInstanceTE, LetAndLendTE, LetNormalTE, LocalLookupTE, LockWeakTE, MutateTE, NewImmRuntimeSizedArrayTE, NewMutRuntimeSizedArrayTE, PopRuntimeSizedArrayTE, PrototypeT, PushRuntimeSizedArrayTE, ReferenceExpressionTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayCapacityTE, SoftLoadTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StructToInterfaceUpcastTE, TupleTE, UnletTE, VoidLiteralTE, WhileTE}
 import dev.vale.typing.env.AddressibleLocalVariableT
-import dev.vale.typing.types.{CoordT, InterfaceTT, NeverT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Keywords, vassert, vcurious, vfail, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._

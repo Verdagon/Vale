@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.typing.ast.{ReferenceExpressionTE, StructToInterfaceUpcastTE}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.{RangeS, vcurious, vfail}
-import dev.vale.typing.types.{BorrowT, CitizenRefT, CoordT, InterfaceTT, NeverT, OwnT, ShareT, StructTT, WeakT}
+import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
 //import dev.vale.astronomer.IRulexSR

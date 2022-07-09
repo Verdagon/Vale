@@ -5,7 +5,7 @@ import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{FunctionHeaderT, LocationInFunctionEnvironment, ParameterT}
 import dev.vale.typing.env.{FunctionEnvironment, IEnvEntry}
 import dev.vale.typing.names.{FullNameT, INameT}
-import dev.vale.typing.types.{CoordT, MutabilityT}
+import dev.vale.typing.types._
 import dev.vale.RangeS
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.typing.ast._

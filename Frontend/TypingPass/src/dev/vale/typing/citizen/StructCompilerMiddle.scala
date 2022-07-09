@@ -6,7 +6,7 @@ import dev.vale.typing.env.{CitizenEnvironment, IEnvironment, TemplataEnvEntry, 
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions, env}
 import dev.vale.typing.names.{NameTranslator, RuneNameT}
 import dev.vale.typing.templata.{FunctionTemplata, ITemplata}
-import dev.vale.typing.types.{InterfaceTT, MutabilityT, StructMemberT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.types._

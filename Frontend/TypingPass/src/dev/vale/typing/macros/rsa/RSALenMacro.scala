@@ -1,6 +1,6 @@
 package dev.vale.typing.macros.rsa
 
-import dev.vale.{Keywords, RangeS, StrI}
+import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, ArrayLengthTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
@@ -30,6 +30,7 @@ class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             ArrayLengthTE(

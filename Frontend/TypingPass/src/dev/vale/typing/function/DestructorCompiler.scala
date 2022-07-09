@@ -16,7 +16,7 @@ import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntFindFunc
 import dev.vale.typing.ast.{DiscardTE, FunctionCallTE, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.env.{GlobalEnvironment, IEnvironment, PackageEnvironment}
 import dev.vale.typing.names.{FullNameT, PackageTopLevelNameT}
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, FloatT, IntT, InterfaceTT, NeverT, OverloadSetT, OwnT, ParamFilter, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
@@ -31,16 +31,11 @@ class DestructorCompiler(
     structCompiler: StructCompiler,
     overloadCompiler: OverloadResolver) {
   def getDropFunction(
-    globalEnv: GlobalEnvironment,
+    env: IEnvironment,
     coutputs: CompilerOutputs,
     callRange: RangeS,
     type2: CoordT):
   (PrototypeT) = {
-    val env =
-      PackageEnvironment(
-        globalEnv,
-        FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector(), interner.intern(PackageTopLevelNameT())),
-        globalEnv.nameToTopLevelEnvironment.values.toVector)
     val name = interner.intern(CodeNameS(keywords.DROP_FUNCTION_NAME))
     val args = Vector(ParamFilter(type2, None))
     overloadCompiler.findFunction(env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true) match {
@@ -76,16 +71,9 @@ class DestructorCompiler(
   (ReferenceExpressionTE) = {
     val resultExpr2 =
       undestructedExpr2.result.reference match {
-        case r@CoordT(OwnT, kind) => {
+        case r@CoordT(OwnT, _) => {
           val destructorPrototype =
-            kind match {
-              case StructTT(_) | InterfaceTT(_) => {
-                getDropFunction(env.globalEnv, coutputs, callRange, r)
-              }
-              case StaticSizedArrayTT(_, _, _, _) | RuntimeSizedArrayTT(_, _) => {
-                getDropFunction(env.globalEnv, coutputs, callRange, r)
-              }
-            }
+            getDropFunction(env, coutputs, callRange, r)
           FunctionCallTE(destructorPrototype, Vector(undestructedExpr2))
         }
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
@@ -93,7 +81,8 @@ class DestructorCompiler(
         case CoordT(ShareT, _) => {
           val destroySharedCitizen =
             (coutputs: CompilerOutputs, coord: CoordT) => {
-              val destructorHeader = getDropFunction(env.globalEnv, coutputs, callRange, coord)
+              val destructorHeader =
+                getDropFunction(env, coutputs, callRange, coord)
               // We just needed to ensure it's in the coutputs, so that the backend can use it
               // for when reference counts drop to zero.
               // If/when we have a GC backend, we can skip generating share destructors.
@@ -102,7 +91,7 @@ class DestructorCompiler(
             };
           val destroySharedArray =
             (coutputs: CompilerOutputs, coord: CoordT) => {
-              val destructorHeader = getDropFunction(env.globalEnv, coutputs, callRange, coord)
+              val destructorHeader = getDropFunction(env, coutputs, callRange, coord)
               // We just needed to ensure it's in the coutputs, so that the backend can use it
               // for when reference counts drop to zero.
               // If/when we have a GC backend, we can skip generating share destructors.

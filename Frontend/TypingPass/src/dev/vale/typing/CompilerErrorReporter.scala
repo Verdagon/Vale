@@ -7,7 +7,7 @@ import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.templata.ITemplata
 import dev.vale.{PackageCoordinate, RangeS, vcurious, vfail, vpass}
-import dev.vale.typing.types.{CoordT, InterfaceTT, KindT, NeverT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.solver.FailedSolve
 import OverloadResolver.FindFunctionFailure

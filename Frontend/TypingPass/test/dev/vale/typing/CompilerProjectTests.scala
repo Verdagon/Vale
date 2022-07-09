@@ -4,7 +4,7 @@ import dev.vale.{PackageCoordinate, StrI, Tests, vassert, vassertSome}
 import dev.vale.typing.ast.SignatureT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, LambdaCitizenNameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{CoordT, ShareT}
+import dev.vale.typing.types._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types._
 import org.scalatest.{FunSuite, Matchers}

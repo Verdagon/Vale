@@ -1,6 +1,6 @@
 package dev.vale.typing.macros
 
-import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail}
+import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
@@ -8,7 +8,7 @@ import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
 import dev.vale.typing.templata.KindTemplata
-import dev.vale.typing.types.{CitizenRefT, CoordT, InterfaceTT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.types.InterfaceTT
@@ -96,7 +96,7 @@ class AsSubtypeMacro(
         }
       }
 
-    coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
+    coutputs.addFunction(FunctionT(header, vimpl(), BlockTE(ReturnTE(asSubtypeExpr))))
 
     header
   }
