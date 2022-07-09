@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.typing.names.{FullNameT, IFunctionNameT, IVarNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
-import dev.vale.typing.types.{BoolT, CoordT, IntT, InterfaceTT, KindT, NeverT, ShareT, StructTT}
+import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT
@@ -97,8 +97,12 @@ object ProgramT {
   val boolType = CoordT(ShareT, BoolT())
 }
 
+sealed trait IFunctionBound
+case class ConceptFunctionBound(prototype: PrototypeT) extends IFunctionBound
+
 case class FunctionT(
   header: FunctionHeaderT,
+  bounds: Array[IFunctionBound],
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 

@@ -4,7 +4,7 @@ package dev.vale.typing.ast
 import dev.vale.typing.env.{ILocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, FullNameT, IVarNameT}
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutableT, NeverT, OwnT, OwnershipT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VariabilityT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._

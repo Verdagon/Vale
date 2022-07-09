@@ -1,6 +1,6 @@
 package dev.vale.typing.function
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.{ArgumentRuneS, CodeBodyS, IRuneS}
 import dev.vale.postparsing.rules.RuneUsage
@@ -190,6 +190,44 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       inferCompiler.solveExpectComplete(
         nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
+
+    middleLayer.getOrEvaluateFunctionForHeader(
+      runedEnv, coutputs, function.range, function)
+  }
+
+  // Preconditions:
+  // - either no closured vars, or they were already added to the env.
+  def evaluateGenericFunctionFromNonCall(
+    // The environment the function was defined in.
+    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    coutputs: CompilerOutputs):
+  (FunctionHeaderT) = {
+    val function = nearEnv.function
+    // Check preconditions
+    checkClosureConcernsHandled(nearEnv)
+
+    val initialKnowns =
+      function.identifyingRunes.zipWithIndex.map({ case (identifyingRune, index) =>
+        val runeType = vassertSome(function.runeToType.get(identifyingRune.rune))
+        val templata =
+          runeType match {
+            case KindTemplataType => KindTemplata(PlaceholderT(index))
+            // TODO: Not sure what to put here when we do regions. We might need to
+            // flood the nearest region annotation downward, and then apply it if it's
+            // a coord or something. Remembering that in every templex would be bothersome
+            // though.
+            // For now, we can manually add them.
+            // So, I guess we could just assume the function's default region here then.
+            case CoordTemplataType => CoordTemplata(CoordT(OwnT, PlaceholderT(index)))
+            case _ => vimpl() // What do we even do? Just assume zero? Seems fishy.
+          }
+        InitialKnown(identifyingRune, templata)
+      })
+
+    val inferences =
+      inferCompiler.solveExpectComplete(
+        nearEnv, coutputs, function.rules, function.runeToType, function.range, initialKnowns, Vector())
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)

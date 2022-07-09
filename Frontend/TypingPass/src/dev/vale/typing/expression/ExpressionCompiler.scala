@@ -24,7 +24,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.names.{ArbitraryNameT, ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, RuneNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT}
 import dev.vale.typing.templata.{BooleanTemplata, CoordTemplata, ExternFunctionTemplata, FunctionTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, PrototypeTemplata}
-import dev.vale.typing.types.{AddressMemberTypeT, BoolT, BorrowT, CitizenRefT, CoordT, FinalT, ImmutableT, IntT, InterfaceTT, MutabilityT, MutableT, NeverT, OverloadSetT, OwnT, ParamFilter, ReferenceMemberTypeT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructMemberT, StructTT, VaryingT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -745,10 +745,10 @@ class ExpressionCompiler(
           val templata = vassertOne(nenv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(runeA)), Set(TemplataLookupContext)))
           templata match {
             case IntegerTemplata(value) => (ConstantIntTE(value, 32), Set())
-            case PrototypeTemplata(value) => {
+            case pt @ PrototypeTemplata(name, paramCoords, returnCoord) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
-                  .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(PrototypeTemplata(value))))
+                  .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))
               val expr = newGlobalFunctionGroupExpression(tinyEnv, coutputs, interner.intern(ArbitraryNameS()))
               (expr, Set())
             }

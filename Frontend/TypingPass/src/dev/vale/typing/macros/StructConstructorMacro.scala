@@ -9,8 +9,8 @@ import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, 
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment}
 import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
-import dev.vale.{Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert}
-import dev.vale.typing.types.{CoordT, MutabilityT, MutableT, OwnT, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT}
+import dev.vale.{Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vimpl}
+import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.ConstructorNameS
 import dev.vale.postparsing.patterns.AtomSP
@@ -136,6 +136,7 @@ class StructConstructorMacro(
           constructorParams,
           constructorReturnType,
           originFunction),
+        vimpl(),
         BlockTE(
           ReturnTE(
             ConstructTE(

@@ -4,7 +4,7 @@ import dev.vale.typing.ast.{AsSubtypeTE, DestroyImmRuntimeSizedArrayTE, DestroyS
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{FreeNameT, FullNameT, FunctionNameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{ImmutableT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, vassertOne, vassertSome, vcurious, vpass}
 import dev.vale.typing.ast._
 import dev.vale.typing.names._

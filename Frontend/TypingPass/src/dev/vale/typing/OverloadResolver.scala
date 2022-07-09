@@ -1,13 +1,13 @@
 package dev.vale.typing
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassertSome, vcurious, vfail, vpass}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.postparsing.{CodeNameS, FunctionTemplataType, IImpreciseNameS, IRuneS, PostParserErrorHumanizer, RuneNameS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR}
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.infer.ITypingPassSolverError
-import dev.vale.typing.types.{CoordT, IntT, InterfaceTT, OverloadSetT, ParamFilter, ShareT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.postparsing.rules.RuneParentEnvLookupSR
@@ -147,6 +147,12 @@ class OverloadResolver(
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   Vector[ICalleeCandidate] = {
+    start here
+    // look in the env for the drop. It'll be under a weird name, like ImplicitRune(1.2.4.3)
+    // or whatever. we'll probably want to index it by name or something.
+    // or instead of thinking about it like a templata, perhaps we can lift it up to
+    // its own kind of env entry?
+
     val candidates =
       findHayTemplatas(env, coutputs, functionName, paramFilters, extraEnvsToLookIn)
     candidates.flatMap({
@@ -168,9 +174,10 @@ class OverloadResolver(
       case ExternFunctionTemplata(header) => {
         Vector(HeaderCalleeCandidate(header))
       }
-      case PrototypeTemplata(prototype) => {
-        val header = vassertSome(coutputs.lookupFunction(prototype.toSignature)).header
-        Vector(HeaderCalleeCandidate(header))
+      case PrototypeTemplata(name, paramTypes, returnType) => {
+        vimpl()
+//        val header = vassertSome(coutputs.lookupFunction(prototype.toSignature)).header
+//        Vector(HeaderCalleeCandidate(header))
       }
       case ft@FunctionTemplata(_, function) => {
         Vector(FunctionCalleeCandidate(ft))

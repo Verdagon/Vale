@@ -1,12 +1,12 @@
 package dev.vale.typing.macros.ssa
 
-import dev.vale.{Keywords, RangeS, StrI}
+import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConsecutorTE, ConstantIntTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.macros.IFunctionBodyMacro
-import dev.vale.typing.types.{CoordT, StaticSizedArrayTT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.types.StaticSizedArrayTT
 import dev.vale.typing.ast
@@ -36,6 +36,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ConsecutorTE(
             Vector(

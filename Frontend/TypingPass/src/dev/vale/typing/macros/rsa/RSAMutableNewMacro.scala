@@ -7,8 +7,8 @@ import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, Lo
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata}
-import dev.vale.typing.types.{CoordT, RuntimeSizedArrayTT}
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome}
+import dev.vale.typing.types._
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
@@ -50,6 +50,7 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             NewMutRuntimeSizedArrayTE(

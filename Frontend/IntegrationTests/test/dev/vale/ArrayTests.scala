@@ -6,7 +6,7 @@ import dev.vale.typing.NewImmRSANeedsCallable
 import dev.vale.typing.ast.{LetNormalTE, NewImmRuntimeSizedArrayTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.{CodeVarNameT, FullNameT}
-import dev.vale.typing.types.{CoordT, ImmutableT, IntT, MutableT, OwnT, RuntimeSizedArrayTT, ShareT}
+import dev.vale.typing.types._
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.CodeVarNameT

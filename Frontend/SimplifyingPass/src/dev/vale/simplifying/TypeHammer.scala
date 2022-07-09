@@ -3,7 +3,7 @@ package dev.vale.simplifying
 import dev.vale.finalast.{BoolH, FloatH, InlineH, IntH, KindH, NeverH, PrototypeH, ReferenceH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrH, VoidH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, FloatT, IntT, InterfaceTT, KindT, NeverT, OverloadSetT, OwnT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, vfail, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._

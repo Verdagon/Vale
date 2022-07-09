@@ -1,13 +1,13 @@
 package dev.vale.typing.macros.ssa
 
-import dev.vale.{Keywords, RangeS, StrI}
+import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import dev.vale.typing.{ArrayCompiler, Compiler, CompilerOutputs}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.IFunctionBodyMacro
-import dev.vale.typing.types.{CoordT, ShareT, StaticSizedArrayTT, VoidT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.types._
@@ -40,7 +40,7 @@ class SSAFreeMacro(
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
-    val elementDropFunction = destructorCompiler.getDropFunction(env.globalEnv, coutputs, callRange, elementCoord)
+    val elementDropFunction = destructorCompiler.getDropFunction(env, coutputs, callRange, elementCoord)
     val elementDropFunctorTE =
       env.globalEnv.functorHelper.getFunctorForPrototype(env, coutputs, callRange, elementDropFunction)
 
@@ -50,7 +50,7 @@ class SSAFreeMacro(
         ArgLookupTE(0, rsaCoord),
         elementDropFunctorTE)
 
-    val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
+    val function2 = FunctionT(header, vimpl(), BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
     coutputs.addFunction(function2)
     function2.header
   }

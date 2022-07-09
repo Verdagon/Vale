@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.typing.ast.AsSubtypeTE
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{BorrowT, CoordT, InterfaceTT, OwnT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, vassert}
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types.InterfaceTT

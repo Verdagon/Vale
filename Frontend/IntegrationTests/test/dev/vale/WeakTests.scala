@@ -6,7 +6,7 @@ import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.TookWeakRefOfNonWeakableError
 import dev.vale.typing.names.{CodeVarNameT, FullNameT}
 import dev.vale.typing.templata.simpleName
-import dev.vale.typing.types.{CoordT, FinalT, InterfaceTT, StructTT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.testvm.ConstraintViolatedException
 import dev.vale.typing._
 import dev.vale.typing.ast._

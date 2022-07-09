@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.postparsing.patterns.AtomSP
-import dev.vale.{Err, Ok, Profiler, RangeS, Result, typing}
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType}
 import dev.vale.postparsing.rules.{CoordSendSR, IRulexSR, RuneUsage}
 import dev.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve}
@@ -11,14 +11,13 @@ import dev.vale.postparsing.{ArgumentRuneS, CoordTemplataType, IRuneS, ITemplata
 import dev.vale.solver.RuleError
 import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.infer.{IInfererDelegate, ITypingPassSolverError, CompilerSolver}
+import dev.vale.typing.infer.{CompilerSolver, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.infer._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Ok, Profiler, RangeS, Result, vassert, vassertSome, vfail, vimpl, vwat}
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -35,7 +34,7 @@ case class InitialKnown(
 
 class InferCompiler(
     opts: TypingPassOptions,
-
+    interner: Interner,
     delegate: IInfererDelegate[IEnvironment, CompilerOutputs]) {
   def solveComplete(
     env: IEnvironment,
@@ -100,7 +99,7 @@ class InferCompiler(
           (senderRune.rune -> senderTemplata)
         })
 
-      new CompilerSolver[IEnvironment, CompilerOutputs](opts.globalOptions, delegate).solve(
+      new CompilerSolver[IEnvironment, CompilerOutputs](opts.globalOptions, interner, delegate).solve(
           invocationRange,
           env,
           state,

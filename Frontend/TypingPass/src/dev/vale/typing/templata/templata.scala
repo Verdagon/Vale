@@ -5,14 +5,13 @@ import dev.vale.postparsing.{BooleanTemplataType, CoordTemplataType, FunctionNam
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, INameT}
-import dev.vale.typing.types.{CoordT, KindT, LocationT, MutabilityT, OwnershipT, VariabilityT}
-import dev.vale.{vassert, vfail, vimpl, vpass}
+import dev.vale.typing.types._
+import dev.vale.{StrI, vassert, vfail, vimpl, vpass}
 import dev.vale.highertyping._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types._
-import dev.vale.vpass
 
 import scala.collection.immutable.List
 
@@ -233,7 +232,9 @@ case class StringTemplata(value: String) extends ITemplata {
   override def order: Int = 17;
   override def tyype: ITemplataType = StringTemplataType
 }
-case class PrototypeTemplata(value: PrototypeT) extends ITemplata {
+// This isn't an actual prototype yet.
+// Once the rules are all resolved, we'll fetch the real prototypes and ensure they exist.
+case class PrototypeTemplata(name: StrI, paramTypes: Array[CoordT], returnType: CoordT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 18;
   override def tyype: ITemplataType = PrototypeTemplataType

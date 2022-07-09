@@ -10,7 +10,7 @@ import dev.vale.postparsing.{ICompileErrorS, ProgramS}
 import dev.vale.typing.ast.{SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.names.{FullNameT, FunctionNameT}
 import dev.vale.typing.{Hinputs, ICompileErrorT, ast}
-import dev.vale.typing.types.{CoordT, IntT, ShareT, StrT}
+import dev.vale.typing.types._
 import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, PrimitiveKindV, ReferenceV, StructInstanceV, Vivem}
 import dev.vale.highertyping.ICompileErrorA
 

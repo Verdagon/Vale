@@ -6,7 +6,7 @@ import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata.{CoordListTemplata, StructTemplata}
-import dev.vale.typing.types.{CoordT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._

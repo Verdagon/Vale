@@ -8,7 +8,7 @@ import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
 import dev.vale.typing.env.{NodeEnvironment, NodeEnvironmentBox}
-import dev.vale.typing.types.{BoolT, BorrowT, CitizenRefT, CoordT, InterfaceTT, MutableT, NeverT, OverloadSetT, OwnT, ParamFilter, ShareT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.templata._
 import dev.vale.typing.types._

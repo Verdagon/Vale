@@ -6,7 +6,7 @@ import dev.vale.{Err, Interner, Ok, RangeS, vassert, vassertSome, vcurious}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.TemplatasStore
-import dev.vale.typing.types.{CoordT, InterfaceTT, ParamFilter, StructTT}
+import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
 import dev.vale.typing.types._

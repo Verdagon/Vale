@@ -3,7 +3,7 @@ package dev.vale
 import dev.vale.typing.ast.ParameterT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{BorrowT, CoordT, OwnT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata.simpleName
 import dev.vale.typing.types.StructTT

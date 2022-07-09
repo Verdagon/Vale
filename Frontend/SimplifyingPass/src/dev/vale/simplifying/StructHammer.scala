@@ -6,7 +6,7 @@ import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{EdgeT, PrototypeT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FullNameT, INameT}
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{AddressMemberTypeT, CoordT, ImmutableT, InterfaceTT, MutableT, ReferenceMemberTypeT, StructMemberT, StructTT, VariabilityT, VaryingT}
+import dev.vale.typing.types._
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.ast._

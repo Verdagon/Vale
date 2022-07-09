@@ -6,7 +6,7 @@ import dev.vale.postparsing.{BlockSE, IExpressionSE, IImpreciseNameS, MapSE, Whi
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, INameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
-import dev.vale.typing.types.{CoordT, StructTT, VariabilityT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing._

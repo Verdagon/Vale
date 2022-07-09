@@ -1,6 +1,6 @@
 package dev.vale.typing.macros
 
-import dev.vale.{RangeS, StrI}
+import dev.vale.{RangeS, StrI, vimpl}
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, ArrayLengthTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
@@ -8,7 +8,6 @@ import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.ast
-import dev.vale.RangeS
 import dev.vale.highertyping.FunctionA
 
 
@@ -31,6 +30,7 @@ class RSALenMacro() extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             ArrayLengthTE(

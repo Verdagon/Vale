@@ -10,7 +10,7 @@ import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, ConvertHe
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox}
 import dev.vale.typing.names.NameTranslator
-import dev.vale.typing.types.{CoordT, NeverT, ShareT}
+import dev.vale.typing.types._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale._

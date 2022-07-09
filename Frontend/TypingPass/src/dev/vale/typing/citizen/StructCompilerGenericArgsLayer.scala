@@ -8,7 +8,7 @@ import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPass
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.names.NameTranslator
 import dev.vale.typing.templata.{Conversions, FunctionTemplata, ITemplata, InterfaceTemplata, MutabilityTemplata, StructTemplata}
-import dev.vale.typing.types.{InterfaceTT, MutabilityT, StructMemberT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vfail, vimpl, vwat}
 import dev.vale.highertyping._
 import dev.vale.typing.types._

@@ -1,6 +1,6 @@
 package dev.vale.typing.macros
 
-import dev.vale.{Keywords, RangeS, StrI}
+import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, IsSameInstanceTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
@@ -30,6 +30,7 @@ class SameInstanceMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             IsSameInstanceTE(

@@ -6,7 +6,7 @@ import dev.vale.postparsing.{CoordTemplataType, IImpreciseNameS, ITemplataType, 
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{INameT, NameTranslator}
 import dev.vale.typing.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
-import dev.vale.typing.types.{BoolT, BorrowT, CitizenRefT, CoordT, FloatT, IntT, InterfaceTT, KindT, MutabilityT, MutableT, NeverT, OwnT, OwnershipT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VariabilityT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -113,65 +113,6 @@ class TemplataCompiler(
 
     true
   }
-//
-//  def isTypeTriviallyConvertible(
-//    coutputs: CompilerOutputs,
-//    sourcePointerType: CoordT,
-//    targetPointerType: CoordT):
-//  (Boolean) = {
-//    val CoordT(targetOwnership, targetPermission, targetType) = targetPointerType;
-//    val CoordT(sourceOwnership, sourcePermission, sourceType) = sourcePointerType;
-//
-//    if (sourceType == NeverT()) {
-//      return (true)
-//    }
-//
-//    if (sourceType == targetType) {
-//
-//    } else {
-//      (sourceType, targetType) match {
-//        case (VoidT(), _) => return (false)
-//        case (IntT(_), _) => return (false)
-//        case (BoolT(), _) => return (false)
-//        case (StrT(), _) => return (false)
-//        case (RuntimeSizedArrayTT(_, _), _) => return (false)
-//        case (StaticSizedArrayTT(_, _, _, _), _) => return (false)
-//        case (_, VoidT()) => return (false)
-//        case (_, IntT(_)) => return (false)
-//        case (_, BoolT()) => return (false)
-//        case (_, StrT()) => return (false)
-//        case (_, StaticSizedArrayTT(_, _, _, _)) => return (false)
-//        case (_, StructTT(_)) => return (false)
-//        case (a @ StructTT(_), b @ InterfaceTT(_)) => {
-//          delegate.isAncestor(coutputs, a, b) match {
-//            case (None) => return (false)
-//            case (Some(_)) =>
-//          }
-//        }
-//        case (a @ InterfaceTT(_), b @ InterfaceTT(_)) => {
-//          delegate.isAncestor(coutputs, a, b) match {
-//            case (None) => return (false)
-//            case (Some(_)) =>
-//          }
-//        }
-//        case (_ : CitizenRefT, IntT(_) | BoolT() | StrT() | FloatT()) => return (false)
-//        case (IntT(_) | BoolT() | StrT() | FloatT(), _ : CitizenRefT) => return (false)
-//        case _ => {
-//          vfail("Can't convert from " + sourceType + " to " + targetType)
-//        }
-//      }
-//    }
-//
-//    if (sourceOwnership != targetOwnership) {
-//      return false
-//    }
-//
-//    if (sourcePermission != targetPermission) {
-//      return false
-//    }
-//
-//    true
-//  }
 
   def pointifyKind(coutputs: CompilerOutputs, kind: KindT, ownershipIfMutable: OwnershipT): CoordT = {
     val mutability = Compiler.getMutability(coutputs, kind)

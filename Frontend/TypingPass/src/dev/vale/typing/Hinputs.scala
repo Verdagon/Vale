@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionT, InterfaceEdgeBlueprint, KindExportT, KindExternT, PrototypeT, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
 import dev.vale.typing.templata.simpleName
-import dev.vale.typing.types.{InterfaceDefinitionT, InterfaceTT, KindT, StructDefinitionT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.{StrI, vassertSome, vcurious, vfail}
 import dev.vale.typing.ast._
 import dev.vale.typing.names._

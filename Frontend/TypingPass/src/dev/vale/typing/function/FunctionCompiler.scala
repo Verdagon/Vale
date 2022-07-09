@@ -1,6 +1,6 @@
 package dev.vale.typing.function
 
-import dev.vale.{Interner, Keywords, Profiler, RangeS, postparsing, vassertOne, vimpl, vwat}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, postparsing, vassertOne, vfail, vimpl, vwat}
 import dev.vale.postparsing.{BlockSE, CodeBodyS, IFunctionDeclarationNameS, IVarNameS, LambdaDeclarationNameS}
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.highertyping.CouldntSolveRulesA
@@ -22,7 +22,7 @@ import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 import dev.vale.typing.templata.{FunctionTemplata, ITemplata, KindTemplata}
-import dev.vale.typing.types.{AddressMemberTypeT, BorrowT, CoordT, OwnT, ParamFilter, ReferenceMemberTypeT, ShareT, StructMemberT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.typing.names.LambdaCitizenNameT
 
 import scala.collection.immutable.{List, Set}
@@ -200,6 +200,42 @@ class FunctionCompiler(
           evaluateTemplatedClosureFunctionFromNonCallForHeader(
             env, coutputs, closureStructRef, function)
         header
+      }
+    })
+
+  }
+
+  // We would want only the prototype instead of the entire header if, for example,
+  // we were calling the function. This is necessary for a recursive function like
+  // func main():Int{main()}
+  def evaluateGenericFunctionFromNonCall(
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    functionTemplata: FunctionTemplata):
+  (FunctionHeaderT) = {
+    Profiler.frame(() => {
+      val FunctionTemplata(env, function) = functionTemplata
+      if (function.isLight) {
+        evaluateGenericLightFunctionFromNonCall(
+          env, coutputs, function)
+      } else {
+        vfail() // I think we need a call to evaluate a lambda?
+//        val lambdaCitizenName2 =
+//          functionTemplata.function.name match {
+//            case LambdaDeclarationNameS(codeLocation) => interner.intern(LambdaCitizenNameT(interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(codeLocation)))))
+//            case _ => vwat()
+//          }
+//
+//        val KindTemplata(closureStructRef@StructTT(_)) =
+//          vassertOne(
+//            env.lookupNearestWithName(
+//
+//              lambdaCitizenName2,
+//              Set(TemplataLookupContext)))
+//        val header =
+//          evaluateOrdinaryClosureFunctionFromNonCallForHeader(
+//            env, coutputs, closureStructRef, function)
+//        (header.toPrototype)
       }
     })
 
@@ -393,6 +429,15 @@ class FunctionCompiler(
     function: FunctionA):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateOrdinaryLightFunctionFromNonCallForHeader(
+      env, coutputs, function)
+  }
+
+  private def evaluateGenericLightFunctionFromNonCall(
+    env: IEnvironment,
+    coutputs: CompilerOutputs,
+    function: FunctionA):
+  (FunctionHeaderT) = {
+    closureOrLightLayer.evaluateGenericLightFunctionFromNonCall(
       env, coutputs, function)
   }
 

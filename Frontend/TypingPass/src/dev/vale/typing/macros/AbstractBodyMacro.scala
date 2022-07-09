@@ -1,6 +1,6 @@
 package dev.vale.typing.macros
 
-import dev.vale.{Keywords, RangeS, StrI, vassert, vassertSome}
+import dev.vale.{Keywords, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, InterfaceFunctionCallTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
@@ -36,6 +36,7 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
     val function2 =
       FunctionT(
         header,
+        vimpl(),
         BlockTE(
           ReturnTE(
             InterfaceFunctionCallTE(

@@ -11,7 +11,7 @@ import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntr
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.RuneNameT
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.types.{BorrowT, CoordT, OwnT, OwnershipT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StructTT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing.rules.IRulexSR

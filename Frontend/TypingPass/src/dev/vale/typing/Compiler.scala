@@ -11,7 +11,7 @@ import dev.vale.typing.citizen.{AncestorHelper, IAncestorHelperDelegate, IStruct
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
 import dev.vale.typing.function.{DestructorCompiler, FunctionCompiler, FunctionCompilerCore, IFunctionCompilerDelegate, VirtualCompiler}
 import dev.vale.typing.infer.IInfererDelegate
-import dev.vale.typing.types.{BoolT, CitizenRefT, CoordT, FloatT, ImmutableT, IntT, InterfaceTT, KindT, MutabilityT, NeverT, OverloadSetT, ParamFilter, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructMemberT, StructTT, VariabilityT, VoidT}
+import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.ICompileErrorS
 import OverloadResolver.FindFunctionFailure
@@ -124,7 +124,7 @@ class Compiler(
   val inferCompiler: InferCompiler =
     new InferCompiler(
       opts,
-
+      interner,
       new IInfererDelegate[IEnvironment, CompilerOutputs] {
         override def lookupTemplata(
           env: IEnvironment,
@@ -251,9 +251,9 @@ class Compiler(
             structDef.isClosure
         }
 
-        override def resolveExactSignature(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: String, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
-            overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(StrI(name)))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
-        }
+//        override def resolvePrototype(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: String, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
+//            overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(StrI(name)))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
+//        }
       })
   val convertHelper =
     new ConvertHelper(
@@ -536,7 +536,10 @@ class Compiler(
               case TemplataEnvEntry(_) =>
               case FunctionEnvEntry(functionA) => {
                 if (functionA.isTemplate) {
-                  // Do nothing, it's a template
+                  functionCompiler.evaluateGenericFunctionFromNonCall(
+                    coutputs,
+                    RangeS.internal(interner, -177),
+                    FunctionTemplata(env, functionA))
                 } else {
                   if (isRootFunction(functionA)) {
                     val _ =
@@ -593,7 +596,7 @@ class Compiler(
                 case Some(KindTemplata(kind)) => {
                   coutputs.addKindExport(range, kind, range.file.packageCoordinate, exportedName)
                 }
-                case Some(PrototypeTemplata(prototype)) => {
+                case Some(PrototypeTemplata(name, params, retuurn)) => {
                   vimpl()
                 }
                 case _ => vfail()
@@ -605,27 +608,33 @@ class Compiler(
           while (true) {
             val denizensAtStart = coutputs.countDenizens()
 
+            val builtinPackageCoord = PackageCoordinate.BUILTIN(interner, keywords)
+            val rootPackageEnv =
+              PackageEnvironment.makeTopLevelEnvironment(
+                globalEnv,
+                FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
+
             coutputs.getAllStructs().foreach(struct => {
               if (struct.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
+                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
                 destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
               }
             })
             coutputs.getAllInterfaces().foreach(interface => {
               if (interface.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
+                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
                 destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
               }
             })
             coutputs.getAllRuntimeSizedArrays().foreach(rsa => {
               if (rsa.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
+                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
                 destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
               }
             })
             coutputs.getAllStaticSizedArrays().foreach(ssa => {
               if (ssa.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
+                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
                 destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
               }
             })
@@ -901,6 +910,7 @@ object Compiler {
   def getMutability(coutputs: CompilerOutputs, concreteValue2: KindT):
   MutabilityT = {
     concreteValue2 match {
+      case PlaceholderT(_) => MutableT
       case NeverT(_) => ImmutableT
       case IntT(_) => ImmutableT
       case FloatT() => ImmutableT

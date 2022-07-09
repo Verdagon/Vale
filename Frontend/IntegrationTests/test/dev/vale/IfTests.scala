@@ -2,7 +2,7 @@ package dev.vale
 
 import dev.vale.postparsing.{ConstantBoolSE, ConstantIntSE, IfSE, ReturnSE}
 import dev.vale.typing.ast.IfTE
-import dev.vale.typing.types.{BoolT, CoordT, IntT, ShareT, StrT}
+import dev.vale.typing.types._
 import dev.vale.testvm.IntV
 import dev.vale.postparsing._
 import dev.vale.typing._

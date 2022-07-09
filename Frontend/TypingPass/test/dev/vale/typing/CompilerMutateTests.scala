@@ -10,7 +10,7 @@ import OverloadResolver.{FindFunctionFailure, WrongNumberOfArguments}
 import dev.vale.postparsing.{CodeNameS, FunctionNameS}
 import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT}
-import dev.vale.typing.types.{CoordT, FinalT, ImmutableT, IntT, OwnT, ShareT, StaticSizedArrayTT, StrT, StructTT, VaryingT}
+import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._

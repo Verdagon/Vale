@@ -3,12 +3,13 @@ package dev.vale.typing
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, Collector, Err, FileCoordinate, FileCoordinateMap, PackageCoordinate, RangeS, vassert, vfail}
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, IntT, InterfaceTT, OwnT, ShareT, StrT, StructTT}
+import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.CoordComponentsSR
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
+import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing.{CodeRuneS, ImplicitRuneS, LocationInDenizen}
 import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
@@ -35,6 +36,40 @@ class CompilerSolverTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
+
+  test("Test simple generic function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<T>(a T) T { return a; }
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    // Tests that we reuse existing stamps
+    vassert(coutputs.getAllUserFunctions.size == 1000000) // impl
+  }
+
+  test("Test lacking drop function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<T>(a T) { }
+      """.stripMargin)
+    compile.getCompilerOutputs().expectErr() match {
+      case CouldntFindFunctionToCallT(_, FindFunctionFailure(CodeNameS(StrI("drop")), _, _)) =>
+    }
+  }
+
+  test("Test having drop function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<T>(a T) where func drop(T)void { }
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val bork = coutputs.lookupFunction("bork")
+    bork.body shouldHave {
+      case FunctionCallTE(
+        PrototypeT(FullNameT(_, _, FunctionNameT(StrI("drop"), _, _)), _), _) =>
+    }
+  }
 
   test("Humanize errors") {
     val interner = new Interner()

@@ -9,7 +9,7 @@ import dev.vale.typing.env.{AddressibleLocalVariableT, ILocalVariableT, NodeEnvi
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{NameTranslator, TypingPassTemporaryVarNameT}
 import dev.vale.typing.templata.Conversions
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, FinalT, FloatT, IntT, InterfaceTT, KindT, MutabilityT, MutableT, OverloadSetT, OwnT, OwnershipT, RuntimeSizedArrayTT, ShareT, StaticSizedArrayTT, StrT, StructTT, VariabilityT, VaryingT, VoidT, WeakT}
+import dev.vale.typing.types._
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing.LocalS
