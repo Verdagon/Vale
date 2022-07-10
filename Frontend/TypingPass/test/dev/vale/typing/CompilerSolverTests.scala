@@ -15,7 +15,7 @@ import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsag
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.infer.{KindIsNotConcrete, SendingNonCitizen}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.templata.{CoordTemplata, KindTemplata, OwnershipTemplata, simpleName}
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.SendingNonCitizen
@@ -66,7 +66,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     // Only identifying template arg coord should be of PlaceholderT(0)
     bork.header.fullName.last.templateArgs match {
-      case Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(0)))) =>
+      case Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(0)))))) =>
     }
 
     // Make sure it calls drop, and that
@@ -79,7 +79,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
             FunctionNameT(
               StrI("drop"),
               Vector(),
-              Vector(CoordT(OwnT,PlaceholderT(0))))),
+              Vector(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(0))))))),
           CoordT(ShareT,VoidT())),
         _) =>
     }
@@ -249,7 +249,6 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Components") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct MyStruct { }
         |exported func main() X
         |where

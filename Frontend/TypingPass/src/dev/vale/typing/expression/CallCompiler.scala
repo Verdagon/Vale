@@ -41,14 +41,6 @@ class CallCompiler(
       case NeverT(false) | BoolT() => {
         throw CompileErrorExceptionT(RangedInternalErrorT(range, "wot " + callableExpr.result.reference.kind))
       }
-      case structTT @ StructTT(_) => {
-        evaluateClosureCall(
-          nenv, coutputs, life, range, structTT, explicitTemplateArgRulesS, explicitTemplateArgRunesS, callableExpr, givenArgsExprs2)
-      }
-      case interfaceTT @ InterfaceTT(_) => {
-        evaluateClosureCall(
-          nenv, coutputs, life, range, interfaceTT, explicitTemplateArgRulesS, explicitTemplateArgRunesS, callableExpr, givenArgsExprs2)
-      }
       case OverloadSetT(overloadSetEnv, functionName) => {
         val unconvertedArgsPointerTypes2 =
           givenArgsExprs2.map(_.result.expectReference().reference)
@@ -87,6 +79,18 @@ class CallCompiler(
           exact = true)
 
         (ast.FunctionCallTE(prototype, argsExprs2))
+      }
+      case other => {
+        evaluateCustomCall(
+          nenv,
+          coutputs,
+          life,
+          range,
+          callableExpr.result.reference.kind,
+          explicitTemplateArgRulesS,
+          explicitTemplateArgRunesS,
+          callableExpr,
+          givenArgsExprs2)
       }
     }
   }
@@ -153,12 +157,13 @@ class CallCompiler(
   // in that f.__function(f.__closure, 4), the given args is just 4, but the actual args is f.__closure and 4.
   // also, the given callable is f, but the actual callable is f.__function.
 
-  private def evaluateClosureCall(
+  // By "custom call" we mean calling __call.
+  private def evaluateCustomCall(
       nenv: NodeEnvironmentBox,
       coutputs: CompilerOutputs,
       life: LocationInFunctionEnvironment,
       range: RangeS,
-      citizenRef: CitizenRefT,
+      kind: KindT,
       explicitTemplateArgRulesS: Vector[IRulexSR],
       explicitTemplateArgRunesS: Array[IRuneS],
       givenCallableUnborrowedExpr2: ReferenceExpressionTE,
@@ -173,17 +178,15 @@ class CallCompiler(
         }
       }
 
-    val env =
-      citizenRef match {
-        case sr @ StructTT(_) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
-        case ir @ InterfaceTT(_) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
-      }
+    val env = nenv.snapshot
+//    val env = coutputs.getEnvForKind(kind)
+//      citizenRef match {
+//        case sr @ StructTT(_) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
+//        case ir @ InterfaceTT(_) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
+//      }
 
     val argsTypes2 = givenArgsExprs2.map(_.result.reference)
-    val closureParamType =
-      CoordT(
-        givenCallableBorrowExpr2.result.reference.ownership,
-        citizenRef)
+    val closureParamType = CoordT(givenCallableBorrowExpr2.result.reference.ownership, kind)
     val paramFilters =
       Vector(ParamFilter(closureParamType, None)) ++
         argsTypes2.map(argType => ParamFilter(argType, None))
@@ -194,7 +197,7 @@ class CallCompiler(
         case Ok(x) => x
       }
 
-    val mutability = Compiler.getMutability(coutputs, citizenRef)
+    val mutability = Compiler.getMutability(coutputs, kind)
     val ownership = if (mutability == MutableT) BorrowT else ShareT
     vassert(givenCallableBorrowExpr2.result.reference.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2

@@ -2,9 +2,9 @@ package dev.vale.typing.macros.citizen
 
 import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{CallSR, EqualsSR, LookupSR, RuneUsage}
+import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, CoordComponentsSR, EqualsSR, LookupSR, RuneUsage}
 import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
-import dev.vale.postparsing.{CodeNameS, CodeRuneS, CodeVarNameS, CoordTemplataType, FreeDeclarationNameS, FunctionNameS, FunctionTemplataType, GeneratedBodyS, ICitizenDeclarationNameS, IFunctionDeclarationNameS, IRuneS, ITemplataType, KindTemplataType, ParameterS, SelfNameS, TemplateTemplataType}
+import dev.vale.postparsing.{CodeNameS, CodeRuneS, CodeVarNameS, CoordTemplataType, FreeDeclarationNameS, FunctionNameS, FunctionTemplataType, GeneratedBodyS, ICitizenDeclarationNameS, IFunctionDeclarationNameS, IRuneS, ITemplataType, KindTemplataType, OwnershipTemplataType, ParameterS, SelfNameS, TemplateTemplataType}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.{Compiler, CompilerOutputs, ast, env}
@@ -15,7 +15,6 @@ import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.patterns.AtomSP
-import dev.vale.postparsing.rules.CallSR
 import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
@@ -94,22 +93,28 @@ class StructDropMacro(
       Vector(
         ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
       Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),
-      Vector(
-        structType match {
-          case KindTemplataType => {
-            EqualsSR(
+    (structType match {
+        case KindTemplataType => {
+          Vector(
+            CoerceToCoordSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)))
-          }
-          case TemplateTemplataType(_, KindTemplataType) => {
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct))))
+        }
+        case TemplateTemplataType(_, KindTemplataType) => {
+          Vector(
             CallSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
-              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray)
-          }
-        },
+              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
+            CoerceToCoordSR(
+              RangeS.internal(interner, -167215),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct))))
+        }
+      }) ++
+      Vector(
         LookupSR(RangeS.internal(interner, -1672159), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)), structNameS.getImpreciseName(interner)),
         LookupSR(RangeS.internal(interner, -1672160), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), interner.intern(CodeNameS(keywords.void)))),
       GeneratedBodyS(dropGeneratorId))

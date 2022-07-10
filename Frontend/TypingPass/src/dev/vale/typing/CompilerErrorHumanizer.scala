@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl}
-import dev.vale.postparsing.{CodeVarNameS, ConstructorNameS, FunctionNameS, INameS, IRuneS, IRuneTypeRuleError, ITemplataType, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS, LambdaDeclarationNameS, RuneTypeSolveError, PostParserErrorHumanizer, TopLevelCitizenDeclarationNameS}
+import dev.vale.postparsing.{CodeVarNameS, ConstructorNameS, FunctionNameS, INameS, IRuneS, IRuneTypeRuleError, ITemplataType, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS, LambdaDeclarationNameS, PostParserErrorHumanizer, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{IIncompleteOrFailedSolve, SolverErrorHumanizer}
 import dev.vale.typing.types._
@@ -12,14 +12,13 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
-import dev.vale.highertyping.{HigherTypingErrorHumanizer, FunctionA}
+import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{CallResultWasntExpectedType, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.WrongNumberOfTemplateArgs
-import dev.vale.typing.names.AnonymousSubstructNameT
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types.ParamFilter
 import dev.vale.RangeS
@@ -391,6 +390,11 @@ object CompilerErrorHumanizer {
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
       case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
+      case PrototypeTemplataCalleeCandidate(prototype) => {
+        val begin = lineBegin(codeMap, prototype.declarationRange.begin)
+        humanizePos(codeMap, begin) + ":\n" +
+          lineContaining(codeMap, begin) + "\n"
+      }
       case FunctionCalleeCandidate(ft) => {
         val begin = lineBegin(codeMap, ft.function.range.begin)
         humanizePos(codeMap, begin) + ":\n" +
@@ -445,7 +449,7 @@ object CompilerErrorHumanizer {
         kind match {
           case IntT(bits) => "i" + bits
           case BoolT() => "bool"
-          case PlaceholderT(identifyingRuneIndex) => "$" + identifyingRuneIndex
+          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
           case StrT() => "str"
           case NeverT(_) => "never"
           case VoidT() => "void"
@@ -490,6 +494,7 @@ object CompilerErrorHumanizer {
       case LambdaCitizenTemplateNameT(codeLocation) => {
         "λ:" + humanizePos(codeMap, codeLocation)
       }
+      case PlaceholderNameT(index) => "_" + index
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
       case FunctionNameT(humanName, templateArgs, parameters) => {

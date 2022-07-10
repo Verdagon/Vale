@@ -347,7 +347,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
     val error =
       compileDenizen(
         """
-          |func do(callable) infer-return {callable()}
+          |func do(callable) int {callable()}
           |""".stripMargin).expectErr().error
     error match {
       case LightFunctionMustHaveParamTypes(_, 0) =>

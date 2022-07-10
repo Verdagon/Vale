@@ -5,7 +5,7 @@ import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.UseP
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.postparsing.{BlockSE, CodeNameS, ExportS, ExternS, FunctionNameS, IFunctionDeclarationNameS, IImpreciseNameS, IRuneS, ITemplataType, SealedS}
+import dev.vale.postparsing.{BlockSE, CodeNameS, ExportS, ExternS, FreeImpreciseNameS, FunctionNameS, ICompileErrorS, IFunctionDeclarationNameS, IImpreciseNameS, IRuneS, ITemplataType, SealedS}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructCompilerDelegate, StructCompiler}
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
@@ -13,7 +13,6 @@ import dev.vale.typing.function.{DestructorCompiler, FunctionCompiler, FunctionC
 import dev.vale.typing.infer.IInfererDelegate
 import dev.vale.typing.types._
 import dev.vale.highertyping._
-import dev.vale.postparsing.ICompileErrorS
 import OverloadResolver.FindFunctionFailure
 import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
@@ -535,7 +534,6 @@ class Compiler(
               case FunctionEnvEntry(functionA) => {
                 functionCompiler.evaluateGenericFunctionFromNonCall(
                   coutputs,
-                  RangeS.internal(interner, -177),
                   FunctionTemplata(env, functionA))
               }
               case StructEnvEntry(structA) => {
@@ -602,30 +600,29 @@ class Compiler(
             globalEnv,
             FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
 
-//        coutputs.getAllStructs().foreach(struct => {
-//          if (struct.mutability == ImmutableT) {
-//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
-//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
-//          }
-//        })
-//        coutputs.getAllInterfaces().foreach(interface => {
-//          if (interface.mutability == ImmutableT) {
-//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
-//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
-//          }
-//        })
-//        coutputs.getAllRuntimeSizedArrays().foreach(rsa => {
-//          if (rsa.mutability == ImmutableT) {
-//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
-//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
-//          }
-//        })
-//        coutputs.getAllStaticSizedArrays().foreach(ssa => {
-//          if (ssa.mutability == ImmutableT) {
-//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
-//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
-//          }
-//        })
+        val freeImpreciseName = interner.intern(FreeImpreciseNameS())
+        val dropImpreciseName = interner.intern(CodeNameS(keywords.DROP_FUNCTION_NAME))
+
+        val immutableKinds =
+          coutputs.getAllStructs().filter(_.mutability == ImmutableT).map(_.getRef) ++
+            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.getRef) ++
+            coutputs.getAllRuntimeSizedArrays().filter(_.mutability == ImmutableT) ++
+            coutputs.getAllStaticSizedArrays().filter(_.mutability == ImmutableT)
+        immutableKinds.foreach(kind => {
+          val kindEnv = coutputs.getEnvForKind(kind)
+          functionCompiler.evaluateGenericFunctionFromNonCall(
+            coutputs,
+            kindEnv.lookupNearestWithImpreciseName(freeImpreciseName, Set(ExpressionLookupContext)) match {
+              case Some(ft@FunctionTemplata(_, _)) => ft
+              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
+            })
+          functionCompiler.evaluateGenericFunctionFromNonCall(
+            coutputs,
+            kindEnv.lookupNearestWithImpreciseName(dropImpreciseName, Set(ExpressionLookupContext)) match {
+              case Some(ft@FunctionTemplata(_, _)) => ft
+              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
+            })
+        })
 
         Profiler.frame(() => {
 //                val env =
