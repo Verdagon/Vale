@@ -31,7 +31,6 @@ class RSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             arrayCompiler.evaluateDestroyRuntimeSizedArrayIntoCallable(

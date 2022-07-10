@@ -90,7 +90,7 @@ object CompilerErrorHumanizer {
         }
         case CouldntNarrowDownCandidates(range, candidateRanges) => {
           "Multiple candidates for call:" +
-            candidateRanges.map(range => "\n" + humanizePos(codeMap, range.begin) + ":\n  " + lineContaining(codeMap, range.begin))
+            candidateRanges.map(range => "\n" + humanizePos(codeMap, range.begin) + ":\n  " + lineContaining(codeMap, range.begin)).mkString("")
         }
         case ImmStructCantHaveVaryingMember(range, structName, memberName) => {
           "Immutable struct (\"" + printableName(codeMap, structName) + "\") cannot have varying member (\"" + memberName + "\")."
@@ -429,8 +429,8 @@ object CompilerErrorHumanizer {
           case ShareT => "share"
         }
       }
-      case PrototypeTemplata(name, paramTypes, returnType) => {
-        name.str
+      case PrototypeTemplata(range, name, returnType) => {
+        humanizeName(codeMap, name)
       }
       case CoordTemplata(CoordT(ownership, kind)) => {
         (ownership match {

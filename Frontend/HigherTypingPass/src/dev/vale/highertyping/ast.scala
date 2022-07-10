@@ -263,6 +263,13 @@ case class FunctionA(
     }
   }
 
+  def isLambda(): Boolean = {
+    name match {
+      case LambdaDeclarationNameS(_) => true
+      case _ => false
+    }
+  }
+
   def isTemplate: Boolean = tyype match {
     case FunctionTemplataType => false
     case TemplateTemplataType(_, _) => true

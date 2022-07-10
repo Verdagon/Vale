@@ -425,6 +425,10 @@ class StructCompilerCore(
 
     val closuredVarsStructRef = closureStructDefinition.getRef;
 
+    start here
+    // instantiate drop and free.
+    // do this above for non-closures as well
+
     (closuredVarsStructRef, mutability, functionTemplata)
   }
 }

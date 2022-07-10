@@ -61,7 +61,6 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords) extends IFunc
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             NewImmRuntimeSizedArrayTE(

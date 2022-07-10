@@ -30,7 +30,6 @@ class RSALenMacro() extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             ArrayLengthTE(

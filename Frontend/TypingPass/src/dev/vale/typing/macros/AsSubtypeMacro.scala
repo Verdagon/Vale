@@ -96,7 +96,7 @@ class AsSubtypeMacro(
         }
       }
 
-    coutputs.addFunction(FunctionT(header, vimpl(), BlockTE(ReturnTE(asSubtypeExpr))))
+    coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
 
     header
   }

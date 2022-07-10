@@ -195,7 +195,7 @@ class StructDropMacro(
         }
       }
 
-    val function2 = FunctionT(header, vimpl(), BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
+    val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
     coutputs.addFunction(function2)
     function2.header
   }

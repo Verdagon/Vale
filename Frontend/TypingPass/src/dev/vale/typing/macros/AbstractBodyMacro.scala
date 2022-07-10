@@ -36,7 +36,6 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
     val function2 =
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             InterfaceFunctionCallTE(
@@ -47,7 +46,7 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs
       .declareFunctionReturnType(header.toSignature, returnReferenceType2)
     coutputs.addFunction(function2)
-    vassert(coutputs.getDeclaredSignatureOrigin(env.fullName).nonEmpty)
+//    vassert(coutputs.getDeclaredSignatureOrigin(env.fullName).nonEmpty)
     header
   }
 }

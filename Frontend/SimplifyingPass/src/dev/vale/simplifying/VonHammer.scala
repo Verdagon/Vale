@@ -931,12 +931,14 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("kind", vonifyKind(typeHammer.translateKind(hinputs, hamuts, kind)))))
       }
-      case PrototypeTemplata(prototype) => {
+      case PrototypeTemplata(declarationRange, name, returnType) => {
         VonObject(
           "PrototypeTemplata",
           None,
           Vector(
-            VonMember("prototype", vonifyPrototype(typeHammer.translatePrototype(hinputs, hamuts, prototype)))))
+            VonMember("declarationRange", vonifyRange(declarationRange)),
+            VonMember("name", VonStr(name.last.humanName.str)),
+            VonMember("returnType", vonifyCoord(typeHammer.translateReference(hinputs, hamuts, returnType)))))
       }
       case RuntimeSizedArrayTemplateTemplata() => VonObject("ArrayTemplateTemplata", None, Vector())
       case ft @ FunctionTemplata(env, functionA) => {

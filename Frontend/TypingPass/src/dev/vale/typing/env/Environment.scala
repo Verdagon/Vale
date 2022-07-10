@@ -139,7 +139,7 @@ object TemplatasStore {
       case InterfaceEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case TemplataEnvEntry(templata) => {
         templata match {
-          case PrototypeTemplata(_) => true
+          case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
@@ -269,15 +269,25 @@ case class TemplatasStore(
     val newEntriesByNameS =
       newEntries
         .toVector
-        .map({
-          case (key, value @ ImplEnvEntry(implA)) => (Some(implA.impreciseName), value)
-          case (key, value) => (getImpreciseName(interner, key), value)
+        .flatMap({
+          case (key, value @ TemplataEnvEntry(PrototypeTemplata(range, name, _))) => {
+            // This is so if we have:
+            //    where func moo(T)T
+            // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)
+            // but also CodeNameS("moo").
+            getImpreciseName(interner, key).toList.map(_ -> value) ++
+              getImpreciseName(interner, name.last).map(_ -> value)
+          }
+          case (key, value @ ImplEnvEntry(implA)) => {
+            getImpreciseName(interner, key).toList.map(_ -> value) ++
+              List(implA.impreciseName -> value)
+          }
+          case (key, value) => {
+            getImpreciseName(interner, key).toList.map(_ -> value)
+          }
         })
-        .filter(_._1.nonEmpty)
-        .map({ case (key, value) => (key.get, value) })
         .groupBy(_._1)
         .mapValues(_.map(_._2))
-    vassert(newEntriesByNameS.size <= newEntries.size)
     val combinedEntriesByNameS =
       entriesByImpreciseNameS ++
         newEntriesByNameS ++

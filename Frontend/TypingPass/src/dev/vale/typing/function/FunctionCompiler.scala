@@ -244,7 +244,7 @@ class FunctionCompiler(
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
   // func main():Int{main()}
-  def evaluateOrdinaryFunctionFromNonCallForPrototype(
+  def evaluateOrdinaryFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata):
@@ -252,7 +252,7 @@ class FunctionCompiler(
     Profiler.frame(() => {
         val FunctionTemplata(env, function) = functionTemplata
         if (function.isLight) {
-          evaluateOrdinaryLightFunctionFromNonCallForPrototype(
+          evaluateOrdinaryLightFunctionFromCallForPrototype(
             env, coutputs, callRange, function)
         } else {
           val lambdaCitizenName2 =
@@ -267,10 +267,8 @@ class FunctionCompiler(
 
                 lambdaCitizenName2,
                 Set(TemplataLookupContext)))
-          val header =
-            evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-              env, coutputs, closureStructRef, function)
-          (header.toPrototype)
+          evaluateOrdinaryClosureFunctionFromCallForPrototype(
+            env, coutputs, closureStructRef, function)
         }
       })
 
@@ -389,6 +387,16 @@ class FunctionCompiler(
       env, coutputs, closureStructRef, function)
   }
 
+  private def evaluateOrdinaryClosureFunctionFromCallForPrototype(
+    env: IEnvironment,
+    coutputs: CompilerOutputs,
+    closureStructRef: StructTT,
+    function: FunctionA):
+  (PrototypeT) = {
+    closureOrLightLayer.evaluateOrdinaryClosureFunctionFromCallForPrototype(
+      env, coutputs, closureStructRef, function)
+  }
+
   private def evaluateTemplatedClosureFunctionFromNonCallForHeader(
     env: IEnvironment,
     coutputs: CompilerOutputs,
@@ -413,13 +421,13 @@ class FunctionCompiler(
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
   // func main():Int{main()}
-  private def evaluateOrdinaryLightFunctionFromNonCallForPrototype(
+  private def evaluateOrdinaryLightFunctionFromCallForPrototype(
       env: IEnvironment,
       coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA):
   (PrototypeT) = {
-    closureOrLightLayer.evaluateOrdinaryLightFunctionFromNonCallForPrototype(
+    closureOrLightLayer.evaluateOrdinaryLightFunctionFromCallForPrototype(
       env, coutputs, callRange, function)
   }
 
@@ -481,6 +489,20 @@ class FunctionCompiler(
         }
       })
 
+  }
+
+  def evaluateGenericLightFunctionFromCallForPrototype(
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    functionTemplata: FunctionTemplata,
+    explicitTemplateArgs: Vector[ITemplata],
+    args: Vector[ParamFilter]):
+  IEvaluateFunctionResult[PrototypeT] = {
+    Profiler.frame(() => {
+      val FunctionTemplata(env, function) = functionTemplata
+      closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
+        env, coutputs, callRange, function, explicitTemplateArgs, args)
+    })
   }
 
   private def evaluateTemplatedLightFunctionFromCallForPrototype(

@@ -23,7 +23,7 @@ import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSub
 import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
-import dev.vale.typing.names.{FullNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 import dev.vale.typing.templata.{FunctionTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata}
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.AncestorHelper
@@ -36,7 +36,6 @@ import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
 import dev.vale.typing.macros.SameInstanceMacro
-import dev.vale.typing.names.CitizenTemplateNameT
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -69,29 +68,21 @@ object DefaultPrintyThing {
   }
 }
 
-case class TypingPassOptions(
-  debugOut: (=> String) => Unit = DefaultPrintyThing.print,
-  globalOptions: GlobalOptions
-) {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-}
-
 
 
 class Compiler(
-    debugOut: (=> String) => Unit,
-
+    opts: TypingPassOptions,
     interner: Interner,
-    keywords: Keywords,
-    globalOptions: GlobalOptions) {
-  val opts = TypingPassOptions(debugOut, globalOptions)
+    keywords: Keywords) {
+  val debugOut = opts.debugOut
+  val globalOptions = opts.globalOptions
+
 
   val nameTranslator = new NameTranslator(interner)
 
   val templataCompiler =
     new TemplataCompiler(
       opts,
-
       nameTranslator,
       new ITemplataCompilerDelegate {
         override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): Boolean = {
@@ -250,6 +241,13 @@ class Compiler(
             val structDef = state.getStructDefForRef(structTT)
             structDef.isClosure
         }
+
+        override def assemblePrototypeTemplata(
+          env: IEnvironment, range: RangeS, nameT: FunctionNameT, returnCoord: CoordT):
+        PrototypeTemplata = {
+          PrototypeTemplata(range, env.fullName.addStep(nameT), returnCoord)
+        }
+
 
 //        override def resolvePrototype(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: String, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
 //            overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(StrI(name)))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
@@ -535,20 +533,10 @@ class Compiler(
             entry match {
               case TemplataEnvEntry(_) =>
               case FunctionEnvEntry(functionA) => {
-                if (functionA.isTemplate) {
-                  functionCompiler.evaluateGenericFunctionFromNonCall(
-                    coutputs,
-                    RangeS.internal(interner, -177),
-                    FunctionTemplata(env, functionA))
-                } else {
-                  if (isRootFunction(functionA)) {
-                    val _ =
-                      functionCompiler.evaluateOrdinaryFunctionFromNonCallForPrototype(
-                        coutputs,
-                        RangeS.internal(interner, -177),
-                        FunctionTemplata(env, functionA))
-                  }
-                }
+                functionCompiler.evaluateGenericFunctionFromNonCall(
+                  coutputs,
+                  RangeS.internal(interner, -177),
+                  FunctionTemplata(env, functionA))
               }
               case StructEnvEntry(structA) => {
                 if (structA.isTemplate) {
@@ -604,42 +592,42 @@ class Compiler(
           })
         })
 
-        breakable {
-          while (true) {
-            val denizensAtStart = coutputs.countDenizens()
+//        breakable {
+//          while (true) {
+        val denizensAtStart = coutputs.countDenizens()
 
-            val builtinPackageCoord = PackageCoordinate.BUILTIN(interner, keywords)
-            val rootPackageEnv =
-              PackageEnvironment.makeTopLevelEnvironment(
-                globalEnv,
-                FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
+        val builtinPackageCoord = PackageCoordinate.BUILTIN(interner, keywords)
+        val rootPackageEnv =
+          PackageEnvironment.makeTopLevelEnvironment(
+            globalEnv,
+            FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
 
-            coutputs.getAllStructs().foreach(struct => {
-              if (struct.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
-                destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
-              }
-            })
-            coutputs.getAllInterfaces().foreach(interface => {
-              if (interface.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
-                destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
-              }
-            })
-            coutputs.getAllRuntimeSizedArrays().foreach(rsa => {
-              if (rsa.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
-                destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
-              }
-            })
-            coutputs.getAllStaticSizedArrays().foreach(ssa => {
-              if (ssa.mutability == ImmutableT) {
-                destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
-                destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
-              }
-            })
+//        coutputs.getAllStructs().foreach(struct => {
+//          if (struct.mutability == ImmutableT) {
+//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
+//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, struct.getRef))
+//          }
+//        })
+//        coutputs.getAllInterfaces().foreach(interface => {
+//          if (interface.mutability == ImmutableT) {
+//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
+//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), CoordT(ShareT, interface.getRef))
+//          }
+//        })
+//        coutputs.getAllRuntimeSizedArrays().foreach(rsa => {
+//          if (rsa.mutability == ImmutableT) {
+//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
+//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, rsa))
+//          }
+//        })
+//        coutputs.getAllStaticSizedArrays().foreach(ssa => {
+//          if (ssa.mutability == ImmutableT) {
+//            destructorCompiler.getDropFunction(rootPackageEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
+//            destructorCompiler.getFreeFunction(globalEnv, coutputs, RangeS.internal(interner, -1663), types.CoordT(ShareT, ssa))
+//          }
+//        })
 
-              Profiler.frame(() => {
+        Profiler.frame(() => {
 //                val env =
 //                  PackageEnvironment.makeTopLevelEnvironment(
 //                    globalEnv, FullNameT(PackageCoordinate.BUILTIN, Vector(), interner.intern(PackageTopLevelNameT())))
@@ -648,24 +636,24 @@ class Compiler(
                 // This doesnt actually stamp *all* overrides, just the ones we can immediately
                 // see missing. We don't know if, in the process of stamping these, we'll find more.
                 // Also note, these don't stamp them right now, they defer them for later evaluating.
-                edgeCompiler.compileITables(coutputs)
-              })
+          edgeCompiler.compileITables(coutputs)
+        })
 
-            var deferredFunctionsEvaluated = 0
-            while (coutputs.peekNextDeferredEvaluatingFunction().nonEmpty) {
-              val nextDeferredEvaluatingFunction = coutputs.peekNextDeferredEvaluatingFunction().get
-              deferredFunctionsEvaluated += 1
-              // No, IntelliJ, I assure you this has side effects
-              (nextDeferredEvaluatingFunction.call) (coutputs)
-              coutputs.markDeferredFunctionEvaluated(nextDeferredEvaluatingFunction.prototypeT)
-            }
+//            var deferredFunctionsEvaluated = 0
+//            while (coutputs.peekNextDeferredEvaluatingFunction().nonEmpty) {
+//              val nextDeferredEvaluatingFunction = coutputs.peekNextDeferredEvaluatingFunction().get
+//              deferredFunctionsEvaluated += 1
+//              // No, IntelliJ, I assure you this has side effects
+//              (nextDeferredEvaluatingFunction.call) (coutputs)
+//              coutputs.markDeferredFunctionEvaluated(nextDeferredEvaluatingFunction.prototypeT)
+//            }
 
 
-            val denizensAtEnd = coutputs.countDenizens()
-            if (denizensAtStart == denizensAtEnd)
-              break
-          }
-        }
+//            val denizensAtEnd = coutputs.countDenizens()
+//            if (denizensAtStart == denizensAtEnd)
+//              break
+//          }
+//        }
 
         val (interfaceEdgeBlueprints, interfaceToStructToMethods) = edgeCompiler.compileITables(coutputs)
         val edges =
@@ -685,77 +673,96 @@ class Compiler(
 
         ensureDeepExports(coutputs)
 
-        Profiler.frame(() => {
-          val reachables = Reachability.findReachables(coutputs, interfaceEdgeBlueprints, interfaceToStructToMethods)
+        val (
+          reachableInterfaces,
+          reachableStructs,
+          reachableSSAs,
+          reachableRSAs,
+          reachableFunctions) =
+        if (opts.treeShakingEnabled) {
+          Profiler.frame(() => {
+            val reachables = Reachability.findReachables(coutputs, interfaceEdgeBlueprints, interfaceToStructToMethods)
 
-          val categorizedFunctions = coutputs.getAllFunctions().groupBy(f => reachables.functions.contains(f.header.toSignature))
-          val reachableFunctions = categorizedFunctions.getOrElse(true, Vector.empty)
-          val unreachableFunctions = categorizedFunctions.getOrElse(false, Vector.empty)
-          unreachableFunctions.foreach(f => debugOut("Shaking out unreachable: " + f.header.fullName))
-          reachableFunctions.foreach(f => debugOut("Including: " + f.header.fullName))
+            val categorizedFunctions = coutputs.getAllFunctions().groupBy(f => reachables.functions.contains(f.header.toSignature))
+            val reachableFunctions = categorizedFunctions.getOrElse(true, Vector.empty)
+            val unreachableFunctions = categorizedFunctions.getOrElse(false, Vector.empty)
+            unreachableFunctions.foreach(f => debugOut("Shaking out unreachable: " + f.header.fullName))
+            reachableFunctions.foreach(f => debugOut("Including: " + f.header.fullName))
 
-          val categorizedSSAs = coutputs.getAllStaticSizedArrays().groupBy(f => reachables.staticSizedArrays.contains(f))
-          val reachableSSAs = categorizedSSAs.getOrElse(true, Vector.empty)
-          val unreachableSSAs = categorizedSSAs.getOrElse(false, Vector.empty)
-          unreachableSSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
-          reachableSSAs.foreach(f => debugOut("Including: " + f))
+            val categorizedSSAs = coutputs.getAllStaticSizedArrays().groupBy(f => reachables.staticSizedArrays.contains(f))
+            val reachableSSAs = categorizedSSAs.getOrElse(true, Vector.empty)
+            val unreachableSSAs = categorizedSSAs.getOrElse(false, Vector.empty)
+            unreachableSSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
+            reachableSSAs.foreach(f => debugOut("Including: " + f))
 
-          val categorizedRSAs = coutputs.getAllRuntimeSizedArrays().groupBy(f => reachables.runtimeSizedArrays.contains(f))
-          val reachableRSAs = categorizedRSAs.getOrElse(true, Vector.empty)
-          val unreachableRSAs = categorizedRSAs.getOrElse(false, Vector.empty)
-          unreachableRSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
-          reachableRSAs.foreach(f => debugOut("Including: " + f))
+            val categorizedRSAs = coutputs.getAllRuntimeSizedArrays().groupBy(f => reachables.runtimeSizedArrays.contains(f))
+            val reachableRSAs = categorizedRSAs.getOrElse(true, Vector.empty)
+            val unreachableRSAs = categorizedRSAs.getOrElse(false, Vector.empty)
+            unreachableRSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
+            reachableRSAs.foreach(f => debugOut("Including: " + f))
 
-          val categorizedStructs = coutputs.getAllStructs().groupBy(f => reachables.structs.contains(f.getRef))
-          val reachableStructs = categorizedStructs.getOrElse(true, Vector.empty)
-          val unreachableStructs = categorizedStructs.getOrElse(false, Vector.empty)
-          unreachableStructs.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
-          reachableStructs.foreach(f => debugOut("Including: " + f.fullName))
+            val categorizedStructs = coutputs.getAllStructs().groupBy(f => reachables.structs.contains(f.getRef))
+            val reachableStructs = categorizedStructs.getOrElse(true, Vector.empty)
+            val unreachableStructs = categorizedStructs.getOrElse(false, Vector.empty)
+            unreachableStructs.foreach(f => {
+              debugOut("Shaking out unreachable: " + f.fullName)
+            })
+            reachableStructs.foreach(f => debugOut("Including: " + f.fullName))
 
-          val categorizedInterfaces = coutputs.getAllInterfaces().groupBy(f => reachables.interfaces.contains(f.getRef))
-          val reachableInterfaces = categorizedInterfaces.getOrElse(true, Vector.empty)
-          val unreachableInterfaces = categorizedInterfaces.getOrElse(false, Vector.empty)
-          unreachableInterfaces.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
-          reachableInterfaces.foreach(f => debugOut("Including: " + f.fullName))
+            val categorizedInterfaces = coutputs.getAllInterfaces().groupBy(f => reachables.interfaces.contains(f.getRef))
+            val reachableInterfaces = categorizedInterfaces.getOrElse(true, Vector.empty)
+            val unreachableInterfaces = categorizedInterfaces.getOrElse(false, Vector.empty)
+            unreachableInterfaces.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
+            reachableInterfaces.foreach(f => debugOut("Including: " + f.fullName))
 
-          val categorizedEdges =
-            edges.groupBy(f => reachables.edges.contains(f))
-          val reachableEdges = categorizedEdges.getOrElse(true, Vector.empty)
-          val unreachableEdges = categorizedEdges.getOrElse(false, Vector.empty)
-          unreachableEdges.foreach(f => debugOut("Shaking out unreachable: " + f))
-          reachableEdges.foreach(f => debugOut("Including: " + f))
+            val categorizedEdges =
+              edges.groupBy(f => reachables.edges.contains(f))
+            val reachableEdges = categorizedEdges.getOrElse(true, Vector.empty)
+            val unreachableEdges = categorizedEdges.getOrElse(false, Vector.empty)
+            unreachableEdges.foreach(f => debugOut("Shaking out unreachable: " + f))
+            reachableEdges.foreach(f => debugOut("Including: " + f))
 
-          val allKinds =
-            reachableStructs.map(_.getRef) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs
-          val reachableImmKinds: Vector[KindT] =
-            allKinds
-              .filter({
-                case s@StructTT(_) => coutputs.lookupMutability(s) == ImmutableT
-                case i@InterfaceTT(_) => coutputs.lookupMutability(i) == ImmutableT
-                case StaticSizedArrayTT(_, m, _, _) => m == ImmutableT
-                case RuntimeSizedArrayTT(m, _) => m == ImmutableT
-                case _ => true
-              })
-              .toVector
-          val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(coutputs.findImmDestructor)).toMap
+            (reachableInterfaces, reachableStructs, reachableSSAs, reachableRSAs, reachableFunctions)
+          })
+        } else {
+          (
+            coutputs.getAllInterfaces(),
+            coutputs.getAllStructs(),
+            coutputs.getAllStaticSizedArrays(),
+            coutputs.getAllRuntimeSizedArrays(),
+            coutputs.getAllFunctions())
+        }
 
-          val hinputs =
-            vale.typing.Hinputs(
-              reachableInterfaces.toVector,
-              reachableStructs.toVector,
-              reachableFunctions.toVector,
-              reachableImmKindToDestructor,
-              interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
-              edges.toVector,
-              coutputs.getKindExports,
-              coutputs.getFunctionExports,
-              coutputs.getKindExterns,
-              coutputs.getFunctionExterns)
+      val allKinds =
+        reachableStructs.map(_.getRef) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs
+      val reachableImmKinds: Vector[KindT] =
+        allKinds
+          .filter({
+            case s@StructTT(_) => coutputs.lookupMutability(s) == ImmutableT
+            case i@InterfaceTT(_) => coutputs.lookupMutability(i) == ImmutableT
+            case StaticSizedArrayTT(_, m, _, _) => m == ImmutableT
+            case RuntimeSizedArrayTT(m, _) => m == ImmutableT
+            case _ => true
+          })
+          .toVector
+      val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(coutputs.findImmDestructor)).toMap
 
-          vassert(reachableFunctions.toVector.map(_.header.fullName).distinct.size == reachableFunctions.toVector.map(_.header.fullName).size)
+      val hinputs =
+          vale.typing.Hinputs(
+            reachableInterfaces.toVector,
+            reachableStructs.toVector,
+            reachableFunctions.toVector,
+            reachableImmKindToDestructor,
+            interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
+            edges.toVector,
+            coutputs.getKindExports,
+            coutputs.getFunctionExports,
+            coutputs.getKindExterns,
+            coutputs.getFunctionExterns)
 
-          Ok(hinputs)
-        })
+        vassert(reachableFunctions.toVector.map(_.header.fullName).distinct.size == reachableFunctions.toVector.map(_.header.fullName).size)
+
+        Ok(hinputs)
       })
     } catch {
       case CompileErrorExceptionT(err) => Err(err)

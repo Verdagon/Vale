@@ -5,7 +5,7 @@ import dev.vale.finalast.ProgramH
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing.{ICompileErrorS, ProgramS}
-import dev.vale.typing.{Hinputs, ICompileErrorT, TypingPassCompilation, TypingPassCompilationOptions}
+import dev.vale.typing.{Hinputs, ICompileErrorT, TypingPassCompilation, TypingPassOptions}
 import dev.vale.{FileCoordinateMap, IPackageResolver, Interner, Keywords, PackageCoordinate, PackageCoordinateMap, Profiler, Result, vassertSome, vcurious, vimpl}
 import dev.vale.highertyping.ICompileErrorA
 import dev.vale.lexing.{FailedParse, RangeL}
@@ -33,7 +33,7 @@ class HammerCompilation(
       keywords,
       packagesToBuild,
       packageToContentsResolver,
-      TypingPassCompilationOptions(
+      TypingPassOptions(
         options.globalOptions,
         options.debugOut))
   var hamutsCache: Option[ProgramH] = None

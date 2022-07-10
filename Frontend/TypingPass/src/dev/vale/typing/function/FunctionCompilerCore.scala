@@ -61,9 +61,9 @@ class FunctionCompilerCore(
   // - either no closured vars, or they were already added to the env.
   def evaluateFunctionForHeader(
     startingFullEnv: FunctionEnvironment,
-      coutputs: CompilerOutputs,
+    coutputs: CompilerOutputs,
     callRange: RangeS,
-      params2: Vector[ParameterT]):
+    params2: Vector[ParameterT]):
   (FunctionHeaderT) = {
     val fullEnv = FunctionEnvironmentBox(startingFullEnv)
 
@@ -73,11 +73,11 @@ class FunctionCompilerCore(
 
     val isDestructor =
       params2.nonEmpty &&
-      params2.head.tyype.ownership == OwnT &&
-      (startingFullEnv.fullName.last match {
-        case FunctionNameT(humanName, _, _) if humanName == keywords.DROP_FUNCTION_NAME => true
-        case _ => false
-      })
+        params2.head.tyype.ownership == OwnT &&
+        (startingFullEnv.fullName.last match {
+          case FunctionNameT(humanName, _, _) if humanName == keywords.DROP_FUNCTION_NAME => true
+          case _ => false
+        })
 
     val maybeExport =
       startingFullEnv.function.attributes.collectFirst { case e@ExportS(_) => e }
@@ -87,7 +87,7 @@ class FunctionCompilerCore(
       startingFullEnv.function.body match {
         case CodeBodyS(body) => {
           declareAndEvaluateFunctionBodyAndAdd(
-              startingFullEnv, fullEnv, coutputs, life, params2, isDestructor)
+            startingFullEnv, fullEnv, coutputs, life, params2, isDestructor)
         }
         case ExternBodyS => {
           val maybeRetCoord =
@@ -154,8 +154,8 @@ class FunctionCompilerCore(
                   Some(startingFullEnv.function), params2, maybeRetCoord)
               if (header.toSignature != signature2) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
-                "Expected:  " + signature2 + "\n" +
-                "Generated: " + header.toSignature))
+                  "Expected:  " + signature2 + "\n" +
+                  "Generated: " + header.toSignature))
               }
               (header)
             }
@@ -180,25 +180,117 @@ class FunctionCompilerCore(
     }
 
     if (header.attributes.contains(PureT)) {
-//      header.params.foreach(param => {
-//        if (param.tyype.permission != ReadonlyT) {
-//          throw CompileErrorExceptionT(NonReadonlyReferenceFoundInPureFunctionParameter(startingFullEnv.function.range, param.name))
-//        }
-//      })
+      //      header.params.foreach(param => {
+      //        if (param.tyype.permission != ReadonlyT) {
+      //          throw CompileErrorExceptionT(NonReadonlyReferenceFoundInPureFunctionParameter(startingFullEnv.function.range, param.name))
+      //        }
+      //      })
     }
 
     header
   }
 
+  // Preconditions:
+  // - already spawned local env
+  // - either no template args, or they were already added to the env.
+  // - either no closured vars, or they were already added to the env.
+  def getFunctionPrototypeForCall(
+    startingFullEnv: FunctionEnvironment,
+      coutputs: CompilerOutputs,
+    callRange: RangeS,
+      params2: Vector[ParameterT]):
+  (PrototypeT) = {
+    getFunctionPrototypeInnerForCall(
+      startingFullEnv, startingFullEnv.fullName)
+
+//      startingFullEnv.function.body match {
+//        case CodeBodyS(body) => {
+//        }
+//        case ExternBodyS => {
+//          val maybeRetCoord =
+//            fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune)), Set(TemplataLookupContext)).headOption
+//          val retCoord =
+//            maybeRetCoord match {
+//              case None => vfail("wat")
+//              case Some(CoordTemplata(r)) => r
+//            }
+//          val header =
+//            makeExternFunction(
+//              coutputs,
+//              fullEnv.fullName,
+//              startingFullEnv.function.range,
+//              translateFunctionAttributes(startingFullEnv.function.attributes),
+//              params2,
+//              retCoord,
+//              Some(startingFullEnv.function))
+//          (header)
+//        }
+//        case AbstractBodyS | GeneratedBodyS(_) => {
+//          val generatorId =
+//            startingFullEnv.function.body match {
+//              case AbstractBodyS => keywords.abstractBody
+//              case GeneratedBodyS(generatorId) => generatorId
+//            }
+//          val signature2 = SignatureT(fullEnv.fullName);
+//          val maybeRetTemplata =
+//            startingFullEnv.function.maybeRetCoordRune match {
+//              case None => (None)
+//              case Some(retCoordRune) => {
+//                fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(retCoordRune.rune)), Set(TemplataLookupContext)).headOption
+//              }
+//            }
+//          val maybeRetCoord =
+//            maybeRetTemplata match {
+//              case None => (None)
+//              case Some(CoordTemplata(retCoord)) => {
+//                coutputs.declareFunctionReturnType(signature2, retCoord)
+//                (Some(retCoord))
+//              }
+//              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Must be a coord!"))
+//            }
+//
+//          // Funny story... let's say we're current instantiating a constructor,
+//          // for example MySome<T>().
+//          // The constructor returns a MySome<T>, which means when we do the above
+//          // evaluating of the function body, we stamp the MySome<T> struct.
+//          // That ends up stamping the entire struct, including the constructor.
+//          // That's what we were originally here for, and evaluating the body above
+//          // just did it for us O_o
+//          // So, here we check to see if we accidentally already did it.
+//          opts.debugOut("doesnt this mean we have to do this in every single generated function?")
+//
+//          coutputs.lookupFunction(signature2) match {
+//            case Some(function2) => {
+//              (function2.header)
+//            }
+//            case None => {
+//              val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
+//              val header =
+//                generator.generateFunctionBody(
+//                  fullEnv.snapshot, coutputs, generatorId, life, callRange,
+//                  Some(startingFullEnv.function), params2, maybeRetCoord)
+//              if (header.toSignature != signature2) {
+//                throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
+//                "Expected:  " + signature2 + "\n" +
+//                "Generated: " + header.toSignature))
+//              }
+//              (header)
+//            }
+//          }
+//        }
+//      }
+  }
+
   def declareAndEvaluateFunctionBodyAndAdd(
     startingFullEnv: FunctionEnvironment,
-    fullEnv: FunctionEnvironmentBox,
+    fullEnvBox: FunctionEnvironmentBox,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     paramsT: Vector[ParameterT],
     isDestructor: Boolean):
   FunctionHeaderT = {
-    val functionFullName = fullEnv.fullName
+    val fullEnvSnapshot = fullEnvBox.snapshot
+    val functionFullName = fullEnvSnapshot.fullName
 
     val attributesWithoutExport =
       startingFullEnv.function.attributes.filter({
@@ -222,43 +314,85 @@ class FunctionCompilerCore(
         case None => None
       }
 
-    maybeExplicitReturnCoord match {
-      case None => {
-        opts.debugOut("Eagerly evaluating function: " + functionFullName)
-        val header =
-          finishFunctionMaybeDeferred(
-            coutputs,
-            fullEnv.snapshot,
-            life,
-            attributesT,
-            paramsT,
-            isDestructor,
-            maybeExplicitReturnCoord,
-            None)
-        header
+//    maybeExplicitReturnCoord match {
+//      case None => {
+//        opts.debugOut("Eagerly evaluating function: " + functionFullName)
+
+    val fullEnv = FunctionEnvironmentBox(fullEnvSnapshot)
+    val (maybeInferredReturnCoord, body2) =
+      bodyCompiler.declareAndEvaluateFunctionBody(
+        fullEnv, coutputs, life, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
+
+    val returnCoord =
+      maybeExplicitReturnCoord match {
+        case Some(x) => x
+        case None => {
+          maybeInferredReturnCoord match {
+            case None => vfail()
+            case Some(explicitReturnCoord) => explicitReturnCoord
+          }
+        }
       }
-      case Some(explicitReturnCoord) => {
-        fullEnv.setReturnType(Some(explicitReturnCoord))
-        val header = finalizeHeader(fullEnv, coutputs, attributesT, paramsT, explicitReturnCoord)
-        opts.debugOut("Deferring function: " + header.fullName)
-        coutputs.deferEvaluatingFunction(
-          DeferredEvaluatingFunction(
-            header.toPrototype,
-            (coutputs) => {
-              opts.debugOut("Finishing function: " + header.fullName)
-              finishFunctionMaybeDeferred(
-                coutputs,
-                fullEnv.snapshot,
-                life,
-                attributesT,
-                paramsT,
-                isDestructor,
-                maybeExplicitReturnCoord,
-                Some(header))
-            }))
-        header
+    val header =
+      finalizeHeader(fullEnv, coutputs, attributesT, paramsT, returnCoord)
+
+    // Funny story... let's say we're current instantiating a constructor,
+    // for example MySome<T>().
+    // The constructor returns a MySome<T>, which means when we do the above
+    // evaluating of the function body, we stamp the MySome<T> struct.
+    // That ends up stamping the entire struct, including the constructor.
+    // That's what we were originally here for, and evaluating the body above
+    // just did it for us O_o
+    // So, here we check to see if we accidentally already did it.
+
+    coutputs.lookupFunction(header.toSignature) match {
+      case None => {
+        val function2 = FunctionT(header, body2);
+        coutputs.addFunction(function2)
+        (function2.header)
+      }
+      case Some(function2) => {
+        (function2.header)
       }
     }
+//      }
+//      case Some(explicitReturnCoord) => {
+//        fullEnv.setReturnType(Some(explicitReturnCoord))
+//        val header = finalizeHeader(fullEnv, coutputs, attributesT, paramsT, explicitReturnCoord)
+//        opts.debugOut("NOT DEFERRING FUNCTION: " + header.fullName)
+//        coutputs.deferEvaluatingFunction(
+//          DeferredEvaluatingFunction(
+//            header.toPrototype,
+//            (coutputs) => {
+//              opts.debugOut("Finishing function: " + header.fullName)
+//              finishFunctionMaybeDeferred(
+//                coutputs,
+//                fullEnv.snapshot,
+//                life,
+//                attributesT,
+//                paramsT,
+//                isDestructor,
+//                maybeExplicitReturnCoord,
+//                Some(header))
+//            }))
+//        header
+//      }
+//    }
+  }
+
+  def getFunctionPrototypeInnerForCall(
+    startingFullEnv: FunctionEnvironment,
+    fullName: FullNameT[IFunctionNameT]):
+  PrototypeT = {
+    val retCoordRune = vassertSome(startingFullEnv.function.maybeRetCoordRune)
+    val returnCoord =
+      startingFullEnv.lookupNearestWithImpreciseName(
+        interner.intern(RuneNameS(retCoordRune.rune)),
+        Set(TemplataLookupContext))  match {
+        case Some(CoordTemplata(retCoord)) => retCoord
+        case other => vwat(other)
+      }
+    PrototypeT(fullName, returnCoord)
   }
 
   def finalizeHeader(
@@ -272,52 +406,18 @@ class FunctionCompilerCore(
     header
   }
 
-  // By MaybeDeferred we mean that this function might be called later, to reduce reentrancy.
-  private def finishFunctionMaybeDeferred(
-      coutputs: CompilerOutputs,
-      fullEnvSnapshot: FunctionEnvironment,
-      life: LocationInFunctionEnvironment,
-      attributesT: Vector[IFunctionAttributeT],
-      paramsT: Vector[ParameterT],
-      isDestructor: Boolean,
-      maybeExplicitReturnCoord: Option[CoordT],
-      maybePreKnownHeader: Option[FunctionHeaderT]):
-  FunctionHeaderT = {
-    val fullEnv = FunctionEnvironmentBox(fullEnvSnapshot)
-    val (maybeInferredReturnCoord, body2) =
-      bodyCompiler.declareAndEvaluateFunctionBody(
-        fullEnv, coutputs, life, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
-
-    val maybePostKnownHeader =
-      maybeInferredReturnCoord match {
-        case None => None
-        case Some(explicitReturnCoord) => {
-          Some(finalizeHeader(fullEnv, coutputs, attributesT, paramsT, explicitReturnCoord))
-        }
-      }
-
-    val header = vassertOne(maybePreKnownHeader.toVector ++ maybePostKnownHeader.toVector)
-
-    // Funny story... let's say we're current instantiating a constructor,
-    // for example MySome<T>().
-    // The constructor returns a MySome<T>, which means when we do the above
-    // evaluating of the function body, we stamp the MySome<T> struct.
-    // That ends up stamping the entire struct, including the constructor.
-    // That's what we were originally here for, and evaluating the body above
-    // just did it for us O_o
-    // So, here we check to see if we accidentally already did it.
-
-    coutputs.lookupFunction(header.toSignature) match {
-      case None => {
-        val function2 = FunctionT(header, vimpl(), body2);
-        coutputs.addFunction(function2)
-        (function2.header)
-      }
-      case Some(function2) => {
-        (function2.header)
-      }
-    }
-  }
+//  // By MaybeDeferred we mean that this function might be called later, to reduce reentrancy.
+//  private def finishFunctionMaybeDeferred(
+//      coutputs: CompilerOutputs,
+//      fullEnvSnapshot: FunctionEnvironment,
+//      life: LocationInFunctionEnvironment,
+//      attributesT: Vector[IFunctionAttributeT],
+//      paramsT: Vector[ParameterT],
+//      isDestructor: Boolean,
+//      maybeExplicitReturnCoord: Option[CoordT],
+//      maybePreKnownHeader: Option[FunctionHeaderT]):
+//  FunctionHeaderT = {
+//  }
 
   def translateAttributes(attributesA: Vector[IFunctionAttributeS]) = {
     attributesA.map({
@@ -355,7 +455,6 @@ class FunctionCompilerCore(
         val function2 =
           FunctionT(
             header,
-            vimpl(),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
