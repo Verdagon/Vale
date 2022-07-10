@@ -31,7 +31,6 @@ class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             arrayCompiler.evaluateDestroyStaticSizedArrayIntoCallable(

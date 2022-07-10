@@ -82,7 +82,11 @@ object vassertOne {
     }
   }
   def apply[T](thing: Iterable[T]): T = {
-    apply(thing, "Expected exactly one element!")
+    thing.toList match {
+      case List() => vfail("Expected one element, but was empty.")
+      case List(x) => x
+      case other => vfail("Expected one element, but was size " + other.size + ".")
+    }
   }
   def apply[T](thing: Array[T], message: String): T = {
     thing.toList match {

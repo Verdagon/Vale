@@ -44,7 +44,6 @@ class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IF
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             RuntimeSizedArrayCapacityTE(

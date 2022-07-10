@@ -102,7 +102,6 @@ case class ConceptFunctionBound(prototype: PrototypeT) extends IFunctionBound
 
 case class FunctionT(
   header: FunctionHeaderT,
-  bounds: Array[IFunctionBound],
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
@@ -151,21 +150,38 @@ case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidat
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
+case class PrototypeTemplataCalleeCandidate(prototype: PrototypeTemplata) extends ICalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
 
 sealed trait IValidCalleeCandidate {
-  def banner: FunctionBannerT
+  def range: Option[RangeS]
+  def paramTypes: Array[CoordT]
 }
 case class ValidHeaderCalleeCandidate(
   header: FunctionHeaderT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def banner: FunctionBannerT = header.toBanner
+
+  override def range: Option[RangeS] = header.maybeOriginFunction.map(_.range)
+  override def paramTypes: Array[CoordT] = header.paramTypes.toArray
+}
+case class ValidPrototypeTemplataCalleeCandidate(
+  prototype: PrototypeTemplata
+) extends IValidCalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+
+  override def range: Option[RangeS] = Some(prototype.declarationRange)
+  override def paramTypes: Array[CoordT] = prototype.fullName.last.parameters.toArray
 }
 case class ValidCalleeCandidate(
   banner: FunctionBannerT,
   function: FunctionTemplata
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+
+  override def range: Option[RangeS] = banner.originFunction.map(_.range)
+  override def paramTypes: Array[CoordT] = banner.paramTypes.toArray
 }
 
 // A "signature" is just the things required for overload resolution, IOW function name and arg types.

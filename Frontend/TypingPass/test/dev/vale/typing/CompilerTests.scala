@@ -35,22 +35,6 @@ class CompilerTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
-  test("Simple program returning an int, inferred") {
-    val compile =
-      CompilerTestCompilation.test(
-        """
-          |import v.builtins.tup.*;
-          |func main() infer-return { return 3; }
-          |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    val main = coutputs.lookupFunction("main")
-    Collector.only(main, {
-      case FunctionHeaderT(simpleName("main"),Vector(UserFunctionT),Vector(), CoordT(ShareT, IntT.i32), _) => true
-    })
-    Collector.only(main, { case ConstantIntTE(3, _) => true })
-  }
-
   test("Simple program returning an int, explicit") {
     // We had a bug once looking up "int" in the environment, hence this test.
 

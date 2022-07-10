@@ -136,7 +136,6 @@ class StructConstructorMacro(
           constructorParams,
           constructorReturnType,
           originFunction),
-        vimpl(),
         BlockTE(
           ReturnTE(
             ConstructTE(
@@ -148,9 +147,9 @@ class StructConstructorMacro(
     coutputs.declareFunctionReturnType(constructor2.header.toSignature, constructor2.header.returnType)
     coutputs.addFunction(constructor2);
 
-    vassert(
-      coutputs.getDeclaredSignatureOrigin(
-        constructor2.header.fullName).nonEmpty)
+//    vassert(
+//      coutputs.getDeclaredSignatureOrigin(
+//        constructor2.header.fullName).nonEmpty)
 
     (constructor2.header)
   }

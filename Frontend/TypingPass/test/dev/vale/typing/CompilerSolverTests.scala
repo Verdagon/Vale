@@ -15,11 +15,10 @@ import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsag
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.infer.{KindIsNotConcrete, SendingNonCitizen}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
 import dev.vale.typing.templata.{CoordTemplata, KindTemplata, OwnershipTemplata, simpleName}
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.SendingNonCitizen
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
@@ -44,8 +43,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
-    // Tests that we reuse existing stamps
-    vassert(coutputs.getAllUserFunctions.size == 1000000) // impl
+    vassert(coutputs.getAllUserFunctions.size == 1)
   }
 
   test("Test lacking drop function") {
@@ -58,16 +56,79 @@ class CompilerSolverTests extends FunSuite with Matchers {
     }
   }
 
-  test("Test having drop function") {
+  test("Test having drop function concept function") {
     val compile = CompilerTestCompilation.test(
       """
         |func bork<T>(a T) where func drop(T)void { }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val bork = coutputs.lookupFunction("bork")
+
+    // Only identifying template arg coord should be of PlaceholderT(0)
+    bork.header.fullName.last.templateArgs match {
+      case Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(0)))) =>
+    }
+
+    // Make sure it calls drop, and that
     bork.body shouldHave {
       case FunctionCallTE(
-        PrototypeT(FullNameT(_, _, FunctionNameT(StrI("drop"), _, _)), _), _) =>
+        PrototypeT(
+          FullNameT(
+            _,
+            _,
+            FunctionNameT(
+              StrI("drop"),
+              Vector(),
+              Vector(CoordT(OwnT,PlaceholderT(0))))),
+          CoordT(ShareT,VoidT())),
+        _) =>
+    }
+  }
+
+  // so we can be sure we arent mixing up any rune names in the call
+  test("Test recursive generic function") {
+    vimpl()
+  }
+
+  test("Test calling a generic function with a concept function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<T>(a T)
+        |    where func drop(T)void {
+        |}
+        |
+        |struct Mork {}
+        |
+        |exported func main() {
+        |  bork(Mork());
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val bork = coutputs.lookupFunction("main")
+    val prototype =
+      bork.body match {
+        case BlockTE(
+            ReturnTE(
+              ConsecutorTE(
+                Vector(FunctionCallTE(prototype, _),
+                VoidLiteralTE())))) => prototype
+      }
+    prototype match {
+      case PrototypeT(
+          FullNameT(
+            _,_,
+            FunctionNameT(StrI("bork"), Vector(CoordTemplata(templateArgCoord)), Vector(arg))),
+          CoordT(ShareT,VoidT())) => {
+
+        templateArgCoord match {
+          case CoordT(
+              OwnT,
+              StructTT(
+                FullNameT(_,_,CitizenNameT(CitizenTemplateNameT(StrI("Mork")),Vector())))) =>
+        }
+
+        vassert(arg == templateArgCoord)
+      }
     }
   }
 

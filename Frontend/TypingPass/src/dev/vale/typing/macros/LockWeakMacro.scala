@@ -42,7 +42,7 @@ class LockWeakMacro(
         someConstructor,
         noneConstructor)
 
-    coutputs.addFunction(FunctionT(header, vimpl(), BlockTE(ReturnTE(lockExpr))))
+    coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(lockExpr))))
 
     header
   }

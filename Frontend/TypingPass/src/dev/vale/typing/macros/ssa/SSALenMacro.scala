@@ -36,7 +36,6 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ConsecutorTE(
             Vector(

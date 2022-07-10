@@ -44,7 +44,6 @@ class RSAMutablePushMacro(interner: Interner, keywords: Keywords) extends IFunct
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             PushRuntimeSizedArrayTE(

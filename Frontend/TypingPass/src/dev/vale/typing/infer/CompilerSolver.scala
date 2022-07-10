@@ -8,7 +8,7 @@ import dev.vale.postparsing.{CoordTemplataType, IImpreciseNameS, IRuneS, ITempla
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, INameT}
+import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
 import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
 import dev.vale.typing.types._
 import dev.vale._
@@ -95,6 +95,13 @@ trait IInfererDelegate[Env, State] {
     actualCitizenRef: KindT,
     expectedCitizenTemplata: ITemplata):
   Boolean
+
+  def assemblePrototypeTemplata(
+    env: Env,
+    range: RangeS,
+    nameT: FunctionNameT,
+    returnCoord: CoordT):
+  PrototypeTemplata
 }
 
 class CompilerSolver[Env, State](
@@ -209,17 +216,20 @@ class CompilerSolver[Env, State](
         stepState.getConclusion(resultRune.rune) match {
           case None => {
             val StringTemplata(name) = vassertSome(stepState.getConclusion(nameRune.rune))
-            val CoordListTemplata(coords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+            val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
             val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
 
-            val prototypeTemplata = PrototypeTemplata(interner.intern(StrI(name)), coords.toArray, returnCoord)
+            val nameT =
+              FunctionNameT(interner.intern(StrI(name)), Vector(), paramCoords)
+            val prototypeTemplata =
+              delegate.assemblePrototypeTemplata(env, range, nameT, returnCoord)
             stepState.concludeRune[ITypingPassSolverError](resultRune.rune, prototypeTemplata)
             Ok(())
           }
           case Some(prototypeTemplata) => {
-            val PrototypeTemplata(name, paramCoords, returnCoord) = prototypeTemplata
-            stepState.concludeRune[ITypingPassSolverError](nameRune.rune, StringTemplata(name.str))
-            stepState.concludeRune[ITypingPassSolverError](paramListRune.rune, CoordListTemplata(paramCoords.toVector))
+            val PrototypeTemplata(_, name, returnCoord) = prototypeTemplata
+            stepState.concludeRune[ITypingPassSolverError](nameRune.rune, StringTemplata(name.last.humanName.str))
+            stepState.concludeRune[ITypingPassSolverError](paramListRune.rune, CoordListTemplata(name.last.parameters))
             stepState.concludeRune[ITypingPassSolverError](returnRune.rune, CoordTemplata(returnCoord))
             Ok(())
           }

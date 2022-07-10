@@ -30,7 +30,6 @@ class SameInstanceMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             IsSameInstanceTE(

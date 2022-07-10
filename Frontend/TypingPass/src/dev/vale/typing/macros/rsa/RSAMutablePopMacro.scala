@@ -44,7 +44,6 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
     coutputs.addFunction(
       FunctionT(
         header,
-        vimpl(),
         BlockTE(
           ReturnTE(
             PopRuntimeSizedArrayTE(

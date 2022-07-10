@@ -21,10 +21,11 @@ case class DeferredEvaluatingFunction(
 
 
 case class CompilerOutputs() {
-  // Signatures that have already started to be compiled.
-  // The value is a location for checking where a given function came from, which is useful
-  // for detecting when the user makes two functions with identical signatures.
-  private val declaredSignatures: mutable.HashMap[SignatureT, RangeS] = mutable.HashMap()
+  // Removed this because generics and removing infer-ret solved it
+  //  // Signatures that have already started to be compiled.
+  //  // The value is a location for checking where a given function came from, which is useful
+  //  // for detecting when the user makes two functions with identical signatures.
+  //  private val declaredSignatures: mutable.HashMap[SignatureT, RangeS] = mutable.HashMap()
 
   // Not all signatures/banners will have a return type here, it might not have been processed yet.
   private val returnTypesBySignature: mutable.HashMap[SignatureT, CoordT] = mutable.HashMap()
@@ -58,10 +59,10 @@ case class CompilerOutputs() {
   // Only ArrayCompiler can make an RawArrayT2.
   private val runtimeSizedArrayTypes: mutable.HashMap[(MutabilityT, CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
 
-  // A queue of functions that our code uses, but we don't need to compile them right away.
-  // We can compile them later. Perhaps in parallel, someday!
-  private val deferredEvaluatingFunctions: mutable.LinkedHashMap[PrototypeT, DeferredEvaluatingFunction] = mutable.LinkedHashMap()
-  private var evaluatedDeferredFunctions: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
+//  // A queue of functions that our code uses, but we don't need to compile them right away.
+//  // We can compile them later. Perhaps in parallel, someday!
+//  private val deferredEvaluatingFunctions: mutable.LinkedHashMap[PrototypeT, DeferredEvaluatingFunction] = mutable.LinkedHashMap()
+//  private var evaluatedDeferredFunctions: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
 
   def countDenizens(): Int = {
     staticSizedArrayTypes.size +
@@ -71,14 +72,14 @@ case class CompilerOutputs() {
       interfaceDefsByRef.size
   }
 
-  def peekNextDeferredEvaluatingFunction(): Option[DeferredEvaluatingFunction] = {
-    deferredEvaluatingFunctions.headOption.map(_._2)
-  }
-  def markDeferredFunctionEvaluated(prototypeT: PrototypeT): Unit = {
-    vassert(prototypeT == vassertSome(deferredEvaluatingFunctions.headOption)._1)
-    evaluatedDeferredFunctions += prototypeT
-    deferredEvaluatingFunctions -= prototypeT
-  }
+//  def peekNextDeferredEvaluatingFunction(): Option[DeferredEvaluatingFunction] = {
+//    deferredEvaluatingFunctions.headOption.map(_._2)
+//  }
+//  def markDeferredFunctionEvaluated(prototypeT: PrototypeT): Unit = {
+//    vassert(prototypeT == vassertSome(deferredEvaluatingFunctions.headOption)._1)
+//    evaluatedDeferredFunctions += prototypeT
+//    deferredEvaluatingFunctions -= prototypeT
+//  }
 
   def lookupFunction(signature2: SignatureT): Option[FunctionT] = {
     functionsBySignature.get(signature2)
@@ -95,34 +96,34 @@ case class CompilerOutputs() {
       .header.toPrototype
   }
 
-  // This means we've at least started to evaluate this function's body.
-  // We use this to cut short any infinite looping that might happen when,
-  // for example, there's a recursive function call.
-  def declareFunctionSignature(range: RangeS, signature: SignatureT, maybeEnv: Option[FunctionEnvironment]): Unit = {
-    // The only difference between this and declareNonGlobalFunctionSignature is
-    // that we put an environment in here.
-
-    // This should have been checked outside
-    vassert(!declaredSignatures.contains(signature))
-
-    declaredSignatures += signature -> range
-    envByFunctionSignature ++= maybeEnv.map(env => Map(signature -> env)).getOrElse(Map())
-    this
-  }
+//  // This means we've at least started to evaluate this function's body.
+//  // We use this to cut short any infinite looping that might happen when,
+//  // for example, there's a recursive function call.
+//  def declareFunctionSignature(range: RangeS, signature: SignatureT, maybeEnv: Option[FunctionEnvironment]): Unit = {
+//    // The only difference between this and declareNonGlobalFunctionSignature is
+//    // that we put an environment in here.
+//
+//    // This should have been checked outside
+//    vassert(!declaredSignatures.contains(signature))
+//
+//    declaredSignatures += signature -> range
+//    envByFunctionSignature ++= maybeEnv.map(env => Map(signature -> env)).getOrElse(Map())
+//    this
+//  }
 
   def declareFunctionReturnType(signature: SignatureT, returnType2: CoordT): Unit = {
     returnTypesBySignature.get(signature) match {
       case None =>
       case Some(existingReturnType2) => vassert(existingReturnType2 == returnType2)
     }
-    if (!declaredSignatures.contains(signature)) {
-      vfail("wot")
-    }
+//    if (!declaredSignatures.contains(signature)) {
+//      vfail("wot")
+//    }
     returnTypesBySignature += (signature -> returnType2)
   }
 
   def addFunction(function: FunctionT): Unit = {
-    vassert(declaredSignatures.contains(function.header.toSignature))
+//    vassert(declaredSignatures.contains(function.header.toSignature))
     vassert(
       function.body.result.reference.kind == NeverT(false) ||
       function.body.result.reference == function.header.returnType)
@@ -219,9 +220,9 @@ case class CompilerOutputs() {
     functionExterns += FunctionExternT(range, function, packageCoord, exportedName)
   }
 
-  def deferEvaluatingFunction(devf: DeferredEvaluatingFunction): Unit = {
-    deferredEvaluatingFunctions.put(devf.prototypeT, devf)
-  }
+//  def deferEvaluatingFunction(devf: DeferredEvaluatingFunction): Unit = {
+//    deferredEvaluatingFunctions.put(devf.prototypeT, devf)
+//  }
 
   def structDeclared(structTT: StructTT): Option[StructTT] = {
     // This is the only place besides StructDefinition2 and declareStruct thats allowed to make one of these
@@ -233,17 +234,17 @@ case class CompilerOutputs() {
     }
   }
 
-  def prototypeDeclared(fullName: FullNameT[IFunctionNameT]): Option[PrototypeT] = {
-    declaredSignatures.find(_._1.fullName == fullName) match {
-      case None => None
-      case Some((sig, _)) => {
-        returnTypesBySignature.get(sig) match {
-          case None => None
-          case Some(ret) => Some(ast.PrototypeT(sig.fullName, ret))
-        }
-      }
-    }
-  }
+//  def prototypeDeclared(fullName: FullNameT[IFunctionNameT]): Option[PrototypeT] = {
+//    declaredSignatures.find(_._1.fullName == fullName) match {
+//      case None => None
+//      case Some((sig, _)) => {
+//        returnTypesBySignature.get(sig) match {
+//          case None => None
+//          case Some(ret) => Some(ast.PrototypeT(sig.fullName, ret))
+//        }
+//      }
+//    }
+//  }
 
   def lookupMutability(citizenRef2: CitizenRefT): MutabilityT = {
     // If it has a structTT, then we've at least started to evaluate this citizen
@@ -307,12 +308,12 @@ case class CompilerOutputs() {
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)
   }
-  def getDeclaredSignatureOrigin(sig: SignatureT): Option[RangeS] = {
-    declaredSignatures.get(sig)
-  }
-  def getDeclaredSignatureOrigin(name: FullNameT[IFunctionNameT]): Option[RangeS] = {
-    declaredSignatures.get(ast.SignatureT(name))
-  }
+//  def getDeclaredSignatureOrigin(sig: SignatureT): Option[RangeS] = {
+//    declaredSignatures.get(sig)
+//  }
+//  def getDeclaredSignatureOrigin(name: FullNameT[IFunctionNameT]): Option[RangeS] = {
+//    declaredSignatures.get(ast.SignatureT(name))
+//  }
   def getStructDefForRef(sr: StructTT): StructDefinitionT = {
     structDefsByRef(sr)
   }
