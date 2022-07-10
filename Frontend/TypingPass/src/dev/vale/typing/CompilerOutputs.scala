@@ -1,13 +1,12 @@
 package dev.vale.typing
 
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, IFunctionNameT, INameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
-import dev.vale.typing.env.CitizenEnvironment
 import dev.vale.typing.names.AnonymousSubstructNameT
 import dev.vale.typing.types.InterfaceTT
 
@@ -44,7 +43,7 @@ case class CompilerOutputs() {
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
   private val declaredKinds: mutable.HashSet[KindT] = mutable.HashSet()
   private val structDefsByRef: mutable.HashMap[StructTT, StructDefinitionT] = mutable.HashMap()
-  private val envByKind: mutable.HashMap[KindT, CitizenEnvironment[INameT]] = mutable.HashMap()
+  private val envByKind: mutable.HashMap[KindT, IEnvironment] = mutable.HashMap()
   private val interfaceDefsByRef: mutable.HashMap[InterfaceTT, InterfaceDefinitionT] = mutable.HashMap()
 
   private val impls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
@@ -168,7 +167,7 @@ case class CompilerOutputs() {
 
   def declareKindEnv(
     kindTT: KindT,
-    env: CitizenEnvironment[INameT],
+    env: IEnvironment,
   ): Unit = {
     vassert(declaredKinds.contains(kindTT))
     vassert(!envByKind.contains(kindTT))
@@ -297,13 +296,13 @@ case class CompilerOutputs() {
     staticSizedArrayTypes.get((size, mutability, variability, elementType))
   }
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
-    envByFunctionSignature(sig)
+    vassertSome(envByFunctionSignature.get(sig))
   }
-  def getEnvForKind(sr: KindT): CitizenEnvironment[INameT] = {
-    envByKind(sr)
+  def getEnvForKind(sr: KindT): IEnvironment = {
+    vassertSome(envByKind.get(sr))
   }
   def getInterfaceDefForRef(ir: InterfaceTT): InterfaceDefinitionT = {
-    interfaceDefsByRef(ir)
+    vassertSome(interfaceDefsByRef.get(ir))
   }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)

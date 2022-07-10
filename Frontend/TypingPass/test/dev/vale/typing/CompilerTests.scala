@@ -12,6 +12,7 @@ import dev.vale._
 import dev.vale.highertyping.HigherTypingCompilation
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
+import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing.{CodeNameS, CodeRuneS, FunctionNameS, TopLevelCitizenDeclarationNameS}
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
@@ -62,8 +63,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Simple local") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |exported func main() infer-return {
+        |exported func main() int {
         |  a = 42;
         |  return a;
         |}
@@ -75,15 +75,17 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests panic return type") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.panic.*;
-        |exported func main() infer-return {
-        |  __vbi_panic();
-        |  a = 42;
+        |exported func main() int {
+        |  x = { __vbi_panic() }();
         |}
-    """.stripMargin)
+        """.stripMargin)
     val main = compile.expectCompilerOutputs().lookupFunction("main")
-    vassert(main.header.returnType.kind == NeverT(false))
+    main shouldHave {
+      case LetNormalTE(
+        ReferenceLocalVariableT(_,_,CoordT(ShareT,NeverT(false))),
+        _) =>
+    }
   }
 
   test("Taking an argument and returning it") {
@@ -185,7 +187,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Make constraint reference") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Moo {}
         |exported func main() void {
         |  m = Moo();
@@ -309,21 +310,23 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test templates") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |func bork<T>(a T, b T)T{ return a; }
-        |exported func main() int {true bork false; 2 bork 2; return 3 bork 3;}
+        |func bork<T>(a T) T { return a; }
+        |exported func main() int { bork(true); bork(2); bork(3) }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
-    // Tests that we reuse existing stamps
-    vassert(coutputs.getAllUserFunctions.size == 3)
+    // Tests that there's only two functions, because we have generics not templates
+    vassert(coutputs.getAllUserFunctions.size == 2)
   }
 
   test("Test taking a callable param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |func do<F>(callable F) infer-return { return callable(); }
+        |func do<F>(callable F) int
+        |where func(&F)int, func drop(F)void
+        |{
+        |  return callable();
+        |}
         |exported func main() int { return do({ return 3; }); }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -383,12 +386,15 @@ class CompilerTests extends FunSuite with Matchers {
 //    coutputs.lookupFunction("MyStruct")
 //  }
 
-  test("Reads a struct member") {
+  test("Simple struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |#!DeriveStructDrop
         |struct MyStruct { a int; }
-        |exported func main() int { ms = MyStruct(7); return ms.a; }
+        |exported func main() {
+        |  ms = MyStruct(7);
+        |  [_] = ms;
+        |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
@@ -416,9 +422,57 @@ class CompilerTests extends FunSuite with Matchers {
     // Check that we call the constructor
     Collector.only(main, {
       case FunctionCallTE(
-        PrototypeT(simpleName("MyStruct"), _),
-        Vector(ConstantIntTE(7, _))) =>
+      PrototypeT(simpleName("MyStruct"), _),
+      Vector(ConstantIntTE(7, _))) =>
     })
+  }
+
+  test("Reads a struct member") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct MyStruct { a int; }
+        |exported func main() int {
+        |  ms = MyStruct(7);
+        |  x = ms.a;
+        |  [_] = ms;
+        |  return x;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val main = coutputs.lookupFunction("main")
+    // check for the member access
+    main shouldHave {
+      case ReferenceMemberLookupTE(_,
+        SoftLoadTE(_,BorrowT),
+        FullNameT(_,
+          Vector(CitizenNameT(CitizenTemplateNameT(StrI("MyStruct")),Vector())),
+          CodeVarNameT(StrI("a"))),
+        CoordT(ShareT,IntT(32)),
+        FinalT) =>
+    }
+  }
+
+  test("Automatically drops struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyStruct { a int; }
+        |exported func main() int {
+        |  ms = MyStruct(7);
+        |  return ms.a;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val main = coutputs.lookupFunction("main")
+    // check for the call to drop
+    main shouldHave {
+      case FunctionCallTE(
+        PrototypeT(
+          FullNameT(_,Vector(CitizenNameT(CitizenTemplateNameT(StrI("MyStruct")),Vector())),FunctionNameT(StrI("drop"),Vector(),Vector(CoordT(OwnT,StructTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT(StrI("MyStruct")),Vector()))))))),CoordT(ShareT,VoidT())),
+        _) =>
+    }
   }
 
   test("Tests defining a non-empty interface and an implementing struct") {

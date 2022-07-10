@@ -22,7 +22,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
   }
 
   test("Simple rune rule") {
-    val program1 = compile("""func main<T>(moo T) infer-return { }""")
+    val program1 = compile("""func main<T>(moo T) { }""")
     val main = program1.lookupFunction("main")
 
     vassert(main.runeToPredictedType.size == 1)
@@ -42,7 +42,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
   }
 
   test("Borrowed rune") {
-    val program1 = compile("""func main<T>(moo &T) infer-return { }""")
+    val program1 = compile("""func main<T>(moo &T) { }""")
     val main = program1.lookupFunction("main")
     val Vector(param) = main.params
 
@@ -65,7 +65,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
   }
 
   test("Anonymous, typed param") {
-    val program1 = compile("""func main(_ int) infer-return { }""")
+    val program1 = compile("""func main(_ int) { }""")
     val main = program1.lookupFunction("main")
     val Vector(param) = main.params
     val paramRune =

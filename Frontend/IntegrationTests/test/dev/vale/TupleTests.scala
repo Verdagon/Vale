@@ -10,13 +10,13 @@ class TupleTests extends FunSuite with Matchers {
   test("Returning tuple from function and dotting it") {
     val compile = RunCompilation.test(
       """
-        |func makeArray() infer-return { return (2, 3, 4, 5, 6); }
+        |func makeTup() (int, int, int) { return (2, 3, 4); }
         |exported func main() int {
-        |  return makeArray().3;
+        |  return makeTup().1;
         |}
       """.stripMargin)
 
-    compile.evalForKind(Vector()) match { case VonInt(5) => }
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
   test("Simple tuple with one int") {

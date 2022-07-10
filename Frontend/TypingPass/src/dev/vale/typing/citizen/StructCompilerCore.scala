@@ -238,7 +238,6 @@ class StructCompilerCore(
         newEntries
       })
 
-
     val interfaceInnerEnv =
       CitizenEnvironment(
         interfaceRunesEnv.globalEnv,
@@ -374,6 +373,11 @@ class StructCompilerCore(
 
     val structTT = interner.intern(StructTT(fullName))
 
+    val freeFuncNameT =
+      interner.intern(FreeTemplateNameT(functionA.range.begin))
+    val dropFuncNameT =
+      interner.intern(FunctionTemplateNameT(keywords.DROP_FUNCTION_NAME, functionA.range.begin))
+
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
     // and see the function and use it.
@@ -389,7 +393,7 @@ class StructCompilerCore(
             Vector(
               interner.intern(FunctionTemplateNameT(keywords.CALL_FUNCTION_NAME, functionA.range.begin)) ->
                 env.FunctionEnvEntry(functionA),
-              interner.intern(FunctionTemplateNameT(keywords.DROP_FUNCTION_NAME, functionA.range.begin)) ->
+              dropFuncNameT ->
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.DROP_FUNCTION_NAME, functionA.range.begin)), functionA.range)),
@@ -397,7 +401,7 @@ class StructCompilerCore(
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(structTT))) ++
               (if (mutability == ImmutableT) {
                 Vector(
-                  interner.intern(FreeTemplateNameT(functionA.range.begin)) ->
+                  freeFuncNameT ->
                     FunctionEnvEntry(
                       containingFunctionEnv.globalEnv.structFreeMacro.makeImplicitFreeFunction(
                         interner.intern(FreeDeclarationNameS(functionA.range.begin)), functionA.range)))
@@ -425,9 +429,26 @@ class StructCompilerCore(
 
     val closuredVarsStructRef = closureStructDefinition.getRef;
 
-    start here
-    // instantiate drop and free.
-    // do this above for non-closures as well
+    if (mutability == ImmutableT) {
+      // Adds the free function to the coutputs
+      // Free is indeed ordinary because it just takes in the lambda struct. The lambda struct
+      // isn't templated. The lambda call function might be, but the struct isnt.
+      delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+        coutputs,
+        structEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
+          case Some(ft@FunctionTemplata(_, _)) => ft
+          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure free function we just added!"))
+        })
+      // Adds the drop function to the coutputs
+      // Drop is indeed ordinary because it just takes in the lambda struct. The lambda struct
+      // isn't templated. The lambda call function might be, but the struct isnt.
+      delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+        coutputs,
+        structEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
+          case Some(ft@FunctionTemplata(_, _)) => ft
+          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure drop function we just added!"))
+        })
+    }
 
     (closuredVarsStructRef, mutability, functionTemplata)
   }

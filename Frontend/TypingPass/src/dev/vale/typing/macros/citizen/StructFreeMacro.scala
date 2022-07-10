@@ -84,30 +84,30 @@ class StructFreeMacro(
       structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
       structIdentifyingRuneToType ++
         Map(
-          CodeRuneS(keywords.DropStruct) -> structType,
-          CodeRuneS(keywords.DropP1) -> CoordTemplataType,
-          CodeRuneS(keywords.DropV) -> CoordTemplataType),
+          CodeRuneS(keywords.FreeStruct) -> structType,
+          CodeRuneS(keywords.FreeP1) -> CoordTemplataType,
+          CodeRuneS(keywords.FreeV) -> CoordTemplataType),
       Vector(
-        ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
-      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),
+        ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1))), None))),
+      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV))),
       Vector(
         structType match {
           case KindTemplataType => {
             EqualsSR(
               RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)))
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)))
           }
           case TemplateTemplataType(_, KindTemplataType) => {
             CallSR(
               RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
               structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray)
           }
         },
-        LookupSR(RangeS.internal(interner, -1672163), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)), structNameS.getImpreciseName(interner)),
-        LookupSR(RangeS.internal(interner, -1672164), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), interner.intern(CodeNameS(keywords.void)))),
+        LookupSR(RangeS.internal(interner, -1672163), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)), structNameS.getImpreciseName(interner)),
+        LookupSR(RangeS.internal(interner, -1672164), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV)), interner.intern(CodeNameS(keywords.void)))),
       GeneratedBodyS(freeGeneratorId))
   }
 
@@ -124,22 +124,22 @@ class StructFreeMacro(
       FunctionTemplataType,
       Vector(),
       Map(
-        CodeRuneS(keywords.DropP1) -> CoordTemplataType,
-        CodeRuneS(keywords.DropV) -> CoordTemplataType),
+        CodeRuneS(keywords.FreeP1) -> CoordTemplataType,
+        CodeRuneS(keywords.FreeV) -> CoordTemplataType),
       Vector(
         ParameterS(
           AtomSP(
             RangeS.internal(interner, -1342),
             Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))),
             None,
-            Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
-      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),
+            Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1))), None))),
+      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV))),
       Vector(
         LookupSR(
           RangeS.internal(interner, -1672165),
-          RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
+          RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
           interner.intern(SelfNameS())),
-        LookupSR(RangeS.internal(interner, -1672166), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), interner.intern(CodeNameS(keywords.void)))),
+        LookupSR(RangeS.internal(interner, -1672166), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV)), interner.intern(CodeNameS(keywords.void)))),
       GeneratedBodyS(freeGeneratorId))
   }
 

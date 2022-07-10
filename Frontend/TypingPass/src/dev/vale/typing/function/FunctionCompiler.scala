@@ -210,7 +210,6 @@ class FunctionCompiler(
   // func main():Int{main()}
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
-    callRange: RangeS,
     functionTemplata: FunctionTemplata):
   (FunctionHeaderT) = {
     Profiler.frame(() => {

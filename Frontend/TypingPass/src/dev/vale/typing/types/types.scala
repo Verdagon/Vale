@@ -4,12 +4,11 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{CitizenNameT, FullNameT, ICitizenNameT, IVarNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IVarNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.AnonymousSubstructNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -157,11 +156,11 @@ case class OverloadSetT(
   // The name to look for in the environment.
   name: IImpreciseNameS
 ) extends KindT with IInterning {
-
+  vpass()
 
 }
 
-case class PlaceholderT(identifyingRuneIndex: Int) extends KindT
+case class PlaceholderT(fullName: FullNameT[PlaceholderNameT]) extends KindT
 
 // This is what we use to search for overloads.
 case class ParamFilter(

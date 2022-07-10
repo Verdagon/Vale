@@ -18,7 +18,7 @@ class ArrayTests extends FunSuite with Matchers {
   test("Returning static array from function and dotting it") {
     val compile = RunCompilation.test(
       """
-        |func makeArray() infer-return { return [#][2, 3, 4, 5, 6]; }
+        |func makeArray() [#5]int { return [#][2, 3, 4, 5, 6]; }
         |exported func main() int {
         |  return makeArray().3;
         |}

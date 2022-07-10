@@ -130,6 +130,9 @@ class Keywords(interner: Interner) {
   val DropP1 = interner.intern(StrI("DropP1"))
   val DropStruct = interner.intern(StrI("DropStruct"))
   val DropV = interner.intern(StrI("DropV"))
+  val FreeP1 = interner.intern(StrI("FreeP1"))
+  val FreeStruct = interner.intern(StrI("FreeStruct"))
+  val FreeV = interner.intern(StrI("FreeV"))
   val x = interner.intern(StrI("x"))
 
   val ro = interner.intern(StrI("ro"))

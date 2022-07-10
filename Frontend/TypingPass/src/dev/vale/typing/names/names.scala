@@ -123,6 +123,7 @@ case class ConstructingMemberNameT(name: StrI) extends IVarNameT {    }
 case class WhileCondResultNameT(range: RangeS) extends IVarNameT {    }
 case class IterableNameT(range: RangeS) extends IVarNameT {  }
 case class IteratorNameT(range: RangeS) extends IVarNameT {  }
+case class PlaceholderNameT(index: Int) extends IVarNameT {  }
 case class IterationOptionNameT(range: RangeS) extends IVarNameT {  }
 case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT {    }
 case class CodeVarNameT(name: StrI) extends IVarNameT {    }

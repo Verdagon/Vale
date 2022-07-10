@@ -342,10 +342,10 @@ class Lexer(interner: Interner, keywords: Keywords) {
     val returnBegin = iter.getPos()
     val maybeReturn =
       if (!iter.peekCompleteWord("where") && !iter.peekCompleteWord("region") && !iter.peekCompleteWord("extern") && iter.peek() != '{' && iter.peek() != ';') {
-        if (iter.trySkipCompleteWord("infer-return")) {
-          val range = RangeL(returnBegin, iter.getPos())
-          FunctionReturnL(range, Some(range), None)
-        } else {
+//        if (iter.trySkipCompleteWord("infer-return")) {
+//          val range = RangeL(returnBegin, iter.getPos())
+//          FunctionReturnL(range, Some(range), None)
+//        } else {
           val returnType =
             lexScramble(iter, true, true, true) match {
               case Err(e) => return Err(e)
@@ -353,7 +353,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
             }
           val range = RangeL(returnBegin, iter.getPos())
           FunctionReturnL(range, None, Some(returnType))
-        }
+//        }
       } else {
         val range = RangeL(returnBegin, iter.getPos())
         FunctionReturnL(range, None, None)

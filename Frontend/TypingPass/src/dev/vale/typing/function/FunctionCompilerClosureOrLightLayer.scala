@@ -363,7 +363,7 @@ class FunctionCompilerClosureOrLightLayer(
     functionName: IFunctionDeclarationNameS
   ): FullNameT[BuildingFunctionNameWithClosuredsT] = {
     val templateName = nameTranslator.translateFunctionNameToTemplateName(functionName)
-    outerEnv.fullName.addStep(BuildingFunctionNameWithClosuredsT(templateName))
+    outerEnv.fullName.addStep(interner.intern(BuildingFunctionNameWithClosuredsT(templateName)))
   }
 
   private def checkNotClosure(function: FunctionA) = {
