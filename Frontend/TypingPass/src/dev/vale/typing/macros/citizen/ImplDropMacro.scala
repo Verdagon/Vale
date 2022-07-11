@@ -35,11 +35,11 @@ class ImplDropMacro(
 //        funcNameA,
 //        Vector(),
 //        TemplateTemplataType(
-//          implA.identifyingRunes.map(_.rune).map(implA.runeToType) :+ KindTemplataType,
-//          FunctionTemplataType),
+//          implA.identifyingRunes.map(_.rune).map(implA.runeToType) :+ KindTemplataType(),
+//          FunctionTemplataType()),
 //        // See NIIRII for why we add the interface rune as an identifying rune.
 //        implA.identifyingRunes :+ implA.interfaceKindRune,
-//        implA.runeToType + (ImplDropCoordRuneS() -> CoordTemplataType) + (ImplDropVoidRuneS() -> CoordTemplataType),
+//        implA.runeToType + (ImplDropCoordRuneS() -> CoordTemplataType()) + (ImplDropVoidRuneS() -> CoordTemplataType()),
 //        Vector(
 //          ParameterS(
 //            AtomSP(

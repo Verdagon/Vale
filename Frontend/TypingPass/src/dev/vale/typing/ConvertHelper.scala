@@ -14,7 +14,7 @@ import dev.vale.typing.types._
 
 import scala.collection.immutable.List
 //import dev.vale.carpenter.CovarianceCarpenter
-import dev.vale.postparsing.{_}
+import dev.vale.postparsing._
 
 trait IConvertHelperDelegate {
   def isAncestor(

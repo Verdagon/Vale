@@ -2,11 +2,10 @@ package dev.vale.simplifying
 
 import dev.vale.{CodeLocationS, finalast, vimpl}
 import dev.vale.finalast.{BorrowH, CodeLocation, Final, Immutable, InlineH, LocationH, Mutability, Mutable, OwnH, OwnershipH, ShareH, Variability, Varying, WeakH, YonderH}
-import dev.vale.postparsing.{BooleanTemplataType, CoordTemplataType, ITemplataType, IntegerTemplataType, KindTemplataType, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, TemplateTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.finalast._
-import dev.vale.postparsing.TemplateTemplataType
 import dev.vale.postparsing.rules._
 import dev.vale.typing.types._
 import dev.vale.typing.{types => t}
@@ -56,16 +55,16 @@ object Conversions {
     }
   }
 
-  def unevaluateTemplataType(tyype: ITemplataType): ITemplataType = {
+  def unevaluateTemplataType()(tyype: ITemplataType): ITemplataType = {
     tyype match {
-      case CoordTemplataType => CoordTemplataType
-      case KindTemplataType => KindTemplataType
-      case IntegerTemplataType => IntegerTemplataType
-      case BooleanTemplataType => BooleanTemplataType
-      case MutabilityTemplataType => MutabilityTemplataType
-      case LocationTemplataType => LocationTemplataType
-      case OwnershipTemplataType => OwnershipTemplataType
-      case VariabilityTemplataType => VariabilityTemplataType
+      case CoordTemplataType() => CoordTemplataType()
+      case KindTemplataType() => KindTemplataType()
+      case IntegerTemplataType() => IntegerTemplataType()
+      case BooleanTemplataType() => BooleanTemplataType()
+      case MutabilityTemplataType() => MutabilityTemplataType()
+      case LocationTemplataType() => LocationTemplataType()
+      case OwnershipTemplataType() => OwnershipTemplataType()
+      case VariabilityTemplataType() => VariabilityTemplataType()
       case TemplateTemplataType(_, _) => vimpl() // can we even specify template types in the syntax?
     }
   }

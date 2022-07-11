@@ -1,7 +1,7 @@
 package dev.vale.highertyping
 
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.postparsing.{ITemplataType, RuneTypeSolveError, PostParserErrorHumanizer}
+import dev.vale.postparsing._
 import dev.vale.solver.SolverErrorHumanizer
 import dev.vale.{FileCoordinateMap, RangeS}
 import dev.vale.RangeS

@@ -1,7 +1,7 @@
 package dev.vale.typing.expression
 
 import dev.vale.parsing.ast.LoadAsBorrowP
-import dev.vale.postparsing.{IRuneS, ITemplataType, PatternInputRuneS}
+import dev.vale.postparsing._
 import dev.vale.{Interner, Profiler, RangeS, vassert, vassertSome, vfail}
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}

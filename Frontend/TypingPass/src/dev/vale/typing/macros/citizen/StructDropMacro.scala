@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, CoordComponentsSR, EqualsSR, LookupSR, RuneUsage}
 import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
-import dev.vale.postparsing.{CodeNameS, CodeRuneS, CodeVarNameS, CoordTemplataType, FreeDeclarationNameS, FunctionNameS, FunctionTemplataType, GeneratedBodyS, ICitizenDeclarationNameS, IFunctionDeclarationNameS, IRuneS, ITemplataType, KindTemplataType, OwnershipTemplataType, ParameterS, SelfNameS, TemplateTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.{Compiler, CompilerOutputs, ast, env}
@@ -79,29 +79,29 @@ class StructDropMacro(
       nameS,
       Vector(),
       structType match {
-        case KindTemplataType => FunctionTemplataType
-        case TemplateTemplataType(paramTypes, KindTemplataType) => {
-          TemplateTemplataType(paramTypes, FunctionTemplataType)
+        case KindTemplataType() => FunctionTemplataType()
+        case TemplateTemplataType(paramTypes, KindTemplataType()) => {
+          TemplateTemplataType(paramTypes, FunctionTemplataType())
         }
       },
       structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
       structIdentifyingRuneToType ++
         Map(
           CodeRuneS(keywords.DropStruct) -> structType,
-          CodeRuneS(keywords.DropP1) -> CoordTemplataType,
-          CodeRuneS(keywords.DropV) -> CoordTemplataType),
+          CodeRuneS(keywords.DropP1) -> CoordTemplataType(),
+          CodeRuneS(keywords.DropV) -> CoordTemplataType()),
       Vector(
         ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
       Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),
     (structType match {
-        case KindTemplataType => {
+        case KindTemplataType() => {
           Vector(
             CoerceToCoordSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct))))
         }
-        case TemplateTemplataType(_, KindTemplataType) => {
+        case TemplateTemplataType(_, KindTemplataType()) => {
           Vector(
             CallSR(
               RangeS.internal(interner, -167215),
@@ -130,11 +130,11 @@ class StructDropMacro(
       structRange,
       dropOrFreeFunctionNameS,
       Vector(),
-      FunctionTemplataType,
+      FunctionTemplataType(),
       Vector(),
       Map(
-        CodeRuneS(keywords.DropP1) -> CoordTemplataType,
-        CodeRuneS(keywords.DropV) -> CoordTemplataType),
+        CodeRuneS(keywords.DropP1) -> CoordTemplataType(),
+        CodeRuneS(keywords.DropV) -> CoordTemplataType()),
       Vector(
         ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
       Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),

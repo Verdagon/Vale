@@ -2,7 +2,7 @@ package dev.vale.typing.env
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
-import dev.vale.postparsing.{BlockSE, IExpressionSE, IImpreciseNameS, MapSE, WhileSE}
+import dev.vale.postparsing._
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, INameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata

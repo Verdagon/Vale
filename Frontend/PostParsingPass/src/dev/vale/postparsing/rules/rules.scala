@@ -1,7 +1,7 @@
 package dev.vale.postparsing.rules
 
 import dev.vale.parsing.ast.{LocationP, MutabilityP, OwnershipP, VariabilityP}
-import dev.vale.postparsing.{BooleanTemplataType, IImpreciseNameS, IRuneS, ITemplataType, IntegerTemplataType, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, StringTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing._
 import dev.vale.{RangeS, StrI, vassert, vcurious, vpass}
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
@@ -225,29 +225,29 @@ sealed trait ILiteralSL {
 
 case class IntLiteralSL(value: Long) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = IntegerTemplataType
+  override def getType(): ITemplataType = IntegerTemplataType()
 }
 case class StringLiteralSL(value: String) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = StringTemplataType
+  override def getType(): ITemplataType = StringTemplataType()
 }
 case class BoolLiteralSL(value: Boolean) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = BooleanTemplataType
+  override def getType(): ITemplataType = BooleanTemplataType()
 }
 case class MutabilityLiteralSL(mutability: MutabilityP) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = MutabilityTemplataType
+  override def getType(): ITemplataType = MutabilityTemplataType()
 }
 case class LocationLiteralSL(location: LocationP) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = LocationTemplataType
+  override def getType(): ITemplataType = LocationTemplataType()
 }
 case class OwnershipLiteralSL(ownership: OwnershipP) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = OwnershipTemplataType
+  override def getType(): ITemplataType = OwnershipTemplataType()
 }
 case class VariabilityLiteralSL(variability: VariabilityP) extends ILiteralSL {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getType(): ITemplataType = VariabilityTemplataType
+  override def getType(): ITemplataType = VariabilityTemplataType()
 }

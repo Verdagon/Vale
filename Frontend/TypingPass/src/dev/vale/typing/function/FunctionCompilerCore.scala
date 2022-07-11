@@ -2,7 +2,7 @@ package dev.vale.typing.function
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassertOne, vassertSome, vcheck, vcurious, vfail, vimpl, vwat}
-import dev.vale.postparsing.{AbstractBodyS, BlockSE, CodeBodyS, ExportS, ExternBodyS, ExternS, GeneratedBodyS, IFunctionAttributeS, PureS, RuneNameS, UserFunctionS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunction, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionHeaderT, FunctionT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}

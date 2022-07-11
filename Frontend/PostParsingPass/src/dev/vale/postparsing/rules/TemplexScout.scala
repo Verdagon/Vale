@@ -3,7 +3,7 @@ package dev.vale.postparsing.rules
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BorrowPT, CallPT, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PrototypePT, RegionRunePT, RuntimeSizedArrayPT, StaticSizedArrayPT, StringPT, TuplePT, VariabilityPT}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI}
-import dev.vale.postparsing.{CodeNameS, CodeRuneS, IEnvironment, IImpreciseNameS, IRuneS, ITemplataType, ImplicitRuneS, LocationInDenizenBuilder, PostParser, rules}
+import dev.vale.postparsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
 

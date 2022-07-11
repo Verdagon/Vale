@@ -394,12 +394,12 @@ class PostParser(
       members.flatMap({
         case NormalStructMemberP(range, name, variability, memberType) => {
           val memberRune = templexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
-          runeToExplicitType.put(memberRune.rune, CoordTemplataType)
+          runeToExplicitType.put(memberRune.rune, CoordTemplataType())
           Vector(NormalStructMemberS(PostParser.evalRange(structEnv.file, range), name.str, variability, memberRune))
         }
         case VariadicStructMemberP(range, variability, memberType) => {
           val memberRune = templexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, memberType)
-          runeToExplicitType.put(memberRune.rune, CoordTemplataType)
+          runeToExplicitType.put(memberRune.rune, CoordTemplataType())
           Vector(VariadicStructMemberS(PostParser.evalRange(structEnv.file, range), variability, memberRune))
         }
         case StructMethodP(_) => {
@@ -413,7 +413,7 @@ class PostParser(
     val mutability =
       mutabilityPT.getOrElse(MutabilityPT(RangeL(bodyRange.begin, bodyRange.begin), MutableP))
     val mutabilityRuneS = templexScout.translateTemplex(structEnv, lidb.child(), ruleBuilder, mutability)
-    runeToExplicitType.put(mutabilityRuneS.rune, MutabilityTemplataType)
+    runeToExplicitType.put(mutabilityRuneS.rune, MutabilityTemplataType())
 
     val rulesS = ruleBuilder.toArray
 
@@ -422,7 +422,7 @@ class PostParser(
     val predictedMutability = predictMutability(structRangeS, mutabilityRuneS.rune, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeToPredictedType) match {
+      determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
@@ -529,7 +529,7 @@ class PostParser(
     val predictedMutability = predictMutability(interfaceRangeS, mutabilityRuneS.rune, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(KindTemplataType, explicitIdentifyingRunes.map(_.rune), runeToPredictedType) match {
+      determineDenizenType(KindTemplataType(), explicitIdentifyingRunes.map(_.rune), runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])

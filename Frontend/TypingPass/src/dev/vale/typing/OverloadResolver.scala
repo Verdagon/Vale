@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassertSome, vcurious, vfail, vimpl, vpass}
-import dev.vale.postparsing.{CodeNameS, FunctionTemplataType, IImpreciseNameS, IRuneS, PostParserErrorHumanizer, RuneNameS, RuneTypeSolveError, RuneTypeSolver, TemplateTemplataType}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR}
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
@@ -193,7 +193,7 @@ class OverloadResolver(
         // See OFCBT.
         if (ft.function.isTemplate) {
           function.tyype match {
-            case TemplateTemplataType(identifyingRuneTemplataTypes, FunctionTemplataType) => {
+            case TemplateTemplataType(identifyingRuneTemplataTypes, FunctionTemplataType()) => {
               if (explicitTemplateArgRunesS.size > identifyingRuneTemplataTypes.size) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Supplied more arguments than there are identifying runes!"))
               }
@@ -285,7 +285,7 @@ class OverloadResolver(
                 }
               }
             }
-            case FunctionTemplataType => {
+            case FunctionTemplataType() => {
               // So it's not a template, but it's a template in context. We'll still need to
               // feed it into the inferer.
               functionCompiler.evaluateTemplatedFunctionFromCallForBanner(

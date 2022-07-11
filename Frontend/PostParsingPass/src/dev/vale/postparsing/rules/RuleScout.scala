@@ -2,7 +2,7 @@ package dev.vale.postparsing.rules
 
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast.{BoolTypePR, BuiltinCallPR, ComponentsPR, CoordListTypePR, CoordTypePR, EqualsPR, IRulexPR, ITypePR, IntPT, IntTypePR, KindTypePR, LocationTypePR, MutabilityTypePR, NameP, OrPR, OwnershipPT, OwnershipTypePR, PrototypeTypePR, TemplexPR, TypedPR, VariabilityTypePR}
-import dev.vale.postparsing.{BooleanTemplataType, CodeRuneS, CompileErrorExceptionS, CoordTemplataType, IEnvironment, IRuneS, ITemplataType, ImplicitRuneS, IntegerTemplataType, KindTemplataType, LocationInDenizenBuilder, LocationTemplataType, MutabilityTemplataType, OwnershipTemplataType, PackTemplataType, PostParser, PrototypeTemplataType, UnknownRuleFunctionS, VariabilityTemplataType, rules}
+import dev.vale.postparsing._
 import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -129,17 +129,17 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
 
   //        val resultRune = ImplicitRuneS(lidb.child().consume())
           builder += IsInterfaceSR(evalRange(range), argRune)
-  //        runeToExplicitType.put(resultRune, KindTemplataType)
-          runeToExplicitType.put(argRune.rune, KindTemplataType)
+  //        runeToExplicitType.put(resultRune, KindTemplataType())
+          runeToExplicitType.put(argRune.rune, KindTemplataType())
 
           rules.RuneUsage(evalRange(range), argRune.rune)
         } else if (name.str == keywords.IMPLEMENTS) {
           vassert(args.length == 2)
           val Vector(structRule, interfaceRule) = args
           val structRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, structRule)
-          runeToExplicitType.put(structRune.rune, CoordTemplataType)
+          runeToExplicitType.put(structRune.rune, CoordTemplataType())
           val interfaceRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, interfaceRule)
-          runeToExplicitType.put(interfaceRune.rune, CoordTemplataType)
+          runeToExplicitType.put(interfaceRune.rune, CoordTemplataType())
 
           builder += rules.CoordIsaSR(evalRange(range), structRune, interfaceRune)
 
@@ -150,8 +150,8 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
           builder += RefListCompoundMutabilitySR(evalRange(range), resultRune, argRune)
-          runeToExplicitType.put(resultRune.rune, MutabilityTemplataType)
-          runeToExplicitType.put(argRune.rune, PackTemplataType(CoordTemplataType))
+          runeToExplicitType.put(resultRune.rune, MutabilityTemplataType())
+          runeToExplicitType.put(argRune.rune, PackTemplataType(CoordTemplataType()))
 
           rules.RuneUsage(evalRange(range), resultRune.rune)
         } else if (name.str == keywords.REFS) {
@@ -162,7 +162,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
           builder += rules.PackSR(evalRange(range), resultRune, argRunes.toArray)
-          runeToExplicitType.put(resultRune.rune, PackTemplataType(CoordTemplataType))
+          runeToExplicitType.put(resultRune.rune, PackTemplataType(CoordTemplataType()))
 
           rules.RuneUsage(evalRange(range), resultRune.rune)
         } else if (name.str == keywords.ANY) {
@@ -187,16 +187,16 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
 
   def translateType(tyype: ITypePR): ITemplataType = {
     tyype match {
-      case PrototypeTypePR => PrototypeTemplataType
-      case IntTypePR => IntegerTemplataType
-      case BoolTypePR => BooleanTemplataType
-      case OwnershipTypePR => OwnershipTemplataType
-      case MutabilityTypePR => MutabilityTemplataType
-      case VariabilityTypePR => VariabilityTemplataType
-      case LocationTypePR => LocationTemplataType
-      case CoordTypePR => CoordTemplataType
-      case CoordListTypePR => PackTemplataType(CoordTemplataType)
-      case KindTypePR => KindTemplataType
+      case PrototypeTypePR => PrototypeTemplataType()
+      case IntTypePR => IntegerTemplataType()
+      case BoolTypePR => BooleanTemplataType()
+      case OwnershipTypePR => OwnershipTemplataType()
+      case MutabilityTypePR => MutabilityTemplataType()
+      case VariabilityTypePR => VariabilityTemplataType()
+      case LocationTypePR => LocationTemplataType()
+      case CoordTypePR => CoordTemplataType()
+      case CoordListTypePR => PackTemplataType(CoordTemplataType())
+      case KindTypePR => KindTemplataType()
     }
   }
 

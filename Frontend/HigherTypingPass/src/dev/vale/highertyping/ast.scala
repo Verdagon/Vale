@@ -3,7 +3,7 @@ package dev.vale.highertyping
 import dev.vale.{RangeS, StrI, vassert, vcurious, vpass, vwat}
 import dev.vale.parsing.ast.MutabilityP
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
-import dev.vale.postparsing.{AbstractBodyS, CodeBodyS, ExternBodyS, FunctionNameS, FunctionTemplataType, GeneratedBodyS, IBodyS, ICitizenAttributeS, ICitizenDeclarationNameS, IFunctionAttributeS, IFunctionDeclarationNameS, IImplDeclarationNameS, INameS, IRuneS, IStructMemberS, ITemplataType, ImplImpreciseNameS, KindTemplataType, ParameterS, TemplateTemplataType, TopLevelCitizenDeclarationNameS}
+import dev.vale.postparsing._
 import dev.vale.parsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
@@ -97,7 +97,7 @@ case class StructA(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   def isTemplate: Boolean = tyype match {
-    case KindTemplataType => false
+    case KindTemplataType() => false
     case TemplateTemplataType(_, _) => true
     case _ => vwat()
   }
@@ -175,7 +175,7 @@ case class InterfaceA(
   })
 
   def isTemplate: Boolean = tyype match {
-    case KindTemplataType => false
+    case KindTemplataType() => false
     case TemplateTemplataType(_, _) => true
     case _ => vwat()
   }
@@ -271,7 +271,7 @@ case class FunctionA(
   }
 
   def isTemplate: Boolean = tyype match {
-    case FunctionTemplataType => false
+    case FunctionTemplataType() => false
     case TemplateTemplataType(_, _) => true
     case _ => vwat()
   }

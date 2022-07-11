@@ -40,15 +40,15 @@ class ImplFreeMacro(
 //        interner.intern(OverrideVirtualFreeDeclarationNameS(structA.range.begin)),
 //        Vector(),
 //        TemplateTemplataType(
-//          structA.identifyingRunes.map(_.rune).map(structA.runeToType) :+ KindTemplataType,
-//          FunctionTemplataType),
+//          structA.identifyingRunes.map(_.rune).map(structA.runeToType) :+ KindTemplataType(),
+//          FunctionTemplataType()),
 //        structA.identifyingRunes :+ RuneUsage(RangeS.internal(interner, -64002), FreeOverrideInterfaceRuneS()),
 //        structA.runeToType +
-//          (ImplDropCoordRuneS() -> CoordTemplataType) +
-//          (ImplDropVoidRuneS() -> CoordTemplataType) +
+//          (ImplDropCoordRuneS() -> CoordTemplataType()) +
+//          (ImplDropVoidRuneS() -> CoordTemplataType()) +
 //          (FreeOverrideStructTemplateRuneS() -> structA.tyype) +
-//          (FreeOverrideStructRuneS() -> KindTemplataType) +
-//          (FreeOverrideInterfaceRuneS() -> KindTemplataType),
+//          (FreeOverrideStructRuneS() -> KindTemplataType()) +
+//          (FreeOverrideInterfaceRuneS() -> KindTemplataType()),
 //        Vector(
 //          ParameterS(
 //            AtomSP(
@@ -64,13 +64,13 @@ class ImplFreeMacro(
 //            RuneUsage(RangeS.internal(interner, -167215), ImplDropCoordRuneS()),
 //            RuneUsage(RangeS.internal(interner, -167214), FreeOverrideStructRuneS())),
 //          structA.tyype match {
-//            case KindTemplataType => {
+//            case KindTemplataType() => {
 //              EqualsSR(
 //                RangeS.internal(interner, -1672139),
 //                RuneUsage(RangeS.internal(interner, -167219), FreeOverrideStructRuneS()),
 //                RuneUsage(RangeS.internal(interner, -167219), FreeOverrideStructTemplateRuneS()))
 //            }
-//            case TemplateTemplataType(paramTypes, KindTemplataType) => {
+//            case TemplateTemplataType(paramTypes, KindTemplataType()) => {
 //              CallSR(
 //                RangeS.internal(interner, -1672140),
 //                RuneUsage(RangeS.internal(interner, -167219), FreeOverrideStructRuneS()),

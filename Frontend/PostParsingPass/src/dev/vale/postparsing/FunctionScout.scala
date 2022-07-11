@@ -144,7 +144,7 @@ class FunctionScout(
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(postparsing.RangedInternalErrorS(PostParser.evalRange(file, range), "Can't have return type and infer-return at the same time"))
       }
-    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
+    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType()))
 
     val body1 =
       if (attributes.collectFirst({ case AbstractAttributeP(_) => }).nonEmpty) {
@@ -266,7 +266,7 @@ class FunctionScout(
         case a @ AtomSP(_, _, _, Some(_), _) => (a, None)
         case AtomSP(range, name, virtuality, None, destructure) => {
           val rune = rules.RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
-          runeToExplicitType.put(rune.rune, CoordTemplataType)
+          runeToExplicitType.put(rune.rune, CoordTemplataType())
           val newParam = patterns.AtomSP(range, name, virtuality, Some(rune), destructure)
           (newParam, Some(rune))
         }
@@ -332,7 +332,7 @@ class FunctionScout(
           case mpn @ MagicParamNameS(codeLocation) => {
             val magicParamRange = vale.RangeS(codeLocation, codeLocation)
             val magicParamRune = rules.RuneUsage(magicParamRange, MagicParamRuneS(lidb.child().consume()))
-            runeToExplicitType.put(magicParamRune.rune,CoordTemplataType)
+            runeToExplicitType.put(magicParamRune.rune,CoordTemplataType())
             val paramS =
               ParameterS(
                 AtomSP(
@@ -364,7 +364,7 @@ class FunctionScout(
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(postparsing.RangedInternalErrorS(PostParser.evalRange(parentStackFrame.file, range), "Can't have return type and infer-return at the same time"))
       }
-    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
+    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType()))
 
     postParser.checkIdentifiability(
       closureParamRange,
@@ -563,7 +563,7 @@ class FunctionScout(
         }
         case (Some(_), Some(_)) => throw CompileErrorExceptionS(postparsing.RangedInternalErrorS(PostParser.evalRange(myStackFrame.file, range), "Can't have return type and infer-return at the same time"))
       }
-    maybeReturnRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType))
+    maybeReturnRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType()))
 
     if (attrsP.collect({ case AbstractAttributeP(_) => true  }).nonEmpty) {
       throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(interfaceEnv.file, range), "Dont need abstract here"))

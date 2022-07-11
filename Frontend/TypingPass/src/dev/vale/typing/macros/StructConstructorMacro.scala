@@ -3,7 +3,7 @@ package dev.vale.typing.macros
 import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, IRulexSR, LookupSR, RuneUsage}
-import dev.vale.postparsing.{CodeVarNameS, ConstructorNameS, CoordTemplataType, FunctionTemplataType, GeneratedBodyS, IRuneS, ITemplataType, KindTemplataType, NormalStructMemberS, ParameterS, ReturnRuneS, StructNameRuneS, TemplateTemplataType, VariadicStructMemberS}
+import dev.vale.postparsing._
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
@@ -63,7 +63,7 @@ class StructConstructorMacro(
       rules ++= structA.rules
 
       val retRune = RuneUsage(structA.name.range, ReturnRuneS())
-      runeToType += (retRune.rune -> CoordTemplataType)
+      runeToType += (retRune.rune -> CoordTemplataType())
       val structNameRange = structA.name.range
       if (structA.isTemplate) {
         val structNameRune = StructNameRuneS(structA.name)
@@ -91,8 +91,8 @@ class StructConstructorMacro(
           interner.intern(ConstructorNameS(structA.name)),
           Vector(),
           structA.tyype match {
-            case KindTemplataType => FunctionTemplataType
-            case TemplateTemplataType(params, KindTemplataType) => TemplateTemplataType(params, FunctionTemplataType)
+            case KindTemplataType() => FunctionTemplataType()
+            case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
           },
           structA.identifyingRunes,
           runeToType.toMap,

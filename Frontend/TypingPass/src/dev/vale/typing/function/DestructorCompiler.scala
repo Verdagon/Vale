@@ -1,7 +1,7 @@
 package dev.vale.typing.function
 
 
-import dev.vale.postparsing.{CodeNameS, FreeImpreciseNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS}

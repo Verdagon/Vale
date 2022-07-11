@@ -1,7 +1,7 @@
 package dev.vale.highertyping
 
 import dev.vale.{Err, Ok, PackageCoordinate, vassertSome, vfail}
-import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, PackTemplataType}
+import dev.vale.postparsing._
 import dev.vale.parsing.Parser
 import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale._
@@ -42,7 +42,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 
   test("Type simple struct") {
@@ -77,7 +77,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupStruct("Bork")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 
   test("Type simple interface") {
@@ -120,7 +120,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 
   test("Test evaluate Pack") {
@@ -134,7 +134,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.expectAstrouts()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual PackTemplataType(CoordTemplataType)
+    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual PackTemplataType(CoordTemplataType())
   }
 
   test("Test infer Pack from result") {
@@ -148,7 +148,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType
+    main.runeToType(CodeRuneS(compilation.keywords.T)) shouldEqual CoordTemplataType()
   }
 
   test("Test infer Pack from empty result") {
@@ -162,7 +162,7 @@ class HigherTypingPassTests extends FunSuite with Matchers  {
     val astrouts = compilation.getAstrouts().getOrDie()
     val program = vassertSome(astrouts.get(PackageCoordinate.TEST_TLD(compilation.interner, compilation.keywords)))
     val main = program.lookupFunction("moo")
-    main.runeToType(CodeRuneS(compilation.interner.intern(StrI("P")))) shouldEqual PackTemplataType(CoordTemplataType)
+    main.runeToType(CodeRuneS(compilation.interner.intern(StrI("P")))) shouldEqual PackTemplataType(CoordTemplataType())
   }
 
 //  test("Test cant solve empty Pack") {

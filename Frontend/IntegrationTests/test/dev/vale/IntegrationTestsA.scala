@@ -6,7 +6,7 @@ import dev.vale.simplifying.VonHammer
 import dev.vale.finalast.{FullNameH, IntH, OwnH, ProgramH, PrototypeH, YonderH}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.FileP
-import dev.vale.postparsing.{ICompileErrorS, ProgramS}
+import dev.vale.postparsing._
 import dev.vale.typing.ast.{SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.names.{FullNameT, FunctionNameT}
 import dev.vale.typing.{Hinputs, ICompileErrorT, ast}

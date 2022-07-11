@@ -10,7 +10,7 @@ import dev.vale.postparsing.rules.CoordComponentsSR
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
 import dev.vale.Collector.ProgramWithExpect
-import dev.vale.postparsing.{CodeRuneS, ImplicitRuneS, LocationInDenizen}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
@@ -490,7 +490,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     }
   }
 
-  test("Can match KindTemplataType against StructEnvEntry / StructTemplata") {
+  test("Can match KindTemplataType() against StructEnvEntry / StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.tup.*;

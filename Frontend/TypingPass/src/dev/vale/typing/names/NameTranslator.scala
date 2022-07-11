@@ -1,7 +1,7 @@
 package dev.vale.typing.names
 
 import dev.vale.{CodeLocationS, Interner, vimpl}
-import dev.vale.postparsing.{AnonymousSubstructImplDeclarationNameS, AnonymousSubstructMemberNameS, AnonymousSubstructTemplateNameS, ClosureParamNameS, CodeVarNameS, ConstructingMemberNameS, ConstructorNameS, ExportAsNameS, ForwarderFunctionDeclarationNameS, FreeDeclarationNameS, FunctionNameS, ICitizenDeclarationNameS, IFunctionDeclarationNameS, IImplDeclarationNameS, INameS, IVarNameS, ImplDeclarationNameS, IterableNameS, IterationOptionNameS, IteratorNameS, LambdaDeclarationNameS, LambdaStructDeclarationNameS, LetNameS, MagicParamNameS, SelfNameS, TopLevelCitizenDeclarationNameS, WhileCondResultNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.types.CitizenRefT
 import dev.vale.highertyping._
 import dev.vale.postparsing._
