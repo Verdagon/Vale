@@ -448,7 +448,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
             // For now, we can manually add them.
             // So, I guess we could just assume the function's default region here then.
             case CoordTemplataType => CoordTemplata(CoordT(OwnT, placeholderKindT))
-            case _ => vimpl() // What do we even do? Just assume zero? Seems fishy.
+            case _ => PlaceholderTemplata(runeType)
           }
         InitialKnown(identifyingRune, templata)
       })
