@@ -5,7 +5,7 @@ import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.UseP
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.postparsing.{BlockSE, CodeNameS, ExportS, ExternS, FreeImpreciseNameS, FunctionNameS, ICompileErrorS, IFunctionDeclarationNameS, IImpreciseNameS, IRuneS, ITemplataType, SealedS}
+import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructCompilerDelegate, StructCompiler}
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
@@ -227,12 +227,12 @@ class Compiler(
         }
 
 
-        override def getInterfaceTemplataType(it: InterfaceTemplata): ITemplataType = {
+        override def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType = {
             it.originInterface.tyype
 
         }
 
-        override def getStructTemplataType(st: StructTemplata): ITemplataType = {
+        override def getStructTemplataType()(st: StructTemplata): ITemplataType = {
             st.originStruct.tyype
         }
 

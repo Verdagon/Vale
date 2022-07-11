@@ -1,7 +1,7 @@
 package dev.vale.typing.function
 
 import dev.vale.{Interner, Keywords, Profiler, RangeS, postparsing, vassertOne, vfail, vimpl, vwat}
-import dev.vale.postparsing.{BlockSE, CodeBodyS, IFunctionDeclarationNameS, IVarNameS, LambdaDeclarationNameS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.highertyping.CouldntSolveRulesA
 import dev.vale.typing.types._

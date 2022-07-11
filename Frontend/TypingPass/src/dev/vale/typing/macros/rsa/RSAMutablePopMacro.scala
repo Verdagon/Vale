@@ -1,7 +1,7 @@
 package dev.vale.typing.macros.rsa
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{CodeRuneS, RuneNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, PopRuntimeSizedArrayTE, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}

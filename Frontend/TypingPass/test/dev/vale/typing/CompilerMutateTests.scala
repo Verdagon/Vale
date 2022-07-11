@@ -7,7 +7,7 @@ import dev.vale.highertyping.ProgramA
 import dev.vale.parsing._
 import dev.vale.postparsing.PostParser
 import OverloadResolver.{FindFunctionFailure, WrongNumberOfArguments}
-import dev.vale.postparsing.{CodeNameS, FunctionNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT}
 import dev.vale.typing.types._

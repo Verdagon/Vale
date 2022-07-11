@@ -111,8 +111,8 @@ class RuneTypeSolver(interner: Interner) {
   Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
     rule match {
       case KindComponentsSR(range, resultRune, mutabilityRune) => {
-        stepState.concludeRune(resultRune.rune, KindTemplataType)
-        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType)
+        stepState.concludeRune(resultRune.rune, KindTemplataType())
+        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType())
         Ok(())
       }
       case CallSR(range, resultRune, templateRune, argRunes) => {
@@ -127,21 +127,21 @@ class RuneTypeSolver(interner: Interner) {
         }
       }
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => {
-        stepState.concludeRune(resultRune.rune, CoordTemplataType)
-        stepState.concludeRune(ownershipRune.rune, OwnershipTemplataType)
-        stepState.concludeRune(kindRune.rune, KindTemplataType)
+        stepState.concludeRune(resultRune.rune, CoordTemplataType())
+        stepState.concludeRune(ownershipRune.rune, OwnershipTemplataType())
+        stepState.concludeRune(kindRune.rune, KindTemplataType())
         Ok(())
       }
       case PrototypeComponentsSR(_, resultRune, nameRune, paramListRune, returnRune) => {
-        stepState.concludeRune(resultRune.rune, PrototypeTemplataType)
-        stepState.concludeRune(nameRune.rune, StringTemplataType)
-        stepState.concludeRune(paramListRune.rune, PackTemplataType(CoordTemplataType))
-        stepState.concludeRune(returnRune.rune, CoordTemplataType)
+        stepState.concludeRune(resultRune.rune, PrototypeTemplataType())
+        stepState.concludeRune(nameRune.rune, StringTemplataType())
+        stepState.concludeRune(paramListRune.rune, PackTemplataType(CoordTemplataType()))
+        stepState.concludeRune(returnRune.rune, CoordTemplataType())
         Ok(())
       }
       case CoordIsaSR(_, subRune, superRune) => {
-        stepState.concludeRune(subRune.rune, CoordTemplataType)
-        stepState.concludeRune(superRune.rune, CoordTemplataType)
+        stepState.concludeRune(subRune.rune, CoordTemplataType())
+        stepState.concludeRune(superRune.rune, CoordTemplataType())
         Ok(())
       }
       case OneOfSR(_, resultRune, literals) => {
@@ -165,25 +165,25 @@ class RuneTypeSolver(interner: Interner) {
         }
       }
       case IsConcreteSR(_, rune) => {
-        stepState.concludeRune(rune.rune, KindTemplataType)
+        stepState.concludeRune(rune.rune, KindTemplataType())
         Ok(())
       }
       case IsInterfaceSR(_, rune) => {
-        stepState.concludeRune(rune.rune, KindTemplataType)
+        stepState.concludeRune(rune.rune, KindTemplataType())
         Ok(())
       }
       case IsStructSR(_, rune) => {
-        stepState.concludeRune(rune.rune, KindTemplataType)
+        stepState.concludeRune(rune.rune, KindTemplataType())
         Ok(())
       }
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => {
-        stepState.concludeRune(resultRune.rune, MutabilityTemplataType)
-        stepState.concludeRune(coordListRune.rune, PackTemplataType(CoordTemplataType))
+        stepState.concludeRune(resultRune.rune, MutabilityTemplataType())
+        stepState.concludeRune(coordListRune.rune, PackTemplataType(CoordTemplataType()))
         Ok(())
       }
       case CoerceToCoordSR(_, coordRune, kindRune) => {
-        stepState.concludeRune(kindRune.rune, KindTemplataType)
-        stepState.concludeRune(coordRune.rune, CoordTemplataType)
+        stepState.concludeRune(kindRune.rune, KindTemplataType())
+        stepState.concludeRune(coordRune.rune, CoordTemplataType())
         Ok(())
       }
       case LiteralSR(_, rune, literal) => {
@@ -192,8 +192,8 @@ class RuneTypeSolver(interner: Interner) {
       }
       case LookupSR(range, rune, name) => {
         (env(name), vassertSome(stepState.getConclusion(rune.rune))) match {
-          case (KindTemplataType, CoordTemplataType) =>
-          case (TemplateTemplataType(Vector(), KindTemplataType), CoordTemplataType) =>
+          case (KindTemplataType(), CoordTemplataType()) =>
+          case (TemplateTemplataType(Vector(), KindTemplataType()), CoordTemplataType()) =>
           case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
           case (from, to) if from == to =>
           case (from, to) => {
@@ -204,8 +204,8 @@ class RuneTypeSolver(interner: Interner) {
       }
       case RuneParentEnvLookupSR(range, rune) => {
         (env(interner.intern(RuneNameS(rune.rune))), vassertSome(stepState.getConclusion(rune.rune))) match {
-          case (KindTemplataType, CoordTemplataType) =>
-          case (TemplateTemplataType(Vector(), KindTemplataType), CoordTemplataType) =>
+          case (KindTemplataType(), CoordTemplataType()) =>
+          case (TemplateTemplataType(Vector(), KindTemplataType()), CoordTemplataType()) =>
           case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
           case (from, to) if from == to =>
           case (from, to) => {
@@ -215,29 +215,29 @@ class RuneTypeSolver(interner: Interner) {
         Ok(())
       }
       case LookupSR(range, rune, name) => {
-        stepState.concludeRune(rune.rune, KindTemplataType)
+        stepState.concludeRune(rune.rune, KindTemplataType())
         Ok(())
       }
       case AugmentSR(_, resultRune, ownership, innerRune) => {
-        stepState.concludeRune(resultRune.rune, CoordTemplataType)
-        stepState.concludeRune(innerRune.rune, CoordTemplataType)
+        stepState.concludeRune(resultRune.rune, CoordTemplataType())
+        stepState.concludeRune(innerRune.rune, CoordTemplataType())
         Ok(())
       }
       case PackSR(_, resultRune, memberRunes) => {
-        memberRunes.foreach(x => stepState.concludeRune(x.rune, CoordTemplataType))
-        stepState.concludeRune(resultRune.rune, PackTemplataType(CoordTemplataType))
+        memberRunes.foreach(x => stepState.concludeRune(x.rune, CoordTemplataType()))
+        stepState.concludeRune(resultRune.rune, PackTemplataType(CoordTemplataType()))
         Ok(())
       }
       case StaticSizedArraySR(_, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType)
-        stepState.concludeRune(variabilityRune.rune, VariabilityTemplataType)
-        stepState.concludeRune(sizeRune.rune, IntegerTemplataType)
-        stepState.concludeRune(elementRune.rune, CoordTemplataType)
+        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType())
+        stepState.concludeRune(variabilityRune.rune, VariabilityTemplataType())
+        stepState.concludeRune(sizeRune.rune, IntegerTemplataType())
+        stepState.concludeRune(elementRune.rune, CoordTemplataType())
         Ok(())
       }
       case RuntimeSizedArraySR(_, resultRune, mutabilityRune, elementRune) => {
-        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType)
-        stepState.concludeRune(elementRune.rune, CoordTemplataType)
+        stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType())
+        stepState.concludeRune(elementRune.rune, CoordTemplataType())
         Ok(())
       }
     }
@@ -266,8 +266,8 @@ class RuneTypeSolver(interner: Interner) {
             case LookupSR(_, rune, name) => {
               env(name) match {
                 // We don't know whether we'll interpret this kind as a coord.
-                case KindTemplataType => List()
-                case TemplateTemplataType(Vector(), KindTemplataType) => List()
+                case KindTemplataType() => List()
+                case TemplateTemplataType(Vector(), KindTemplataType()) => List()
                 // If it's not a kind, then we'll use it as it is.
                 case other => List(rune.rune -> other)
               }

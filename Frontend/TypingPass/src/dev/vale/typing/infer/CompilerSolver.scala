@@ -4,7 +4,7 @@ import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.ShareP
 import dev.vale.postparsing.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, Equivalencies, ILiteralSL, IRulexSR, IntLiteralSL, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, KindIsaSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, RuneParentEnvLookupSR, RuntimeSizedArraySR, StaticSizedArraySR, StringLiteralSL, VariabilityLiteralSL}
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vassertSome, vimpl, vwat}
-import dev.vale.postparsing.{CoordTemplataType, IImpreciseNameS, IRuneS, ITemplataType}
+import dev.vale.postparsing._
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
@@ -83,8 +83,8 @@ trait IInfererDelegate[Env, State] {
   def getAncestors(coutputs: State, descendant: KindT, includeSelf: Boolean):
   (Set[KindT])
 
-  def getInterfaceTemplataType(it: InterfaceTemplata): ITemplataType
-  def getStructTemplataType(st: StructTemplata): ITemplataType
+  def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType
+  def getStructTemplataType()(st: StructTemplata): ITemplataType
 
   def getMemberCoords(state: State, structTT: StructTT): Vector[CoordT]
 
@@ -391,7 +391,7 @@ class CompilerSolver[Env, State](
             Ok(())
           }
           case Some(kind) => {
-            val coerced = delegate.coerce(env, state, range, CoordTemplataType, kind)
+            val coerced = delegate.coerce(env, state, range, CoordTemplataType(), kind)
             stepState.concludeRune[ITypingPassSolverError](coordRune.rune, coerced)
             Ok(())
           }

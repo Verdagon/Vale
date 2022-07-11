@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{RangeS, vassertOne, vfail}
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.postparsing.{CoordTemplataType, IImpreciseNameS, ITemplataType, KindTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{INameT, NameTranslator}
 import dev.vale.typing.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
@@ -254,10 +254,10 @@ class TemplataCompiler(
       templata
     } else {
       (templata, tyype) match {
-        case (KindTemplata(kind), CoordTemplataType) => {
+        case (KindTemplata(kind), CoordTemplataType()) => {
           CoordTemplata(coerceKindToCoord(coutputs, kind))
         }
-        case (st@StructTemplata(_, structA), KindTemplataType) => {
+        case (st@StructTemplata(_, structA), KindTemplataType()) => {
           if (structA.isTemplate) {
             vfail("Can't coerce " + structA.name + " to be a kind, is a template!")
           }
@@ -265,7 +265,7 @@ class TemplataCompiler(
             delegate.getStructRef(coutputs, range, st, Vector.empty)
           (KindTemplata(kind))
         }
-        case (it@InterfaceTemplata(_, interfaceA), KindTemplataType) => {
+        case (it@InterfaceTemplata(_, interfaceA), KindTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
           }
@@ -273,7 +273,7 @@ class TemplataCompiler(
             delegate.getInterfaceRef(coutputs, range, it, Vector.empty)
           (KindTemplata(kind))
         }
-        case (st@StructTemplata(_, structA), CoordTemplataType) => {
+        case (st@StructTemplata(_, structA), CoordTemplataType()) => {
           if (structA.isTemplate) {
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
@@ -286,7 +286,7 @@ class TemplataCompiler(
           val coerced = CoordTemplata(CoordT(ownership, kind))
           (coerced)
         }
-        case (it@InterfaceTemplata(_, interfaceA), CoordTemplataType) => {
+        case (it@InterfaceTemplata(_, interfaceA), CoordTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }

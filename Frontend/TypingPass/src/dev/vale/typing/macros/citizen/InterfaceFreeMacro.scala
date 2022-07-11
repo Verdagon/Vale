@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, InterfaceA}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{LookupSR, RuneUsage}
 import dev.vale.{Err, Interner, Keywords, RangeS, StrI}
-import dev.vale.postparsing.{AbstractBodyS, CodeNameS, CodeRuneS, CodeVarNameS, CoordTemplataType, FreeDeclarationNameS, FunctionTemplataType, ParameterS, SelfNameS, TemplateTemplataType}
+import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver
 import dev.vale.typing.env.FunctionEnvEntry
 import dev.vale.typing.expression.CallCompiler
@@ -44,9 +44,9 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, overloadCompile
           interfaceA.name.range,
           freeFunctionNameS,
           Vector(),
-          TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
+          TemplateTemplataType(Vector(CoordTemplataType()), FunctionTemplataType()),
           Vector(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T))),
-          Map(CodeRuneS(keywords.T) -> CoordTemplataType, CodeRuneS(keywords.V) -> CoordTemplataType),
+          Map(CodeRuneS(keywords.T) -> CoordTemplataType(), CodeRuneS(keywords.V) -> CoordTemplataType()),
           Vector(
             ParameterS(
               AtomSP(
@@ -66,9 +66,9 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, overloadCompile
 //          interfaceA.range,
 //          virtualFreeFunctionNameS,
 //          Vector(),
-//          TemplateTemplataType(Vector(CoordTemplataType), FunctionTemplataType),
+//          TemplateTemplataType(Vector(CoordTemplataType()), FunctionTemplataType()),
 //          Vector(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T)),
-//                Map(CodeRuneS(keywords.T ->) CoordTemplataType, CodeRuneS(keywords.V ->) CoordTemplataType),
+//                Map(CodeRuneS(keywords.T ->) CoordTemplataType(), CodeRuneS(keywords.V ->) CoordTemplataType()),
 //          Vector(
 //            ParameterS(
 //              AtomSP(

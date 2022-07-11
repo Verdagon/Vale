@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.highertyping.ICompileErrorA
-import dev.vale.postparsing.{IFunctionDeclarationNameS, IImpreciseNameS, INameS, IRuneS, RuneTypeSolveError}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.infer.ITypingPassSolverError

@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, InterfaceA, StructA}
 import dev.vale.{Interner, Keywords, vassertOne, vcurious, vfail, vimpl, vwat, _}
 import dev.vale.parsing.ast.{CallMacroP, DontCallMacroP}
 import dev.vale.postparsing.rules.RuneUsage
-import dev.vale.postparsing.{ExportS, FreeDeclarationNameS, FunctionNameS, ICitizenAttributeS, IFunctionDeclarationNameS, IStructMemberS, MacroCallS, NormalStructMemberS, RuneNameS, SealedS, TopLevelCitizenDeclarationNameS, VariadicStructMemberS}
+import dev.vale.postparsing._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.highertyping._
 import dev.vale.typing.types._

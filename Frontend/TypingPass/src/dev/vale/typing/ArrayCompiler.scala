@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.parsing.ast.MutableP
-import dev.vale.postparsing.{CodeNameS, CodeRuneS, CoordTemplataType, IImpreciseNameS, IRuneS, MutabilityTemplataType, RuneTypeSolver}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
@@ -100,8 +100,8 @@ class ArrayCompiler(
         rulesA,
         List(),
         true,
-        Map(mutabilityRune -> MutabilityTemplataType) ++
-          maybeElementTypeRune.map(_ -> CoordTemplataType)) match {
+        Map(mutabilityRune -> MutabilityTemplataType()) ++
+          maybeElementTypeRune.map(_ -> CoordTemplataType())) match {
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }

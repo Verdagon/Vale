@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.{CodeLocationS, Interner, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.parsing.ast.{FinalP, UseP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
-import dev.vale.postparsing.{AnonymousSubstructImplDeclarationNameS, AnonymousSubstructMemberRuneS, AnonymousSubstructParentInterfaceRuneS, AnonymousSubstructParentInterfaceTemplateRuneS, AnonymousSubstructRuneS, AnonymousSubstructTemplateImpreciseNameS, AnonymousSubstructTemplateNameS, AnonymousSubstructTemplateRuneS, BlockSE, BodySE, CodeBodyS, CoordTemplataType, DotSE, ForwarderFunctionDeclarationNameS, FunctionCallSE, FunctionTemplataType, ITemplataType, ImplImpreciseNameS, KindTemplataType, LocalLoadSE, LocalS, NormalStructMemberS, NotUsed, OwnershipTemplataType, ParameterS, SelfKindRuneS, SelfKindTemplateRuneS, SelfNameS, SelfOwnershipRuneS, SelfRuneS, TemplateTemplataType, Used}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{CallSR, CoordComponentsSR, LookupSR, RuleScout, RuneUsage}
 import dev.vale.typing.{OverloadResolver, TypingPassOptions}
 import dev.vale.typing.citizen.StructCompiler
@@ -100,9 +100,9 @@ class AnonymousInterfaceMacro(
           interfaceA.identifyingRunes.toArray)
     val runeToType =
       structA.runeToType +
-        (AnonymousSubstructRuneS() -> KindTemplataType) +
+        (AnonymousSubstructRuneS() -> KindTemplataType()) +
         (AnonymousSubstructTemplateRuneS() -> structA.tyype) +
-        (AnonymousSubstructParentInterfaceRuneS() -> KindTemplataType) +
+        (AnonymousSubstructParentInterfaceRuneS() -> KindTemplataType()) +
         (AnonymousSubstructParentInterfaceTemplateRuneS() -> interfaceA.tyype)
     val structKindRuneS = RuneUsage(interfaceA.range, AnonymousSubstructRuneS())
     val interfaceKindRuneS = RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS())
@@ -143,12 +143,12 @@ class AnonymousInterfaceMacro(
       interfaceA.maybePredictedMutability,
       TemplateTemplataType(
         (interfaceA.tyype match {
-          case KindTemplataType => Vector()
-          case TemplateTemplataType(paramTypes, KindTemplataType) => paramTypes
-        }) ++ memberRunes.map(_ => CoordTemplataType),
-        KindTemplataType),
+          case KindTemplataType() => Vector()
+          case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
+        }) ++ memberRunes.map(_ => CoordTemplataType()),
+        KindTemplataType()),
       interfaceA.identifyingRunes ++ memberRunes,
-      interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType),
+      interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType()),
       interfaceA.rules,
       members)
   }
@@ -234,18 +234,18 @@ class AnonymousInterfaceMacro(
       attributes,
       TemplateTemplataType(
         (methodOriginalType match {
-          case FunctionTemplataType => Vector()
-          case TemplateTemplataType(paramTypes, FunctionTemplataType) => paramTypes
-        }) ++ struct.identifyingRunes.map(_ => CoordTemplataType),
-        FunctionTemplataType),
+          case FunctionTemplataType() => Vector()
+          case TemplateTemplataType(paramTypes, FunctionTemplataType()) => paramTypes
+        }) ++ struct.identifyingRunes.map(_ => CoordTemplataType()),
+        FunctionTemplataType()),
       identifyingRunes,
       runeToType ++
         Vector(
-          SelfRuneS() -> CoordTemplataType,
-          SelfKindRuneS() -> KindTemplataType,
+          SelfRuneS() -> CoordTemplataType(),
+          SelfKindRuneS() -> KindTemplataType(),
           SelfKindTemplateRuneS() -> structType,
-          SelfOwnershipRuneS() -> OwnershipTemplataType,
-          AnonymousSubstructParentInterfaceTemplateRuneS() -> KindTemplataType),
+          SelfOwnershipRuneS() -> OwnershipTemplataType(),
+          AnonymousSubstructParentInterfaceTemplateRuneS() -> KindTemplataType()),
       newParams,
       maybeRetCoordRune,
       rules ++ Vector(destructuringInterfaceRule, lookupStructRule, lookupStructTemplateRule, assemblingStructRule),

@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.{FunctionA, InterfaceA, StructA}
-import dev.vale.postparsing.{IFunctionDeclarationNameS, IRuneS}
+import dev.vale.postparsing._
 import dev.vale.typing.env.{CitizenEnvironment, IEnvironment, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions, env}
 import dev.vale.typing.names.{NameTranslator, RuneNameT}

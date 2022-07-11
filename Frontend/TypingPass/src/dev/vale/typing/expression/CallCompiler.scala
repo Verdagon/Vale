@@ -1,7 +1,7 @@
 package dev.vale.typing.expression
 
 import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vfail, vwat}
-import dev.vale.postparsing.{CodeNameS, IImpreciseNameS, IRuneS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure

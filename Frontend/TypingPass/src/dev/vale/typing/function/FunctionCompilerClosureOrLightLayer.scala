@@ -2,7 +2,7 @@ package dev.vale.typing.function
 
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{AbstractBodyS, CodeBodyS, ExternBodyS, GeneratedBodyS, IFunctionDeclarationNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.types._
 import dev.vale.typing.templata._

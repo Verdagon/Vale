@@ -141,17 +141,17 @@ object PostParserErrorHumanizer {
 
   def humanizeTemplataType(tyype: ITemplataType): String = {
     tyype match {
-      case KindTemplataType => "kind"
-      case CoordTemplataType => "type"
-      case FunctionTemplataType => "func"
-      case IntegerTemplataType => "int"
-      case BooleanTemplataType => "bool"
-      case MutabilityTemplataType => "mut"
-      case PrototypeTemplataType => "prot"
-      case StringTemplataType => "str"
-      case LocationTemplataType => "loc"
-      case OwnershipTemplataType => "own"
-      case VariabilityTemplataType => "vary"
+      case KindTemplataType() => "kind"
+      case CoordTemplataType() => "type"
+      case FunctionTemplataType() => "func"
+      case IntegerTemplataType() => "int"
+      case BooleanTemplataType() => "bool"
+      case MutabilityTemplataType() => "mut"
+      case PrototypeTemplataType() => "prot"
+      case StringTemplataType() => "str"
+      case LocationTemplataType() => "loc"
+      case OwnershipTemplataType() => "own"
+      case VariabilityTemplataType() => "vary"
       case PackTemplataType(elementType) => "pack<" + humanizeTemplataType(elementType) + ">"
       case TemplateTemplataType(params, ret) => humanizeTemplataType(ret) + "<" + params.map(humanizeTemplataType).mkString(",") + ">"
     }

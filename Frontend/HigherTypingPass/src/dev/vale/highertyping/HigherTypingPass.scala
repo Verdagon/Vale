@@ -6,7 +6,7 @@ import dev.vale.{CodeLocationS, Err, FileCoordinateMap, IPackageResolver, Intern
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing.rules.{IRulexSR, RuleScout}
-import dev.vale.postparsing.{CodeNameS, CoordTemplataType, ExportAsS, FunctionS, FunctionTemplataType, ICompileErrorS, IImpreciseNameS, INameS, IRuneS, ITemplataType, ImplImpreciseNameS, ImplS, ImportS, InterfaceS, KindTemplataType, MutabilityTemplataType, ParameterS, PostParser, ProgramS, RuneNameS, RuneTypeSolver, ScoutCompilation, StructS, TemplateTemplataType, TopLevelCitizenDeclarationNameS, UserFunctionS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.RuneTypeSolver
 import dev.vale.postparsing.rules._
 
@@ -42,14 +42,14 @@ case class Environment(
 class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keywords: Keywords) {
   val primitives =
     Map(
-      keywords.int -> KindTemplataType,
-      keywords.i64 -> KindTemplataType,
-      keywords.str -> KindTemplataType,
-      keywords.bool -> KindTemplataType,
-      keywords.float -> KindTemplataType,
-      keywords.void -> KindTemplataType,
-      keywords.__Never -> KindTemplataType,
-      keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType, CoordTemplataType), KindTemplataType))
+      keywords.int -> KindTemplataType(),
+      keywords.i64 -> KindTemplataType(),
+      keywords.str -> KindTemplataType(),
+      keywords.bool -> KindTemplataType(),
+      keywords.float -> KindTemplataType(),
+      keywords.void -> KindTemplataType(),
+      keywords.__Never -> KindTemplataType(),
+      keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType(), CoordTemplataType()), KindTemplataType()))
 
 
 
@@ -173,7 +173,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, Vector(), rulesS, env)
 
     // Shouldnt fail because we got a complete solve earlier
-    val tyype = PostParser.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val structA =
@@ -234,7 +234,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, Vector(), rulesS, env)
 
     // getOrDie because we should have gotten a complete solve
-    val tyype = PostParser.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val methodsEnv =
@@ -273,13 +273,13 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         astrouts,
         rangeS,
         identifyingRunesS.map(_.rune),
-        runeToExplicitType + (structKindRuneS.rune -> KindTemplataType, interfaceKindRuneS.rune -> KindTemplataType),
+        runeToExplicitType + (structKindRuneS.rune -> KindTemplataType(), interfaceKindRuneS.rune -> KindTemplataType()),
         Vector(),
         rulesS,
         env)
 
     // getOrDie because we should have gotten a complete solve
-    val tyype = PostParser.determineDenizenType(KindTemplataType, identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeSToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     highertyping.ImplA(
@@ -302,7 +302,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         astrouts,
         rangeS,
         Vector(),
-        Map(rune.rune -> KindTemplataType),
+        Map(rune.rune -> KindTemplataType()),
         Vector(),
         rulesS,
         env)
@@ -317,7 +317,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, paramsS, rulesS, env)
 
     // Shouldnt fail because we got a complete solve on the rules
-    val tyype = PostParser.determineDenizenType(FunctionTemplataType, identifyingRunesS.map(_.rune), runeAToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(FunctionTemplataType(), identifyingRunesS.map(_.rune), runeAToType).getOrDie()
 
     highertyping.FunctionA(
       rangeS,
@@ -343,7 +343,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   Map[IRuneS, ITemplataType] = {
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType)).toMap
+        paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType())).toMap
     val runeSToType =
       new RuneTypeSolver(interner).solve(
         globalOptions.sanityCheck,

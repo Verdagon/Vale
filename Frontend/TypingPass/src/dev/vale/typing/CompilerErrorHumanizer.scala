@@ -1,13 +1,13 @@
 package dev.vale.typing
 
 import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl}
-import dev.vale.postparsing.{CodeVarNameS, ConstructorNameS, FunctionNameS, INameS, IRuneS, IRuneTypeRuleError, ITemplataType, ImmConcreteDestructorNameS, ImmInterfaceDestructorNameS, LambdaDeclarationNameS, PostParserErrorHumanizer, RuneTypeSolveError, TopLevelCitizenDeclarationNameS}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{IIncompleteOrFailedSolve, SolverErrorHumanizer}
 import dev.vale.typing.types._
 import dev.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
 import dev.vale.highertyping.FunctionA
-import PostParserErrorHumanizer.{humanizeImpreciseName, humanizeOwnership, humanizeRune, humanizeTemplataType}
+import PostParserErrorHumanizer._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.RuleError

@@ -1,7 +1,7 @@
 package dev.vale.typing.env
 
 import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, vassert, vcurious, vfail, vimpl, vwat}
-import dev.vale.postparsing.{AnonymousSubstructTemplateImpreciseNameS, ArbitraryNameS, ClosureParamNameS, CodeNameS, FreeImpreciseNameS, IImpreciseNameS, LambdaImpreciseNameS, LambdaStructImpreciseNameS, RuneNameS, SelfNameS}
+import dev.vale.postparsing._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.macros.citizen.{InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import dev.vale.typing.macros.{AnonymousInterfaceMacro, FunctorHelper, IFunctionBodyMacro, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, StructConstructorMacro}

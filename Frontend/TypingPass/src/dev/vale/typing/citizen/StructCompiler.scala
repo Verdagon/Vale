@@ -2,7 +2,7 @@ package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vcurious, _}
-import dev.vale.postparsing.{IFunctionDeclarationNameS, IImpreciseNameS, IRuneS, IEnvironment => _}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment

@@ -2,12 +2,12 @@ package dev.vale.typing
 
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vfail, vimpl, vwat}
-import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType}
+import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{CoordSendSR, IRulexSR, RuneUsage}
 import dev.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve}
 import dev.vale.highertyping._
 import dev.vale.postparsing.rules.CoordSendSR
-import dev.vale.postparsing.{ArgumentRuneS, CoordTemplataType, IRuneS, ITemplataType}
+import dev.vale.postparsing._
 import dev.vale.solver.RuleError
 import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.env.IEnvironment
@@ -86,7 +86,7 @@ class InferCompiler(
       val runeToType =
         initialRuneToType ++
         initialSends.map({ case InitialSend(senderRune, _, _) =>
-          senderRune.rune -> CoordTemplataType
+          senderRune.rune -> CoordTemplataType()
         })
       val rules =
         initialRules ++

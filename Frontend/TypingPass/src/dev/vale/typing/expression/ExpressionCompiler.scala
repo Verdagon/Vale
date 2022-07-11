@@ -6,7 +6,7 @@ import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassert
 import dev.vale.parsing.ast.{LoadAsBorrowP, LoadAsP, LoadAsWeakP, MoveP, UseP}
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.{RuneParentEnvLookupSR, RuneUsage}
-import dev.vale.postparsing.{ArbitraryNameS, ArgLookupSE, BlockSE, BreakSE, CodeNameS, ConsecutorSE, ConstantBoolSE, ConstantFloatSE, ConstantIntSE, ConstantStrSE, CoordTemplataType, DestructSE, DotSE, ExprMutateSE, FunctionCallSE, FunctionS, FunctionSE, FunctionTemplataType, IExpressionSE, IFunctionDeclarationNameS, IImpreciseNameS, IVarNameS, IfSE, IndexSE, LambdaStructImpreciseNameS, LetSE, LocalLoadSE, LocalMutateSE, MapSE, NewRuntimeSizedArraySE, OutsideLoadSE, OwnershippedSE, PostParser, ReturnSE, RuneLookupSE, RuneNameS, RuneTypeSolver, SelfRuneS, StaticArrayFromCallableSE, StaticArrayFromValuesSE, TupleSE, UnletSE, UserFunctionS, VoidSE, WhileSE}
+import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal, CantMutateFinalElement, CantMutateFinalMember, CantReconcileBranchesResults, CantUnstackifyOutsideLocalFromInsideWhile, CantUseUnstackifiedLocal, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForMutateT, CouldntConvertForReturnT, CouldntFindIdentifierToLoadT, CouldntFindMemberT, HigherTypingInferError, IfConditionIsntBoolean, InferCompiler, OverloadResolver, RangedInternalErrorT, SequenceCompiler, TemplataCompiler, TypingPassOptions, ast, templata}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
 import dev.vale.typing.citizen.{AncestorHelper, StructCompiler}
@@ -1333,7 +1333,7 @@ class ExpressionCompiler(
 
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
-        paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType).toMap
+        paramsS.map(_.pattern.coordRune.get.rune -> CoordTemplataType()).toMap
     val runeSToType =
       new RuneTypeSolver(interner).solve(
         opts.globalOptions.sanityCheck,
@@ -1345,7 +1345,7 @@ class ExpressionCompiler(
           // at least for now.
           // If this proves irksome, consider rearranging FunctionCompiler and StructCompiler's steps in
           // evaluating lambdas.
-          case LambdaStructImpreciseNameS(_) => CoordTemplataType
+          case LambdaStructImpreciseNameS(_) => CoordTemplataType()
           case n => {
             vassertSome(nenv.lookupNearestWithImpreciseName(n, Set(TemplataLookupContext))).tyype
           }
@@ -1357,7 +1357,7 @@ class ExpressionCompiler(
       }
 
     // Shouldnt fail because we got a complete solve on the rules
-    val tyype = PostParser.determineDenizenType(FunctionTemplataType, identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(FunctionTemplataType(), identifyingRunesS.map(_.rune), runeSToType).getOrDie()
 
     vale.highertyping.FunctionA(
       rangeS,
