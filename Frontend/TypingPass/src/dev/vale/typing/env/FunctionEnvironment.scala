@@ -39,7 +39,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -49,7 +49,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -78,7 +78,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -88,7 +88,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -128,7 +128,7 @@ case class NodeEnvironment(
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentNodeEnv.getOrElse(parentFunctionEnv), name, lookupFilter, getOnlyNearest)
   }
@@ -138,7 +138,7 @@ case class NodeEnvironment(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentNodeEnv.getOrElse(parentFunctionEnv), name, lookupFilter, getOnlyNearest)
   }
@@ -314,7 +314,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
 
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     nodeEnvironment.lookupNearestWithImpreciseName(nameS, lookupFilter)
   }
 
@@ -322,15 +322,15 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
 
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     nodeEnvironment.lookupNearestWithName(nameS, lookupFilter)
   }
 
-  def lookupAllWithImpreciseName( nameS: IImpreciseNameS, lookupFilter: Set[ILookupContext]): Iterable[ITemplata] = {
+  def lookupAllWithImpreciseName( nameS: IImpreciseNameS, lookupFilter: Set[ILookupContext]): Iterable[ITemplata[ITemplataType]] = {
     nodeEnvironment.lookupAllWithImpreciseName(nameS, lookupFilter)
   }
 
-  def lookupAllWithName( nameS: INameT, lookupFilter: Set[ILookupContext]): Iterable[ITemplata] = {
+  def lookupAllWithName( nameS: INameT, lookupFilter: Set[ILookupContext]): Iterable[ITemplata[ITemplataType]] = {
     nodeEnvironment.lookupAllWithName(nameS, lookupFilter)
   }
 
@@ -414,7 +414,7 @@ case class FunctionEnvironment(
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -424,7 +424,7 @@ case class FunctionEnvironment(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -493,7 +493,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     functionEnvironment.lookupNearestWithImpreciseName(nameS, lookupFilter)
   }
 
@@ -501,15 +501,15 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     functionEnvironment.lookupNearestWithName(nameS, lookupFilter)
   }
 
-  override def lookupAllWithImpreciseName( nameS: IImpreciseNameS, lookupFilter: Set[ILookupContext]): Iterable[ITemplata] = {
+  override def lookupAllWithImpreciseName( nameS: IImpreciseNameS, lookupFilter: Set[ILookupContext]): Iterable[ITemplata[ITemplataType]] = {
     functionEnvironment.lookupAllWithImpreciseName(nameS, lookupFilter)
   }
 
-  override def lookupAllWithName( nameS: INameT, lookupFilter: Set[ILookupContext]): Iterable[ITemplata] = {
+  override def lookupAllWithName( nameS: INameT, lookupFilter: Set[ILookupContext]): Iterable[ITemplata[ITemplataType]] = {
     functionEnvironment.lookupAllWithName(nameS, lookupFilter)
   }
 
@@ -586,7 +586,7 @@ object EnvironmentHelper {
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     val result = templatas.lookupWithNameInner(requestingEnv, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result
@@ -603,7 +603,7 @@ object EnvironmentHelper {
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     val result = templatas.lookupWithImpreciseNameInner(requestingEnv, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result

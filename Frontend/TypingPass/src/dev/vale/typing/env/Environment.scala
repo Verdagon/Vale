@@ -11,7 +11,7 @@ import dev.vale.typing._
 import TemplatasStore.{entryMatchesFilter, entryToTemplata, getImpreciseName}
 import dev.vale.typing.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, ForwarderFunctionNameT, ForwarderFunctionTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, LambdaTemplateNameT, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
 import dev.vale.typing.templata
-import dev.vale.typing.templata.{BooleanTemplata, CoordListTemplata, CoordTemplata, ExternFunctionTemplata, FunctionTemplata, ITemplata, ImplTemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, LocationTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.IOnImplDefinedMacro
 import dev.vale.typing.names._
@@ -33,20 +33,20 @@ trait IEnvironment {
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata]
+  Iterable[ITemplata[ITemplataType]]
 
   private[env] def lookupWithNameInner(
 
     nameS: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata]
+  Iterable[ITemplata[ITemplataType]]
 
   def lookupAllWithImpreciseName(
 
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithImpreciseNameInner(nameS, lookupFilter, false)
     })
@@ -56,7 +56,7 @@ trait IEnvironment {
 
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithNameInner(nameS, lookupFilter, false)
     })
@@ -66,7 +66,7 @@ trait IEnvironment {
 
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithNameInner(nameS, lookupFilter, true).toList match {
         case List() => None
@@ -77,10 +77,9 @@ trait IEnvironment {
   }
 
   def lookupNearestWithImpreciseName(
-
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithImpreciseNameInner(nameS, lookupFilter, true).toList match {
         case List() => None
@@ -162,7 +161,7 @@ object TemplatasStore {
     }
   }
 
-  def entryToTemplata(definingEnv: IEnvironment, entry: IEnvEntry): ITemplata = {
+  def entryToTemplata(definingEnv: IEnvironment, entry: IEnvEntry): ITemplata[ITemplataType] = {
     //    vassert(env.fullName != FullName2(PackageCoordinate.BUILTIN, Vector.empty, PackageTopLevelName2()))
     entry match {
       case FunctionEnvEntry(func) => templata.FunctionTemplata(definingEnv, func)
@@ -307,7 +306,7 @@ case class TemplatasStore(
 
     name: INameT,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     entriesByNameT.get(name)
       .filter(entryMatchesFilter(_, lookupFilter))
       .map(entryToTemplata(definingEnv, _))
@@ -318,7 +317,7 @@ case class TemplatasStore(
 
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     entriesByImpreciseNameS.getOrElse(name, Vector())
       .filter(entryMatchesFilter(_, lookupFilter))
       .map(entryToTemplata(definingEnv, _))
@@ -357,7 +356,7 @@ case class PackageEnvironment[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     globalEnv.builtins.lookupWithNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
       val env = PackageEnvironment(globalEnv, ns.name, globalNamespaces)
@@ -370,7 +369,7 @@ case class PackageEnvironment[+T <: INameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     globalEnv.builtins.lookupWithImpreciseNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
       ns.lookupWithImpreciseNameInner(
@@ -402,7 +401,7 @@ case class CitizenEnvironment[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     val result = templatas.lookupWithNameInner(this, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result
@@ -416,7 +415,7 @@ case class CitizenEnvironment[+T <: INameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata] = {
+  Iterable[ITemplata[ITemplataType]] = {
     val result = templatas.lookupWithImpreciseNameInner(this, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result

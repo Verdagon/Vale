@@ -5,7 +5,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{INameT, NameTranslator}
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
@@ -31,7 +31,7 @@ trait ITemplataCompilerDelegate {
     coutputs: CompilerOutputs,
     callRange: RangeS,
     structTemplata: StructTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata]):
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   StructTT
 
   def getInterfaceRef(
@@ -40,7 +40,7 @@ trait ITemplataCompilerDelegate {
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata]):
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   InterfaceTT
 
   def getStaticSizedArrayKind(
@@ -152,9 +152,9 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     template: StructTemplata,
-    templateArgs: Vector[ITemplata],
+    templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     val uncoercedTemplata =
       delegate.getStructRef(coutputs, callRange, template, templateArgs)
     val templata =
@@ -166,9 +166,9 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     template: InterfaceTemplata,
-    templateArgs: Vector[ITemplata],
+    templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     val uncoercedTemplata =
       delegate.getInterfaceRef(coutputs, callRange, template, templateArgs)
     val templata =
@@ -181,9 +181,9 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     range: RangeS,
     template: RuntimeSizedArrayTemplateTemplata,
-    templateArgs: Vector[ITemplata],
+    templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     val Vector(MutabilityTemplata(mutability), CoordTemplata(elementType)) = templateArgs
     val arrayKindTemplata = delegate.getRuntimeSizedArrayKind(env, coutputs, elementType, mutability)
     val templata =
@@ -200,7 +200,7 @@ class TemplataCompiler(
     size: Int,
     element: CoordT,
     expectedType: ITemplataType):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     val uncoercedTemplata =
       delegate.getStaticSizedArrayKind(env, coutputs, mutability, variability, size, element)
     val templata =
@@ -213,7 +213,7 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     range: RangeS,
     name: INameT):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructCompiler to figure out its members.
     // We could instead pipe a lookup context through, if this proves problematic.
@@ -225,7 +225,7 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     range: RangeS,
     name: IImpreciseNameS):
-  Option[ITemplata] = {
+  Option[ITemplata[ITemplataType]] = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
     // because this is called from StructCompiler to figure out its members.
     // We could instead pipe a lookup context through, if this proves problematic.
@@ -247,9 +247,9 @@ class TemplataCompiler(
   def coerce(
     coutputs: CompilerOutputs,
     range: RangeS,
-    templata: ITemplata,
+    templata: ITemplata[ITemplataType],
     tyype: ITemplataType):
-  (ITemplata) = {
+  (ITemplata[ITemplataType]) = {
     if (templata.tyype == tyype) {
       templata
     } else {
@@ -307,7 +307,7 @@ class TemplataCompiler(
     }
   }
 
-  def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata): Boolean = {
+  def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata[ITemplataType]): Boolean = {
     val citizenTemplateFullName =
       expectedCitizenTemplata match {
         case StructTemplata(env, originStruct) => {

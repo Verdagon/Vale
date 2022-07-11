@@ -5,7 +5,7 @@ import dev.vale.typing.ast.{FunctionCallTE, LetAndLendTE, LetNormalTE, UnletTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{FullNameT, FunctionNameT, TypingPassTemporaryVarNameT}
-import dev.vale.typing.templata.{functionName, simpleName}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.postparsing._
 import dev.vale.typing._

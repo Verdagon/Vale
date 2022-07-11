@@ -16,7 +16,7 @@ import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict,
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.infer.{KindIsNotConcrete, SendingNonCitizen}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, PlaceholderNameT}
-import dev.vale.typing.templata.{CoordTemplata, KindTemplata, OwnershipTemplata, simpleName}
+import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.SendingNonCitizen
 import dev.vale.typing.templata._

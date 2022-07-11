@@ -26,11 +26,11 @@ import scala.collection.mutable.ArrayBuffer
 case class InitialSend(
   senderRune: RuneUsage,
   receiverRune: RuneUsage,
-  sendTemplata: ITemplata)
+  sendTemplata: ITemplata[ITemplataType])
 
 case class InitialKnown(
   rune: RuneUsage,
-  templata: ITemplata)
+  templata: ITemplata[ITemplataType])
 
 class InferCompiler(
     opts: TypingPassOptions,
@@ -44,7 +44,7 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend]):
-  Result[Map[IRuneS, ITemplata], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITypingPassSolverError]] = {
+  Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     solve(env, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _) => Err(i)
@@ -60,7 +60,7 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend]):
-  Map[IRuneS, ITemplata] = {
+  Map[IRuneS, ITemplata[ITemplataType]] = {
     solve(env, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
@@ -80,7 +80,7 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend]
-  ): ISolverOutcome[IRulexSR, IRuneS, ITemplata, ITypingPassSolverError] = {
+  ): ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
 
       val runeToType =

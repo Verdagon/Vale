@@ -5,7 +5,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.env.{CitizenEnvironment, IEnvironment, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions, env}
 import dev.vale.typing.names.{NameTranslator, RuneNameT}
-import dev.vale.typing.templata.{FunctionTemplata, ITemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
@@ -35,7 +35,7 @@ class StructCompilerMiddle(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     structS: StructA,
-    templatasByRune: Map[IRuneS, ITemplata]):
+    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (StructTT) = {
     val coercedFinalTemplateArgs2 = structS.identifyingRunes.map(_.rune).map(templatasByRune)
 
@@ -61,7 +61,7 @@ class StructCompilerMiddle(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     interfaceA: InterfaceA,
-    templatasByRune: Map[IRuneS, ITemplata]):
+    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     val coercedFinalTemplateArgs2 = interfaceA.identifyingRunes.map(_.rune).map(templatasByRune)
 

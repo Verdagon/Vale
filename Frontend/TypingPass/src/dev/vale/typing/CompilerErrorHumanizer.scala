@@ -16,7 +16,7 @@ import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{CallResultWasntExpectedType, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT}
-import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.WrongNumberOfTemplateArgs
 import dev.vale.typing.templata.Conversions
@@ -355,7 +355,7 @@ object CompilerErrorHumanizer {
     codeMap: FileCoordinateMap[String],
     invocationRange: RangeS,
     candidate: ICalleeCandidate,
-    result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata, ITypingPassSolverError]):
+    result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]):
   String = {
     val (text, lineBegins) =
       SolverErrorHumanizer.humanizeFailedSolve(
@@ -405,7 +405,7 @@ object CompilerErrorHumanizer {
 
   def humanizeTemplata(
     codeMap: FileCoordinateMap[String],
-    templata: ITemplata):
+    templata: ITemplata[ITemplataType]):
   String = {
     templata match {
       case RuntimeSizedArrayTemplateTemplata() => "Array"
@@ -449,7 +449,7 @@ object CompilerErrorHumanizer {
         kind match {
           case IntT(bits) => "i" + bits
           case BoolT() => "bool"
-          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
+//          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
           case StrT() => "str"
           case NeverT(_) => "never"
           case VoidT() => "void"

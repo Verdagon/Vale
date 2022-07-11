@@ -9,7 +9,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, IS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
-import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StringTemplata, StructTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
@@ -37,7 +37,7 @@ case class LookupFailed(name: IImpreciseNameS) extends ITypingPassSolverError
 case class NoAncestorsSatisfyCall(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITypingPassSolverError
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITypingPassSolverError
-case class CallResultWasntExpectedType(expected: ITemplata, actual: ITemplata) extends ITypingPassSolverError
+case class CallResultWasntExpectedType(expected: ITemplata[ITemplataType], actual: ITemplata[ITemplataType]) extends ITypingPassSolverError
 case class OneOfFailed(rule: OneOfSR) extends ITypingPassSolverError
 case class KindDoesntImplementInterface(sub: CitizenRefT, suuper: InterfaceTT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
@@ -53,11 +53,11 @@ trait IInfererDelegate[Env, State] {
 
   def getMutability(state: State, kind: KindT): MutabilityT
 
-  def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata
+  def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata[ITemplataType]
 
-  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): Option[ITemplata]
+  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]]
 
-  def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata
+  def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType]
 
   def isDescendant(env: Env, state: State, kind: KindT): Boolean
   def isAncestor(env: Env, state: State, kind: KindT): Boolean
@@ -66,14 +66,14 @@ trait IInfererDelegate[Env, State] {
     state: State,
     callRange: RangeS,
     templata: StructTemplata,
-    templateArgs: Vector[ITemplata]):
+    templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
   def evaluateInterfaceTemplata(
     state: State,
     callRange: RangeS,
     templata: InterfaceTemplata,
-    templateArgs: Vector[ITemplata]):
+    templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
   def getStaticSizedArrayKind(env: Env, state: State, mutability: MutabilityT, variability: VariabilityT, size: Int, element: CoordT): (StaticSizedArrayTT)
@@ -93,7 +93,7 @@ trait IInfererDelegate[Env, State] {
   def kindIsFromTemplate(
     state: State,
     actualCitizenRef: KindT,
-    expectedCitizenTemplata: ITemplata):
+    expectedCitizenTemplata: ITemplata[ITemplataType]):
   Boolean
 
   def assemblePrototypeTemplata(
@@ -184,7 +184,7 @@ class CompilerSolver[Env, State](
     env: Env,
     ruleIndex: Int,
     rule: IRulexSR,
-    stepState: IStepState[IRulexSR, IRuneS, ITemplata]):
+    stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
   // One might expect us to return the conclusions in this Result. Instead we take in a
   // lambda to avoid intermediate allocations, for speed.
   Result[Unit, ITypingPassSolverError] = {
@@ -684,8 +684,8 @@ class CompilerSolver[Env, State](
     state: State,
     rules: IndexedSeq[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
-    initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata]):
-  ISolverOutcome[IRulexSR, IRuneS, ITemplata, ITypingPassSolverError] = {
+    initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata[ITemplataType]]):
+  ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
 
     rules.foreach(rule => rule.runeUsages.foreach(rune => vassert(runeToType.contains(rune.rune))))
 
@@ -694,7 +694,7 @@ class CompilerSolver[Env, State](
     })
 
     val solver =
-      new Solver[IRulexSR, IRuneS, Env, State, ITemplata, ITypingPassSolverError](
+      new Solver[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError](
         globalOptions.sanityCheck, globalOptions.useOptimizedSolver)
     val solverState =
       solver.makeInitialSolverState(
@@ -704,9 +704,9 @@ class CompilerSolver[Env, State](
         initiallyKnownRuneToTemplata)
 
     val ruleSolver =
-      new ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata, ITypingPassSolverError] {
-        override def complexSolve(state: State, env: Env, stepState: IStepState[IRulexSR, IRuneS, ITemplata]):
-        Result[Unit, ISolverError[IRuneS, ITemplata, ITypingPassSolverError]] = {
+      new ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError] {
+        override def complexSolve(state: State, env: Env, stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
+        Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
           val equivalencies = new Equivalencies(solverState.getUnsolvedRules())
 
           val unsolvedRules = solverState.getUnsolvedRules()
@@ -790,7 +790,7 @@ class CompilerSolver[Env, State](
         private def solveReceives(
           state: State,
           senders: Vector[(IRuneS, CoordT)],
-          callTemplates: Vector[ITemplata],
+          callTemplates: Vector[ITemplata[ITemplataType]],
           allSendersKnown: Boolean,
           allCallsKnown: Boolean):
         Result[Option[KindT], ITypingPassSolverError] = {
@@ -863,14 +863,14 @@ class CompilerSolver[Env, State](
           }
         }
 
-        override def solve(state: State, env: Env, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplata]):
-        Result[Unit, ISolverError[IRuneS, ITemplata, ITypingPassSolverError]] = {
+        override def solve(state: State, env: Env, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
+        Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
 
-          solveRule(state, env, ruleIndex, rule, new IStepState[IRulexSR, IRuneS, ITemplata] {
+          solveRule(state, env, ruleIndex, rule, new IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]] {
             override def addRule(rule: IRulexSR): Unit = stepState.addRule(rule)
-            override def getConclusion(rune: IRuneS): Option[ITemplata] = stepState.getConclusion(rune)
+            override def getConclusion(rune: IRuneS): Option[ITemplata[ITemplataType]] = stepState.getConclusion(rune)
             override def getUnsolvedRules(): Vector[IRulexSR] = stepState.getUnsolvedRules()
-            override def concludeRune[ErrType](rune: IRuneS, conclusion: ITemplata): Unit = {
+            override def concludeRune[ErrType](rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
               val coerced =
                 delegate.coerce(env, state, range, vassertSome(runeToType.get(rune)), conclusion)
               vassert(coerced.tyype == vassertSome(runeToType.get(rune)))

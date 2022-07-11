@@ -23,7 +23,7 @@ import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.names.{ArbitraryNameT, ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, RuneNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT}
-import dev.vale.typing.templata.{BooleanTemplata, CoordTemplata, ExternFunctionTemplata, FunctionTemplata, ITemplata, IntegerTemplata, InterfaceTemplata, PrototypeTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
@@ -38,7 +38,7 @@ trait IExpressionCompilerDelegate {
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   IEvaluateFunctionResult[PrototypeT]
 

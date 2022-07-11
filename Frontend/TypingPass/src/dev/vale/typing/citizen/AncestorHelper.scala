@@ -1,13 +1,13 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.ImplA
-import dev.vale.postparsing.ImplImpreciseNameS
+import dev.vale.postparsing.{ITemplataType, ImplImpreciseNameS}
 import dev.vale.postparsing.rules.Equivalencies
 import dev.vale.solver.SolverErrorHumanizer
 import dev.vale.typing.env.{ExpressionLookupContext, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.{CantImplNonInterface, CompileErrorExceptionT, InferCompiler, InitialKnown, TypingPassOptions, CompilerOutputs}
+import dev.vale.typing.{CantImplNonInterface, CompileErrorExceptionT, CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.names.NameTranslator
-import dev.vale.typing.templata.{ITemplata, ImplTemplata, InterfaceTemplata, KindTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Err, Interner, Ok, Profiler, RangeS, postparsing, vwat}
 import dev.vale.typing.types._
@@ -25,7 +25,7 @@ trait IAncestorHelperDelegate {
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata]):
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   InterfaceTT
 }
 

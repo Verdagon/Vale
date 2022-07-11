@@ -1,13 +1,13 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.IFunctionDeclarationNameS
+import dev.vale.postparsing.{IFunctionDeclarationNameS, ITemplataType}
 import dev.vale.postparsing.rules.RuneUsage
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.names.NameTranslator
-import dev.vale.typing.templata.{Conversions, FunctionTemplata, ITemplata, InterfaceTemplata, MutabilityTemplata, StructTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vfail, vimpl, vwat}
 import dev.vale.highertyping._
@@ -35,7 +35,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     structTemplata: StructTemplata,
-    templateArgs: Vector[ITemplata]):
+    templateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
       val StructTemplata(env, structA) = structTemplata
@@ -90,7 +90,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     interfaceTemplata: InterfaceTemplata,
-    templateArgs: Vector[ITemplata]):
+    templateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     Profiler.frame(() => {
       val InterfaceTemplata(env, interfaceA) = interfaceTemplata
