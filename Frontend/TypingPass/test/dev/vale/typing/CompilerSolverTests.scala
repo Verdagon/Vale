@@ -271,7 +271,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |import v.builtins.tup.*;
         |func moo(i int, b bool) str { return "hello"; }
         |exported func main() str
-        |where mooFunc Prot = func moo(int, bool)_
+        |where mooFunc Prot = func moo(int, bool)str
         |{
         |  return (mooFunc)(5, true);
         |}
@@ -289,7 +289,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |import v.builtins.tup.*;
         |func moo(i int, b bool) str { return "hello"; }
         |exported func main() str
-        |where func moo(int, bool)_
+        |where func moo(int, bool)str
         |{
         |  return moo(5, true);
         |}
@@ -338,7 +338,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |struct MyStruct {}
         |interface MyInterface {}
         |impl MyInterface for MyStruct;
-        |func moo<T>(m T) { }
+        |func moo<T>(m T) where func drop(T)void { }
         |exported func main() {
         |  moo(MyStruct())
         |}
@@ -346,7 +346,11 @@ class CompilerSolverTests extends FunSuite with Matchers {
     )
 
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("moo").header.params.head.tyype match {
+    val arg =
+      coutputs.lookupFunction("main").body shouldHave {
+        case FunctionCallTE(_, Vector(arg)) => arg
+      }
+    arg.result.reference match {
       case CoordT(_, StructTT(_)) =>
     }
   }
@@ -354,13 +358,12 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Assume most specific common ancestor") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface IShip {}
         |struct Firefly {}
         |impl IShip for Firefly;
         |struct Serenity {}
         |impl IShip for Serenity;
-        |func moo<T>(a T, b T) { }
+        |func moo<T>(a T, b T) where func drop(T)void { }
         |exported func main() {
         |  moo(Firefly(), Serenity())
         |}
@@ -369,10 +372,14 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
-    moo.header.params.head.tyype match {
-      case CoordT(_, InterfaceTT(_)) =>
-    }
     val main = coutputs.lookupFunction("main")
+    main.body shouldHave {
+      case FunctionCallTE(prototype, Vector(_, _)) => {
+        prototype.fullName.last.templateArgs.head match {
+          case CoordTemplata(CoordT(_, InterfaceTT(_))) =>
+        }
+      }
+    }
     Collector.all(main, {
       case StructToInterfaceUpcastTE(_, _) =>
     }).size shouldEqual 2
@@ -381,7 +388,6 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Descendant satisfying call") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface IShip<T> where T Ref {}
         |struct Firefly<T> where T Ref {}
         |impl<T> IShip<T> for Firefly<T>;
@@ -395,7 +401,16 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
     moo.header.params.head.tyype match {
-      case CoordT(_, InterfaceTT(FullNameT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, IntT(_)))))))) =>
+      case CoordT(_, InterfaceTT(FullNameT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))))))) =>
+    }
+    val main = coutputs.lookupFunction("main")
+    main.body shouldHave {
+      case FunctionCallTE(
+        PrototypeT(FullNameT(_,_, FunctionNameT(StrI("moo"), _, _)), _),
+        Vector(
+          StructToInterfaceUpcastTE(
+            _,
+            InterfaceTT(FullNameT(_,_,CitizenNameT(CitizenTemplateNameT(StrI("IShip")),Vector(CoordTemplata(CoordT(ShareT,IntT(32)))))))))) =>
     }
   }
 
