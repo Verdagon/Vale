@@ -27,6 +27,16 @@ case class CoordTemplata(reference: CoordT) extends ITemplata {
 
   vpass()
 }
+case class PlaceholderTemplata(tyype: ITemplataType) extends ITemplata {
+  tyype match {
+    // Coords and kinds should instead use the kind PlaceholderT
+    case CoordTemplataType => vfail()
+    case KindTemplataType => vfail()
+    case _ =>
+  }
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def order: Int = 2;
+}
 case class KindTemplata(kind: KindT) extends ITemplata {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def order: Int = 2;
