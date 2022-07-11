@@ -21,7 +21,7 @@ import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunction
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
-import dev.vale.typing.templata.{FunctionTemplata, ITemplata, KindTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.names.LambdaCitizenNameT
 
@@ -317,7 +317,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
+    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     paramFilters: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     Profiler.frame(() => {
@@ -353,7 +353,7 @@ class FunctionCompiler(
       callRange: RangeS,
       closureStructRef: StructTT,
     function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
+    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes2: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForBanner(
@@ -365,7 +365,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
+    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     paramFilters: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     Profiler.frame(() => {
@@ -474,7 +474,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   IEvaluateFunctionResult[PrototypeT] = {
     Profiler.frame(() => {
@@ -494,7 +494,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   IEvaluateFunctionResult[PrototypeT] = {
     Profiler.frame(() => {
@@ -509,7 +509,7 @@ class FunctionCompiler(
       coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA,
-      explicitTemplateArgs: Vector[ITemplata],
+      explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
   IEvaluateFunctionResult[PrototypeT] = {
     closureOrLightLayer.evaluateTemplatedLightFunctionFromCallForPrototype2(
@@ -521,7 +521,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   IEvaluateFunctionResult[PrototypeT] = {
     val lambdaCitizenName2 =

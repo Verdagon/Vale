@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, PackageCoordinate, RangeS, vimpl}
 import dev.vale.finalast.{ArgumentH, ArrayCapacityH, ArrayLengthH, AsSubtypeH, BlockH, BoolH, BorrowH, BorrowToWeakH, BreakH, CallH, CodeLocation, ConsecutorH, ConstantBoolH, ConstantF64H, ConstantIntH, ConstantStrH, ConstantVoidH, DestroyH, DestroyImmRuntimeSizedArrayH, DestroyMutRuntimeSizedArrayH, DestroyStaticSizedArrayIntoFunctionH, DestroyStaticSizedArrayIntoLocalsH, DiscardH, EdgeH, ExpressionH, ExternCallH, Final, FloatH, FullNameH, FunctionH, IfH, Immutable, InlineH, IntH, InterfaceCallH, InterfaceDefinitionH, InterfaceMethodH, InterfaceRefH, InterfaceToInterfaceUpcastH, IsSameInstanceH, KindH, Local, LocalLoadH, LocalStoreH, LocationH, LockWeakH, MemberLoadH, MemberStoreH, MetalPrinter, Mutability, Mutable, NeverH, NewArrayFromValuesH, NewImmRuntimeSizedArrayH, NewMutRuntimeSizedArrayH, NewStructH, OwnH, OwnershipH, PackageH, PopRuntimeSizedArrayH, ProgramH, PrototypeH, PushRuntimeSizedArrayH, ReferenceH, RegionH, ReturnH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, RuntimeSizedArrayLoadH, RuntimeSizedArrayStoreH, ShareH, StackifyH, StaticArrayFromCallableH, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StaticSizedArrayLoadH, StaticSizedArrayStoreH, StrH, StructDefinitionH, StructMemberH, StructRefH, StructToInterfaceUpcastH, UnstackifyH, Variability, VariableIdH, Varying, VoidH, WeakH, WhileH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructImplNameT, AnonymousSubstructImplTemplateNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ExternFunctionNameT, ForwarderFunctionNameT, ForwarderFunctionTemplateNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, IterableNameT, IterationOptionNameT, IteratorNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, SelfNameT, StaticSizedArrayNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT, TypingPassPatternDestructureeNameT, TypingPassPatternMemberNameT, TypingPassTemporaryVarNameT, UnnamedLocalNameT}
-import dev.vale.typing.templata.{BooleanTemplata, CoordListTemplata, CoordTemplata, ExternFunctionTemplata, FunctionTemplata, ITemplata, ImplTemplata, IntegerTemplata, InterfaceTemplata, KindTemplata, LocationTemplata, MutabilityTemplata, OwnershipTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.finalast._
 import dev.vale.{finalast => m}
 import dev.vale.postparsing._
@@ -904,7 +904,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   def vonifyTemplata(
     hinputs: Hinputs,
     hamuts: HamutsBox,
-    templata: ITemplata,
+    templata: ITemplata[ITemplataType],
   ): IVonData = {
     templata match {
       case CoordTemplata(coord) => {

@@ -15,7 +15,7 @@ import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{AddressibleClosureVariableT, BuildingFunctionEnvironmentWithClosureds, IEnvEntry, IEnvironment, IVariableT, ReferenceClosureVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, TemplataCompiler, TypingPassOptions, env}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator}
-import dev.vale.typing.templata.{ITemplata, KindTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.names.BuildingFunctionNameWithClosuredsT
 
@@ -77,7 +77,7 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: RangeS,
       closureStructRef: StructTT,
     function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
+    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes2: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     vassert(function.isTemplate)
@@ -103,7 +103,7 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: RangeS,
     closureStructRef: StructTT,
     function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata],
+    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes2: Vector[ParamFilter]):
   (IEvaluateFunctionResult[PrototypeT]) = {
     vassert(function.isTemplate)
@@ -127,7 +127,7 @@ class FunctionCompilerClosureOrLightLayer(
       coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA,
-      explicitTemplateArgs: Vector[ITemplata],
+      explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[PrototypeT]) = {
     checkNotClosure(function);
@@ -143,7 +143,7 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[PrototypeT]) = {
     checkNotClosure(function);
@@ -318,7 +318,7 @@ class FunctionCompilerClosureOrLightLayer(
       coutputs: CompilerOutputs,
     callRange: RangeS,
       function: FunctionA,
-      explicitTemplateArgs: Vector[ITemplata],
+      explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     checkNotClosure(function)
@@ -334,7 +334,7 @@ class FunctionCompilerClosureOrLightLayer(
       coutputs: CompilerOutputs,
       function: FunctionA,
     callRange: RangeS,
-      alreadySpecifiedTemplateArgs: Vector[ITemplata],
+      alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       paramFilters: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     vassert(function.isTemplate)

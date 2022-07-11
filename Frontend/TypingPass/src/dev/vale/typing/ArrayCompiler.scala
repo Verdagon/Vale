@@ -15,7 +15,7 @@ import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.RuneNameT
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, IntegerTemplata, MutabilityTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
 import dev.vale.typing.env.CitizenEnvironment
@@ -384,20 +384,20 @@ class ArrayCompiler(
     }
   }
 
-  private def getArrayVariability(templatas: Map[IRuneS, ITemplata], variabilityRuneA: IRuneS) = {
+  private def getArrayVariability(templatas: Map[IRuneS, ITemplata[ITemplataType]], variabilityRuneA: IRuneS) = {
     val VariabilityTemplata(m) = vassertSome(templatas.get(variabilityRuneA))
     m
   }
 
-  private def getArrayMutability(templatas: Map[IRuneS, ITemplata], mutabilityRuneA: IRuneS) = {
+  private def getArrayMutability(templatas: Map[IRuneS, ITemplata[ITemplataType]], mutabilityRuneA: IRuneS) = {
     val MutabilityTemplata(m) = vassertSome(templatas.get(mutabilityRuneA))
     m
   }
-  private def getArraySize(templatas: Map[IRuneS, ITemplata], sizeRuneA: IRuneS): Int = {
+  private def getArraySize(templatas: Map[IRuneS, ITemplata[ITemplataType]], sizeRuneA: IRuneS): Int = {
     val IntegerTemplata(m) = vassertSome(templatas.get(sizeRuneA))
     m.toInt
   }
-  private def getArrayElementType(templatas: Map[IRuneS, ITemplata], typeRuneA: IRuneS): CoordT = {
+  private def getArrayElementType(templatas: Map[IRuneS, ITemplata[ITemplataType]], typeRuneA: IRuneS): CoordT = {
     val CoordTemplata(m) = vassertSome(templatas.get(typeRuneA))
     m
   }

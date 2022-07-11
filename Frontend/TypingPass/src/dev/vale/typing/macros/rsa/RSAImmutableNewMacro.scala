@@ -6,7 +6,7 @@ import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
-import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata, PrototypeTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.postparsing.CodeRuneS

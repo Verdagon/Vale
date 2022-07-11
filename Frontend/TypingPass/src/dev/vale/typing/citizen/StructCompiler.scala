@@ -8,7 +8,7 @@ import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
 import dev.vale.typing.names.NameTranslator
-import dev.vale.typing.templata.{FunctionTemplata, ITemplata, InterfaceTemplata, StructTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.types._
@@ -67,7 +67,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     structTemplata: StructTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata]):
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
       templateArgsLayer.getStructRef(
@@ -81,7 +81,7 @@ class StructCompiler(
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata]):
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
 //    Profiler.reentrant("StructCompiler-getInterfaceRef", interfaceTemplata.debugString + "<" + uncoercedTemplateArgs.mkString(", ") + ">", () => {
       templateArgsLayer.getInterfaceRef(

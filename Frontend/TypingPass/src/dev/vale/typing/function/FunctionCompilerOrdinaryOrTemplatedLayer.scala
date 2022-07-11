@@ -19,7 +19,7 @@ import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, NameTranslator, PlaceholderNameT, RuneNameT}
-import dev.vale.typing.templata.{CoordTemplata, ITemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types.ParamFilter
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
 import dev.vale.vwat
@@ -92,7 +92,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     callRange: RangeS,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[PrototypeT]) = {
     val function = nearEnv.function
@@ -140,7 +140,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       nearEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
       callRange: RangeS,
-      alreadySpecifiedTemplateArgs: Vector[ITemplata],
+      alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     val function = nearEnv.function
@@ -283,7 +283,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       nearEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
     callRange: RangeS,
-      explicitTemplateArgs: Vector[ITemplata],
+      explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     val function = nearEnv.function
@@ -322,7 +322,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
   private def assembleKnownTemplatas(
     function: FunctionA,
     args: Vector[ParamFilter],
-    explicitTemplateArgs: Vector[ITemplata]):
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]]):
   Vector[InitialKnown] = {
     // Sometimes we look for an overload for a given override, assemble knowns from that here
 //    args.zip(function.params).collect({
@@ -356,7 +356,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
   private def addRunedDataToNearEnv(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     identifyingRunes: Vector[IRuneS],
-    templatasByRune: Map[IRuneS, ITemplata]
+    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables) = nearEnv
 
@@ -389,7 +389,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     callRange: RangeS,
-    explicitTemplateArgs: Vector[ITemplata],
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
   (IEvaluateFunctionResult[PrototypeT]) = {
     val function = nearEnv.function
@@ -434,21 +434,29 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val initialKnowns =
       function.identifyingRunes.zipWithIndex.map({ case (identifyingRune, index) =>
         val runeType = vassertSome(function.runeToType.get(identifyingRune.rune))
-        val placeholderKindT =
-          PlaceholderT(nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index))))
-        coutputs.declareKind(placeholderKindT)
-        coutputs.declareKindEnv(placeholderKindT, nearEnv)
+        val placeholderFullName =
+          nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
         val templata =
           runeType match {
-            case KindTemplataType() => KindTemplata(placeholderKindT)
+            case KindTemplataType() => {
+              val placeholderKindT = PlaceholderT(placeholderFullName)
+              coutputs.declareKind(placeholderKindT)
+              coutputs.declareKindEnv(placeholderKindT, nearEnv)
+              KindTemplata(placeholderKindT)
+            }
             // TODO: Not sure what to put here when we do regions. We might need to
             // flood the nearest region annotation downward, and then apply it if it's
             // a coord or something. Remembering that in every templex would be bothersome
             // though.
             // For now, we can manually add them.
             // So, I guess we could just assume the function's default region here then.
-            case CoordTemplataType() => CoordTemplata(CoordT(OwnT, placeholderKindT))
-            case _ => PlaceholderTemplata(runeType)
+            case CoordTemplataType() => {
+              val placeholderKindT = PlaceholderT(placeholderFullName)
+              coutputs.declareKind(placeholderKindT)
+              coutputs.declareKindEnv(placeholderKindT, nearEnv)
+              CoordTemplata(CoordT(OwnT, placeholderKindT))
+            }
+            case _ => PlaceholderTemplata(placeholderFullName, runeType)
           }
         InitialKnown(identifyingRune, templata)
       })

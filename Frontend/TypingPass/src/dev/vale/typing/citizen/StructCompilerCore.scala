@@ -19,7 +19,7 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FunctionTemplateNameT, INameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT}
-import dev.vale.typing.templata.{Conversions, CoordListTemplata, CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, MutabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.AnonymousSubstructImplNameT
@@ -39,7 +39,7 @@ class StructCompilerCore(
     structRunesEnv: CitizenEnvironment[INameT],
     coutputs: CompilerOutputs,
     structA: StructA,
-    coercedFinalTemplateArgs: Vector[ITemplata]):
+    coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructDefinitionT) = {
     val templateNameT = nameTranslator.translateCitizenName(structA.name)
     val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
@@ -185,7 +185,7 @@ class StructCompilerCore(
     interfaceRunesEnv: CitizenEnvironment[INameT],
     coutputs: CompilerOutputs,
     interfaceA: InterfaceA,
-    coercedFinalTemplateArgs2: Vector[ITemplata]):
+    coercedFinalTemplateArgs2: Vector[ITemplata[ITemplataType]]):
   (InterfaceDefinitionT) = {
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
     val fullNameT = interfaceRunesEnv.fullName.addStep(interner.intern(CitizenNameT(interner.intern(CitizenTemplateNameT(humanName)), coercedFinalTemplateArgs2)))

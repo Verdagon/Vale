@@ -23,7 +23,7 @@ import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDr
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
 import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
-import dev.vale.typing.templata.{FunctionTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StaticSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env._
@@ -88,11 +88,11 @@ class Compiler(
           ancestorHelper.isAncestor(coutputs, descendantCitizenRef, ancestorInterfaceRef).nonEmpty
         }
 
-        override def getStructRef(coutputs: CompilerOutputs, callRange: RangeS,structTemplata: StructTemplata, uncoercedTemplateArgs: Vector[ITemplata]): StructTT = {
+        override def getStructRef(coutputs: CompilerOutputs, callRange: RangeS,structTemplata: StructTemplata, uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]): StructTT = {
           structCompiler.getStructRef(coutputs, callRange, structTemplata, uncoercedTemplateArgs)
         }
 
-        override def getInterfaceRef(coutputs: CompilerOutputs, callRange: RangeS,interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata]): InterfaceTT = {
+        override def getInterfaceRef(coutputs: CompilerOutputs, callRange: RangeS,interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]): InterfaceTT = {
           structCompiler.getInterfaceRef(coutputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
 
@@ -121,7 +121,7 @@ class Compiler(
           coutputs: CompilerOutputs,
           range: RangeS,
           name: INameT):
-        ITemplata = {
+        ITemplata[ITemplataType] = {
           templataCompiler.lookupTemplata(env, coutputs, range, name)
         }
 
@@ -151,11 +151,11 @@ class Compiler(
           }
         }
 
-        def coerce(env: IEnvironment, state: CompilerOutputs, range: RangeS, toType: ITemplataType, templata: ITemplata): ITemplata = {
+        def coerce(env: IEnvironment, state: CompilerOutputs, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
           templataCompiler.coerce(state, range, templata, toType)
         }
 
-        override def lookupTemplataImprecise(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata] = {
+        override def lookupTemplataImprecise(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
           templataCompiler.lookupTemplata(env, state, range, name)
         }
 
@@ -186,7 +186,7 @@ class Compiler(
           state: CompilerOutputs,
           callRange: RangeS,
           templata: InterfaceTemplata,
-          templateArgs: Vector[ITemplata]):
+          templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
             structCompiler.getInterfaceRef(state, callRange, templata, templateArgs)
         }
@@ -195,7 +195,7 @@ class Compiler(
           state: CompilerOutputs,
           callRange: RangeS,
           templata: StructTemplata,
-          templateArgs: Vector[ITemplata]):
+          templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.getStructRef(state, callRange, templata, templateArgs)
         }
@@ -203,7 +203,7 @@ class Compiler(
         override def kindIsFromTemplate(
           coutputs: CompilerOutputs,
           actualCitizenRef: KindT,
-          expectedCitizenTemplata: ITemplata):
+          expectedCitizenTemplata: ITemplata[ITemplataType]):
         Boolean = {
           actualCitizenRef match {
             case s : CitizenRefT => templataCompiler.citizenIsFromTemplate(s, expectedCitizenTemplata)
@@ -263,7 +263,7 @@ class Compiler(
 
   val ancestorHelper: AncestorHelper =
     new AncestorHelper(opts, interner, inferCompiler, new IAncestorHelperDelegate {
-      override def getInterfaceRef(coutputs: CompilerOutputs, callRange: RangeS, interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata]): InterfaceTT = {
+      override def getInterfaceRef(coutputs: CompilerOutputs, callRange: RangeS, interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]): InterfaceTT = {
         structCompiler.getInterfaceRef(coutputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
       }
     })
@@ -374,7 +374,7 @@ class Compiler(
       destructorCompiler,
       convertHelper,
       new IExpressionCompilerDelegate {
-        override def evaluateTemplatedFunctionFromCallForPrototype(coutputs: CompilerOutputs, callRange: RangeS, functionTemplata: FunctionTemplata, explicitTemplateArgs: Vector[ITemplata], args: Vector[ParamFilter]): FunctionCompiler.IEvaluateFunctionResult[PrototypeT] = {
+        override def evaluateTemplatedFunctionFromCallForPrototype(coutputs: CompilerOutputs, callRange: RangeS, functionTemplata: FunctionTemplata, explicitTemplateArgs: Vector[ITemplata[ITemplataType]], args: Vector[ParamFilter]): FunctionCompiler.IEvaluateFunctionResult[PrototypeT] = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, functionTemplata, explicitTemplateArgs, args)
         }
 

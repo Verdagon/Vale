@@ -6,7 +6,7 @@ import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ConstructTE, PrototypeT}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
-import dev.vale.typing.templata.{MutabilityTemplata, PrototypeTemplata, StructTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
