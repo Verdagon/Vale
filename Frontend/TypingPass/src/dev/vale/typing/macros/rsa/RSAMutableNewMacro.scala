@@ -40,10 +40,11 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
 
-    val MutabilityTemplata(mutability) =
-      vassertSome(
-        env.lookupNearestWithImpreciseName(
-          interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext)))
+    val mutability =
+      ITemplata.expectMutability(
+        vassertSome(
+          env.lookupNearestWithImpreciseName(
+            interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
     val arrayTT = interner.intern(RuntimeSizedArrayTT(mutability, elementType))
 

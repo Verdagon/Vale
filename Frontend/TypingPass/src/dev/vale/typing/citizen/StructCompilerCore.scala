@@ -58,10 +58,9 @@ class StructCompilerCore(
 
     val mutability =
       structRunesEnv.lookupNearestWithImpreciseName(
-
         interner.intern(RuneNameS(structA.mutabilityRune.rune)),
         Set(TemplataLookupContext)).toList match {
-        case List(MutabilityTemplata(m)) => m
+        case List(m) => ITemplata.expectMutability(m)
         case _ => vwat()
       }
 
@@ -89,7 +88,8 @@ class StructCompilerCore(
             case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
             case Some(m) => m
           }
-        val newEntriesList = maacro.getStructChildEntries(macroName, fullNameT, structA, mutability)
+        val newEntriesList =
+          maacro.getStructChildEntries(macroName, fullNameT, structA, mutability)
         val newEntries =
           newEntriesList.map({ case (entryName, value) =>
             vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
@@ -416,7 +416,7 @@ class StructCompilerCore(
           functionA)
 
     coutputs.declareKind(structTT);
-    coutputs.declareCitizenMutability(structTT, mutability)
+    coutputs.declareCitizenMutability(structTT, MutabilityTemplata(mutability))
     coutputs.declareKindEnv(structTT, structEnv);
 
 
@@ -424,7 +424,7 @@ class StructCompilerCore(
       StructDefinitionT(
         fullName,
         interner.intern(StructTT(fullName)),
-        Vector.empty, false, mutability, members, true);
+        Vector.empty, false, MutabilityTemplata(mutability), members, true);
     coutputs.add(closureStructDefinition)
 
     val closuredVarsStructRef = closureStructDefinition.getRef;

@@ -217,7 +217,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(3, 32) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32) => })
   }
 
   test("Equals transitive") {
@@ -230,7 +230,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(3, 32) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32) => })
   }
 
   test("OneOf") {
@@ -243,7 +243,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(3, 32) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32) => })
   }
 
   test("Components") {

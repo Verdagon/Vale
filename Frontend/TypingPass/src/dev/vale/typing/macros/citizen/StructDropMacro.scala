@@ -20,6 +20,7 @@ import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
 import dev.vale.typing.OverloadResolver
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 
 class StructDropMacro(
   interner: Interner,
@@ -39,7 +40,7 @@ class StructDropMacro(
   }
 
   override def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
+    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     val structNameS = structA.name
     val structType = structA.tyype
@@ -86,8 +87,12 @@ class StructDropMacro(
       },
       structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
       structIdentifyingRuneToType ++
+        (structType match {
+          case KindTemplataType() => Map()
+          case TemplateTemplataType(_, _) => Map(CodeRuneS(keywords.DropStructTemplate) -> structType)
+        }) ++
         Map(
-          CodeRuneS(keywords.DropStruct) -> structType,
+          CodeRuneS(keywords.DropStruct) -> KindTemplataType(),
           CodeRuneS(keywords.DropP1) -> CoordTemplataType(),
           CodeRuneS(keywords.DropV) -> CoordTemplataType()),
       Vector(
@@ -96,6 +101,10 @@ class StructDropMacro(
     (structType match {
         case KindTemplataType() => {
           Vector(
+            LookupSR(
+              RangeS.internal(interner, -1672159),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
+              structNameS.getImpreciseName(interner)),
             CoerceToCoordSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
@@ -103,10 +112,14 @@ class StructDropMacro(
         }
         case TemplateTemplataType(_, KindTemplataType()) => {
           Vector(
+            LookupSR(
+              RangeS.internal(interner, -1672159),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStructTemplate)),
+              structNameS.getImpreciseName(interner)),
             CallSR(
               RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStructTemplate)),
               structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
             CoerceToCoordSR(
               RangeS.internal(interner, -167215),
@@ -115,7 +128,6 @@ class StructDropMacro(
         }
       }) ++
       Vector(
-        LookupSR(RangeS.internal(interner, -1672159), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)), structNameS.getImpreciseName(interner)),
         LookupSR(RangeS.internal(interner, -1672160), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), interner.intern(CodeNameS(keywords.void)))),
       GeneratedBodyS(dropGeneratorId))
   }
@@ -165,7 +177,12 @@ class StructDropMacro(
         case other => vwat(other)
       }
     val structDef = coutputs.lookupStruct(structTT)
-    val structOwnership = if (structDef.mutability == MutableT) OwnT else ShareT
+    val structOwnership =
+      structDef.mutability match {
+        case MutabilityTemplata(MutableT) => OwnT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+      }
     val structType = CoordT(structOwnership, structDef.getRef)
 
     val ret = CoordT(ShareT, VoidT())
@@ -186,8 +203,9 @@ class StructDropMacro(
       })
     val expr =
       structDef.mutability match {
-        case ImmutableT => DiscardTE(ArgLookupTE(0, structType))
-        case MutableT => {
+        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+        case MutabilityTemplata(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
+        case MutabilityTemplata(MutableT) => {
           Compiler.consecutive(
             Vector(DestroyTE(ArgLookupTE(0, structType), structTT, memberLocalVariables)) ++
               memberLocalVariables.map(v => {

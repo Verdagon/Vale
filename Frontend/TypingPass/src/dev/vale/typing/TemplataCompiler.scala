@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{RangeS, vassertOne, vfail}
+import dev.vale.{RangeS, vassertOne, vfail, vimpl}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
@@ -13,7 +13,6 @@ import dev.vale.typing._
 import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.names.AnonymousSubstructNameT
-import dev.vale.RangeS
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -46,13 +45,13 @@ trait ITemplataCompilerDelegate {
   def getStaticSizedArrayKind(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    mutability: MutabilityT,
-    variability: VariabilityT,
-    size: Int,
+    mutability: ITemplata[MutabilityTemplataType],
+    variability: ITemplata[VariabilityTemplataType],
+    size: ITemplata[IntegerTemplataType],
     type2: CoordT):
   StaticSizedArrayTT
 
-  def getRuntimeSizedArrayKind(env: IEnvironment, coutputs: CompilerOutputs, element: CoordT, arrayMutability: MutabilityT): RuntimeSizedArrayTT
+  def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
 }
 
 class TemplataCompiler(
@@ -116,7 +115,12 @@ class TemplataCompiler(
 
   def pointifyKind(coutputs: CompilerOutputs, kind: KindT, ownershipIfMutable: OwnershipT): CoordT = {
     val mutability = Compiler.getMutability(coutputs, kind)
-    val ownership = if (mutability == MutableT) ownershipIfMutable else ShareT
+    val ownership =
+      mutability match {
+        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+        case MutabilityTemplata(MutableT) => ownershipIfMutable
+        case MutabilityTemplata(ImmutableT) => ShareT
+      }
     kind match {
       case a @ RuntimeSizedArrayTT(_, _) => {
         CoordT(ownership, a)
@@ -184,7 +188,8 @@ class TemplataCompiler(
     templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
   (ITemplata[ITemplataType]) = {
-    val Vector(MutabilityTemplata(mutability), CoordTemplata(elementType)) = templateArgs
+    val Vector(m, CoordTemplata(elementType)) = templateArgs
+    val mutability = ITemplata.expectMutability(m)
     val arrayKindTemplata = delegate.getRuntimeSizedArrayKind(env, coutputs, elementType, mutability)
     val templata =
       coerce(coutputs, range, KindTemplata(arrayKindTemplata), expectedType)
@@ -195,9 +200,9 @@ class TemplataCompiler(
     env: IEnvironment,
     coutputs: CompilerOutputs,
     callRange: RangeS,
-    mutability: MutabilityT,
-    variability: VariabilityT,
-    size: Int,
+    mutability: ITemplata[MutabilityTemplataType],
+    variability: ITemplata[VariabilityTemplataType],
+    size: ITemplata[IntegerTemplataType],
     element: CoordT,
     expectedType: ITemplataType):
   (ITemplata[ITemplataType]) = {
@@ -240,7 +245,11 @@ class TemplataCompiler(
   CoordT = {
     val mutability = Compiler.getMutability(coutputs, kind)
     CoordT(
-      if (mutability == MutableT) OwnT else ShareT,
+      mutability match {
+        case MutabilityTemplata(MutableT) => OwnT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+      },
       kind)
   }
 
@@ -282,7 +291,12 @@ class TemplataCompiler(
           val mutability = Compiler.getMutability(coutputs, kind)
 
           // Default ownership is own for mutables, share for imms
-          val ownership = if (mutability == MutableT) OwnT else ShareT
+          val ownership =
+            mutability match {
+              case MutabilityTemplata(MutableT) => OwnT
+              case MutabilityTemplata(ImmutableT) => ShareT
+              case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+            }
           val coerced = CoordTemplata(CoordT(ownership, kind))
           (coerced)
         }
@@ -296,7 +310,11 @@ class TemplataCompiler(
           val coerced =
             CoordTemplata(
               CoordT(
-                if (mutability == MutableT) OwnT else ShareT,
+                mutability match {
+                  case MutabilityTemplata(MutableT) => OwnT
+                  case MutabilityTemplata(ImmutableT) => ShareT
+                  case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+                },
                 kind))
           (coerced)
         }

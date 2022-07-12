@@ -449,7 +449,7 @@ object CompilerErrorHumanizer {
         kind match {
           case IntT(bits) => "i" + bits
           case BoolT() => "bool"
-//          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
+          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
           case StrT() => "str"
           case NeverT(_) => "never"
           case VoidT() => "void"
@@ -459,14 +459,14 @@ object CompilerErrorHumanizer {
           case StructTT(name) => humanizeName(codeMap, name)
           case RuntimeSizedArrayTT(mutability, elementType) => {
             "Array<" +
-              humanizeTemplata(codeMap, MutabilityTemplata(mutability)) + ", " +
+              humanizeTemplata(codeMap, mutability) + ", " +
               humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
           }
           case StaticSizedArrayTT(size, mutability, variability, elementType) => {
             "StaticArray<" +
-              humanizeTemplata(codeMap, IntegerTemplata(size)) + ", " +
-              humanizeTemplata(codeMap, MutabilityTemplata(mutability)) + ", " +
-              humanizeTemplata(codeMap, VariabilityTemplata(variability)) + ", " +
+              humanizeTemplata(codeMap, size) + ", " +
+              humanizeTemplata(codeMap, mutability) + ", " +
+              humanizeTemplata(codeMap, variability) + ", " +
               humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
           }
         }

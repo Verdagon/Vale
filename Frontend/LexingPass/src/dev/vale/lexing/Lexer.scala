@@ -1009,7 +1009,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
     }
 
     val begin = iter.getPos()
-    if (iter.peek().isUnicodeIdentifierPart) {
+    if (iter.peek().isUnicodeIdentifierStart) {
       Ok(vassertSome(lexIdentifier(iter)))
     } else {
       iter.advance()

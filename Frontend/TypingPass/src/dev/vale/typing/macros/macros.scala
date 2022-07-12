@@ -8,9 +8,11 @@ import dev.vale.typing.names.{FullNameT, INameT}
 import dev.vale.typing.types._
 import dev.vale.RangeS
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
+import dev.vale.postparsing.MutabilityTemplataType
 import dev.vale.typing.ast._
 import dev.vale.typing.env.IEnvEntry
 import dev.vale.typing.names.CitizenTemplateNameT
+import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types.InterfaceTT
 
 trait IFunctionBodyMacro {
@@ -34,7 +36,7 @@ trait IOnStructDefinedMacro {
   Vector[(FullNameT[INameT], IEnvEntry)]
 
   def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
+    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], IEnvEntry)]
 }
 

@@ -37,7 +37,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs();
     val main = coutputs.lookupFunction("main")
-    Collector.only(main, { case MutateTE(LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_,_, CodeVarNameT(StrI("a"))), VaryingT, _)), ConstantIntTE(4, _)) => })
+    Collector.only(main, { case MutateTE(LocalLookupTE(_,ReferenceLocalVariableT(FullNameT(_,_, CodeVarNameT(StrI("a"))), VaryingT, _)), ConstantIntTE(IntegerTemplata(4), _)) => })
 
     val lookup = Collector.only(main, { case l @ LocalLookupTE(range, localVariable) => l })
     val resultCoord = lookup.result.reference
@@ -193,7 +193,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalElement(_, arrRef2)) => {
         arrRef2.kind match {
-          case StaticSizedArrayTT(10,ImmutableT,FinalT,CoordT(ShareT,IntT(_))) =>
+          case StaticSizedArrayTT(IntegerTemplata(10),MutabilityTemplata(ImmutableT),VariabilityTemplata(FinalT),CoordT(ShareT,IntT(_))) =>
         }
       }
     }

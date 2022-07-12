@@ -244,12 +244,21 @@ class PatternCompiler(
         translateDestroyStructInnerAndMaybeContinue(
           coutputs, nenv, life + 0, range, initialLiveCaptureLocals, listOfMaybeDestructureMemberPatterns, inputExpr, afterDestructureSuccessContinuation)
       }
-      case staticSizedArrayT @ StaticSizedArrayTT(size, _, _, elementType) => {
-        if (size != listOfMaybeDestructureMemberPatterns.size) {
-          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Wrong num exprs!"))
-        }
+      case staticSizedArrayT @ StaticSizedArrayTT(sizeTemplata, _, _, elementType) => {
+        val size =
+          sizeTemplata match {
+            case PlaceholderTemplata(_, IntegerTemplataType()) => {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't create static sized array by values, can't guarantee size is correct!"))
+            }
+            case IntegerTemplata(size) => {
+              if (size != listOfMaybeDestructureMemberPatterns.size) {
+                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Wrong num exprs!"))
+              }
+              size
+            }
+          }
 
-        val elementLocals = (0 until size).map(i => localHelper.makeTemporaryLocal(nenv, life + 3 + i, elementType)).toVector
+        val elementLocals = (0 until size.toInt).map(i => localHelper.makeTemporaryLocal(nenv, life + 3 + i, elementType)).toVector
         val destroyTE = DestroyStaticSizedArrayIntoLocalsTE(inputExpr, staticSizedArrayT, elementLocals)
         val liveCaptureLocals = initialLiveCaptureLocals ++ elementLocals
         vassert(liveCaptureLocals.map(_.id) == liveCaptureLocals.map(_.id).distinct)
@@ -466,12 +475,12 @@ class PatternCompiler(
   }
 
   private def loadFromStaticSizedArray(
-    range: RangeS,
-    staticSizedArrayT: StaticSizedArrayTT,
-    localCoord: CoordT,
-    structOwnership: OwnershipT,
-    containerAlias: ReferenceExpressionTE,
-    index: Int) = {
-    arrayCompiler.lookupInStaticSizedArray(range, containerAlias, ConstantIntTE(index, 32), staticSizedArrayT)
+      range: RangeS,
+      staticSizedArrayT: StaticSizedArrayTT,
+      localCoord: CoordT,
+      structOwnership: OwnershipT,
+      containerAlias: ReferenceExpressionTE,
+      index: Int): StaticSizedArrayLookupTE = {
+    arrayCompiler.lookupInStaticSizedArray(range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32), staticSizedArrayT)
   }
 }

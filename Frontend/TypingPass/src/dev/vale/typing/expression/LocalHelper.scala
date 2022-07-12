@@ -1,14 +1,14 @@
 package dev.vale.typing.expression
 
-import dev.vale.{Interner, RangeS, vassert, vfail}
+import dev.vale.{Interner, RangeS, vassert, vfail, vimpl}
 import dev.vale.parsing.ast.{LoadAsBorrowP, LoadAsP, LoadAsWeakP, MoveP, UseP}
 import dev.vale.postparsing._
-import dev.vale.typing.{CantMoveOutOfMemberT, CompileErrorExceptionT, RangedInternalErrorT, Compiler, TypingPassOptions, CompilerOutputs, ast, env}
+import dev.vale.typing.{CantMoveOutOfMemberT, CompileErrorExceptionT, Compiler, CompilerOutputs, RangedInternalErrorT, TypingPassOptions, ast, env}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, DeferTE, ExpressionT, LetAndLendTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE, UnletTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ILocalVariableT, NodeEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{NameTranslator, TypingPassTemporaryVarNameT}
-import dev.vale.typing.templata.Conversions
+import dev.vale.typing.templata.{Conversions, ITemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -18,7 +18,6 @@ import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.names.TypingPassTemporaryVarNameT
-import dev.vale.RangeS
 
 import scala.collection.immutable.List
 
@@ -216,18 +215,34 @@ class LocalHelper(
       case StrT() => ShareT
       case VoidT() => ShareT
       case StaticSizedArrayTT(_, mutability, _, _) => {
-        if (mutability == MutableT) BorrowT else ShareT
+        mutability match {
+          case MutabilityTemplata(MutableT) => BorrowT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        }
       }
       case RuntimeSizedArrayTT(mutability, _) => {
-        if (mutability == MutableT) BorrowT else ShareT
+        mutability match {
+          case MutabilityTemplata(MutableT) => BorrowT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        }
       }
       case sr2 @ StructTT(_) => {
         val mutability = Compiler.getMutability(coutputs, sr2)
-        if (mutability == MutableT) BorrowT else ShareT
+        mutability match {
+          case MutabilityTemplata(MutableT) => BorrowT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        }
       }
       case ir2 @ InterfaceTT(_) => {
         val mutability = Compiler.getMutability(coutputs, ir2)
-        if (mutability == MutableT) BorrowT else ShareT
+        mutability match {
+          case MutabilityTemplata(MutableT) => BorrowT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        }
       }
       case OverloadSetT(_, _) => {
         ShareT
@@ -238,11 +253,14 @@ class LocalHelper(
 
 object LocalHelper {
   // See ClosureTests for requirements here
-  def determineIfLocalIsAddressible(mutability: MutabilityT, localA: LocalS): Boolean = {
-    if (mutability == MutableT) {
-      localA.childMutated != NotUsed || localA.childMoved != NotUsed
-    } else {
-      localA.childMutated != NotUsed
+  def determineIfLocalIsAddressible(mutability: ITemplata[MutabilityTemplataType], localA: LocalS): Boolean = {
+    mutability match {
+      case MutabilityTemplata(MutableT) => {
+        localA.childMutated != NotUsed || localA.childMoved != NotUsed
+      }
+      case _ => {
+        localA.childMutated != NotUsed
+      }
     }
   }
 

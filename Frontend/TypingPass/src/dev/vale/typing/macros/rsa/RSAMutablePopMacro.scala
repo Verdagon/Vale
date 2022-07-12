@@ -6,7 +6,7 @@ import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, PopRuntimeSizedArrayTE, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata}
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.postparsing.CodeRuneS
@@ -39,7 +39,8 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
 
-    val arrayTT = interner.intern(RuntimeSizedArrayTT(MutableT, elementType))
+    val arrayTT =
+      interner.intern(RuntimeSizedArrayTT(MutabilityTemplata(MutableT), elementType))
 
     coutputs.addFunction(
       FunctionT(
