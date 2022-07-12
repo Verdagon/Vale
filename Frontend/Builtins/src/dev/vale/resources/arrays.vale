@@ -27,7 +27,7 @@ where func drop(E)void {
 }
 
 func drop_into<E, F>(arr []<imm>E, consumer &F) void
-where func(&F, E)void
+where func(&F, &E)void
 {
   i = arr.len() - 1;
   while (i >= 0) {
@@ -69,8 +69,8 @@ where M Mutability = mut, E Ref;
 func Array<M, E, G>(n int, generator G) []<M>E
 where
   M Mutability = mut,
-  G Ref = Ref[any(share, borrow), _],
-  F Prot = func(G, int)E
+  func(&G, int)E,
+  func drop(G)void
 {
   arr = Array<mut, E>(n);
   i = 0;
@@ -85,6 +85,5 @@ extern("vale_runtime_sized_array_imm_new")
 func Array<M, E, G>(n int, generator G) []<M>E
 where
   M Mutability = imm,
-  E Ref,
-  G Ref = Ref[any(share, borrow), _],
-  F Prot = func(G, int)E;
+  func(&G, int)E,
+  func drop(G)void;

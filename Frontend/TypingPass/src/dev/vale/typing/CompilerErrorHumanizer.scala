@@ -14,11 +14,10 @@ import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
-import dev.vale.typing.infer.{CallResultWasntExpectedType, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
+import dev.vale.typing.infer.{CallResultWasntExpectedType, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.infer.WrongNumberOfTemplateArgs
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types.ParamFilter
 import dev.vale.RangeS
@@ -305,6 +304,9 @@ object CompilerErrorHumanizer {
       case KindDoesntImplementInterface(sub, suuper) => {
         "Kind " + humanizeTemplata(codeMap, KindTemplata(sub)) + " does not implement interface " + humanizeTemplata(codeMap, KindTemplata(suuper))
       }
+      case CantGetComponentsOfPlaceholderPrototype(_) => {
+        "Can't get components of placeholder."
+      }
       case CantShareMutable(kind) => {
         "Can't share a mutable kind: " + humanizeTemplata(codeMap, KindTemplata(kind))
       }
@@ -475,6 +477,7 @@ object CompilerErrorHumanizer {
         "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case StringTemplata(value) => "\"" + value + "\""
+      case PlaceholderTemplata(fullNameT, tyype) => "$" + humanizeName(codeMap, fullNameT)
       case other => vimpl(other)
     }
   }

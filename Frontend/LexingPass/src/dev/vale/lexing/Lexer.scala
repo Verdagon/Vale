@@ -303,7 +303,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
                 iter.peek(2) match {
                   case Some("<=") => {
                     iter.peek(3) match {
-                      case Some("<=>") => keywords.SPACESHIP
+                      case Some("<=>") => keywords.spaceship
                       case _ => keywords.lessEquals
                     }
                   }
@@ -1009,7 +1009,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
     }
 
     val begin = iter.getPos()
-    if (iter.peek().isUnicodeIdentifierStart) {
+    if (iter.peek().isUnicodeIdentifierPart) {
       Ok(vassertSome(lexIdentifier(iter)))
     } else {
       iter.advance()

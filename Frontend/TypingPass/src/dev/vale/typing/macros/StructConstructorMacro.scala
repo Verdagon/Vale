@@ -134,7 +134,7 @@ class StructConstructorMacro(
       structDef.mutability match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
       }
     val constructorReturnType = CoordT(constructorReturnOwnership, structDef.getRef)
     // not virtual because how could a constructor be virtual

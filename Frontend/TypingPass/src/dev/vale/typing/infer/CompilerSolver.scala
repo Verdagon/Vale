@@ -29,6 +29,7 @@ case class KindIsNotInterface(kind: KindT) extends ITypingPassSolverError
 case class KindIsNotStruct(kind: KindT) extends ITypingPassSolverError
 case class CouldntFindFunction(range: RangeS, fff: FindFunctionFailure) extends ITypingPassSolverError
 case class CantShareMutable(kind: KindT) extends ITypingPassSolverError
+case class CantSharePlaceholder(kind: KindT) extends ITypingPassSolverError
 case class SendingNonCitizen(kind: KindT) extends ITypingPassSolverError
 case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITypingPassSolverError
@@ -42,6 +43,7 @@ case class OneOfFailed(rule: OneOfSR) extends ITypingPassSolverError
 case class KindDoesntImplementInterface(sub: CitizenRefT, suuper: InterfaceTT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: RangeS, name: IFunctionNameT) extends ITypingPassSolverError
+case class CantGetComponentsOfPlaceholderPrototype(range: RangeS) extends ITypingPassSolverError
 
 trait IInfererDelegate[Env, State] {
   def lookupMemberTypes(
@@ -235,7 +237,12 @@ class CompilerSolver[Env, State](
             Ok(())
           }
           case Some(prototypeTemplata) => {
-            val PrototypeTemplata(_, name, returnCoord) = prototypeTemplata
+            val (name, returnCoord) =
+              prototypeTemplata match {
+                case PrototypeTemplata(_, name, returnCoord) => (name, returnCoord)
+                case PlaceholderTemplata(_, _) => return Err(CantGetComponentsOfPlaceholderPrototype(range))
+                case other => vwat(other)
+              }
             val humanName =
               name.last match {
                 case FunctionNameT(humanName, _, _) => humanName
@@ -435,7 +442,13 @@ class CompilerSolver[Env, State](
           case Some(CoordTemplata(initialCoord)) => {
             val newCoord =
               delegate.getMutability(state, initialCoord.kind) match {
-                case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+                case PlaceholderTemplata(_, MutabilityTemplataType()) => {
+                  if (augmentOwnership == ShareP) {
+                    return Err(CantSharePlaceholder(initialCoord.kind))
+                  }
+                  initialCoord
+                    .copy(ownership = Conversions.evaluateOwnership(augmentOwnership))
+                }
                 case MutabilityTemplata(MutableT) => {
                   if (augmentOwnership == ShareP) {
                     return Err(CantShareMutable(initialCoord.kind))
@@ -914,7 +927,8 @@ class CompilerSolver[Env, State](
 //            conclusions,
 //            solverState.getAllRules(),
             solverState.getUnsolvedRules(),
-            allRunes -- conclusions.keySet)
+            allRunes -- conclusions.keySet,
+            conclusions)
         } else {
           CompleteSolve(conclusions)
         }

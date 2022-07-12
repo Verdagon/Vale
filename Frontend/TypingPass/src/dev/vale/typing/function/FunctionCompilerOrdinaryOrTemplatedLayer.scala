@@ -1,6 +1,6 @@
 package dev.vale.typing.function
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassertSome, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.RuneUsage
@@ -15,6 +15,7 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
+import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
@@ -431,34 +432,55 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
+    // This is temporary, to support specialization like:
+    //   extern("vale_runtime_sized_array_mut_new")
+    //   func Array<M, E>(size int) []<M>E
+    //   where M Mutability = mut, E Ref;
+    // In the future we might need to outlaw specialization, unsure.
+    val preliminaryInferences =
+      inferCompiler.solve(
+        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector()) match {
+        case f @ FailedSolve(_, _, err) => {
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range, f))
+        }
+        case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+        case CompleteSolve(conclusions) => conclusions
+      }
+    // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
+
     val initialKnowns =
       function.identifyingRunes.zipWithIndex.map({ case (identifyingRune, index) =>
-        val runeType = vassertSome(function.runeToType.get(identifyingRune.rune))
-        val placeholderFullName =
-          nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
-        val templata =
-          runeType match {
-            case KindTemplataType() => {
-              val placeholderKindT = PlaceholderT(placeholderFullName)
-              coutputs.declareKind(placeholderKindT)
-              coutputs.declareKindEnv(placeholderKindT, nearEnv)
-              KindTemplata(placeholderKindT)
-            }
-            // TODO: Not sure what to put here when we do regions. We might need to
-            // flood the nearest region annotation downward, and then apply it if it's
-            // a coord or something. Remembering that in every templex would be bothersome
-            // though.
-            // For now, we can manually add them.
-            // So, I guess we could just assume the function's default region here then.
-            case CoordTemplataType() => {
-              val placeholderKindT = PlaceholderT(placeholderFullName)
-              coutputs.declareKind(placeholderKindT)
-              coutputs.declareKindEnv(placeholderKindT, nearEnv)
-              CoordTemplata(CoordT(OwnT, placeholderKindT))
-            }
-            case _ => PlaceholderTemplata(placeholderFullName, runeType)
+        preliminaryInferences.get(identifyingRune.rune) match {
+          case Some(x) => InitialKnown(identifyingRune, x)
+          case None => {
+            val runeType = vassertSome(function.runeToType.get(identifyingRune.rune))
+            val placeholderFullName =
+              nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
+            val templata =
+              runeType match {
+                case KindTemplataType() => {
+                  val placeholderKindT = PlaceholderT(placeholderFullName)
+                  coutputs.declareKind(placeholderKindT)
+                  coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                  KindTemplata(placeholderKindT)
+                }
+                // TODO: Not sure what to put here when we do regions. We might need to
+                // flood the nearest region annotation downward, and then apply it if it's
+                // a coord or something. Remembering that in every templex would be bothersome
+                // though.
+                // For now, we can manually add them.
+                // So, I guess we could just assume the function's default region here then.
+                case CoordTemplataType() => {
+                  val placeholderKindT = PlaceholderT(placeholderFullName)
+                  coutputs.declareKind(placeholderKindT)
+                  coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                  CoordTemplata(CoordT(OwnT, placeholderKindT))
+                }
+                case _ => PlaceholderTemplata(placeholderFullName, runeType)
+              }
+            InitialKnown(identifyingRune, templata)
           }
-        InitialKnown(identifyingRune, templata)
+        }
       })
 
     val inferences =

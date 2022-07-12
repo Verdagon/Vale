@@ -27,8 +27,9 @@ class FunctorHelper( interner: Interner, keywords: Keywords, structCompiler: Str
       structCompiler.getStructRef(
         coutputs, callRange, functorTemplate,
         Vector(
-          MutabilityTemplata(ImmutableT),
-          PrototypeTemplata(callRange, dropFunction.fullName, dropFunction.returnType)))
+          PrototypeTemplata(callRange, dropFunction.fullName, dropFunction.returnType),
+          CoordTemplata(dropFunction.fullName.last.parameters.head),
+          CoordTemplata(dropFunction.returnType)))
     val functorTE =
       ConstructTE(functorStructTT, CoordT(ShareT, functorStructTT), Vector())
     functorTE

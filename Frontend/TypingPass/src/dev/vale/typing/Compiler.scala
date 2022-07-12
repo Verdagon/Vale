@@ -395,7 +395,7 @@ class Compiler(
   val asSubtypeMacro = new AsSubtypeMacro(keywords, ancestorHelper, expressionCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords)
-  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords)
+  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadCompiler)
   val rsaPushMacro = new RSAMutablePushMacro(interner, keywords)
   val rsaPopMacro = new RSAMutablePopMacro(interner, keywords)
   val rsaCapacityMacro = new RSAMutableCapacityMacro(interner, keywords)
@@ -603,7 +603,7 @@ class Compiler(
             FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
 
         val freeImpreciseName = interner.intern(FreeImpreciseNameS())
-        val dropImpreciseName = interner.intern(CodeNameS(keywords.DROP_FUNCTION_NAME))
+        val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
 
         val immutableKinds =
           coutputs.getAllStructs().filter(_.mutability == ImmutableT).map(_.getRef) ++
