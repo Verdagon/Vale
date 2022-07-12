@@ -2,7 +2,7 @@ package dev.vale.typing.macros.citizen
 
 import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{CallSR, EqualsSR, LookupSR, RuneUsage}
+import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, EqualsSR, LookupSR, RuneUsage}
 import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.{Compiler, CompilerOutputs, ast, env}
@@ -15,12 +15,12 @@ import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.patterns.AtomSP
-import dev.vale.postparsing.rules.CallSR
 import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
 import dev.vale.typing.OverloadResolver
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 
 class StructFreeMacro(
   interner: Interner,
@@ -39,7 +39,7 @@ class StructFreeMacro(
   }
 
   override def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
+    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     if (mutability == ImmutableT) {
       val structNameS = structA.name
@@ -83,6 +83,10 @@ class StructFreeMacro(
       },
       structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
       structIdentifyingRuneToType ++
+        (structType match {
+          case KindTemplataType() => Map()
+          case TemplateTemplataType(_, _) => Map(CodeRuneS(keywords.FreeStructTemplate) -> structType)
+        }) ++
         Map(
           CodeRuneS(keywords.FreeStruct) -> structType,
           CodeRuneS(keywords.FreeP1) -> CoordTemplataType(),
@@ -90,23 +94,36 @@ class StructFreeMacro(
       Vector(
         ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1))), None))),
       Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV))),
-      Vector(
-        structType match {
-          case KindTemplataType() => {
-            EqualsSR(
+      (structType match {
+        case KindTemplataType() => {
+          Vector(
+            LookupSR(
+              RangeS.internal(interner, -1672163),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
+              structNameS.getImpreciseName(interner)),
+            CoerceToCoordSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)))
-          }
-          case TemplateTemplataType(_, KindTemplataType()) => {
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
+        }
+        case TemplateTemplataType(_, KindTemplataType()) => {
+          Vector(
+            LookupSR(
+              RangeS.internal(interner, -1672163),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
+              structNameS.getImpreciseName(interner)),
             CallSR(
               RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
-              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray)
-          }
-        },
-        LookupSR(RangeS.internal(interner, -1672163), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)), structNameS.getImpreciseName(interner)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
+              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
+            CoerceToCoordSR(
+              RangeS.internal(interner, -167215),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
+        }
+      }) ++
+      Vector(
         LookupSR(RangeS.internal(interner, -1672164), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV)), interner.intern(CodeNameS(keywords.void)))),
       GeneratedBodyS(freeGeneratorId))
   }
@@ -161,7 +178,12 @@ class StructFreeMacro(
         case other => vwat(other)
       }
     val structDef = coutputs.lookupStruct(structTT)
-    val structOwnership = if (structDef.mutability == MutableT) OwnT else ShareT
+    val structOwnership =
+      structDef.mutability match {
+        case MutabilityTemplata(MutableT) => OwnT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+      }
     val structType = CoordT(structOwnership, structDef.getRef)
 
     val ret = CoordT(ShareT, VoidT())
@@ -182,14 +204,15 @@ class StructFreeMacro(
       })
     val expr =
       structDef.mutability match {
-        case ImmutableT => {
+        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+        case MutabilityTemplata(ImmutableT) => {
           Compiler.consecutive(
             Vector(DestroyTE(ArgLookupTE(0, structType), structTT, memberLocalVariables)) ++
               memberLocalVariables.map(v => {
                 destructorCompiler.drop(bodyEnv, coutputs, callRange, UnletTE(v))
               }))
         }
-        case MutableT => vwat() // Shouldnt be a free for mutables
+        case MutabilityTemplata(MutableT) => vwat() // Shouldnt be a free for mutables
       }
 
     val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))

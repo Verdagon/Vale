@@ -1,6 +1,6 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{IRuneS, ITemplataType}
+import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
@@ -107,8 +107,8 @@ case class AnonymousSubstructImplDeclarationNameT(interfaceName: INameT) extends
 case class LetNameT(codeLocation: CodeLocationS) extends INameT {    }
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT {    }
 
-case class RawArrayNameT(mutability: MutabilityT, elementType: CoordT) extends INameT {    }
-case class StaticSizedArrayNameT(size: Int, arr: RawArrayNameT) extends INameT {    }
+case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT {    }
+case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawArrayNameT) extends INameT {    }
 case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT {    }
 sealed trait IVarNameT extends INameT
 case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT {    }

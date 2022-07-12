@@ -6,9 +6,11 @@ import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunction
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
+import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing.names.CitizenTemplateNameT
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {
@@ -394,7 +396,7 @@ case class VoidLiteralTE() extends ReferenceExpressionTE {
   override def result = ReferenceResultT(CoordT(ShareT, VoidT()))
 }
 
-case class ConstantIntTE(value: Long, bits: Int) extends ReferenceExpressionTE {
+case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, IntT(bits)))
 }
@@ -582,7 +584,11 @@ case class NewMutRuntimeSizedArrayTE(
   override def result: ReferenceResultT = {
     ReferenceResultT(
       CoordT(
-        if (arrayType.mutability == MutableT) OwnT else ShareT,
+        arrayType.mutability match {
+          case MutabilityTemplata(MutableT) => OwnT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        },
         arrayType))
   }
 }
@@ -596,7 +602,11 @@ case class StaticArrayFromCallableTE(
   override def result: ReferenceResultT = {
     ReferenceResultT(
       CoordT(
-        if (arrayType.mutability == MutableT) OwnT else ShareT,
+        arrayType.mutability match {
+          case MutabilityTemplata(MutableT) => OwnT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        },
         arrayType))
   }
 }
@@ -743,7 +753,10 @@ case class DestroyImmRuntimeSizedArrayTE(
   consumer: ReferenceExpressionTE,
   consumerMethod: PrototypeT
 ) extends ReferenceExpressionTE {
-  vassert(arrayType.mutability == ImmutableT)
+  arrayType.mutability match {
+    case MutabilityTemplata(ImmutableT) =>
+    case _ => vwat()
+  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vassert(consumerMethod.paramTypes.size == 2)
@@ -773,7 +786,11 @@ case class NewImmRuntimeSizedArrayTE(
   override def result: ReferenceResultT = {
     ReferenceResultT(
       CoordT(
-        if (arrayType.mutability == MutableT) OwnT else ShareT,
+        arrayType.mutability match {
+          case MutabilityTemplata(MutableT) => OwnT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        },
         arrayType))
   }
 }

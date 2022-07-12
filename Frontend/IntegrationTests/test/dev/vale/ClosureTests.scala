@@ -13,6 +13,7 @@ import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import org.scalatest.{FunSuite, Matchers}
 import dev.vale.typing.names.LambdaCitizenNameT
+import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.von.VonInt
 
 class ClosureTests extends FunSuite with Matchers {
@@ -232,7 +233,9 @@ class ClosureTests extends FunSuite with Matchers {
           case _ => false
         }
       }).get
-    vassert(closureStruct.mutability == MutableT)
+    closureStruct.mutability match {
+      case MutabilityTemplata(MutableT) =>
+    }
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 }

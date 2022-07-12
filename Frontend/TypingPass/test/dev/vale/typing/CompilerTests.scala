@@ -9,18 +9,17 @@ import dev.vale.postparsing.PostParser
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.highertyping.HigherTypingCompilation
+import dev.vale.highertyping.{FunctionA, HigherTypingCompilation}
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.CitizenTemplateNameT
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers, _}
 
@@ -57,7 +56,7 @@ class CompilerTests extends FunSuite with Matchers {
         |exported func main() int { return -3; }
         |""".stripMargin)
     val main = compile.expectCompilerOutputs().lookupFunction("main")
-    Collector.only(main, { case ConstantIntTE(-3, _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(-3), _) => true })
   }
 
   test("Simple local") {
@@ -111,14 +110,14 @@ class CompilerTests extends FunSuite with Matchers {
           |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    Collector.only(main, { case ConstantIntTE(2, _) => true })
-    Collector.only(main, { case ConstantIntTE(3, _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(2), _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(3), _) => true })
     Collector.only(main, {
       case FunctionCallTE(
         functionName("+"),
         Vector(
-          ConstantIntTE(2, _),
-          ConstantIntTE(3, _))) =>
+          ConstantIntTE(IntegerTemplata(2), _),
+          ConstantIntTE(IntegerTemplata(3), _))) =>
     })
   }
 
@@ -405,7 +404,7 @@ class CompilerTests extends FunSuite with Matchers {
       _,
       _,
       false,
-      MutableT,
+      MutabilityTemplata(MutableT),
       Vector(StructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(CoordT(ShareT, IntT.i32)))),
       false) =>
     }).get
@@ -423,7 +422,7 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
       PrototypeT(simpleName("MyStruct"), _),
-      Vector(ConstantIntTE(7, _))) =>
+      Vector(ConstantIntTE(IntegerTemplata(7), _))) =>
     })
   }
 
@@ -495,7 +494,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutableT, _, false) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
     vassert(coutputs.edges.exists(impl => {
@@ -521,7 +520,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutableT, _, false) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
     vassert(coutputs.edges.exists(impl => {
@@ -672,13 +671,29 @@ class CompilerTests extends FunSuite with Matchers {
 
     val constructor = coutputs.lookupFunction("MySome")
     constructor.header match {
-      case
-        FunctionHeaderT(
-        simpleName("MySome"),
-        _,
-        _,
-        CoordT(OwnT,StructTT(FullNameT(_, Vector(), CitizenNameT(CitizenTemplateNameT(StrI("MySome")), Vector(CoordTemplata(CoordT(ShareT, IntT.i32))))))),
-        _) =>
+      case FunctionHeaderT(
+        FullNameT(_,
+          _,
+          FunctionNameT(
+            StrI("MySome"),
+            Vector(CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))),
+            Vector(CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(0))))))),
+        Vector(),
+        Vector(
+          ParameterT(
+            CodeVarNameT(StrI("value")),
+            None,
+            CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))),
+        CoordT(
+          OwnT,
+          StructTT(
+            FullNameT(_,
+              _,
+              CitizenNameT(
+                CitizenTemplateNameT(StrI("MySome")),
+                Vector(
+                  CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))))))),
+        Some(_)) =>
     }
 
     Collector.all(coutputs.lookupFunction("main"), {
@@ -993,7 +1008,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(ImmutableT, _) => }
+    main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
   }
 
 
@@ -1103,8 +1118,8 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.all(main, { case ReturnTE(_) => }).size shouldEqual 2
-    Collector.only(main, { case ConstantIntTE(7, _) => })
-    Collector.only(main, { case ConstantIntTE(9, _) => })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(7), _) => })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(9), _) => })
   }
 
   test("Test return from inside if destroys locals") {

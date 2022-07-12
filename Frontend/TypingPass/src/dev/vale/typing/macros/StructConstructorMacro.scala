@@ -20,6 +20,7 @@ import dev.vale.typing.env.PackageEnvironment
 import dev.vale.typing.function.FunctionCompilerCore
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.ArrayCompiler
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.mutable
@@ -35,7 +36,11 @@ class StructConstructorMacro(
 
   val macroName: StrI = keywords.DeriveStructConstructor
 
-  override def getStructChildEntries(macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT):
+  override def getStructChildEntries(
+    macroName: StrI,
+    structName: FullNameT[INameT],
+    structA: StructA,
+    mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
@@ -125,7 +130,12 @@ class StructConstructorMacro(
           ParameterT(name, None, reference)
         }
       })
-    val constructorReturnOwnership = if (structDef.mutability == MutableT) OwnT else ShareT
+    val constructorReturnOwnership =
+      structDef.mutability match {
+        case MutabilityTemplata(MutableT) => OwnT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+      }
     val constructorReturnType = CoordT(constructorReturnOwnership, structDef.getRef)
     // not virtual because how could a constructor be virtual
     val constructor2 =

@@ -58,7 +58,11 @@ class StructCompilerGenericArgsLayer(
 
           structA.maybePredictedMutability match {
             case None =>
-            case Some(predictedMutability) => coutputs.declareCitizenMutability(temporaryStructRef, Conversions.evaluateMutability(predictedMutability))
+            case Some(predictedMutability) => {
+              coutputs.declareCitizenMutability(
+                temporaryStructRef,
+                MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+            }
           }
           vassert(structA.identifyingRunes.size == templateArgs.size)
           val inferences =
@@ -74,7 +78,8 @@ class StructCompilerGenericArgsLayer(
 
           structA.maybePredictedMutability match {
             case None => {
-              val MutabilityTemplata(mutability) = inferences(structA.mutabilityRune.rune)
+              val mutability =
+                ITemplata.expectMutability(inferences(structA.mutabilityRune.rune))
               coutputs.declareCitizenMutability(temporaryStructRef, mutability)
             }
             case Some(_) =>
@@ -114,7 +119,11 @@ class StructCompilerGenericArgsLayer(
 
           interfaceA.maybePredictedMutability match {
             case None =>
-            case Some(predictedMutability) => coutputs.declareCitizenMutability(temporaryInterfaceRef, Conversions.evaluateMutability(predictedMutability))
+            case Some(predictedMutability) => {
+              coutputs.declareCitizenMutability(
+                temporaryInterfaceRef,
+                MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+            }
           }
           vassert(interfaceA.identifyingRunes.size == templateArgs.size)
 
@@ -131,7 +140,7 @@ class StructCompilerGenericArgsLayer(
 
           interfaceA.maybePredictedMutability match {
             case None => {
-              val MutabilityTemplata(mutability) = inferences(interfaceA.mutabilityRune.rune)
+              val mutability = ITemplata.expectMutability(inferences(interfaceA.mutabilityRune.rune))
               coutputs.declareCitizenMutability(temporaryInterfaceRef, mutability)
             }
             case Some(_) =>

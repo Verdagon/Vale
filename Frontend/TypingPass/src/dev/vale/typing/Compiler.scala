@@ -99,15 +99,16 @@ class Compiler(
         override def getStaticSizedArrayKind(
             env: IEnvironment,
             coutputs: CompilerOutputs,
-            mutability: MutabilityT,
-            variability: VariabilityT,
-            size: Int,
+            mutability: ITemplata[MutabilityTemplataType],
+            variability: ITemplata[VariabilityTemplataType],
+            size: ITemplata[IntegerTemplataType],
             type2: CoordT
         ): StaticSizedArrayTT = {
-          arrayCompiler.getStaticSizedArrayKind(env.globalEnv, coutputs, mutability, variability, size, type2)
+          arrayCompiler.getStaticSizedArrayKind(
+            env.globalEnv, coutputs, mutability, variability, size, type2)
         }
 
-        override def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: MutabilityT): RuntimeSizedArrayTT = {
+        override def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
           arrayCompiler.getRuntimeSizedArrayKind(env.globalEnv, state, element, arrayMutability)
         }
       })
@@ -131,6 +132,7 @@ class Compiler(
           kind: KindT):
         Boolean = {
           kind match {
+            case PlaceholderT(_) => false // at least until we have type bounds
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
@@ -170,15 +172,15 @@ class Compiler(
             Some(structMemberTypes)
         }
 
-        override def getMutability(state: CompilerOutputs, kind: KindT): MutabilityT = {
+        override def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType] = {
             Compiler.getMutability(state, kind)
         }
 
-        override def getStaticSizedArrayKind(env: IEnvironment, state: CompilerOutputs, mutability: MutabilityT, variability: VariabilityT, size: Int, element: CoordT): (StaticSizedArrayTT) = {
+        override def getStaticSizedArrayKind(env: IEnvironment, state: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): (StaticSizedArrayTT) = {
             arrayCompiler.getStaticSizedArrayKind(env.globalEnv, state, mutability, variability, size, element)
         }
 
-        override def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: MutabilityT): RuntimeSizedArrayTT = {
+        override def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
             arrayCompiler.getRuntimeSizedArrayKind(env.globalEnv, state, element, arrayMutability)
         }
 
@@ -907,20 +909,20 @@ object Compiler {
   }
 
   def getMutabilities(coutputs: CompilerOutputs, concreteValues2: Vector[KindT]):
-  Vector[MutabilityT] = {
+  Vector[ITemplata[MutabilityTemplataType]] = {
     concreteValues2.map(concreteValue2 => getMutability(coutputs, concreteValue2))
   }
 
   def getMutability(coutputs: CompilerOutputs, concreteValue2: KindT):
-  MutabilityT = {
+  ITemplata[MutabilityTemplataType] = {
     concreteValue2 match {
-      case PlaceholderT(_) => MutableT
-      case NeverT(_) => ImmutableT
-      case IntT(_) => ImmutableT
-      case FloatT() => ImmutableT
-      case BoolT() => ImmutableT
-      case StrT() => ImmutableT
-      case VoidT() => ImmutableT
+      case PlaceholderT(_) => MutabilityTemplata(MutableT)
+      case NeverT(_) => MutabilityTemplata(ImmutableT)
+      case IntT(_) => MutabilityTemplata(ImmutableT)
+      case FloatT() => MutabilityTemplata(ImmutableT)
+      case BoolT() => MutabilityTemplata(ImmutableT)
+      case StrT() => MutabilityTemplata(ImmutableT)
+      case VoidT() => MutabilityTemplata(ImmutableT)
       case RuntimeSizedArrayTT(mutability, _) => mutability
       case StaticSizedArrayTT(_, mutability, _, _) => mutability
       case sr @ StructTT(_) => coutputs.lookupMutability(sr)
@@ -929,7 +931,7 @@ object Compiler {
 //      case TupleTT(_, sr) => coutputs.lookupMutability(sr)
       case OverloadSetT(_, _) => {
         // Just like FunctionT2
-        ImmutableT
+        MutabilityTemplata(ImmutableT)
       }
     }
   }

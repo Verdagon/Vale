@@ -16,6 +16,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvEntry
 import dev.vale.typing.macros.IOnImplDefinedMacro
 import dev.vale.typing.names._
+import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types.ParamFilter
 
 class ImplFreeMacro(
@@ -30,7 +31,12 @@ class ImplFreeMacro(
     Vector()
   }
 
-  override def getStructChildEntries(macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
+  override def getStructChildEntries(
+    macroName: StrI,
+    structName: FullNameT[INameT],
+    structA: StructA,
+    mutability: ITemplata[MutabilityTemplataType]):
+  Vector[(FullNameT[INameT], IEnvEntry)] = {
 //    if (mutability != ImmutableT) {
 //      return Vector()
 //    }

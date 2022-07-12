@@ -121,7 +121,7 @@ class ExpressionCompiler(
       }
       case None => {
         nenv.lookupNearestWithName(name, Set(TemplataLookupContext)) match {
-          case Some(IntegerTemplata(num)) => (Some(ConstantIntTE(num, 32)))
+          case Some(IntegerTemplata(num)) => (Some(ConstantIntTE(IntegerTemplata(num), 32)))
           case Some(BooleanTemplata(bool)) => (Some(ConstantBoolTE(bool)))
           case None => (None)
         }
@@ -144,7 +144,12 @@ class ExpressionCompiler(
       }
       case Some(AddressibleClosureVariableT(id, closuredVarsStructRef, variability, tyype)) => {
         val mutability = Compiler.getMutability(coutputs, closuredVarsStructRef)
-        val ownership = if (mutability == MutableT) BorrowT else ShareT
+        val ownership =
+          mutability match {
+            case MutabilityTemplata(MutableT) => BorrowT
+            case MutabilityTemplata(ImmutableT) => ShareT
+            case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          }
         val closuredVarsStructRefRef = CoordT(ownership, closuredVarsStructRef)
         val name2 = nenv.fullName.addStep(interner.intern(ClosureParamNameT()))
         val borrowExpr =
@@ -164,7 +169,12 @@ class ExpressionCompiler(
       }
       case Some(ReferenceClosureVariableT(varName, closuredVarsStructRef, variability, tyype)) => {
         val mutability = Compiler.getMutability(coutputs, closuredVarsStructRef)
-        val ownership = if (mutability == MutableT) BorrowT else ShareT
+        val ownership =
+          mutability match {
+            case MutabilityTemplata(MutableT) => BorrowT
+            case MutabilityTemplata(ImmutableT) => ShareT
+            case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          }
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
 //        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
         val borrowExpr =
@@ -203,7 +213,12 @@ class ExpressionCompiler(
       }
       case Some(AddressibleClosureVariableT(id, closuredVarsStructRef, variability, tyype)) => {
         val mutability = Compiler.getMutability(coutputs, closuredVarsStructRef)
-        val ownership = if (mutability == MutableT) BorrowT else ShareT
+        val ownership =
+          mutability match {
+            case MutabilityTemplata(MutableT) => BorrowT
+            case MutabilityTemplata(ImmutableT) => ShareT
+            case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          }
         val closuredVarsStructRefRef = CoordT(ownership, closuredVarsStructRef)
         val closureParamVarName2 = nenv.fullName.addStep(interner.intern(ClosureParamNameT()))
 
@@ -223,7 +238,12 @@ class ExpressionCompiler(
       }
       case Some(ReferenceClosureVariableT(varName, closuredVarsStructRef, variability, tyype)) => {
         val mutability = Compiler.getMutability(coutputs, closuredVarsStructRef)
-        val ownership = if (mutability == MutableT) BorrowT else ShareT
+        val ownership =
+          mutability match {
+            case MutabilityTemplata(MutableT) => BorrowT
+            case MutabilityTemplata(ImmutableT) => ShareT
+            case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          }
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
         vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.fullName.addStep(member.name) == varName))
@@ -282,7 +302,12 @@ class ExpressionCompiler(
           }
         }
       });
-    val ownership = if (closureStructDef.mutability == MutableT) OwnT else ShareT
+    val ownership =
+      closureStructDef.mutability match {
+        case MutabilityTemplata(MutableT) => OwnT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+      }
     val resultPointerType = CoordT(ownership, closureStructRef)
     val constructExpr2 =
       ConstructTE(closureStructRef, resultPointerType, lookupExpressions2)
@@ -343,7 +368,7 @@ class ExpressionCompiler(
     Profiler.frame(() => {
       expr1 match {
         case VoidSE(range) => (VoidLiteralTE(), Set())
-        case ConstantIntSE(range, i, bits) => (ConstantIntTE(i, bits), Set())
+        case ConstantIntSE(range, i, bits) => (ConstantIntTE(IntegerTemplata(i), bits), Set())
         case ConstantBoolSE(range, i) => (ConstantBoolTE(i), Set())
         case ConstantStrSE(range, s) => (ConstantStrTE(s), Set())
         case ConstantFloatSE(range, f) => (ConstantFloatTE(f), Set())
@@ -493,7 +518,10 @@ class ExpressionCompiler(
           val templataFromEnv =
             nenv.lookupAllWithImpreciseName(name, Set(ExpressionLookupContext)) match {
               case Vector(BooleanTemplata(value)) => ConstantBoolTE(value)
-              case Vector(IntegerTemplata(value)) => ConstantIntTE(value, 32)
+              case Vector(IntegerTemplata(value)) => ConstantIntTE(IntegerTemplata(value), 32)
+              case Vector(t @ PlaceholderTemplata(name, IntegerTemplataType())) => {
+                ConstantIntTE(PlaceholderTemplata(name, IntegerTemplataType()), 32)
+              }
               case templatas if templatas.nonEmpty && templatas.collect({ case FunctionTemplata(_, _) => case ExternFunctionTemplata(_) => }).size == templatas.size => {
                 if (targetOwnership == MoveP) {
                   throw CompileErrorExceptionT(CantMoveFromGlobal(range, "Can't move from globals. Name: " + name))
@@ -648,14 +676,14 @@ class ExpressionCompiler(
               }
               case as@StaticSizedArrayTT(_, _, _, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
-                  arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(memberNameStr.str.toInt, 32), as)
+                  arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), as)
                 } else {
                   throw CompileErrorExceptionT(RangedInternalErrorT(range, "Sequence has no member named " + memberNameStr))
                 }
               }
               case at@RuntimeSizedArrayTT(_, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
-                  arrayCompiler.lookupInUnknownSizedArray(range, containerExpr2, ConstantIntTE(memberNameStr.str.toInt, 32), at)
+                  arrayCompiler.lookupInUnknownSizedArray(range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
                 } else {
                   throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array has no member named " + memberNameStr))
                 }
@@ -744,7 +772,8 @@ class ExpressionCompiler(
         case r @ RuneLookupSE(range, runeA) => {
           val templata = vassertOne(nenv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(runeA)), Set(TemplataLookupContext)))
           templata match {
-            case IntegerTemplata(value) => (ConstantIntTE(value, 32), Set())
+            case IntegerTemplata(value) => (ConstantIntTE(IntegerTemplata(value), 32), Set())
+            case PlaceholderTemplata(name, IntegerTemplataType()) => (ConstantIntTE(PlaceholderTemplata(name, IntegerTemplataType()), 32), Set())
             case pt @ PrototypeTemplata(name, paramCoords, returnCoord) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)

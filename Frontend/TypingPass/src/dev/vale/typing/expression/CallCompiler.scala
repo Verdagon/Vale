@@ -1,6 +1,6 @@
 package dev.vale.typing.expression
 
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vfail, vwat}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
@@ -198,7 +198,12 @@ class CallCompiler(
       }
 
     val mutability = Compiler.getMutability(coutputs, kind)
-    val ownership = if (mutability == MutableT) BorrowT else ShareT
+    val ownership =
+      mutability match {
+        case MutabilityTemplata(MutableT) => BorrowT
+        case MutabilityTemplata(ImmutableT) => ShareT
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+      }
     vassert(givenCallableBorrowExpr2.result.reference.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
 

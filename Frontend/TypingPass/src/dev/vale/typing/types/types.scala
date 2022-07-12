@@ -115,21 +115,36 @@ case class FloatT() extends KindT {
 }
 
 case class StaticSizedArrayTT(
-  size: Int,
-  mutability: MutabilityT,
-  variability: VariabilityT,
+  size: ITemplata[IntegerTemplataType],
+  mutability: ITemplata[MutabilityTemplataType],
+  variability: ITemplata[VariabilityTemplataType],
   elementType: CoordT
 ) extends KindT with IInterning  {
-  def getName(interner: Interner, keywords: Keywords): FullNameT[StaticSizedArrayNameT] = FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector.empty, interner.intern(StaticSizedArrayNameT(size, interner.intern(RawArrayNameT(mutability, elementType)))))
+  def getName(interner: Interner, keywords: Keywords): FullNameT[StaticSizedArrayNameT] = {
+    FullNameT(
+      PackageCoordinate.BUILTIN(interner, keywords),
+      Vector.empty,
+      interner.intern(
+        StaticSizedArrayNameT(
+          size,
+          interner.intern(RawArrayNameT(mutability, elementType)))))
+  }
 }
 
 case class RuntimeSizedArrayTT(
-  mutability: MutabilityT,
+  mutability: ITemplata[MutabilityTemplataType],
   elementType: CoordT
 ) extends KindT with IInterning {
 
 
-  def getName(interner: Interner, keywords: Keywords): FullNameT[RuntimeSizedArrayNameT] = FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector.empty, interner.intern(RuntimeSizedArrayNameT(interner.intern(RawArrayNameT(mutability, elementType)))))
+  def getName(interner: Interner, keywords: Keywords): FullNameT[RuntimeSizedArrayNameT] = {
+    FullNameT(
+      PackageCoordinate.BUILTIN(interner, keywords),
+      Vector.empty,
+      interner.intern(
+        RuntimeSizedArrayNameT(
+          interner.intern(RawArrayNameT(mutability, elementType)))))
+  }
 }
 
 trait CitizenRefT extends KindT with IInterning {

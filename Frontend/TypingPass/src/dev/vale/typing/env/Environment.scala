@@ -138,6 +138,7 @@ object TemplatasStore {
       case InterfaceEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case TemplataEnvEntry(templata) => {
         templata match {
+          case PlaceholderTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)

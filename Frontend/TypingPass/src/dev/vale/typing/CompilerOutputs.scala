@@ -1,5 +1,6 @@
 package dev.vale.typing
 
+import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
@@ -8,6 +9,7 @@ import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
 import dev.vale.typing.names.AnonymousSubstructNameT
+import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.immutable.{List, Map}
@@ -36,7 +38,7 @@ case class CompilerOutputs() {
   private val envByFunctionSignature: mutable.HashMap[SignatureT, FunctionEnvironment] = mutable.HashMap()
 
   // One must fill this in when putting things into declaredKinds.
-  private val mutabilitiesByCitizenRef: mutable.HashMap[CitizenRefT, MutabilityT] = mutable.HashMap()
+  private val mutabilitiesByCitizenRef: mutable.HashMap[CitizenRefT, ITemplata[MutabilityTemplataType]] = mutable.HashMap()
 
   // declaredKinds is the structs that we're currently in the process of defining
   // Things will appear here before they appear in structDefsByRef/interfaceDefsByRef
@@ -54,9 +56,11 @@ case class CompilerOutputs() {
   private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
   // Only ArrayCompiler can make an RawArrayT2.
-  private val staticSizedArrayTypes: mutable.HashMap[(Int, MutabilityT, VariabilityT, CoordT), StaticSizedArrayTT] = mutable.HashMap()
+  private val staticSizedArrayTypes:
+    mutable.HashMap[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT), StaticSizedArrayTT] =
+    mutable.HashMap()
   // Only ArrayCompiler can make an RawArrayT2.
-  private val runtimeSizedArrayTypes: mutable.HashMap[(MutabilityT, CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
+  private val runtimeSizedArrayTypes: mutable.HashMap[(ITemplata[MutabilityTemplataType], CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
 
 //  // A queue of functions that our code uses, but we don't need to compile them right away.
 //  // We can compile them later. Perhaps in parallel, someday!
@@ -158,7 +162,7 @@ case class CompilerOutputs() {
 
   def declareCitizenMutability(
     kindTT: CitizenRefT,
-    mutability: MutabilityT
+    mutability: ITemplata[MutabilityTemplataType]
   ): Unit = {
     vassert(declaredKinds.contains(kindTT))
     vassert(!mutabilitiesByCitizenRef.contains(kindTT))
@@ -245,7 +249,7 @@ case class CompilerOutputs() {
 //    }
 //  }
 
-  def lookupMutability(citizenRef2: CitizenRefT): MutabilityT = {
+  def lookupMutability(citizenRef2: CitizenRefT): ITemplata[MutabilityTemplataType] = {
     // If it has a structTT, then we've at least started to evaluate this citizen
     mutabilitiesByCitizenRef.get(citizenRef2) match {
       case None => vfail("Still figuring out mutability for struct: " + citizenRef2) // See MFDBRE
@@ -292,7 +296,7 @@ case class CompilerOutputs() {
   def getAllRuntimeSizedArrays(): Iterable[RuntimeSizedArrayTT] = runtimeSizedArrayTypes.values
 //  def getKindToDestructorMap(): Map[KindT, PrototypeT] = kindToDestructor.toMap
 
-  def getStaticSizedArrayType(size: Int, mutability: MutabilityT, variability: VariabilityT, elementType: CoordT): Option[StaticSizedArrayTT] = {
+  def getStaticSizedArrayType(size: ITemplata[IntegerTemplataType], mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], elementType: CoordT): Option[StaticSizedArrayTT] = {
     staticSizedArrayTypes.get((size, mutability, variability, elementType))
   }
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
@@ -316,7 +320,7 @@ case class CompilerOutputs() {
   def getStructDefForRef(sr: StructTT): StructDefinitionT = {
     structDefsByRef(sr)
   }
-  def getRuntimeSizedArray(mutabilityT: MutabilityT, elementType: CoordT): Option[RuntimeSizedArrayTT] = {
+  def getRuntimeSizedArray(mutabilityT: ITemplata[MutabilityTemplataType], elementType: CoordT): Option[RuntimeSizedArrayTT] = {
     runtimeSizedArrayTypes.get((mutabilityT, elementType))
   }
   def getKindExports: Vector[KindExportT] = {

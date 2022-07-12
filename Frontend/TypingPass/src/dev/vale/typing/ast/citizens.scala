@@ -1,6 +1,8 @@
 package dev.vale.typing.ast
 
+import dev.vale.postparsing.MutabilityTemplataType
 import dev.vale.typing.names.{CitizenNameT, FullNameT, ICitizenNameT, IVarNameT}
+import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.{vcurious, vfail, vpass}
 
@@ -16,7 +18,7 @@ case class StructDefinitionT(
   ref: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
-  mutability: MutabilityT,
+  mutability: ITemplata[MutabilityTemplataType],
   members: Vector[StructMemberT],
   isClosure: Boolean
 ) extends CitizenDefinitionT {

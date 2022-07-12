@@ -6,7 +6,7 @@ import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT, PlaceholderNameT}
 import dev.vale.typing.types._
-import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass}
+import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
 import dev.vale.highertyping._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
@@ -14,6 +14,32 @@ import dev.vale.typing.types._
 
 import scala.collection.immutable.List
 
+
+object ITemplata {
+  def expectMutability(templata: ITemplata[ITemplataType]): ITemplata[MutabilityTemplataType] = {
+    templata match {
+      case t @ MutabilityTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => PlaceholderTemplata(fullNameT, MutabilityTemplataType())
+      case _ => vfail()
+    }
+  }
+
+  def expectVariability(templata: ITemplata[ITemplataType]): ITemplata[VariabilityTemplataType] = {
+    templata match {
+      case t @ VariabilityTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, VariabilityTemplataType()) => PlaceholderTemplata(fullNameT, VariabilityTemplataType())
+      case _ => vfail()
+    }
+  }
+
+  def expectInteger(templata: ITemplata[ITemplataType]): ITemplata[IntegerTemplataType] = {
+    templata match {
+      case t @ IntegerTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, IntegerTemplataType()) => PlaceholderTemplata(fullNameT, IntegerTemplataType())
+      case _ => vfail()
+    }
+  }
+}
 
 sealed trait ITemplata[+T <: ITemplataType]  {
   def tyype: T
@@ -29,6 +55,11 @@ case class PlaceholderTemplata[+T <: ITemplataType](
   fullNameT: FullNameT[PlaceholderNameT],
   tyype: T
 ) extends ITemplata[T] {
+  tyype match {
+    case CoordTemplataType() => vwat()
+    case KindTemplataType() => vwat()
+    case _ =>
+  }
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class KindTemplata(kind: KindT) extends ITemplata[KindTemplataType] {
@@ -223,7 +254,7 @@ case class StringTemplata(value: String) extends ITemplata[StringTemplataType] {
 }
 // This isn't an actual prototype yet.
 // Once the rules are all resolved, we'll fetch the real prototypes and ensure they exist.
-case class PrototypeTemplata(declarationRange: RangeS, fullName: FullNameT[FunctionNameT], returnType: CoordT) extends ITemplata[PrototypeTemplataType] {
+case class PrototypeTemplata(declarationRange: RangeS, fullName: FullNameT[IFunctionNameT], returnType: CoordT) extends ITemplata[PrototypeTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
 }
