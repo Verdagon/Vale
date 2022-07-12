@@ -199,7 +199,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
               CodeRuneS(interner.intern(StrI("I"))),
               CodeRuneS(interner.intern(StrI("Of"))),
               CodeRuneS(interner.intern(StrI("An"))),
-              ImplicitRuneS(LocationInDenizen(Vector(7)))))))
+              ImplicitRuneS(LocationInDenizen(Vector(7)))),
+            Map())))
     println(errorText)
     vassert(errorText.nonEmpty)
     vassert(errorText.contains("\n           ^ A: own"))
@@ -425,7 +426,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin,
       interner)
     compile.getCompilerOutputs() match {
-      case Err(TypingPassSolverError(_,IncompleteSolve(_,Vector(),unsolved))) => {
+      case Err(TypingPassSolverError(_,IncompleteSolve(_,Vector(),unsolved, _))) => {
         unsolved shouldEqual Set(CodeRuneS(interner.intern(interner.intern(StrI("N")))))
       }
     }

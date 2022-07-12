@@ -780,7 +780,10 @@ case class NewImmRuntimeSizedArrayTE(
   generator: ReferenceExpressionTE,
   generatorMethod: PrototypeT
 ) extends ReferenceExpressionTE {
-  vassert(arrayType.mutability == ImmutableT)
+  arrayType.mutability match {
+    case MutabilityTemplata(ImmutableT) =>
+    case _ => vwat()
+  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {

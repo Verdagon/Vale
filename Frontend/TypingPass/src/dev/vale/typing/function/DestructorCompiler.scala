@@ -36,7 +36,7 @@ class DestructorCompiler(
     callRange: RangeS,
     type2: CoordT):
   (PrototypeT) = {
-    val name = interner.intern(CodeNameS(keywords.DROP_FUNCTION_NAME))
+    val name = interner.intern(CodeNameS(keywords.drop))
     val args = Vector(ParamFilter(type2, None))
     overloadCompiler.findFunction(env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))

@@ -248,7 +248,7 @@ class TemplataCompiler(
       mutability match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+        case PlaceholderTemplata(fullNameT, tyype) => OwnT
       },
       kind)
   }

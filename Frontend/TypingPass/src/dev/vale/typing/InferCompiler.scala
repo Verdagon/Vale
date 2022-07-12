@@ -47,7 +47,7 @@ class InferCompiler(
   Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     solve(env, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, _) => Err(f)
-      case i @ IncompleteSolve(_, _, _) => Err(i)
+      case i @ IncompleteSolve(_, _, _, _) => Err(i)
       case CompleteSolve(conclusions) => Ok(conclusions)
     }
   }
@@ -65,7 +65,7 @@ class InferCompiler(
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
-      case i @ IncompleteSolve(_, _, _) => {
+      case i @ IncompleteSolve(_, _, _, _) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, i))
       }
       case CompleteSolve(conclusions) => conclusions

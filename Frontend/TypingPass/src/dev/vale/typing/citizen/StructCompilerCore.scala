@@ -376,7 +376,7 @@ class StructCompilerCore(
     val freeFuncNameT =
       interner.intern(FreeTemplateNameT(functionA.range.begin))
     val dropFuncNameT =
-      interner.intern(FunctionTemplateNameT(keywords.DROP_FUNCTION_NAME, functionA.range.begin))
+      interner.intern(FunctionTemplateNameT(keywords.drop, functionA.range.begin))
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -391,12 +391,12 @@ class StructCompilerCore(
           .addEntries(
             interner,
             Vector(
-              interner.intern(FunctionTemplateNameT(keywords.CALL_FUNCTION_NAME, functionA.range.begin)) ->
+              interner.intern(FunctionTemplateNameT(keywords.underscoresCall, functionA.range.begin)) ->
                 env.FunctionEnvEntry(functionA),
               dropFuncNameT ->
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
-                    interner.intern(FunctionNameS(keywords.DROP_FUNCTION_NAME, functionA.range.begin)), functionA.range)),
+                    interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
               nearName -> TemplataEnvEntry(KindTemplata(structTT)),
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(structTT))) ++
               (if (mutability == ImmutableT) {

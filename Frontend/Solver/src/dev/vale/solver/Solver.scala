@@ -23,7 +23,8 @@ case class CompleteSolve[Rule, Rune, Conclusion, ErrType](
 case class IncompleteSolve[Rule, Rune, Conclusion, ErrType](
   steps: Vector[Step[Rule, Rune, Conclusion]],
   unsolvedRules: Vector[Rule],
-  unknownRunes: Set[Rune]
+  unknownRunes: Set[Rune],
+  incompleteConclusions: Map[Rune, Conclusion]
 ) extends IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] {
   vassert(unknownRunes.nonEmpty)
   vpass()

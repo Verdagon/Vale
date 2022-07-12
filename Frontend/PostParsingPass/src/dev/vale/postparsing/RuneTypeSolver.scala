@@ -308,7 +308,8 @@ class RuneTypeSolver(interner: Interner) {
           IncompleteSolve(
             steps,
             solverState.getUnsolvedRules(),
-            unsolvedRunes)))
+            unsolvedRunes,
+            conclusions)))
     } else {
       Ok(conclusions)
     }
