@@ -1,7 +1,8 @@
 
-struct Functor1<F, P1, R> imm
-where F Prot, P1 Ref, R Ref, F = Prot[_, Refs(P1), R] {
-}
-func __call<F, P1, R>(self &Functor1<F, P1, R>, param1 P1) R {
+struct Functor1<F Prot> imm
+where isCallable(F, Refs(P1 Ref), R Ref) { }
+
+func __call<F Prot>(self &Functor1<F>, param1 P1) R
+where isCallable(F, Refs(P1 Ref), R Ref) {
   F(param1)
 }

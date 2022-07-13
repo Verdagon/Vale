@@ -139,9 +139,10 @@ object TemplatasStore {
       case TemplataEnvEntry(templata) => {
         templata match {
           case PlaceholderTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case PrototypeTemplata(_, _, _) => true
+//          case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
+          case PrototypeTemplata(_) => contexts.contains(TemplataLookupContext)
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
           case StructTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceTemplata(_, _) => contexts.contains(TemplataLookupContext)
@@ -230,7 +231,7 @@ object TemplatasStore {
 
 // See DBTSAE for difference between TemplatasStore and Environment.
 case class TemplatasStore(
-  name: FullNameT[INameT],
+  templatasStoreName: FullNameT[INameT],
   // This is the source of truth. Anything in the environment is in here.
   entriesByNameT: Map[INameT, IEnvEntry],
   // This is just an index for quick looking up of things by their imprecise name.
@@ -241,9 +242,9 @@ case class TemplatasStore(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   entriesByNameT.values.foreach({
-    case FunctionEnvEntry(function) => vassert(function.name.packageCoordinate == name.packageCoord)
-    case StructEnvEntry(struct) => vassert(struct.range.file.packageCoordinate == name.packageCoord)
-    case InterfaceEnvEntry(interface) => vassert(interface.name.range.file.packageCoordinate == name.packageCoord)
+    case FunctionEnvEntry(function) => vassert(function.name.packageCoordinate == templatasStoreName.packageCoord)
+    case StructEnvEntry(struct) => vassert(struct.range.file.packageCoordinate == templatasStoreName.packageCoord)
+    case InterfaceEnvEntry(interface) => vassert(interface.name.range.file.packageCoordinate == templatasStoreName.packageCoord)
     case _ =>
   })
 
@@ -271,13 +272,13 @@ case class TemplatasStore(
       newEntries
         .toVector
         .flatMap({
-          case (key, value @ TemplataEnvEntry(PrototypeTemplata(range, name, _))) => {
+          case (key, value @ TemplataEnvEntry(PrototypeTemplata(prototype))) => {
             // This is so if we have:
             //    where func moo(T)T
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)
             // but also CodeNameS("moo").
             getImpreciseName(interner, key).toList.map(_ -> value) ++
-              getImpreciseName(interner, name.last).map(_ -> value)
+              getImpreciseName(interner, prototype.fullName.last).map(_ -> value)
           }
           case (key, value @ ImplEnvEntry(implA)) => {
             List(implA.impreciseName -> value)
@@ -295,7 +296,7 @@ case class TemplatasStore(
           .map(key => (key -> (entriesByImpreciseNameS(key) ++ newEntriesByNameS(key))))
           .toMap
 
-    TemplatasStore(name, combinedEntries, combinedEntriesByNameS)
+    TemplatasStore(templatasStoreName, combinedEntries, combinedEntriesByNameS)
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): TemplatasStore = {
@@ -360,7 +361,7 @@ case class PackageEnvironment[+T <: INameT](
   Iterable[ITemplata[ITemplataType]] = {
     globalEnv.builtins.lookupWithNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
-      val env = PackageEnvironment(globalEnv, ns.name, globalNamespaces)
+      val env = PackageEnvironment(globalEnv, ns.templatasStoreName, globalNamespaces)
       ns.lookupWithNameInner(env, name, lookupFilter)
     })
   }
@@ -374,7 +375,7 @@ case class PackageEnvironment[+T <: INameT](
     globalEnv.builtins.lookupWithImpreciseNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
       ns.lookupWithImpreciseNameInner(
-        PackageEnvironment(globalEnv, ns.name, globalNamespaces),
+        PackageEnvironment(globalEnv, ns.templatasStoreName, globalNamespaces),
         name, lookupFilter)
     })
   }
@@ -387,7 +388,7 @@ case class CitizenEnvironment[+T <: INameT](
   fullName: FullNameT[T],
   templatas: TemplatasStore
 ) extends IEnvironment {
-  vassert(templatas.name == fullName)
+  vassert(templatas.templatasStoreName == fullName)
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

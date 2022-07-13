@@ -1,7 +1,7 @@
 package dev.vale.postparsing.rules
 
 import dev.vale.lexing.RangeL
-import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BorrowPT, CallPT, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, PrototypePT, RegionRunePT, RuntimeSizedArrayPT, StaticSizedArrayPT, StringPT, TuplePT, VariabilityPT}
+import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BorrowPT, CallPT, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, FuncPT, RegionRunePT, RuntimeSizedArrayPT, StaticSizedArrayPT, StringPT, TuplePT, VariabilityPT}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI}
 import dev.vale.postparsing._
 import dev.vale.parsing.ast._
@@ -139,12 +139,8 @@ class TemplexScout(
                     translateTemplex(env, lidb.child(), ruleBuilder, returnType)))
               resultRuneS
             }
-            case PrototypePT(range, NameP(nameRange, name), paramsP, returnTypeP) => {
-
-              val nameRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder +=
-                LiteralSR(evalRange(nameRange), nameRuneS, StringLiteralSL(name.str))
-
+            case FuncPT(range, NameP(nameRange, name), paramsP, returnTypeP) => {
+              val rangeS = PostParser.evalRange(env.file, range)
               val paramsS =
                 paramsP.map(paramP => {
                   translateTemplex(env, lidb.child(), ruleBuilder, paramP)
@@ -153,16 +149,19 @@ class TemplexScout(
               ruleBuilder +=
                 PackSR(evalRange(nameRange), paramListRuneS, paramsS.toArray)
 
-              val returnTypeS = translateTemplex(env, lidb.child(), ruleBuilder, returnTypeP)
+              val returnRuneS = translateTemplex(env, lidb.child(), ruleBuilder, returnTypeP)
 
-              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder +=
-                PrototypeComponentsSR(
-                  PostParser.evalRange(env.file, range),
-                  resultRuneS,
-                  nameRuneS,
-                  paramListRuneS,
-                  returnTypeS)
+              val resultRuneS = rules.RuneUsage(evalRange(range), CodeRuneS(name))
+
+              // Only appears in call site; filtered out when solving definition
+              ruleBuilder += CallSiteFuncSR(rangeS, resultRuneS, name, paramListRuneS, returnRuneS)
+              // Only appears in definition; filtered out when solving call site
+              ruleBuilder += DefinitionFuncSR(rangeS, resultRuneS, name, paramListRuneS, returnRuneS)
+              // Only appears in definition; filtered out when solving call site
+              ruleBuilder += ResolveSR(rangeS, resultRuneS, name, paramListRuneS)
+
+              start here
+              // we'll need to filter these out depending on call site or definition site.
 
               resultRuneS
             }

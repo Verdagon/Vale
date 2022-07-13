@@ -147,6 +147,8 @@ class Keywords(interner: Interner) {
   val __free_replaced = interner.intern(StrI("__free_replaced"))
   val IS_INTERFACE = interner.intern(StrI("isInterface"))
   val IMPLEMENTS = interner.intern(StrI("implements"))
+  val resolve = interner.intern(StrI("resolve"))
+  val isCallable = interner.intern(StrI("isCallable"))
   val REF_LIST_COMPOUND_MUTABILITY = interner.intern(StrI("refListCompoundMutability"))
   val ANY = interner.intern(StrI("any"))
   val IFUNCTION = interner.intern(StrI("IFunction"))

@@ -169,9 +169,9 @@ class OverloadResolver(
       case ExternFunctionTemplata(header) => {
         Vector(HeaderCalleeCandidate(header))
       }
-      case pt @ PrototypeTemplata(_, _, _) => {
-        Vector(PrototypeTemplataCalleeCandidate(pt))
-      }
+//      case pt @ PrototypeTemplata(_) => {
+//        Vector(PrototypeTemplataCalleeCandidate(pt))
+//      }
       case ft@FunctionTemplata(_, function) => {
         Vector(FunctionCalleeCandidate(ft))
       }
@@ -322,15 +322,15 @@ class OverloadResolver(
           case Err(fff) => Err(fff)
         }
       }
-      case PrototypeTemplataCalleeCandidate(pt @ PrototypeTemplata(range, name, returnType)) => {
-        val params = name.last.parameters.map(paramType => ParameterT(CodeVarNameT(keywords.emptyString), None, paramType))
-        paramsMatch(coutputs, paramFilters, params, exact) match {
-          case Ok(_) => {
-            Ok(ValidPrototypeTemplataCalleeCandidate(pt))
-          }
-          case Err(fff) => Err(fff)
-        }
-      }
+//      case PrototypeTemplataCalleeCandidate(pt @ PrototypeTemplata(range, name, returnType)) => {
+//        val params = name.last.parameters.map(paramType => ParameterT(CodeVarNameT(keywords.emptyString), None, paramType))
+//        paramsMatch(coutputs, paramFilters, params, exact) match {
+//          case Ok(_) => {
+//            Ok(ValidPrototypeTemplataCalleeCandidate(pt))
+//          }
+//          case Err(fff) => Err(fff)
+//        }
+//      }
     }
   }
 
@@ -465,7 +465,7 @@ class OverloadResolver(
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, function) => !function.function.isTemplate
-            case ValidPrototypeTemplataCalleeCandidate(prototype) => true
+//            case ValidPrototypeTemplataCalleeCandidate(prototype) => true
             case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
@@ -592,9 +592,9 @@ class OverloadResolver(
       case ValidHeaderCalleeCandidate(header) => {
         (header.toPrototype)
       }
-      case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, fullName, returnType)) => {
-        PrototypeT(fullName, returnType)
-      }
+//      case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, fullName, returnType)) => {
+//        PrototypeT(fullName, returnType)
+//      }
     }
   }
 

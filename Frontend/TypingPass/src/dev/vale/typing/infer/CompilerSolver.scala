@@ -2,22 +2,20 @@ package dev.vale.typing.infer
 
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.ShareP
-import dev.vale.postparsing.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, Equivalencies, ILiteralSL, IRulexSR, IntLiteralSL, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, KindIsaSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, RuneParentEnvLookupSR, RuntimeSizedArraySR, StaticSizedArraySR, StringLiteralSL, VariabilityLiteralSL}
+import dev.vale.postparsing.rules._
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vassertSome, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver}
+import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
-import dev.vale.typing.templata._
+import dev.vale.typing.templata.{Conversions, PlaceholderTemplata, _}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
-import dev.vale.solver.IStepState
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{templata, types}
-import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types._
 
 import scala.collection.immutable.HashSet
@@ -106,12 +104,22 @@ trait IInfererDelegate[Env, State] {
     expectedCitizenTemplata: ITemplata[ITemplataType]):
   Boolean
 
-  def assemblePrototypeTemplata(
+  def resolveFunction(
     env: Env,
+    state: State,
     range: RangeS,
-    nameT: FunctionNameT,
-    returnCoord: CoordT):
-  PrototypeTemplata
+    name: StrI,
+    coords: Vector[CoordT]):
+  Result[PrototypeT, FindFunctionFailure]
+
+  def assemblePrototype(
+    env: Env,
+    state: State,
+    range: RangeS,
+    name: StrI,
+    coords: Vector[CoordT],
+    returnType: CoordT):
+  PrototypeT
 }
 
 class CompilerSolver[Env, State](
@@ -124,7 +132,7 @@ class CompilerSolver[Env, State](
     val result = rule.runeUsages.map(_.rune)
 
     if (globalOptions.sanityCheck) {
-      val sanityChecked =
+      val sanityChecked: Array[RuneUsage] =
         rule match {
           case LookupSR(range, rune, literal) => Array(rune)
           case LookupSR(range, rune, literal) => Array(rune)
@@ -133,7 +141,8 @@ class CompilerSolver[Env, State](
           case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
           case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
           case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
-          case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) => Array(resultRune, nameRune, paramsListRune, returnRune)
+          case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
+          case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case OneOfSR(range, rune, literals) => Array(rune)
           case IsConcreteSR(range, rune) => Array(rune)
           case IsInterfaceSR(range, rune) => Array(rune)
@@ -171,7 +180,8 @@ class CompilerSolver[Env, State](
       case KindComponentsSR(_, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
       // Notice how there is no return rune in here; we can solve the entire rule with just the name and the parameter list.
-      case PrototypeComponentsSR(range, resultRune, nameRune, paramListRune, returnRune) => Array(Array(resultRune.rune), Array(nameRune.rune, paramListRune.rune, returnRune.rune))
+      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
+      case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
       case OneOfSR(_, rune, literals) => Array(Array(rune.rune))
       case EqualsSR(_, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
@@ -222,38 +232,55 @@ class CompilerSolver[Env, State](
           }
         }
       }
-      case PrototypeComponentsSR(range, resultRune, nameRune, paramListRune, returnRune) => {
-        stepState.getConclusion(resultRune.rune) match {
-          case None => {
-            val StringTemplata(name) = vassertSome(stepState.getConclusion(nameRune.rune))
-            val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
-            val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
+      case ResolveSR(range, resultRune, name, paramListRune) => {
+        // If we're here, then we're resolving a prototype.
+        // This happens at the call-site.
+        // The function (or struct) can either supply a default resolve rule (usually
+        // via the `func moo(int)void` syntax) or let the caller pass it in.
 
-            val nameT =
-              FunctionNameT(interner.intern(StrI(name)), Vector(), paramCoords)
-            val prototypeTemplata =
-              delegate.assemblePrototypeTemplata(env, range, nameT, returnCoord)
-            stepState.concludeRune[ITypingPassSolverError](resultRune.rune, prototypeTemplata)
-            Ok(())
+        val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+        val prototypeTemplata =
+          delegate.resolveFunction(env, state, range, name, paramCoords) match {
+            case Err(e) => return Err(CouldntFindFunction(range, e))
+            case Ok(x) => PrototypeTemplata(x)
           }
-          case Some(prototypeTemplata) => {
-            val (name, returnCoord) =
-              prototypeTemplata match {
-                case PrototypeTemplata(_, name, returnCoord) => (name, returnCoord)
-                case PlaceholderTemplata(_, _) => return Err(CantGetComponentsOfPlaceholderPrototype(range))
-                case other => vwat(other)
-              }
-            val humanName =
-              name.last match {
-                case FunctionNameT(humanName, _, _) => humanName
-                case _ => return Err(FunctionDoesntHaveName(range, name.last))
-              }
-            stepState.concludeRune[ITypingPassSolverError](nameRune.rune, StringTemplata(humanName.str))
-            stepState.concludeRune[ITypingPassSolverError](paramListRune.rune, CoordListTemplata(name.last.parameters))
-            stepState.concludeRune[ITypingPassSolverError](returnRune.rune, CoordTemplata(returnCoord))
-            Ok(())
-          }
+        stepState.concludeRune[ITypingPassSolverError](resultRune.rune, prototypeTemplata)
+        Ok(())
+
+      }
+      case CallSiteFuncSR(range, prototypeRune, name, paramListRune, returnRune) => {
+        // If we're here, then we're solving in the callsite, not the definition.
+        // This should look up a function with that name and param list, and make sure
+        // its return matches.
+
+        val PrototypeTemplata(prototype) = vassertSome(stepState.getConclusion(prototypeRune.rune))
+        val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+        val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
+
+        if (prototype.returnType != returnCoord) {
+          vfail()
         }
+        if (prototype.paramTypes != paramCoords) {
+          vfail()
+        }
+
+        Ok(())
+      }
+      case DefinitionFuncSR(range, resultRune, name, paramListRune, returnRune) => {
+        // If we're here, then we're solving in the definition, not the callsite.
+        // Skip checking that they match, just assume they do.
+
+        val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+        val CoordTemplata(returnType) = vassertSome(stepState.getConclusion(returnRune.rune))
+
+        // Now introduce a prototype that lets us call it with this new name, that we
+        // can call it by.
+        val newPrototype =
+          delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
+
+        stepState.concludeRune[ITypingPassSolverError](
+          resultRune.rune, PrototypeTemplata(newPrototype))
+        Ok(())
       }
       case EqualsSR(_, leftRune, rightRune) => {
         stepState.getConclusion(leftRune.rune) match {

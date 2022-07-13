@@ -1,7 +1,7 @@
 package dev.vale.parsing.rules
 
 import dev.vale.{Collector, StrI, vimpl}
-import dev.vale.parsing.ast.{AnonymousRunePT, CallPT, ComponentsPR, EqualsPR, FinalP, IRulexPR, ImmutableP, IntPT, IntTypePR, InterpretedPT, KindTypePR, MutabilityPT, MutableP, NameOrRunePT, NameP, PrototypePT, ShareP, StaticSizedArrayPT, TemplexPR, TuplePT, TypedPR, VariabilityPT}
+import dev.vale.parsing.ast.{AnonymousRunePT, CallPT, ComponentsPR, EqualsPR, FinalP, IRulexPR, ImmutableP, IntPT, IntTypePR, InterpretedPT, KindTypePR, MutabilityPT, MutableP, NameOrRunePT, NameP, FuncPT, ShareP, StaticSizedArrayPT, TemplexPR, TuplePT, TypedPR, VariabilityPT}
 import dev.vale.parsing.templex.TemplexParser
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -167,10 +167,10 @@ class KindRuleTests extends FunSuite with Matchers with Collector with TestParse
 
   test("Prototype kind rule") {
     compileTemplex("func moo(int)void") shouldHave {
-        case PrototypePT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("int")))),NameOrRunePT(NameP(_, StrI("void")))) =>
+        case FuncPT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("int")))),NameOrRunePT(NameP(_, StrI("void")))) =>
     }
     compileTemplex("func moo(T)R") shouldHave {
-        case PrototypePT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("T")))),NameOrRunePT(NameP(_, StrI("R")))) =>
+        case FuncPT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("T")))),NameOrRunePT(NameP(_, StrI("R")))) =>
     }
   }
 }

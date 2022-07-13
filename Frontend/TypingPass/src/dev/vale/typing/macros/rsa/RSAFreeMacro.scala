@@ -12,6 +12,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.types._
 import dev.vale.typing.ArrayCompiler
+import dev.vale.typing.citizen.StructCompiler
 
 class RSAFreeMacro(
   keywords: Keywords,

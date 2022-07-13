@@ -254,7 +254,7 @@ case class StringTemplata(value: String) extends ITemplata[StringTemplataType] {
 }
 // This isn't an actual prototype yet.
 // Once the rules are all resolved, we'll fetch the real prototypes and ensure they exist.
-case class PrototypeTemplata(declarationRange: RangeS, fullName: FullNameT[IFunctionNameT], returnType: CoordT) extends ITemplata[PrototypeTemplataType] {
+case class PrototypeTemplata(prototype: PrototypeT) extends ITemplata[PrototypeTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
 }

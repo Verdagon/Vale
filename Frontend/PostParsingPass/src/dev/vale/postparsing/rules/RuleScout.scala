@@ -3,7 +3,7 @@ package dev.vale.postparsing.rules
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast.{BoolTypePR, BuiltinCallPR, ComponentsPR, CoordListTypePR, CoordTypePR, EqualsPR, IRulexPR, ITypePR, IntPT, IntTypePR, KindTypePR, LocationTypePR, MutabilityTypePR, NameP, OrPR, OwnershipPT, OwnershipTypePR, PrototypeTypePR, TemplexPR, TypedPR, VariabilityTypePR}
 import dev.vale.postparsing._
-import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl}
+import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail, vimpl, vwat}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
@@ -90,20 +90,6 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
                 PostParser.evalRange(env.file, range),
                 rune,
                 mutabilityRuneS)
-          }
-          case PrototypeTypePR => {
-            if (componentsP.size != 3) {
-              vfail("Ref rule should have three components! Found: " + componentsP.size)
-            }
-            val Vector(nameRuneS, paramListRuneS, returnRuneS) =
-              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
-            builder +=
-              PrototypeComponentsSR(
-                PostParser.evalRange(env.file, range),
-                rune,
-                nameRuneS,
-                paramListRuneS,
-                returnRuneS)
           }
           case _ => {
             vfail("Invalid type for compnents rule: " + tyype)
@@ -265,7 +251,8 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) =>
     case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) =>
     case OneOfSR(range, rune, literals) =>
-    case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) =>
+    case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) =>
+    case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) =>
     case PackSR(range, resultRune, members) =>
     case other => vimpl(other)
   })
