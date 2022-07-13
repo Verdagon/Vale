@@ -160,9 +160,6 @@ class TemplexScout(
               // Only appears in definition; filtered out when solving call site
               ruleBuilder += ResolveSR(rangeS, resultRuneS, name, paramListRuneS)
 
-              start here
-              // we'll need to filter these out depending on call site or definition site.
-
               resultRuneS
             }
             case PackPT(range, members) => {

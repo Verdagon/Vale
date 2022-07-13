@@ -246,6 +246,17 @@ class Compiler(
         override def resolveFunction(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: StrI, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
             overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(name))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
         }
+
+        override def assemblePrototype(
+            env: IEnvironment,
+            state: CompilerOutputs,
+            range: RangeS,
+            name: StrI,
+            coords: Vector[CoordT],
+            returnType: CoordT):
+        PrototypeT = {
+          PrototypeT(env.fullName.addStep(FunctionNameT(name, Vector(), coords)), returnType)
+        }
       })
   val convertHelper =
     new ConvertHelper(

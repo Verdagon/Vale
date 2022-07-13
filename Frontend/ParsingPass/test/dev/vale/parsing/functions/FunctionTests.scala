@@ -147,74 +147,77 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   test("Simple function with identifying rune") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<A>(a A){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_, NameP(_, StrI("A")), Vector()) =>
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_, NameP(_, StrI("A")), Vector(), None) =>
     }
   }
 
   test("Simple function with coord-typed identifying rune") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<A Ref>(a A){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_, NameP(_, StrI("A")), Vector(TypeRuneAttributeP(_, CoordTypePR))) =>
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_, NameP(_, StrI("A")), Vector(TypeRuneAttributeP(_, CoordTypePR)), None) =>
     }
   }
 
   test("Simple function with region-typed identifying rune") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'a>(){}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_, NameP(_, StrI("a")), Vector(TypeRuneAttributeP(_, RegionTypePR))) =>
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_, NameP(_, StrI("a")), Vector(TypeRuneAttributeP(_, RegionTypePR)), None) =>
     }
   }
 
   test("Readonly region rune") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'r ro>(){}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_, NameP(_, StrI("r")), Vector(TypeRuneAttributeP(_, RegionTypePR), ReadOnlyRuneAttributeP(_))) =>
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_, NameP(_, StrI("r")), Vector(TypeRuneAttributeP(_, RegionTypePR), ReadOnlyRuneAttributeP(_)), None) =>
     }
   }
 
   test("Simple function with apostrophe region-typed identifying rune") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'r>(a 'r &Marine){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_, NameP(_, StrI("r")), Vector(TypeRuneAttributeP(_, RegionTypePR))) =>
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_, NameP(_, StrI("r")), Vector(TypeRuneAttributeP(_, RegionTypePR)), None) =>
     }
   }
 
   test("Pool region") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'r = pool>(a 'r &Marine){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_,
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_,
         NameP(_, StrI("r")),
         Vector(
-          TypeRuneAttributeP(_, RegionTypePR))) =>
+          TypeRuneAttributeP(_, RegionTypePR)),
+        None) =>
     }
   }
 
   test("Pool readonly region") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'r ro = pool>(a 'r &Marine){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_,
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_,
         NameP(_, StrI("r")),
         Vector(
           TypeRuneAttributeP(_, RegionTypePR),
-          ReadOnlyRuneAttributeP(_))) =>
+          ReadOnlyRuneAttributeP(_)),
+        None) =>
     }
   }
 
   test("Arena region") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'x = arena>(a 'x &Marine){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_,
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_,
         NameP(_, StrI("x")),
         Vector(
-          TypeRuneAttributeP(_, RegionTypePR))) =>
+          TypeRuneAttributeP(_, RegionTypePR)),
+        None) =>
     }
   }
 
@@ -222,11 +225,12 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   test("Readonly region") {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'x>(a 'x &Marine){a}").getOrDie()
-    func.header.maybeUserSpecifiedIdentifyingRunes.get.runes.head match {
-      case IdentifyingRuneP(_,
+    func.header.genericParameters.get.params.head match {
+      case GenericParameterP(_,
         NameP(_, StrI("x")),
         Vector(
-          TypeRuneAttributeP(_, RegionTypePR))) =>
+          TypeRuneAttributeP(_, RegionTypePR)),
+        None) =>
     }
   }
 
@@ -270,7 +274,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
           FunctionHeaderP(_,
             Some(NameP(_,StrI("main"))),
             Vector(),
-            Some(IdentifyingRunesP(_,Vector(IdentifyingRuneP(_,NameP(_,StrI("T")),Vector())))),
+            Some(GenericParametersP(_,Vector(GenericParameterP(_,NameP(_,StrI("T")),Vector(), None)))),
             None,
             _,
             _),
@@ -323,10 +327,10 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         FunctionHeaderP(_,
           Some(NameP(_, StrI("wrap"))), Vector(),
           Some(
-            IdentifyingRunesP(_,
+            GenericParametersP(_,
               Vector(
-              IdentifyingRuneP(_, NameP(_, StrI("A")), Vector()),
-              IdentifyingRuneP(_, NameP(_, StrI("F")), Vector())))),
+              GenericParameterP(_, NameP(_, StrI("A")), Vector(), None),
+              GenericParameterP(_, NameP(_, StrI("F")), Vector(), None)))),
           None,
           Some(ParamsP(_, Vector(Patterns.capturedWithTypeRune("a", "A")))),
           FunctionReturnP(_, None, None)),

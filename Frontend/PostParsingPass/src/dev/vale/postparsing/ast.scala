@@ -70,7 +70,7 @@ case class StructS(
     name: TopLevelCitizenDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
-    userSpecifiedIdentifyingRunes: Vector[RuneUsage],
+    genericParams: Vector[GenericParameterS],
     runeToExplicitType: Map[IRuneS, ITemplataType],
     mutabilityRune: RuneUsage,
 
@@ -113,7 +113,7 @@ case class InterfaceS(
   name: TopLevelCitizenDeclarationNameS,
   attributes: Vector[ICitizenAttributeS],
   weakable: Boolean,
-  identifyingRunes: Vector[RuneUsage],
+  genericParams: Vector[GenericParameterS],
   runeToExplicitType: Map[IRuneS, ITemplataType],
   mutabilityRune: RuneUsage,
 
@@ -215,13 +215,23 @@ case class CodeBodyS(body: BodySE) extends IBodyS {
 
 // template params.
 
+case class GenericParameterS(
+  rune: RuneUsage,
+  default: Option[GenericParameterDefaultS])
+
+case class GenericParameterDefaultS(
+  // One day, when we want more rules in here, we might need to have a runeToType map
+  // and other things to make it its own little world.
+  resultRune: IRuneS,
+  resolveRule: ResolveSR)
+
 // Underlying class for all XYZFunctionS types
 case class FunctionS(
     range: RangeS,
     name: IFunctionDeclarationNameS,
     attributes: Vector[IFunctionAttributeS],
 
-    identifyingRunes: Vector[RuneUsage],
+    genericParams: Vector[GenericParameterS],
     runeToPredictedType: Map[IRuneS, ITemplataType],
 
     params: Vector[ParameterS],

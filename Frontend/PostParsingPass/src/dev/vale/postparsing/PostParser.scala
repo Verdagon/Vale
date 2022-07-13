@@ -282,7 +282,7 @@ class PostParser(
 
     val identifyingRunes =
       identifyingRuneNames
-        .toVector.flatMap(_.runes)
+        .toVector.flatMap(_.params)
         .map(_.name)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val runesFromRules =
@@ -379,7 +379,7 @@ class PostParser(
 
     val identifyingRunesS: Vector[RuneUsage] =
       maybeIdentifyingRunes
-        .toVector.flatMap(_.runes).map(_.name)
+        .toVector.flatMap(_.params).map(_.name)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val runesFromRules =
       RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(templateRulesP)
@@ -440,7 +440,7 @@ class PostParser(
       structName,
       attrsS,
       weakable,
-      identifyingRunesS,
+      vimpl(),//genericParamsS,
       runeToExplicitType.toMap,
       mutabilityRuneS,
       predictedMutability,
@@ -511,7 +511,7 @@ class PostParser(
 
     val explicitIdentifyingRunes: Vector[RuneUsage] =
       maybeIdentifyingRunes
-        .toVector.flatMap(_.runes).map(_.name)
+        .toVector.flatMap(_.params).map(_.name)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val interfaceEnv = postparsing.Environment(file, None, interfaceFullName, explicitIdentifyingRunes.map(_.rune).toSet)
 
@@ -552,7 +552,7 @@ class PostParser(
         attrsS,
         weakable,
 //        knowableValueRunes,
-        explicitIdentifyingRunes,
+        vimpl(),//explicitIdentifyingRunes,
         runeToExplicitType.toMap,
 //        localRunes,
 //        maybePredictedType,

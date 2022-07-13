@@ -74,9 +74,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(!function.isTemplate)
 
+    val definitionRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInDefinitionSolve)
+
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
+        nearEnv, coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getGenericFunctionBannerFromCall(runedEnv, coutputs, callRange, function)
@@ -101,12 +105,16 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
+    val callSiteRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInCallSiteSolve)
+
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
         nearEnv,
         coutputs,
-        function.rules,
+        callSiteRules,
         function.runeToType,
         callRange,
         assembleKnownTemplatas(function, args, explicitTemplateArgs),
@@ -149,12 +157,16 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(nearEnv.function.isTemplate)
 
+    val callSiteRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInCallSiteSolve)
+
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
         nearEnv,
         coutputs,
-        function.rules,
+        callSiteRules,
         function.runeToType,
         callRange,
         assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs),
@@ -186,9 +198,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(!function.isTemplate)
 
+    val definitionRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInDefinitionSolve)
+
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
+        nearEnv, coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
@@ -207,9 +223,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(!function.isTemplate)
 
+    val callSiteRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInCallSiteSolve)
+
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
+        nearEnv, coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
@@ -241,9 +261,14 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           interner.intern(RuneNameT(identifyingRune.rune)), Set(TemplataLookupContext))
           .map(InitialKnown(identifyingRune, _))
       })
+
+    val definitionRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInDefinitionSolve)
+
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, initialKnowns, Vector())
+        nearEnv, coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector())
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
@@ -266,9 +291,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
     vassert(!function.isTemplate)
 
+    val callSiteRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInCallSiteSolve)
+
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
+        nearEnv, coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
@@ -295,13 +324,17 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     }
     vassert(nearEnv.function.isTemplate)
 
+    val callSiteRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInCallSiteSolve)
+
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
     val inferences =
       inferCompiler.solveComplete(
         nearEnv,
         coutputs,
-        function.rules,
+        callSiteRules,
         function.runeToType,
         callRange,
         initialKnowns,

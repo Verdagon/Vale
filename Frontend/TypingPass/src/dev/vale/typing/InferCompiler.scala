@@ -3,10 +3,9 @@ package dev.vale.typing
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{CoordSendSR, IRulexSR, RuneUsage}
+import dev.vale.postparsing.rules.{CallSiteFuncSR, CoordSendSR, DefinitionFuncSR, IRulexSR, ResolveSR, RuneUsage}
 import dev.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve}
 import dev.vale.highertyping._
-import dev.vale.postparsing.rules.CoordSendSR
 import dev.vale.postparsing._
 import dev.vale.solver.RuleError
 import OverloadResolver.FindFunctionFailure
@@ -107,5 +106,22 @@ class InferCompiler(
           runeToType,
           alreadyKnown)
     })
+  }
+
+  // Some rules should be excluded from the call site, see SROACSD.
+  def includeRuleInCallSiteSolve(rule: IRulexSR): Boolean = {
+    rule match {
+      case DefinitionFuncSR(_, _, _, _, _) => false
+      case _ => true
+    }
+  }
+
+  // Some rules should be excluded from the call site, see SROACSD.
+  def includeRuleInDefinitionSolve(rule: IRulexSR): Boolean = {
+    rule match {
+      case CallSiteFuncSR(_, _, _, _, _) => false
+      case ResolveSR(_, _, _, _) => false
+      case _ => true
+    }
   }
 }
