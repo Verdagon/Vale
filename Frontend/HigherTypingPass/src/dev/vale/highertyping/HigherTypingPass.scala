@@ -170,10 +170,10 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     astrouts.codeLocationToMaybeType.put(rangeS.begin, None)
 
     val runeAToType =
-      calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune), runeToExplicitType, Vector(), rulesS, env)
+      calculateRuneTypes(astrouts, rangeS, identifyingRunesS.map(_.rune.rune), runeToExplicitType, Vector(), rulesS, env)
 
     // Shouldnt fail because we got a complete solve earlier
-    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeAToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val structA =

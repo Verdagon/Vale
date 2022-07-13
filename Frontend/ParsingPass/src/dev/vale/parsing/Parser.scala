@@ -19,75 +19,83 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
   val patternParser = new PatternParser(interner, keywords, templexParser)
   val expressionParser = new ExpressionParser(interner, keywords, opts, patternParser, templexParser)
 
-  private[parsing] def parseIdentifyingRune(iter: ScrambleIterator):
-  Result[IdentifyingRuneP, IParseError] = {
+  private[parsing] def parseGenericParameter(iter: ScrambleIterator):
+  Result[GenericParameterP, IParseError] = {
     val range = iter.range
-    if (iter.trySkipSymbol('\'')) {
-      val name =
-        iter.nextWord() match {
-          case Some(n) => n
-          case None => return Err(BadRuneNameError(iter.getPos()))
-        }
 
-      val attributes =
-        Vector(TypeRuneAttributeP(RangeL(range.begin, iter.getPrevEndPos()), RegionTypePR)) ++
-          (iter.trySkipWord(keywords.ro) match {
-            case Some(range) => Vector(ReadOnlyRuneAttributeP(range))
-            case None => {
-              iter.trySkipWord(keywords.rw) match {
-                case Some(range) => Vector(ReadWriteRuneAttributeP(range))
-                case None => {
-                  iter.trySkipWord(keywords.imm) match {
-                    case Some(range) => Vector(ImmutableRuneAttributeP(range))
-                    case None => Vector()
+    val (name, attributes) =
+      if (iter.trySkipSymbol('\'')) {
+        val name =
+          iter.nextWord() match {
+            case Some(WordLE(range, str)) => NameP(range, str)
+            case None => return Err(BadRuneNameError(iter.getPos()))
+          }
+
+        val attributes =
+          Vector(TypeRuneAttributeP(RangeL(range.begin, iter.getPrevEndPos()), RegionTypePR)) ++
+            (iter.trySkipWord(keywords.ro) match {
+              case Some(range) => Vector(ReadOnlyRuneAttributeP(range))
+              case None => {
+                iter.trySkipWord(keywords.rw) match {
+                  case Some(range) => Vector(ReadWriteRuneAttributeP(range))
+                  case None => {
+                    iter.trySkipWord(keywords.imm) match {
+                      case Some(range) => Vector(ImmutableRuneAttributeP(range))
+                      case None => Vector()
+                    }
                   }
                 }
               }
-            }
-          })
+            })
 
+        (name, attributes)
+      } else {
+        val name =
+          iter.peek() match {
+            case Some(WordLE(range, str)) => {
+              iter.advance()
+              NameP(range, str)
+            }
+            case _ => return Err(BadRuneNameError(iter.getPos()))
+          }
+
+        val typeBegin = iter.getPos()
+        val maybeRuneType =
+          templexParser.parseRuneType(iter) match {
+            case Err(e) => return Err(e)
+            case Ok(Some(x)) => Some(ast.TypeRuneAttributeP(RangeL(typeBegin, iter.getPrevEndPos()), x))
+            case Ok(None) => None
+          }
+
+        (name, Vector())
+      }
+
+    val maybeDefaultPT =
       if (iter.trySkipSymbol('=')) {
         templexParser.parseTemplex(iter) match {
           case Err(e) => return Err(e)
-          case Ok(x) => // ignore it
+          case Ok(x) => Some(x)
         }
+      } else {
+        None
       }
 
-      Ok(IdentifyingRuneP(range, NameP(name.range, name.str), attributes))
-    } else {
-      val name =
-        iter.peek() match {
-          case Some(WordLE(range, str)) => {
-            iter.advance()
-            NameP(range, str)
-          }
-          case _ => return Err(BadRuneNameError(iter.getPos()))
-        }
-
-      val typeBegin = iter.getPos()
-      val maybeRuneType =
-        templexParser.parseRuneType(iter) match {
-          case Err(e) => return Err(e)
-          case Ok(Some(x)) => Some(ast.TypeRuneAttributeP(RangeL(typeBegin, iter.getPrevEndPos()), x))
-          case Ok(None) => None
-        }
-      Ok(IdentifyingRuneP(range, name, maybeRuneType.toVector))
-    }
+    Ok(GenericParameterP(range, NameP(name.range, name.str), attributes, maybeDefaultPT))
   }
 
   private[parsing] def parseIdentifyingRunes(node: AngledLE):
-  Result[IdentifyingRunesP, IParseError] = {
+  Result[GenericParametersP, IParseError] = {
     val runesP =
-      U.map[ScrambleIterator, IdentifyingRuneP](
+      U.map[ScrambleIterator, GenericParameterP](
         new ScrambleIterator(node.contents).splitOnSymbol(',', false),
         inner => {
-        parseIdentifyingRune(inner) match {
+        parseGenericParameter(inner) match {
           case Err(e) => return Err(e)
           case Ok(x) => x
         }
       })
 
-    Ok(IdentifyingRunesP(node.range, runesP.toVector))
+    Ok(GenericParametersP(node.range, runesP.toVector))
   }
 
   private[parsing] def parseStructMember(

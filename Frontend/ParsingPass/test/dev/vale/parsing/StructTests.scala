@@ -3,7 +3,7 @@ package dev.vale.parsing
 import dev.vale.lexing.ImportL
 import dev.vale.options.GlobalOptions
 import dev.vale.{Collector, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, PackageCoordinate, StrI, vassertOne}
-import dev.vale.parsing.ast.{BorrowP, CallPT, ExportAttributeP, FinalP, IdentifyingRuneP, IdentifyingRunesP, ImmutableP, IntTypePR, InterpretedPT, MutabilityPT, MutableP, NameOrRunePT, NameP, NormalStructMemberP, OwnP, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StructMembersP, StructP, TemplateRulesP, TopLevelStructP, TypedPR, VariabilityPT, VariadicStructMemberP, VaryingP, WeakP}
+import dev.vale.parsing.ast.{BorrowP, CallPT, ExportAttributeP, FinalP, GenericParameterP, GenericParametersP, ImmutableP, IntTypePR, InterpretedPT, MutabilityPT, MutableP, NameOrRunePT, NameP, NormalStructMemberP, OwnP, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StructMembersP, StructP, TemplateRulesP, TopLevelStructP, TypedPR, VariabilityPT, VariadicStructMemberP, VaryingP, WeakP}
 import dev.vale.parsing.ast._
 import org.scalatest.{FunSuite, Matchers}
 
@@ -109,7 +109,7 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
         NameP(_, StrI("ListNode")),
         Vector(),
         None,
-        Some(IdentifyingRunesP(_, Vector(IdentifyingRuneP(_, NameP(_, StrI("E")), Vector())))),
+        Some(GenericParametersP(_, Vector(GenericParameterP(_, NameP(_, StrI("E")), Vector(), None)))),
         None,
         _,
         StructMembersP(_,
@@ -134,7 +134,7 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
         NameP(_, StrI("Vecf")),
         Vector(),
         None,
-        Some(IdentifyingRunesP(_, Vector(IdentifyingRuneP(_, NameP(_, StrI("N")), Vector())))),
+        Some(GenericParametersP(_, Vector(GenericParameterP(_, NameP(_, StrI("N")), Vector(), None)))),
         Some(TemplateRulesP(_, Vector(TypedPR(_,Some(NameP(_, StrI("N"))), IntTypePR)))),
         _,
         StructMembersP(_, Vector(NormalStructMemberP(_,NameP(_, StrI("values")), FinalP, StaticSizedArrayPT(_,MutabilityPT(_,MutableP), VariabilityPT(_,FinalP), NameOrRunePT(NameP(_, StrI("N"))), NameOrRunePT(NameP(_, StrI("float"))))))))) =>
@@ -156,7 +156,7 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
             NameP(_, StrI("Vecf")),
             Vector(),
             None,
-            Some(IdentifyingRunesP(_, Vector(IdentifyingRuneP(_, NameP(_, StrI("N")), Vector())))),
+            Some(GenericParametersP(_, Vector(GenericParameterP(_, NameP(_, StrI("N")), Vector(), None)))),
             Some(TemplateRulesP(_, Vector(TypedPR(_,Some(NameP(_, StrI("N"))),IntTypePR)))),
             _,
             StructMembersP(_, Vector(NormalStructMemberP(_,NameP(_, StrI("values")),FinalP,StaticSizedArrayPT(_,MutabilityPT(_,MutableP), VariabilityPT(_, FinalP), NameOrRunePT(NameP(_, StrI("N"))), NameOrRunePT(NameP(_, StrI("float"))))))))) =>

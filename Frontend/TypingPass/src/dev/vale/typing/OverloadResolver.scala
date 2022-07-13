@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR}
+import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR}
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.FunctionCompiler
@@ -10,7 +10,6 @@ import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.PostParserErrorHumanizer
-import dev.vale.postparsing.rules.RuneParentEnvLookupSR
 import dev.vale.solver.FailedSolve
 import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
@@ -238,6 +237,7 @@ class OverloadResolver(
                   // some actual templatas.
 
                   // We preprocess out the rune parent env lookups, see MKRFA.
+                  // We also process out rules that shouldnt be in the call site, see
                   val (initialKnowns, rulesWithoutRuneParentEnvLookups) =
                     explicitTemplateArgRulesS.foldLeft((Vector[InitialKnown](), Vector[IRulexSR]()))({
                       case ((previousConclusions, remainingRules), RuneParentEnvLookupSR(_, rune)) => {

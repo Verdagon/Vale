@@ -93,6 +93,24 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Test calling a generic function with a concept function") {
     val compile = CompilerTestCompilation.test(
       """
+        |func moo(x int) { }
+        |
+        |func bork<T>(a T) where func moo(T)void { }
+        |
+        |exported func main() {
+        |  bork(3);
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val bork = coutputs.lookupFunction("main")
+    bork shouldHave {
+      case null =>
+    }
+  }
+
+  test("Test calling a generic function with a drop concept function") {
+    val compile = CompilerTestCompilation.test(
+      """
         |func bork<T>(a T)
         |    where func drop(T)void {
         |}

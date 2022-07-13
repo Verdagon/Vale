@@ -27,7 +27,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     vassert(main.runeToPredictedType.size == 1)
 
-    main.identifyingRunes match {
+    main.genericParams match {
       case Vector(RuneUsage(_, CodeRuneS(StrI("T")))) =>
     }
   }
@@ -37,7 +37,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""func main<T>(moo T) T { moo }""", interner)
     val main = program1.lookupFunction("main")
 
-    vassert(main.identifyingRunes.map(_.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
+    vassert(main.genericParams.map(_.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
     main.maybeRetCoordRune match { case Some(RuneUsage(_, CodeRuneS(StrI("T")))) => }
   }
 
@@ -88,7 +88,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     val main = bork.lookupFunction("main")
     // We dont support regions yet, so scout should filter them out.
-    main.identifyingRunes.size shouldEqual 0
+    main.genericParams.size shouldEqual 0
   }
 
   test("Test param-less lambda identifying runes") {
@@ -99,9 +99,9 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     val main = bork.lookupFunction("main")
     // We dont support regions yet, so scout should filter them out.
-    main.identifyingRunes.size shouldEqual 0
+    main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.identifyingRunes.size shouldEqual 0
+    lambda.function.genericParams.size shouldEqual 0
   }
 
   test("Test one-param lambda identifying runes") {
@@ -112,9 +112,9 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     val main = bork.lookupFunction("main")
     // We dont support regions yet, so scout should filter them out.
-    main.identifyingRunes.size shouldEqual 0
+    main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.identifyingRunes.size shouldEqual 1
+    lambda.function.genericParams.size shouldEqual 1
   }
 
   test("Test one-anonymous-param lambda identifying runes") {
@@ -125,9 +125,9 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     val main = bork.lookupFunction("main")
     // We dont support regions yet, so scout should filter them out.
-    main.identifyingRunes.size shouldEqual 0
+    main.genericParams.size shouldEqual 0
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.identifyingRunes.size shouldEqual 1
+    lambda.function.genericParams.size shouldEqual 1
   }
 
 }
