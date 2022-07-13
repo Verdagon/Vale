@@ -1,7 +1,7 @@
 package dev.vale.postparsing
 
 import dev.vale.{FileCoordinateMap, vimpl}
-import dev.vale.postparsing.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, CoordSendSR, EqualsSR, ILiteralSL, IRulexSR, IntLiteralSL, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, MutabilityLiteralSL, OneOfSR, OwnershipLiteralSL, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, RuneParentEnvLookupSR, RuntimeSizedArraySR, StaticSizedArraySR, StringLiteralSL, VariabilityLiteralSL}
+import dev.vale.postparsing.rules._
 import dev.vale.solver.SolverErrorHumanizer
 import dev.vale.vimpl
 import dev.vale.SourceCodeUtils.{humanizePos, lineContaining, nextThingAndRestOfLine}
@@ -181,8 +181,11 @@ object PostParserErrorHumanizer {
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)
       case RuneParentEnvLookupSR(range, rune) => "inherit " + humanizeRune(rune.rune)
       case PackSR(range, resultRune, members) => humanizeRune(resultRune.rune) + " = (" + members.map(x => humanizeRune(x.rune)).mkString(", ") + ")"
-      case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) => {
-        humanizeRune(resultRune.rune) + " = Prot[" + humanizeRune(nameRune.rune) + ", " + humanizeRune(paramsListRune.rune) + ", " + humanizeRune(returnRune.rune) + "]"
+      case CallSiteFuncSR(range, resultRune, name, paramsListRune) => {
+        humanizeRune(resultRune.rune) + " = definition-func " + name + "[" + humanizeRune(paramsListRune.rune) + "]"
+      }
+      case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
+        humanizeRune(resultRune.rune) + " = callsite-func " + name + "[" + humanizeRune(paramsListRune.rune) + ", " + humanizeRune(returnRune.rune) + "]"
       }
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
         humanizeRune(resultRune.rune) + " = " + "[#" + humanizeRune(sizeRune.rune) + "]<" + humanizeRune(mutabilityRune.rune) + ", " + humanizeRune(variabilityRune.rune) + ">" + humanizeRune(elementRune.rune)

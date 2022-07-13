@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.postparsing.rules.{AugmentSR, CallSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, EqualsSR, IRulexSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, KindIsaSR, LiteralSR, LookupSR, OneOfSR, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, RuneParentEnvLookupSR, RuntimeSizedArraySR, StaticSizedArraySR}
+import dev.vale.postparsing.rules._
 import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, IStepState, IncompleteSolve, Solver}
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vimpl, vpass}
 import dev.vale._
@@ -26,7 +26,8 @@ object IdentifiabilitySolver {
         case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
-        case PrototypeComponentsSR(range, resultRune, nameRune, paramsListRune, returnRune) => Array(resultRune, nameRune, paramsListRune, returnRune)
+        case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune) => Array(resultRune, paramsListRune)
+        case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
         case OneOfSR(range, rune, literals) => Array(rune)
         case IsConcreteSR(range, rune) => Array(rune)
         case IsInterfaceSR(range, rune) => Array(rune)
@@ -70,7 +71,8 @@ object IdentifiabilitySolver {
       case CoordIsaSR(_, subRune, superRune) => Array(Array())
       case KindComponentsSR(_, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array())
-      case PrototypeComponentsSR(_, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
+      case CallSiteFuncSR(_, resultRune, nameRune, paramsListRune) => Array(Array())
+      case DefinitionFuncSR(_, resultRune, name, paramsListRune, returnRune) => Array(Array())
       case OneOfSR(_, rune, literals) => Array(Array())
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
       case IsInterfaceSR(_, rune) => Array(Array())
@@ -114,10 +116,14 @@ object IdentifiabilitySolver {
         stepState.concludeRune(kindRune.rune, true)
         Ok(())
       }
-      case PrototypeComponentsSR(_, resultRune, nameRune, paramListRune, returnRune) => {
+      case CallSiteFuncSR(_, resultRune, name, paramListRune) => {
         stepState.concludeRune(resultRune.rune, true)
-        stepState.concludeRune(nameRune.rune, true)
         stepState.concludeRune(paramListRune.rune, true)
+        Ok(())
+      }
+      case DefinitionFuncSR(_, resultRune, name, paramsListRune, returnRune) => {
+        stepState.concludeRune(resultRune.rune, true)
+        stepState.concludeRune(paramsListRune.rune, true)
         stepState.concludeRune(returnRune.rune, true)
         Ok(())
       }

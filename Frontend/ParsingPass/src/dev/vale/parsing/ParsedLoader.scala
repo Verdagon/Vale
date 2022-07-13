@@ -811,7 +811,7 @@ class ParsedLoader(interner: Interner) {
           loadTemplex(getObjectField(jobj, "inner")))
       }
       case "PrototypeT" => {
-        PrototypePT(
+        FuncPT(
           loadRange(getObjectField(jobj, "range")),
           loadName(getObjectField(jobj, "name")),
           getArrayField(jobj, "parameters").map(expectObject).map(loadTemplex),

@@ -6,6 +6,7 @@ import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
+import dev.vale.postparsing.IRuneS
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
@@ -150,7 +151,7 @@ case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidat
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class PrototypeTemplataCalleeCandidate(prototype: PrototypeTemplata) extends ICalleeCandidate {
+case class PrototypeTemplataCalleeCandidate(range: RangeS, rune: IRuneS, coords: Vector[CoordT], returnType: CoordT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
@@ -166,14 +167,14 @@ case class ValidHeaderCalleeCandidate(
   override def range: Option[RangeS] = header.maybeOriginFunction.map(_.range)
   override def paramTypes: Array[CoordT] = header.paramTypes.toArray
 }
-case class ValidPrototypeTemplataCalleeCandidate(
-  prototype: PrototypeTemplata
-) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-
-  override def range: Option[RangeS] = Some(prototype.declarationRange)
-  override def paramTypes: Array[CoordT] = prototype.fullName.last.parameters.toArray
-}
+//case class ValidPrototypeTemplataCalleeCandidate(
+//  prototype: PrototypeTemplata
+//) extends IValidCalleeCandidate {
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+//
+//  override def range: Option[RangeS] = Some(prototype.declarationRange)
+//  override def paramTypes: Array[CoordT] = prototype.fullName.last.parameters.toArray
+//}
 case class ValidCalleeCandidate(
   banner: FunctionBannerT,
   function: FunctionTemplata

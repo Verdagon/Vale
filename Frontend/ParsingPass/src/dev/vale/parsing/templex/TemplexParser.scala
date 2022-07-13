@@ -2,7 +2,7 @@ package dev.vale.parsing.templex
 
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, Result, StrI, U, vassert, vassertSome, vimpl, vwat}
 import dev.vale.parsing.{Parser, StopBeforeCloseSquare, StopBeforeComma, ast}
-import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BuiltinCallPR, CallPT, ComponentsPR, EqualsPR, FinalP, IRulexPR, ITemplexPT, ImmutableP, InlineP, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnP, OwnershipPT, PrototypePT, RegionRunePT, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StringPT, TemplexPR, TuplePT, TypedPR, VariabilityPT, VaryingP, WeakP, YonderP}
+import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BuiltinCallPR, CallPT, ComponentsPR, EqualsPR, FinalP, IRulexPR, ITemplexPT, ImmutableP, InlineP, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnP, OwnershipPT, FuncPT, RegionRunePT, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StringPT, TemplexPR, TuplePT, TypedPR, VariabilityPT, VaryingP, WeakP, YonderP}
 import dev.vale.lexing.{AngledLE, BadArraySizer, BadArraySizerEnd, BadPrototypeName, BadPrototypeParams, BadRegionName, BadRuleCallParam, BadRuneTypeError, BadStringChar, BadStringInTemplex, BadTemplateCallParam, BadTupleElement, BadTypeExpression, BadUnicodeChar, CurliedLE, FoundBothImmutableAndMutabilityInArray, INodeLE, IParseError, ParendLE, ParsedDoubleLE, ParsedIntegerLE, RangeL, RangedInternalErrorP, ScrambleLE, SquaredLE, StringLE, StringPartLiteral, SymbolLE, WordLE}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -174,7 +174,7 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
 
     val returnType = parseTemplex(iter) match { case Err(e) => return Err(e) case Ok(x) => x }
 
-    val result = PrototypePT(RangeL(begin, iter.getPrevEndPos()), name, args, returnType)
+    val result = FuncPT(RangeL(begin, iter.getPrevEndPos()), name, args, returnType)
     Ok(Some(result))
   }
 

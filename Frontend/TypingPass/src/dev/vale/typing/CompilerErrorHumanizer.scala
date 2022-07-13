@@ -392,8 +392,8 @@ object CompilerErrorHumanizer {
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
       case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
-      case PrototypeTemplataCalleeCandidate(prototype) => {
-        val begin = lineBegin(codeMap, prototype.declarationRange.begin)
+      case PrototypeTemplataCalleeCandidate(range, rune, functor) => {
+        val begin = lineBegin(codeMap, range.begin)
         humanizePos(codeMap, begin) + ":\n" +
           lineContaining(codeMap, begin) + "\n"
       }
@@ -435,8 +435,8 @@ object CompilerErrorHumanizer {
           case ShareT => "share"
         }
       }
-      case PrototypeTemplata(range, name, returnType) => {
-        humanizeName(codeMap, name)
+      case PrototypeTemplata(prototype) => {
+        humanizeName(codeMap, prototype.fullName)
       }
       case CoordTemplata(CoordT(ownership, kind)) => {
         (ownership match {

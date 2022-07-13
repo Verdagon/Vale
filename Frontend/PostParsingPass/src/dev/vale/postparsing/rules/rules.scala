@@ -62,15 +62,36 @@ case class CoordComponentsSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune, ownershipRune, kindRune)
 }
 
-case class PrototypeComponentsSR(
+case class ResolveSR(
   range: RangeS,
   resultRune: RuneUsage,
-  nameRune: RuneUsage,
+  name: StrI,
+  paramsListRune: RuneUsage
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune)
+}
+
+case class CallSiteFuncSR(
+  range: RangeS,
+  prototypeRune: RuneUsage,
+  name: StrI,
   paramsListRune: RuneUsage,
   returnRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, nameRune, paramsListRune, returnRune)
+  override def runeUsages: Array[RuneUsage] = Array(prototypeRune, paramsListRune, returnRune)
+}
+
+case class DefinitionFuncSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  name: StrI,
+  paramsListRune: RuneUsage,
+  returnRune: RuneUsage
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune, returnRune)
 }
 
 // See Possible Values Shouldnt Be Used For Inference (PVSBUFI)

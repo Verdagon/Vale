@@ -243,16 +243,9 @@ class Compiler(
             structDef.isClosure
         }
 
-        override def assemblePrototypeTemplata(
-          env: IEnvironment, range: RangeS, nameT: FunctionNameT, returnCoord: CoordT):
-        PrototypeTemplata = {
-          PrototypeTemplata(range, env.fullName.addStep(nameT), returnCoord)
+        override def resolveFunction(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: StrI, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
+            overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(name))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
         }
-
-
-//        override def resolvePrototype(env: IEnvironment, state: CompilerOutputs, range: RangeS, name: String, coords: Vector[CoordT]): Result[PrototypeT, FindFunctionFailure] = {
-//            overloadCompiler.findFunction(env, state, range, interner.intern(CodeNameS(interner.intern(StrI(name)))), Vector.empty, Array.empty, coords.map(ParamFilter(_, None)), Vector.empty, true)
-//        }
       })
   val convertHelper =
     new ConvertHelper(
@@ -584,7 +577,7 @@ class Compiler(
                 case Some(KindTemplata(kind)) => {
                   coutputs.addKindExport(range, kind, range.file.packageCoordinate, exportedName)
                 }
-                case Some(PrototypeTemplata(name, params, retuurn)) => {
+                case Some(PrototypeTemplata(prototype)) => {
                   vimpl()
                 }
                 case _ => vfail()

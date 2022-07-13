@@ -497,7 +497,7 @@ object Spanner {
           range,
           Vector())
       }
-      case PrototypePT(range, name, parameters, returnType) => {
+      case FuncPT(range, name, parameters, returnType) => {
         makeSpan(
           Prototype,
           range,
