@@ -95,16 +95,114 @@ class CompilerSolverTests extends FunSuite with Matchers {
       """
         |func moo(x int) { }
         |
-        |func bork<T>(a T) where func moo(T)void { }
+        |func bork<T>(a T) T where func moo(T)void { a }
         |
         |exported func main() {
         |  bork(3);
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-    val bork = coutputs.lookupFunction("main")
-    bork shouldHave {
-      case null =>
+    val main = coutputs.lookupFunction("main")
+    main shouldHave {
+      case FunctionCallTE(
+        PrototypeT(
+          FullNameT(_,
+            _,
+            FunctionNameT(
+              StrI("bork"),
+              Vector(CoordTemplata(CoordT(ShareT,IntT(32)))),
+              Vector(CoordT(ShareT,IntT(32))))),
+          CoordT(ShareT,IntT(32))),
+        Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
+    }
+  }
+
+  test("Test rune type in generic param") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<I int>() int { I }
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("bork")
+    main.header.fullName.last.templateArgs match {
+      case Vector(PlaceholderTemplata(_, IntegerTemplataType())) =>
+    }
+  }
+
+  test("Test single parameter function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Functor1<F Prot = func(P1)R> imm
+        |where P1 Ref, R Ref { }
+        |
+        |func __call<F Prot = func(P1)R>(self &Functor1<F>, param1 P1) R
+        |where P1 Ref, R Ref {
+        |  F(param1)
+        |}
+        |
+        |exported func main() int {
+        |  Functor1({_})(4)
+        |}
+      """.stripMargin)
+
+  }
+
+  test("Test generic parameter function that relies on another") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func moo(x int) { }
+        |
+        |func bork<T, F Prot = func moo(T)void>
+        |(a T) T {
+        |  a
+        |}
+        |
+        |exported func main() {
+        |  bork(3);
+        |}
+      """.stripMargin)
+
+//    vimpl()
+//    strt here
+    // if we could put a placeholder in for T, then the definition-call rule would resolve
+    // and it would generate a prototype to put into F.
+    // but instead, the preliminary solve does nothing, then both T and F get filled,
+    // definition-call sees T and generates a prototype, which then conflicts with the placeholder F.
+    // how in the world are we gonna figure that out?
+    // obvious solution seems to be to generate the placeholders one by one, but i cant shake the feeling
+    // that theres something better we might do.
+    // ironically, the same solution can also be used to know when to actually include a generic param's
+    // default rules.
+    // i wonder if we can do it in reverse dependency order? like, F depends on T, so maybe T will unblock F.
+
+    // perhaps we can just keep on introducing default expressions until the whole thing clicks.
+    // in other words:
+    //  - try to solve it without default expressions. fail.
+    //  - now add a default expression. it works
+    // so we'd keep adding default expressions from the left until things work
+    // No, this doesnt work because if we have placeholders for everything, it just wont solve.
+    // perhaps we can placeholder-populate everything that doesnt have a default expression first?
+
+    // perhaps the problem is that this kind of thing isnt additive?
+    // if we could later on assign a value to a placeholder, that would work quite well.
+
+    // placeholders are already kind of weird. maybe thats what we should think about?
+    // maybe we need to rethink the whole placeholder thing. they dont _actually_ have values.
+    // this problem arises because we pretend they do.
+
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+    main shouldHave {
+      case FunctionCallTE(
+        PrototypeT(
+          FullNameT(_,
+            _,
+            FunctionNameT(
+            StrI("bork"),
+            Vector(CoordTemplata(CoordT(ShareT,IntT(32)))),
+            Vector(CoordT(ShareT,IntT(32))))),
+          CoordT(ShareT,IntT(32))),
+          Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
     }
   }
 
@@ -284,7 +382,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     }
   }
 
-  test("Prototype rule") {
+  test("Prototype rule, call via rune") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.tup.*;
@@ -302,7 +400,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     })
   }
 
-  test("Prototype rule sugar") {
+  test("Prototype rule, call directly") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.tup.*;

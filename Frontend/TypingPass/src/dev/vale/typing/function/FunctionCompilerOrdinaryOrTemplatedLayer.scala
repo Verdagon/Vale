@@ -3,7 +3,7 @@ package dev.vale.typing.function
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.RuneUsage
+import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.function.FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.postparsing.patterns._
@@ -106,8 +106,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInCallSiteSolve)
+      assembleCallSiteRules(function, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
@@ -124,7 +123,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         case Ok(i) => (i)
       }
 
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferredTemplatas)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
@@ -158,8 +157,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInCallSiteSolve)
+      assembleCallSiteRules(function, 0)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
@@ -178,7 +176,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val runedEnv =
       addRunedDataToNearEnv(
-        nearEnv, function.identifyingRunes.map(_.rune), inferredTemplatas)
+        nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(
@@ -224,8 +222,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val callSiteRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInCallSiteSolve)
+      assembleCallSiteRules(function, 0)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -256,10 +253,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     // See IMCBT for why we can look up identifying runes in the environment.
     val initialKnowns =
-      function.identifyingRunes.flatMap(identifyingRune => {
+      function.genericParameters.flatMap(genericParam => {
         nearEnv.lookupNearestWithName(
-          interner.intern(RuneNameT(identifyingRune.rune)), Set(TemplataLookupContext))
-          .map(InitialKnown(identifyingRune, _))
+          interner.intern(RuneNameT(genericParam.rune.rune)), Set(TemplataLookupContext))
+          .map(InitialKnown(genericParam.rune, _))
       })
 
     val definitionRules =
@@ -271,7 +268,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         nearEnv, coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector())
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
+    val runedEnv =
+      addRunedDataToNearEnv(
+        nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)
@@ -292,8 +291,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val callSiteRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInCallSiteSolve)
+      assembleCallSiteRules(function, 0)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -325,8 +323,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInCallSiteSolve)
+      assembleCallSiteRules(function, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
@@ -344,13 +341,28 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     }
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
     val banner =
       middleLayer.getGenericFunctionBannerFromCall(
         runedEnv, coutputs, callRange, function)
 
     (EvaluateFunctionSuccess(banner))
+  }
+
+  private def assembleCallSiteRules(function: FunctionA, numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
+    function.rules.filter(
+      inferCompiler.includeRuleInCallSiteSolve) ++
+      (function.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
+        if (index >= numExplicitTemplateArgs) {
+          genericParam.default match {
+            case Some(x) => x.rules
+            case None => Vector()
+          }
+        } else {
+          Vector()
+        }
+      }))
   }
 
   private def assembleKnownTemplatas(
@@ -364,9 +376,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 //        InitialKnown(paramOverrideRune, KindTemplata(argOverrideKind))
 //      }
 //    }) ++
-    function.identifyingRunes.zip(explicitTemplateArgs).map({
-      case (identifyingRune, explicitArg) => {
-        InitialKnown(identifyingRune, explicitArg)
+    function.genericParameters.zip(explicitTemplateArgs).map({
+      case (genericParam, explicitArg) => {
+        InitialKnown(genericParam.rune, explicitArg)
       }
     })
   }
@@ -430,12 +442,15 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
+    val callSiteRules =
+      assembleCallSiteRules(function, explicitTemplateArgs.size)
+
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
         nearEnv,
         coutputs,
-        function.rules,
+        callSiteRules,
         function.runeToType,
         callRange,
         assembleKnownTemplatas(function, args, explicitTemplateArgs),
@@ -445,7 +460,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         case Ok(i) => (i)
       }
 
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferredTemplatas)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -465,6 +480,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
+    val definitionRules =
+      function.rules.filter(
+        inferCompiler.includeRuleInDefinitionSolve)
+
     // This is temporary, to support specialization like:
     //   extern("vale_runtime_sized_array_mut_new")
     //   func Array<M, E>(size int) []<M>E
@@ -472,7 +491,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // In the future we might need to outlaw specialization, unsure.
     val preliminaryInferences =
       inferCompiler.solve(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector()) match {
+        nearEnv, coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector()) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range, f))
         }
@@ -482,11 +501,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
     val initialKnowns =
-      function.identifyingRunes.zipWithIndex.map({ case (identifyingRune, index) =>
-        preliminaryInferences.get(identifyingRune.rune) match {
-          case Some(x) => InitialKnown(identifyingRune, x)
+      function.genericParameters.zipWithIndex.map({ case (genericParam, index) =>
+        preliminaryInferences.get(genericParam.rune.rune) match {
+          case Some(x) => InitialKnown(genericParam.rune, x)
           case None => {
-            val runeType = vassertSome(function.runeToType.get(identifyingRune.rune))
+            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
             val placeholderFullName =
               nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
             val templata =
@@ -511,15 +530,15 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
                 }
                 case _ => PlaceholderTemplata(placeholderFullName, runeType)
               }
-            InitialKnown(identifyingRune, templata)
+            InitialKnown(genericParam.rune, templata)
           }
         }
       })
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, initialKnowns, Vector())
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.identifyingRunes.map(_.rune), inferences)
+        nearEnv, coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector())
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)

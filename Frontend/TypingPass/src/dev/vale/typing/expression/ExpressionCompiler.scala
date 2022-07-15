@@ -774,7 +774,7 @@ class ExpressionCompiler(
           templata match {
             case IntegerTemplata(value) => (ConstantIntTE(IntegerTemplata(value), 32), Set())
             case PlaceholderTemplata(name, IntegerTemplataType()) => (ConstantIntTE(PlaceholderTemplata(name, IntegerTemplataType()), 32), Set())
-            case pt @ PrototypeTemplata(name, paramCoords, returnCoord) => {
+            case pt @ PrototypeTemplata(_) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
                   .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))
@@ -1380,13 +1380,16 @@ class ExpressionCompiler(
           }
         },
         rangeS,
-        false, rulesS, identifyingRunesS.map(_.rune), true, runeSToPreKnownTypeA) match {
+        false, rulesS, identifyingRunesS.map(_.rune.rune), true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
       }
 
     // Shouldnt fail because we got a complete solve on the rules
-    val tyype = PostParser.determineDenizenType(FunctionTemplataType(), identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+    val tyype =
+      PostParser.determineDenizenType(
+        FunctionTemplataType(), identifyingRunesS.map(_.rune.rune), runeSToType)
+        .getOrDie()
 
     vale.highertyping.FunctionA(
       rangeS,

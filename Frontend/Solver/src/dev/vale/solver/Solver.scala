@@ -1,6 +1,6 @@
 package dev.vale.solver
 
-import dev.vale.{Err, Ok, Profiler, Result, vassert, vfail, vpass}
+import dev.vale.{Err, Ok, Profiler, Result, vassert, vfail, vimpl, vpass}
 
 import scala.collection.immutable.Map
 import scala.collection.mutable
@@ -64,6 +64,7 @@ trait ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType] {
   def solve(
     state: State,
     env: Env,
+    solverState: ISolverState[Rule, Rune, Conclusion],
     ruleIndex: Int,
     rule: Rule,
     stepState: IStepState[Rule, Rune, Conclusion]):
@@ -75,6 +76,7 @@ trait ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType] {
   def complexSolve(
     state: State,
     env: Env,
+    solverState: ISolverState[Rule, Rune, Conclusion],
     stepState: IStepState[Rule, Rune, Conclusion]
   ): Result[Unit, ISolverError[Rune, Conclusion, ErrType]]
 }
@@ -100,7 +102,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](sanityCheck: Boolean, 
             case Some(solvingRuleIndex) => {
               val rule = solverState.getRule(solvingRuleIndex)
               val step =
-                solverState.simpleStep[ErrType](ruleToPuzzles, solvingRuleIndex, rule, solveRule.solve(state, env, solvingRuleIndex, rule, _)) match {
+                solverState.simpleStep[ErrType](ruleToPuzzles, solvingRuleIndex, rule, solveRule.solve(state, env, solverState, solvingRuleIndex, rule, _)) match {
                   case Ok(step) => step
                   case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
                 }
@@ -124,7 +126,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](sanityCheck: Boolean, 
 
         if (solverState.getUnsolvedRules().nonEmpty) {
           val step =
-            solverState.complexStep(ruleToPuzzles, solveRule.complexSolve(state, env, _)) match {
+            solverState.complexStep(ruleToPuzzles, solveRule.complexSolve(state, env, solverState, _)) match {
               case Ok(step) => step
               case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
             }

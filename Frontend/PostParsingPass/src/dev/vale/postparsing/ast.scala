@@ -223,7 +223,7 @@ case class GenericParameterDefaultS(
   // One day, when we want more rules in here, we might need to have a runeToType map
   // and other things to make it its own little world.
   resultRune: IRuneS,
-  resolveRule: ResolveSR)
+  rules: Vector[IRulexSR])
 
 // Underlying class for all XYZFunctionS types
 case class FunctionS(

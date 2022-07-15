@@ -88,7 +88,7 @@ class AnonymousInterfaceMacro(
           structA.range,
           RuneUsage(structA.range, AnonymousSubstructRuneS()),
           RuneUsage(structA.range, AnonymousSubstructTemplateRuneS()),
-          structA.identifyingRunes.toArray) :+
+          structA.genericParameters.map(_.rune).toArray) :+
         LookupSR(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
@@ -97,7 +97,7 @@ class AnonymousInterfaceMacro(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS()),
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
-          interfaceA.identifyingRunes.toArray)
+          interfaceA.genericParameters.map(_.rune).toArray)
     val runeToType =
       structA.runeToType +
         (AnonymousSubstructRuneS() -> KindTemplataType()) +
@@ -116,7 +116,7 @@ class AnonymousInterfaceMacro(
         implNameS,
         // Just getting the template name (or the kind name if not template), see INSHN.
         implImpreciseNameS,
-        structA.identifyingRunes,
+        structA.genericParameters.map(_.rune),
         rules,
         runeToType,
         structKindRuneS,
@@ -147,7 +147,7 @@ class AnonymousInterfaceMacro(
           case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
         }) ++ memberRunes.map(_ => CoordTemplataType()),
         KindTemplataType()),
-      interfaceA.identifyingRunes ++ memberRunes,
+      interfaceA.genericParameters ++ memberRunes.map(GenericParameterS(_, None)),
       interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType()),
       interfaceA.rules,
       members)
@@ -162,8 +162,8 @@ class AnonymousInterfaceMacro(
   FunctionA = {
     val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, rules, body) = method
 
-    vassert(struct.identifyingRunes.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
-    val identifyingRunes = struct.identifyingRunes
+    vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
+    val genericParams = struct.genericParameters
 
     val runeToType = methodOriginalRuneToType ++ struct.runeToType
 
@@ -195,7 +195,7 @@ class AnonymousInterfaceMacro(
         abstractParamRange,
         RuneUsage(abstractParamRange, SelfKindRuneS()),
         RuneUsage(abstractParamRange, SelfKindTemplateRuneS()),
-        identifyingRunes.toArray)
+        genericParams.map(_.rune).toArray)
 
     val assemblingStructRule =
       CoordComponentsSR(
@@ -236,9 +236,9 @@ class AnonymousInterfaceMacro(
         (methodOriginalType match {
           case FunctionTemplataType() => Vector()
           case TemplateTemplataType(paramTypes, FunctionTemplataType()) => paramTypes
-        }) ++ struct.identifyingRunes.map(_ => CoordTemplataType()),
+        }) ++ struct.genericParameters.map(_ => CoordTemplataType()),
         FunctionTemplataType()),
-      identifyingRunes,
+      genericParams,
       runeToType ++
         Vector(
           SelfRuneS() -> CoordTemplataType(),

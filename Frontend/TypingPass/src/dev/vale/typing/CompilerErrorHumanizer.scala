@@ -127,6 +127,10 @@ object CompilerErrorHumanizer {
         case CouldntFindFunctionToCallT(range, fff) => {
           humanizeFindFunctionFailure(verbose, codeMap, range, fff)
         }
+        case CouldntEvaluateFunction(range, eff) => {
+          "Couldn't evaluate function:\n" +
+          humanizeRejectionReason(verbose, codeMap, range, eff)
+        }
         case FunctionAlreadyExists(oldFunctionRange, newFunctionRange, signature) => {
           "Function " + humanizeSignature(codeMap, signature) + " already exists! Previous declaration at:\n" +
             humanizePos(codeMap, oldFunctionRange.begin)
@@ -188,7 +192,8 @@ object CompilerErrorHumanizer {
       } else {
         "Rejected candidates:\n" +
         rejectedCalleeToReason.map({ case (candidate, reason) =>
-            "\n" + humanizeCandidateAndRejectionReason(verbose, codeMap, invocationRange, candidate, reason) + "\n"
+          "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
+          "\n" + humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n"
         }).mkString("")
       })
   }
@@ -247,11 +252,10 @@ object CompilerErrorHumanizer {
     functionA.range.file
   }
 
-  private def humanizeCandidateAndRejectionReason(
+  private def humanizeRejectionReason(
       verbose: Boolean,
       codeMap: FileCoordinateMap[String],
       invocationRange: RangeS,
-      candidate: ICalleeCandidate,
       reason: IFindFunctionFailureReason): String = {
 
     (reason match {
@@ -268,30 +272,25 @@ object CompilerErrorHumanizer {
           failedSolve)._1
       }
       case WrongNumberOfArguments(supplied, expected) => {
-        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Number of params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
       case WrongNumberOfTemplateArguments(supplied, expected) => {
-        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Number of template params doesn't match! Supplied " + supplied + " but function takes " + expected
       }
       case SpecificParamDoesntMatchExactly(index, arg, param) => {
-        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
           "Index " + index + " argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
           " isn't the same exact type as expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
       }
       case SpecificParamDoesntSend(index, arg, param) => {
-        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
           " Index " + index + " argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
           " can't be given to expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
       }
       case SpecificParamVirtualityDoesntMatch(index) => {
-        "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
         "Virtualities don't match at index " + index
       }
 //      case Outscored() => "Outscored!"
       case InferFailure(reason) => {
-        humanizeCandidateAndFailedSolve(codeMap, invocationRange, candidate, reason)
+        humanizeCandidateAndFailedSolve(codeMap, reason)
       }
     })
   }
@@ -355,8 +354,6 @@ object CompilerErrorHumanizer {
 
   def humanizeCandidateAndFailedSolve(
     codeMap: FileCoordinateMap[String],
-    invocationRange: RangeS,
-    candidate: ICalleeCandidate,
     result: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]):
   String = {
     val (text, lineBegins) =
@@ -370,33 +367,17 @@ object CompilerErrorHumanizer {
         (rule: IRulexSR) => rule.runeUsages.map(_.rune),
         PostParserErrorHumanizer.humanizeRule,
         result)
-
-    (candidate match {
-      case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
-      case FunctionCalleeCandidate(ft) => {
-//        if (ft.function.range.file.isInternal) {
-//          ScoutErrorHumanizer.humanizeName(ft.function.name) + " (builtin " + ft.function.range.begin.offset + ")\n"
-//        } else {
-          val begin = lineBegin(codeMap, ft.function.range.begin)
-          humanizePos(codeMap, begin) + ":\n" +
-            (if (lineBegins.contains(begin)) {
-              ""
-            } else {
-              lineContaining(codeMap, begin) + "\n"
-            })
-//        }
-      }
-    }) + text
+    text
   }
 
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
       case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
-      case PrototypeTemplataCalleeCandidate(range, rune, functor) => {
-        val begin = lineBegin(codeMap, range.begin)
-        humanizePos(codeMap, begin) + ":\n" +
-          lineContaining(codeMap, begin) + "\n"
-      }
+//      case PrototypeTemplataCalleeCandidate(range, rune, functor) => {
+//        val begin = lineBegin(codeMap, range.begin)
+//        humanizePos(codeMap, begin) + ":\n" +
+//          lineContaining(codeMap, begin) + "\n"
+//      }
       case FunctionCalleeCandidate(ft) => {
         val begin = lineBegin(codeMap, ft.function.range.begin)
         humanizePos(codeMap, begin) + ":\n" +
@@ -451,7 +432,7 @@ object CompilerErrorHumanizer {
         kind match {
           case IntT(bits) => "i" + bits
           case BoolT() => "bool"
-          case PlaceholderT(name) => "$" + humanizeName(codeMap, name)
+          case PlaceholderT(name) => "Kind$" + humanizeName(codeMap, name)
           case StrT() => "str"
           case NeverT(_) => "never"
           case VoidT() => "void"
@@ -477,7 +458,7 @@ object CompilerErrorHumanizer {
         "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case StringTemplata(value) => "\"" + value + "\""
-      case PlaceholderTemplata(fullNameT, tyype) => "$" + humanizeName(codeMap, fullNameT)
+      case PlaceholderTemplata(fullNameT, tyype) => humanizeTemplataType(tyype) + "$" + humanizeName(codeMap, fullNameT)
       case other => vimpl(other)
     }
   }

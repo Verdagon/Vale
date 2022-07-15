@@ -7,6 +7,7 @@ import dev.vale.{Interner, Keywords, StrI, vassert, vassertOne, vcurious, vfail,
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
+import dev.vale.postparsing.rules.RuleScout.translateType
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -171,21 +172,6 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     }
   }
 
-  def translateType(tyype: ITypePR): ITemplataType = {
-    tyype match {
-      case PrototypeTypePR => PrototypeTemplataType()
-      case IntTypePR => IntegerTemplataType()
-      case BoolTypePR => BooleanTemplataType()
-      case OwnershipTypePR => OwnershipTemplataType()
-      case MutabilityTypePR => MutabilityTemplataType()
-      case VariabilityTypePR => VariabilityTemplataType()
-      case LocationTypePR => LocationTemplataType()
-      case CoordTypePR => CoordTemplataType()
-      case CoordListTypePR => PackTemplataType(CoordTemplataType())
-      case KindTypePR => KindTemplataType()
-    }
-  }
-
   def collectAllRunesNonDistinct(
     destination: mutable.ArrayBuffer[IRuneS],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
@@ -210,6 +196,22 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
 }
 
 object RuleScout {
+
+  def translateType(tyype: ITypePR): ITemplataType = {
+    tyype match {
+      case PrototypeTypePR => PrototypeTemplataType()
+      case IntTypePR => IntegerTemplataType()
+      case BoolTypePR => BooleanTemplataType()
+      case OwnershipTypePR => OwnershipTemplataType()
+      case MutabilityTypePR => MutabilityTemplataType()
+      case VariabilityTypePR => VariabilityTemplataType()
+      case LocationTypePR => LocationTemplataType()
+      case CoordTypePR => CoordTemplataType()
+      case CoordListTypePR => PackTemplataType(CoordTemplataType())
+      case KindTypePR => KindTemplataType()
+    }
+  }
+
   // Gets the template name (or the kind name if not template)
   def getRuneKindTemplate(rulesS: IndexedSeq[IRulexSR], rune: IRuneS) = {
     val equivalencies = new Equivalencies(rulesS)
@@ -253,6 +255,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case OneOfSR(range, rune, literals) =>
     case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) =>
     case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) =>
+    case ResolveSR(range, resultRune, name, paramsListRune) =>
     case PackSR(range, resultRune, members) =>
     case other => vimpl(other)
   })

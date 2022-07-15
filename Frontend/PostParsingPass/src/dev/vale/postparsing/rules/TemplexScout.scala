@@ -139,15 +139,15 @@ class TemplexScout(
                     translateTemplex(env, lidb.child(), ruleBuilder, returnType)))
               resultRuneS
             }
-            case FuncPT(range, NameP(nameRange, name), paramsP, returnTypeP) => {
+            case FuncPT(range, NameP(nameRange, name), paramsRangeL, paramsP, returnTypeP) => {
               val rangeS = PostParser.evalRange(env.file, range)
+              val paramsRangeS = PostParser.evalRange(env.file, paramsRangeL)
               val paramsS =
                 paramsP.map(paramP => {
                   translateTemplex(env, lidb.child(), ruleBuilder, paramP)
                 })
-              val paramListRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder +=
-                PackSR(evalRange(nameRange), paramListRuneS, paramsS.toArray)
+              val paramListRuneS = rules.RuneUsage(paramsRangeS, ImplicitRuneS(lidb.child().consume()))
+              ruleBuilder += PackSR(paramsRangeS, paramListRuneS, paramsS.toArray)
 
               val returnRuneS = translateTemplex(env, lidb.child(), ruleBuilder, returnTypeP)
 

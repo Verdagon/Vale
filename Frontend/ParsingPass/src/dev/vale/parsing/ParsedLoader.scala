@@ -2,7 +2,7 @@ package dev.vale.parsing
 
 import dev.vale.lexing.{BadVPSTError, BadVPSTException, IParseError, RangeL}
 import dev.vale.{Err, FileCoordinate, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, vimpl, vwat}
-import dev.vale.parsing.ast.{AbstractAttributeP, AbstractP, AndPE, AnonymousRunePT, ArenaRuneAttributeP, AugmentPE, BinaryCallPE, BlockPE, BoolTypePR, BorrowP, BorrowPT, BraceCallPE, BreakPE, BuiltinAttributeP, BuiltinCallPR, BumpRuneAttributeP, CallMacroP, CallPT, CitizenTemplateTypePR, ComponentsPR, ConsecutorPE, ConstantBoolPE, ConstantFloatPE, ConstantIntPE, ConstantStrPE, ConstructArrayPE, ConstructingMemberNameDeclarationP, CoordListTypePR, CoordTypePR, DestructPE, DestructureP, DontCallMacroP, DotPE, EachPE, EqualsPR, ExportAsP, ExportAttributeP, ExternAttributeP, FileP, FinalP, FunctionCallPE, FunctionHeaderP, FunctionP, FunctionReturnP, IArraySizeP, IAttributeP, IExpressionPE, IImpreciseNameP, INameDeclarationP, IRulexPR, IRuneAttributeP, IStructContent, ITemplexPT, ITypePR, GenericParameterP, GenericParametersP, IfPE, IgnoredLocalNameDeclarationP, ImmutableP, ImmutableRuneAttributeP, ImplP, ImportP, IndexPE, InlinePT, IntPT, IntTypePR, InterfaceP, InterpretedPT, IterableNameDeclarationP, IterableNameP, IterationOptionNameDeclarationP, IterationOptionNameP, IteratorNameDeclarationP, IteratorNameP, KindTypePR, LambdaPE, LetPE, LoadAsBorrowP, LoadAsP, LoadAsWeakP, LocalNameDeclarationP, LocationTypePR, LookupNameP, LookupPE, MacroCallP, MagicParamLookupPE, MethodCallPE, MoveP, MutabilityP, MutabilityPT, MutabilityTypePR, MutableP, MutatePE, NameOrRunePT, NameP, NormalStructMemberP, NotPE, OrPE, OrPR, OwnP, OwnershipP, OwnershipPT, OwnershipTypePR, PackPE, PackPT, ParamsP, PatternPP, PoolRuneAttributeP, PrototypeTypePR, PureAttributeP, RangePE, ReadOnlyRuneAttributeP, ReadWriteRuneAttributeP, RegionRunePT, RegionTypePR, ReturnPE, RuntimeSizedArrayPT, RuntimeSizedP, SealedAttributeP, ShareP, ShortcallPE, StaticSizedArrayPT, StaticSizedP, StrInterpolatePE, StringPT, StructMembersP, StructMethodP, StructP, SubExpressionPE, TemplateArgsP, TemplateRulesP, TemplexPR, TopLevelExportAsP, TopLevelFunctionP, TopLevelImplP, TopLevelImportP, TopLevelInterfaceP, TopLevelStructP, TuplePE, TuplePT, TypeRuneAttributeP, TypedPR, UnitP, UnletPE, UseP, VariabilityP, VariabilityPT, VariabilityTypePR, VariadicStructMemberP, VaryingP, VoidPE, WeakP, WeakableAttributeP, WhilePE}
+import dev.vale.parsing.ast._
 import net.liftweb.json._
 import dev.vale.parsing.ast._
 
@@ -659,14 +659,14 @@ class ParsedLoader(interner: Interner) {
     }
   }
 
+  def loadGenericParameterType(jobj: JObject): GenericParameterTypeP = {
+    GenericParameterTypeP(
+      loadRange(getObjectField(jobj, "range")),
+      loadRulexType(getObjectField(jobj, "type")))
+  }
 
   def loadRuneAttribute(jobj: JObject): IRuneAttributeP = {
     getType(jobj) match {
-      case "TypeRuneAttribute" => {
-        TypeRuneAttributeP(
-          loadRange(getObjectField(jobj, "range")),
-          loadRulexType(getObjectField(jobj, "type")))
-      }
       case "ReadOnlyRuneAttribute" => ReadOnlyRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ReadWriteRuneAttribute" => ReadWriteRuneAttributeP(loadRange(getObjectField(jobj, "range")))
       case "ImmutableRuneAttribute" => ImmutableRuneAttributeP(loadRange(getObjectField(jobj, "range")))
@@ -814,6 +814,7 @@ class ParsedLoader(interner: Interner) {
         FuncPT(
           loadRange(getObjectField(jobj, "range")),
           loadName(getObjectField(jobj, "name")),
+          loadRange(getObjectField(jobj, "paramsRange")),
           getArrayField(jobj, "parameters").map(expectObject).map(loadTemplex),
           loadTemplex(getObjectField(jobj, "returnType")))
       }
@@ -830,6 +831,7 @@ class ParsedLoader(interner: Interner) {
     GenericParameterP(
       loadRange(getObjectField(jobj, "range")),
       loadName(getObjectField(jobj, "name")),
+      loadOptionalObject(jobj, loadGenericParameterType),
       getArrayField(jobj, "attributes").map(expectObject).map(loadRuneAttribute),
       loadOptionalObject(jobj, loadTemplex))
   }

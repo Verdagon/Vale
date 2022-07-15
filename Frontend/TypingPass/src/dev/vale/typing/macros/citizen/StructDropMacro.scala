@@ -44,10 +44,10 @@ class StructDropMacro(
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     val structNameS = structA.name
     val structType = structA.tyype
-    val structIdentifyingRunes = structA.identifyingRunes
+    val genericParams = structA.genericParameters
     val structIdentifyingRuneToType =
-      structIdentifyingRunes.map(_.rune)
-        .zip(structIdentifyingRunes.map(_.rune).map(structA.runeToType)).toMap
+      genericParams.map(_.rune.rune)
+        .zip(genericParams.map(_.rune.rune).map(structA.runeToType)).toMap
 
     val dropFunctionA =
       makeFunction(
@@ -55,7 +55,7 @@ class StructDropMacro(
         structNameS,
         structA.range,
         structType,
-        structIdentifyingRunes.map(_.rune),
+        genericParams.map(_.rune.rune),
         structIdentifyingRuneToType)
     val dropNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
@@ -66,7 +66,7 @@ class StructDropMacro(
     structNameS: ICitizenDeclarationNameS,
     structRange: RangeS,
     structType: ITemplataType,
-    structIdentifyingRunes: Vector[IRuneS],
+    structGenericParams: Vector[IRuneS],
     structIdentifyingRuneToType: Map[IRuneS, ITemplataType]):
   FunctionA = {
     val nameS =
@@ -85,7 +85,8 @@ class StructDropMacro(
           TemplateTemplataType(paramTypes, FunctionTemplataType())
         }
       },
-      structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
+      structGenericParams
+        .map(p => GenericParameterS(RuneUsage(RangeS.internal(interner, -64002), p), None)),
       structIdentifyingRuneToType ++
         (structType match {
           case KindTemplataType() => Map()
@@ -120,7 +121,7 @@ class StructDropMacro(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStructTemplate)),
-              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
+              structGenericParams.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
             CoerceToCoordSR(
               RangeS.internal(interner, -167215),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),

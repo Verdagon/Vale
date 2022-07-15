@@ -37,7 +37,7 @@ class StructCompilerMiddle(
     structS: StructA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (StructTT) = {
-    val coercedFinalTemplateArgs2 = structS.identifyingRunes.map(_.rune).map(templatasByRune)
+    val coercedFinalTemplateArgs2 = structS.genericParameters.map(_.rune.rune).map(templatasByRune)
 
     val localEnv =
       CitizenEnvironment(
@@ -63,7 +63,7 @@ class StructCompilerMiddle(
     interfaceA: InterfaceA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (InterfaceTT) = {
-    val coercedFinalTemplateArgs2 = interfaceA.identifyingRunes.map(_.rune).map(templatasByRune)
+    val coercedFinalTemplateArgs2 = interfaceA.genericParameters.map(_.rune.rune).map(templatasByRune)
 
     val localEnv =
       env.CitizenEnvironment(

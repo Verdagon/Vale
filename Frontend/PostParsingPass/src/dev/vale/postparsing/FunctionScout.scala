@@ -2,7 +2,7 @@ package dev.vale.postparsing
 
 import dev.vale.postparsing.rules.{AugmentSR, IRulexSR, LookupSR, RuleScout, RuneUsage, TemplexScout}
 import dev.vale.parsing._
-import dev.vale.parsing.ast.{AbstractAttributeP, AbstractP, BlockPE, BorrowP, BuiltinAttributeP, ExportAttributeP, ExternAttributeP, FunctionHeaderP, FunctionP, FunctionReturnP, GenericParameterP, IAttributeP, NameP, PureAttributeP, RegionTypePR, RulePUtils, TypeRuneAttributeP, UseP, _}
+import dev.vale.parsing.ast._
 import PostParser.noDeclarations
 import dev.vale
 import dev.vale.{FileCoordinate, Interner, Keywords, RangeS, postparsing, vassertSome, vcurious, vimpl, vwat}
@@ -76,11 +76,14 @@ class FunctionScout(
         .toVector
         .flatMap(_.params)
         // Filter out any regions, we dont do those yet
-        .filter({ case GenericParameterP(_, _, attributes, _) => !attributes.exists({ case TypeRuneAttributeP(_, RegionTypePR) => true case _ => false }) })
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
 
     val userSpecifiedIdentifyingRunes =
       genericParametersP
-        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _) =>
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
           rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName))
         })
 
@@ -96,11 +99,15 @@ class FunctionScout(
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
 
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
+
     val genericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
-        .map({ case (g, r) => scoutGenericParameter(functionEnv, lidb.child(), ruleBuilder, g, r) })
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        })
 
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
     ruleScout.translateRulexes(
       functionEnv,
       lidb.child(),
@@ -261,21 +268,26 @@ class FunctionScout(
         .toVector
         .flatMap(_.params)
         // Filter out any regions, we dont do those yet
-        .filter({ case GenericParameterP(_, _, attributes, _) => !attributes.exists({ case TypeRuneAttributeP(_, RegionTypePR) => true case _ => false }) })
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
 
     val userSpecifiedIdentifyingRunes =
       genericParametersP
-        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _) =>
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
           rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName))
         })
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
+    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
     val genericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
-        .map({ case (g, r) => scoutGenericParameter(functionEnv, lidb.child(), ruleBuilder, g, r) })
-
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        })
 
     // We say PerhapsTypeless because they might be anonymous params like in `(_) => { true }`
     // Later on, we'll make identifying runes for these.
@@ -528,11 +540,14 @@ class FunctionScout(
         .toVector
         .flatMap(_.params)
         // Filter out any regions, we dont do those yet
-        .filter({ case GenericParameterP(_, _, attributes, _) => !attributes.exists({ case TypeRuneAttributeP(_, RegionTypePR) => true case _ => false }) })
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
 
     val userSpecifiedIdentifyingRunes =
       genericParametersP
-        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _) =>
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
           rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName))
         })
 
@@ -565,7 +580,10 @@ class FunctionScout(
 
     val genericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
-        .map({ case (g, r) => scoutGenericParameter(functionEnv, lidb.child(), ruleBuilder, g, r) })
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        })
 
     val myStackFrame = StackFrame(interfaceEnv.file, funcName, functionEnv, None, noDeclarations)
     val patternsS =
@@ -620,36 +638,6 @@ class FunctionScout(
       //      isTemplate,
       ruleBuilder.toArray,
       AbstractBodyS)
-  }
-
-  private def scoutGenericParameter(functionEnv: FunctionEnvironment, lidb: LocationInDenizenBuilder, ruleBuilder: ArrayBuffer[IRulexSR], genericParamP: GenericParameterP, paramRuneS: RuneUsage) = {
-    val GenericParameterP(_, _, attributes, maybeDefault) = genericParamP
-    val runeS = paramRuneS
-
-    GenericParameterS(
-      runeS,
-      maybeDefault.map(defaultPT => {
-        val uncategorizedRules = ArrayBuffer[IRulexSR]()
-        val resultRune = templexScout.translateTemplex(functionEnv, lidb, uncategorizedRules, defaultPT)
-        val defaultableToRules =
-          uncategorizedRules.groupBy({
-            case ResolveSR(_, _, _, _) => false
-            case _ => true
-          })
-        // These are the rules that can remain in the default expression.
-        val defaultableRules = defaultableToRules(true)
-        // Hoist these rules to the function itself, see SRHODP.
-        val hoistableRules = defaultableToRules(false)
-        hoistableRules.foreach(x => ruleBuilder += x)
-
-        // We only support functions as the default rules so far.
-        val resolveSR =
-          defaultableRules.toList match {
-            case List(r@ResolveSR(range, resultRune, name, paramsListRune)) => r
-            case _ => vfail("Unexpected default rules!")
-          }
-        GenericParameterDefaultS(resultRune.rune, resolveSR)
-      }))
   }
 }
 

@@ -2,10 +2,9 @@ package dev.vale.postparsing
 
 import dev.vale.{Err, Interner, Ok, RangeS, Result, vassert, vassertSome, vfail, vpass, vwat}
 import dev.vale.postparsing.rules._
-import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, IStepState, IncompleteSolve, Solver, SolverConflict}
+import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, ISolverState, IStepState, IncompleteSolve, Solver, SolverConflict}
 import dev.vale._
 import dev.vale.postparsing.rules._
-import dev.vale.solver.IStepState
 
 import scala.collection.immutable.Map
 
@@ -302,11 +301,11 @@ class RuneTypeSolver(interner: Interner) {
         env,
         solverState,
         new ISolveRule[IRulexSR, IRuneS, IImpreciseNameS => ITemplataType, Unit, ITemplataType, IRuneTypeRuleError] {
-          override def complexSolve(state: Unit, env: IImpreciseNameS => ITemplataType, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
+          override def complexSolve(state: Unit, env: IImpreciseNameS => ITemplataType, solverState: ISolverState[IRulexSR, IRuneS, ITemplataType], stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
             Ok(())
           }
-          override def solve(state: Unit, env: IImpreciseNameS => ITemplataType, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]):
-          Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
+
+          override def solve(state: Unit, env: IImpreciseNameS => ITemplataType, solverState: ISolverState[IRulexSR, IRuneS, ITemplataType], ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplataType]): Result[Unit, ISolverError[IRuneS, ITemplataType, IRuneTypeRuleError]] = {
             solveRule(state, env, ruleIndex, rule, stepState)
           }
         }) match {

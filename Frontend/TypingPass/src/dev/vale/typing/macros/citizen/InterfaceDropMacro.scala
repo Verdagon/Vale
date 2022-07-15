@@ -40,7 +40,10 @@ class InterfaceDropMacro(
         interner.intern(FunctionNameS(keywords.drop, interfaceA.name.range.begin)),
         Vector(),
         TemplateTemplataType(Vector(CoordTemplataType()), FunctionTemplataType()),
-        Vector(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T))),
+        Vector(
+          GenericParameterS(
+            RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T)),
+            None)),
         Map(CodeRuneS(keywords.T) -> CoordTemplataType(), CodeRuneS(keywords.V) -> CoordTemplataType()),
         Vector(
           ParameterS(

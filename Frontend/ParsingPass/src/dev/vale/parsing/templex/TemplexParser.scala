@@ -165,16 +165,18 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
         case _ => return Err(BadPrototypeName(iter.getPos()))
       }
 
+    val argsBegin = iter.getPos()
     val args =
       parseTuple(iter) match {
         case Err(e) => return Err(e)
         case Ok(None) => return Err(BadPrototypeParams(iter.getPos()))
         case Ok(Some(x)) => x.elements
       }
+    val argsEnd = iter.getPrevEndPos()
 
     val returnType = parseTemplex(iter) match { case Err(e) => return Err(e) case Ok(x) => x }
 
-    val result = FuncPT(RangeL(begin, iter.getPrevEndPos()), name, args, returnType)
+    val result = FuncPT(RangeL(begin, iter.getPrevEndPos()), name, RangeL(argsBegin, argsEnd), args, returnType)
     Ok(Some(result))
   }
 

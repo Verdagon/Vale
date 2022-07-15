@@ -40,8 +40,7 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
     if (tyype.contains(":")) tyype.split(":")(0) else tyype
   }
 
-  override def complexSolve(state: Unit, env: Unit, stepState: IStepState[IRule, Long, String]):
-  Result[Unit, ISolverError[Long, String, String]] = {
+  override def complexSolve(state: Unit, env: Unit, solverState: ISolverState[IRule, Long, String], stepState: IStepState[IRule, Long, String]): Result[Unit, ISolverError[Long, String, String]] = {
     val unsolvedRules = stepState.getUnsolvedRules()
     val receiverRunes = unsolvedRules.collect({ case Send(_, receiverRune) => receiverRune })
     receiverRunes.foreach(receiver => {
@@ -62,9 +61,7 @@ object TestRuleSolver extends ISolveRule[IRule, Long, Unit, Unit, String, String
     Ok(())
   }
 
-  override def solve(
-    state: Unit, env: Unit, ruleIndex: Int, rule: IRule, stepState: IStepState[IRule, Long, String]):
-  Result[Unit, ISolverError[Long, String, String]] = {
+  override def solve(state: Unit, env: Unit, solverState: ISolverState[IRule, Long, String], ruleIndex: Int, rule: IRule, stepState: IStepState[IRule, Long, String]): Result[Unit, ISolverError[Long, String, String]] = {
     rule match {
       case Equals(leftRune, rightRune) => {
         stepState.getConclusion(leftRune) match {

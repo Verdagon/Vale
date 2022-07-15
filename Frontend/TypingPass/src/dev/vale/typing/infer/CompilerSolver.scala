@@ -5,7 +5,7 @@ import dev.vale.parsing.ast.ShareP
 import dev.vale.postparsing.rules._
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vassertSome, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
+import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
@@ -143,6 +143,7 @@ class CompilerSolver[Env, State](
           case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
           case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
+          case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
           case OneOfSR(range, rune, literals) => Array(rune)
           case IsConcreteSR(range, rune) => Array(rune)
           case IsInterfaceSR(range, rune) => Array(rune)
@@ -180,8 +181,10 @@ class CompilerSolver[Env, State](
       case KindComponentsSR(_, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
       // Notice how there is no return rune in here; we can solve the entire rule with just the name and the parameter list.
-      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
+      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune, paramListRune.rune, returnRune.rune))
+      // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
       case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
+      case ResolveSR(range, resultRune, name, paramsListRune) => Array(Array(paramsListRune.rune))
       case OneOfSR(_, rune, literals) => Array(Array(rune.rune))
       case EqualsSR(_, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case IsConcreteSR(_, rune) => Array(Array(rune.rune))
@@ -196,6 +199,256 @@ class CompilerSolver[Env, State](
       case CoordSendSR(_, senderRune, receiverRune) => Array(Array(senderRune.rune), Array(receiverRune.rune))
       case CoordIsaSR(range, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(Array(coordListRune.rune))
+    }
+  }
+
+  def solve(
+    range: RangeS,
+    env: Env,
+    state: State,
+    rules: IndexedSeq[IRulexSR],
+    runeToType: Map[IRuneS, ITemplataType],
+    initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata[ITemplataType]]):
+  ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
+
+    rules.foreach(rule => rule.runeUsages.foreach(rune => vassert(runeToType.contains(rune.rune))))
+
+    initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
+      vassert(templata.tyype == vassertSome(runeToType.get(rune)))
+    })
+
+    val solver =
+      new Solver[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError](
+        globalOptions.sanityCheck, globalOptions.useOptimizedSolver)
+    val solverState =
+      solver.makeInitialSolverState(
+        rules,
+        getRunes,
+        (rule: IRulexSR) => getPuzzles(rule),
+        initiallyKnownRuneToTemplata)
+
+    val ruleSolver = new CompilerRuleSolver(interner, delegate, runeToType)
+    solver.solve(
+        (rule: IRulexSR) => getPuzzles(rule),
+        state,
+        env,
+        solverState,
+        ruleSolver) match {
+      case Err(f @ FailedSolve(_, _, _)) => f
+      case Ok((stepsStream, conclusionsStream)) => {
+        val conclusions = conclusionsStream.toMap
+        val allRunes = runeToType.keySet ++ solverState.getAllRunes().map(solverState.getUserRune)
+        if (conclusions.keySet != allRunes) {
+          IncompleteSolve(
+            stepsStream.toVector,
+//            conclusions,
+//            solverState.getAllRules(),
+            solverState.getUnsolvedRules(),
+            allRunes -- conclusions.keySet,
+            conclusions)
+        } else {
+          CompleteSolve(conclusions)
+        }
+      }
+    }
+  }
+}
+
+class CompilerRuleSolver[Env, State](
+    interner: Interner,
+    delegate: IInfererDelegate[Env, State],
+    runeToType: Map[IRuneS, ITemplataType])
+  extends ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError] {
+
+  override def complexSolve(
+      state: State,
+      env: Env,
+      solverState: ISolverState[IRulexSR, IRuneS, ITemplata[ITemplataType]],
+      stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+    val equivalencies = new Equivalencies(solverState.getUnsolvedRules())
+
+    val unsolvedRules = solverState.getUnsolvedRules()
+    val receiverRunes =
+      equivalencies.getKindEquivalentRunes(
+        unsolvedRules.collect({
+          case CoordSendSR(_, _, receiverRune) => receiverRune.rune
+          case CoordIsaSR(_, _, receiverRune) => receiverRune.rune
+        }))
+
+    val newConclusions =
+      receiverRunes.flatMap(receiver => {
+        val runesSendingToThisReceiver =
+          equivalencies.getKindEquivalentRunes(
+            unsolvedRules.collect({
+              case CoordSendSR(_, s, r) if r.rune == receiver => s.rune
+              case CoordIsaSR(_, s, r) if r.rune == receiver => s.rune
+            }))
+        val callRules =
+          unsolvedRules.collect({ case z @ CallSR(_, r, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
+        val senderConclusions =
+          runesSendingToThisReceiver
+            .flatMap(senderRune => solverState.getConclusion(senderRune).map(senderRune -> _))
+            .map({
+              case (senderRune, CoordTemplata(coord)) => (senderRune -> coord)
+              case other => vwat(other)
+            })
+            .toVector
+        val callTemplates =
+          equivalencies.getKindEquivalentRunes(
+            callRules.map(_.templateRune.rune))
+            .flatMap(solverState.getConclusion)
+            .toVector
+        vassert(callTemplates.distinct.size <= 1)
+        // If true, there are some senders/constraints we don't know yet, so lets be
+        // careful to not assume between any possibilities below.
+        val allSendersKnown = senderConclusions.size == runesSendingToThisReceiver.size
+        val allCallsKnown = callRules.size == callTemplates.size
+        solveReceives(state, senderConclusions, callTemplates, allSendersKnown, allCallsKnown) match {
+          case Err(e) => return Err(RuleError(e))
+          case Ok(None) => None
+          case Ok(Some(receiverInstantiationKind)) => {
+            // We know the kind, but to really know the coord we have to look at all the rules that
+            // factored into it, and may even have to default to something else.
+
+            val possibleCoords =
+              unsolvedRules.collect({
+                case AugmentSR(range, resultRune, ownership, innerRune)
+                  if resultRune.rune == receiver => {
+                  types.CoordT(
+                    Conversions.evaluateOwnership(ownership),
+                    receiverInstantiationKind)
+                }
+              }) ++
+                senderConclusions.map(_._2).map({ case CoordT(ownership, _) =>
+                  types.CoordT(ownership, receiverInstantiationKind)
+                })
+            if (possibleCoords.nonEmpty) {
+              val ownership =
+                possibleCoords.map(_.ownership).distinct match {
+                  case Vector() => vwat()
+                  case Vector(ownership) => ownership
+                  case _ => return Err(RuleError(ReceivingDifferentOwnerships(senderConclusions)))
+                }
+              Some(receiver -> CoordTemplata(types.CoordT(ownership, receiverInstantiationKind)))
+            } else {
+              // Just conclude a kind, which will coerce to an owning coord, and hope it's right.
+              Some(receiver -> templata.KindTemplata(receiverInstantiationKind))
+            }
+          }
+        }
+      }).toMap
+
+    newConclusions.foreach({ case (rune, conclusion) =>
+      stepState.concludeRune[ITypingPassSolverError](rune, conclusion)
+    })
+
+    Ok(())
+  }
+
+  private def solveReceives(
+    state: State,
+    senders: Vector[(IRuneS, CoordT)],
+    callTemplates: Vector[ITemplata[ITemplataType]],
+    allSendersKnown: Boolean,
+    allCallsKnown: Boolean):
+  Result[Option[KindT], ITypingPassSolverError] = {
+    val senderKinds = senders.map(_._2.kind)
+    if (senderKinds.isEmpty) {
+      return Ok(None)
+    }
+
+    // For example [Flamethrower, Rockets] becomes [[Flamethrower, IWeapon, ISystem], [Rockets, IWeapon, ISystem]]
+    val senderAncestorLists = senderKinds.map(delegate.getAncestors(state, _, true))
+    // Calculates the intersection of them all, eg [IWeapon, ISystem]
+    val commonAncestors = senderAncestorLists.reduce(_.intersect(_))
+    if (commonAncestors.size == 0) {
+      return Err(NoCommonAncestors(senders))
+    }
+    // Filter by any call templates. eg if there's a X = ISystem:Y call, then we're now [ISystem]
+    val commonAncestorsCallConstrained =
+      if (callTemplates.isEmpty) {
+        commonAncestors
+      } else {
+        commonAncestors.filter(ancestor => callTemplates.exists(template => delegate.kindIsFromTemplate(state,ancestor, template)))
+      }
+
+    val narrowedCommonAncestor =
+      if (commonAncestorsCallConstrained.size == 0) {
+        // If we get here, it means we passed in a bunch of nonsense that doesn't match our Call rules.
+        // For example, passing in a Some<T> when a List<T> is expected.
+        return Err(NoAncestorsSatisfyCall(senders))
+      } else if (commonAncestorsCallConstrained.size == 1) {
+        // If we get here, it doesn't matter if there are any other senders or calls, we know
+        // it has to be this.
+        // If we're wrong, it will be doublechecked by the solver anyway.
+        commonAncestorsCallConstrained.head
+      } else {
+        if (!allSendersKnown) {
+          // There are some senders out there, which might force us to choose one of the ancestors.
+          // We don't know them yet, so we can't conclude anything.
+          return Ok(None)
+        }
+        if (!allCallsKnown) {
+          // There are some calls out there, which will determine which one of the possibilities it is.
+          // We don't know them yet, so we can't conclude anything.
+          return Ok(None)
+        }
+        // If there are multiple, like [IWeapon, ISystem], get rid of any that are parents of others, now [IWeapon].
+        narrow(state, commonAncestorsCallConstrained) match {
+          case Ok(x) => x
+          case Err(e) => return Err(e)
+        }
+      }
+    Ok(Some(narrowedCommonAncestor))
+  }
+
+  def narrow(
+    state: State,
+    kinds: Set[KindT]):
+  Result[KindT, ITypingPassSolverError] = {
+    vassert(kinds.size > 1)
+    val narrowedAncestors = mutable.HashSet[KindT]()
+    narrowedAncestors ++= kinds
+    // Remove anything that's an ancestor of something else in the set
+    kinds.foreach(kind => {
+      narrowedAncestors --= delegate.getAncestors(state, kind, false)
+    })
+    if (narrowedAncestors.size == 0) {
+      vwat() // Shouldnt happen
+    } else if (narrowedAncestors.size == 1) {
+      Ok(narrowedAncestors.head)
+    } else {
+      Err(CantDetermineNarrowestKind(narrowedAncestors.toSet))
+    }
+  }
+
+  override def solve(
+    state: State,
+    env: Env,
+    solverState: ISolverState[IRulexSR, IRuneS, ITemplata[ITemplataType]],
+    ruleIndex: Int,
+    rule: IRulexSR,
+    stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+    solveRule(state, env, ruleIndex, rule, new IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]] {
+      override def addRule(rule: IRulexSR): Unit = stepState.addRule(rule)
+      override def getConclusion(rune: IRuneS): Option[ITemplata[ITemplataType]] = stepState.getConclusion(rune)
+      override def getUnsolvedRules(): Vector[IRulexSR] = stepState.getUnsolvedRules()
+      override def concludeRune[ErrType](rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
+        val coerced =
+          delegate.coerce(
+            env,
+            state,
+            RangeS.internal(interner, -6434324),
+            vassertSome(runeToType.get(rune)),
+            conclusion)
+        vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
+        stepState.concludeRune[ErrType](rune, coerced)
+      }
+    }) match {
+      case Ok(x) => Ok(x)
+      case Err(e) => Err(RuleError(e))
     }
   }
 
@@ -276,7 +529,7 @@ class CompilerSolver[Env, State](
         // Now introduce a prototype that lets us call it with this new name, that we
         // can call it by.
         val newPrototype =
-          delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
+        delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
 
         stepState.concludeRune[ITypingPassSolverError](
           resultRune.rune, PrototypeTemplata(newPrototype))
@@ -460,8 +713,8 @@ class CompilerSolver[Env, State](
       }
       case RuneParentEnvLookupSR(range, rune) => {
         // This rule does nothing. Not sure why we have it.
-//        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
-//        stepState.concludeRune[ICompilerSolverError](rune.rune, result)
+        //        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
+        //        stepState.concludeRune[ICompilerSolverError](rune.rune, result)
         Ok(())
       }
       case AugmentSR(_, resultRune, augmentOwnership, innerRune) => {
@@ -731,235 +984,6 @@ class CompilerSolver[Env, State](
       case VariabilityLiteralSL(variability) => VariabilityTemplata(Conversions.evaluateVariability(variability))
       case StringLiteralSL(string) => StringTemplata(string)
       case IntLiteralSL(num) => IntegerTemplata(num)
-    }
-  }
-
-  def solve(
-    range: RangeS,
-    env: Env,
-    state: State,
-    rules: IndexedSeq[IRulexSR],
-    runeToType: Map[IRuneS, ITemplataType],
-    initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata[ITemplataType]]):
-  ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
-
-    rules.foreach(rule => rule.runeUsages.foreach(rune => vassert(runeToType.contains(rune.rune))))
-
-    initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
-      vassert(templata.tyype == vassertSome(runeToType.get(rune)))
-    })
-
-    val solver =
-      new Solver[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError](
-        globalOptions.sanityCheck, globalOptions.useOptimizedSolver)
-    val solverState =
-      solver.makeInitialSolverState(
-        rules,
-        getRunes,
-        (rule: IRulexSR) => getPuzzles(rule),
-        initiallyKnownRuneToTemplata)
-
-    val ruleSolver =
-      new ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError] {
-        override def complexSolve(state: State, env: Env, stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
-        Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-          val equivalencies = new Equivalencies(solverState.getUnsolvedRules())
-
-          val unsolvedRules = solverState.getUnsolvedRules()
-          val receiverRunes =
-            equivalencies.getKindEquivalentRunes(
-              unsolvedRules.collect({
-                case CoordSendSR(_, _, receiverRune) => receiverRune.rune
-                case CoordIsaSR(_, _, receiverRune) => receiverRune.rune
-              }))
-
-          val newConclusions =
-            receiverRunes.flatMap(receiver => {
-              val runesSendingToThisReceiver =
-                equivalencies.getKindEquivalentRunes(
-                  unsolvedRules.collect({
-                    case CoordSendSR(_, s, r) if r.rune == receiver => s.rune
-                    case CoordIsaSR(_, s, r) if r.rune == receiver => s.rune
-                  }))
-              val callRules =
-                unsolvedRules.collect({ case z @ CallSR(_, r, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
-              val senderConclusions =
-                runesSendingToThisReceiver
-                  .flatMap(senderRune => solverState.getConclusion(senderRune).map(senderRune -> _))
-                  .map({
-                    case (senderRune, CoordTemplata(coord)) => (senderRune -> coord)
-                    case other => vwat(other)
-                  })
-                  .toVector
-              val callTemplates =
-                equivalencies.getKindEquivalentRunes(
-                  callRules.map(_.templateRune.rune))
-                  .flatMap(solverState.getConclusion)
-                  .toVector
-              vassert(callTemplates.distinct.size <= 1)
-              // If true, there are some senders/constraints we don't know yet, so lets be
-              // careful to not assume between any possibilities below.
-              val allSendersKnown = senderConclusions.size == runesSendingToThisReceiver.size
-              val allCallsKnown = callRules.size == callTemplates.size
-              solveReceives(state, senderConclusions, callTemplates, allSendersKnown, allCallsKnown) match {
-                case Err(e) => return Err(RuleError(e))
-                case Ok(None) => None
-                case Ok(Some(receiverInstantiationKind)) => {
-                  // We know the kind, but to really know the coord we have to look at all the rules that
-                  // factored into it, and may even have to default to something else.
-
-                  val possibleCoords =
-                    unsolvedRules.collect({
-                      case AugmentSR(range, resultRune, ownership, innerRune)
-                        if resultRune.rune == receiver => {
-                        types.CoordT(
-                          Conversions.evaluateOwnership(ownership),
-                          receiverInstantiationKind)
-                      }
-                    }) ++
-                      senderConclusions.map(_._2).map({ case CoordT(ownership, _) =>
-                        types.CoordT(ownership, receiverInstantiationKind)
-                      })
-                  if (possibleCoords.nonEmpty) {
-                    val ownership =
-                      possibleCoords.map(_.ownership).distinct match {
-                        case Vector() => vwat()
-                        case Vector(ownership) => ownership
-                        case _ => return Err(RuleError(ReceivingDifferentOwnerships(senderConclusions)))
-                      }
-                    Some(receiver -> CoordTemplata(types.CoordT(ownership, receiverInstantiationKind)))
-                  } else {
-                    // Just conclude a kind, which will coerce to an owning coord, and hope it's right.
-                    Some(receiver -> templata.KindTemplata(receiverInstantiationKind))
-                  }
-                }
-              }
-            }).toMap
-
-          newConclusions.foreach({ case (rune, conclusion) =>
-            stepState.concludeRune[ITypingPassSolverError](rune, conclusion)
-          })
-
-          Ok(())
-        }
-
-        private def solveReceives(
-          state: State,
-          senders: Vector[(IRuneS, CoordT)],
-          callTemplates: Vector[ITemplata[ITemplataType]],
-          allSendersKnown: Boolean,
-          allCallsKnown: Boolean):
-        Result[Option[KindT], ITypingPassSolverError] = {
-          val senderKinds = senders.map(_._2.kind)
-          if (senderKinds.isEmpty) {
-            return Ok(None)
-          }
-
-          // For example [Flamethrower, Rockets] becomes [[Flamethrower, IWeapon, ISystem], [Rockets, IWeapon, ISystem]]
-          val senderAncestorLists = senderKinds.map(delegate.getAncestors(state, _, true))
-          // Calculates the intersection of them all, eg [IWeapon, ISystem]
-          val commonAncestors = senderAncestorLists.reduce(_.intersect(_))
-          if (commonAncestors.size == 0) {
-            return Err(NoCommonAncestors(senders))
-          }
-          // Filter by any call templates. eg if there's a X = ISystem:Y call, then we're now [ISystem]
-          val commonAncestorsCallConstrained =
-            if (callTemplates.isEmpty) {
-              commonAncestors
-            } else {
-              commonAncestors.filter(ancestor => callTemplates.exists(template => delegate.kindIsFromTemplate(state,ancestor, template)))
-            }
-
-          val narrowedCommonAncestor =
-            if (commonAncestorsCallConstrained.size == 0) {
-              // If we get here, it means we passed in a bunch of nonsense that doesn't match our Call rules.
-              // For example, passing in a Some<T> when a List<T> is expected.
-              return Err(NoAncestorsSatisfyCall(senders))
-            } else if (commonAncestorsCallConstrained.size == 1) {
-              // If we get here, it doesn't matter if there are any other senders or calls, we know
-              // it has to be this.
-              // If we're wrong, it will be doublechecked by the solver anyway.
-              commonAncestorsCallConstrained.head
-            } else {
-              if (!allSendersKnown) {
-                // There are some senders out there, which might force us to choose one of the ancestors.
-                // We don't know them yet, so we can't conclude anything.
-                return Ok(None)
-              }
-              if (!allCallsKnown) {
-                // There are some calls out there, which will determine which one of the possibilities it is.
-                // We don't know them yet, so we can't conclude anything.
-                return Ok(None)
-              }
-              // If there are multiple, like [IWeapon, ISystem], get rid of any that are parents of others, now [IWeapon].
-              narrow(commonAncestorsCallConstrained) match {
-                case Ok(x) => x
-                case Err(e) => return Err(e)
-              }
-            }
-          Ok(Some(narrowedCommonAncestor))
-        }
-
-        def narrow(
-          kinds: Set[KindT]):
-        Result[KindT, ITypingPassSolverError] = {
-          vassert(kinds.size > 1)
-          val narrowedAncestors = mutable.HashSet[KindT]()
-          narrowedAncestors ++= kinds
-          // Remove anything that's an ancestor of something else in the set
-          kinds.foreach(kind => {
-            narrowedAncestors --= delegate.getAncestors(state, kind, false)
-          })
-          if (narrowedAncestors.size == 0) {
-            vwat() // Shouldnt happen
-          } else if (narrowedAncestors.size == 1) {
-            Ok(narrowedAncestors.head)
-          } else {
-            Err(CantDetermineNarrowestKind(narrowedAncestors.toSet))
-          }
-        }
-
-        override def solve(state: State, env: Env, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
-        Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-
-          solveRule(state, env, ruleIndex, rule, new IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]] {
-            override def addRule(rule: IRulexSR): Unit = stepState.addRule(rule)
-            override def getConclusion(rune: IRuneS): Option[ITemplata[ITemplataType]] = stepState.getConclusion(rune)
-            override def getUnsolvedRules(): Vector[IRulexSR] = stepState.getUnsolvedRules()
-            override def concludeRune[ErrType](rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
-              val coerced =
-                delegate.coerce(env, state, range, vassertSome(runeToType.get(rune)), conclusion)
-              vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
-              stepState.concludeRune[ErrType](rune, coerced)
-            }
-          }) match {
-            case Ok(x) => Ok(x)
-            case Err(e) => Err(RuleError(e))
-          }
-        }
-      }
-    solver.solve(
-      (rule: IRulexSR) => getPuzzles(rule),
-      state,
-      env,
-      solverState,
-      ruleSolver) match {
-      case Err(f @ FailedSolve(_, _, _)) => f
-      case Ok((stepsStream, conclusionsStream)) => {
-        val conclusions = conclusionsStream.toMap
-        val allRunes = runeToType.keySet ++ solverState.getAllRunes().map(solverState.getUserRune)
-        if (conclusions.keySet != allRunes) {
-          IncompleteSolve(
-            stepsStream.toVector,
-//            conclusions,
-//            solverState.getAllRules(),
-            solverState.getUnsolvedRules(),
-            allRunes -- conclusions.keySet,
-            conclusions)
-        } else {
-          CompleteSolve(conclusions)
-        }
-      }
     }
   }
 }

@@ -10,7 +10,7 @@ import dev.vale.{PackageCoordinate, RangeS, vcurious, vfail, vpass}
 import dev.vale.typing.types._
 import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.solver.FailedSolve
-import OverloadResolver.FindFunctionFailure
+import OverloadResolver.{EvaluateFunctionFailure, FindFunctionFailure, IFindFunctionFailureReason}
 import dev.vale.typing.ast.{KindExportT, SignatureT}
 import dev.vale.typing.names.{FullNameT, IVarNameT}
 import dev.vale.typing.ast._
@@ -62,6 +62,7 @@ case class CouldntConvertForReturnT(range: RangeS, expectedType: CoordT, actualT
 case class CouldntConvertForMutateT(range: RangeS, expectedType: CoordT, actualType: CoordT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CantMoveOutOfMemberT(range: RangeS, name: IVarNameT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindFunctionToCallT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CouldntEvaluateFunction(range: RangeS, eff: IFindFunctionFailureReason) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindOverrideT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExportedFunctionDependedOnNonExportedKind(range: RangeS, paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExternFunctionDependedOnNonExportedKind(range: RangeS, paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

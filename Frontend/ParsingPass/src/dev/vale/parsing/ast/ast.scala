@@ -110,7 +110,7 @@ case class PureAttributeP(range: RangeL) extends IAttributeP { override def equa
 //case class RuleAttributeP(rule: IRulexPR) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
 sealed trait IRuneAttributeP
-case class TypeRuneAttributeP(range: RangeL, tyype: ITypePR) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+//case class TypeRuneAttributeP(range: RangeL, tyype: ITypePR) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ReadOnlyRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ReadWriteRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ImmutableRuneAttributeP(range: RangeL) extends IRuneAttributeP
@@ -121,9 +121,15 @@ case class BumpRuneAttributeP(range: RangeL) extends IRuneAttributeP { override 
 case class GenericParameterP(
   range: RangeL,
   name: NameP,
+  maybeType: Option[GenericParameterTypeP],
   attributes: Vector[IRuneAttributeP],
   maybeDefault: Option[ITemplexPT]
 ) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+
+case class GenericParameterTypeP(
+  range: RangeL,
+  tyype: ITypePR
+)
 
 case class GenericParametersP(range: RangeL, params: Vector[GenericParameterP]) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class TemplateRulesP(range: RangeL, rules: Vector[IRulexPR]) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

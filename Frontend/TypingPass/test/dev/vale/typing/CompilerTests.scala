@@ -232,7 +232,6 @@ class CompilerTests extends FunSuite with Matchers {
     val compile =
       CompilerTestCompilation.test(
         """
-          |import v.builtins.tup.*;
           |exported func main() int { return {_}(3); }
           |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
