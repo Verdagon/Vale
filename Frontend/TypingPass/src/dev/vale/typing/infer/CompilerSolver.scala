@@ -180,8 +180,7 @@ class CompilerSolver[Env, State](
       case PackSR(_, resultRune, members) => Array(Array(resultRune.rune), members.map(_.rune))
       case KindComponentsSR(_, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
-      // Notice how there is no return rune in here; we can solve the entire rule with just the name and the parameter list.
-      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune, paramListRune.rune, returnRune.rune))
+      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
       case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
       case ResolveSR(range, resultRune, name, paramsListRune) => Array(Array(paramsListRune.rune))
@@ -212,6 +211,11 @@ class CompilerSolver[Env, State](
   ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
 
     rules.foreach(rule => rule.runeUsages.foreach(rune => vassert(runeToType.contains(rune.rune))))
+
+    // These two shouldn't both be in the rules, see SROACSD.
+    vassert(
+      rules.collect({ case CallSiteFuncSR(_, _, _, _, _) => }).isEmpty ||
+      rules.collect({ case DefinitionFuncSR(_, _, _, _, _) => }).isEmpty)
 
     initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
       vassert(templata.tyype == vassertSome(runeToType.get(rune)))
@@ -507,15 +511,11 @@ class CompilerRuleSolver[Env, State](
         // its return matches.
 
         val PrototypeTemplata(prototype) = vassertSome(stepState.getConclusion(prototypeRune.rune))
-        val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
-        val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
 
-        if (prototype.returnType != returnCoord) {
-          vfail()
-        }
-        if (prototype.paramTypes != paramCoords) {
-          vfail()
-        }
+        stepState.concludeRune[ITypingPassSolverError](
+          paramListRune.rune, CoordListTemplata(prototype.paramTypes))
+        stepState.concludeRune[ITypingPassSolverError](
+          returnRune.rune, CoordTemplata(prototype.returnType))
 
         Ok(())
       }

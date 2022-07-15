@@ -185,7 +185,7 @@ object PostParserErrorHumanizer {
         humanizeRune(resultRune.rune) + " = resolve func " + name + "(" + humanizeRune(paramsListRune.rune) + ")"
       }
       case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
-        humanizeRune(resultRune.rune) + " = callsite func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(paramsListRune.rune)
+        humanizeRune(resultRune.rune) + " = callsite func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
       }
       case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
         humanizeRune(resultRune.rune) + " = definition func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)

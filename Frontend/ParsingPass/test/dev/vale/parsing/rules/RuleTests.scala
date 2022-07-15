@@ -25,7 +25,7 @@ class RuleTests extends FunSuite with Matchers with Collector with TestParseUtil
         case BuiltinCallPR(_, NameP(_, StrI("implements")),Vector(TemplexPR(NameOrRunePT(NameP(_, StrI("MyObject")))), TemplexPR(NameOrRunePT(NameP(_, StrI("T")))))) =>
     }
     compile("exists(func +(T)int)") shouldHave {
-        case BuiltinCallPR(_, NameP(_, StrI("exists")), Vector(TemplexPR(FuncPT(_,NameP(_, StrI("+")), Vector(NameOrRunePT(NameP(_, StrI("T")))), NameOrRunePT(NameP(_, StrI("int"))))))) =>
+        case BuiltinCallPR(_, NameP(_, StrI("exists")), Vector(TemplexPR(FuncPT(_,NameP(_, StrI("+")), _, Vector(NameOrRunePT(NameP(_, StrI("T")))), NameOrRunePT(NameP(_, StrI("int"))))))) =>
     }
   }
 
@@ -48,6 +48,7 @@ class RuleTests extends FunSuite with Matchers with Collector with TestParseUtil
       case TemplexPR(
         FuncPT(_,
           NameP(_,StrI("moo")),
+          _,
           Vector(),
           NameOrRunePT(NameP(_,StrI("T"))))) =>
     }

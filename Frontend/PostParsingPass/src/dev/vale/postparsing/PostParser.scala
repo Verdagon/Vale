@@ -563,7 +563,7 @@ class PostParser(
     file: FileCoordinate,
     containingInterfaceP: InterfaceP):
   InterfaceS = {
-    val InterfaceP(interfaceRange, NameP(interfaceNameRangeS, interfaceHumanName), attributesP, mutabilityPT, maybeIdentifyingRunes, maybeRulesP, bodyRange, internalMethodsP) = containingInterfaceP
+    val InterfaceP(interfaceRange, NameP(interfaceNameRangeS, interfaceHumanName), attributesP, mutabilityPT, maybeGenericParametersP, maybeRulesP, bodyRange, internalMethodsP) = containingInterfaceP
     val interfaceRangeS = PostParser.evalRange(file, interfaceRange)
     val interfaceFullName = interner.intern(postparsing.TopLevelCitizenDeclarationNameS(interfaceHumanName, PostParser.evalRange(file, interfaceNameRangeS)))
     val rulesP = maybeRulesP.toVector.flatMap(_.rules)
@@ -573,11 +573,33 @@ class PostParser(
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
-    val explicitIdentifyingRunes: Vector[RuneUsage] =
-      maybeIdentifyingRunes
-        .toVector.flatMap(_.params).map(_.name)
+    val genericParametersP =
+      maybeGenericParametersP
+        .toVector
+        .flatMap(_.params)
+        // Filter out any regions, we dont do those yet
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
+
+    val userSpecifiedIdentifyingRunes =
+      genericParametersP
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
+          rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName))
+        })
+
+    val runesFromRules =
+      RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(rulesP)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
-    val interfaceEnv = postparsing.Environment(file, None, interfaceFullName, explicitIdentifyingRunes.map(_.rune).toSet)
+    val userDeclaredRunes = userSpecifiedIdentifyingRunes ++ runesFromRules
+    val interfaceEnv = postparsing.Environment(file, None, interfaceFullName, userDeclaredRunes.map(_.rune).toSet)
+
+    val genericParametersS =
+      genericParametersP.zip(userSpecifiedIdentifyingRunes)
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        })
 
     ruleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, rulesP)
 
@@ -588,12 +610,12 @@ class PostParser(
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(interfaceRangeS, explicitIdentifyingRunes.map(_.rune), Map(), rulesS)
+    val runeToPredictedType = predictRuneTypes(interfaceRangeS, userDeclaredRunes.map(_.rune), Map(), rulesS)
 
     val predictedMutability = predictMutability(interfaceRangeS, mutabilityRuneS.rune, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(KindTemplataType(), explicitIdentifyingRunes.map(_.rune), runeToPredictedType) match {
+      determineDenizenType(KindTemplataType(), userDeclaredRunes.map(_.rune), runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
@@ -604,19 +626,19 @@ class PostParser(
     val internalMethodsS =
       internalMethodsP.map(
         functionScout.scoutInterfaceMember(
-          interfaceEnv, explicitIdentifyingRunes.toArray, rulesS, runeToExplicitType.toMap, _))
+          interfaceEnv, userDeclaredRunes.toArray, rulesS, runeToExplicitType.toMap, _))
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))
 
     val interfaceS =
-      postparsing.InterfaceS(
+      InterfaceS(
         PostParser.evalRange(file, interfaceRange),
         interfaceFullName,
         attrsS,
         weakable,
 //        knowableValueRunes,
-        vimpl(),//explicitIdentifyingRunes,
+        genericParametersS,
         runeToExplicitType.toMap,
 //        localRunes,
 //        maybePredictedType,
