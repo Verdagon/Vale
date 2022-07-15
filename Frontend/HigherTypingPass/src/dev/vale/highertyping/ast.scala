@@ -77,7 +77,7 @@ case class StructA(
     //   }
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
-    identifyingRunes: Vector[RuneUsage],
+    genericParameters: Vector[GenericParameterS],
     runeToType: Map[IRuneS, ITemplataType],
     rules: Vector[IRulexSR],
     members: Vector[IStructMemberS]
@@ -152,7 +152,7 @@ case class InterfaceA(
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
 //    knowableRunes: Set[IRuneS],
-    identifyingRunes: Vector[RuneUsage],
+    genericParameters: Vector[GenericParameterS],
 //    localRunes: Set[IRuneS],
     runeToType: Map[IRuneS, ITemplataType],
   rules: Vector[IRulexSR],
@@ -170,7 +170,7 @@ case class InterfaceA(
 //  vassert((localRunes -- runeToType.keySet).isEmpty)
 
   internalMethods.foreach(internalMethod => {
-    vassert(identifyingRunes == internalMethod.identifyingRunes)
+    vassert(genericParameters == internalMethod.genericParameters)
     vassert(isTemplate == internalMethod.isTemplate);
   })
 
@@ -221,7 +221,7 @@ case class FunctionA(
     tyype: ITemplataType,
     // This is not necessarily only what the user specified, the compiler can add
     // things to the end here, see CCAUIR.
-    identifyingRunes: Vector[RuneUsage],
+    genericParameters: Vector[GenericParameterS],
 
     runeToType: Map[IRuneS, ITemplataType],
 

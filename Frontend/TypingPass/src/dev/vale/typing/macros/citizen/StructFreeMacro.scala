@@ -41,25 +41,27 @@ class StructFreeMacro(
   override def getStructChildEntries(
     macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    if (mutability == ImmutableT) {
-      val structNameS = structA.name
-      val structType = structA.tyype
-      val structIdentifyingRunes = structA.identifyingRunes
-      val structIdentifyingRuneToType =
-        structIdentifyingRunes.map(_.rune)
-          .zip(structIdentifyingRunes.map(_.rune).map(structA.runeToType)).toMap
+    mutability match {
+      case MutabilityTemplata(ImmutableT) => {
+        val structNameS = structA.name
+        val structType = structA.tyype
+        val structIdentifyingRunes = structA.genericParameters
+        val structIdentifyingRuneToType =
+          structIdentifyingRunes.map(_.rune.rune)
+            .zip(structIdentifyingRunes.map(_.rune.rune).map(structA.runeToType)).toMap
 
-      val freeFunctionA =
-        makeFunction(
-          structNameS,
-          structA.range,
-          structType,
-          structIdentifyingRunes.map(_.rune),
-          structIdentifyingRuneToType)
-      val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
-      Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
-    } else {
-      Vector()
+        val freeFunctionA =
+          makeFunction(
+            structNameS,
+            structA.range,
+            structType,
+            structIdentifyingRunes.map(_.rune.rune),
+            structIdentifyingRuneToType)
+        val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+        Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
+      }
+      case MutabilityTemplata(MutableT) => Vector()
+      case PlaceholderTemplata(fullNameT, tyype) => vimpl()
     }
   }
 
@@ -81,7 +83,8 @@ class StructFreeMacro(
           TemplateTemplataType(paramTypes, FunctionTemplataType())
         }
       },
-      structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)),
+      structIdentifyingRunes
+        .map(r => GenericParameterS(RuneUsage(RangeS.internal(interner, -64002), r), None)),
       structIdentifyingRuneToType ++
         (structType match {
           case KindTemplataType() => Map()

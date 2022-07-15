@@ -141,18 +141,18 @@ object PostParserErrorHumanizer {
 
   def humanizeTemplataType(tyype: ITemplataType): String = {
     tyype match {
-      case KindTemplataType() => "kind"
-      case CoordTemplataType() => "type"
-      case FunctionTemplataType() => "func"
-      case IntegerTemplataType() => "int"
-      case BooleanTemplataType() => "bool"
-      case MutabilityTemplataType() => "mut"
-      case PrototypeTemplataType() => "prot"
-      case StringTemplataType() => "str"
-      case LocationTemplataType() => "loc"
-      case OwnershipTemplataType() => "own"
-      case VariabilityTemplataType() => "vary"
-      case PackTemplataType(elementType) => "pack<" + humanizeTemplataType(elementType) + ">"
+      case KindTemplataType() => "Kind"
+      case CoordTemplataType() => "Type"
+      case FunctionTemplataType() => "Func"
+      case IntegerTemplataType() => "Int"
+      case BooleanTemplataType() => "Bool"
+      case MutabilityTemplataType() => "Mut"
+      case PrototypeTemplataType() => "Prot"
+      case StringTemplataType() => "Str"
+      case LocationTemplataType() => "Loc"
+      case OwnershipTemplataType() => "Own"
+      case VariabilityTemplataType() => "Vary"
+      case PackTemplataType(elementType) => "Pack<" + humanizeTemplataType(elementType) + ">"
       case TemplateTemplataType(params, ret) => humanizeTemplataType(ret) + "<" + params.map(humanizeTemplataType).mkString(",") + ">"
     }
   }
@@ -188,7 +188,7 @@ object PostParserErrorHumanizer {
         humanizeRune(resultRune.rune) + " = callsite func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(paramsListRune.rune)
       }
       case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
-        humanizeRune(resultRune.rune) + " = definition func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(paramsListRune.rune)
+        humanizeRune(resultRune.rune) + " = definition func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
       }
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
         humanizeRune(resultRune.rune) + " = " + "[#" + humanizeRune(sizeRune.rune) + "]<" + humanizeRune(mutabilityRune.rune) + ", " + humanizeRune(variabilityRune.rune) + ">" + humanizeRune(elementRune.rune)

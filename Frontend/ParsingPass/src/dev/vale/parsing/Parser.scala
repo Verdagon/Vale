@@ -23,7 +23,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
   Result[GenericParameterP, IParseError] = {
     val range = iter.range
 
-    val (name, attributes) =
+    val (name, maybeType, attributes) =
       if (iter.trySkipSymbol('\'')) {
         val name =
           iter.nextWord() match {
@@ -32,7 +32,6 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           }
 
         val attributes =
-          Vector(TypeRuneAttributeP(RangeL(range.begin, iter.getPrevEndPos()), RegionTypePR)) ++
             (iter.trySkipWord(keywords.ro) match {
               case Some(range) => Vector(ReadOnlyRuneAttributeP(range))
               case None => {
@@ -48,7 +47,9 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               }
             })
 
-        (name, attributes)
+        val tyype =
+          GenericParameterTypeP(RangeL(range.begin, iter.getPrevEndPos()), RegionTypePR)
+        (name, Some(tyype), attributes)
       } else {
         val name =
           iter.peek() match {
@@ -63,11 +64,11 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
         val maybeRuneType =
           templexParser.parseRuneType(iter) match {
             case Err(e) => return Err(e)
-            case Ok(Some(x)) => Some(ast.TypeRuneAttributeP(RangeL(typeBegin, iter.getPrevEndPos()), x))
+            case Ok(Some(x)) => Some(GenericParameterTypeP(RangeL(typeBegin, iter.getPrevEndPos()), x))
             case Ok(None) => None
           }
 
-        (name, Vector())
+        (name, maybeRuneType, Vector())
       }
 
     val maybeDefaultPT =
@@ -80,7 +81,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
         None
       }
 
-    Ok(GenericParameterP(range, NameP(name.range, name.str), attributes, maybeDefaultPT))
+    Ok(GenericParameterP(range, NameP(name.range, name.str), maybeType, attributes, maybeDefaultPT))
   }
 
   private[parsing] def parseIdentifyingRunes(node: AngledLE):

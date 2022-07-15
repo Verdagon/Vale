@@ -74,7 +74,7 @@ class StructConstructorMacro(
         val structNameRune = StructNameRuneS(structA.name)
         runeToType += (structNameRune -> structA.tyype)
         rules += LookupSR(structNameRange, RuneUsage(structNameRange, structNameRune), structA.name.getImpreciseName(interner))
-        rules += CallSR(structNameRange, retRune, RuneUsage(structNameRange, structNameRune), structA.identifyingRunes.toArray)
+        rules += CallSR(structNameRange, retRune, RuneUsage(structNameRange, structNameRune), structA.genericParameters.map(_.rune).toArray)
       } else {
         rules += LookupSR(structNameRange, retRune, structA.name.getImpreciseName(interner))
       }
@@ -99,7 +99,7 @@ class StructConstructorMacro(
             case KindTemplataType() => FunctionTemplataType()
             case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
           },
-          structA.identifyingRunes,
+          structA.genericParameters,
           runeToType.toMap,
           params,
           Some(retRune),

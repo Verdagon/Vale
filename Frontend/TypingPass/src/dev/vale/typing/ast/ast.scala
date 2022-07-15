@@ -151,7 +151,7 @@ case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidat
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class PrototypeTemplataCalleeCandidate(range: RangeS, rune: IRuneS, coords: Vector[CoordT], returnType: CoordT) extends ICalleeCandidate {
+case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 
@@ -167,14 +167,15 @@ case class ValidHeaderCalleeCandidate(
   override def range: Option[RangeS] = header.maybeOriginFunction.map(_.range)
   override def paramTypes: Array[CoordT] = header.paramTypes.toArray
 }
-//case class ValidPrototypeTemplataCalleeCandidate(
-//  prototype: PrototypeTemplata
-//) extends IValidCalleeCandidate {
-//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-//
-//  override def range: Option[RangeS] = Some(prototype.declarationRange)
-//  override def paramTypes: Array[CoordT] = prototype.fullName.last.parameters.toArray
-//}
+case class ValidPrototypeTemplataCalleeCandidate(
+  declarationRange: RangeS,
+  prototype: PrototypeTemplata
+) extends IValidCalleeCandidate {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+
+  override def range: Option[RangeS] = Some(declarationRange)
+  override def paramTypes: Array[CoordT] = prototype.prototype.fullName.last.parameters.toArray
+}
 case class ValidCalleeCandidate(
   banner: FunctionBannerT,
   function: FunctionTemplata
@@ -294,7 +295,7 @@ case class FunctionHeaderT(
   def getVirtualIndex: Option[Int] = toBanner.getVirtualIndex
 
   maybeOriginFunction.foreach(originFunction => {
-    if (originFunction.identifyingRunes.size != fullName.last.templateArgs.size) {
+    if (originFunction.genericParameters.size != fullName.last.templateArgs.size) {
       vfail("wtf m8")
     }
   })

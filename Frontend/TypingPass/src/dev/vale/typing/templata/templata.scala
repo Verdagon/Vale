@@ -143,7 +143,11 @@ case class StructTemplata(
   override def tyype: TemplateTemplataType = {
     // Note that this might disagree with originStruct.tyype, which might not be a TemplateTemplataType().
     // In Compiler, StructTemplatas are templates, even if they have zero arguments.
-    TemplateTemplataType(originStruct.identifyingRunes.map(_.rune).map(originStruct.runeToType), KindTemplataType())
+    TemplateTemplataType(
+      originStruct.genericParameters
+        .map(_.rune.rune)
+        .map(originStruct.runeToType),
+      KindTemplataType())
   }
 
   // Make sure we didn't accidentally code something to include the structs's name as
@@ -182,7 +186,9 @@ case class InterfaceTemplata(
   override def tyype: TemplateTemplataType = {
     // Note that this might disagree with originStruct.tyype, which might not be a TemplateTemplataType().
     // In Compiler, StructTemplatas are templates, even if they have zero arguments.
-    TemplateTemplataType(originInterface.identifyingRunes.map(_.rune).map(originInterface.runeToType), KindTemplataType())
+    TemplateTemplataType(
+      originInterface.genericParameters.map(_.rune.rune).map(originInterface.runeToType),
+      KindTemplataType())
   }
 
   // Make sure we didn't accidentally code something to include the interface's name as

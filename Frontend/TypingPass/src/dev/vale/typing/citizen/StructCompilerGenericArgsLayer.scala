@@ -50,7 +50,7 @@ class StructCompilerGenericArgsLayer(
         }
         case None => {
           // not sure if this is okay or not, do we allow this?
-          if (templateArgs.size != structA.identifyingRunes.size) {
+          if (templateArgs.size != structA.genericParameters.size) {
             vfail("wat?")
           }
           val temporaryStructRef = interner.intern(StructTT(fullName))
@@ -64,7 +64,7 @@ class StructCompilerGenericArgsLayer(
                 MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
             }
           }
-          vassert(structA.identifyingRunes.size == templateArgs.size)
+          vassert(structA.genericParameters.size == templateArgs.size)
           val inferences =
             inferCompiler.solveExpectComplete(
               env,
@@ -72,7 +72,7 @@ class StructCompilerGenericArgsLayer(
               structA.rules,
               structA.runeToType,
               callRange,
-              structA.identifyingRunes.map(_.rune).zip(templateArgs)
+              structA.genericParameters.map(_.rune.rune).zip(templateArgs)
                 .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
               Vector())
 
@@ -110,7 +110,7 @@ class StructCompilerGenericArgsLayer(
         }
         case None => {
           // not sure if this is okay or not, do we allow this?
-          if (templateArgs.size != interfaceA.identifyingRunes.size) {
+          if (templateArgs.size != interfaceA.genericParameters.size) {
             vfail("wat?")
           }
           val temporaryInterfaceRef = interner.intern(InterfaceTT(fullName))
@@ -125,7 +125,7 @@ class StructCompilerGenericArgsLayer(
                 MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
             }
           }
-          vassert(interfaceA.identifyingRunes.size == templateArgs.size)
+          vassert(interfaceA.genericParameters.size == templateArgs.size)
 
           val inferences =
             inferCompiler.solveExpectComplete(
@@ -134,7 +134,7 @@ class StructCompilerGenericArgsLayer(
               interfaceA.rules,
               interfaceA.runeToType,
               callRange,
-              interfaceA.identifyingRunes.map(_.rune).zip(templateArgs)
+              interfaceA.genericParameters.map(_.rune.rune).zip(templateArgs)
                 .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
               Vector())
 

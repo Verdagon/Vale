@@ -142,7 +142,7 @@ object TemplatasStore {
 //          case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
-          case PrototypeTemplata(_) => contexts.contains(TemplataLookupContext)
+          case PrototypeTemplata(_) => true
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
           case StructTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceTemplata(_, _) => contexts.contains(TemplataLookupContext)

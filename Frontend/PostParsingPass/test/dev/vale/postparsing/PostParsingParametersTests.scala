@@ -28,7 +28,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     vassert(main.runeToPredictedType.size == 1)
 
     main.genericParams match {
-      case Vector(RuneUsage(_, CodeRuneS(StrI("T")))) =>
+      case Vector(GenericParameterS(RuneUsage(_, CodeRuneS(StrI("T"))), None)) =>
     }
   }
 
@@ -37,7 +37,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""func main<T>(moo T) T { moo }""", interner)
     val main = program1.lookupFunction("main")
 
-    vassert(main.genericParams.map(_.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
+    vassert(main.genericParams.map(_.rune.rune).contains(CodeRuneS(interner.intern(StrI("T")))))
     main.maybeRetCoordRune match { case Some(RuneUsage(_, CodeRuneS(StrI("T")))) => }
   }
 

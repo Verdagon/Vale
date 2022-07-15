@@ -25,7 +25,7 @@ object HigherTypingErrorHumanizer {
     range: RangeS,
     err: RuneTypeSolveError):
   String = {
-    ": Couldn't solve generics rules:\n" +
+    ": Couldn't solve generics types:\n" +
     SolverErrorHumanizer.humanizeFailedSolve(
       filenamesAndSources,
       PostParserErrorHumanizer.humanizeRune,

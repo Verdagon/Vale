@@ -58,6 +58,16 @@ object OverloadResolver {
     vpass()
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   }
+
+  case class EvaluateFunctionFailure(
+    name: IImpreciseNameS,
+    args: Vector[ParamFilter],
+    // All the banners we rejected, and the reason why
+    rejectedCalleeToReason: Iterable[(IValidCalleeCandidate, IFindFunctionFailureReason)]
+  ) {
+    vpass()
+    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  }
 }
 
 class OverloadResolver(
@@ -168,9 +178,9 @@ class OverloadResolver(
       case ExternFunctionTemplata(header) => {
         Vector(HeaderCalleeCandidate(header))
       }
-//      case pt @ PrototypeTemplata(_) => {
-//        Vector(PrototypeTemplataCalleeCandidate(pt))
-//      }
+      case PrototypeTemplata(prototype) => {
+        Vector(PrototypeTemplataCalleeCandidate(callRange, prototype))
+      }
       case ft@FunctionTemplata(_, function) => {
         Vector(FunctionCalleeCandidate(ft))
       }
@@ -322,15 +332,15 @@ class OverloadResolver(
           case Err(fff) => Err(fff)
         }
       }
-//      case PrototypeTemplataCalleeCandidate(pt @ PrototypeTemplata(range, name, returnType)) => {
-//        val params = name.last.parameters.map(paramType => ParameterT(CodeVarNameT(keywords.emptyString), None, paramType))
-//        paramsMatch(coutputs, paramFilters, params, exact) match {
-//          case Ok(_) => {
-//            Ok(ValidPrototypeTemplataCalleeCandidate(pt))
-//          }
-//          case Err(fff) => Err(fff)
-//        }
-//      }
+      case PrototypeTemplataCalleeCandidate(range, prototype) => {
+        val params = prototype.fullName.last.parameters.map(paramType => ParameterT(CodeVarNameT(keywords.emptyString), None, paramType))
+        paramsMatch(coutputs, paramFilters, params, exact) match {
+          case Ok(_) => {
+            Ok(ValidPrototypeTemplataCalleeCandidate(range, PrototypeTemplata(prototype)))
+          }
+          case Err(fff) => Err(fff)
+        }
+      }
     }
   }
 
@@ -465,7 +475,7 @@ class OverloadResolver(
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, function) => !function.function.isTemplate
-//            case ValidPrototypeTemplataCalleeCandidate(prototype) => true
+            case ValidPrototypeTemplataCalleeCandidate(_, prototype) => true
             case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
@@ -585,16 +595,18 @@ class OverloadResolver(
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, ft, signature.fullName.last.templateArgs, args) match {
             case (EvaluateFunctionSuccess(prototype)) => (prototype)
-            case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
+            case (EvaluateFunctionFailure(fffr)) => {
+              throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
+            }
           }
         }
       }
       case ValidHeaderCalleeCandidate(header) => {
         (header.toPrototype)
       }
-//      case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, fullName, returnType)) => {
-//        PrototypeT(fullName, returnType)
-//      }
+      case ValidPrototypeTemplataCalleeCandidate(declarationRange, PrototypeTemplata(prototype)) => {
+        prototype
+      }
     }
   }
 

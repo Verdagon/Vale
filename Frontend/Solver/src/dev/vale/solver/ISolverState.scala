@@ -1,7 +1,6 @@
 package dev.vale.solver
 
-import dev.vale.Result
-import dev.vale.Err
+import dev.vale.{Err, RangeS, Result}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

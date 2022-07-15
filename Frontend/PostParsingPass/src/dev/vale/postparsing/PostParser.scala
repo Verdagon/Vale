@@ -228,6 +228,52 @@ object PostParser {
         }))
     }
   }
+
+  def scoutGenericParameter(
+      templexScout: TemplexScout,
+      env: IEnvironment,
+      lidb: LocationInDenizenBuilder,
+      runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
+      ruleBuilder: ArrayBuffer[IRulexSR],
+      genericParamP: GenericParameterP,
+      paramRuneS: RuneUsage):
+  GenericParameterS = {
+    val GenericParameterP(genericParamRange, _, maybeType, attributes, maybeDefault) = genericParamP
+    val runeS = paramRuneS
+
+    maybeType match {
+      case None =>
+      case Some(tyype) => runeToExplicitType.put(runeS.rune, RuleScout.translateType(tyype.tyype))
+    }
+
+    GenericParameterS(
+      runeS,
+      maybeDefault.map(defaultPT => {
+        val uncategorizedRules = ArrayBuffer[IRulexSR]()
+        val resultRune = templexScout.translateTemplex(env, lidb, uncategorizedRules, defaultPT)
+        uncategorizedRules += EqualsSR(PostParser.evalRange(env.file, genericParamRange), runeS, resultRune)
+
+        val defaultableToRules =
+          uncategorizedRules.groupBy({
+            case ResolveSR(_, _, _, _) => true
+            case _ => false
+          })
+
+        // Hoist these rules to the function itself, see SRHODP.
+        val hoistableRules = defaultableToRules(false)
+        hoistableRules.foreach(x => ruleBuilder += x)
+
+        // These are the rules that can remain in the default expression.
+        val defaultableRules = defaultableToRules(true)
+        // We only support functions as the default rules so far.
+        defaultableRules.toList match {
+          case List(r@ResolveSR(range, resultRune, name, paramsListRune)) => r
+          case other => vfail("Unexpected hostable rules: " + other)
+        }
+
+        GenericParameterDefaultS(resultRune.rune, defaultableRules.toVector)
+      }))
+  }
 }
 
 class PostParser(
@@ -368,27 +414,45 @@ class PostParser(
   }
 
   private def scoutStruct(file: FileCoordinate, head: StructP): StructS = {
-    val StructP(rangeP, NameP(structNameRange, structHumanName), attributesP, mutabilityPT, maybeIdentifyingRunes, maybeTemplateRulesP, bodyRange, StructMembersP(_, members)) = head
+    val StructP(rangeP, NameP(structNameRange, structHumanName), attributesP, mutabilityPT, maybeGenericParametersP, maybeTemplateRulesP, bodyRange, StructMembersP(_, members)) = head
 
     val structRangeS = PostParser.evalRange(file, rangeP)
     val structName = interner.intern(postparsing.TopLevelCitizenDeclarationNameS(structHumanName, PostParser.evalRange(file, structNameRange)))
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
+    val genericParametersP =
+      maybeGenericParametersP
+        .toVector
+        .flatMap(_.params)
+        // Filter out any regions, we dont do those yet
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
+
+    val userSpecifiedIdentifyingRunes =
+      genericParametersP
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
+          rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName))
+        })
+
     val templateRulesP = maybeTemplateRulesP.toVector.flatMap(_.rules)
 
-    val identifyingRunesS: Vector[RuneUsage] =
-      maybeIdentifyingRunes
-        .toVector.flatMap(_.params).map(_.name)
-        .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val runesFromRules =
       RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(templateRulesP)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
-    val userDeclaredRunes = identifyingRunesS ++ runesFromRules
+    val userDeclaredRunes = userSpecifiedIdentifyingRunes ++ runesFromRules
     val structEnv = postparsing.Environment(file, None, structName, userDeclaredRunes.map(_.rune).toSet)
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
+
+    val genericParametersS =
+      genericParametersP.zip(userSpecifiedIdentifyingRunes)
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(templexScout, structEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        })
 
     val membersS =
       members.flatMap({
@@ -417,12 +481,12 @@ class PostParser(
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(structRangeS, identifyingRunesS.map(_.rune), runeToExplicitType.toMap, rulesS)
+    val runeToPredictedType = predictRuneTypes(structRangeS, userSpecifiedIdentifyingRunes.map(_.rune), runeToExplicitType.toMap, rulesS)
 
     val predictedMutability = predictMutability(structRangeS, mutabilityRuneS.rune, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeToPredictedType) match {
+      determineDenizenType(KindTemplataType(), userSpecifiedIdentifyingRunes.map(_.rune), runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
@@ -440,7 +504,7 @@ class PostParser(
       structName,
       attrsS,
       weakable,
-      vimpl(),//genericParamsS,
+      genericParametersS,
       runeToExplicitType.toMap,
       mutabilityRuneS,
       predictedMutability,

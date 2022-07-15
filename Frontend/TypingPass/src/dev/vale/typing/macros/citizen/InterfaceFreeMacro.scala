@@ -45,7 +45,10 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, overloadCompile
           freeFunctionNameS,
           Vector(),
           TemplateTemplataType(Vector(CoordTemplataType()), FunctionTemplataType()),
-          Vector(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T))),
+          Vector(
+            GenericParameterS(
+              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T)),
+              None)),
           Map(CodeRuneS(keywords.T) -> CoordTemplataType(), CodeRuneS(keywords.V) -> CoordTemplataType()),
           Vector(
             ParameterS(

@@ -247,8 +247,8 @@ class StructCompilerCore(
           .addEntries(interner, envEntriesFromMacros)
           .addEntries(
             interner,
-            interfaceA.identifyingRunes.zip(coercedFinalTemplateArgs2)
-              .map({ case (rune, templata) => (interner.intern(RuneNameT(rune.rune)), TemplataEnvEntry(templata)) }))
+            interfaceA.genericParameters.zip(coercedFinalTemplateArgs2)
+              .map({ case (genericParam, templata) => (interner.intern(RuneNameT(genericParam.rune.rune)), TemplataEnvEntry(templata)) }))
           .addEntries(
             interner,
             Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(temporaryInferfaceRef))))

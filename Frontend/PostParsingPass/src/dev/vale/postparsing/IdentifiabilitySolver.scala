@@ -1,11 +1,10 @@
 package dev.vale.postparsing
 
 import dev.vale.postparsing.rules._
-import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, IStepState, IncompleteSolve, Solver}
+import dev.vale.solver.{IIncompleteOrFailedSolve, ISolveRule, ISolverError, ISolverState, IStepState, IncompleteSolve, Solver}
 import dev.vale.{Err, Ok, RangeS, Result, vassert, vimpl, vpass}
 import dev.vale._
 import dev.vale.postparsing.rules._
-import dev.vale.solver.IStepState
 
 import scala.collection.immutable.Map
 
@@ -245,11 +244,11 @@ object IdentifiabilitySolver {
         Unit,
         solverState,
         new ISolveRule[IRulexSR, IRuneS, Unit, Unit, Boolean, IIdentifiabilityRuleError] {
-          override def complexSolve(state: Unit, env: Unit, stepState: IStepState[IRulexSR, IRuneS, Boolean]): Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
+          override def complexSolve(state: Unit, env: Unit, solverState: ISolverState[IRulexSR, IRuneS, Boolean], stepState: IStepState[IRulexSR, IRuneS, Boolean]): Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
             Ok(())
           }
-          override def solve(state: Unit, env: Unit, ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, Boolean]):
-          Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
+
+          override def solve(state: Unit, env: Unit, solverState: ISolverState[IRulexSR, IRuneS, Boolean], ruleIndex: Int, rule: IRulexSR, stepState: IStepState[IRulexSR, IRuneS, Boolean]): Result[Unit, ISolverError[IRuneS, Boolean, IIdentifiabilityRuleError]] = {
             solveRule(state, env, ruleIndex, rule, stepState)
           }
         }) match {
