@@ -65,11 +65,16 @@ class StructCompilerGenericArgsLayer(
             }
           }
           vassert(structA.genericParameters.size == templateArgs.size)
+
+          start here, i think we need to split getStructRef into definition and call site
+            cuz this is called indirectly from getFunctorForPrototype
+          val definitionRules = structA.rules.filter(inferCompiler.includeRuleInDefinitionSolve)
+
           val inferences =
             inferCompiler.solveExpectComplete(
               env,
               coutputs,
-              structA.rules,
+              definitionRules,
               structA.runeToType,
               callRange,
               structA.genericParameters.map(_.rune.rune).zip(templateArgs)

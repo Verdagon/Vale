@@ -57,7 +57,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        nearEnv, coutputs, function.rules, function.runeToType, function.range, Vector(), Vector())
+        nearEnv, coutputs, vimpl()/*function.rules*/, function.runeToType, function.range, Vector(), Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     middleLayer.predictOrdinaryFunctionBanner(

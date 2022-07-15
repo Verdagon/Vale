@@ -167,10 +167,10 @@ class KindRuleTests extends FunSuite with Matchers with Collector with TestParse
 
   test("Prototype kind rule") {
     compileTemplex("func moo(int)void") shouldHave {
-        case FuncPT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("int")))),NameOrRunePT(NameP(_, StrI("void")))) =>
+        case FuncPT(_,NameP(_, StrI("moo")), _, Vector(NameOrRunePT(NameP(_, StrI("int")))),NameOrRunePT(NameP(_, StrI("void")))) =>
     }
     compileTemplex("func moo(T)R") shouldHave {
-        case FuncPT(_,NameP(_, StrI("moo")), Vector(NameOrRunePT(NameP(_, StrI("T")))),NameOrRunePT(NameP(_, StrI("R")))) =>
+        case FuncPT(_,NameP(_, StrI("moo")), _, Vector(NameOrRunePT(NameP(_, StrI("T")))),NameOrRunePT(NameP(_, StrI("R")))) =>
     }
   }
 }

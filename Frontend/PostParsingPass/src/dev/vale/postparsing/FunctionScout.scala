@@ -282,13 +282,6 @@ class FunctionScout(
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
 
-    val genericParametersS =
-      genericParametersP.zip(userSpecifiedIdentifyingRunes)
-        .map({ case (g, r) =>
-          PostParser.scoutGenericParameter(
-            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
-        })
-
     // We say PerhapsTypeless because they might be anonymous params like in `(_) => { true }`
     // Later on, we'll make identifying runes for these.
     val explicitParamPatternsPerhapsTypeless =
@@ -379,6 +372,16 @@ class FunctionScout(
           paramS
         }
       })
+
+    val genericParametersS =
+      genericParametersP.zip(userSpecifiedIdentifyingRunes)
+        .map({ case (g, r) =>
+          PostParser.scoutGenericParameter(
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+        }) ++
+        // Lambdas identifying runes are determined by their magic params.
+        // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
+        magicParams.map(param => GenericParameterS(vassertSome(param.pattern.coordRune), None))
 
     // Lambdas identifying runes are determined by their magic params.
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
