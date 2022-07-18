@@ -30,7 +30,7 @@ class StructCompilerMiddle(
     delegate: IStructCompilerDelegate) {
   val core = new StructCompilerCore(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
 
-  def getStructRef(
+  def compileStruct(
     structOuterEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callRange: RangeS,
@@ -50,7 +50,33 @@ class StructCompilerMiddle(
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
     val structDefinition2 =
-      core.makeStruct(
+      core.compileStruct(
+        localEnv, coutputs, structS, coercedFinalTemplateArgs2);
+
+    (structDefinition2.getRef)
+  }
+
+  def resolveStruct(
+    structOuterEnv: IEnvironment,
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    structS: StructA,
+    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
+  (StructTT) = {
+    val coercedFinalTemplateArgs2 = structS.genericParameters.map(_.rune.rune).map(templatasByRune)
+
+    val localEnv =
+      CitizenEnvironment(
+        structOuterEnv.globalEnv,
+        structOuterEnv,
+        structOuterEnv.fullName,
+        TemplatasStore(structOuterEnv.fullName, Map(), Map())
+          .addEntries(
+            interner,
+            templatasByRune.toVector
+              .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+    val structDefinition2 =
+      core.resolveStruct(
         localEnv, coutputs, structS, coercedFinalTemplateArgs2);
 
     (structDefinition2.getRef)

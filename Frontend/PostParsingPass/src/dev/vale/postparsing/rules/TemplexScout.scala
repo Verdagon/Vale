@@ -151,7 +151,7 @@ class TemplexScout(
 
               val returnRuneS = translateTemplex(env, lidb.child(), ruleBuilder, returnTypeP)
 
-              val resultRuneS = rules.RuneUsage(evalRange(range), CodeRuneS(name))
+              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
 
               // Only appears in call site; filtered out when solving definition
               ruleBuilder += CallSiteFuncSR(rangeS, resultRuneS, name, paramListRuneS, returnRuneS)

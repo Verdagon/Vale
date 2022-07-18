@@ -63,14 +63,27 @@ class StructCompiler(
     new StructCompilerGenericArgsLayer(
       opts, interner, keywords, nameTranslator, inferCompiler, ancestorHelper, delegate)
 
-  def getStructRef(
+  def resolveStruct(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    structTemplata: StructTemplata,
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (StructTT) = {
+    Profiler.frame(() => {
+      templateArgsLayer.resolveStruct(
+        coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
+    })
+  }
+
+  def compileStruct(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     structTemplata: StructTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
-      templateArgsLayer.getStructRef(
+      templateArgsLayer.compileStruct(
         coutputs, callRange, structTemplata, uncoercedTemplateArgs)
     })
   }

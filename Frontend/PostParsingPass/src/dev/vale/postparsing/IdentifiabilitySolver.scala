@@ -25,6 +25,7 @@ object IdentifiabilitySolver {
         case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
+        case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
         case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
         case CallSiteFuncSR(range, prototypeRune, name, paramsListRune, returnRune) => Array(prototypeRune, paramsListRune, returnRune)
         case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
@@ -71,6 +72,7 @@ object IdentifiabilitySolver {
       case CoordIsaSR(_, subRune, superRune) => Array(Array())
       case KindComponentsSR(_, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array())
+      case PrototypeComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array())
       case ResolveSR(_, resultRune, nameRune, paramsListRune) => Array(Array())
       case CallSiteFuncSR(_, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
       case DefinitionFuncSR(_, resultRune, name, paramsListRune, returnRune) => Array(Array())
@@ -103,18 +105,24 @@ object IdentifiabilitySolver {
         stepState.concludeRune(mutabilityRune.rune, true)
         Ok(())
       }
+      case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => {
+        stepState.concludeRune(resultRune.rune, true)
+        stepState.concludeRune(ownershipRune.rune, true)
+        stepState.concludeRune(kindRune.rune, true)
+        Ok(())
+      }
+      case PrototypeComponentsSR(_, resultRune, paramsRune, returnRune) => {
+        stepState.concludeRune(resultRune.rune, true)
+        stepState.concludeRune(paramsRune.rune, true)
+        stepState.concludeRune(returnRune.rune, true)
+        Ok(())
+      }
       case CallSR(range, resultRune, templateRune, argRunes) => {
         stepState.concludeRune(resultRune.rune, true)
         stepState.concludeRune(templateRune.rune, true)
         argRunes.map(_.rune).foreach({ case argRune =>
           stepState.concludeRune(argRune, true)
         })
-        Ok(())
-      }
-      case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => {
-        stepState.concludeRune(resultRune.rune, true)
-        stepState.concludeRune(ownershipRune.rune, true)
-        stepState.concludeRune(kindRune.rune, true)
         Ok(())
       }
       case ResolveSR(_, resultRune, name, paramListRune) => {

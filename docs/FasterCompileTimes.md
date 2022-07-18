@@ -22,7 +22,7 @@ uses interface{} (basically, Go's version of a Java Object).
 
 The idea: **Vale should do this automatically in debug mode.** Vale
 would then be the first language with the compilation speed of Go, and
-the run-time speed of Rust.
+the run-time speed approaching Rust.
 
 ### Why is Type Erasure Faster to Compile?
 

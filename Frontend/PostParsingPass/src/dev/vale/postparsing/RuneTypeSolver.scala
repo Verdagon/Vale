@@ -26,6 +26,7 @@ class RuneTypeSolver(interner: Interner) {
         case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
+        case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
         case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
         case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
         case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
@@ -86,6 +87,7 @@ class RuneTypeSolver(interner: Interner) {
       case CoordIsaSR(_, subRune, superRune) => Array(Array())
       case KindComponentsSR(_, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array())
+      case PrototypeComponentsSR(_, resultRune, paramsRune, returnRune) => Array(Array())
       case ResolveSR(_, resultRune, nameRune, paramsListRune) => Array(Array())
       case CallSiteFuncSR(_, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
       case DefinitionFuncSR(_, resultRune, name, paramsListRune, returnRune) => Array(Array())
@@ -118,6 +120,18 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(mutabilityRune.rune, MutabilityTemplataType())
         Ok(())
       }
+      case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => {
+        stepState.concludeRune(resultRune.rune, CoordTemplataType())
+        stepState.concludeRune(ownershipRune.rune, OwnershipTemplataType())
+        stepState.concludeRune(kindRune.rune, KindTemplataType())
+        Ok(())
+      }
+      case PrototypeComponentsSR(_, resultRune, paramsRune, returnRune) => {
+        stepState.concludeRune(resultRune.rune, PrototypeTemplataType())
+        stepState.concludeRune(paramsRune.rune, PackTemplataType(CoordTemplataType()))
+        stepState.concludeRune(returnRune.rune, CoordTemplataType())
+        Ok(())
+      }
       case CallSR(range, resultRune, templateRune, argRunes) => {
         vassertSome(stepState.getConclusion(templateRune.rune)) match {
           case TemplateTemplataType(paramTypes, returnType) => {
@@ -128,12 +142,6 @@ class RuneTypeSolver(interner: Interner) {
           }
           case other => vwat(other)
         }
-      }
-      case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => {
-        stepState.concludeRune(resultRune.rune, CoordTemplataType())
-        stepState.concludeRune(ownershipRune.rune, OwnershipTemplataType())
-        stepState.concludeRune(kindRune.rune, KindTemplataType())
-        Ok(())
       }
       case ResolveSR(_, resultRune, name, paramListRune) => {
         stepState.concludeRune(resultRune.rune, PrototypeTemplataType())

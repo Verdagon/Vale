@@ -35,7 +35,7 @@ class DestructorCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     type2: CoordT):
-  (PrototypeT) = {
+  (PrototypeTemplata) = {
     val name = interner.intern(CodeNameS(keywords.drop))
     val args = Vector(ParamFilter(type2, None))
     overloadCompiler.findFunction(env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true) match {
@@ -59,7 +59,7 @@ class DestructorCompiler(
     val args = Vector(ParamFilter(type2, None))
     overloadCompiler.findFunction(env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
-      case Ok(x) => x
+      case Ok(x) => x.prototype
     }
   }
 
@@ -72,9 +72,8 @@ class DestructorCompiler(
     val resultExpr2 =
       undestructedExpr2.result.reference match {
         case r@CoordT(OwnT, _) => {
-          val destructorPrototype =
-            getDropFunction(env, coutputs, callRange, r)
-          FunctionCallTE(destructorPrototype, Vector(undestructedExpr2))
+          val destructorPrototype = getDropFunction(env, coutputs, callRange, r)
+          FunctionCallTE(destructorPrototype.prototype, Vector(undestructedExpr2))
         }
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(WeakT, _) => (DiscardTE(undestructedExpr2))

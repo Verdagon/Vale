@@ -131,13 +131,13 @@ case class StructTemplata(
   // The paackage this interface was declared in.
   // has the name of the surrounding environment, does NOT include struct's name.
   // See TMRE for more on these environments.
-  env: IEnvironment,
+  declaringEnv: IEnvironment,
 
   // This is the env entry that the struct came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   originStruct: StructA,
 ) extends ITemplata[TemplateTemplataType] {
-  vassert(env.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
+  vassert(declaringEnv.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: TemplateTemplataType = {
@@ -155,12 +155,12 @@ case class StructTemplata(
   // This assertion is helpful now, but will false-positive trip when someone
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
-  (env.fullName.last, originStruct.name) match {
+  (declaringEnv.fullName.last, originStruct.name) match {
     case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
 
-  def debugString: String = env.fullName + ":" + originStruct.name
+  def debugString: String = declaringEnv.fullName + ":" + originStruct.name
 }
 
 sealed trait IContainer
@@ -258,9 +258,7 @@ case class StringTemplata(value: String) extends ITemplata[StringTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: StringTemplataType = StringTemplataType()
 }
-// This isn't an actual prototype yet.
-// Once the rules are all resolved, we'll fetch the real prototypes and ensure they exist.
-case class PrototypeTemplata(prototype: PrototypeT) extends ITemplata[PrototypeTemplataType] {
+case class PrototypeTemplata(declarationRange: RangeS, prototype: PrototypeT) extends ITemplata[PrototypeTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
 }

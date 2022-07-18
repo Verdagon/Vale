@@ -160,10 +160,13 @@ object PostParserErrorHumanizer {
   def humanizeRule(rule: IRulexSR): String = {
     rule match {
       case KindComponentsSR(range, kindRune, mutabilityRune) => {
-        humanizeRune(kindRune.rune) + " = Kind(" + humanizeRune(mutabilityRune.rune) + ")"
+        humanizeRune(kindRune.rune) + " = Kind[" + humanizeRune(mutabilityRune.rune) + "]"
       }
       case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => {
-        humanizeRune(resultRune.rune) + " = Ref(" + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(kindRune.rune) + ")"
+        humanizeRune(resultRune.rune) + " = Ref[" + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(kindRune.rune) + "]"
+      }
+      case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => {
+        humanizeRune(resultRune.rune) + " = Prot[" + humanizeRune(paramsRune.rune) + ", " + humanizeRune(returnRune.rune) + "]"
       }
       case OneOfSR(range, resultRune, literals) => {
         humanizeRune(resultRune.rune) + " = " + literals.map(_.toString).mkString(" | ")

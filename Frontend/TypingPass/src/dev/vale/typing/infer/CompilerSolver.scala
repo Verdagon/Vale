@@ -25,10 +25,13 @@ sealed trait ITypingPassSolverError
 case class KindIsNotConcrete(kind: KindT) extends ITypingPassSolverError
 case class KindIsNotInterface(kind: KindT) extends ITypingPassSolverError
 case class KindIsNotStruct(kind: KindT) extends ITypingPassSolverError
-case class CouldntFindFunction(range: RangeS, fff: FindFunctionFailure) extends ITypingPassSolverError
+case class CouldntFindFunction(range: RangeS, fff: FindFunctionFailure) extends ITypingPassSolverError {
+  vpass()
+}
 case class CantShareMutable(kind: KindT) extends ITypingPassSolverError
 case class CantSharePlaceholder(kind: KindT) extends ITypingPassSolverError
 case class SendingNonCitizen(kind: KindT) extends ITypingPassSolverError
+case class CantCheckPlaceholder(range: RangeS) extends ITypingPassSolverError
 case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITypingPassSolverError
 case class NoCommonAncestors(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
@@ -63,7 +66,8 @@ trait IInfererDelegate[Env, State] {
   def isDescendant(env: Env, state: State, kind: KindT): Boolean
   def isAncestor(env: Env, state: State, kind: KindT): Boolean
 
-  def evaluateStructTemplata(
+  def resolveStruct(
+    env: Env,
     state: State,
     callRange: RangeS,
     templata: StructTemplata,
@@ -110,7 +114,7 @@ trait IInfererDelegate[Env, State] {
     range: RangeS,
     name: StrI,
     coords: Vector[CoordT]):
-  Result[PrototypeT, FindFunctionFailure]
+  Result[PrototypeTemplata, FindFunctionFailure]
 
   def assemblePrototype(
     env: Env,
@@ -141,6 +145,7 @@ class CompilerSolver[Env, State](
           case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
           case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
           case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
+          case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
           case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
@@ -180,6 +185,7 @@ class CompilerSolver[Env, State](
       case PackSR(_, resultRune, members) => Array(Array(resultRune.rune), members.map(_.rune))
       case KindComponentsSR(_, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
       case CoordComponentsSR(_, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
+      case PrototypeComponentsSR(_, resultRune, paramsRune, returnRune) => Array(Array(resultRune.rune))
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
       case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
@@ -489,6 +495,12 @@ class CompilerRuleSolver[Env, State](
           }
         }
       }
+      case PrototypeComponentsSR(_, resultRune, ownershipRune, kindRune) => {
+        val PrototypeTemplata(_, prototype) = vassertSome(stepState.getConclusion(resultRune.rune))
+        stepState.concludeRune[ITypingPassSolverError](ownershipRune.rune, CoordListTemplata(prototype.paramTypes))
+        stepState.concludeRune[ITypingPassSolverError](kindRune.rune, CoordTemplata(prototype.returnType))
+        Ok(())
+      }
       case ResolveSR(range, resultRune, name, paramListRune) => {
         // If we're here, then we're resolving a prototype.
         // This happens at the call-site.
@@ -499,7 +511,7 @@ class CompilerRuleSolver[Env, State](
         val prototypeTemplata =
           delegate.resolveFunction(env, state, range, name, paramCoords) match {
             case Err(e) => return Err(CouldntFindFunction(range, e))
-            case Ok(x) => PrototypeTemplata(x)
+            case Ok(x) => x
           }
         stepState.concludeRune[ITypingPassSolverError](resultRune.rune, prototypeTemplata)
         Ok(())
@@ -510,12 +522,17 @@ class CompilerRuleSolver[Env, State](
         // This should look up a function with that name and param list, and make sure
         // its return matches.
 
-        val PrototypeTemplata(prototype) = vassertSome(stepState.getConclusion(prototypeRune.rune))
-
-        stepState.concludeRune[ITypingPassSolverError](
-          paramListRune.rune, CoordListTemplata(prototype.paramTypes))
-        stepState.concludeRune[ITypingPassSolverError](
-          returnRune.rune, CoordTemplata(prototype.returnType))
+        vassertSome(stepState.getConclusion(prototypeRune.rune)) match {
+          case PrototypeTemplata(range, prototype) => {
+            stepState.concludeRune[ITypingPassSolverError](
+              paramListRune.rune, CoordListTemplata(prototype.paramTypes))
+            stepState.concludeRune[ITypingPassSolverError](
+              returnRune.rune, CoordTemplata(prototype.returnType))
+          }
+          case _ => {
+            return Err(CantCheckPlaceholder(range))
+          }
+        }
 
         Ok(())
       }
@@ -529,10 +546,10 @@ class CompilerRuleSolver[Env, State](
         // Now introduce a prototype that lets us call it with this new name, that we
         // can call it by.
         val newPrototype =
-        delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
+          delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
 
         stepState.concludeRune[ITypingPassSolverError](
-          resultRune.rune, PrototypeTemplata(newPrototype))
+          resultRune.rune, PrototypeTemplata(range, newPrototype))
         Ok(())
       }
       case EqualsSR(_, leftRune, rightRune) => {
@@ -955,7 +972,7 @@ class CompilerRuleSolver[Env, State](
               }
               case it @ StructTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val kind = delegate.evaluateStructTemplata(state, range, it, args.toVector)
+                val kind = delegate.resolveStruct(env, state, range, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](resultRune.rune, KindTemplata(kind))
                 Ok(())
               }

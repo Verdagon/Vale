@@ -31,18 +31,19 @@ class StructCompilerGenericArgsLayer(
     delegate: IStructCompilerDelegate) {
   val middle = new StructCompilerMiddle(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
 
-  def getStructRef(
+  def resolveStruct(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     structTemplata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
-      val StructTemplata(env, structA) = structTemplata
+      val StructTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateCitizenName(structA.name)
       val structName = structTemplateName.makeCitizenName(interner, templateArgs)
-      val fullName = env.fullName.addStep(structName)
-//      val fullName = env.fullName.addStep(structLastName)
+      val fullName = declaringEnv.fullName.addStep(structName)
+//      val fullName = declaringEnv.fullName.addStep(structLastName)
 
       coutputs.structDeclared(interner.intern(StructTT(fullName))) match {
         case Some(structTT) => {
@@ -66,13 +67,76 @@ class StructCompilerGenericArgsLayer(
           }
           vassert(structA.genericParameters.size == templateArgs.size)
 
-          start here, i think we need to split getStructRef into definition and call site
-            cuz this is called indirectly from getFunctorForPrototype
+          val callSiteRules = structA.rules.filter(inferCompiler.includeRuleInCallSiteSolve)
+
+          val inferences =
+            inferCompiler.solveExpectComplete(
+              declaringEnv,
+              Some(callingEnv),
+              coutputs,
+              callSiteRules,
+              structA.runeToType,
+              callRange,
+              structA.genericParameters.map(_.rune.rune).zip(templateArgs)
+                .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
+              Vector())
+
+          structA.maybePredictedMutability match {
+            case None => {
+              val mutability =
+                ITemplata.expectMutability(inferences(structA.mutabilityRune.rune))
+              coutputs.declareCitizenMutability(temporaryStructRef, mutability)
+            }
+            case Some(_) =>
+          }
+
+          middle.resolveStruct(declaringEnv, coutputs, callRange, structA, inferences)
+        }
+      }
+    })
+  }
+
+  def compileStruct(
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    structTemplata: StructTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (StructTT) = {
+    Profiler.frame(() => {
+      val StructTemplata(declaringEnv, structA) = structTemplata
+      val structTemplateName = nameTranslator.translateCitizenName(structA.name)
+      val structName = structTemplateName.makeCitizenName(interner, templateArgs)
+      val fullName = declaringEnv.fullName.addStep(structName)
+      //      val fullName = env.fullName.addStep(structLastName)
+
+      coutputs.structDeclared(interner.intern(StructTT(fullName))) match {
+        case Some(structTT) => {
+          (structTT)
+        }
+        case None => {
+          // not sure if this is okay or not, do we allow this?
+          if (templateArgs.size != structA.genericParameters.size) {
+            vfail("wat?")
+          }
+          val temporaryStructRef = interner.intern(StructTT(fullName))
+          coutputs.declareKind(temporaryStructRef)
+
+          structA.maybePredictedMutability match {
+            case None =>
+            case Some(predictedMutability) => {
+              coutputs.declareCitizenMutability(
+                temporaryStructRef,
+                MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+            }
+          }
+          vassert(structA.genericParameters.size == templateArgs.size)
+
           val definitionRules = structA.rules.filter(inferCompiler.includeRuleInDefinitionSolve)
 
           val inferences =
             inferCompiler.solveExpectComplete(
-              env,
+              declaringEnv,
+              None,
               coutputs,
               definitionRules,
               structA.runeToType,
@@ -90,7 +154,7 @@ class StructCompilerGenericArgsLayer(
             case Some(_) =>
           }
 
-          middle.getStructRef(env, coutputs, callRange, structA, inferences)
+          middle.compileStruct(declaringEnv, coutputs, callRange, structA, inferences)
         }
       }
     })
@@ -135,6 +199,7 @@ class StructCompilerGenericArgsLayer(
           val inferences =
             inferCompiler.solveExpectComplete(
               env,
+              vimpl(),
               coutputs,
               interfaceA.rules,
               interfaceA.runeToType,

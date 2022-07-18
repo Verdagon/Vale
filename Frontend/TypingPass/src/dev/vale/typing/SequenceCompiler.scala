@@ -46,8 +46,9 @@ class SequenceCompiler(
       vassertSome(
         env.lookupNearestWithName(
           interner.intern(CitizenTemplateNameT(keywords.tupleHumanName)), Set(TemplataLookupContext)))
-    structCompiler.getStructRef(
+    structCompiler.resolveStruct(
       coutputs,
+      env,
       RangeS.internal(interner, -17653),
       tupleTemplate,
       Vector(CoordListTemplata(types2)))

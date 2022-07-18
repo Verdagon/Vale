@@ -62,6 +62,16 @@ case class CoordComponentsSR(
   override def runeUsages: Array[RuneUsage] = Array(resultRune, ownershipRune, kindRune)
 }
 
+case class PrototypeComponentsSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  paramsRune: RuneUsage,
+  returnRune: RuneUsage
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsRune, returnRune)
+}
+
 case class ResolveSR(
   range: RangeS,
   resultRune: RuneUsage,

@@ -92,6 +92,19 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
                 rune,
                 mutabilityRuneS)
           }
+          case PrototypeTypePR => {
+            if (componentsP.size != 2) {
+              vfail("Prot rule should have two components! Found: " + componentsP.size)
+            }
+            val Vector(paramsRuneS, returnRuneS) =
+              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
+            builder +=
+              PrototypeComponentsSR(
+                PostParser.evalRange(env.file, range),
+                rune,
+                paramsRuneS,
+                returnRuneS)
+          }
           case _ => {
             vfail("Invalid type for compnents rule: " + tyype)
           }
