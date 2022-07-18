@@ -121,6 +121,7 @@ class PatternCompiler(
             val templatasByRune =
               inferCompiler.solveExpectComplete(
                 nenv.snapshot,
+                Some(nenv.snapshot),
                 coutputs,
                 rules,
                 runeToType,

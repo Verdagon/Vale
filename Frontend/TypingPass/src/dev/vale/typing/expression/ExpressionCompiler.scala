@@ -36,11 +36,12 @@ case class TookWeakRefOfNonWeakableError() extends Throwable { val hash = runtim
 trait IExpressionCompilerDelegate {
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
-  IEvaluateFunctionResult[PrototypeT]
+  IEvaluateFunctionResult[PrototypeTemplata]
 
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
@@ -740,7 +741,7 @@ class ExpressionCompiler(
 
           val expr2 =
             arrayCompiler.evaluateRuntimeSizedArrayFromCallable(
-              coutputs, nenv, range, rulesA.toVector, maybeElementTypeRune.map(_.rune), mutabilityRune.rune, sizeTE, maybeCallableTE)
+              coutputs, nenv.snapshot, range, rulesA.toVector, maybeElementTypeRune.map(_.rune), mutabilityRune.rune, sizeTE, maybeCallableTE)
           (expr2, returnsFromSize ++ returnsFromCallable)
         }
         case LetSE(range, rulesA, pattern, sourceExpr1) => {
@@ -774,7 +775,7 @@ class ExpressionCompiler(
           templata match {
             case IntegerTemplata(value) => (ConstantIntTE(IntegerTemplata(value), 32), Set())
             case PlaceholderTemplata(name, IntegerTemplataType()) => (ConstantIntTE(PlaceholderTemplata(name, IntegerTemplataType()), 32), Set())
-            case pt @ PrototypeTemplata(_) => {
+            case pt @ PrototypeTemplata(_, _) => {
               val tinyEnv =
                 nenv.functionEnvironment.makeChildNodeEnvironment(r, life)
                   .addEntries(interner, Vector(ArbitraryNameT() -> TemplataEnvEntry(pt)))
@@ -1161,12 +1162,16 @@ class ExpressionCompiler(
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "Generator must take in an integer as its second param!"))
     }
     if (arrayMutability == ImmutableT &&
-      Compiler.getMutability(coutputs, elementCoord.kind) == MutableT) {
+      Compiler.getMutability(coutputs, elementCoord.kind) == MutabilityTemplata(MutableT)) {
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't have an immutable array of mutable elements!"))
     }
   }
 
-  def getOption(coutputs: CompilerOutputs, nenv: FunctionEnvironment, range: RangeS, containedCoord: CoordT):
+  def getOption(
+    coutputs: CompilerOutputs,
+    nenv: FunctionEnvironment,
+    range: RangeS,
+    containedCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Opt)), Set(TemplataLookupContext)).toList match {
@@ -1184,7 +1189,7 @@ class ExpressionCompiler(
       }
     val someConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(ParamFilter(containedCoord, None))) match {
+        coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(ParamFilter(containedCoord, None))) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
@@ -1196,14 +1201,19 @@ class ExpressionCompiler(
       }
     val noneConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
+        coutputs, nenv, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
-    (ownOptCoord, someConstructor, noneConstructor)
+    (ownOptCoord, someConstructor.prototype, noneConstructor.prototype)
   }
 
-  def getResult(coutputs: CompilerOutputs, nenv: FunctionEnvironment, range: RangeS, containedSuccessCoord: CoordT, containedFailCoord: CoordT):
+  def getResult(
+    coutputs: CompilerOutputs,
+    nenv: FunctionEnvironment,
+    range: RangeS,
+    containedSuccessCoord: CoordT,
+    containedFailCoord: CoordT):
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Result)), Set(TemplataLookupContext)).toList match {
@@ -1221,7 +1231,7 @@ class ExpressionCompiler(
       }
     val okConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedSuccessCoord, None))) match {
+        coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedSuccessCoord, None))) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
@@ -1233,12 +1243,12 @@ class ExpressionCompiler(
       }
     val errConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedFailCoord, None))) match {
+        coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedFailCoord, None))) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
 
-    (ownResultCoord, okConstructor, errConstructor)
+    (ownResultCoord, okConstructor.prototype, errConstructor.prototype)
   }
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {

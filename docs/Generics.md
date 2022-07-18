@@ -32,6 +32,89 @@ where  {
 
 It's particularly nice because the call-site can hand in something that's not called `foo`.
 
+This `func foo(int)void` generates three rules (see SROACSD):
+
+ * DefinitionFunc, used when compiling definition, creates a prototype that can later be called.
+ * Resolve, which looks in the current environment for a matching function.
+ * CallSiteFunc, used when compiling call site, which makes sure the given prototype has the right parameters and returns.
+
+If the call-site wants to pass in their own prototype, then they *don't* want that Resolve rule in there. So, we need Resolve only be a *default* expression, only run when the user doesn't specify something.
+
+But we don't want the other two rules (DefinitionFunc, CallSiteFunc) to be defaults, we want those to always be there. So, we'll hoist them out of the generic parameter's "default rules" and into the function's main rules.
+
+
+
+# Call Site Solving Needs Caller Env (CSSNCE)
+
+We have functions like:
+
+```
+func xoo<X>(x X) void
+where func drop(X)void
+{
+  zoo(x);
+}
+
+func zoo<Z>(z Z) void
+where func drop(Z)void
+{
+  ...
+}
+```
+
+We're trying to solve `zoo(x)`. `zoo` requires a `func drop(Z)void` but that only exists in `xoo`'s environment.
+
+So, the callee needs access to the caller's environment.
+
+
+
+# Default Parameters Can Only Depend on Other Default Parameters (DPCODODP)
+
+We had:
+
+```
+struct Functor1<F Prot = func(P1)R> imm
+where P1 Ref, R Ref { }
+```
+
+But when defining it it had no idea what to do. It should have generated a DefinitionCallSR which would produce the right prototype, but it didn't know what coords to use for its param and return.
+
+I believe this means that we should have had some placeholders for the P1 and R.
+
+That then means that P1 and R should have been generic params themselves.
+
+So, it should be like this:
+
+```
+struct Functor1<P1 Ref, R Ref, F Prot = func(P1)R> imm { }
+```
+
+And then we should make placeholders for P1 and R, and let the 3rd param's DefinitionCallSR create a prototype using those two. Then things would work.
+
+
+
+
+
+
+# Require Rune for Function Bound?
+
+In this example:
+
+```
+func moo(i int, b bool) str { return "hello"; }
+
+exported func main() str
+where func moo(int, bool)str
+{
+  return moo(5, true);
+}
+```
+
+It's ambiguous which moo we're referring to. Which one should we use?
+
+We could say that since it's ambiguous, they should stuff it into a rune and then call the rune directly... but this feels like it would be fragile.
+
+
 
 
 

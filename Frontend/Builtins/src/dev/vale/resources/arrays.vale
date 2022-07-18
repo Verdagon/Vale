@@ -8,7 +8,8 @@ extern("vale_static_sized_array_drop_into")
 func drop_into<V, S, E, F>(arr [#S]<mut, V>E, consumer &F) void
 where func(&F, E)void;
 
-func drop<V, S, E>(arr [#S]<mut, V>E) void {
+func drop<V, S, E>(arr [#S]<mut, V>E) void
+where func drop(E)void {
   drop_into(arr, {_;});
 }
 func drop<V, S, E>(arr [#S]<imm, V>E) void {}
@@ -27,7 +28,7 @@ where func drop(E)void {
 }
 
 func drop_into<E, F>(arr []<imm>E, consumer &F) void
-where func(&F, &E)void
+where func(&F, &E)void, func drop(E)void
 {
   i = arr.len() - 1;
   while (i >= 0) {
@@ -35,7 +36,9 @@ where func(&F, &E)void
     set i = i - 1;
   }
 }
-func drop<E>(arr []<imm>E) void {
+
+func drop<E>(arr []<imm>E) void
+where func drop(E)void {
   drop_into(arr, &{_;});
 }
 

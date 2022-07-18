@@ -205,7 +205,7 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     function1: FunctionA):
-  (PrototypeT) = {
+  (PrototypeTemplata) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
       vassert(
@@ -219,7 +219,8 @@ class FunctionCompilerMiddleLayer(
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
     val functionFullName = assembleName(runedEnv.fullName, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
-    vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
+    val p = vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
+    PrototypeTemplata(function1.range, p)
   }
 
   // We would want only the prototype instead of the entire header if, for example,

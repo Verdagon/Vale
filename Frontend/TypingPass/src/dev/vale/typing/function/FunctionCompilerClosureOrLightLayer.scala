@@ -40,21 +40,21 @@ class FunctionCompilerClosureOrLightLayer(
   val ordinaryOrTemplatedLayer =
     new FunctionCompilerOrdinaryOrTemplatedLayer(
       opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, convertHelper, structCompiler, delegate)
-
-  // This is for the early stages of Compiler when it's scanning banners to put in
-  // its env. We just want its banner, we don't want to evaluate it.
-  def predictOrdinaryLightFunctionBanner(
-    outerEnv: IEnvironment,
-    coutputs: CompilerOutputs,
-    function: FunctionA):
-  (FunctionBannerT) = {
-    checkNotClosure(function);
-    vassert(!function.isTemplate)
-
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    ordinaryOrTemplatedLayer.predictOrdinaryFunctionBanner(
-      newEnv, coutputs)
-  }
+//
+//  // This is for the early stages of Compiler when it's scanning banners to put in
+//  // its env. We just want its banner, we don't want to evaluate it.
+//  def predictOrdinaryLightFunctionBanner(
+//    outerEnv: IEnvironment,
+//    coutputs: CompilerOutputs,
+//    function: FunctionA):
+//  (FunctionBannerT) = {
+//    checkNotClosure(function);
+//    vassert(!function.isTemplate)
+//
+//    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+//    ordinaryOrTemplatedLayer.predictOrdinaryFunctionBanner(
+//      newEnv, coutputs)
+//  }
 
 
   def evaluateOrdinaryLightFunctionFromNonCallForBanner(
@@ -72,40 +72,42 @@ class FunctionCompilerClosureOrLightLayer(
   }
 
   def evaluateTemplatedClosureFunctionFromCallForBanner(
-    outerEnv: IEnvironment,
+      declaringEnv: IEnvironment,
       coutputs: CompilerOutputs,
-    callRange: RangeS,
+      callingEnv: IEnvironment,
+      callRange: RangeS,
       closureStructRef: StructTT,
-    function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
+      function: FunctionA,
+      alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes2: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
-    val name = makeNameWithClosureds(outerEnv, function.name)
+    val name = makeNameWithClosureds(declaringEnv, function.name)
     val newEnv =
       BuildingFunctionEnvironmentWithClosureds(
-        outerEnv.globalEnv,
-        outerEnv,
+        declaringEnv.globalEnv,
+        declaringEnv,
         name,
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
         variables)
 
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
-      newEnv, coutputs, callRange, alreadySpecifiedTemplateArgs, argTypes2)
+      newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes2)
   }
 
   def evaluateTemplatedClosureFunctionFromCallForPrototype(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     callRange: RangeS,
     closureStructRef: StructTT,
     function: FunctionA,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes2: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[PrototypeT]) = {
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
@@ -119,38 +121,40 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
-      newEnv, coutputs, callRange, alreadySpecifiedTemplateArgs, argTypes2)
+      newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes2)
   }
 
   def evaluateTemplatedLightFunctionFromCallForPrototype2(
       ourEnv: IEnvironment,
       coutputs: CompilerOutputs,
-    callRange: RangeS,
-    function: FunctionA,
+      callingEnv: IEnvironment, // See CSSNCE
+      callRange: RangeS,
+      function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[PrototypeT]) = {
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     checkNotClosure(function);
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
-      newEnv, coutputs, callRange, explicitTemplateArgs, args)
+      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
 
   def evaluateGenericLightFunctionFromCallForPrototype2(
     ourEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[PrototypeT]) = {
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     checkNotClosure(function);
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromCallForPrototype(
-      newEnv, coutputs, callRange, explicitTemplateArgs, args)
+      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
 
   def evaluateOrdinaryLightFunctionFromNonCallForHeader(
@@ -193,9 +197,10 @@ class FunctionCompilerClosureOrLightLayer(
   def evaluateOrdinaryLightFunctionFromCallForPrototype(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     function: FunctionA
-  ): PrototypeT = {
+  ): PrototypeTemplata = {
     checkNotClosure(function)
     vassert(!function.isTemplate)
 
@@ -209,7 +214,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         Vector.empty)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromCallForPrototype(
-      newEnv, coutputs, callRange)
+      newEnv, callingEnv, coutputs, callRange)
   }
 
   def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
@@ -263,9 +268,10 @@ class FunctionCompilerClosureOrLightLayer(
   def evaluateOrdinaryClosureFunctionFromCallForPrototype(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     closureStructRef: StructTT,
     function: FunctionA):
-  (PrototypeT) = {
+  (PrototypeTemplata) = {
     // We dont here because it knows from how many variables
     // it closures... but even lambdas without closured vars are still closures and are still
     // backed by structs.
@@ -282,7 +288,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromCallForPrototype(
-      newEnv, coutputs)
+      newEnv, callingEnv, coutputs)
   }
 
   def evaluateTemplatedClosureFunctionFromNonCallForHeader(
@@ -314,9 +320,10 @@ class FunctionCompilerClosureOrLightLayer(
   // are a lot of overloads available.
   // This assumes it met any type bound restrictions (or, will; not implemented yet)
   def evaluateTemplatedLightBannerFromCall(
-      functionOuterEnv: IEnvironment,
+      declaringEnv: IEnvironment,
       coutputs: CompilerOutputs,
-    callRange: RangeS,
+      callingEnv: IEnvironment, // See CSSNCE
+      callRange: RangeS,
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[ParamFilter]):
@@ -324,16 +331,17 @@ class FunctionCompilerClosureOrLightLayer(
     checkNotClosure(function)
     vassert(function.isTemplate)
 
-    val newEnv = makeEnvWithoutClosureStuff(functionOuterEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
-        newEnv, coutputs, callRange, explicitTemplateArgs, args)
+        newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
 
   def evaluateTemplatedFunctionFromCallForBanner(
       outerEnv: IEnvironment,
       coutputs: CompilerOutputs,
+      callingEnv: IEnvironment, // See CSSNCE
       function: FunctionA,
-    callRange: RangeS,
+      callRange: RangeS,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       paramFilters: Vector[ParamFilter]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
@@ -341,7 +349,7 @@ class FunctionCompilerClosureOrLightLayer(
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
-        newEnv, coutputs, callRange, alreadySpecifiedTemplateArgs, paramFilters)
+        newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, paramFilters)
   }
 
   private def makeEnvWithoutClosureStuff(

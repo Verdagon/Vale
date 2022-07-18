@@ -14,7 +14,7 @@ import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
-import dev.vale.typing.infer.{CallResultWasntExpectedType, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
+import dev.vale.typing.infer.{CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
@@ -190,10 +190,11 @@ object CompilerErrorHumanizer {
       (if (rejectedCalleeToReason.isEmpty) {
         "No function with that name exists.\n"
       } else {
-        "Rejected candidates:\n" +
-        rejectedCalleeToReason.map({ case (candidate, reason) =>
-          "\n" + humanizeCandidate(codeMap, candidate) + "\n" +
-          "\n" + humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n"
+        "Rejected candidates:\n\n" +
+        rejectedCalleeToReason.zipWithIndex.map({ case ((candidate, reason), index) =>
+          "Candidate " + (index + 1) + ": " +
+            humanizeCandidate(codeMap, candidate) +
+            humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n\n"
         }).mkString("")
       })
   }
@@ -315,6 +316,9 @@ object CompilerErrorHumanizer {
       case SendingNonCitizen(kind) => {
         "Sending non-struct non-interface Kind: " + humanizeTemplata(codeMap, KindTemplata(kind))
       }
+      case CantCheckPlaceholder(range) => {
+        "Cant check a placeholder!"
+      }
       case CouldntFindFunction(range, fff) => {
         "Couldn't find function to call: " + humanizeFindFunctionFailure(false, codeMap, range, fff)
       }
@@ -372,12 +376,14 @@ object CompilerErrorHumanizer {
 
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
-      case HeaderCalleeCandidate(header) => humanizeName(codeMap, header.fullName)
-//      case PrototypeTemplataCalleeCandidate(range, rune, functor) => {
-//        val begin = lineBegin(codeMap, range.begin)
-//        humanizePos(codeMap, begin) + ":\n" +
-//          lineContaining(codeMap, begin) + "\n"
-//      }
+      case HeaderCalleeCandidate(header) => {
+        humanizeName(codeMap, header.fullName)
+      }
+      case PrototypeTemplataCalleeCandidate(range, prototypeT) => {
+        val begin = lineBegin(codeMap, range.begin)
+        humanizePos(codeMap, begin) + ":\n" +
+          lineContaining(codeMap, begin) + "\n"
+      }
       case FunctionCalleeCandidate(ft) => {
         val begin = lineBegin(codeMap, ft.function.range.begin)
         humanizePos(codeMap, begin) + ":\n" +
@@ -416,7 +422,7 @@ object CompilerErrorHumanizer {
           case ShareT => "share"
         }
       }
-      case PrototypeTemplata(prototype) => {
+      case PrototypeTemplata(range, prototype) => {
         humanizeName(codeMap, prototype.fullName)
       }
       case CoordTemplata(CoordT(ownership, kind)) => {

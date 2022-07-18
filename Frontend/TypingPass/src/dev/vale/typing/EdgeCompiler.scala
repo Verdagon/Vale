@@ -88,7 +88,7 @@ class EdgeCompiler(
       Vector(coutputs.getEnvForKind(overridingStruct)),
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
-      case Ok(x) => x
+      case Ok(x) => x.prototype
     }
   }
 

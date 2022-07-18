@@ -91,7 +91,7 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResol
               arrayTT,
               ArgLookupTE(0, paramCoords(0).tyype),
               ArgLookupTE(1, paramCoords(1).tyype),
-              generatorPrototype)))))
+              generatorPrototype.prototype)))))
     header
   }
 }

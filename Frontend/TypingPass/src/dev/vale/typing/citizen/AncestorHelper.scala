@@ -47,6 +47,7 @@ class AncestorHelper(
     val result =
       inferCompiler.solveComplete(
         env,
+        None,
         coutputs,
         rules,
         runeToType,

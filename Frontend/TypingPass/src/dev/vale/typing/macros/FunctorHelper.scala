@@ -15,7 +15,10 @@ import dev.vale.typing.types.CoordT
 
 class FunctorHelper( interner: Interner, keywords: Keywords, structCompiler: StructCompiler) {
   def getFunctorForPrototype(
-    env: FunctionEnvironment, coutputs: CompilerOutputs, callRange: RangeS, dropFunction: PrototypeT):
+    env: FunctionEnvironment,
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    dropFunction: PrototypeTemplata):
   ConstructTE = {
     val functorTemplate =
       env.lookupNearestWithImpreciseName(
@@ -24,9 +27,7 @@ class FunctorHelper( interner: Interner, keywords: Keywords, structCompiler: Str
         case other => vwat(other)
       }
     val functorStructTT =
-      structCompiler.getStructRef(
-        coutputs, callRange, functorTemplate,
-        Vector(PrototypeTemplata(dropFunction)))
+      structCompiler.resolveStruct(coutputs, env, callRange, functorTemplate, Vector(dropFunction))
     val functorTE =
       ConstructTE(functorStructTT, CoordT(ShareT, functorStructTT), Vector())
     functorTE

@@ -6,17 +6,16 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.RuneNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
-import dev.vale.typing.env.CitizenEnvironment
 import dev.vale.typing.names.SelfNameT
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -36,7 +35,7 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
-    fate: IEnvironment,
+    callingEnv: IEnvironment,
     range: RangeS,
     rulesA: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
@@ -45,11 +44,15 @@ class ArrayCompiler(
     variabilityRune: IRuneS,
     callableTE: ReferenceExpressionTE):
   StaticArrayFromCallableTE = {
+//    val builtinNamespaceCoord =
+//      interner.intern(PackageCoordinate(keywords.emptyString, Vector.empty))
+//    val declaringEnv =
+//      PackageEnvironment.makeTopLevelEnvironment(callingEnv.globalEnv, builtinNamespaceCoord)
     val runeToType =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        (nameS: IImpreciseNameS) => vassertOne(fate.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
+        (nameS: IImpreciseNameS) => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
         rulesA,
@@ -60,14 +63,15 @@ class ArrayCompiler(
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
     val templatas =
-      inferCompiler.solveExpectComplete(fate, coutputs, rulesA, runeToType, range, Vector(), Vector())
+      inferCompiler.solveExpectComplete(
+        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRune)))
-    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, fate, range, callableTE)
+    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, range, callableTE)
     val ssaMT =
       getStaticSizedArrayKind(
-        fate.globalEnv, coutputs, mutability, variability, size, prototype.returnType)
+        callingEnv.globalEnv, coutputs, mutability, variability, size, prototype.returnType)
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
@@ -82,7 +86,7 @@ class ArrayCompiler(
 
   def evaluateRuntimeSizedArrayFromCallable(
     coutputs: CompilerOutputs,
-    nenv: NodeEnvironmentBox,
+    callingEnv: NodeEnvironment,
     range: RangeS,
     rulesA: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
@@ -94,7 +98,7 @@ class ArrayCompiler(
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        nameS => vassertOne(nenv.functionEnvironment.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
+        nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
         rulesA,
@@ -106,7 +110,8 @@ class ArrayCompiler(
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
     val templatas =
-      inferCompiler.solveExpectComplete(nenv.functionEnvironment, coutputs, rulesA, runeToType, range, Vector(), Vector())
+      inferCompiler.solveExpectComplete(
+        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -124,10 +129,10 @@ class ArrayCompiler(
 
         val prototype =
           overloadResolver.getArrayGeneratorPrototype(
-            coutputs, nenv.functionEnvironment, range, callableTE)
+            coutputs, callingEnv, range, callableTE)
         val rsaMT =
           getRuntimeSizedArrayKind(
-            nenv.functionEnvironment.globalEnv, coutputs, prototype.returnType, mutability)
+            callingEnv.globalEnv, coutputs, prototype.returnType, mutability)
 
         maybeElementTypeRune.foreach(elementTypeRuneA => {
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
@@ -141,7 +146,7 @@ class ArrayCompiler(
       case MutabilityTemplata(MutableT) => {
         val prototype =
           overloadResolver.findFunction(
-            nenv.functionEnvironment
+            callingEnv
               .addEntries(
                 interner,
                 Vector(
@@ -167,9 +172,9 @@ class ArrayCompiler(
           }
 
         val elementType =
-          prototype.returnType.kind match {
+          prototype.prototype.returnType.kind match {
             case RuntimeSizedArrayTT(mutability, elementType) => {
-              if (mutability != MutableT) {
+              if (mutability != MutabilityTemplata(MutableT)) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong mutability!"))
               }
               elementType
@@ -181,11 +186,12 @@ class ArrayCompiler(
         maybeElementTypeRune.foreach(elementTypeRuneA => {
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
           if (elementType != expectedElementType) {
-            throw CompileErrorExceptionT(UnexpectedArrayElementType(range, expectedElementType, prototype.returnType))
+            throw CompileErrorExceptionT(
+              UnexpectedArrayElementType(range, expectedElementType, prototype.prototype.returnType))
           }
         })
         val callTE =
-          FunctionCallTE(prototype, Vector(sizeTE) ++ maybeCallableTE)
+          FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE)
         callTE
         //        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't construct a mutable runtime array from a callable!"))
       }
@@ -194,20 +200,20 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromValues(
       coutputs: CompilerOutputs,
-      fate: IEnvironment,
+      callingEnv: IEnvironment,
       range: RangeS,
       rulesA: Vector[IRulexSR],
-    maybeElementTypeRuneA: Option[IRuneS],
-    sizeRuneA: IRuneS,
-    mutabilityRuneA: IRuneS,
-    variabilityRuneA: IRuneS,
+      maybeElementTypeRuneA: Option[IRuneS],
+      sizeRuneA: IRuneS,
+      mutabilityRuneA: IRuneS,
+      variabilityRuneA: IRuneS,
       exprs2: Vector[ReferenceExpressionTE]):
    StaticArrayFromValuesTE = {
     val runeToType =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
-        nameS => vassertOne(fate.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
+        nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
         rulesA,
@@ -225,7 +231,7 @@ class ArrayCompiler(
 
     val templatas =
       inferCompiler.solveExpectComplete(
-        fate, coutputs, rulesA, runeToType, range, Vector(), Vector())
+        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
@@ -241,7 +247,7 @@ class ArrayCompiler(
           throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
         }
 
-    val staticSizedArrayType = getStaticSizedArrayKind(fate.globalEnv, coutputs, mutability, variability, IntegerTemplata(exprs2.size), memberType)
+    val staticSizedArrayType = getStaticSizedArrayKind(callingEnv.globalEnv, coutputs, mutability, variability, IntegerTemplata(exprs2.size), memberType)
     val ownership =
       staticSizedArrayType.mutability match {
         case MutabilityTemplata(MutableT) => OwnT

@@ -83,6 +83,82 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
     Ok(Some(result))
   }
 
+  def parseFunctionName(iter: ScrambleIterator): Option[NameP] = {
+    iter.peek() match {
+      case Some(WordLE(range, name)) => {
+        iter.advance()
+        Some(NameP(range, name))
+      }
+      case Some(SymbolLE(_, _)) => {
+        val begin = iter.getPos()
+        iter.peek3() match {
+          case (Some(SymbolLE(_, '=')), Some(SymbolLE(_, '=')), Some(SymbolLE(_, '='))) => {
+            iter.advance()
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.tripleEquals))
+          }
+          case (Some(SymbolLE(_, '<')), Some(SymbolLE(_, '=')), Some(SymbolLE(_, '>'))) => {
+            iter.advance()
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.spaceship))
+          }
+          case (Some(SymbolLE(_, '=')), Some(SymbolLE(_, '=')), _) => {
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.doubleEquals))
+          }
+          case (Some(SymbolLE(_, '!')), Some(SymbolLE(_, '=')), _) => {
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.notEquals))
+          }
+          case (Some(SymbolLE(_, '<')), Some(SymbolLE(_, '=')), _) => {
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.lessEquals))
+          }
+          case (Some(SymbolLE(_, '>')), Some(SymbolLE(_, '=')), _) => {
+            iter.advance()
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.greaterEquals))
+          }
+          case (Some(SymbolLE(_, '<')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.less))
+          }
+          case (Some(SymbolLE(_, '>')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.greater))
+          }
+          case (Some(SymbolLE(_, '+')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.plus))
+          }
+          case (Some(SymbolLE(_, '-')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.minus))
+          }
+          case (Some(SymbolLE(_, '*')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.asterisk))
+          }
+          case (Some(SymbolLE(_, '/')), _, _) => {
+            iter.advance()
+            Some(NameP(RangeL(begin, iter.getPrevEndPos()), keywords.slash))
+          }
+          case _ => None
+        }
+      }
+      case Some(ParendLE(range, _)) => {
+        // Dont iter.advance(), we do that below.
+        Some(NameP(RangeL(range.begin, range.begin), keywords.underscoresCall))
+      }
+      case _ => None
+    }
+  }
+
   def parsePrototype(iter: ScrambleIterator): Result[Option[ITemplexPT], IParseError] = {
     val begin = iter.getPos()
 
@@ -91,78 +167,9 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
     }
 
     val name =
-      iter.peek() match {
-        case Some(WordLE(range, name)) => {
-          iter.advance()
-          NameP(range, name)
-        }
-        case Some(SymbolLE(_, _)) => {
-          val begin = iter.getPos()
-          iter.peek3() match {
-            case (Some(SymbolLE(_, '=')), Some(SymbolLE(_, '=')), Some(SymbolLE(_, '='))) => {
-              iter.advance()
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.tripleEquals)
-            }
-            case (Some(SymbolLE(_, '<')), Some(SymbolLE(_, '=')), Some(SymbolLE(_, '>'))) => {
-              iter.advance()
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.spaceship)
-            }
-            case (Some(SymbolLE(_, '=')), Some(SymbolLE(_, '=')), _) => {
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.doubleEquals)
-            }
-            case (Some(SymbolLE(_, '!')), Some(SymbolLE(_, '=')), _) => {
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.notEquals)
-            }
-            case (Some(SymbolLE(_, '<')), Some(SymbolLE(_, '=')), _) => {
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.lessEquals)
-            }
-            case (Some(SymbolLE(_, '>')), Some(SymbolLE(_, '=')), _) => {
-              iter.advance()
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.greaterEquals)
-            }
-            case (Some(SymbolLE(_, '<')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.less)
-            }
-            case (Some(SymbolLE(_, '>')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.greater)
-            }
-            case (Some(SymbolLE(_, '+')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.plus)
-            }
-            case (Some(SymbolLE(_, '-')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.minus)
-            }
-            case (Some(SymbolLE(_, '*')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.asterisk)
-            }
-            case (Some(SymbolLE(_, '/')), _, _) => {
-              iter.advance()
-              NameP(RangeL(begin, iter.getPrevEndPos()), keywords.slash)
-            }
-            case _ => return Err(BadPrototypeName(iter.getPos()))
-          }
-        }
-        case Some(ParendLE(range, _)) => {
-          // Dont iter.advance(), we do that below.
-          NameP(RangeL(range.begin, range.begin), keywords.underscoresCall)
-        }
-        case _ => return Err(BadPrototypeName(iter.getPos()))
+      parseFunctionName(iter) match {
+        case Some(n) => n
+        case None => return Err(BadPrototypeName(iter.getPos()))
       }
 
     val argsBegin = iter.getPos()

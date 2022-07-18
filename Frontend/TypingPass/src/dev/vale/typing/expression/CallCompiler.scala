@@ -70,15 +70,15 @@ class CallCompiler(
           }
         val argsExprs2 =
           convertHelper.convertExprs(
-            nenv.snapshot, coutputs, range, givenArgsExprs2, prototype.paramTypes)
+            nenv.snapshot, coutputs, range, givenArgsExprs2, prototype.prototype.paramTypes)
 
         checkTypes(
           coutputs,
-          prototype.paramTypes,
+          prototype.prototype.paramTypes,
           argsExprs2.map(a => a.result.reference),
           exact = true)
 
-        (ast.FunctionCallTE(prototype, argsExprs2))
+        (ast.FunctionCallTE(prototype.prototype, argsExprs2))
       }
       case other => {
         evaluateCustomCall(
@@ -132,15 +132,15 @@ class CallCompiler(
       }
     val argsExprs2 =
       convertHelper.convertExprs(
-        nenv, coutputs, range, givenArgsExprs2, prototype.paramTypes)
+        nenv, coutputs, range, givenArgsExprs2, prototype.prototype.paramTypes)
 
     checkTypes(
       coutputs,
-      prototype.paramTypes,
+      prototype.prototype.paramTypes,
       argsExprs2.map(a => a.result.reference),
       exact = true)
 
-    (ast.FunctionCallTE(prototype, argsExprs2))
+    (ast.FunctionCallTE(prototype.prototype, argsExprs2))
   }
 
 
@@ -210,13 +210,13 @@ class CallCompiler(
     val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
     val argTypes = actualArgsExprs2.map(_.result.reference)
-    if (argTypes != prototype2.paramTypes) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.paramTypes + " args: " + argTypes))
+    if (argTypes != prototype2.prototype.paramTypes) {
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.prototype.paramTypes + " args: " + argTypes))
     }
 
-    checkTypes(coutputs, prototype2.paramTypes, argTypes, exact = true)
+    checkTypes(coutputs, prototype2.prototype.paramTypes, argTypes, exact = true)
 
-    val resultingExpr2 = FunctionCallTE(prototype2, actualArgsExprs2);
+    val resultingExpr2 = FunctionCallTE(prototype2.prototype, actualArgsExprs2);
 
     (resultingExpr2)
   }

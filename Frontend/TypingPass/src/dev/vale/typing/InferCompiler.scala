@@ -1,26 +1,20 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{CallSiteFuncSR, CoordSendSR, DefinitionFuncSR, IRulexSR, ResolveSR, RuneUsage}
-import dev.vale.solver.{CompleteSolve, FailedSolve, IIncompleteOrFailedSolve, ISolverOutcome, IncompleteSolve}
-import dev.vale.highertyping._
+import dev.vale.postparsing.rules._
+import dev.vale.solver._
 import dev.vale.postparsing._
-import dev.vale.solver.RuleError
-import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.infer.{CompilerSolver, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.templata.ITemplata
-import dev.vale.typing.citizen.AncestorHelper
-import dev.vale.typing.env.TemplataLookupContext
-import dev.vale.typing.infer._
-import dev.vale.typing.templata._
-import dev.vale.typing.types._
 
-import scala.collection.immutable.List
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+case class InferEnv(
+  // We look in this for declared functions, see CSSNCE.
+  callingEnv: Option[IEnvironment],
+  // We look in this for everything else, such as type names like "int" etc.
+  declaringEnv: IEnvironment,
+)
 
 case class InitialSend(
   senderRune: RuneUsage,
@@ -34,9 +28,10 @@ case class InitialKnown(
 class InferCompiler(
     opts: TypingPassOptions,
     interner: Interner,
-    delegate: IInfererDelegate[IEnvironment, CompilerOutputs]) {
+    delegate: IInfererDelegate[InferEnv, CompilerOutputs]) {
   def solveComplete(
-    env: IEnvironment,
+    declaringEnv: IEnvironment,
+    callingEnv: Option[IEnvironment], // See CSSNCE
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
@@ -44,7 +39,7 @@ class InferCompiler(
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend]):
   Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    solve(env, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
+    solve(declaringEnv, callingEnv, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _, _) => Err(i)
       case CompleteSolve(conclusions) => Ok(conclusions)
@@ -52,7 +47,8 @@ class InferCompiler(
   }
 
   def solveExpectComplete(
-    env: IEnvironment,
+    declaringEnv: IEnvironment,
+    callingEnv: Option[IEnvironment], // See CSSNCE
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
@@ -60,7 +56,7 @@ class InferCompiler(
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend]):
   Map[IRuneS, ITemplata[ITemplataType]] = {
-    solve(env, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
+    solve(declaringEnv, callingEnv, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
@@ -72,7 +68,8 @@ class InferCompiler(
   }
 
   def solve(
-    env: IEnvironment,
+    declaringEnv: IEnvironment,
+    callingEnv: Option[IEnvironment], // See CSSNCE
     state: CompilerOutputs,
     initialRules: Vector[IRulexSR],
     initialRuneToType: Map[IRuneS, ITemplataType],
@@ -81,7 +78,6 @@ class InferCompiler(
     initialSends: Vector[InitialSend]
   ): ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
-
       val runeToType =
         initialRuneToType ++
         initialSends.map({ case InitialSend(senderRune, _, _) =>
@@ -98,9 +94,10 @@ class InferCompiler(
           (senderRune.rune -> senderTemplata)
         })
 
-      new CompilerSolver[IEnvironment, CompilerOutputs](opts.globalOptions, interner, delegate).solve(
+      new CompilerSolver[InferEnv, CompilerOutputs](opts.globalOptions, interner, delegate)
+        .solve(
           invocationRange,
-          env,
+          InferEnv(callingEnv, declaringEnv),
           state,
           rules,
           runeToType,
