@@ -107,7 +107,6 @@ The only question remaining is whether we really can get the stack sizes from a 
 
 
 
-
 # Other Notes
 
 ask schnatsel: if golang is 2k, and doesnt shrink/release memory, is google's approach basically the same?
