@@ -417,7 +417,7 @@ class PostParser(
     val StructP(rangeP, NameP(structNameRange, structHumanName), attributesP, mutabilityPT, maybeGenericParametersP, maybeTemplateRulesP, bodyRange, StructMembersP(_, members)) = head
 
     val structRangeS = PostParser.evalRange(file, rangeP)
-    val structName = interner.intern(postparsing.TopLevelCitizenDeclarationNameS(structHumanName, PostParser.evalRange(file, structNameRange)))
+    val structName = interner.intern(postparsing.TopLevelStructDeclarationNameS(structHumanName, PostParser.evalRange(file, structNameRange)))
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
@@ -565,7 +565,7 @@ class PostParser(
   InterfaceS = {
     val InterfaceP(interfaceRange, NameP(interfaceNameRangeS, interfaceHumanName), attributesP, mutabilityPT, maybeGenericParametersP, maybeRulesP, bodyRange, internalMethodsP) = containingInterfaceP
     val interfaceRangeS = PostParser.evalRange(file, interfaceRange)
-    val interfaceFullName = interner.intern(postparsing.TopLevelCitizenDeclarationNameS(interfaceHumanName, PostParser.evalRange(file, interfaceNameRangeS)))
+    val interfaceFullName = interner.intern(postparsing.TopLevelInterfaceDeclarationNameS(interfaceHumanName, PostParser.evalRange(file, interfaceNameRangeS)))
     val rulesP = maybeRulesP.toVector.flatMap(_.rules)
 
     val lidb = new LocationInDenizenBuilder(Vector())

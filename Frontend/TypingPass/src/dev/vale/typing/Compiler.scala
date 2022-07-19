@@ -597,7 +597,7 @@ class Compiler(
                 } else {
                   if (isRootStruct(structA)) {
                     val templata = StructTemplata(env, structA)
-                    val _ = structCompiler.compileStruct(coutputs, templata, Vector.empty)
+                    structCompiler.compileStruct(coutputs, templata, Vector.empty)
                   }
                 }
               }
@@ -607,7 +607,7 @@ class Compiler(
                 } else {
                   if (isRootInterface(interfaceA)) {
                     val templata = InterfaceTemplata(env, interfaceA)
-                    val _ = structCompiler.compileInterface(coutputs, templata, Vector.empty)
+                    structCompiler.compileInterface(coutputs, templata, Vector.empty)
                   }
                 }
               }
@@ -659,26 +659,27 @@ class Compiler(
         val freeImpreciseName = interner.intern(FreeImpreciseNameS())
         val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
 
-        val immutableKinds =
-          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.templateName) ++
-            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.templateName) ++
-            coutputs.getAllRuntimeSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT)) ++
-            coutputs.getAllStaticSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT))
-        immutableKinds.foreach(kind => {
-          val kindEnv = coutputs.getEnvForKind(kind)
-          functionCompiler.evaluateGenericFunctionFromNonCall(
-            coutputs,
-            kindEnv.lookupNearestWithImpreciseName(freeImpreciseName, Set(ExpressionLookupContext)) match {
-              case Some(ft@FunctionTemplata(_, _)) => ft
-              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
-            })
-          functionCompiler.evaluateGenericFunctionFromNonCall(
-            coutputs,
-            kindEnv.lookupNearestWithImpreciseName(dropImpreciseName, Set(ExpressionLookupContext)) match {
-              case Some(ft@FunctionTemplata(_, _)) => ft
-              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
-            })
-        })
+        vimpl()
+//        val immutableKinds =
+//          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.templateName) ++
+//            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.templateName) ++
+//            coutputs.getAllRuntimeSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT)) ++
+//            coutputs.getAllStaticSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT))
+//        immutableKinds.foreach(kind => {
+//          val kindEnv = coutputs.getEnvForKind(kind)
+//          functionCompiler.evaluateGenericFunctionFromNonCall(
+//            coutputs,
+//            kindEnv.lookupNearestWithImpreciseName(freeImpreciseName, Set(ExpressionLookupContext)) match {
+//              case Some(ft@FunctionTemplata(_, _)) => ft
+//              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
+//            })
+//          functionCompiler.evaluateGenericFunctionFromNonCall(
+//            coutputs,
+//            kindEnv.lookupNearestWithImpreciseName(dropImpreciseName, Set(ExpressionLookupContext)) match {
+//              case Some(ft@FunctionTemplata(_, _)) => ft
+//              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(RangeS.internal(interner, -1663), "Couldn't find free for immutable struct!"))
+//            })
+//        })
 
         Profiler.frame(() => {
 //                val env =
@@ -733,50 +734,51 @@ class Compiler(
           reachableRSAs,
           reachableFunctions) =
         if (opts.treeShakingEnabled) {
-          Profiler.frame(() => {
-            val reachables = Reachability.findReachables(coutputs, interfaceEdgeBlueprints, interfaceToStructToMethods)
-
-            val categorizedFunctions = coutputs.getAllFunctions().groupBy(f => reachables.functions.contains(f.header.toSignature))
-            val reachableFunctions = categorizedFunctions.getOrElse(true, Vector.empty)
-            val unreachableFunctions = categorizedFunctions.getOrElse(false, Vector.empty)
-            unreachableFunctions.foreach(f => debugOut("Shaking out unreachable: " + f.header.fullName))
-            reachableFunctions.foreach(f => debugOut("Including: " + f.header.fullName))
-
-            val categorizedSSAs = coutputs.getAllStaticSizedArrays().groupBy(f => reachables.staticSizedArrays.contains(f))
-            val reachableSSAs = categorizedSSAs.getOrElse(true, Vector.empty)
-            val unreachableSSAs = categorizedSSAs.getOrElse(false, Vector.empty)
-            unreachableSSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
-            reachableSSAs.foreach(f => debugOut("Including: " + f))
-
-            val categorizedRSAs = coutputs.getAllRuntimeSizedArrays().groupBy(f => reachables.runtimeSizedArrays.contains(f))
-            val reachableRSAs = categorizedRSAs.getOrElse(true, Vector.empty)
-            val unreachableRSAs = categorizedRSAs.getOrElse(false, Vector.empty)
-            unreachableRSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
-            reachableRSAs.foreach(f => debugOut("Including: " + f))
-
-            val categorizedStructs = coutputs.getAllStructs().groupBy(f => reachables.structs.contains(f.getRef))
-            val reachableStructs = categorizedStructs.getOrElse(true, Vector.empty)
-            val unreachableStructs = categorizedStructs.getOrElse(false, Vector.empty)
-            unreachableStructs.foreach(f => {
-              debugOut("Shaking out unreachable: " + f.fullName)
-            })
-            reachableStructs.foreach(f => debugOut("Including: " + f.fullName))
-
-            val categorizedInterfaces = coutputs.getAllInterfaces().groupBy(f => reachables.interfaces.contains(f.getRef))
-            val reachableInterfaces = categorizedInterfaces.getOrElse(true, Vector.empty)
-            val unreachableInterfaces = categorizedInterfaces.getOrElse(false, Vector.empty)
-            unreachableInterfaces.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
-            reachableInterfaces.foreach(f => debugOut("Including: " + f.fullName))
-
-            val categorizedEdges =
-              edges.groupBy(f => reachables.edges.contains(f))
-            val reachableEdges = categorizedEdges.getOrElse(true, Vector.empty)
-            val unreachableEdges = categorizedEdges.getOrElse(false, Vector.empty)
-            unreachableEdges.foreach(f => debugOut("Shaking out unreachable: " + f))
-            reachableEdges.foreach(f => debugOut("Including: " + f))
-
-            (reachableInterfaces, reachableStructs, reachableSSAs, reachableRSAs, reachableFunctions)
-          })
+          vimpl()
+//          Profiler.frame(() => {
+//            val reachables = Reachability.findReachables(coutputs, interfaceEdgeBlueprints, interfaceToStructToMethods)
+//
+//            val categorizedFunctions = coutputs.getAllFunctions().groupBy(f => reachables.functions.contains(f.header.toSignature))
+//            val reachableFunctions = categorizedFunctions.getOrElse(true, Vector.empty)
+//            val unreachableFunctions = categorizedFunctions.getOrElse(false, Vector.empty)
+//            unreachableFunctions.foreach(f => debugOut("Shaking out unreachable: " + f.header.fullName))
+//            reachableFunctions.foreach(f => debugOut("Including: " + f.header.fullName))
+//
+//            val categorizedSSAs = coutputs.getAllStaticSizedArrays().groupBy(f => reachables.staticSizedArrays.contains(f))
+//            val reachableSSAs = categorizedSSAs.getOrElse(true, Vector.empty)
+//            val unreachableSSAs = categorizedSSAs.getOrElse(false, Vector.empty)
+//            unreachableSSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
+//            reachableSSAs.foreach(f => debugOut("Including: " + f))
+//
+//            val categorizedRSAs = coutputs.getAllRuntimeSizedArrays().groupBy(f => reachables.runtimeSizedArrays.contains(f))
+//            val reachableRSAs = categorizedRSAs.getOrElse(true, Vector.empty)
+//            val unreachableRSAs = categorizedRSAs.getOrElse(false, Vector.empty)
+//            unreachableRSAs.foreach(f => debugOut("Shaking out unreachable: " + f))
+//            reachableRSAs.foreach(f => debugOut("Including: " + f))
+//
+//            val categorizedStructs = coutputs.getAllStructs().groupBy(f => reachables.structs.contains(f.getRef))
+//            val reachableStructs = categorizedStructs.getOrElse(true, Vector.empty)
+//            val unreachableStructs = categorizedStructs.getOrElse(false, Vector.empty)
+//            unreachableStructs.foreach(f => {
+//              debugOut("Shaking out unreachable: " + f.fullName)
+//            })
+//            reachableStructs.foreach(f => debugOut("Including: " + f.fullName))
+//
+//            val categorizedInterfaces = coutputs.getAllInterfaces().groupBy(f => reachables.interfaces.contains(f.getRef))
+//            val reachableInterfaces = categorizedInterfaces.getOrElse(true, Vector.empty)
+//            val unreachableInterfaces = categorizedInterfaces.getOrElse(false, Vector.empty)
+//            unreachableInterfaces.foreach(f => debugOut("Shaking out unreachable: " + f.fullName))
+//            reachableInterfaces.foreach(f => debugOut("Including: " + f.fullName))
+//
+//            val categorizedEdges =
+//              edges.groupBy(f => reachables.edges.contains(f))
+//            val reachableEdges = categorizedEdges.getOrElse(true, Vector.empty)
+//            val unreachableEdges = categorizedEdges.getOrElse(false, Vector.empty)
+//            unreachableEdges.foreach(f => debugOut("Shaking out unreachable: " + f))
+//            reachableEdges.foreach(f => debugOut("Including: " + f))
+//
+//            (reachableInterfaces, reachableStructs, reachableSSAs, reachableRSAs, reachableFunctions)
+//          })
         } else {
           (
             coutputs.getAllInterfaces(),
@@ -786,26 +788,27 @@ class Compiler(
             coutputs.getAllFunctions())
         }
 
-      val allKinds =
-        reachableStructs.map(_.getRef) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs
-      val reachableImmKinds: Vector[KindT] =
-        allKinds
-          .filter({
-            case s@StructTT(_) => coutputs.lookupMutability(s) == ImmutableT
-            case i@InterfaceTT(_) => coutputs.lookupMutability(i) == ImmutableT
-            case StaticSizedArrayTT(_, m, _, _) => m == ImmutableT
-            case RuntimeSizedArrayTT(m, _) => m == ImmutableT
-            case _ => true
-          })
-          .toVector
-      val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(coutputs.findImmDestructor)).toMap
+      vimpl()
+//      val allKinds =
+//        reachableStructs.map(_.place) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs
+//      val reachableImmKinds: Vector[KindT] =
+//        allKinds
+//          .filter({
+//            case s@StructTT(_) => coutputs.lookupMutability(s) == ImmutableT
+//            case i@InterfaceTT(_) => coutputs.lookupMutability(i) == ImmutableT
+//            case StaticSizedArrayTT(_, m, _, _) => m == ImmutableT
+//            case RuntimeSizedArrayTT(m, _) => m == ImmutableT
+//            case _ => true
+//          })
+//          .toVector
+//      val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(coutputs.findImmDestructor)).toMap
 
       val hinputs =
           vale.typing.Hinputs(
-            reachableInterfaces.toVector,
-            reachableStructs.toVector,
-            reachableFunctions.toVector,
-            reachableImmKindToDestructor,
+            vimpl(),//reachableInterfaces.toVector,
+            vimpl(),//reachableStructs.toVector,
+            vimpl(),//reachableFunctions.toVector,
+            vimpl(),//reachableImmKindToDestructor,
             interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
             edges.toVector,
             coutputs.getKindExports,
@@ -872,7 +875,7 @@ class Compiler(
             val structDef = coutputs.lookupStruct(sr)
             structDef.members.foreach({ case StructMemberT(_, _, member) =>
               val CoordT(_, memberKind) = member.reference
-              if (structDef.mutability == ImmutableT && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
+              if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
                 throw CompileErrorExceptionT(
                   vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
                     export.range, packageCoord, exportedKind, memberKind))
@@ -880,14 +883,14 @@ class Compiler(
             })
           }
           case StaticSizedArrayTT(_, mutability, _, CoordT(_, elementKind)) => {
-            if (mutability == ImmutableT && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
+            if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
                   export.range, packageCoord, exportedKind, elementKind))
             }
           }
           case RuntimeSizedArrayTT(mutability, CoordT(_, elementKind)) => {
-            if (mutability == ImmutableT && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
+            if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
                   export.range, packageCoord, exportedKind, elementKind))

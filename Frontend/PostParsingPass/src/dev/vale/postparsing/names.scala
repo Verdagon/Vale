@@ -52,11 +52,22 @@ case class ForwarderFunctionDeclarationNameS(inner: IFunctionDeclarationNameS, i
   override def packageCoordinate: PackageCoordinate = inner.packageCoordinate
   override def getImpreciseName(interner: Interner): IImpreciseNameS = inner.getImpreciseName(interner)
 }
-case class TopLevelCitizenDeclarationNameS(name: StrI, range: RangeS) extends ICitizenDeclarationNameS {
-
-  vpass()
+sealed trait TopLevelCitizenDeclarationNameS extends ICitizenDeclarationNameS {
+  def name: StrI
+  def range: RangeS
   override def packageCoordinate: PackageCoordinate = range.file.packageCoordinate
   override def getImpreciseName(interner: Interner): IImpreciseNameS = interner.intern(CodeNameS(name))
+}
+object TopLevelCitizenDeclarationNameS {
+  def unapply(n: TopLevelCitizenDeclarationNameS): Option[(StrI, RangeS)] = {
+    Some((n.name, n.range))
+  }
+}
+sealed trait IStructDeclarationNameS extends ICitizenDeclarationNameS
+case class TopLevelStructDeclarationNameS(name: StrI, range: RangeS) extends IStructDeclarationNameS with TopLevelCitizenDeclarationNameS {
+}
+sealed trait IInterfaceDeclarationNameS extends ICitizenDeclarationNameS
+case class TopLevelInterfaceDeclarationNameS(name: StrI, range: RangeS) extends IInterfaceDeclarationNameS with TopLevelCitizenDeclarationNameS {
 }
 case class LambdaStructDeclarationNameS(lambdaName: LambdaDeclarationNameS) extends INameS {
   def getImpreciseName(interner: Interner): LambdaStructImpreciseNameS = interner.intern(LambdaStructImpreciseNameS(lambdaName.getImpreciseName(interner)))
@@ -65,7 +76,7 @@ case class LambdaStructImpreciseNameS(lambdaName: LambdaImpreciseNameS) extends 
 case class ImplDeclarationNameS(codeLocation: CodeLocationS) extends IImplDeclarationNameS {
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
 }
-case class AnonymousSubstructImplDeclarationNameS(interface: TopLevelCitizenDeclarationNameS) extends IImplDeclarationNameS {
+case class AnonymousSubstructImplDeclarationNameS(interface: TopLevelInterfaceDeclarationNameS) extends IImplDeclarationNameS {
   override def packageCoordinate: PackageCoordinate = interface.packageCoordinate
 }
 case class ExportAsNameS(codeLocation: CodeLocationS) extends INameS {  }
@@ -73,8 +84,7 @@ case class LetNameS(codeLocation: CodeLocationS) extends INameS {  }
 //case class UnnamedLocalNameS(codeLocation: CodeLocationS) extends IVarNameS {  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ClosureParamNameS() extends IVarNameS with IImpreciseNameS {  }
 case class MagicParamNameS(codeLocation: CodeLocationS) extends IVarNameS {  }
-case class AnonymousSubstructTemplateNameS(interfaceName: TopLevelCitizenDeclarationNameS) extends ICitizenDeclarationNameS {
-
+case class AnonymousSubstructTemplateNameS(interfaceName: TopLevelInterfaceDeclarationNameS) extends IStructDeclarationNameS {
   vpass()
   override def packageCoordinate: PackageCoordinate = interfaceName.packageCoordinate
   override def getImpreciseName(interner: Interner): IImpreciseNameS = interner.intern(AnonymousSubstructTemplateImpreciseNameS(interfaceName.getImpreciseName(interner)))
@@ -138,9 +148,8 @@ case class SelfOwnershipRuneS() extends IRuneS {  }
 case class SelfKindRuneS() extends IRuneS {  }
 case class SelfKindTemplateRuneS() extends IRuneS {  }
 case class CodeNameS(name: StrI) extends IImpreciseNameS {
-
   vpass()
-  vassert(name != "_")
+  vassert(name.str != "_")
 }
 // When we're calling a function, we're addressing an overload set, not a specific function.
 // If we want a specific function, we use TopLevelDeclarationNameS.

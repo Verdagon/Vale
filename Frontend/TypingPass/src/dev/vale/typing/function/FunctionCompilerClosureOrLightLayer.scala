@@ -389,7 +389,7 @@ class FunctionCompilerClosureOrLightLayer(
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
     val variables =
       closureStructDef.members.map(member => {
-        val variableFullName = closureStructDef.fullName.addStep(member.name)
+        val variableFullName = closureStructDef.templateName.addStep(member.name)
         member.tyype match {
           case AddressMemberTypeT(reference) => {
             AddressibleClosureVariableT(variableFullName, closureStructRef, member.variability, reference)

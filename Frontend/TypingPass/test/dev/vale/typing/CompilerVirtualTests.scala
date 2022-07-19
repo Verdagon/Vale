@@ -1,11 +1,10 @@
 package dev.vale.typing
 
 import dev.vale.typing.ast.AsSubtypeTE
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, vassert}
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types.InterfaceTT
 import org.scalatest.{FunSuite, Matchers}
 
@@ -105,10 +104,10 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     Collector.only(coutputs.lookupFunction("as"), {
       case as @ AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor) => {
         sourceExpr.result.reference match {
-          case CoordT(BorrowT,InterfaceTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT(StrI("IShip")),Vector())))) =>
+          case CoordT(BorrowT,InterfaceTT(FullNameT(_, Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))) =>
         }
         targetSubtype match {
-          case StructTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT(StrI("Raza")),Vector()))) =>
+          case StructTT(FullNameT(_, Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))) =>
         }
         val (firstGenericArg, secondGenericArg) =
           resultOptType match {
@@ -117,8 +116,8 @@ class CompilerVirtualTests extends FunSuite with Matchers {
               InterfaceTT(
                 FullNameT(
                   _, Vector(),
-                  CitizenNameT(
-                    CitizenTemplateNameT(StrI("Result")),
+                  InterfaceNameT(
+                    InterfaceTemplateNameT(StrI("Result")),
                     Vector(firstGenericArg, secondGenericArg))))) => (firstGenericArg, secondGenericArg)
           }
         // They should both be pointers, since we dont really do borrows in structs yet
@@ -126,13 +125,13 @@ class CompilerVirtualTests extends FunSuite with Matchers {
           case CoordTemplata(
             CoordT(
               BorrowT,
-              StructTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT(StrI("Raza")),Vector()))))) =>
+              StructTT(FullNameT(_, Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))) =>
         }
         secondGenericArg match {
           case CoordTemplata(
             CoordT(
               BorrowT,
-              InterfaceTT(FullNameT(_, Vector(),CitizenNameT(CitizenTemplateNameT(StrI("IShip")),Vector()))))) =>
+              InterfaceTT(FullNameT(_, Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector()))))) =>
         }
         vassert(okConstructor.paramTypes.head.kind == targetSubtype)
         vassert(errConstructor.paramTypes.head.kind == sourceExpr.result.reference.kind)

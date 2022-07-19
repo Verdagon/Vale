@@ -103,15 +103,15 @@ class ClosureTests extends FunSuite with Matchers {
     Collector.only(main, {
       case LetNormalTE(
         ReferenceLocalVariableT(
-          FullNameT(_, Vector(FunctionNameT(StrI("main"), _, _), LambdaCitizenNameT(_), FunctionNameT(StrI("__call"), _, _)), ClosureParamNameT()),
+          FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _), _, _), LambdaCitizenNameT(_), FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)), ClosureParamNameT()),
           FinalT,
-          CoordT(ShareT, StructTT(FullNameT(_, Vector(FunctionNameT(StrI("main"), Vector(), Vector())), LambdaCitizenNameT(_))))),
+          CoordT(ShareT, StructTT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _), Vector(), Vector())), LambdaCitizenNameT(_))))),
         _) =>
     })
     Collector.only(main, {
       case LetNormalTE(
         ReferenceLocalVariableT(
-          FullNameT(_, Vector(FunctionNameT(StrI("main"),_,_), LambdaCitizenNameT(_), FunctionNameT(StrI("__call"),_,_)),TypingPassBlockResultVarNameT(_)),
+          FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),_,_), LambdaCitizenNameT(_), FunctionNameT(FunctionTemplateNameT(StrI("__call"), _),_,_)),TypingPassBlockResultVarNameT(_)),
           FinalT,
           CoordT(ShareT,IntT.i32)),
         _) =>
@@ -145,19 +145,19 @@ class ClosureTests extends FunSuite with Matchers {
       vassertSome(
         coutputs.functions.find(func => {
           func.header.fullName.last match {
-            case FunctionNameT(StrI("__call"), _, _) => true
+            case FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _) => true
             case _ => false
           }
         }))
     lambdaCall.header.paramTypes.head match {
-      case CoordT(ShareT, StructTT(FullNameT(_, Vector(FunctionNameT(StrI("main"),Vector(),Vector())),LambdaCitizenNameT(_)))) =>
+      case CoordT(ShareT, StructTT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector())),LambdaCitizenNameT(_)))) =>
     }
     lambdaCall.header.returnType shouldEqual CoordT(ShareT, IntT.i32)
 
     // Make sure we make it with a function pointer and a constructed vars struct
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case ConstructTE(StructTT(FullNameT(_, Vector(FunctionNameT(StrI("main"),Vector(),Vector())),LambdaCitizenNameT(_))), _, _) =>
+      case ConstructTE(StructTT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector())),LambdaCitizenNameT(_))), _, _) =>
     })
 
     // Make sure we call the function somewhere
@@ -190,7 +190,7 @@ class ClosureTests extends FunSuite with Matchers {
     val lambda = coutputs.lookupLambdaIn("main")
     Collector.only(lambda, {
       case MutateTE(
-        AddressMemberLookupTE(_,_,FullNameT(_, Vector(FunctionNameT(StrI("main"),Vector(),Vector()), LambdaCitizenNameT(_)),CodeVarNameT(StrI("x"))),CoordT(ShareT,IntT.i32), _),
+        AddressMemberLookupTE(_,_,FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector()), LambdaCitizenNameT(_)),CodeVarNameT(StrI("x"))),CoordT(ShareT,IntT.i32), _),
         _) =>
     })
 

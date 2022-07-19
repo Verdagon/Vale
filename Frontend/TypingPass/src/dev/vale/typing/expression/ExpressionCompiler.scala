@@ -668,10 +668,10 @@ class ExpressionCompiler(
                     case None => throw CompileErrorExceptionT(CouldntFindMemberT(range, memberName.name.str))
                     case Some(x) => x
                   }
-                val memberFullName = structDef.fullName.addStep(structDef.members(memberIndex).name)
+                val memberFullName = structDef.templateName.addStep(structDef.members(memberIndex).name)
                 val memberType = structMember.tyype.expectReferenceMember().reference;
 
-                vassert(structDef.members.exists(member => structDef.fullName.addStep(member.name) == memberFullName))
+                vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
 
                 ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, structMember.variability)
               }

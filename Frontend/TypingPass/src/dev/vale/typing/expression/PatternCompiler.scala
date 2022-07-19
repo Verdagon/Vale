@@ -460,7 +460,8 @@ class PatternCompiler(
     range: RangeS,
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
-    index: Int) = {
+    index: Int):
+  ReferenceMemberLookupTE = {
     val structDefT = coutputs.lookupStruct(structTT)
 
     val member = structDefT.members(index)
@@ -470,7 +471,7 @@ class PatternCompiler(
     ReferenceMemberLookupTE(
       range,
       containerAlias,
-      structDefT.fullName.addStep(structDefT.members(index).name),
+      structDefT.templateName.addStep(structDefT.members(index).name),
       memberCoord,
       member.variability)
   }

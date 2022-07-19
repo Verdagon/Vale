@@ -2,7 +2,7 @@ package dev.vale.typing
 
 //import dev.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 //import dev.vale.astronomer.VirtualFreeImpreciseNameS
-import dev.vale.{Err, Interner, Ok, RangeS, vassert, vassertSome, vcurious}
+import dev.vale.{Err, Interner, Ok, RangeS, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.TemplatasStore
@@ -10,7 +10,6 @@ import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
 import dev.vale.typing.types._
-import dev.vale.Err
 
 sealed trait IMethod
 case class NeededOverride(
@@ -106,7 +105,7 @@ class EdgeCompiler(
           // Sort so that the interface's internal methods are first and in the same order
           // they were declared in. It feels right, and vivem also depends on it
           // when it calls array generators/consumers' first method.
-          val interfaceDef = coutputs.getAllInterfaces().find(_.getRef == interfaceTT).get
+          val interfaceDef = coutputs.getAllInterfaces().find(_ == vimpl()/*_.getRef == interfaceTT*/).get
           // Make sure `functions` has everything that the interface def wanted.
           vassert((interfaceDef.internalMethods.map(_.toSignature).toSet -- functions.map(_.header.toSignature).toSet).isEmpty)
           // Move all the internal methods to the front.
@@ -122,7 +121,8 @@ class EdgeCompiler(
     val abstractFunctionHeadersByInterface =
     abstractFunctionHeadersByInterfaceWithoutEmpties ++
       coutputs.getAllInterfaces().map({ case i =>
-        (i.getRef -> abstractFunctionHeadersByInterfaceWithoutEmpties.getOrElse(i.getRef, Set()))
+        vimpl()
+        //(i.getRef -> abstractFunctionHeadersByInterfaceWithoutEmpties.getOrElse(i.getRef, Set()))
       })
 
     val interfaceEdgeBlueprints =

@@ -4,7 +4,7 @@ import dev.vale.{RangeS, vassert, vassertOne, vfail, vimpl}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, NameTranslator, PlaceholderNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -63,7 +63,12 @@ object TemplataCompiler {
     FullNameT(packageCoord, initSteps, last.template)
   }
 
-  def getCitizenTemplate(fullName: FullNameT[ICitizenNameT]): FullNameT[ICitizenTemplateNameT] = {
+  def getStructTemplate(fullName: FullNameT[IStructNameT]): FullNameT[IStructTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getInterfaceTemplate(fullName: FullNameT[IInterfaceNameT]): FullNameT[IInterfaceTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
   }
@@ -93,7 +98,7 @@ object TemplataCompiler {
             packageCoord,
             initSteps,
             last match {
-              case CitizenNameT(template, templateArgs) => CitizenNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+              case StructNameT(template, templateArgs) => StructNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
             }))
       }
       case InterfaceTT(FullNameT(packageCoord, initSteps, last)) => {
@@ -102,7 +107,7 @@ object TemplataCompiler {
             packageCoord,
             initSteps,
             last match {
-              case CitizenNameT(template, templateArgs) => CitizenNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+              case InterfaceNameT(template, templateArgs) => InterfaceNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
             }))
       }
     }
