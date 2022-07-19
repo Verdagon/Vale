@@ -33,7 +33,6 @@ class StructCompilerMiddle(
   def compileStruct(
     structOuterEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
     structS: StructA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (StructTT) = {
@@ -58,8 +57,6 @@ class StructCompilerMiddle(
 
   def resolveStruct(
     structOuterEnv: IEnvironment,
-    coutputs: CompilerOutputs,
-    callRange: RangeS,
     structS: StructA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (StructTT) = {
@@ -75,17 +72,32 @@ class StructCompilerMiddle(
             interner,
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    val structDefinition2 =
-      core.resolveStruct(
-        localEnv, coutputs, structS, coercedFinalTemplateArgs2);
-
-    (structDefinition2.getRef)
+    core.resolveStruct(localEnv, structS, coercedFinalTemplateArgs2);
   }
 
-  def getInterfaceRef(
+  def resolveInterface(
+    interfaceOuterEnv: IEnvironment,
+    interfaceA: InterfaceA,
+    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    val coercedFinalTemplateArgs2 = interfaceA.genericParameters.map(_.rune.rune).map(templatasByRune)
+
+    val localEnv =
+      env.CitizenEnvironment(
+        interfaceOuterEnv.globalEnv,
+        interfaceOuterEnv,
+        interfaceOuterEnv.fullName,
+        env.TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
+          .addEntries(
+            interner,
+            templatasByRune.toVector
+              .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+    core.resolveInterface(localEnv, interfaceA, coercedFinalTemplateArgs2)
+  }
+
+  def compileInterface(
     interfaceOuterEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
     interfaceA: InterfaceA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   (InterfaceTT) = {

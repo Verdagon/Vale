@@ -4,12 +4,11 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, IFunctionNameT, INameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, INameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
-import dev.vale.typing.names.AnonymousSubstructNameT
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata}
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.immutable.{List, Map}
@@ -41,12 +40,12 @@ case class CompilerOutputs() {
   private val mutabilitiesByCitizenRef: mutable.HashMap[CitizenRefT, ITemplata[MutabilityTemplataType]] = mutable.HashMap()
 
   // declaredKinds is the structs that we're currently in the process of defining
-  // Things will appear here before they appear in structDefsByRef/interfaceDefsByRef
+  // Things will appear here before they appear in structTemplateNameToDefinition/interfaceTemplateNameToDefinition
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
   private val declaredKinds: mutable.HashSet[KindT] = mutable.HashSet()
-  private val structDefsByRef: mutable.HashMap[StructTT, StructDefinitionT] = mutable.HashMap()
   private val envByKind: mutable.HashMap[KindT, IEnvironment] = mutable.HashMap()
-  private val interfaceDefsByRef: mutable.HashMap[InterfaceTT, InterfaceDefinitionT] = mutable.HashMap()
+  private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[ICitizenTemplateNameT], StructDefinitionT] = mutable.HashMap()
+  private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[ICitizenTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
   private val impls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
 
@@ -71,8 +70,8 @@ case class CompilerOutputs() {
     staticSizedArrayTypes.size +
       runtimeSizedArrayTypes.size +
       functionsBySignature.size +
-      structDefsByRef.size +
-      interfaceDefsByRef.size
+      structTemplateNameToDefinition.size +
+      interfaceTemplateNameToDefinition.size
   }
 
 //  def peekNextDeferredEvaluatingFunction(): Option[DeferredEvaluatingFunction] = {
@@ -93,7 +92,7 @@ case class CompilerOutputs() {
       functionsBySignature.values
         .filter({
 //          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
-          case getFunctionLastName(FreeNameT(_, k)) if k == kind => true
+          case getFunctionLastName(FreeNameT(_, _, k)) if k == kind => true
           case _ => false
         }))
       .header.toPrototype
@@ -179,18 +178,18 @@ case class CompilerOutputs() {
   }
 
   def add(structDef: StructDefinitionT): Unit = {
-    if (structDef.mutability == ImmutableT) {
+    if (structDef.mutability == MutabilityTemplata(ImmutableT)) {
       if (structDef.members.exists(_.tyype.reference.ownership != ShareT)) {
         vfail("ImmutableP contains a non-immutable!")
       }
     }
-    vassert(!structDefsByRef.contains(structDef.getRef))
-    structDefsByRef += (structDef.getRef -> structDef)
+    vassert(!structTemplateNameToDefinition.contains(structDef.templateName))
+    structTemplateNameToDefinition += (structDef.templateName -> structDef)
   }
 
   def add(interfaceDef: InterfaceDefinitionT): Unit = {
-    vassert(!interfaceDefsByRef.contains(interfaceDef.getRef))
-    interfaceDefsByRef += (interfaceDef.getRef -> interfaceDef)
+    vassert(!interfaceTemplateNameToDefinition.contains(interfaceDef.templateName))
+    interfaceTemplateNameToDefinition += (interfaceDef.templateName -> interfaceDef)
   }
 
   def addStaticSizedArray(ssaTT: StaticSizedArrayTT): Unit = {
@@ -257,19 +256,12 @@ case class CompilerOutputs() {
     }
   }
 
-  def lookupStruct(structTT: StructTT): StructDefinitionT = {
-    // If it has a structTT, then we're done (or at least have started) stamping it
-    // If this throws an error, then you should not use this function, you should
-    // do structDefsByRef.get(structTT) yourself and handle the None case
-    vassertSome(structDefsByRef.get(structTT))
-  }
-
-  def lookupCitizen(citizenRef: CitizenRefT): CitizenDefinitionT = {
-    citizenRef match {
-      case s @ StructTT(_) => lookupStruct(s)
-      case i @ InterfaceTT(_) => lookupInterface(i)
-    }
-  }
+//  def lookupCitizen(citizenRef: CitizenRefT): CitizenDefinitionT = {
+//    citizenRef match {
+//      case s @ StructTT(_) => lookupStruct(s)
+//      case i @ InterfaceTT(_) => lookupInterface(i)
+//    }
+//  }
 
   def interfaceDeclared(interfaceTT: InterfaceTT): Option[InterfaceTT] = {
     // This is the only place besides InterfaceDefinition2 and declareInterface thats allowed to make one of these
@@ -281,15 +273,24 @@ case class CompilerOutputs() {
     }
   }
 
+  def lookupStruct(structTT: StructTT): StructDefinitionT = {
+    // If it has a structTT, then we're done (or at least have started) stamping it
+    // If this throws an error, then you should not use this function, you should
+    // do structTemplateNameToDefinition.get(structTT) yourself and handle the None case
+    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
+    vassertSome(structTemplateNameToDefinition.get(templateName))
+  }
+
   def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
     // If it has a interfaceTT, then we're done (or at least have started) stamping it.
     // If this throws an error, then you should not use this function, you should
-    // do interfaceDefsByRef.get(interfaceTT) yourself and handle the None case
-    interfaceDefsByRef(interfaceTT)
+    // do interfaceTemplateNameToDefinition.get(interfaceTT) yourself and handle the None case
+    val templateName = TemplataCompiler.getCitizenTemplate(interfaceTT.fullName)
+    interfaceTemplateNameToDefinition(templateName)
   }
 
-  def getAllStructs(): Iterable[StructDefinitionT] = structDefsByRef.values
-  def getAllInterfaces(): Iterable[InterfaceDefinitionT] = interfaceDefsByRef.values
+  def getAllStructs(): Iterable[StructDefinitionT] = structTemplateNameToDefinition.values
+  def getAllInterfaces(): Iterable[InterfaceDefinitionT] = interfaceTemplateNameToDefinition.values
   def getAllFunctions(): Iterable[FunctionT] = functionsBySignature.values
   def getAllImpls(): Iterable[ImplT] = impls
   def getAllStaticSizedArrays(): Iterable[StaticSizedArrayTT] = staticSizedArrayTypes.values
@@ -305,9 +306,6 @@ case class CompilerOutputs() {
   def getEnvForKind(sr: KindT): IEnvironment = {
     vassertSome(envByKind.get(sr))
   }
-  def getInterfaceDefForRef(ir: InterfaceTT): InterfaceDefinitionT = {
-    vassertSome(interfaceDefsByRef.get(ir))
-  }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)
   }
@@ -317,9 +315,6 @@ case class CompilerOutputs() {
 //  def getDeclaredSignatureOrigin(name: FullNameT[IFunctionNameT]): Option[RangeS] = {
 //    declaredSignatures.get(ast.SignatureT(name))
 //  }
-  def getStructDefForRef(sr: StructTT): StructDefinitionT = {
-    structDefsByRef(sr)
-  }
   def getRuntimeSizedArray(mutabilityT: ITemplata[MutabilityTemplataType], elementType: CoordT): Option[RuntimeSizedArrayTT] = {
     runtimeSizedArrayTypes.get((mutabilityT, elementType))
   }

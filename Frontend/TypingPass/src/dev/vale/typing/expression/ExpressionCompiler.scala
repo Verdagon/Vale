@@ -1179,7 +1179,8 @@ class ExpressionCompiler(
         case _ => vfail()
       }
     val optInterfaceRef =
-      structCompiler.getInterfaceRef(coutputs, range, interfaceTemplata, Vector(CoordTemplata(containedCoord)))
+      structCompiler.resolveInterface(
+        coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedCoord)))
     val ownOptCoord = CoordT(OwnT, optInterfaceRef)
 
     val someConstructorTemplata =
@@ -1221,7 +1222,7 @@ class ExpressionCompiler(
         case _ => vfail()
       }
     val resultInterfaceRef =
-      structCompiler.getInterfaceRef(coutputs, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)))
+      structCompiler.resolveInterface(coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)))
     val ownResultCoord = CoordT(OwnT, resultInterfaceRef)
 
     val okConstructorTemplata =

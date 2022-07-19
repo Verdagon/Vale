@@ -37,135 +37,28 @@ class StructCompilerCore(
   def resolveStruct(
     // The environment that the struct was defined in.
     structRunesEnv: CitizenEnvironment[INameT],
-    coutputs: CompilerOutputs,
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructDefinitionT) = {
+  (StructTT) = {
     val templateNameT = nameTranslator.translateCitizenName(structA.name)
     val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
     val fullNameT = structRunesEnv.fullName.addStep(structNameT)
     val temporaryStructRef = interner.intern(StructTT(fullNameT))
 
-    val attributesWithoutExportOrMacros =
-      structA.attributes.filter({
-        case ExportS(_) => false
-        case MacroCallS(range, dontCall, macroName) => false
-        case _ => true
-      })
+    temporaryStructRef
+  }
 
-    val maybeExport =
-      structA.attributes.collectFirst { case e@ExportS(_) => e }
-
-    val mutability =
-      structRunesEnv.lookupNearestWithImpreciseName(
-        interner.intern(RuneNameS(structA.mutabilityRune.rune)),
-        Set(TemplataLookupContext)).toList match {
-        case List(m) => ITemplata.expectMutability(m)
-        case _ => vwat()
-      }
-
-    val defaultCalledMacros =
-      Vector(
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
-    val macrosToCall =
-      structA.attributes.foldLeft(defaultCalledMacros)({
-        case (macrosToCall, mc @ MacroCallS(range, CallMacroP, macroName)) => {
-          if (macrosToCall.exists(_.macroName == macroName)) {
-            throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
-          }
-          macrosToCall :+ mc
-        }
-        case (macrosToCall, MacroCallS(_, DontCallMacroP, macroName)) => macrosToCall.filter(_.macroName != macroName)
-        case (macrosToCall, _) => macrosToCall
-      })
-
-    val envEntriesFromMacros =
-      macrosToCall.flatMap({ case MacroCallS(range, CallMacroP, macroName) =>
-        val maacro =
-          structRunesEnv.globalEnv.nameToStructDefinedMacro.get(macroName) match {
-            case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
-            case Some(m) => m
-          }
-        val newEntriesList =
-          maacro.getStructChildEntries(macroName, fullNameT, structA, mutability)
-        val newEntries =
-          newEntriesList.map({ case (entryName, value) =>
-            vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
-            val last = entryName.last
-            last -> value
-          })
-        newEntries
-      })
-
-    val structInnerEnv =
-      CitizenEnvironment(
-        structRunesEnv.globalEnv, structRunesEnv, fullNameT,
-        TemplatasStore(fullNameT, Map(), Map())
-          .addEntries(interner, envEntriesFromMacros))
-
-    coutputs.declareKindEnv(temporaryStructRef, structInnerEnv)
-
-    val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
-
-    if (mutability == ImmutableT) {
-      members.zipWithIndex.foreach({ case (member, index) =>
-      if (member.variability == VaryingT) {
-          throw CompileErrorExceptionT(
-            ImmStructCantHaveVaryingMember(
-              structA.members(index).range,
-              structA.name,
-              structA.members(index) match {
-                case NormalStructMemberS(range, name, variability, typeRune) => name.str
-                case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
-              }))
-        }
-      })
-    }
-
-    val structDefT =
-      StructDefinitionT(
-        fullNameT,
-        interner.intern(StructTT(fullNameT)),
-        translateCitizenAttributes(attributesWithoutExportOrMacros),
-        structA.weakable,
-        mutability,
-        members,
-        false)
-
-    coutputs.add(structDefT);
-
-    maybeExport match {
-      case None =>
-      case Some(exportPackageCoord) => {
-        val exportedName =
-          fullNameT.last match {
-            case CitizenNameT(CitizenTemplateNameT(humanName), _) => humanName
-            case _ => vfail("Can't export something that doesn't have a human readable name!")
-          }
-        coutputs.addKindExport(
-          structA.range,
-          structDefT.getRef,
-          exportPackageCoord.packageCoordinate,
-          exportedName)
-      }
-    }
-
-    val ancestorImplsAndInterfaces =
-      ancestorHelper.getAncestorInterfaces(coutputs, temporaryStructRef)
-
-    ancestorImplsAndInterfaces.foreach({
-      case (ancestorInterface, implTemplata) => {
-        val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
-        if (structDefT.weakable != interfaceDefinition2.weakable) {
-          throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
-        }
-        coutputs.addImpl(temporaryStructRef, ancestorInterface)
-      }
-    })
-
-    structDefT
+  def resolveInterface(
+    // The environment that the interface was defined in.
+    structRunesEnv: CitizenEnvironment[INameT],
+    interfaceA: InterfaceA,
+    coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    val templateNameT = nameTranslator.translateCitizenName(interfaceA.name)
+    val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
+    val fullNameT = structRunesEnv.fullName.addStep(structNameT)
+    val temporaryStructRef = interner.intern(InterfaceTT(fullNameT))
+    temporaryStructRef
   }
 
   def compileStruct(
@@ -243,7 +136,7 @@ class StructCompilerCore(
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
-    if (mutability == ImmutableT) {
+    if (mutability == MutabilityTemplata(ImmutableT)) {
       members.zipWithIndex.foreach({ case (member, index) =>
         if (member.variability == VaryingT) {
           throw CompileErrorExceptionT(

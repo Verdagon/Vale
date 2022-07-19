@@ -21,6 +21,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
 import dev.vale.typing.names.ICitizenNameT
+import dev.vale.typing.templata.ITemplata.expectMutability
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -78,28 +79,37 @@ class StructCompiler(
 
   def compileStruct(
     coutputs: CompilerOutputs,
-    callRange: RangeS,
     structTemplata: StructTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
       templateArgsLayer.compileStruct(
-        coutputs, callRange, structTemplata, uncoercedTemplateArgs)
+        coutputs, structTemplata, uncoercedTemplateArgs)
     })
   }
 
-  def getInterfaceRef(
+  def resolveInterface(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
-//    Profiler.reentrant("StructCompiler-getInterfaceRef", interfaceTemplata.debugString + "<" + uncoercedTemplateArgs.mkString(", ") + ">", () => {
-      templateArgsLayer.getInterfaceRef(
-        coutputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
-//    })
+    templateArgsLayer.resolveInterface(
+      coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
+  }
+
+  def compileInterface(
+    coutputs: CompilerOutputs,
+    // We take the entire templata (which includes environment and parents) so we can incorporate
+    // their rules as needed
+    interfaceTemplata: InterfaceTemplata,
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    templateArgsLayer.compileInterface(
+      coutputs, interfaceTemplata, uncoercedTemplateArgs)
   }
 
   // Makes a struct to back a closure
@@ -116,7 +126,7 @@ class StructCompiler(
   }
 
   def getMemberCoords(coutputs: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
-    coutputs.getStructDefForRef(structTT).members.map(_.tyype).map({
+    coutputs.lookupStruct(structTT).members.map(_.tyype).map({
       case ReferenceMemberTypeT(coord) => coord
       case AddressMemberTypeT(_) => {
         // At time of writing, the only one who calls this is the inferer, who wants to know so it
@@ -135,5 +145,42 @@ object StructCompiler {
     val membersOwnerships = memberTypes2.map(_.ownership)
     val allMembersImmutable = membersOwnerships.isEmpty || membersOwnerships.toSet == Set(ShareT)
     if (allMembersImmutable) ImmutableT else MutableT
+  }
+
+  def getMembers(coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
+    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
+    val definition = coutputs.lookupStruct(templateName)
+    vassert(structTT.fullName.last.templateArgs.size == definition.fullName.last.templateArgs.size)
+    val substitutions =
+      structTT.fullName.last.templateArgs.zip(definition.fullName.last.templateArgs).map({
+        case (arg, p @ PlaceholderTemplata(_, _)) => {
+          (p, arg)
+        }
+      }).toArray
+    definition.members.map({
+      case StructMemberT(name, variability, ReferenceMemberTypeT(tyype)) => {
+        StructMemberT(
+          name,
+          variability,
+          ReferenceMemberTypeT(TemplataCompiler.substituteTemplatasInCoord(tyype, substitutions)))
+      }
+      case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
+        vcurious()
+      }
+    })
+  }
+
+  def getMutability(coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
+    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
+    val definition = coutputs.lookupStruct(templateName)
+    vassert(structTT.fullName.last.templateArgs.size == definition.fullName.last.templateArgs.size)
+    val substitutions =
+      structTT.fullName.last.templateArgs.zip(definition.fullName.last.templateArgs).map({
+        case (arg, p @ PlaceholderTemplata(_, _)) => {
+          (p, arg)
+        }
+      }).toArray
+    val result = TemplataCompiler.substituteTemplatasInTemplata(definition.mutability, substitutions)
+    expectMutability(result)
   }
 }

@@ -93,6 +93,27 @@ And then we should make placeholders for P1 and R, and let the 3rd param's Defin
 
 
 
+# Don't Add Placeholders for Generic Params with Defaults (DAPGPD)
+
+Having a default parameter implies that the call site has enough information such that with this default value there will be enough to solve the entire function. So for any information the call site can provide, we just need an equivalent at definition time.
+
+If a default param says to look up a func(int)void, then in definition time instead of populating a placeholder we should populate a rule saying that it's a func(int)void.
+
+
+
+
+
+im also thinking DefinitionCallSR should be in the default argument spot, and CallSiteCallSR should just always be present.
+
+
+theres three possibilities if we have a default argument:
+
+- calling, but supplied no argument:
+   - use ResolveSR if its there
+   - hope that it can be figured out from other things, such as the normal arguments
+- calling, supplied an argument: want to use CallSiteFuncSR
+- defining: want to use DefinitionFuncSR
+
 
 
 
