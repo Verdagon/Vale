@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IVarNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, IVarNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -152,16 +152,9 @@ trait CitizenRefT extends KindT with IInterning {
 }
 
 // These should only be made by struct typingpass, which puts the definition into coutputs at the same time
-case class StructTT(fullName: FullNameT[ICitizenNameT]) extends CitizenRefT {
+case class StructTT(fullName: FullNameT[IStructNameT]) extends CitizenRefT
 
-}
-
-case class InterfaceTT(
-  fullName: FullNameT[ICitizenNameT]
-) extends CitizenRefT  {
-
-
-}
+case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends CitizenRefT
 
 // Represents a bunch of functions that have the same name.
 // See ROS.

@@ -176,11 +176,12 @@ object TemplatasStore {
 
   def getImpreciseName(interner: Interner, name2: INameT): Option[IImpreciseNameS] = {
     name2 match {
-      case CitizenTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
+      case StructTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
+      case InterfaceTemplateNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
       case PrimitiveNameT(humanName) => Some(interner.intern(CodeNameS(humanName)))
       case CitizenNameT(templateName, _) => getImpreciseName(interner, templateName)
       case FunctionTemplateNameT(humanName, _) => Some(interner.intern(CodeNameS(humanName)))
-      case FunctionNameT(humanName, _, _) => Some(interner.intern(CodeNameS(humanName)))
+      case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => Some(interner.intern(CodeNameS(humanName)))
       case RuneNameT(r) => Some(interner.intern(RuneNameS(r)))
       case LambdaCitizenNameT(template) => getImpreciseName(interner, template)
       case LambdaCitizenTemplateNameT(loc) => Some(interner.intern(LambdaStructImpreciseNameS(interner.intern(LambdaImpreciseNameS()))))
@@ -188,13 +189,13 @@ object TemplatasStore {
       case SelfNameT() => Some(interner.intern(SelfNameS()))
       case ArbitraryNameT() => Some(interner.intern(ArbitraryNameS()))
       case AnonymousSubstructImplNameT() => None
-      case AnonymousSubstructConstructorTemplateNameT(CitizenTemplateNameT(humanName)) => {
+      case AnonymousSubstructConstructorTemplateNameT(StructTemplateNameT(humanName)) => {
         Some(interner.intern(CodeNameS(humanName)))
       }
       case AnonymousSubstructTemplateNameT(ctn) => {
         getImpreciseName(interner, ctn).map(x => interner.intern(AnonymousSubstructTemplateImpreciseNameS(x)))
       }
-      case AnonymousSubstructConstructorTemplateNameT(AnonymousSubstructTemplateNameT(CitizenTemplateNameT(humanName))) => {
+      case AnonymousSubstructConstructorTemplateNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(humanName))) => {
         Some(interner.intern(CodeNameS(humanName)))
       }
       case AnonymousSubstructNameT(interfaceName, _) => getImpreciseName(interner, interfaceName)
@@ -204,12 +205,12 @@ object TemplatasStore {
         vwat()
       }
       case FreeTemplateNameT(codeLocation) => Some(interner.intern(FreeImpreciseNameS()))
-      case FreeNameT(templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
+      case FreeNameT(_, templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
       case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
       case FreeTemplateNameT(codeLoc) => Some(interner.intern(FreeImpreciseNameS()))
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
-      case ForwarderFunctionNameT(inner, index) => getImpreciseName(interner, inner)
+      case ForwarderFunctionNameT(_, inner, index) => getImpreciseName(interner, inner)
       case AnonymousSubstructImplTemplateNameT(inner) => getImpreciseName(interner, inner).map(ImplImpreciseNameS)
 //      case OverrideVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
 //      case AbstractVirtualFreeNameT(_, _) => Some(interner.intern(VirtualFreeImpreciseNameS()))

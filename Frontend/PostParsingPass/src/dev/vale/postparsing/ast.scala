@@ -67,7 +67,7 @@ case object UserFunctionS extends IFunctionAttributeS // Whether it was written 
 
 case class StructS(
     range: RangeS,
-    name: TopLevelCitizenDeclarationNameS,
+    name: TopLevelStructDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
     genericParams: Vector[GenericParameterS],
@@ -110,7 +110,7 @@ case class VariadicStructMemberS(
 
 case class InterfaceS(
   range: RangeS,
-  name: TopLevelCitizenDeclarationNameS,
+  name: TopLevelInterfaceDeclarationNameS,
   attributes: Vector[ICitizenAttributeS],
   weakable: Boolean,
   genericParams: Vector[GenericParameterS],

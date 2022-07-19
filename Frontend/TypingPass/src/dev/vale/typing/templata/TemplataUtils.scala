@@ -11,13 +11,14 @@ object simpleName {
       case ImplDeclareNameT(_) => None
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
-      case FreeNameT(_, _) => None
+      case FreeNameT(_, _, _) => None
       case ClosureParamNameT() => None
       case MagicParamNameT(_) => None
       case CodeVarNameT(name) => Some(name.str)
-      case FunctionNameT(humanName, _, _) => Some(humanName.str)
+      case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => Some(humanName.str)
       case LambdaCitizenNameT(_) => None
-      case CitizenNameT(CitizenTemplateNameT(humanName), _) => Some(humanName.str)
+      case StructNameT(StructTemplateNameT(humanName), _) => Some(humanName.str)
+      case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => Some(humanName.str)
     }
   }
 }

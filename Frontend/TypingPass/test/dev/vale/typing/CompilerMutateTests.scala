@@ -9,10 +9,9 @@ import dev.vale.postparsing.PostParser
 import OverloadResolver.{FindFunctionFailure, WrongNumberOfArguments}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT, StructToInterfaceUpcastTE}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import org.scalatest.{FunSuite, Matchers}
@@ -130,7 +129,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalMember(_, structTT, memberName)) => {
         structTT match {
-          case StructTT(FullNameT(_, _, CitizenNameT(CitizenTemplateNameT(StrI("Vec3")), Vector()))) =>
+          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector()))) =>
         }
         memberName.last match {
           case CodeVarNameT(StrI("x")) =>
@@ -152,7 +151,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalMember(_, structTT, memberName)) => {
         structTT match {
-          case StructTT(FullNameT(_, _, CitizenNameT(CitizenTemplateNameT(StrI("Vec3")), Vector()))) =>
+          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector()))) =>
         }
         memberName.last match {
           case CodeVarNameT(StrI("x")) =>
@@ -233,9 +232,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Humanize errors") {
     val interner = new Interner()
     val keywords = new Keywords(interner)
-    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(CitizenNameT(CitizenTemplateNameT(StrI("Firefly")), Vector.empty))))
+    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))))
     val fireflyCoord = CoordT(OwnT,fireflyKind)
-    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(CitizenNameT(CitizenTemplateNameT(StrI("Serenity")), Vector.empty))))
+    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))))
     val serenityCoord = CoordT(OwnT,serenityKind)
 
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")
@@ -303,7 +302,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       FunctionAlreadyExists(
         tz,
         tz,
-        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("myFunc")), Vector.empty, Vector.empty))))))
+        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.begin), Vector.empty, Vector.empty))))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(

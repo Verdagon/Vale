@@ -66,7 +66,7 @@ trait TypeDefinitionA {
 
 case class StructA(
     range: RangeS,
-    name: ICitizenDeclarationNameS,
+    name: IStructDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
     mutabilityRune: RuneUsage,
@@ -141,7 +141,7 @@ case class ExportAsA(
 
 case class InterfaceA(
     range: RangeS,
-    name: TopLevelCitizenDeclarationNameS,
+    name: TopLevelInterfaceDeclarationNameS,
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
     mutabilityRune: RuneUsage,

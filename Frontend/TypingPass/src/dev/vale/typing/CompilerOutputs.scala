@@ -4,7 +4,7 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, INameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
@@ -44,8 +44,8 @@ case class CompilerOutputs() {
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
   private val declaredKinds: mutable.HashSet[KindT] = mutable.HashSet()
   private val envByKind: mutable.HashMap[KindT, IEnvironment] = mutable.HashMap()
-  private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[ICitizenTemplateNameT], StructDefinitionT] = mutable.HashMap()
-  private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[ICitizenTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
+  private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
+  private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
   private val impls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
 
@@ -277,7 +277,7 @@ case class CompilerOutputs() {
     // If it has a structTT, then we're done (or at least have started) stamping it
     // If this throws an error, then you should not use this function, you should
     // do structTemplateNameToDefinition.get(structTT) yourself and handle the None case
-    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
+    val templateName = TemplataCompiler.getStructTemplate(structTT.fullName)
     vassertSome(structTemplateNameToDefinition.get(templateName))
   }
 
@@ -285,7 +285,7 @@ case class CompilerOutputs() {
     // If it has a interfaceTT, then we're done (or at least have started) stamping it.
     // If this throws an error, then you should not use this function, you should
     // do interfaceTemplateNameToDefinition.get(interfaceTT) yourself and handle the None case
-    val templateName = TemplataCompiler.getCitizenTemplate(interfaceTT.fullName)
+    val templateName = TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName)
     interfaceTemplateNameToDefinition(templateName)
   }
 

@@ -4,7 +4,7 @@ import dev.vale.typing.ast.{ProgramT, ReferenceExpressionTE, TupleTE}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vimpl}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.CitizenTemplateNameT
+import dev.vale.typing.names.{CitizenTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -45,7 +45,7 @@ class SequenceCompiler(
     val tupleTemplate @ StructTemplata(_, _) =
       vassertSome(
         env.lookupNearestWithName(
-          interner.intern(CitizenTemplateNameT(keywords.tupleHumanName)), Set(TemplataLookupContext)))
+          interner.intern(StructTemplateNameT(keywords.tupleHumanName)), Set(TemplataLookupContext)))
     structCompiler.resolveStruct(
       coutputs,
       env,

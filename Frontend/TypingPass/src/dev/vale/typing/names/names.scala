@@ -97,9 +97,27 @@ sealed trait IFunctionNameT extends INameT {
 sealed trait ICitizenTemplateNameT extends ITemplateNameT {
   def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT
 }
+sealed trait IStructTemplateNameT extends ICitizenTemplateNameT {
+  def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT
+  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]):
+  ICitizenNameT = {
+    makeStructName(interner, templateArgs)
+  }
+}
+sealed trait IInterfaceTemplateNameT extends ICitizenTemplateNameT {
+  def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IInterfaceNameT
+}
 sealed trait ICitizenNameT extends INameT {
   def template: ICitizenTemplateNameT
   def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+sealed trait IStructNameT extends ICitizenNameT {
+  override def template: IStructTemplateNameT
+  override def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+sealed trait IInterfaceNameT extends ICitizenNameT {
+  override def template: InterfaceTemplateNameT
+  override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
 trait IImplTemplateNameT extends INameT
 trait IImplDeclareNameT extends INameT {    }
@@ -291,18 +309,42 @@ case class FreeNameT(template: FreeTemplateNameT, templateArgs: Vector[ITemplata
 case class SelfNameT() extends IVarNameT
 case class ArbitraryNameT() extends INameT
 
-case class CitizenNameT(
-  template: ICitizenTemplateNameT,
+sealed trait CitizenNameT extends ICitizenNameT {
+  def template: ICitizenTemplateNameT
+  def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+
+object CitizenNameT {
+  def unapply(c: CitizenNameT): Option[(ICitizenTemplateNameT, Vector[ITemplata[ITemplataType]])] = {
+    c match {
+      case StructNameT(template, templateArgs) => Some((template, templateArgs))
+      case InterfaceNameT(template, templateArgs) => Some((template, templateArgs))
+    }
+  }
+}
+
+case class StructNameT(
+  templatee: IStructTemplateNameT,
+  templateArgss: Vector[ITemplata[ITemplataType]]
+) extends IStructNameT with CitizenNameT {
+  override def template = templatee
+  override def templateArgs = templateArgss
+  vpass()
+}
+
+case class InterfaceNameT(
+  templatee: InterfaceTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
-) extends ICitizenNameT {
+) extends IInterfaceNameT with CitizenNameT {
+  override def template: InterfaceTemplateNameT = templatee
   vpass()
 }
 
 case class LambdaCitizenTemplateNameT(
   codeLocation: CodeLocationS
-) extends ICitizenTemplateNameT {
+) extends IStructTemplateNameT {
   def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
+  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {
     vassert(templateArgs.isEmpty)
     interner.intern(LambdaCitizenNameT(this))
   }
@@ -310,7 +352,7 @@ case class LambdaCitizenTemplateNameT(
 
 case class LambdaCitizenNameT(
   template: LambdaCitizenTemplateNameT
-) extends ICitizenNameT {
+) extends IStructNameT {
   def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
 }
 
@@ -330,41 +372,61 @@ case class AnonymousSubstructLambdaNameT(
   def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
 }
 
-case class CitizenTemplateNameT(
-  humanName: StrI,
+sealed trait CitizenTemplateNameT extends ICitizenTemplateNameT {
+  def humanName: StrI
   // We don't include a CodeLocation here because:
   // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
   //   with code locations
   // - It makes it easier to determine the CitizenTemplateNameT from a CitizenNameT which doesn't
   //   remember its code location.
   //codeLocation: CodeLocationS
-) extends ICitizenTemplateNameT {
 
+//  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
+//    interner.intern(CitizenNameT(this, templateArgs))
+//  }
+}
 
-
+case class StructTemplateNameT(
+  humanName: StrI,
+  // We don't include a CodeLocation here because:
+  // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
+  //   with code locations
+  // - It makes it easier to determine the StructTemplateNameT from a StructNameT which doesn't
+  //   remember its code location.
+  //codeLocation: CodeLocationS
+) extends IStructTemplateNameT with CitizenTemplateNameT {
+  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {
+    interner.intern(StructNameT(this, templateArgs))
+  }
+}
+case class InterfaceTemplateNameT(
+  humanNamee: StrI,
+  // We don't include a CodeLocation here because:
+  // - There's no struct overloading, so there should only ever be one, we don't have to disambiguate
+  //   with code locations
+  // - It makes it easier to determine the InterfaceTemplateNameT from a InterfaceNameT which doesn't
+  //   remember its code location.
+  //codeLocation: CodeLocationS
+) extends IInterfaceTemplateNameT with CitizenTemplateNameT with ICitizenTemplateNameT {
+  override def humanName = humanNamee
+  override def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IInterfaceNameT = {
+    interner.intern(InterfaceNameT(this, templateArgs))
+  }
   override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
-    interner.intern(CitizenNameT(this, templateArgs))
+    makeInterfaceName(interner, templateArgs)
   }
 }
 
 case class AnonymousSubstructImplTemplateNameT(
-  interface: ICitizenTemplateNameT
+  interface: IInterfaceTemplateNameT
 ) extends IImplTemplateNameT
 
 case class AnonymousSubstructTemplateNameT(
   // This happens to be the same thing that appears before this AnonymousSubstructNameT in a FullNameT.
   // This is really only here to help us calculate the imprecise name for this thing.
-  interface: ICitizenTemplateNameT
-) extends ICitizenTemplateNameT {
-
-
-
-  interface match {
-    case AnonymousSubstructTemplateNameT(_) => vwat()
-    case _ =>
-  }
-
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
+  interface: IInterfaceTemplateNameT
+) extends IStructTemplateNameT {
+  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {
     interner.intern(AnonymousSubstructNameT(this, templateArgs))
   }
 }
@@ -387,7 +449,7 @@ case class AnonymousSubstructNameT(
   // This is really only here to help us calculate the imprecise name for this thing.
   template: AnonymousSubstructTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
-) extends ICitizenNameT {
+) extends IStructNameT {
 
 }
 case class AnonymousSubstructImplNameT() extends INameT {

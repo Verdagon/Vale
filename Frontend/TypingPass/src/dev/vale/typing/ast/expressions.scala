@@ -2,14 +2,13 @@ package dev.vale.typing.ast
 
 //import dev.vale.astronomer.IVarNameA
 import dev.vale.typing.env.{ILocalVariableT, ReferenceLocalVariableT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, FullNameT, IVarNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, FullNameT, IVarNameT, StructNameT, StructTemplateNameT}
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 
 trait IExpressionResultT  {
@@ -627,7 +626,7 @@ case class DestroyStaticSizedArrayIntoFunctionTE(
 
   // See https://github.com/ValeLang/Vale/issues/375
   consumerMethod.returnType.kind match {
-    case StructTT(FullNameT(_, _, CitizenNameT(CitizenTemplateNameT(name), _))) => {
+    case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _))) => {
       vassert(name.str == "Tup")
     }
     case VoidT() =>
@@ -801,7 +800,7 @@ case class NewImmRuntimeSizedArrayTE(
 object referenceExprResultStructName {
   def unapply(expr: ReferenceExpressionTE): Option[StrI] = {
     expr.result.reference.kind match {
-      case StructTT(FullNameT(_, _, CitizenNameT(CitizenTemplateNameT(name), _))) => Some(name)
+      case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _))) => Some(name)
       case _ => None
     }
   }

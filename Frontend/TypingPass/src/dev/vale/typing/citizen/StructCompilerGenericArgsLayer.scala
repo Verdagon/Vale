@@ -40,8 +40,8 @@ class StructCompilerGenericArgsLayer(
   (StructTT) = {
     Profiler.frame(() => {
       val StructTemplata(declaringEnv, structA) = structTemplata
-      val structTemplateName = nameTranslator.translateCitizenName(structA.name)
-      val structName = structTemplateName.makeCitizenName(interner, templateArgs)
+      val structTemplateName = nameTranslator.translateStructName(structA.name)
+      val structName = structTemplateName.makeStructName(interner, templateArgs)
       val fullName = declaringEnv.fullName.addStep(structName)
 //      val fullName = declaringEnv.fullName.addStep(structLastName)
 
@@ -100,11 +100,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     structTemplata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructTT) = {
+  Unit = {
     Profiler.frame(() => {
       val StructTemplata(declaringEnv, structA) = structTemplata
-      val structTemplateName = nameTranslator.translateCitizenName(structA.name)
-      val structName = structTemplateName.makeCitizenName(interner, templateArgs)
+      val structTemplateName = nameTranslator.translateStructName(structA.name)
+      val structName = structTemplateName.makeStructName(interner, templateArgs)
       val fullName = declaringEnv.fullName.addStep(structName)
       //      val fullName = env.fullName.addStep(structLastName)
 
@@ -164,11 +164,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     interfaceTemplata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
+  Unit = {
     Profiler.frame(() => {
       val InterfaceTemplata(env, interfaceA) = interfaceTemplata
-      val interfaceTemplateName = nameTranslator.translateCitizenName(interfaceA.name)
-      val interfaceName = interfaceTemplateName.makeCitizenName(interner, templateArgs)
+      val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
+      val interfaceName = interfaceTemplateName.makeInterfaceName(interner, templateArgs)
       val fullName = env.fullName.addStep(interfaceName)
 //      val fullName = env.fullName.addStep(interfaceLastName)
 
@@ -231,8 +231,8 @@ class StructCompilerGenericArgsLayer(
   (InterfaceTT) = {
     Profiler.frame(() => {
       val InterfaceTemplata(env, interfaceA) = interfaceTemplata
-      val interfaceTemplateName = nameTranslator.translateCitizenName(interfaceA.name)
-      val interfaceName = interfaceTemplateName.makeCitizenName(interner, templateArgs)
+      val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
+      val interfaceName = interfaceTemplateName.makeInterfaceName(interner, templateArgs)
       val fullName = env.fullName.addStep(interfaceName)
       //      val fullName = env.fullName.addStep(interfaceLastName)
 

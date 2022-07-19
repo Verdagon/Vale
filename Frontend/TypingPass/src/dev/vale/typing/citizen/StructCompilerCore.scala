@@ -18,11 +18,10 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FunctionTemplateNameT, INameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT}
+import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FunctionTemplateNameT, INameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.AnonymousSubstructImplNameT
 
 import scala.collection.immutable.List
 
@@ -40,8 +39,8 @@ class StructCompilerCore(
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
-    val templateNameT = nameTranslator.translateCitizenName(structA.name)
-    val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
+    val templateNameT = nameTranslator.translateStructName(structA.name)
+    val structNameT = templateNameT.makeStructName(interner, coercedFinalTemplateArgs)
     val fullNameT = structRunesEnv.fullName.addStep(structNameT)
     val temporaryStructRef = interner.intern(StructTT(fullNameT))
 
@@ -54,8 +53,8 @@ class StructCompilerCore(
     interfaceA: InterfaceA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
-    val templateNameT = nameTranslator.translateCitizenName(interfaceA.name)
-    val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
+    val templateNameT = nameTranslator.translateInterfaceName(interfaceA.name)
+    val structNameT = templateNameT.makeInterfaceName(interner, coercedFinalTemplateArgs)
     val fullNameT = structRunesEnv.fullName.addStep(structNameT)
     val temporaryStructRef = interner.intern(InterfaceTT(fullNameT))
     temporaryStructRef
@@ -67,11 +66,12 @@ class StructCompilerCore(
     coutputs: CompilerOutputs,
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructDefinitionT) = {
-    val templateNameT = nameTranslator.translateCitizenName(structA.name)
-    val structNameT = templateNameT.makeCitizenName(interner, coercedFinalTemplateArgs)
-    val fullNameT = structRunesEnv.fullName.addStep(structNameT)
-    val temporaryStructRef = interner.intern(StructTT(fullNameT))
+  Unit = {
+    val templateNameT = nameTranslator.translateStructName(structA.name)
+    val templateFullNameT = structRunesEnv.fullName.addStep(templateNameT)
+    val placeholderedNameT = templateNameT.makeStructName(interner, coercedFinalTemplateArgs)
+    val placeholderedFullNameT = structRunesEnv.fullName.addStep(placeholderedNameT)
+    val placeholderedStructTT = interner.intern(StructTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =
       structA.attributes.filter({
@@ -116,10 +116,10 @@ class StructCompilerCore(
             case Some(m) => m
           }
         val newEntriesList =
-          maacro.getStructChildEntries(macroName, fullNameT, structA, mutability)
+          maacro.getStructChildEntries(macroName, placeholderedFullNameT, structA, mutability)
         val newEntries =
           newEntriesList.map({ case (entryName, value) =>
-            vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
+            vcurious(placeholderedFullNameT.steps.size + 1 == entryName.steps.size)
             val last = entryName.last
             last -> value
           })
@@ -128,11 +128,11 @@ class StructCompilerCore(
 
     val structInnerEnv =
       CitizenEnvironment(
-        structRunesEnv.globalEnv, structRunesEnv, fullNameT,
-        TemplatasStore(fullNameT, Map(), Map())
+        structRunesEnv.globalEnv, structRunesEnv, placeholderedFullNameT,
+        TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
-    coutputs.declareKindEnv(temporaryStructRef, structInnerEnv)
+    coutputs.declareKindEnv(placeholderedStructTT, structInnerEnv)
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
@@ -153,8 +153,9 @@ class StructCompilerCore(
 
     val structDefT =
       StructDefinitionT(
-        fullNameT,
-        interner.intern(StructTT(fullNameT)),
+        templateFullNameT,
+        placeholderedFullNameT,
+        interner.intern(StructTT(placeholderedFullNameT)),
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
         mutability,
@@ -167,20 +168,20 @@ class StructCompilerCore(
       case None =>
       case Some(exportPackageCoord) => {
         val exportedName =
-          fullNameT.last match {
-            case CitizenNameT(CitizenTemplateNameT(humanName), _) => humanName
+          placeholderedFullNameT.last match {
+            case StructNameT(StructTemplateNameT(humanName), _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
         coutputs.addKindExport(
           structA.range,
-          structDefT.getRef,
+          placeholderedStructTT,
           exportPackageCoord.packageCoordinate,
           exportedName)
       }
     }
 
     val ancestorImplsAndInterfaces =
-      ancestorHelper.getAncestorInterfaces(coutputs, temporaryStructRef)
+      ancestorHelper.getAncestorInterfaces(coutputs, placeholderedStructTT)
 
     ancestorImplsAndInterfaces.foreach({
       case (ancestorInterface, implTemplata) => {
@@ -188,11 +189,9 @@ class StructCompilerCore(
         if (structDefT.weakable != interfaceDefinition2.weakable) {
           throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
         }
-        coutputs.addImpl(temporaryStructRef, ancestorInterface)
+        coutputs.addImpl(placeholderedStructTT, ancestorInterface)
       }
     })
-
-    structDefT
   }
 
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
@@ -212,11 +211,14 @@ class StructCompilerCore(
     interfaceRunesEnv: CitizenEnvironment[INameT],
     coutputs: CompilerOutputs,
     interfaceA: InterfaceA,
-    coercedFinalTemplateArgs2: Vector[ITemplata[ITemplataType]]):
+    coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceDefinitionT) = {
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
-    val fullNameT = interfaceRunesEnv.fullName.addStep(interner.intern(CitizenNameT(interner.intern(CitizenTemplateNameT(humanName)), coercedFinalTemplateArgs2)))
-    val temporaryInferfaceRef = interner.intern(InterfaceTT(fullNameT))
+    val templateNameT = nameTranslator.translateInterfaceName(interfaceA.name)
+    val templateFullNameT = interfaceRunesEnv.fullName.addStep(templateNameT)
+    val placeholderedNameT = templateNameT.makeInterfaceName(interner, coercedFinalTemplateArgs)
+    val placeholderedFullNameT = interfaceRunesEnv.fullName.addStep(placeholderedNameT)
+    val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =
       interfaceA.attributes.filter({
@@ -255,10 +257,10 @@ class StructCompilerCore(
             case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
             case Some(m) => m
           }
-        val newEntriesList = maacro.getInterfaceChildEntries(fullNameT, interfaceA, mutability)
+        val newEntriesList = maacro.getInterfaceChildEntries(placeholderedFullNameT, interfaceA, mutability)
         val newEntries =
           newEntriesList.map({ case (entryName, value) =>
-            vcurious(fullNameT.steps.size + 1 == entryName.steps.size)
+            vcurious(placeholderedFullNameT.steps.size + 1 == entryName.steps.size)
             val last = entryName.last
             last -> value
           })
@@ -269,16 +271,16 @@ class StructCompilerCore(
       CitizenEnvironment(
         interfaceRunesEnv.globalEnv,
         interfaceRunesEnv,
-        fullNameT,
-        TemplatasStore(fullNameT, Map(), Map())
+        placeholderedFullNameT,
+        TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros)
           .addEntries(
             interner,
-            interfaceA.genericParameters.zip(coercedFinalTemplateArgs2)
+            interfaceA.genericParameters.zip(coercedFinalTemplateArgs)
               .map({ case (genericParam, templata) => (interner.intern(RuneNameT(genericParam.rune.rune)), TemplataEnvEntry(templata)) }))
           .addEntries(
             interner,
-            Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(temporaryInferfaceRef))))
+            Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(placeholderedInterfaceTT))))
           .addEntries(
             interner,
             interfaceA.internalMethods
@@ -289,7 +291,7 @@ class StructCompilerCore(
 
     coutputs
       .declareKindEnv(
-        temporaryInferfaceRef,
+        placeholderedInterfaceTT,
         interfaceInnerEnv)
 
     val internalMethods2 =
@@ -311,8 +313,9 @@ class StructCompilerCore(
 
     val interfaceDef2 =
       InterfaceDefinitionT(
-        fullNameT,
-        interner.intern(InterfaceTT(fullNameT)),
+        templateFullNameT,
+        placeholderedFullNameT,
+        interner.intern(placeholderedInterfaceTT),
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
@@ -323,19 +326,19 @@ class StructCompilerCore(
       case None =>
       case Some(exportPackageCoord) => {
         val exportedName =
-          fullNameT.last match {
-            case CitizenNameT(CitizenTemplateNameT(humanName), _) => humanName
+          placeholderedFullNameT.last match {
+            case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
         coutputs.addKindExport(
           interfaceA.range,
-          interfaceDef2.getRef,
+          placeholderedInterfaceTT,
           exportPackageCoord.packageCoordinate,
           exportedName)
       }
     }
 
-    val _ = ancestorHelper.getParentInterfaces(coutputs, temporaryInferfaceRef)
+    val _ = ancestorHelper.getParentInterfaces(coutputs, placeholderedInterfaceTT)
 
     (interfaceDef2)
   }
@@ -394,11 +397,12 @@ class StructCompilerCore(
       })
     val mutability = if (isMutable) MutableT else ImmutableT
 
-    val nearTemplateName = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
-    val nearName = nearTemplateName.makeCitizenName(interner, Vector())
-    val fullName = containingFunctionEnv.fullName.addStep(nearName)
+    val templateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
+    val templatedFullNameT = containingFunctionEnv.fullName.addStep(templateNameT)
+    val instantiatedNameT = templateNameT.makeStructName(interner, Vector())
+    val instantiatedFullNameT = containingFunctionEnv.fullName.addStep(instantiatedNameT)
 
-    val structTT = interner.intern(StructTT(fullName))
+    val structTT = interner.intern(StructTT(instantiatedFullNameT))
 
     val freeFuncNameT =
       interner.intern(FreeTemplateNameT(functionA.range.begin))
@@ -413,8 +417,8 @@ class StructCompilerCore(
       CitizenEnvironment(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
-        fullName,
-        TemplatasStore(fullName, Map(), Map())
+        instantiatedFullNameT,
+        TemplatasStore(instantiatedFullNameT, Map(), Map())
           .addEntries(
             interner,
             Vector(
@@ -424,7 +428,7 @@ class StructCompilerCore(
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
-              nearName -> TemplataEnvEntry(KindTemplata(structTT)),
+              instantiatedNameT -> TemplataEnvEntry(KindTemplata(structTT)),
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(structTT))) ++
               (if (mutability == ImmutableT) {
                 Vector(
@@ -449,12 +453,13 @@ class StructCompilerCore(
 
     val closureStructDefinition =
       StructDefinitionT(
-        fullName,
-        interner.intern(StructTT(fullName)),
+        templatedFullNameT,
+        instantiatedFullNameT,
+        interner.intern(StructTT(instantiatedFullNameT)),
         Vector.empty, false, MutabilityTemplata(mutability), members, true);
     coutputs.add(closureStructDefinition)
 
-    val closuredVarsStructRef = closureStructDefinition.getRef;
+    val closuredVarsStructRef = structTT;
 
     if (mutability == ImmutableT) {
       // Adds the free function to the coutputs

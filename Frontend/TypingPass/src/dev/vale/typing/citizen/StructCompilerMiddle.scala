@@ -35,7 +35,7 @@ class StructCompilerMiddle(
     coutputs: CompilerOutputs,
     structS: StructA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
-  (StructTT) = {
+  Unit = {
     val coercedFinalTemplateArgs2 = structS.genericParameters.map(_.rune.rune).map(templatasByRune)
 
     val localEnv =
@@ -48,11 +48,8 @@ class StructCompilerMiddle(
             interner,
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    val structDefinition2 =
-      core.compileStruct(
-        localEnv, coutputs, structS, coercedFinalTemplateArgs2);
-
-    (structDefinition2.getRef)
+    core.compileStruct(
+      localEnv, coutputs, structS, coercedFinalTemplateArgs2)
   }
 
   def resolveStruct(
@@ -100,7 +97,7 @@ class StructCompilerMiddle(
     coutputs: CompilerOutputs,
     interfaceA: InterfaceA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
+  Unit = {
     val coercedFinalTemplateArgs2 = interfaceA.genericParameters.map(_.rune.rune).map(templatasByRune)
 
     val localEnv =
@@ -113,11 +110,7 @@ class StructCompilerMiddle(
             interner,
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    val interfaceDefinition2 =
-      core.makeInterface(
-        localEnv, coutputs, interfaceA, coercedFinalTemplateArgs2);
-
-    (interfaceDefinition2.getRef)
+    core.makeInterface(localEnv, coutputs, interfaceA, coercedFinalTemplateArgs2)
   }
 
   // Makes a struct to back a closure

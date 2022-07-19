@@ -81,7 +81,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     structTemplata: StructTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructTT) = {
+  Unit = {
     Profiler.frame(() => {
       templateArgsLayer.compileStruct(
         coutputs, structTemplata, uncoercedTemplateArgs)
@@ -107,7 +107,7 @@ class StructCompiler(
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
+  Unit = {
     templateArgsLayer.compileInterface(
       coutputs, interfaceTemplata, uncoercedTemplateArgs)
   }
@@ -148,11 +148,10 @@ object StructCompiler {
   }
 
   def getMembers(coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
-    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
-    val definition = coutputs.lookupStruct(templateName)
-    vassert(structTT.fullName.last.templateArgs.size == definition.fullName.last.templateArgs.size)
+    val definition = coutputs.lookupStruct(structTT)
+    vassert(structTT.fullName.last.templateArgs.size == definition.nameWithPlaceholders.last.templateArgs.size)
     val substitutions =
-      structTT.fullName.last.templateArgs.zip(definition.fullName.last.templateArgs).map({
+      structTT.fullName.last.templateArgs.zip(definition.nameWithPlaceholders.last.templateArgs).map({
         case (arg, p @ PlaceholderTemplata(_, _)) => {
           (p, arg)
         }
@@ -171,11 +170,10 @@ object StructCompiler {
   }
 
   def getMutability(coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
-    val templateName = TemplataCompiler.getCitizenTemplate(structTT.fullName)
-    val definition = coutputs.lookupStruct(templateName)
-    vassert(structTT.fullName.last.templateArgs.size == definition.fullName.last.templateArgs.size)
+    val definition = coutputs.lookupStruct(structTT)
+    vassert(structTT.fullName.last.templateArgs.size == definition.nameWithPlaceholders.last.templateArgs.size)
     val substitutions =
-      structTT.fullName.last.templateArgs.zip(definition.fullName.last.templateArgs).map({
+      structTT.fullName.last.templateArgs.zip(definition.nameWithPlaceholders.last.templateArgs).map({
         case (arg, p @ PlaceholderTemplata(_, _)) => {
           (p, arg)
         }

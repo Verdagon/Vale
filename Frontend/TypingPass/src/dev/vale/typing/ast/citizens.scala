@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.postparsing.MutabilityTemplataType
-import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IVarNameT}
+import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
@@ -12,8 +12,8 @@ trait CitizenDefinitionT {
 }
 
 case class StructDefinitionT(
-  templateName: FullNameT[ICitizenTemplateNameT],
-  nameWithPlaceholders: FullNameT[ICitizenNameT],
+  templateName: FullNameT[IStructTemplateNameT],
+  nameWithPlaceholders: FullNameT[IStructNameT],
   ref: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
@@ -74,8 +74,8 @@ case class AddressMemberTypeT(reference: CoordT) extends IMemberTypeT
 case class ReferenceMemberTypeT(reference: CoordT) extends IMemberTypeT
 
 case class InterfaceDefinitionT(
-  templateName: FullNameT[ICitizenTemplateNameT],
-  nameWithPlaceholders: FullNameT[ICitizenNameT],
+  templateName: FullNameT[IInterfaceTemplateNameT],
+  nameWithPlaceholders: FullNameT[IInterfaceNameT],
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,

@@ -48,14 +48,37 @@ class NameTranslator(interner: Interner) {
     }
   }
 
-  def translateCitizenName(name: ICitizenDeclarationNameS): ICitizenTemplateNameT = {
+  def translateStructName(name: IStructDeclarationNameS): IStructTemplateNameT = {
     name match {
       case TopLevelCitizenDeclarationNameS(humanName, codeLocation) => {
-        interner.intern(CitizenTemplateNameT(humanName))
+        interner.intern(StructTemplateNameT(humanName))
       }
       case AnonymousSubstructTemplateNameS(interfaceName) => {
         // Now strip it off, stuff it inside our new name. See LNASC.
-        interner.intern(AnonymousSubstructTemplateNameT(translateCitizenName(interfaceName)))
+        interner.intern(AnonymousSubstructTemplateNameT(translateInterfaceName(interfaceName)))
+      }
+    }
+  }
+
+  def translateInterfaceName(name: IInterfaceDeclarationNameS): IInterfaceTemplateNameT = {
+    name match {
+      case TopLevelCitizenDeclarationNameS(humanName, codeLocation) => {
+        interner.intern(InterfaceTemplateNameT(humanName))
+      }
+    }
+  }
+
+  def translateCitizenName(name: ICitizenDeclarationNameS): ICitizenTemplateNameT = {
+    name match {
+      case TopLevelCitizenDeclarationNameS(humanName, codeLocation) => {
+        interner.intern(StructTemplateNameT(humanName))
+      }
+      case AnonymousSubstructTemplateNameS(interfaceName) => {
+        // Now strip it off, stuff it inside our new name. See LNASC.
+        interner.intern(AnonymousSubstructTemplateNameT(translateInterfaceName(interfaceName)))
+      }
+      case TopLevelCitizenDeclarationNameS(humanName, codeLocation) => {
+        interner.intern(InterfaceTemplateNameT(humanName))
       }
     }
   }
@@ -84,11 +107,11 @@ class NameTranslator(interner: Interner) {
       }
       case AnonymousSubstructTemplateNameS(tlcd) => {
         // See LNASC.
-        interner.intern(AnonymousSubstructTemplateNameT(translateCitizenName(tlcd)))
+        interner.intern(AnonymousSubstructTemplateNameT(translateInterfaceName(tlcd)))
       }
       case AnonymousSubstructImplDeclarationNameS(tlcd) => {
         // See LNASC.
-        interner.intern(AnonymousSubstructImplTemplateNameT(translateCitizenName(tlcd)))
+        interner.intern(AnonymousSubstructImplTemplateNameT(translateInterfaceName(tlcd)))
       }
       case ImplDeclarationNameS(codeLocation) => {
         interner.intern(ImplDeclareNameT(codeLocation))

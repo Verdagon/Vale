@@ -8,7 +8,7 @@ import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, 
 import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionHeaderT, FunctionT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import dev.vale.typing.env.{FunctionEnvironment, FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, IFunctionNameT, NameTranslator}
+import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, NameTranslator}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -18,7 +18,6 @@ import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env._
-import dev.vale.typing.names.FunctionNameT
 
 import scala.collection.immutable.{List, Set}
 
@@ -168,7 +167,7 @@ class FunctionCompilerCore(
       case Some(exportPackageCoord) => {
         val exportedName =
           startingFullEnv.fullName.last match {
-            case FunctionNameT(humanName, _, _) => humanName
+            case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
         coutputs.addFunctionExport(
@@ -437,7 +436,7 @@ class FunctionCompilerCore(
       maybeOrigin: Option[FunctionA]):
   (FunctionHeaderT) = {
     fullName.last match {
-      case FunctionNameT(humanName, Vector(), params) => {
+      case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {
         val header =
           ast.FunctionHeaderT(
             fullName,

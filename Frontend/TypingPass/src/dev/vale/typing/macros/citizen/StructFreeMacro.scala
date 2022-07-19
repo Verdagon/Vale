@@ -187,7 +187,7 @@ class StructFreeMacro(
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
       }
-    val structType = CoordT(structOwnership, structDef.getRef)
+    val structType = CoordT(structOwnership, structTT)
 
     val ret = CoordT(ShareT, VoidT())
     val header = ast.FunctionHeaderT(env.fullName, Vector.empty, params2, ret, originFunction1)
