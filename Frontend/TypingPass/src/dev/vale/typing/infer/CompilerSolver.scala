@@ -74,7 +74,8 @@ trait IInfererDelegate[Env, State] {
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
-  def evaluateInterfaceTemplata(
+  def resolveInterface(
+    env: Env,
     state: State,
     callRange: RangeS,
     templata: InterfaceTemplata,
@@ -978,7 +979,7 @@ class CompilerRuleSolver[Env, State](
               }
               case it @ InterfaceTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val kind = delegate.evaluateInterfaceTemplata(state, range, it, args.toVector)
+                val kind = delegate.resolveInterface(env, state, range, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](resultRune.rune, KindTemplata(kind))
                 Ok(())
               }

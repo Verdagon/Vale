@@ -162,34 +162,6 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |}
       """.stripMargin)
 
-//    vimpl()
-//    strt here
-    // if we could put a placeholder in for T, then the definition-call rule would resolve
-    // and it would generate a prototype to put into F.
-    // but instead, the preliminary solve does nothing, then both T and F get filled,
-    // definition-call sees T and generates a prototype, which then conflicts with the placeholder F.
-    // how in the world are we gonna figure that out?
-    // obvious solution seems to be to generate the placeholders one by one, but i cant shake the feeling
-    // that theres something better we might do.
-    // ironically, the same solution can also be used to know when to actually include a generic param's
-    // default rules.
-    // i wonder if we can do it in reverse dependency order? like, F depends on T, so maybe T will unblock F.
-
-    // perhaps we can just keep on introducing default expressions until the whole thing clicks.
-    // in other words:
-    //  - try to solve it without default expressions. fail.
-    //  - now add a default expression. it works
-    // so we'd keep adding default expressions from the left until things work
-    // No, this doesnt work because if we have placeholders for everything, it just wont solve.
-    // perhaps we can placeholder-populate everything that doesnt have a default expression first?
-
-    // perhaps the problem is that this kind of thing isnt additive?
-    // if we could later on assign a value to a placeholder, that would work quite well.
-
-    // placeholders are already kind of weird. maybe thats what we should think about?
-    // maybe we need to rethink the whole placeholder thing. they dont _actually_ have values.
-    // this problem arises because we pretend they do.
-
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     main shouldHave {
@@ -203,6 +175,24 @@ class CompilerSolverTests extends FunSuite with Matchers {
             Vector(CoordT(ShareT,IntT(32))))),
           CoordT(ShareT,IntT(32))),
           Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
+      case FunctionCallTE(
+        PrototypeT(
+          FullNameT(_,_,
+            FunctionNameT(
+              StrI("bork"),
+              Vector(
+                CoordTemplata(CoordT(ShareT,IntT(32))),
+                PrototypeTemplata(_,
+                  PrototypeT(
+                    FullNameT(_,_,
+                      FunctionNameT(
+                        StrI("moo"),
+                        Vector(),
+                        Vector(CoordT(ShareT,IntT(32))))),
+                    CoordT(ShareT,VoidT())))),
+              Vector(CoordT(ShareT,IntT(32))))),
+          CoordT(ShareT,IntT(32))),
+        Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
     }
   }
 

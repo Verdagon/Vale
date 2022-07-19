@@ -1,10 +1,10 @@
 package dev.vale.typing
 
-import dev.vale.{RangeS, vassertOne, vfail, vimpl}
+import dev.vale.{RangeS, vassert, vassertOne, vfail, vimpl}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{INameT, NameTranslator}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, NameTranslator, PlaceholderNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -12,7 +12,7 @@ import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.citizen.AncestorHelper
 import dev.vale.typing.env.TemplataLookupContext
-import dev.vale.typing.names.AnonymousSubstructNameT
+import dev.vale.typing.templata.ITemplata.expectMutability
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -36,6 +36,7 @@ trait ITemplataCompilerDelegate {
 
   def resolveInterface(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
@@ -53,6 +54,74 @@ trait ITemplataCompilerDelegate {
   StaticSizedArrayTT
 
   def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
+}
+
+object TemplataCompiler {
+
+  def getFunctionTemplate(fullName: FullNameT[IFunctionNameT]): FullNameT[IFunctionTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getCitizenTemplate(fullName: FullNameT[ICitizenNameT]): FullNameT[ICitizenTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def substituteTemplatasInCoord(
+    coord: CoordT,
+    substitutions: Array[(PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])]):
+  CoordT = {
+    val CoordT(ownership, kind) = coord
+    CoordT(ownership, substituteTemplatasInKind(kind, substitutions))
+  }
+
+  def substituteTemplatasInKind(
+    kind: KindT,
+    substitutions: Array[(PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])]):
+  KindT = {
+    kind match {
+      case IntT(bits) => kind
+      case BoolT() => kind
+      case StrT() => kind
+      case FloatT() => kind
+      case VoidT() => kind
+      case NeverT(_) => kind
+      case StructTT(FullNameT(packageCoord, initSteps, last)) => {
+        StructTT(
+          FullNameT(
+            packageCoord,
+            initSteps,
+            last match {
+              case CitizenNameT(template, templateArgs) => CitizenNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+            }))
+      }
+      case InterfaceTT(FullNameT(packageCoord, initSteps, last)) => {
+        InterfaceTT(
+          FullNameT(
+            packageCoord,
+            initSteps,
+            last match {
+              case CitizenNameT(template, templateArgs) => CitizenNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+            }))
+      }
+    }
+  }
+
+  def substituteTemplatasInTemplata(
+    templata: ITemplata[ITemplataType],
+    substitutions: Array[(PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])]):
+  ITemplata[ITemplataType] = {
+    templata match {
+      case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(c, substitutions))
+      case KindTemplata(k) => KindTemplata(substituteTemplatasInKind(k, substitutions))
+      case p @ PlaceholderTemplata(FullNameT(_, _, PlaceholderNameT(index)), _)
+        if index < substitutions.length && p == substitutions(index)._1 => {
+        substitutions(index)._2
+      }
+      case _ => vimpl()
+    }
+  }
 }
 
 class TemplataCompiler(
@@ -176,7 +245,7 @@ class TemplataCompiler(
     expectedType: ITemplataType):
   (ITemplata[ITemplataType]) = {
     val uncoercedTemplata =
-      delegate.resolveInterface(coutputs, callRange, template, templateArgs)
+      delegate.resolveInterface(coutputs, callingEnv, callRange, template, templateArgs)
     val templata =
       coerce(coutputs, callRange, KindTemplata(uncoercedTemplata), expectedType)
     (templata)
@@ -276,12 +345,12 @@ class TemplataCompiler(
             delegate.resolveStruct(coutputs, declaringEnv, range, st, Vector.empty)
           (KindTemplata(kind))
         }
-        case (it@InterfaceTemplata(_, interfaceA), KindTemplataType()) => {
+        case (it@InterfaceTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, declaringEnv, range, it, Vector.empty)
           (KindTemplata(kind))
         }
         case (st@StructTemplata(declaringEnv, structA), CoordTemplataType()) => {
@@ -302,12 +371,12 @@ class TemplataCompiler(
           val coerced = CoordTemplata(CoordT(ownership, kind))
           (coerced)
         }
-        case (it@InterfaceTemplata(_, interfaceA), CoordTemplataType()) => {
+        case (it@InterfaceTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, declaringEnv, range, it, Vector.empty)
           val mutability = Compiler.getMutability(coutputs, kind)
           val coerced =
             CoordTemplata(

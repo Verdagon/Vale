@@ -4,12 +4,12 @@ import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, IRulexSR, LookupSR, RuneUsage}
 import dev.vale.postparsing._
-import dev.vale.typing.{CompilerOutputs, TypingPassOptions, ast}
+import dev.vale.typing.{ArrayCompiler, CompilerOutputs, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment}
-import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
-import dev.vale.{Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vimpl}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, NameTranslator, PlaceholderNameT}
+import dev.vale.{Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vcurious, vimpl}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.ConstructorNameS
@@ -18,9 +18,8 @@ import dev.vale.postparsing.rules.CallSR
 import dev.vale.typing.ast._
 import dev.vale.typing.env.PackageEnvironment
 import dev.vale.typing.function.FunctionCompilerCore
-import dev.vale.typing.names.CitizenTemplateNameT
-import dev.vale.typing.ArrayCompiler
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.ITemplata.expectMutability
+import dev.vale.typing.templata.{CoordTemplata, ITemplata, KindTemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.mutable
@@ -109,6 +108,7 @@ class StructConstructorMacro(
     })
   }
 
+
   override def generateFunctionBody(
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
@@ -120,23 +120,23 @@ class StructConstructorMacro(
     maybeRetCoord: Option[CoordT]):
   FunctionHeaderT = {
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
-    val structDef = coutputs.lookupStruct(structTT)
+    val members = StructCompiler.getMembers(coutputs, structTT)
 
     val constructorFullName = env.fullName
-    vassert(constructorFullName.last.parameters.size == structDef.members.size)
+    vassert(constructorFullName.last.parameters.size == members.size)
     val constructorParams =
-      structDef.members.map({
+      members.map({
         case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
           ParameterT(name, None, reference)
         }
       })
     val constructorReturnOwnership =
-      structDef.mutability match {
+      StructCompiler.getMutability(coutputs, structTT) match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
       }
-    val constructorReturnType = CoordT(constructorReturnOwnership, structDef.getRef)
+    val constructorReturnType = CoordT(constructorReturnOwnership, structTT)
     // not virtual because how could a constructor be virtual
     val constructor2 =
       FunctionT(
@@ -149,17 +149,13 @@ class StructConstructorMacro(
         BlockTE(
           ReturnTE(
             ConstructTE(
-              structDef.getRef,
+              structTT,
               constructorReturnType,
               constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })))))
 
     // we cant make the destructor here because they might have a user defined one somewhere
     coutputs.declareFunctionReturnType(constructor2.header.toSignature, constructor2.header.returnType)
     coutputs.addFunction(constructor2);
-
-//    vassert(
-//      coutputs.getDeclaredSignatureOrigin(
-//        constructor2.header.fullName).nonEmpty)
 
     (constructor2.header)
   }

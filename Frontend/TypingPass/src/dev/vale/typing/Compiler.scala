@@ -22,7 +22,7 @@ import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSub
 import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.AncestorHelper
@@ -99,8 +99,15 @@ class Compiler(
             coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
         }
 
-        override def resolveInterface(coutputs: CompilerOutputs, callRange: RangeS,interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]): InterfaceTT = {
-          structCompiler.getInterfaceRef(coutputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
+        override def resolveInterface(
+            coutputs: CompilerOutputs,
+            callingEnv: IEnvironment, // See CSSNCE
+            callRange: RangeS,
+            interfaceTemplata: InterfaceTemplata,
+            uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+        InterfaceTT = {
+          structCompiler.resolveInterface(
+            coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
 
         override def getStaticSizedArrayKind(
@@ -191,13 +198,14 @@ class Compiler(
             arrayCompiler.getRuntimeSizedArrayKind(envs.declaringEnv.globalEnv, state, element, arrayMutability)
         }
 
-        override def evaluateInterfaceTemplata(
+        override def resolveInterface(
+          env: InferEnv,
           state: CompilerOutputs,
           callRange: RangeS,
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
-            structCompiler.getInterfaceRef(state, callRange, templata, templateArgs)
+            structCompiler.resolveInterface(state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
         }
 
         override def resolveStruct(
@@ -248,7 +256,7 @@ class Compiler(
         }
 
         override def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean = {
-            val structDef = state.getStructDefForRef(structTT)
+            val structDef = state.lookupStruct(structTT)
             structDef.isClosure
         }
 
@@ -274,7 +282,9 @@ class Compiler(
             returnType: CoordT):
         PrototypeT = {
           PrototypeT(
-            envs.declaringEnv.fullName.addStep(interner.intern(FunctionNameT(name, Vector(), coords))),
+            envs.declaringEnv.fullName.addStep(
+              interner.intern(
+                FunctionNameT(FunctionTemplateNameT(name, range.begin), Vector(), coords))),
             returnType)
         }
       })
@@ -289,8 +299,14 @@ class Compiler(
 
   val ancestorHelper: AncestorHelper =
     new AncestorHelper(opts, interner, inferCompiler, new IAncestorHelperDelegate {
-      override def getInterfaceRef(coutputs: CompilerOutputs, callRange: RangeS, interfaceTemplata: InterfaceTemplata, uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]): InterfaceTT = {
-        structCompiler.getInterfaceRef(coutputs, callRange, interfaceTemplata, uncoercedTemplateArgs)
+      override def resolveInterface(
+          coutputs: CompilerOutputs,
+          callingEnv: IEnvironment, // See CSSNCE
+          callRange: RangeS,
+          interfaceTemplata: InterfaceTemplata,
+          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+      InterfaceTT = {
+        structCompiler.resolveInterface(coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
       }
     })
 
@@ -581,7 +597,7 @@ class Compiler(
                 } else {
                   if (isRootStruct(structA)) {
                     val templata = StructTemplata(env, structA)
-                    val _ = structCompiler.compileStruct(coutputs, structA.range, templata, Vector.empty)
+                    val _ = structCompiler.compileStruct(coutputs, templata, Vector.empty)
                   }
                 }
               }
@@ -591,7 +607,7 @@ class Compiler(
                 } else {
                   if (isRootInterface(interfaceA)) {
                     val templata = InterfaceTemplata(env, interfaceA)
-                    val _ = structCompiler.getInterfaceRef(coutputs, interfaceA.range, templata, Vector.empty)
+                    val _ = structCompiler.compileInterface(coutputs, templata, Vector.empty)
                   }
                 }
               }
@@ -644,8 +660,8 @@ class Compiler(
         val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
 
         val immutableKinds =
-          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.getRef) ++
-            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.getRef) ++
+          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.templateName) ++
+            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.templateName) ++
             coutputs.getAllRuntimeSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT)) ++
             coutputs.getAllStaticSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT))
         immutableKinds.foreach(kind => {
@@ -853,7 +869,7 @@ class Compiler(
       exportedKindToExport.foreach({ case (exportedKind, (kind, export)) =>
         exportedKind match {
           case sr@StructTT(_) => {
-            val structDef = coutputs.getStructDefForRef(sr)
+            val structDef = coutputs.lookupStruct(sr)
             structDef.members.foreach({ case StructMemberT(_, _, member) =>
               val CoordT(_, memberKind) = member.reference
               if (structDef.mutability == ImmutableT && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {

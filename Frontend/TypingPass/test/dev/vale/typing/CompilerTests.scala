@@ -286,25 +286,6 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  test("Report when imm struct has varying member") {
-    // https://github.com/ValeLang/Vale/issues/131
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.tup.*;
-        |struct Spaceship imm {
-        |  name! str;
-        |  numWings int;
-        |}
-        |exported func main() {
-        |  ship = Spaceship("Serenity", 2);
-        |  println(ship.name);
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ImmStructCantHaveVaryingMember(_, _, _)) =>
-    }
-  }
-
   test("Test templates") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1816,6 +1797,25 @@ class CompilerTests extends FunSuite with Matchers {
         val reason = fff.rejectedCalleeToReason.head._2
         reason match { case SpecificParamDoesntSend(0, _, _) => }
       }
+    }
+  }
+
+  test("Report when imm struct has varying member") {
+    // https://github.com/ValeLang/Vale/issues/131
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |struct Spaceship imm {
+        |  name! str;
+        |  numWings int;
+        |}
+        |exported func main() {
+        |  ship = Spaceship("Serenity", 2);
+        |  println(ship.name);
+        |}
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ImmStructCantHaveVaryingMember(_, _, _)) =>
     }
   }
 }

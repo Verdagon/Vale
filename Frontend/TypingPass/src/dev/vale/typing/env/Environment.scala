@@ -142,7 +142,7 @@ object TemplatasStore {
 //          case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
-          case PrototypeTemplata(_) => true
+          case PrototypeTemplata(_, _) => true
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
           case StructTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceTemplata(_, _) => contexts.contains(TemplataLookupContext)
@@ -272,7 +272,7 @@ case class TemplatasStore(
       newEntries
         .toVector
         .flatMap({
-          case (key, value @ TemplataEnvEntry(PrototypeTemplata(prototype))) => {
+          case (key, value @ TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
             // This is so if we have:
             //    where func moo(T)T
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)

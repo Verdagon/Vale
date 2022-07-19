@@ -385,7 +385,7 @@ class PatternCompiler(
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
     val CoordT(_, structTT @ StructTT(_)) = inputStructExpr.result.reference
-    val structDefT = coutputs.getStructDefForRef(structTT)
+    val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
     val memberLocals =
@@ -461,7 +461,7 @@ class PatternCompiler(
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
     index: Int) = {
-    val structDefT = coutputs.getStructDefForRef(structTT)
+    val structDefT = coutputs.lookupStruct(structTT)
 
     val member = structDefT.members(index)
 

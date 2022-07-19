@@ -510,36 +510,44 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
     val initialKnowns =
-      function.genericParameters.zipWithIndex.map({ case (genericParam, index) =>
+      function.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
         preliminaryInferences.get(genericParam.rune.rune) match {
-          case Some(x) => InitialKnown(genericParam.rune, x)
+          case Some(x) => Some(InitialKnown(genericParam.rune, x))
           case None => {
-            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
-            val placeholderFullName =
-              nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
-            val templata =
-              runeType match {
-                case KindTemplataType() => {
-                  val placeholderKindT = PlaceholderT(placeholderFullName)
-                  coutputs.declareKind(placeholderKindT)
-                  coutputs.declareKindEnv(placeholderKindT, nearEnv)
-                  KindTemplata(placeholderKindT)
-                }
-                // TODO: Not sure what to put here when we do regions. We might need to
-                // flood the nearest region annotation downward, and then apply it if it's
-                // a coord or something. Remembering that in every templex would be bothersome
-                // though.
-                // For now, we can manually add them.
-                // So, I guess we could just assume the function's default region here then.
-                case CoordTemplataType() => {
-                  val placeholderKindT = PlaceholderT(placeholderFullName)
-                  coutputs.declareKind(placeholderKindT)
-                  coutputs.declareKindEnv(placeholderKindT, nearEnv)
-                  CoordTemplata(CoordT(OwnT, placeholderKindT))
-                }
-                case _ => PlaceholderTemplata(placeholderFullName, runeType)
+            genericParam.default match {
+              case Some(defaultGenericParam) => {
+                // Don't populate a placeholder for this, see DAPGPD.
+                None
               }
-            InitialKnown(genericParam.rune, templata)
+              case None => {
+                val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
+                val placeholderFullName =
+                  nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
+                val templata =
+                  runeType match {
+                    case KindTemplataType() => {
+                      val placeholderKindT = PlaceholderT(placeholderFullName)
+                      coutputs.declareKind(placeholderKindT)
+                      coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                      KindTemplata(placeholderKindT)
+                    }
+                    // TODO: Not sure what to put here when we do regions. We might need to
+                    // flood the nearest region annotation downward, and then apply it if it's
+                    // a coord or something. Remembering that in every templex would be bothersome
+                    // though.
+                    // For now, we can manually add them.
+                    // So, I guess we could just assume the function's default region here then.
+                    case CoordTemplataType() => {
+                      val placeholderKindT = PlaceholderT(placeholderFullName)
+                      coutputs.declareKind(placeholderKindT)
+                      coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                      CoordTemplata(CoordT(OwnT, placeholderKindT))
+                    }
+                    case _ => PlaceholderTemplata(placeholderFullName, runeType)
+                  }
+                Some(InitialKnown(genericParam.rune, templata))
+              }
+            }
           }
         }
       })

@@ -1,20 +1,19 @@
 package dev.vale.typing.ast
 
 import dev.vale.postparsing.MutabilityTemplataType
-import dev.vale.typing.names.{CitizenNameT, FullNameT, ICitizenNameT, IVarNameT}
+import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
-import dev.vale.{vcurious, vfail, vpass}
+import dev.vale.{StrI, vcurious, vfail, vpass}
 
 // A "citizen" is a struct or an interface.
 trait CitizenDefinitionT {
-  def getRef: CitizenRefT;
+//  def getRef: CitizenRefT;
 }
 
-
-// We include templateArgTypes to aid in looking this up... same reason we have name
 case class StructDefinitionT(
-  fullName: FullNameT[ICitizenNameT],
+  templateName: FullNameT[ICitizenTemplateNameT],
+  nameWithPlaceholders: FullNameT[ICitizenNameT],
   ref: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
@@ -24,12 +23,10 @@ case class StructDefinitionT(
 ) extends CitizenDefinitionT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
-  override def getRef: StructTT = ref
+//  override def getRef: StructTT = ref
 
-
-
-  def getMember(memberName: String): StructMemberT = {
-    members.find(p => p.name.equals(memberName)) match {
+  def getMember(memberName: StrI): StructMemberT = {
+    members.find(p => p.name.equals(CodeVarNameT(memberName))) match {
       case None => vfail("Couldn't find member " + memberName)
       case Some(member) => member
     }
@@ -77,7 +74,8 @@ case class AddressMemberTypeT(reference: CoordT) extends IMemberTypeT
 case class ReferenceMemberTypeT(reference: CoordT) extends IMemberTypeT
 
 case class InterfaceDefinitionT(
-  fullName: FullNameT[CitizenNameT],
+  templateName: FullNameT[ICitizenTemplateNameT],
+  nameWithPlaceholders: FullNameT[ICitizenNameT],
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
@@ -87,5 +85,5 @@ case class InterfaceDefinitionT(
   internalMethods: Vector[FunctionHeaderT]
 ) extends CitizenDefinitionT  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def getRef = ref
+//  override def getRef = ref
 }

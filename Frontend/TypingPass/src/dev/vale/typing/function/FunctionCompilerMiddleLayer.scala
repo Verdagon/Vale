@@ -78,7 +78,7 @@ class FunctionCompilerMiddleLayer(
         // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
         // See https://github.com/ValeLang/Vale/issues/374
         if (!isInternalMethod) {
-          val interfaceDef = coutputs.getInterfaceDefForRef(interfaceTT)
+          val interfaceDef = coutputs.lookupInterface(interfaceTT)
           if (!interfaceDef.attributes.contains(SealedT)) {
             throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS))
           }

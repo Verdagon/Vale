@@ -19,8 +19,9 @@ import dev.vale.{Err, Interner, Ok, Profiler, RangeS, vassertSome, vfail, vimpl,
 import scala.collection.immutable.List
 
 trait IAncestorHelperDelegate {
-  def getInterfaceRef(
+  def resolveInterface(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
@@ -67,7 +68,8 @@ class AncestorHelper(
           }
           case it @ InterfaceTemplata(_, _) => {
             val interfaceTT =
-              delegate.getInterfaceRef(coutputs, RangeS.internal(interner, -1875), it, Vector.empty)
+              delegate.resolveInterface(
+                coutputs, env, RangeS.internal(interner, -1875), it, Vector.empty)
             (Some((interfaceTT, implTemplata)))
           }
           case KindTemplata(other) => {
