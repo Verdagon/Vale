@@ -527,8 +527,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
                   runeType match {
                     case KindTemplataType() => {
                       val placeholderKindT = PlaceholderT(placeholderFullName)
-                      coutputs.declareKind(placeholderKindT)
-                      coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                      coutputs.declareTemplate(placeholderKindT)
+                      coutputs.declareEnvForTemplate(placeholderKindT, nearEnv)
                       KindTemplata(placeholderKindT)
                     }
                     // TODO: Not sure what to put here when we do regions. We might need to
@@ -539,8 +539,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
                     // So, I guess we could just assume the function's default region here then.
                     case CoordTemplataType() => {
                       val placeholderKindT = PlaceholderT(placeholderFullName)
-                      coutputs.declareKind(placeholderKindT)
-                      coutputs.declareKindEnv(placeholderKindT, nearEnv)
+                      coutputs.declareTemplate(placeholderKindT)
+                      coutputs.declareEnvForTemplate(placeholderKindT, nearEnv)
                       CoordTemplata(CoordT(OwnT, placeholderKindT))
                     }
                     case _ => PlaceholderTemplata(placeholderFullName, runeType)

@@ -4,7 +4,7 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
@@ -36,30 +36,32 @@ case class CompilerOutputs() {
   private val functionsByPrototype: mutable.HashMap[PrototypeT, FunctionT] = mutable.HashMap()
   private val envByFunctionSignature: mutable.HashMap[SignatureT, FunctionEnvironment] = mutable.HashMap()
 
-  // One must fill this in when putting things into declaredKinds.
-  private val mutabilitiesByCitizenRef: mutable.HashMap[CitizenRefT, ITemplata[MutabilityTemplataType]] = mutable.HashMap()
+  // One must fill this in when putting things into declaredTemplateNames.
+  private val templateNameToMutability: mutable.HashMap[FullNameT[ITemplateNameT], ITemplata[MutabilityTemplataType]] = mutable.HashMap()
 
-  // declaredKinds is the structs that we're currently in the process of defining
+  // declaredTemplateNames is the structs that we're currently in the process of defining
   // Things will appear here before they appear in structTemplateNameToDefinition/interfaceTemplateNameToDefinition
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
-  private val declaredKinds: mutable.HashSet[KindT] = mutable.HashSet()
-  private val envByKind: mutable.HashMap[KindT, IEnvironment] = mutable.HashMap()
+  private val declaredTemplateNames: mutable.HashSet[FullNameT[ITemplateNameT]] = mutable.HashSet()
+  private val templateNameToEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
   private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
-  private val impls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
+  private val allImpls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
+  private val placeholderedSubCitizenToImpls: mutable.HashMap[ICitizenTT, Vector[ImplT]] = mutable.HashMap()
+  private val placeholderedSuperInterfaceToImpls: mutable.HashMap[InterfaceTT, Vector[ImplT]] = mutable.HashMap()
 
   private val kindExports: mutable.ArrayBuffer[KindExportT] = mutable.ArrayBuffer()
   private val functionExports: mutable.ArrayBuffer[FunctionExportT] = mutable.ArrayBuffer()
   private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
   private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
-  // Only ArrayCompiler can make an RawArrayT2.
-  private val staticSizedArrayTypes:
-    mutable.HashMap[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT), StaticSizedArrayTT] =
-    mutable.HashMap()
-  // Only ArrayCompiler can make an RawArrayT2.
-  private val runtimeSizedArrayTypes: mutable.HashMap[(ITemplata[MutabilityTemplataType], CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
+//  // Only ArrayCompiler can make an RawArrayT2.
+//  private val staticSizedArrayTypes:
+//    mutable.HashMap[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT), StaticSizedArrayTT] =
+//    mutable.HashMap()
+//  // Only ArrayCompiler can make an RawArrayT2.
+//  private val runtimeSizedArrayTypes: mutable.HashMap[(ITemplata[MutabilityTemplataType], CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
 
 //  // A queue of functions that our code uses, but we don't need to compile them right away.
 //  // We can compile them later. Perhaps in parallel, someday!
@@ -67,8 +69,8 @@ case class CompilerOutputs() {
 //  private var evaluatedDeferredFunctions: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
 
   def countDenizens(): Int = {
-    staticSizedArrayTypes.size +
-      runtimeSizedArrayTypes.size +
+//    staticSizedArrayTypes.size +
+//      runtimeSizedArrayTypes.size +
       functionsBySignature.size +
       structTemplateNameToDefinition.size +
       interfaceTemplateNameToDefinition.size
@@ -152,29 +154,27 @@ case class CompilerOutputs() {
 
   // We can't declare the struct at the same time as we declare its mutability or environment,
   // see MFDBRE.
-  def declareKind(
-    kind: KindT
-  ): Unit = {
-    vassert(!declaredKinds.contains(kind))
-    declaredKinds += kind
+  def declareTemplate(templateName: FullNameT[ITemplateNameT]): Unit = {
+    vassert(!declaredTemplateNames.contains(templateName))
+    declaredTemplateNames += templateName
   }
 
-  def declareCitizenMutability(
-    kindTT: CitizenRefT,
+  def declareTemplateMutability(
+    templateName: FullNameT[ITemplateNameT],
     mutability: ITemplata[MutabilityTemplataType]
   ): Unit = {
-    vassert(declaredKinds.contains(kindTT))
-    vassert(!mutabilitiesByCitizenRef.contains(kindTT))
-    mutabilitiesByCitizenRef += (kindTT -> mutability)
+    vassert(declaredTemplateNames.contains(templateName))
+    vassert(!templateNameToMutability.contains(templateName))
+    templateNameToMutability += (templateName -> mutability)
   }
 
-  def declareKindEnv(
-    kindTT: KindT,
+  def declareEnvForTemplate(
+    templateNameT: FullNameT[ITemplateNameT],
     env: IEnvironment,
   ): Unit = {
-    vassert(declaredKinds.contains(kindTT))
-    vassert(!envByKind.contains(kindTT))
-    envByKind += (kindTT -> env)
+    vassert(declaredTemplateNames.contains(templateNameT))
+    vassert(!templateNameToEnv.contains(templateNameT))
+    templateNameToEnv += (templateNameT -> env)
   }
 
   def add(structDef: StructDefinitionT): Unit = {
@@ -192,18 +192,32 @@ case class CompilerOutputs() {
     interfaceTemplateNameToDefinition += (interfaceDef.templateName -> interfaceDef)
   }
 
-  def addStaticSizedArray(ssaTT: StaticSizedArrayTT): Unit = {
-    val StaticSizedArrayTT(size, elementType, mutability, variability) = ssaTT
-    staticSizedArrayTypes += ((size, elementType, mutability, variability) -> ssaTT)
+//  def addStaticSizedArray(ssaTT: StaticSizedArrayTT): Unit = {
+//    val StaticSizedArrayTT(size, elementType, mutability, variability) = ssaTT
+//    staticSizedArrayTypes += ((size, elementType, mutability, variability) -> ssaTT)
+//  }
+//
+//  def addRuntimeSizedArray(rsaTT: RuntimeSizedArrayTT): Unit = {
+//    val RuntimeSizedArrayTT(elementType, mutability) = rsaTT
+//    runtimeSizedArrayTypes += ((elementType, mutability) -> rsaTT)
+//  }
+
+  def addImpl(placeholderedSubCitizen: ICitizenTT, placeholderedSuperInterface: InterfaceTT): Unit = {
+    val implT = ImplT(placeholderedSubCitizen, placeholderedSuperInterface)
+    allImpls += implT
+    placeholderedSubCitizenToImpls.put(
+      placeholderedSubCitizen,
+      placeholderedSubCitizenToImpls.getOrElse(placeholderedSubCitizen, Vector()) :+ implT)
+    placeholderedSuperInterfaceToImpls.put(
+      placeholderedSuperInterface,
+      placeholderedSuperInterfaceToImpls.getOrElse(placeholderedSuperInterface, Vector()) :+ implT)
   }
 
-  def addRuntimeSizedArray(rsaTT: RuntimeSizedArrayTT): Unit = {
-    val RuntimeSizedArrayTT(elementType, mutability) = rsaTT
-    runtimeSizedArrayTypes += ((elementType, mutability) -> rsaTT)
+  def getImplsForSubCitizenTemplate(subCitizenTemplate: FullNameT[ICitizenTemplateNameT]): Vector[ImplT] = {
+    placeholderedSubCitizenToImpls.getOrElse(subCitizenTemplate, Vector[ImplT]())
   }
-
-  def addImpl(structTT: StructTT, interfaceTT: InterfaceTT): Unit = {
-    impls += ImplT(structTT, interfaceTT)
+  def getImplsForSuperInterfaceTemplate(superInterfaceTemplate: InterfaceTT): Vector[ImplT] = {
+    placeholderedSuperInterfaceToImpls.getOrElse(superInterfaceTemplate, Vector[ImplT]())
   }
 
   def addKindExport(range: RangeS, kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
@@ -226,14 +240,10 @@ case class CompilerOutputs() {
 //    deferredEvaluatingFunctions.put(devf.prototypeT, devf)
 //  }
 
-  def structDeclared(structTT: StructTT): Option[StructTT] = {
+  def structDeclared(templateName: FullNameT[IStructTemplateNameT]): Boolean = {
     // This is the only place besides StructDefinition2 and declareStruct thats allowed to make one of these
-//    val structTT = StructTT(fullName)
-    if (declaredKinds.contains(structTT)) {
-      Some(structTT)
-    } else {
-      None
-    }
+//    val templateName = StructTT(fullName)
+    declaredTemplateNames.contains(templateName)
   }
 
 //  def prototypeDeclared(fullName: FullNameT[IFunctionNameT]): Option[PrototypeT] = {
@@ -248,10 +258,10 @@ case class CompilerOutputs() {
 //    }
 //  }
 
-  def lookupMutability(citizenRef2: CitizenRefT): ITemplata[MutabilityTemplataType] = {
+  def lookupMutability(templateName: FullNameT[ITemplateNameT]): ITemplata[MutabilityTemplataType] = {
     // If it has a structTT, then we've at least started to evaluate this citizen
-    mutabilitiesByCitizenRef.get(citizenRef2) match {
-      case None => vfail("Still figuring out mutability for struct: " + citizenRef2) // See MFDBRE
+    templateNameToMutability.get(templateName) match {
+      case None => vfail("Still figuring out mutability for struct: " + templateName) // See MFDBRE
       case Some(m) => m
     }
   }
@@ -263,14 +273,9 @@ case class CompilerOutputs() {
 //    }
 //  }
 
-  def interfaceDeclared(interfaceTT: InterfaceTT): Option[InterfaceTT] = {
+  def interfaceDeclared(templateName: FullNameT[ITemplateNameT]): Boolean = {
     // This is the only place besides InterfaceDefinition2 and declareInterface thats allowed to make one of these
-//    val interfaceTT = InterfaceTT(fullName)
-    if (declaredKinds.contains(interfaceTT)) {
-      Some(interfaceTT)
-    } else {
-      None
-    }
+    declaredTemplateNames.contains(templateName)
   }
 
   def lookupStruct(structTT: StructTT): StructDefinitionT = {
@@ -279,6 +284,13 @@ case class CompilerOutputs() {
     // do structTemplateNameToDefinition.get(structTT) yourself and handle the None case
     val templateName = TemplataCompiler.getStructTemplate(structTT.fullName)
     vassertSome(structTemplateNameToDefinition.get(templateName))
+  }
+
+  def lookupCitizen(citizenTT: ICitizenTT): CitizenDefinitionT = {
+    citizenTT match {
+      case s @ StructTT(_) => lookupStruct(s)
+      case s @ InterfaceTT(_) => lookupInterface(s)
+    }
   }
 
   def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
@@ -293,18 +305,18 @@ case class CompilerOutputs() {
   def getAllInterfaces(): Iterable[InterfaceDefinitionT] = interfaceTemplateNameToDefinition.values
   def getAllFunctions(): Iterable[FunctionT] = functionsBySignature.values
   def getAllImpls(): Iterable[ImplT] = impls
-  def getAllStaticSizedArrays(): Iterable[StaticSizedArrayTT] = staticSizedArrayTypes.values
-  def getAllRuntimeSizedArrays(): Iterable[RuntimeSizedArrayTT] = runtimeSizedArrayTypes.values
+//  def getAllStaticSizedArrays(): Iterable[StaticSizedArrayTT] = staticSizedArrayTypes.values
+//  def getAllRuntimeSizedArrays(): Iterable[RuntimeSizedArrayTT] = runtimeSizedArrayTypes.values
 //  def getKindToDestructorMap(): Map[KindT, PrototypeT] = kindToDestructor.toMap
 
-  def getStaticSizedArrayType(size: ITemplata[IntegerTemplataType], mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], elementType: CoordT): Option[StaticSizedArrayTT] = {
-    staticSizedArrayTypes.get((size, mutability, variability, elementType))
-  }
+//  def getStaticSizedArrayType(size: ITemplata[IntegerTemplataType], mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], elementType: CoordT): Option[StaticSizedArrayTT] = {
+//    staticSizedArrayTypes.get((size, mutability, variability, elementType))
+//  }
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
     vassertSome(envByFunctionSignature.get(sig))
   }
-  def getEnvForKind(sr: KindT): IEnvironment = {
-    vassertSome(envByKind.get(sr))
+  def getEnvForTemplate(name: FullNameT[ITemplateNameT]): IEnvironment = {
+    vassertSome(templateNameToEnv.get(name))
   }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)
@@ -315,9 +327,9 @@ case class CompilerOutputs() {
 //  def getDeclaredSignatureOrigin(name: FullNameT[IFunctionNameT]): Option[RangeS] = {
 //    declaredSignatures.get(ast.SignatureT(name))
 //  }
-  def getRuntimeSizedArray(mutabilityT: ITemplata[MutabilityTemplataType], elementType: CoordT): Option[RuntimeSizedArrayTT] = {
-    runtimeSizedArrayTypes.get((mutabilityT, elementType))
-  }
+//  def getRuntimeSizedArray(mutabilityT: ITemplata[MutabilityTemplataType], elementType: CoordT): Option[RuntimeSizedArrayTT] = {
+//    runtimeSizedArrayTypes.get((mutabilityT, elementType))
+//  }
   def getKindExports: Vector[KindExportT] = {
     kindExports.toVector
   }

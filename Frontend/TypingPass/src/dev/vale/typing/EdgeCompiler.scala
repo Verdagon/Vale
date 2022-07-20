@@ -9,6 +9,7 @@ import dev.vale.typing.env.TemplatasStore
 import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
+import dev.vale.typing.names.{FullNameT, InterfaceTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 
 sealed trait IMethod
@@ -71,20 +72,20 @@ class EdgeCompiler(
   private def compileOverride(
       coutputs: CompilerOutputs,
       range: RangeS,
-      interface: InterfaceTT,
-      overridingStruct: StructTT,
+      interface: FullNameT[InterfaceTemplateNameT],
+      overridingStruct: FullNameT[StructTemplateNameT],
       impreciseName: IImpreciseNameS,
       paramTypes: Vector[CoordT]):
   PrototypeT = {
     overloadCompiler.findFunction(
-      coutputs.getEnvForKind(interface),
+      coutputs.getEnvForTemplate(interface),
       coutputs,
       range,
       impreciseName,
       Vector.empty, // No explicitly specified ones. It has to be findable just by param filters.
       Array.empty,
       paramTypes.map(ParamFilter(_, None)),
-      Vector(coutputs.getEnvForKind(overridingStruct)),
+      Vector(coutputs.getEnvForTemplate(overridingStruct)),
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
       case Ok(x) => x.prototype

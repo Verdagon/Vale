@@ -19,7 +19,7 @@ import dev.vale.postparsing._
 trait IConvertHelperDelegate {
   def isAncestor(
     coutputs: CompilerOutputs,
-    descendantCitizenRef: CitizenRefT,
+    descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
   Boolean
 }

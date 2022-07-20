@@ -1,14 +1,13 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{FullNameT, IFunctionNameT, IVarNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.IRuneS
 import dev.vale.typing._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -25,11 +24,19 @@ import scala.collection.immutable._
 // - If not in declared banners, then tell FunctionCompiler to start evaluating it.
 
 case class ImplT(
-  struct: StructTT,
-  interface: InterfaceTT
-)  {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  // These are ICitizenTT and InterfaceTT which likely have placeholder templatas in them.
+  // We do this because a struct might implement an interface in multiple ways, see SCIIMT.
+  // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
+  subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
+  // Starting from a placeholdered sub citizen, this is the interface that would result.
+  parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
+
+  parentInterfaceTemplateName: FullNameT[InterfaceTemplateNameT],
+  // Starting from a placeholdered super interface, this is the interface that would result.
+  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
+) {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 
 case class KindExportT(
@@ -72,7 +79,7 @@ case class FunctionExternT(
 }
 
 case class InterfaceEdgeBlueprint(
-  interface: InterfaceTT,
+  interface: FullNameT[InterfaceTemplateNameT],
   superFamilyRootBanners: Vector[FunctionBannerT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(

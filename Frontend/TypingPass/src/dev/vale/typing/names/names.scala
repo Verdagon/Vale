@@ -120,40 +120,60 @@ sealed trait IInterfaceNameT extends ICitizenNameT {
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
 trait IImplTemplateNameT extends INameT
-trait IImplDeclareNameT extends INameT {    }
-case class ImplDeclareNameT(codeLocation: CodeLocationS) extends IImplDeclareNameT {    }
-case class AnonymousSubstructImplDeclarationNameT(interfaceName: INameT) extends IImplDeclareNameT
-case class LetNameT(codeLocation: CodeLocationS) extends INameT {    }
-case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT {    }
+trait IImplDeclareNameT extends INameT
 
-case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT {    }
-case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawArrayNameT) extends INameT {    }
-case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT {    }
+// Every impl has two names: a "sub name" which describes it in relation to its subclass,
+// and a "super name" which describes it in relation to its superinterface.
+// To find all impls for a struct, we look it up by the sub name.
+// To find all impls implementing an interface, we look it up by the super name.
+// Note that any impl must be in the same environment as the struct or the interface...
+// the struct might not be able to see it, but the interface can. This means:
+// - We can't know all a struct's superinterfaces by just looking in its env.
+// - To know if a struct implements an interface, we need to look in both the struct env
+//   and interface env. Or, just look up the ImplTemplateDeclareNameT.
+case class ImplTemplateSubNameT(subCitizenTemplateName: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
+case class ImplTemplateSuperNameT(superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
+case class ImplTemplateDeclareNameT(
+  subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
+  superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT]
+) extends IImplTemplateNameT
+
+case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: FullNameT[InterfaceTemplateNameT]) extends IImplDeclareNameT
+case class LetNameT(codeLocation: CodeLocationS) extends INameT
+case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
+
+case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT
+
+case class StaticSizedArrayTemplateNameT() extends ITemplateNameT
+case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawArrayNameT) extends INameT
+case class RuntimeSizedArrayTemplateNameT() extends ITemplateNameT
+case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT
+
 sealed trait IVarNameT extends INameT
-case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT {    }
-case class TypingPassFunctionResultVarNameT() extends IVarNameT {    }
-case class TypingPassTemporaryVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT {    }
-case class TypingPassPatternMemberNameT(life: LocationInFunctionEnvironment) extends IVarNameT {    }
-case class TypingIgnoredParamNameT(num: Int) extends IVarNameT {    }
-case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT {    }
-case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT {    }
-case class ClosureParamNameT() extends IVarNameT {    }
-case class ConstructingMemberNameT(name: StrI) extends IVarNameT {    }
-case class WhileCondResultNameT(range: RangeS) extends IVarNameT {    }
+case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingPassFunctionResultVarNameT() extends IVarNameT
+case class TypingPassTemporaryVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingPassPatternMemberNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingIgnoredParamNameT(num: Int) extends IVarNameT
+case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT
+case class ClosureParamNameT() extends IVarNameT
+case class ConstructingMemberNameT(name: StrI) extends IVarNameT
+case class WhileCondResultNameT(range: RangeS) extends IVarNameT
 case class IterableNameT(range: RangeS) extends IVarNameT {  }
 case class IteratorNameT(range: RangeS) extends IVarNameT {  }
 case class PlaceholderNameT(index: Int) extends IVarNameT {  }
 case class IterationOptionNameT(range: RangeS) extends IVarNameT {  }
-case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT {    }
-case class CodeVarNameT(name: StrI) extends IVarNameT {    }
+case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT
+case class CodeVarNameT(name: StrI) extends IVarNameT
 // We dont use CodeVarName2(0), CodeVarName2(1) etc because we dont want the user to address these members directly.
-case class AnonymousSubstructMemberNameT(index: Int) extends IVarNameT {    }
-case class PrimitiveNameT(humanName: StrI) extends INameT {    }
+case class AnonymousSubstructMemberNameT(index: Int) extends IVarNameT
+case class PrimitiveNameT(humanName: StrI) extends INameT
 // Only made in typingpass
-case class PackageTopLevelNameT() extends INameT {    }
-case class ProjectNameT(name: StrI) extends INameT {    }
-case class PackageNameT(name: StrI) extends INameT {    }
-case class RuneNameT(rune: IRuneS) extends INameT {    }
+case class PackageTopLevelNameT() extends INameT
+case class ProjectNameT(name: StrI) extends INameT
+case class PackageNameT(name: StrI) extends INameT
+case class RuneNameT(rune: IRuneS) extends INameT
 
 // This is the name of a function that we're still figuring out in the function typingpass.
 // We have its closured variables, but are still figuring out its template args and params.
@@ -393,6 +413,7 @@ case class StructTemplateNameT(
   //   with code locations
   // - It makes it easier to determine the StructTemplateNameT from a StructNameT which doesn't
   //   remember its code location.
+  //   (note from later: not sure this is true anymore, since StructNameT contains a StructTemplateNameT)
   //codeLocation: CodeLocationS
 ) extends IStructTemplateNameT with CitizenTemplateNameT {
   override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {

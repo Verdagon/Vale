@@ -52,46 +52,6 @@ class StructCompilerMiddle(
       localEnv, coutputs, structS, coercedFinalTemplateArgs2)
   }
 
-  def resolveStruct(
-    structOuterEnv: IEnvironment,
-    structS: StructA,
-    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
-  (StructTT) = {
-    val coercedFinalTemplateArgs2 = structS.genericParameters.map(_.rune.rune).map(templatasByRune)
-
-    val localEnv =
-      CitizenEnvironment(
-        structOuterEnv.globalEnv,
-        structOuterEnv,
-        structOuterEnv.fullName,
-        TemplatasStore(structOuterEnv.fullName, Map(), Map())
-          .addEntries(
-            interner,
-            templatasByRune.toVector
-              .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    core.resolveStruct(localEnv, structS, coercedFinalTemplateArgs2);
-  }
-
-  def resolveInterface(
-    interfaceOuterEnv: IEnvironment,
-    interfaceA: InterfaceA,
-    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
-    val coercedFinalTemplateArgs2 = interfaceA.genericParameters.map(_.rune.rune).map(templatasByRune)
-
-    val localEnv =
-      env.CitizenEnvironment(
-        interfaceOuterEnv.globalEnv,
-        interfaceOuterEnv,
-        interfaceOuterEnv.fullName,
-        env.TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
-          .addEntries(
-            interner,
-            templatasByRune.toVector
-              .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    core.resolveInterface(localEnv, interfaceA, coercedFinalTemplateArgs2)
-  }
-
   def compileInterface(
     interfaceOuterEnv: IEnvironment,
     coutputs: CompilerOutputs,
@@ -110,7 +70,7 @@ class StructCompilerMiddle(
             interner,
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    core.makeInterface(localEnv, coutputs, interfaceA, coercedFinalTemplateArgs2)
+    core.compileInterface(localEnv, coutputs, interfaceA, coercedFinalTemplateArgs2)
   }
 
   // Makes a struct to back a closure

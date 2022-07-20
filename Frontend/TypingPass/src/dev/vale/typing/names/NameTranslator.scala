@@ -2,7 +2,7 @@ package dev.vale.typing.names
 
 import dev.vale.{CodeLocationS, Interner, vimpl}
 import dev.vale.postparsing._
-import dev.vale.typing.types.CitizenRefT
+import dev.vale.typing.types.ICitizenTT
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.CodeLocationS
