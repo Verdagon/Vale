@@ -84,7 +84,7 @@ class Compiler(
       opts,
       nameTranslator,
       new ITemplataCompilerDelegate {
-        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
           ancestorHelper.isAncestor(coutputs, descendantCitizenRef, ancestorInterfaceRef).nonEmpty
         }
 
@@ -118,12 +118,11 @@ class Compiler(
             size: ITemplata[IntegerTemplataType],
             type2: CoordT
         ): StaticSizedArrayTT = {
-          arrayCompiler.getStaticSizedArrayKind(
-            env.globalEnv, coutputs, mutability, variability, size, type2)
+          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2)
         }
 
-        override def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
-          arrayCompiler.getRuntimeSizedArrayKind(env.globalEnv, state, element, arrayMutability)
+        override def getRuntimeSizedArrayKind(element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
+          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
         }
       })
   val inferCompiler: InferCompiler =
@@ -191,11 +190,11 @@ class Compiler(
         }
 
         override def getStaticSizedArrayKind(envs: InferEnv, state: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): (StaticSizedArrayTT) = {
-            arrayCompiler.getStaticSizedArrayKind(envs.declaringEnv.globalEnv, state, mutability, variability, size, element)
+            arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element)
         }
 
         override def getRuntimeSizedArrayKind(envs: InferEnv, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
-            arrayCompiler.getRuntimeSizedArrayKind(envs.declaringEnv.globalEnv, state, element, arrayMutability)
+            arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
         }
 
         override def resolveInterface(
@@ -225,7 +224,7 @@ class Compiler(
           expectedCitizenTemplata: ITemplata[ITemplataType]):
         Boolean = {
           actualCitizenRef match {
-            case s : CitizenRefT => templataCompiler.citizenIsFromTemplate(s, expectedCitizenTemplata)
+            case s : ICitizenTT => templataCompiler.citizenIsFromTemplate(s, expectedCitizenTemplata)
             case RuntimeSizedArrayTT(_, _) => (expectedCitizenTemplata == RuntimeSizedArrayTemplateTemplata())
             case StaticSizedArrayTT(_, _, _, _) => (expectedCitizenTemplata == StaticSizedArrayTemplateTemplata())
             case _ => false
@@ -233,9 +232,15 @@ class Compiler(
         }
 
         override def getAncestors(coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean): Set[KindT] = {
-            (if (includeSelf) Set[KindT](descendant) else Set[KindT]()) ++
+            (if (includeSelf) {
+              Set[KindT](descendant)
+            } else {
+              Set[KindT]()
+            }) ++
               (descendant match {
-                case s : CitizenRefT => ancestorHelper.getAncestorInterfaces(coutputs, s).keys
+                case s : ICitizenTT => {
+                  ancestorHelper.getAncestorInterfaces(coutputs, s).keys
+                }
                 case _ => Set()
               })
         }
@@ -292,7 +297,7 @@ class Compiler(
     new ConvertHelper(
       opts,
       new IConvertHelperDelegate {
-        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: CitizenRefT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
           ancestorHelper.isAncestor(coutputs, descendantCitizenRef, ancestorInterfaceRef).nonEmpty
         }
       })
@@ -580,37 +585,30 @@ class Compiler(
 //            coutputs,
 //            Vector())
 
+        arrayCompiler.compileStaticSizedArray(globalEnv, coutputs)
+        arrayCompiler.compileRuntimeSizedArray(globalEnv, coutputs)
+
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
           val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
-
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
-              case TemplataEnvEntry(_) =>
-              case FunctionEnvEntry(functionA) => {
-                functionCompiler.evaluateGenericFunctionFromNonCall(
-                  coutputs,
-                  FunctionTemplata(env, functionA))
-              }
               case StructEnvEntry(structA) => {
-                if (structA.isTemplate) {
-                  // Do nothing, it's a template
-                } else {
-                  if (isRootStruct(structA)) {
-                    val templata = StructTemplata(env, structA)
-                    structCompiler.compileStruct(coutputs, templata, Vector.empty)
-                  }
-                }
+                val templata = StructTemplata(env, structA)
+                structCompiler.compileStruct(coutputs, templata, Vector.empty)
               }
               case InterfaceEnvEntry(interfaceA) => {
-                if (interfaceA.isTemplate) {
-                  // Do nothing, it's a template
-                } else {
-                  if (isRootInterface(interfaceA)) {
-                    val templata = InterfaceTemplata(env, interfaceA)
-                    structCompiler.compileInterface(coutputs, templata, Vector.empty)
-                  }
-                }
+                val templata = InterfaceTemplata(env, interfaceA)
+                structCompiler.compileInterface(coutputs, templata, Vector.empty)
               }
+              case _ =>
+            }
+          })
+        })
+
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+          templatas.entriesByNameT.map({ case (name, entry) =>
+            entry match {
               case ImplEnvEntry(impl) => {
                 if (impl.isTemplate) {
                   // Do nothing, it's a template
@@ -618,6 +616,21 @@ class Compiler(
 
                 }
               }
+              case _ =>
+            }
+          })
+        })
+
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+          templatas.entriesByNameT.map({ case (name, entry) =>
+            entry match {
+              case FunctionEnvEntry(functionA) => {
+                functionCompiler.evaluateGenericFunctionFromNonCall(
+                  coutputs,
+                  FunctionTemplata(env, functionA))
+              }
+              case _ =>
             }
           })
         })
@@ -659,14 +672,13 @@ class Compiler(
         val freeImpreciseName = interner.intern(FreeImpreciseNameS())
         val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
 
-        vimpl()
 //        val immutableKinds =
 //          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.templateName) ++
 //            coutputs.getAllInterfaces().filter(_.mutability == ImmutableT).map(_.templateName) ++
 //            coutputs.getAllRuntimeSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT)) ++
 //            coutputs.getAllStaticSizedArrays().filter(_.mutability == MutabilityTemplata(ImmutableT))
 //        immutableKinds.foreach(kind => {
-//          val kindEnv = coutputs.getEnvForKind(kind)
+//          val kindEnv = coutputs.getEnvForTemplate(kind)
 //          functionCompiler.evaluateGenericFunctionFromNonCall(
 //            coutputs,
 //            kindEnv.lookupNearestWithImpreciseName(freeImpreciseName, Set(ExpressionLookupContext)) match {
@@ -730,8 +742,8 @@ class Compiler(
         val (
           reachableInterfaces,
           reachableStructs,
-          reachableSSAs,
-          reachableRSAs,
+//          reachableSSAs,
+//          reachableRSAs,
           reachableFunctions) =
         if (opts.treeShakingEnabled) {
           vimpl()
@@ -783,8 +795,8 @@ class Compiler(
           (
             coutputs.getAllInterfaces(),
             coutputs.getAllStructs(),
-            coutputs.getAllStaticSizedArrays(),
-            coutputs.getAllRuntimeSizedArrays(),
+//            coutputs.getAllStaticSizedArrays(),
+//            coutputs.getAllRuntimeSizedArrays(),
             coutputs.getAllFunctions())
         }
 
@@ -982,8 +994,8 @@ object Compiler {
       case VoidT() => MutabilityTemplata(ImmutableT)
       case RuntimeSizedArrayTT(mutability, _) => mutability
       case StaticSizedArrayTT(_, mutability, _, _) => mutability
-      case sr @ StructTT(_) => coutputs.lookupMutability(sr)
-      case ir @ InterfaceTT(_) => coutputs.lookupMutability(ir)
+      case sr @ StructTT(name) => coutputs.lookupMutability(TemplataCompiler.getStructTemplate(name))
+      case ir @ InterfaceTT(name) => coutputs.lookupMutability(TemplataCompiler.getInterfaceTemplate(name))
 //      case PackTT(_, sr) => coutputs.lookupMutability(sr)
 //      case TupleTT(_, sr) => coutputs.lookupMutability(sr)
       case OverloadSetT(_, _) => {

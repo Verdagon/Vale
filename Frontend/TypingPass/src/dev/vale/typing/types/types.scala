@@ -147,14 +147,14 @@ case class RuntimeSizedArrayTT(
   }
 }
 
-trait CitizenRefT extends KindT with IInterning {
+trait ICitizenTT extends KindT with IInterning {
   def fullName: FullNameT[ICitizenNameT]
 }
 
 // These should only be made by struct typingpass, which puts the definition into coutputs at the same time
-case class StructTT(fullName: FullNameT[IStructNameT]) extends CitizenRefT
+case class StructTT(fullName: FullNameT[IStructNameT]) extends ICitizenTT
 
-case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends CitizenRefT
+case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT
 
 // Represents a bunch of functions that have the same name.
 // See ROS.

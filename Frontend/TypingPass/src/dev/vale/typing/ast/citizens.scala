@@ -8,13 +8,13 @@ import dev.vale.{StrI, vcurious, vfail, vpass}
 
 // A "citizen" is a struct or an interface.
 trait CitizenDefinitionT {
-//  def getRef: CitizenRefT;
+  def templateName: FullNameT[ICitizenTemplateNameT]
+  def nameWithPlaceholders: ICitizenTT
 }
 
 case class StructDefinitionT(
   templateName: FullNameT[IStructTemplateNameT],
-  nameWithPlaceholders: FullNameT[IStructNameT],
-  ref: StructTT,
+  nameWithPlaceholders: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],

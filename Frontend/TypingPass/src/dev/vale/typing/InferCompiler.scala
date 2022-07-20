@@ -104,7 +104,9 @@ class InferCompiler(
           alreadyKnown)
     })
   }
+}
 
+object InferCompiler {
   // Some rules should be excluded from the call site, see SROACSD.
   def includeRuleInCallSiteSolve(rule: IRulexSR): Boolean = {
     rule match {

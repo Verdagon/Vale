@@ -39,13 +39,13 @@ class AsSubtypeMacro(
 
     val sourceCitizen =
       sourceKind match {
-        case c : CitizenRefT => c
+        case c : ICitizenTT => c
         case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
       }
 
     val targetCitizen =
       targetKind match {
-        case c : CitizenRefT => c
+        case c : ICitizenTT => c
         case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
       }
 

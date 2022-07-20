@@ -8,7 +8,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.names.{CitizenNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
 import dev.vale.typing.templata.{Conversions, PlaceholderTemplata, _}
 import dev.vale.typing.types._
 import dev.vale._
@@ -41,7 +41,7 @@ case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITypingPassSolv
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITypingPassSolverError
 case class CallResultWasntExpectedType(expected: ITemplata[ITemplataType], actual: ITemplata[ITemplataType]) extends ITypingPassSolverError
 case class OneOfFailed(rule: OneOfSR) extends ITypingPassSolverError
-case class KindDoesntImplementInterface(sub: CitizenRefT, suuper: InterfaceTT) extends ITypingPassSolverError
+case class KindDoesntImplementInterface(sub: ICitizenTT, suuper: InterfaceTT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: RangeS, name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: RangeS) extends ITypingPassSolverError
@@ -606,7 +606,7 @@ class CompilerRuleSolver[Env, State](
       case KindIsaSR(range, subRune, superRune) => {
         val sub =
           vassertSome(stepState.getConclusion(subRune.rune)) match {
-            case KindTemplata(kind : CitizenRefT) => kind
+            case KindTemplata(kind : ICitizenTT) => kind
             case other => vwat(other)
           }
         val suuper =
@@ -625,7 +625,7 @@ class CompilerRuleSolver[Env, State](
           vassertSome(stepState.getConclusion(subRune.rune))
         val subCitizen =
           subCoord.kind match {
-            case cit : CitizenRefT => cit
+            case cit : ICitizenTT => cit
             case other => return Err(SendingNonCitizen(other))
           }
 
@@ -633,7 +633,7 @@ class CompilerRuleSolver[Env, State](
           vassertSome(stepState.getConclusion(superRune.rune))
         val superCitizen =
           superCoord.kind match {
-            case cit : CitizenRefT => cit
+            case cit : ICitizenTT => cit
             case other => return Err(SendingNonCitizen(other))
           }
 

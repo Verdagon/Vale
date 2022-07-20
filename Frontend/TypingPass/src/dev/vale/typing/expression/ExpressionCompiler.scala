@@ -837,7 +837,7 @@ class ExpressionCompiler(
               case (NeverT(true), _) => uncoercedElseBlock2.result.reference
               case (_, NeverT(true)) => uncoercedThenBlock2.result.reference
               case (a, b) if a == b => uncoercedThenBlock2.result.reference
-              case (a : CitizenRefT, b : CitizenRefT) => {
+              case (a : ICitizenTT, b : ICitizenTT) => {
                 val aAncestors = ancestorHelper.getAncestorInterfaces(coutputs, a).keys.toSet
                 val bAncestors = ancestorHelper.getAncestorInterfaces(coutputs, b).keys.toSet
                 val commonAncestors = aAncestors.intersect(bAncestors)

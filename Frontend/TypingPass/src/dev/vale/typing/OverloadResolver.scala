@@ -166,12 +166,12 @@ class OverloadResolver(
           explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case KindTemplata(sr@StructTT(_)) => {
-        val structEnv = coutputs.getEnvForKind(sr)
+        val structEnv = coutputs.getEnvForTemplate(sr)
         getCandidateBanners(
           structEnv, coutputs, callRange, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case KindTemplata(sr@InterfaceTT(_)) => {
-        val interfaceEnv = coutputs.getEnvForKind(sr)
+        val interfaceEnv = coutputs.getEnvForTemplate(sr)
         getCandidateBanners(
           interfaceEnv, coutputs, callRange, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
@@ -351,8 +351,8 @@ class OverloadResolver(
   Vector[IEnvironment] = {
     paramFilters.flatMap({ case ParamFilter(tyype, virtuality) =>
       (tyype.kind match {
-        case sr @ StructTT(_) => Vector(coutputs.getEnvForKind(sr))
-        case ir @ InterfaceTT(_) => Vector(coutputs.getEnvForKind(ir))
+        case sr @ StructTT(_) => Vector(coutputs.getEnvForTemplate(sr))
+        case ir @ InterfaceTT(_) => Vector(coutputs.getEnvForTemplate(ir))
         case _ => Vector.empty
       }) ++
         (virtuality match {

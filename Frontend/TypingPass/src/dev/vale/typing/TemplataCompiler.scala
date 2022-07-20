@@ -22,7 +22,7 @@ trait ITemplataCompilerDelegate {
 
   def isAncestor(
     coutputs: CompilerOutputs,
-    descendantCitizenRef: CitizenRefT,
+    descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
   Boolean
 
@@ -59,6 +59,11 @@ trait ITemplataCompilerDelegate {
 object TemplataCompiler {
 
   def getFunctionTemplate(fullName: FullNameT[IFunctionNameT]): FullNameT[IFunctionTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getCitizenTemplate(fullName: FullNameT[ICitizenNameT]): FullNameT[ICitizenTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
   }
@@ -124,7 +129,11 @@ object TemplataCompiler {
         if index < substitutions.length && p == substitutions(index)._1 => {
         substitutions(index)._2
       }
-      case _ => vimpl()
+      case MutabilityTemplata(_) => templata
+      case VariabilityTemplata(_) => templata
+      case IntegerTemplata(_) => templata
+      case BooleanTemplata(_) => templata
+      case other => vimpl(other)
     }
   }
 }
@@ -401,7 +410,7 @@ class TemplataCompiler(
     }
   }
 
-  def citizenIsFromTemplate(actualCitizenRef: CitizenRefT, expectedCitizenTemplata: ITemplata[ITemplataType]): Boolean = {
+  def citizenIsFromTemplate(actualCitizenRef: ICitizenTT, expectedCitizenTemplata: ITemplata[ITemplataType]): Boolean = {
     val citizenTemplateFullName =
       expectedCitizenTemplata match {
         case StructTemplata(env, originStruct) => {

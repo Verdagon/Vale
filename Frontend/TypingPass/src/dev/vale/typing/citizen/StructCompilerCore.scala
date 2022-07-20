@@ -33,33 +33,6 @@ class StructCompilerCore(
   ancestorHelper: AncestorHelper,
   delegate: IStructCompilerDelegate) {
 
-  def resolveStruct(
-    // The environment that the struct was defined in.
-    structRunesEnv: CitizenEnvironment[INameT],
-    structA: StructA,
-    coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructTT) = {
-    val templateNameT = nameTranslator.translateStructName(structA.name)
-    val structNameT = templateNameT.makeStructName(interner, coercedFinalTemplateArgs)
-    val fullNameT = structRunesEnv.fullName.addStep(structNameT)
-    val temporaryStructRef = interner.intern(StructTT(fullNameT))
-
-    temporaryStructRef
-  }
-
-  def resolveInterface(
-    // The environment that the interface was defined in.
-    structRunesEnv: CitizenEnvironment[INameT],
-    interfaceA: InterfaceA,
-    coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
-    val templateNameT = nameTranslator.translateInterfaceName(interfaceA.name)
-    val structNameT = templateNameT.makeInterfaceName(interner, coercedFinalTemplateArgs)
-    val fullNameT = structRunesEnv.fullName.addStep(structNameT)
-    val temporaryStructRef = interner.intern(InterfaceTT(fullNameT))
-    temporaryStructRef
-  }
-
   def compileStruct(
     // The environment that the struct was defined in.
     structRunesEnv: CitizenEnvironment[INameT],
@@ -132,7 +105,7 @@ class StructCompilerCore(
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
-    coutputs.declareKindEnv(placeholderedStructTT, structInnerEnv)
+    coutputs.declareEnvForTemplate(templateFullNameT, structInnerEnv)
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
@@ -180,17 +153,14 @@ class StructCompilerCore(
       }
     }
 
-    val ancestorImplsAndInterfaces =
-      ancestorHelper.getAncestorInterfaces(coutputs, placeholderedStructTT)
-
-    ancestorImplsAndInterfaces.foreach({
-      case (ancestorInterface, implTemplata) => {
-        val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
-        if (structDefT.weakable != interfaceDefinition2.weakable) {
-          throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
-        }
-        coutputs.addImpl(placeholderedStructTT, ancestorInterface)
-      }
+    val parentInterfaces =
+      ancestorHelper.compileParentImpls(coutputs, placeholderedStructTT)
+    parentInterfaces.foreach({ case (_, parentInterface) =>
+//      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
+//      if (structDefT.weakable != interfaceDefinition2.weakable) {
+//        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
+//      }
+      coutputs.addImpl(placeholderedStructTT, parentInterface)
     })
   }
 
@@ -207,7 +177,7 @@ class StructCompilerCore(
   //   t: T;
   // }
   // which means we need some way to know what T is.
-  def makeInterface(
+  def compileInterface(
     interfaceRunesEnv: CitizenEnvironment[INameT],
     coutputs: CompilerOutputs,
     interfaceA: InterfaceA,
@@ -289,10 +259,7 @@ class StructCompilerCore(
                 (functionName -> FunctionEnvEntry(internalMethod))
               })))
 
-    coutputs
-      .declareKindEnv(
-        placeholderedInterfaceTT,
-        interfaceInnerEnv)
+    coutputs.declareEnvForTemplate(templateFullNameT, interfaceInnerEnv)
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
@@ -338,7 +305,26 @@ class StructCompilerCore(
       }
     }
 
-    val _ = ancestorHelper.getParentInterfaces(coutputs, placeholderedInterfaceTT)
+    val childCitizens =
+      ancestorHelper.compileChildImpls(coutputs, placeholderedInterfaceTT)
+    childCitizens.foreach({ case (_, childCitizen) =>
+      //      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
+      //      if (structDefT.weakable != interfaceDefinition2.weakable) {
+      //        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
+      //      }
+      coutputs.addImpl(childCitizen, placeholderedInterfaceTT)
+    })
+
+    // We also look for parent interfaces because interfaces can extend other interfaces too.
+    val parentInterfaces =
+      ancestorHelper.compileParentImpls(coutputs, placeholderedInterfaceTT)
+    parentInterfaces.foreach({ case (_, parentInterface) =>
+      //      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
+      //      if (structDefT.weakable != interfaceDefinition2.weakable) {
+      //        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
+      //      }
+      coutputs.addImpl(placeholderedInterfaceTT, parentInterface)
+    })
 
     (interfaceDef2)
   }
@@ -397,12 +383,12 @@ class StructCompilerCore(
       })
     val mutability = if (isMutable) MutableT else ImmutableT
 
-    val templateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
-    val templatedFullNameT = containingFunctionEnv.fullName.addStep(templateNameT)
-    val instantiatedNameT = templateNameT.makeStructName(interner, Vector())
-    val instantiatedFullNameT = containingFunctionEnv.fullName.addStep(instantiatedNameT)
+    val understructTemplateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
+    val understructTemplatedFullNameT = containingFunctionEnv.fullName.addStep(understructTemplateNameT)
+    val understructInstantiatedNameT = understructTemplateNameT.makeStructName(interner, Vector())
+    val understructInstantiatedFullNameT = containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
-    val structTT = interner.intern(StructTT(instantiatedFullNameT))
+    val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT))
 
     val freeFuncNameT =
       interner.intern(FreeTemplateNameT(functionA.range.begin))
@@ -417,8 +403,8 @@ class StructCompilerCore(
       CitizenEnvironment(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
-        instantiatedFullNameT,
-        TemplatasStore(instantiatedFullNameT, Map(), Map())
+        understructInstantiatedFullNameT,
+        TemplatasStore(understructInstantiatedFullNameT, Map(), Map())
           .addEntries(
             interner,
             Vector(
@@ -428,8 +414,8 @@ class StructCompilerCore(
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
-              instantiatedNameT -> TemplataEnvEntry(KindTemplata(structTT)),
-              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(structTT))) ++
+              understructInstantiatedNameT -> TemplataEnvEntry(KindTemplata(understructStructTT)),
+              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(understructStructTT))) ++
               (if (mutability == ImmutableT) {
                 Vector(
                   freeFuncNameT ->
@@ -441,25 +427,21 @@ class StructCompilerCore(
               })))
     // We return this from the function in case we want to eagerly compile it (which we do
     // if it's not a template).
-    val functionTemplata =
-        FunctionTemplata(
-          structEnv,
-          functionA)
+    val functionTemplata = FunctionTemplata(structEnv, functionA)
 
-    coutputs.declareKind(structTT);
-    coutputs.declareCitizenMutability(structTT, MutabilityTemplata(mutability))
-    coutputs.declareKindEnv(structTT, structEnv);
-
+    coutputs.declareTemplate(understructTemplatedFullNameT);
+    coutputs.declareTemplateMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
+    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, structEnv);
 
     val closureStructDefinition =
       StructDefinitionT(
-        templatedFullNameT,
-        instantiatedFullNameT,
-        interner.intern(StructTT(instantiatedFullNameT)),
+        understructTemplatedFullNameT,
+        understructInstantiatedFullNameT,
+        interner.intern(StructTT(understructInstantiatedFullNameT)),
         Vector.empty, false, MutabilityTemplata(mutability), members, true);
     coutputs.add(closureStructDefinition)
 
-    val closuredVarsStructRef = structTT;
+    val closuredVarsStructRef = understructStructTT;
 
     if (mutability == ImmutableT) {
       // Adds the free function to the coutputs
