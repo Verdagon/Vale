@@ -6,11 +6,11 @@ import dev.vale.postparsing.rules.Equivalencies
 import dev.vale.solver.SolverErrorHumanizer
 import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing.env.{ExpressionLookupContext, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.{CantImplNonInterface, CompileErrorExceptionT, CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
-import dev.vale.typing.names.{FullNameT, ImplTemplateNameT, ImplTemplateSubNameT, ImplTemplateSuperNameT, InterfaceTemplateNameT, NameTranslator}
+import dev.vale.typing._
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, postparsing, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
@@ -32,7 +32,7 @@ trait IAncestorHelperDelegate {
   InterfaceTT
 }
 
-class AncestorHelper(
+class ImplCompiler(
     opts: TypingPassOptions,
 
     interner: Interner,
@@ -137,76 +137,112 @@ class AncestorHelper(
     })
   }
 
-  // Doesn't include self
-  def compileGetAncestorInterfaces(
+//  // Doesn't include self
+//  def compileGetAncestorInterfaces(
+//    coutputs: CompilerOutputs,
+//    descendantCitizenRef: ICitizenTT):
+//  (Map[InterfaceTT, ImplTemplateNameT]) = {
+//    Profiler.frame(() => {
+//      val parentInterfacesAndImpls =
+//        compileGetParentInterfaces(coutputs, descendantCitizenRef)
+//
+//      // Make a map that contains all the parent interfaces, with distance 1
+//      val foundSoFar =
+//        parentInterfacesAndImpls.map({ case (interfaceRef, impl) => (interfaceRef, impl) }).toMap
+//
+//      compileGetAncestorInterfacesInner(
+//        coutputs,
+//        foundSoFar,
+//        parentInterfacesAndImpls.toMap)
+//    })
+//  }
+//
+//  private def compileGetAncestorInterfacesInner(
+//    coutputs: CompilerOutputs,
+//    // This is so we can know what we've already searched.
+//    nearestDistanceByInterfaceRef: Map[InterfaceTT, ImplTemplateNameT],
+//    // These are the interfaces that are *exactly* currentDistance away.
+//    // We will do our searching from here.
+//    interfacesAtCurrentDistance: Map[InterfaceTT, ImplTemplateNameT]):
+//  (Map[InterfaceTT, ImplTemplateNameT]) = {
+//    val interfacesAtNextDistance =
+//      interfacesAtCurrentDistance.foldLeft((Map[InterfaceTT, ImplTemplateNameT]()))({
+//        case ((previousAncestorInterfaceRefs), (parentInterfaceRef, parentImpl)) => {
+//          val parentAncestorInterfaceRefs =
+//            compileGetParentInterfaces(coutputs, parentInterfaceRef)
+//          (previousAncestorInterfaceRefs ++ parentAncestorInterfaceRefs)
+//        }
+//      })
+//
+//    // Discard the ones that have already been found; they're actually at
+//    // a closer distance.
+//    val newlyFoundInterfaces =
+//    interfacesAtNextDistance.keySet
+//      .diff(nearestDistanceByInterfaceRef.keySet)
+//      .toVector
+//      .map(key => (key -> interfacesAtNextDistance(key)))
+//      .toMap
+//
+//    if (newlyFoundInterfaces.isEmpty) {
+//      (nearestDistanceByInterfaceRef)
+//    } else {
+//      // Combine the previously found ones with the newly found ones.
+//      val newNearestDistanceByInterfaceRef =
+//        nearestDistanceByInterfaceRef ++ newlyFoundInterfaces.toMap
+//
+//      compileGetAncestorInterfacesInner(
+//        coutputs,
+//        newNearestDistanceByInterfaceRef,
+//        newlyFoundInterfaces)
+//    }
+//  }
+
+  def getParents(
     coutputs: CompilerOutputs,
-    descendantCitizenRef: ICitizenTT):
-  (Map[InterfaceTT, ImplTemplateNameT]) = {
-    Profiler.frame(() => {
-      val parentInterfacesAndImpls =
-        compileGetParentInterfaces(coutputs, descendantCitizenRef)
-
-      // Make a map that contains all the parent interfaces, with distance 1
-      val foundSoFar =
-        parentInterfacesAndImpls.map({ case (interfaceRef, impl) => (interfaceRef, impl) }).toMap
-
-      compileGetAncestorInterfacesInner(
-        coutputs,
-        foundSoFar,
-        parentInterfacesAndImpls.toMap)
-    })
-  }
-
-  private def compileGetAncestorInterfacesInner(
-    coutputs: CompilerOutputs,
-    // This is so we can know what we've already searched.
-    nearestDistanceByInterfaceRef: Map[InterfaceTT, ImplTemplateNameT],
-    // These are the interfaces that are *exactly* currentDistance away.
-    // We will do our searching from here.
-    interfacesAtCurrentDistance: Map[InterfaceTT, ImplTemplateNameT]):
-  (Map[InterfaceTT, ImplTemplateNameT]) = {
-    val interfacesAtNextDistance =
-      interfacesAtCurrentDistance.foldLeft((Map[InterfaceTT, ImplTemplateNameT]()))({
-        case ((previousAncestorInterfaceRefs), (parentInterfaceRef, parentImpl)) => {
-          val parentAncestorInterfaceRefs =
-            compileGetParentInterfaces(coutputs, parentInterfaceRef)
-          (previousAncestorInterfaceRefs ++ parentAncestorInterfaceRefs)
-        }
-      })
-
-    // Discard the ones that have already been found; they're actually at
-    // a closer distance.
-    val newlyFoundInterfaces =
-    interfacesAtNextDistance.keySet
-      .diff(nearestDistanceByInterfaceRef.keySet)
-      .toVector
-      .map(key => (key -> interfacesAtNextDistance(key)))
-      .toMap
-
-    if (newlyFoundInterfaces.isEmpty) {
-      (nearestDistanceByInterfaceRef)
-    } else {
-      // Combine the previously found ones with the newly found ones.
-      val newNearestDistanceByInterfaceRef =
-        nearestDistanceByInterfaceRef ++ newlyFoundInterfaces.toMap
-
-      compileGetAncestorInterfacesInner(
-        coutputs,
-        newNearestDistanceByInterfaceRef,
-        newlyFoundInterfaces)
-    }
+    subCitizenTT: ICitizenTT):
+  Array[InterfaceTT] = {
+    val subCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
+    val subCitizenDefinition = coutputs.lookupCitizen(subCitizenTT)
+    val placeholderedSubCitizenTT = subCitizenDefinition.nameWithPlaceholders
+    coutputs
+      .getParentImplsForSubCitizenTemplate(subCitizenTemplateFullName)
+      .map({ case ImplT(_, parentInterfaceFromPlaceholderedSubCitizen, _, _) =>
+        vassert(
+          placeholderedSubCitizenTT.fullName.last.templateArgs.size ==
+          subCitizenTT.fullName.last.templateArgs.size)
+        val placeholderToTemplata =
+          placeholderedSubCitizenTT.fullName.last.templateArgs.toArray
+            .zip(subCitizenTT.fullName.last.templateArgs.toArray)
+            .map({
+              case (placeholder @ PlaceholderTemplata(_, _), templateArg) => placeholder -> templateArg
+              case (_, _) => vcurious()
+            })
+        TemplataCompiler.substituteTemplatasInInterface(
+          parentInterfaceFromPlaceholderedSubCitizen, placeholderToTemplata)
+      }).toArray
   }
 
   def isParent(
     coutputs: CompilerOutputs,
-    subCitizenRef: ICitizenTT,
-    superInterfaceRef: InterfaceTT):
+    subCitizenTT: ICitizenTT,
+    superInterfaceTT: InterfaceTT):
   Boolean = {
-    val subCitizenDefinition = coutputs.lookupCitizen(subCitizenRef)
-    val placeholderedTT = subCitizenDefinition.nameWithPlaceholders
-    coutputs.getImplsForSubCitizenTemplate(placeholderedTT)
-
-    TemplataCompiler.getInterfaceTemplate()
+    val needleSubCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
+    val needleSuperInterfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(superInterfaceTT.fullName)
+    coutputs.getParentImplsForSubCitizenTemplate(needleSubCitizenTemplateFullName)
+      .foreach({ case ImplT(_, _, superInterfaceTemplateName, subCitizenFromPlaceholderedParentInterface) =>
+        if (superInterfaceTemplateName == needleSuperInterfaceTemplateFullName) {
+          return true
+        }
+      })
+    false
   }
 
+  def isDescendant(
+    coutputs: CompilerOutputs,
+    subCitizenTT: ICitizenTT):
+  Boolean = {
+    val needleSubCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
+    coutputs.getParentImplsForSubCitizenTemplate(needleSubCitizenTemplateFullName).nonEmpty
+  }
 }

@@ -7,7 +7,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
 //import dev.vale.astronomer.IRulexSR
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.IEnvironmentBox
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -17,7 +17,7 @@ import scala.collection.immutable.List
 import dev.vale.postparsing._
 
 trait IConvertHelperDelegate {
-  def isAncestor(
+  def isParent(
     coutputs: CompilerOutputs,
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
@@ -114,7 +114,7 @@ class ConvertHelper(
     sourceStructRef: StructTT,
     targetInterfaceRef: InterfaceTT):
   (ReferenceExpressionTE) = {
-    if (delegate.isAncestor(coutputs, sourceStructRef, targetInterfaceRef)) {
+    if (delegate.isParent(coutputs, sourceStructRef, targetInterfaceRef)) {
       StructToInterfaceUpcastTE(sourceExpr, targetInterfaceRef)
     } else {
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceStructRef + " to a " + targetInterfaceRef))

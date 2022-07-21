@@ -26,7 +26,7 @@ class StructCompilerMiddle(
   keywords: Keywords,
     nameTranslator: NameTranslator,
 
-    ancestorHelper: AncestorHelper,
+    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
   val core = new StructCompilerCore(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
 

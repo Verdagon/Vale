@@ -9,7 +9,7 @@ import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
 import TemplatasStore.{entryMatchesFilter, entryToTemplata, getImpreciseName}
-import dev.vale.typing.names.{AnonymousSubstructConstructorTemplateNameT, AnonymousSubstructImplNameT, AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, ArbitraryNameT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, ForwarderFunctionNameT, ForwarderFunctionTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, LambdaTemplateNameT, PackageTopLevelNameT, PrimitiveNameT, RuneNameT, SelfNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata
 import dev.vale.typing.templata._
 import dev.vale.typing.macros.citizen._

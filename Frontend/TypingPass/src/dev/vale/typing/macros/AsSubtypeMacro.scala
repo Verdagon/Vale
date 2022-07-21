@@ -4,7 +4,7 @@ import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
 import dev.vale.typing.templata.KindTemplata
@@ -16,7 +16,7 @@ import dev.vale.typing.ast
 
 class AsSubtypeMacro(
   keywords: Keywords,
-  ancestorHelper: AncestorHelper,
+  ancestorHelper: ImplCompiler,
   expressionCompiler: ExpressionCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_as_subtype
 

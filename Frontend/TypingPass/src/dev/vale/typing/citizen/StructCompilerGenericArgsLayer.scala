@@ -27,7 +27,7 @@ class StructCompilerGenericArgsLayer(
     keywords: Keywords,
     nameTranslator: NameTranslator,
     inferCompiler: InferCompiler,
-    ancestorHelper: AncestorHelper,
+    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
   val middle = new StructCompilerMiddle(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
 

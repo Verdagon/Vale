@@ -32,7 +32,7 @@ case class ImplT(
   // Starting from a placeholdered sub citizen, this is the interface that would result.
   parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
-  parentInterfaceTemplateName: FullNameT[InterfaceTemplateNameT],
+  superInterfaceTemplateName: FullNameT[InterfaceTemplateNameT],
   // Starting from a placeholdered super interface, this is the interface that would result.
   subCitizenFromPlaceholderedParentInterface: ICitizenTT,
 ) {
