@@ -16,7 +16,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env._
 
 import scala.collection.immutable.{List, Set}

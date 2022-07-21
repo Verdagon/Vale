@@ -36,10 +36,10 @@ class EdgeCompiler(
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
         val interface = interfaceEdgeBlueprint.interface
         interface -> {
-          val overridingImpls = coutputs.getAllImpls().filter(_.interface == interface)
+          val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interface)
           overridingImpls.map(overridingImpl => {
-            val overridingStruct = overridingImpl.struct
-            overridingStruct -> {
+            val overridingCitizen = overridingImpl.subCitizenTemplateName
+            overridingCitizen -> {
               interfaceEdgeBlueprint.superFamilyRootBanners.map(abstractFunctionBanner => {
                 val abstractFunctionSignature = abstractFunctionBanner.toSignature
                 val abstractFunctionParamTypes = abstractFunctionSignature.paramTypes
@@ -53,12 +53,12 @@ class EdgeCompiler(
 
                 val overrideFunctionParamTypes =
                   abstractFunctionParamTypes
-                    .updated(abstractIndex, abstractParamType.copy(kind = overridingStruct))
+                    .updated(abstractIndex, abstractParamType.copy(kind = overridingCitizen))
 
                 val range = abstractFunctionBanner.originFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
                 val foundFunction =
                   compileOverride(
-                    coutputs, range, interface, overridingStruct, impreciseName, overrideFunctionParamTypes)
+                    coutputs, range, interface, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })

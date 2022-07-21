@@ -58,7 +58,7 @@ class StructCompiler(
     keywords: Keywords,
     nameTranslator: NameTranslator,
     inferCompiler: InferCompiler,
-    ancestorHelper: AncestorHelper,
+    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
   val templateArgsLayer =
     new StructCompilerGenericArgsLayer(

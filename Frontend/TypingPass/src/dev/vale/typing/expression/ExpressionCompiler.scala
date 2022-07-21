@@ -9,7 +9,7 @@ import dev.vale.postparsing.rules.{RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal, CantMutateFinalElement, CantMutateFinalMember, CantReconcileBranchesResults, CantUnstackifyOutsideLocalFromInsideWhile, CantUseUnstackifiedLocal, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForMutateT, CouldntConvertForReturnT, CouldntFindIdentifierToLoadT, CouldntFindMemberT, HigherTypingInferError, IfConditionIsntBoolean, InferCompiler, OverloadResolver, RangedInternalErrorT, SequenceCompiler, TemplataCompiler, TypingPassOptions, ast, templata}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
-import dev.vale.typing.citizen.{AncestorHelper, StructCompiler}
+import dev.vale.typing.citizen.{ImplCompiler, StructCompiler}
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, ExpressionLookupContext, FunctionEnvironment, IEnvironment, ILocalVariableT, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.highertyping._
@@ -19,7 +19,7 @@ import dev.vale.postparsing.rules.RuneParentEnvLookupSR
 import dev.vale.postparsing.RuneTypeSolver
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.names.{ArbitraryNameT, ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, RuneNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT}
@@ -62,7 +62,7 @@ class ExpressionCompiler(
     inferCompiler: InferCompiler,
     arrayCompiler: ArrayCompiler,
     structCompiler: StructCompiler,
-    ancestorHelper: AncestorHelper,
+    ancestorHelper: ImplCompiler,
     sequenceCompiler: SequenceCompiler,
     overloadCompiler: OverloadResolver,
     destructorCompiler: DestructorCompiler,

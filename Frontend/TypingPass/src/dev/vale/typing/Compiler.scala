@@ -7,7 +7,7 @@ import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.citizen.{AncestorHelper, IAncestorHelperDelegate, IStructCompilerDelegate, StructCompiler}
+import dev.vale.typing.citizen.{ImplCompiler, IAncestorHelperDelegate, IStructCompilerDelegate, StructCompiler}
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
 import dev.vale.typing.function.{DestructorCompiler, FunctionCompiler, FunctionCompilerCore, IFunctionCompilerDelegate, VirtualCompiler}
 import dev.vale.typing.infer.IInfererDelegate
@@ -25,7 +25,7 @@ import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
 import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env._
 import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.types._
@@ -84,8 +84,8 @@ class Compiler(
       opts,
       nameTranslator,
       new ITemplataCompilerDelegate {
-        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
-          ancestorHelper.isAncestor(coutputs, descendantCitizenRef, ancestorInterfaceRef).nonEmpty
+        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+          ancestorHelper.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
 
         override def resolveStruct(
@@ -149,8 +149,8 @@ class Compiler(
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => ancestorHelper.getAncestorInterfaces(coutputs, s).nonEmpty
-            case i @ InterfaceTT(_) => ancestorHelper.getAncestorInterfaces(coutputs, i).nonEmpty
+            case s @ StructTT(_) => ancestorHelper.isDescendant(coutputs, s)
+            case i @ InterfaceTT(_) => ancestorHelper.isDescendant(coutputs, i)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -238,10 +238,8 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => {
-                  ancestorHelper.getAncestorInterfaces(coutputs, s).keys
-                }
-                case _ => Set()
+                case s : ICitizenTT => ancestorHelper.getParents(coutputs, s)
+                case _ => Array()
               })
         }
 
@@ -297,13 +295,13 @@ class Compiler(
     new ConvertHelper(
       opts,
       new IConvertHelperDelegate {
-        override def isAncestor(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
-          ancestorHelper.isAncestor(coutputs, descendantCitizenRef, ancestorInterfaceRef).nonEmpty
+        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+          ancestorHelper.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
       })
 
-  val ancestorHelper: AncestorHelper =
-    new AncestorHelper(opts, interner, inferCompiler, new IAncestorHelperDelegate {
+  val ancestorHelper: ImplCompiler =
+    new ImplCompiler(opts, interner, inferCompiler, new IAncestorHelperDelegate {
       override def resolveInterface(
           coutputs: CompilerOutputs,
           callingEnv: IEnvironment, // See CSSNCE

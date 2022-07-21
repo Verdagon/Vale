@@ -4,7 +4,7 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vpass}
 import dev.vale.typing.ast._
@@ -48,8 +48,8 @@ case class CompilerOutputs() {
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
   private val allImpls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
-  private val placeholderedSubCitizenToImpls: mutable.HashMap[ICitizenTT, Vector[ImplT]] = mutable.HashMap()
-  private val placeholderedSuperInterfaceToImpls: mutable.HashMap[InterfaceTT, Vector[ImplT]] = mutable.HashMap()
+  private val subCitizenTemplateToImpls: mutable.HashMap[FullNameT[ICitizenTemplateNameT], Vector[ImplT]] = mutable.HashMap()
+  private val superInterfaceTemplateToImpls: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Vector[ImplT]] = mutable.HashMap()
 
   private val kindExports: mutable.ArrayBuffer[KindExportT] = mutable.ArrayBuffer()
   private val functionExports: mutable.ArrayBuffer[FunctionExportT] = mutable.ArrayBuffer()
@@ -202,22 +202,21 @@ case class CompilerOutputs() {
 //    runtimeSizedArrayTypes += ((elementType, mutability) -> rsaTT)
 //  }
 
-  def addImpl(placeholderedSubCitizen: ICitizenTT, placeholderedSuperInterface: InterfaceTT): Unit = {
-    val implT = ImplT(placeholderedSubCitizen, placeholderedSuperInterface)
-    allImpls += implT
-    placeholderedSubCitizenToImpls.put(
-      placeholderedSubCitizen,
-      placeholderedSubCitizenToImpls.getOrElse(placeholderedSubCitizen, Vector()) :+ implT)
-    placeholderedSuperInterfaceToImpls.put(
-      placeholderedSuperInterface,
-      placeholderedSuperInterfaceToImpls.getOrElse(placeholderedSuperInterface, Vector()) :+ implT)
+  def addImpl(impl: ImplT): Unit = {
+    allImpls += impl
+    subCitizenTemplateToImpls.put(
+      impl.subCitizenTemplateName,
+      subCitizenTemplateToImpls.getOrElse(impl.subCitizenTemplateName, Vector()) :+ impl)
+    superInterfaceTemplateToImpls.put(
+      impl.superInterfaceTemplateName,
+      superInterfaceTemplateToImpls.getOrElse(impl.superInterfaceTemplateName, Vector()) :+ impl)
   }
 
-  def getImplsForSubCitizenTemplate(subCitizenTemplate: FullNameT[ICitizenTemplateNameT]): Vector[ImplT] = {
-    placeholderedSubCitizenToImpls.getOrElse(subCitizenTemplate, Vector[ImplT]())
+  def getParentImplsForSubCitizenTemplate(subCitizenTemplate: FullNameT[ICitizenTemplateNameT]): Vector[ImplT] = {
+    subCitizenTemplateToImpls.getOrElse(subCitizenTemplate, Vector[ImplT]())
   }
-  def getImplsForSuperInterfaceTemplate(superInterfaceTemplate: InterfaceTT): Vector[ImplT] = {
-    placeholderedSuperInterfaceToImpls.getOrElse(superInterfaceTemplate, Vector[ImplT]())
+  def getChildImplsForSuperInterfaceTemplate(superInterfaceTemplate: FullNameT[IInterfaceTemplateNameT]): Vector[ImplT] = {
+    superInterfaceTemplateToImpls.getOrElse(superInterfaceTemplate, Vector[ImplT]())
   }
 
   def addKindExport(range: RangeS, kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
@@ -279,13 +278,24 @@ case class CompilerOutputs() {
   }
 
   def lookupStruct(structTT: StructTT): StructDefinitionT = {
-    // If it has a structTT, then we're done (or at least have started) stamping it
-    // If this throws an error, then you should not use this function, you should
-    // do structTemplateNameToDefinition.get(structTT) yourself and handle the None case
-    val templateName = TemplataCompiler.getStructTemplate(structTT.fullName)
+    lookupStruct(TemplataCompiler.getStructTemplate(structTT.fullName))
+  }
+  def lookupStruct(templateName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {
     vassertSome(structTemplateNameToDefinition.get(templateName))
   }
-
+  def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
+    lookupInterface(TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName))
+  }
+  def lookupInterface(templateName: FullNameT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
+    vassertSome(interfaceTemplateNameToDefinition.get(templateName))
+  }
+  def lookupCitizen(templateName: FullNameT[ICitizenTemplateNameT]): CitizenDefinitionT = {
+    val FullNameT(packageCoord, initSteps, last) = templateName
+    last match {
+      case s @ StructTemplateNameT(_) => lookupStruct(FullNameT(packageCoord, initSteps, s))
+      case s @ InterfaceTemplateNameT(_) => lookupInterface(FullNameT(packageCoord, initSteps, s))
+    }
+  }
   def lookupCitizen(citizenTT: ICitizenTT): CitizenDefinitionT = {
     citizenTT match {
       case s @ StructTT(_) => lookupStruct(s)
@@ -293,18 +303,10 @@ case class CompilerOutputs() {
     }
   }
 
-  def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
-    // If it has a interfaceTT, then we're done (or at least have started) stamping it.
-    // If this throws an error, then you should not use this function, you should
-    // do interfaceTemplateNameToDefinition.get(interfaceTT) yourself and handle the None case
-    val templateName = TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName)
-    interfaceTemplateNameToDefinition(templateName)
-  }
-
   def getAllStructs(): Iterable[StructDefinitionT] = structTemplateNameToDefinition.values
   def getAllInterfaces(): Iterable[InterfaceDefinitionT] = interfaceTemplateNameToDefinition.values
   def getAllFunctions(): Iterable[FunctionT] = functionsBySignature.values
-  def getAllImpls(): Iterable[ImplT] = impls
+  def getAllImpls(): Iterable[ImplT] = allImpls
 //  def getAllStaticSizedArrays(): Iterable[StaticSizedArrayTT] = staticSizedArrayTypes.values
 //  def getAllRuntimeSizedArrays(): Iterable[RuntimeSizedArrayTT] = runtimeSizedArrayTypes.values
 //  def getKindToDestructorMap(): Map[KindT, PrototypeT] = kindToDestructor.toMap

@@ -10,7 +10,7 @@ import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
-import dev.vale.typing.citizen.AncestorHelper
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.templata.ITemplata.expectMutability
 import dev.vale.typing.types._
@@ -20,7 +20,7 @@ import scala.collection.immutable.{List, Map, Set}
 
 trait ITemplataCompilerDelegate {
 
-  def isAncestor(
+  def isParent(
     coutputs: CompilerOutputs,
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
@@ -97,25 +97,37 @@ object TemplataCompiler {
       case FloatT() => kind
       case VoidT() => kind
       case NeverT(_) => kind
-      case StructTT(FullNameT(packageCoord, initSteps, last)) => {
-        StructTT(
-          FullNameT(
-            packageCoord,
-            initSteps,
-            last match {
-              case StructNameT(template, templateArgs) => StructNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
-            }))
-      }
-      case InterfaceTT(FullNameT(packageCoord, initSteps, last)) => {
-        InterfaceTT(
-          FullNameT(
-            packageCoord,
-            initSteps,
-            last match {
-              case InterfaceNameT(template, templateArgs) => InterfaceNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
-            }))
-      }
+      case s @ StructTT(_) => substituteTemplatasInStruct(s, substitutions)
+      case s @ InterfaceTT(_) => substituteTemplatasInInterface(s, substitutions)
     }
+  }
+
+  def substituteTemplatasInStruct(
+    structTT: StructTT,
+    substitutions: Array[(PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])]):
+  StructTT = {
+    val StructTT(FullNameT(packageCoord, initSteps, last)) = structTT
+    StructTT(
+      FullNameT(
+        packageCoord,
+        initSteps,
+        last match {
+          case StructNameT(template, templateArgs) => StructNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+        }))
+  }
+
+  def substituteTemplatasInInterface(
+    interfaceTT: InterfaceTT,
+    substitutions: Array[(PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])]):
+  InterfaceTT = {
+    val InterfaceTT(FullNameT(packageCoord, initSteps, last)) = interfaceTT
+    InterfaceTT(
+      FullNameT(
+        packageCoord,
+        initSteps,
+        last match {
+          case InterfaceNameT(template, templateArgs) => InterfaceNameT(template, templateArgs.map(substituteTemplatasInTemplata(_, substitutions)))
+        }))
   }
 
   def substituteTemplatasInTemplata(
@@ -162,12 +174,12 @@ class TemplataCompiler(
       case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
       case (_, StructTT(_)) => return false
       case (a @ StructTT(_), b @ InterfaceTT(_)) => {
-        if (!delegate.isAncestor(coutputs, a, b)) {
+        if (!delegate.isParent(coutputs, a, b)) {
           return false
         }
       }
       case (a @ InterfaceTT(_), b @ InterfaceTT(_)) => {
-        if (!delegate.isAncestor(coutputs, a, b)) {
+        if (!delegate.isParent(coutputs, a, b)) {
           return false
         }
       }
