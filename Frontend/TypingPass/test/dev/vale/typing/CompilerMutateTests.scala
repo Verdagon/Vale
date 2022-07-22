@@ -302,7 +302,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       FunctionAlreadyExists(
         tz,
         tz,
-        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.begin), Vector.empty, Vector.empty))))))
+        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.begin)), Vector.empty, Vector.empty))))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(

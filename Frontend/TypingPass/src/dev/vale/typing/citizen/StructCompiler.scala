@@ -56,12 +56,13 @@ class StructCompiler(
     interner: Interner,
     keywords: Keywords,
     nameTranslator: NameTranslator,
+    templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
     ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
   val templateArgsLayer =
     new StructCompilerGenericArgsLayer(
-      opts, interner, keywords, nameTranslator, inferCompiler, ancestorHelper, delegate)
+      opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, ancestorHelper, delegate)
 
   def resolveStruct(
     coutputs: CompilerOutputs,

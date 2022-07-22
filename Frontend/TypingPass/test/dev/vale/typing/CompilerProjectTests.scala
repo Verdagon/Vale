@@ -23,7 +23,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val interner = compile.interner
 
     val tz = RangeS.testZero(interner)
-    val fullName = FullNameT(PackageCoordinate.TEST_TLD(interner, compile.keywords), Vector(), interner.intern(FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tz.begin), Vector(), Vector())))
+    val fullName = FullNameT(PackageCoordinate.TEST_TLD(interner, compile.keywords), Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("main")), tz.begin)), Vector(), Vector())))
     vassertSome(coutputs.lookupFunction(SignatureT(fullName)))
   }
 

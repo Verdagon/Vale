@@ -18,7 +18,9 @@ object simpleName {
       case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => Some(humanName.str)
       case LambdaCitizenNameT(_) => None
       case StructNameT(StructTemplateNameT(humanName), _) => Some(humanName.str)
+      case StructTemplateNameT(humanName) => Some(humanName.str)
       case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => Some(humanName.str)
+      case InterfaceTemplateNameT(humanName) => Some(humanName.str)
     }
   }
 }

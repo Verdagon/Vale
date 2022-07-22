@@ -145,12 +145,10 @@ class NameTranslator(interner: Interner) {
   def translateImplName(n: IImplDeclarationNameS): IImplDeclareNameT = {
     n match {
       case ImplDeclarationNameS(l) => {
-        vimpl()
-//        interner.intern(ImplDeclareNameT(translateCodeLocation(l)))
+        interner.intern(ImplTemplateDeclareNameT(translateCodeLocation(l)))
       }
       case AnonymousSubstructImplDeclarationNameS(interfaceName) => {
-        vimpl()
-//        interner.intern(AnonymousSubstructImplDeclarationNameT(translateNameStep(interfaceName)))
+        interner.intern(AnonymousSubstructImplDeclarationNameT(translateInterfaceName(interfaceName)))
       }
     }
   }

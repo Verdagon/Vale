@@ -133,12 +133,10 @@ trait IImplDeclareNameT extends INameT
 //   and interface env. Or, just look up the ImplTemplateDeclareNameT.
 case class ImplTemplateSubNameT(subCitizenTemplateName: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
 case class ImplTemplateSuperNameT(superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
-case class ImplTemplateDeclareNameT(
-  subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
-  superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT]
-) extends IImplTemplateNameT
 
-case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: FullNameT[InterfaceTemplateNameT]) extends IImplDeclareNameT
+case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplDeclareNameT
+case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplDeclareNameT
+
 case class LetNameT(codeLocation: CodeLocationS) extends INameT
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
 
@@ -286,7 +284,7 @@ case class LambdaTemplateNameT(
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    interner.intern(FunctionNameT(FunctionTemplateNameT(keywords.underscoresCall, codeLocation), templateArgs, params))
+    interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(keywords.underscoresCall, codeLocation)), templateArgs, params))
   }
 }
 case class ConstructorTemplateNameT(

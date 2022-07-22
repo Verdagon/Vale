@@ -199,7 +199,7 @@ object TemplatasStore {
         Some(interner.intern(CodeNameS(humanName)))
       }
       case AnonymousSubstructNameT(interfaceName, _) => getImpreciseName(interner, interfaceName)
-      case ImplTemplateDeclareNameT(_, _) => {
+      case ImplTemplateDeclareNameT(_) => {
         // We shouldn't get here, caller shouldn't pass these in. Should instead get the impl
         // imprecise name from the ImplA or somewhere else.
         vwat()

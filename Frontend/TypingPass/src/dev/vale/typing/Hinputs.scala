@@ -14,7 +14,7 @@ case class Hinputs(
   structs: Vector[StructDefinitionT],
 //  emptyPackStructRef: StructTT,
   functions: Vector[FunctionT],
-  immKindToDestructor: Map[KindT, PrototypeT],
+//  immKindToDestructor: Map[KindT, PrototypeT],
   edgeBlueprintsByInterface: Map[FullNameT[IInterfaceTemplateNameT], InterfaceEdgeBlueprint],
   edges: Vector[EdgeT],
   kindExports: Vector[KindExportT],
@@ -41,19 +41,18 @@ case class Hinputs(
   }
 
   def lookupFunction(humanName: String): FunctionT = {
-    vimpl()
-//    val matches = functions.filter(f => {
-//      f.header.fullName.last match {
-//        case FunctionNameT(n, _, _) if n.str == humanName => true
-//        case _ => false
-//      }
-//    })
-//    if (matches.size == 0) {
-//      vfail("Function \"" + humanName + "\" not found!")
-//    } else if (matches.size > 1) {
-//      vfail("Multiple found!")
-//    }
-//    matches.head
+    val matches = functions.filter(f => {
+      f.header.fullName.last match {
+        case FunctionNameT(n, _, _) if n.humanName.str == humanName => true
+        case _ => false
+      }
+    })
+    if (matches.size == 0) {
+      vfail("Function \"" + humanName + "\" not found!")
+    } else if (matches.size > 1) {
+      vfail("Multiple found!")
+    }
+    matches.head
   }
 
   def lookupStruct(humanName: String): StructDefinitionT = {
@@ -109,15 +108,14 @@ case class Hinputs(
   }
 
   def nameIsLambdaIn(name: FullNameT[IFunctionNameT], needleFunctionHumanName: String): Boolean = {
-    vimpl()
-//    val lastThree = name.steps.slice(name.steps.size - 3, name.steps.size)
-//    lastThree match {
-//      case Vector(
-//      FunctionNameT(functionHumanName, _, _),
-//      LambdaCitizenNameT(_),
-//      FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)) if functionHumanName.str == needleFunctionHumanName => true
-//      case _ => false
-//    }
+    val lastThree = name.steps.slice(name.steps.size - 3, name.steps.size)
+    lastThree match {
+      case Vector(
+        FunctionNameT(functionHumanName, _, _),
+        LambdaCitizenNameT(_),
+        FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)) if functionHumanName.humanName.str == needleFunctionHumanName => true
+      case _ => false
+    }
   }
 
   def lookupLambdaIn(needleFunctionHumanName: String): FunctionT = {

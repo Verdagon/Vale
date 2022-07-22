@@ -76,11 +76,11 @@ class Compiler(
   val debugOut = opts.debugOut
   val globalOptions = opts.globalOptions
 
-
   val nameTranslator = new NameTranslator(interner)
 
   val templataCompiler =
     new TemplataCompiler(
+      interner,
       opts,
       nameTranslator,
       new ITemplataCompilerDelegate {
@@ -292,7 +292,8 @@ class Compiler(
           PrototypeT(
             envs.declaringEnv.fullName.addStep(
               interner.intern(
-                FunctionNameT(FunctionTemplateNameT(name, range.begin), Vector(), coords))),
+                FunctionNameT(
+                  interner.intern(FunctionTemplateNameT(name, range.begin)), Vector(), coords))),
             returnType)
         }
       })
@@ -324,6 +325,7 @@ class Compiler(
       interner,
       keywords,
       nameTranslator,
+      templataCompiler,
       inferCompiler,
       ancestorHelper,
       new IStructCompilerDelegate {
@@ -813,7 +815,6 @@ class Compiler(
             coutputs.getAllFunctions())
         }
 
-      vimpl()
 //      val allKinds =
 //        reachableStructs.map(_.place) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs
 //      val reachableImmKinds: Vector[KindT] =
@@ -830,10 +831,10 @@ class Compiler(
 
       val hinputs =
           vale.typing.Hinputs(
-            vimpl(),//reachableInterfaces.toVector,
-            vimpl(),//reachableStructs.toVector,
-            vimpl(),//reachableFunctions.toVector,
-            vimpl(),//reachableImmKindToDestructor,
+            reachableInterfaces.toVector,
+            reachableStructs.toVector,
+            reachableFunctions.toVector,
+            //reachableImmKindToDestructor,
             interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
             edges.toVector,
             coutputs.getKindExports,
