@@ -79,13 +79,13 @@ case class FunctionExternT(
 }
 
 case class InterfaceEdgeBlueprint(
-  interface: FullNameT[InterfaceTemplateNameT],
+  interface: FullNameT[IInterfaceTemplateNameT],
   superFamilyRootBanners: Vector[FunctionBannerT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(
-  struct: StructTT,
-  interface: InterfaceTT,
-  methods: Vector[PrototypeT]) {
+    struct: FullNameT[ICitizenTemplateNameT],
+    interface: FullNameT[IInterfaceTemplateNameT],
+    methods: Vector[PrototypeT]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def equals(obj: Any): Boolean = {

@@ -1,7 +1,7 @@
 package dev.vale.typing.templata
 
 import dev.vale.typing.ast.{FunctionHeaderT, FunctionT, PrototypeT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, INameT, ImplDeclareNameT, LambdaCitizenNameT, LetNameT, MagicParamNameT, UnnamedLocalNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.ast._
 import dev.vale.typing.names._
 
