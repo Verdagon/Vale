@@ -40,7 +40,6 @@ class CompilerTests extends FunSuite with Matchers {
 
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |func main() int { return 3; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -52,7 +51,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Hardcoding negative numbers") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int { return -3; }
         |""".stripMargin)
     val main = compile.expectCompilerOutputs().lookupFunction("main")
@@ -90,7 +88,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Taking an argument and returning it") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |func main(a int) int { return a; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -104,7 +101,6 @@ class CompilerTests extends FunSuite with Matchers {
     val compile =
       CompilerTestCompilation.test(
         """
-          |import v.builtins.tup.*;
           |import v.builtins.arith.*;
           |exported func main() int { return +(2, 3); }
           |""".stripMargin)
@@ -124,7 +120,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Simple struct read") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Moo { hp int; }
         |exported func main(moo &Moo) int {
         |  return moo.hp;
@@ -137,7 +132,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Simple struct instantiate") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Moo { hp int; }
         |exported func main() Moo {
         |  return Moo(42);
@@ -150,7 +144,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Call destructor") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Moo { hp int; }
         |exported func main() int {
         |  return Moo(42).hp;
@@ -166,7 +159,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Custom destructor") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |#!DeriveStructDrop
         |exported struct Moo { hp int; }
         |func drop(self ^Moo) {
@@ -206,7 +198,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Recursion") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int { return main(); }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -218,7 +209,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Simple lambda") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int { return { 7 }(); }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -249,7 +239,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Lambda with a type specified param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.arith.*;
         |exported func main() int {
         |  return (a int) => {+(a,a)}(3);
@@ -313,58 +302,6 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.functions.collect({ case x @ functionName("do") => x }).head.header.returnType shouldEqual CoordT(ShareT, IntT.i32)
   }
 
-  test("Calls destructor on local var") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.tup.*;
-        |struct Muta { }
-        |
-        |func destructor(m ^Muta) {
-        |  Muta[ ] = m;
-        |}
-        |
-        |exported func main() {
-        |  a = Muta();
-        |}
-      """.stripMargin)
-
-    val main = compile.expectCompilerOutputs().lookupFunction("main")
-    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _) => })
-    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
-  }
-
-  test("Stamps an interface template via a function return") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.tup.*;
-        |interface MyInterface<X> where X Ref { }
-        |
-        |struct SomeStruct<X> where X Ref { x X; }
-        |impl<X> MyInterface<X> for SomeStruct<X>;
-        |
-        |func doAThing<T>(t T) SomeStruct<T> {
-        |  return SomeStruct<T>(t);
-        |}
-        |
-        |exported func main() {
-        |  doAThing(4);
-        |}
-        |""".stripMargin
-    )
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-//  test("Constructor is stamped even without calling") {
-//    val compile = RunCompilation.test(
-//      """
-//        |struct MyStruct imm {}
-//        |func wot(b: *MyStruct) int { return 9; }
-//      """.stripMargin)
-//    val coutputs = compile.expectCompilerOutputs()
-//
-//    coutputs.lookupFunction("MyStruct")
-//  }
-
   test("Simple struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -406,6 +343,108 @@ class CompilerTests extends FunSuite with Matchers {
     })
   }
 
+  test("Calls destructor on local var") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Muta { }
+        |
+        |func destructor(m ^Muta) {
+        |  Muta[ ] = m;
+        |}
+        |
+        |exported func main() {
+        |  a = Muta();
+        |}
+      """.stripMargin)
+
+    val main = compile.expectCompilerOutputs().lookupFunction("main")
+    Collector.only(main, { case FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)), _), _) => })
+    Collector.all(main, { case FunctionCallTE(_, _) => }).size shouldEqual 2
+  }
+
+  test("Tests defining an empty interface and an implementing struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface MyInterface { }
+        |struct MyStruct { }
+        |impl MyInterface for MyStruct;
+        |func main(a MyStruct) {}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val interfaceDef =
+      vassertOne(coutputs.interfaces.collectFirst({
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutableT, Vector()) => id
+      }))
+
+    val structDef =
+      vassertOne(coutputs.structs.collectFirst({
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
+      }))
+
+    vassert(coutputs.edges.exists(impl => {
+      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
+    }))
+  }
+
+  test("Tests defining a non-empty interface and an implementing struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported interface MyInterface {
+        |  func bork(virtual self &MyInterface);
+        |}
+        |exported struct MyStruct { }
+        |impl MyInterface for MyStruct;
+        |func bork(self &MyStruct) {}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val (interfaceDef, method) =
+      vassertOne(coutputs.interfaces.collectFirst({
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutableT, Vector(method)) => (id, method)
+      }))
+
+    val structDef =
+      vassertOne(coutputs.structs.collectFirst({
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
+      }))
+
+    vassert(coutputs.edges.exists(impl => {
+      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
+    }))
+  }
+
+  test("Stamps an interface template via a function return") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface MyInterface<X> where X Ref { }
+        |
+        |struct SomeStruct<X> where X Ref { x X; }
+        |impl<X> MyInterface<X> for SomeStruct<X>;
+        |
+        |func doAThing<T>(t T) SomeStruct<T> {
+        |  return SomeStruct<T>(t);
+        |}
+        |
+        |exported func main() {
+        |  doAThing(4);
+        |}
+        |""".stripMargin
+    )
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+//  test("Constructor is stamped even without calling") {
+//    val compile = RunCompilation.test(
+//      """
+//        |struct MyStruct imm {}
+//        |func wot(b: *MyStruct) int { return 9; }
+//      """.stripMargin)
+//    val coutputs = compile.expectCompilerOutputs()
+//
+//    coutputs.lookupFunction("MyStruct")
+//  }
+
   test("Reads a struct member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -426,7 +465,7 @@ class CompilerTests extends FunSuite with Matchers {
       case ReferenceMemberLookupTE(_,
         SoftLoadTE(_,BorrowT),
         FullNameT(_,
-          Vector(StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector())),
+          Vector(StructTemplateNameT(StrI("MyStruct"))),
           CodeVarNameT(StrI("a"))),
         CoordT(ShareT,IntT(32)),
         FinalT) =>
@@ -454,64 +493,9 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Tests defining a non-empty interface and an implementing struct") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.tup.*;
-        |exported interface MyInterface {
-        |  func bork(virtual self &MyInterface);
-        |}
-        |exported struct MyStruct { }
-        |impl MyInterface for MyStruct;
-        |func bork(self &MyStruct) {}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    val (interfaceDef, method) =
-      vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutableT, Vector(method)) => (id, method)
-      }))
-
-    val structDef =
-      vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
-      }))
-
-    vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
-    }))
-  }
-
-  test("Tests defining an empty interface and an implementing struct") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.tup.*;
-        |interface MyInterface { }
-        |struct MyStruct { }
-        |impl MyInterface for MyStruct;
-        |func main(a MyStruct) {}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    val interfaceDef =
-      vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutableT, Vector()) => id
-      }))
-
-    val structDef =
-      vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
-      }))
-
-    vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
-    }))
-  }
-
   test("Tests stamping an interface template from a function param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface MyOption<T> where T Ref { }
         |func main(a MyOption<int>) { }
       """.stripMargin)
@@ -547,7 +531,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests exporting function") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func moo() { }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -559,7 +542,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests exporting struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Moo { a int; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -571,7 +553,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests exporting interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported interface IMoo { func hi(virtual this &IMoo) void; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -583,7 +564,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.panic.*;
         |import panicutils.*;
         |interface MyOption<T> imm where T Ref { }
@@ -613,7 +593,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests single expression and single statement functions' returns") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct MyThing { value int; }
         |func moo() MyThing { return MyThing(4); }
         |exported func main() { moo(); }
@@ -633,7 +612,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests calling a templated struct's constructor") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct MySome<T> where T Ref { value T; }
         |exported func main() int {
         |  return MySome<int>(4).value;
@@ -725,7 +703,6 @@ class CompilerTests extends FunSuite with Matchers {
     // Tests putting MyOption<int> as the type of x.
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |
         |func moo<T> () where T Ref { }
         |
@@ -740,7 +717,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests destructuring shared doesnt compile to destroy") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |
         |struct Vec3i imm {
         |  x int;
@@ -774,7 +750,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests destructuring borrow doesnt compile to destroy") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |
         |struct Vec3i {
         |  x int;
@@ -807,7 +782,6 @@ class CompilerTests extends FunSuite with Matchers {
     // Tests putting MyOption<int> as the type of x.
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |
         |interface MyOption<T> where T Ref { }
         |
@@ -840,7 +814,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests calling a function with an upcast") {
     val compile = CompilerTestCompilation.test(
         """
-          |import v.builtins.tup.*;
           |interface ISpaceship {}
           |struct Firefly {}
           |impl ISpaceship for Firefly;
@@ -859,7 +832,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests calling a templated function with an upcast") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface ISpaceship<T> where T Ref {}
         |struct Firefly<T> where T Ref {}
         |impl<T> ISpaceship<T> for Firefly<T>;
@@ -907,7 +879,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Templated imm struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct ListNode<T> imm where T Ref {
         |  tail ListNode<T>;
         |}
@@ -919,7 +890,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Borrow-load member") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Bork {
         |  x int;
         |}
@@ -940,7 +910,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Pointer-load member") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Bork {
         |  x int;
         |}
@@ -962,7 +931,6 @@ class CompilerTests extends FunSuite with Matchers {
     // This test is because we had a bug where & still produced a *!.
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Bork { }
         |func myFunc<F>(consumer &F) void { }
         |func main() {
@@ -995,7 +963,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test Array of StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Vec2 imm {
         |  x float;
         |  y float;
@@ -1030,7 +997,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test array push, pop, len, capacity, drop") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.arith.*;
         |import array.make.*;
         |import v.builtins.arrays.*;
@@ -1053,7 +1019,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test MakeArray") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.arith.*;
         |import array.make.*;
         |import v.builtins.arrays.*;
@@ -1071,7 +1036,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test return") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int {
         |  return 7;
         |}
@@ -1084,7 +1048,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test return from inside if") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.panic.*;
         |exported func main() int {
         |  if (true) {
@@ -1105,7 +1068,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test return from inside if destroys locals") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Marine { hp int; }
         |exported func main() int {
         |  m = Marine(5);
@@ -1138,7 +1100,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Lambda is incompatible anonymous interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface AFunction1<P> where P Ref {
         |  func __call(virtual this &AFunction1<P>, a P) int;
         |}
@@ -1156,7 +1117,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Zero method anonymous interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |interface MyInterface {}
         |exported func main() {
         |  x = MyInterface();
@@ -1188,7 +1148,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Lock weak member") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.opt.*;
         |import v.builtins.weak.*;
         |import v.builtins.logic.*;
@@ -1231,7 +1190,6 @@ class CompilerTests extends FunSuite with Matchers {
 
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import printutils.*;
         |
         |func helperFunc<T>(x T) {
@@ -1253,7 +1211,6 @@ class CompilerTests extends FunSuite with Matchers {
 
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import printutils.*;
         |
         |func helperFunc(x int) {
@@ -1273,7 +1230,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported function depends on non-exported param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Firefly { }
         |exported func moo(firefly &Firefly) { }
         |""".stripMargin)
@@ -1285,7 +1241,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported function depends on non-exported return") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.panic.*;
         |import panicutils.*;
         |struct Firefly { }
@@ -1299,7 +1254,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when extern function depends on non-exported param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Firefly { }
         |extern func moo(firefly &Firefly);
         |""".stripMargin)
@@ -1311,7 +1265,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when extern function depends on non-exported return") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Firefly imm { }
         |extern func moo() &Firefly;
         |""".stripMargin)
@@ -1323,7 +1276,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported struct depends on non-exported member") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Firefly imm {
         |  raza Raza;
         |}
@@ -1337,7 +1289,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported RSA depends on non-exported element") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.arrays.*;
         |import v.builtins.functor1.*;
         |export []<imm>Raza as RazaArray;
@@ -1351,7 +1302,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Checks that we stored a borrowed temporary in a local") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Muta { }
         |func doSomething(m &Muta, i int) {}
         |exported func main() {
@@ -1370,7 +1320,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported SSA depends on non-exported element") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.arrays.*;
         |import v.builtins.functor1.*;
         |export [#5]<imm>Raza as RazaArray;
@@ -1384,7 +1333,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when reading nonexistant local") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int {
         |  moo
         |}
@@ -1397,7 +1345,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when mutating after moving") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Weapon {
         |  ammo! int;
         |}
@@ -1422,7 +1369,6 @@ class CompilerTests extends FunSuite with Matchers {
     // See MMEDT why this is an error
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported struct Moo { }
         |export Moo as Bork;
         |""".stripMargin)
@@ -1434,7 +1380,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when reading after moving") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Weapon {
         |  ammo! int;
         |}
@@ -1458,7 +1403,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when moving from inside a while") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Marine {
         |  ammo int;
         |}
@@ -1479,7 +1423,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Cant subscript non-subscriptable type") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Weapon {
         |  ammo! int;
         |}
@@ -1497,7 +1440,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when two functions with same signature") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func moo() int { return 1337; }
         |exported func moo() int { return 1448; }
         |""".stripMargin)
@@ -1509,7 +1451,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when we give too many args") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |func moo(a int, b bool, s str) int { a }
         |exported func main() int {
         |  moo(42, true, "hello", false)
@@ -1539,7 +1480,7 @@ class CompilerTests extends FunSuite with Matchers {
     val ispaceshipCoord = CoordT(OwnT,ispaceshipKind)
     val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
     val unrelatedCoord = CoordT(OwnT,unrelatedKind)
-    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), FunctionNameT(FunctionTemplateNameT(StrI("myFunc"), tz.begin), Vector(), Vector(fireflyCoord))))
+    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), FunctionNameT(interner.intern(FunctionTemplateNameT(StrI("myFunc"), tz.begin)), Vector(), Vector(fireflyCoord))))
     val fireflyExport = KindExportT(tz, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
     val serenityExport = KindExportT(tz, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Serenity")));
 
@@ -1688,7 +1629,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when downcasting between unrelated types") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.as.*;
         |import panicutils.*;
         |
@@ -1708,7 +1648,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when downcasting to interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.as.*;
         |import panicutils.*;
         |
@@ -1729,7 +1668,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when multiple types in array") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |exported func main() int {
         |  arr = [#][true, 42];
         |  return arr.1;
@@ -1745,7 +1683,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when num elements mismatch") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Spaceship imm {
         |  name! str;
         |  numWings int;
@@ -1763,7 +1700,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when abstract method defined outside open interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |import v.builtins.panic.*;
         |interface IBlah { }
         |abstract func bork(virtual moo &IBlah);
@@ -1779,7 +1715,6 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when ownership doesnt match") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |
         |struct Firefly {}
         |func getFuel(self &Firefly) int { return 7; }
@@ -1804,7 +1739,6 @@ class CompilerTests extends FunSuite with Matchers {
     // https://github.com/ValeLang/Vale/issues/131
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
         |struct Spaceship imm {
         |  name! str;
         |  numWings int;

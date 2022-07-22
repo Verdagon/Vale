@@ -9,8 +9,9 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.names.NameTranslator
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.highertyping._
+import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
@@ -26,6 +27,7 @@ class StructCompilerGenericArgsLayer(
     interner: Interner,
     keywords: Keywords,
     nameTranslator: NameTranslator,
+    templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
     ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
@@ -96,7 +98,42 @@ class StructCompilerGenericArgsLayer(
 
       val definitionRules = structA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
-      val placeholders = vimpl()
+      // This is temporary, to support specialization like:
+      //   extern("vale_runtime_sized_array_mut_new")
+      //   func Array<M, E>(size int) []<M>E
+      //   where M Mutability = mut, E Ref;
+      // In the future we might need to outlaw specialization, unsure.
+      val preliminaryInferences =
+      inferCompiler.solve(
+        declaringEnv, None, coutputs, definitionRules, structA.runeToType, structA.range, Vector(), Vector()) match {
+        case f @ FailedSolve(_, _, err) => {
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
+        }
+        case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+        case CompleteSolve(conclusions) => conclusions
+      }
+      // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
+
+      val initialKnowns =
+        structA.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
+          preliminaryInferences.get(genericParam.rune.rune) match {
+            case Some(x) => Some(InitialKnown(genericParam.rune, x))
+            case None => {
+              genericParam.default match {
+                case Some(defaultGenericParam) => {
+                  // Don't populate a placeholder for this, see DAPGPD.
+                  None
+                }
+                case None => {
+                  val runeType = vassertSome(structA.runeToType.get(genericParam.rune.rune))
+                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, index, runeType)
+                  Some(InitialKnown(genericParam.rune, templata))
+                }
+              }
+            }
+          }
+        })
+
 
       val inferences =
         inferCompiler.solveExpectComplete(
@@ -106,7 +143,7 @@ class StructCompilerGenericArgsLayer(
           definitionRules,
           structA.runeToType,
           structA.range,
-          placeholders,
+          initialKnowns,
 //            structA.genericParameters.zip(templateArgs).map({ case (GenericParameterS(rune, default), genericArg) =>
 //              InitialKnown(RuneUsage(rune.range, rune.rune), genericArg)
 //            }),
@@ -130,9 +167,9 @@ class StructCompilerGenericArgsLayer(
     interfaceTemplata: InterfaceTemplata):
   Unit = {
     Profiler.frame(() => {
-      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
-      val interfaceTemplateFullName = env.fullName.addStep(interfaceTemplateName)
+      val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
 //      val fullName = env.fullName.addStep(interfaceLastName)
 
       if (coutputs.interfaceDeclared(interfaceTemplateFullName)) {
@@ -151,20 +188,53 @@ class StructCompilerGenericArgsLayer(
         }
       }
 
-      val placeholders = vimpl()
+      val definitionRules = interfaceA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
+
+      // This is temporary, to support specialization like:
+      //   extern("vale_runtime_sized_array_mut_new")
+      //   func Array<M, E>(size int) []<M>E
+      //   where M Mutability = mut, E Ref;
+      // In the future we might need to outlaw specialization, unsure.
+      val preliminaryInferences =
+        inferCompiler.solve(
+          declaringEnv, None, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector()) match {
+          case f @ FailedSolve(_, _, err) => {
+            throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range, f))
+          }
+          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+          case CompleteSolve(conclusions) => conclusions
+        }
+      // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
+
+      val initialKnowns =
+        interfaceA.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
+          preliminaryInferences.get(genericParam.rune.rune) match {
+            case Some(x) => Some(InitialKnown(genericParam.rune, x))
+            case None => {
+              genericParam.default match {
+                case Some(defaultGenericParam) => {
+                  // Don't populate a placeholder for this, see DAPGPD.
+                  None
+                }
+                case None => {
+                  val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
+                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, index, runeType)
+                  Some(InitialKnown(genericParam.rune, templata))
+                }
+              }
+            }
+          }
+        })
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          env,
-          vimpl(),
+          declaringEnv,
+          None,
           coutputs,
           interfaceA.rules,
           interfaceA.runeToType,
           interfaceA.range,
-          placeholders,
-//          interfaceA.genericParameters.zip(templateArgs).map({ case (GenericParameterS(rune, default), genericArg) =>
-//            InitialKnown(RuneUsage(rune.range, rune.rune), genericArg)
-//          }),
+          initialKnowns,
           Vector())
 
       interfaceA.maybePredictedMutability match {
@@ -175,7 +245,7 @@ class StructCompilerGenericArgsLayer(
         case Some(_) =>
       }
 
-      middle.compileInterface(env, coutputs, interfaceA, inferences)
+      middle.compileInterface(declaringEnv, coutputs, interfaceA, inferences)
     })
   }
 

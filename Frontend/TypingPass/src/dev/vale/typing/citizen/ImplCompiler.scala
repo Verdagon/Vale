@@ -167,7 +167,7 @@ class ImplCompiler(
       val subCitizenTemplateFullName = subCitizenDefinition.templateName
       val subCitizenEnv = coutputs.getEnvForTemplate(subCitizenTemplateFullName)
       // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
-      val needleImplTemplateFullName = ImplTemplateSubNameT(subCitizenTemplateFullName)
+      val needleImplTemplateFullName = interner.intern(ImplTemplateSubNameT(subCitizenTemplateFullName))
       val implTemplates =
         subCitizenEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
       implTemplates.foreach({
@@ -187,7 +187,7 @@ class ImplCompiler(
       val parentInterfaceTemplateFullName = parentInterfaceDefinition.templateName
       val parentInterfaceEnv = coutputs.getEnvForTemplate(parentInterfaceTemplateFullName)
       // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
-      val needleImplTemplateFullName = ImplTemplateSuperNameT(parentInterfaceTemplateFullName)
+      val needleImplTemplateFullName = interner.intern(ImplTemplateSuperNameT(parentInterfaceTemplateFullName))
       val implTemplates =
         parentInterfaceEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
       implTemplates.foreach({
