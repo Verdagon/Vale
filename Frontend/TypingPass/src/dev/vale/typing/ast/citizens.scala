@@ -75,7 +75,7 @@ case class ReferenceMemberTypeT(reference: CoordT) extends IMemberTypeT
 
 case class InterfaceDefinitionT(
   templateName: FullNameT[IInterfaceTemplateNameT],
-  placeholderedCitizen: InterfaceTT,
+  placeholderedInterface: InterfaceTT,
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
@@ -84,6 +84,7 @@ case class InterfaceDefinitionT(
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[FunctionHeaderT]
 ) extends CitizenDefinitionT  {
+  override def placeholderedCitizen: ICitizenTT = placeholderedInterface
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 //  override def getRef = ref
 }

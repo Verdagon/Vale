@@ -151,16 +151,6 @@ class StructCompilerCore(
           exportedName)
       }
     }
-
-    val parentInterfaces =
-      ancestorHelper.compileParentImpls(coutputs, placeholderedStructTT)
-    parentInterfaces.foreach({ case (_, parentInterface) =>
-//      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
-//      if (structDefT.weakable != interfaceDefinition2.weakable) {
-//        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
-//      }
-      coutputs.addImpl(placeholderedStructTT, parentInterface)
-    })
   }
 
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
@@ -280,7 +270,7 @@ class StructCompilerCore(
     val interfaceDef2 =
       InterfaceDefinitionT(
         templateFullNameT,
-        placeholderedFullNameT,
+        placeholderedInterfaceTT,
         interner.intern(placeholderedInterfaceTT),
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
@@ -303,27 +293,6 @@ class StructCompilerCore(
           exportedName)
       }
     }
-
-    val childCitizens =
-      ancestorHelper.compileChildImpls(coutputs, placeholderedInterfaceTT)
-    childCitizens.foreach({ case (_, childCitizen) =>
-      //      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
-      //      if (structDefT.weakable != interfaceDefinition2.weakable) {
-      //        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
-      //      }
-      coutputs.addImpl(childCitizen, placeholderedInterfaceTT)
-    })
-
-    // We also look for parent interfaces because interfaces can extend other interfaces too.
-    val parentInterfaces =
-      ancestorHelper.compileParentImpls(coutputs, placeholderedInterfaceTT)
-    parentInterfaces.foreach({ case (_, parentInterface) =>
-      //      val interfaceDefinition2 = coutputs.lookupInterface(ancestorInterface)
-      //      if (structDefT.weakable != interfaceDefinition2.weakable) {
-      //        throw WeakableImplingMismatch(structDefT.weakable, interfaceDefinition2.weakable)
-      //      }
-      coutputs.addImpl(placeholderedInterfaceTT, parentInterface)
-    })
 
     (interfaceDef2)
   }
@@ -435,8 +404,7 @@ class StructCompilerCore(
     val closureStructDefinition =
       StructDefinitionT(
         understructTemplatedFullNameT,
-        understructInstantiatedFullNameT,
-        interner.intern(StructTT(understructInstantiatedFullNameT)),
+        understructStructTT,
         Vector.empty, false, MutabilityTemplata(mutability), members, true);
     coutputs.add(closureStructDefinition)
 

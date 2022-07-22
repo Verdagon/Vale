@@ -42,7 +42,7 @@ class EdgeCompiler(
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
         val interfaceTemplateFullName = interfaceEdgeBlueprint.interface
         val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
-        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedCitizen
+        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
         interfaceTemplateFullName -> {
           val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
           overridingImpls.map(overridingImpl => {

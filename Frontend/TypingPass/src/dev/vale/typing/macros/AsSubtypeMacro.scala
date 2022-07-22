@@ -74,7 +74,7 @@ class AsSubtypeMacro(
     val asSubtypeExpr: ReferenceExpressionTE =
       sourceCitizen match {
         case sourceInterface @ InterfaceTT(_) => {
-          if (ancestorHelper.isAncestor(coutputs, targetStruct, sourceInterface).nonEmpty) {
+          if (ancestorHelper.isParent(coutputs, targetStruct, sourceInterface)) {
             AsSubtypeTE(
               ArgLookupTE(0, incomingCoord),
               targetKind,

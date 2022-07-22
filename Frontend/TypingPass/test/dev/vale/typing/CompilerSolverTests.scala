@@ -15,7 +15,7 @@ import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsag
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
 import dev.vale.typing.infer.{KindIsNotConcrete, SendingNonCitizen}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.infer.SendingNonCitizen
@@ -66,7 +66,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     // Only identifying template arg coord should be of PlaceholderT(0)
     bork.header.fullName.last.templateArgs match {
-      case Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(0)))))) =>
+      case Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(0)))))))
+      =>
     }
 
     // Make sure it calls drop, and that it has the right placeholders
@@ -79,7 +80,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
             FunctionNameT(
               FunctionTemplateNameT(StrI("drop"), _),
               Vector(),
-              Vector(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(0))))))),
+              Vector(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
           CoordT(ShareT,VoidT())),
         _) =>
     }
@@ -512,7 +513,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
     moo.header.params.head.tyype match {
-      case CoordT(_, InterfaceTT(FullNameT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))))))) =>
+      case CoordT(_, InterfaceTT(FullNameT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, PlaceholderT(FullNameT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))))))) =>
     }
     val main = coutputs.lookupFunction("main")
     main.body shouldHave {

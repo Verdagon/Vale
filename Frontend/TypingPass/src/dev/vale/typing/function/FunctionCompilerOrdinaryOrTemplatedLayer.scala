@@ -18,7 +18,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, NameTranslator, PlaceholderNameT, RuneNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types.ParamFilter
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -74,8 +74,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val definitionRules =
-      function.rules.filter(
-        inferCompiler.includeRuleInDefinitionSolve)
+      function.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -201,7 +200,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val definitionRules =
       function.rules.filter(
-        inferCompiler.includeRuleInDefinitionSolve)
+        InferCompiler.includeRuleInDefinitionSolve)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -265,7 +264,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val definitionRules =
       function.rules.filter(
-        inferCompiler.includeRuleInDefinitionSolve)
+        InferCompiler.includeRuleInDefinitionSolve)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -359,7 +358,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
   private def assembleCallSiteRules(function: FunctionA, numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
     function.rules.filter(
-      inferCompiler.includeRuleInCallSiteSolve) ++
+      InferCompiler.includeRuleInCallSiteSolve) ++
       (function.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
         if (index >= numExplicitTemplateArgs) {
           genericParam.default match {
@@ -491,7 +490,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val definitionRules =
       function.rules.filter(
-        inferCompiler.includeRuleInDefinitionSolve)
+        InferCompiler.includeRuleInDefinitionSolve)
 
     // This is temporary, to support specialization like:
     //   extern("vale_runtime_sized_array_mut_new")
@@ -522,13 +521,17 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
               case None => {
                 val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
                 val placeholderFullName =
-                  nearEnv.fullName.addStep(interner.intern(PlaceholderNameT(index)))
+                  nearEnv.fullName.addStep(
+                    interner.intern(PlaceholderNameT(
+                      interner.intern(PlaceholderTemplateNameT(index)))))
+                val placeholderTemplateFullName =
+                  TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
                 val templata =
                   runeType match {
                     case KindTemplataType() => {
                       val placeholderKindT = PlaceholderT(placeholderFullName)
-                      coutputs.declareTemplate(placeholderKindT)
-                      coutputs.declareEnvForTemplate(placeholderKindT, nearEnv)
+                      coutputs.declareTemplate(placeholderTemplateFullName)
+                      coutputs.declareEnvForTemplate(placeholderTemplateFullName, nearEnv)
                       KindTemplata(placeholderKindT)
                     }
                     // TODO: Not sure what to put here when we do regions. We might need to
@@ -539,8 +542,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
                     // So, I guess we could just assume the function's default region here then.
                     case CoordTemplataType() => {
                       val placeholderKindT = PlaceholderT(placeholderFullName)
-                      coutputs.declareTemplate(placeholderKindT)
-                      coutputs.declareEnvForTemplate(placeholderKindT, nearEnv)
+                      coutputs.declareTemplate(placeholderTemplateFullName)
+                      coutputs.declareEnvForTemplate(placeholderTemplateFullName, nearEnv)
                       CoordTemplata(CoordT(OwnT, placeholderKindT))
                     }
                     case _ => PlaceholderTemplata(placeholderFullName, runeType)

@@ -16,7 +16,7 @@ import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -381,8 +381,7 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.structs.collectFirst({
       case StructDefinitionT(
       simpleName("MyStruct"),
-      simpleName("MyStruct"),
-      _,
+      StructTT(simpleName("MyStruct")),
       _,
       false,
       MutabilityTemplata(MutableT),
@@ -475,7 +474,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
     vassert(coutputs.edges.exists(impl => {
@@ -501,7 +500,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
     vassert(coutputs.edges.exists(impl => {
@@ -566,7 +565,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupStruct("Moo")
     val export = vassertOne(coutputs.kindExports)
-    `export`.tyype shouldEqual StructTT(moo.placeholderedCitizen)
+    `export`.tyype shouldEqual moo.placeholderedCitizen
   }
 
   test("Tests exporting interface") {
@@ -578,7 +577,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupInterface("IMoo")
     val export = vassertOne(coutputs.kindExports)
-    `export`.tyype shouldEqual InterfaceTT(moo.placeholderedCitizen)
+    `export`.tyype shouldEqual moo.placeholderedInterface
   }
 
   test("Tests stamping a struct and its implemented interface from a function param") {
@@ -657,14 +656,14 @@ class CompilerTests extends FunSuite with Matchers {
           _,
           FunctionNameT(
             FunctionTemplateNameT(StrI("MySome"), _),
-            Vector(CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))),
-            Vector(CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(0))))))),
+            Vector(CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
+            Vector(CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
         Vector(),
         Vector(
           ParameterT(
             CodeVarNameT(StrI("value")),
             None,
-            CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))),
+            CoordT(OwnT,PlaceholderT(FullNameT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
         CoordT(
           OwnT,
           StructTT(
@@ -673,7 +672,7 @@ class CompilerTests extends FunSuite with Matchers {
               StructNameT(
                 StructTemplateNameT(StrI("MySome")),
                 Vector(
-                  CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(0)))))))))),
+                  CoordTemplata(CoordT(OwnT, PlaceholderT(FullNameT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))))))),
         Some(_)) =>
     }
 
