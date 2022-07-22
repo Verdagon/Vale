@@ -592,11 +592,11 @@ class Compiler(
             entry match {
               case StructEnvEntry(structA) => {
                 val templata = StructTemplata(env, structA)
-                structCompiler.compileStruct(coutputs, templata, Vector.empty)
+                structCompiler.compileStruct(coutputs, templata)
               }
               case InterfaceEnvEntry(interfaceA) => {
                 val templata = InterfaceTemplata(env, interfaceA)
-                structCompiler.compileInterface(coutputs, templata, Vector.empty)
+                structCompiler.compileInterface(coutputs, templata)
               }
               case _ =>
             }

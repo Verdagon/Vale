@@ -15,7 +15,7 @@ case class Hinputs(
 //  emptyPackStructRef: StructTT,
   functions: Vector[FunctionT],
   immKindToDestructor: Map[KindT, PrototypeT],
-  edgeBlueprintsByInterface: Map[FullNameT[InterfaceTemplateNameT], InterfaceEdgeBlueprint],
+  edgeBlueprintsByInterface: Map[FullNameT[IInterfaceTemplateNameT], InterfaceEdgeBlueprint],
   edges: Vector[EdgeT],
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],

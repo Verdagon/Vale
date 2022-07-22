@@ -73,10 +73,16 @@ case class CoordT(ownership: OwnershipT, kind: KindT)  {
 }
 
 sealed trait KindT {
-
   // Note, we don't have a mutability: Mutability in here because this Kind
   // should be enough to uniquely identify a type, and no more.
   // We can always get the mutability for a struct from the coutputs.
+
+  def expectCitizen(): ICitizenTT = {
+    this match {
+      case c : ICitizenTT => c
+      case _ => vfail()
+    }
+  }
 }
 
 // like Scala's Nothing. No instance of this can ever happen.
@@ -147,7 +153,7 @@ case class RuntimeSizedArrayTT(
   }
 }
 
-trait ICitizenTT extends KindT with IInterning {
+sealed trait ICitizenTT extends KindT with IInterning {
   def fullName: FullNameT[ICitizenNameT]
 }
 

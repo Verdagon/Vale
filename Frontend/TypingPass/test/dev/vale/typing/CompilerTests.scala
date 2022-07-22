@@ -566,7 +566,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupStruct("Moo")
     val export = vassertOne(coutputs.kindExports)
-    `export`.tyype shouldEqual StructTT(moo.nameWithPlaceholders)
+    `export`.tyype shouldEqual StructTT(moo.placeholderedCitizen)
   }
 
   test("Tests exporting interface") {
@@ -578,7 +578,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupInterface("IMoo")
     val export = vassertOne(coutputs.kindExports)
-    `export`.tyype shouldEqual InterfaceTT(moo.nameWithPlaceholders)
+    `export`.tyype shouldEqual InterfaceTT(moo.placeholderedCitizen)
   }
 
   test("Tests stamping a struct and its implemented interface from a function param") {

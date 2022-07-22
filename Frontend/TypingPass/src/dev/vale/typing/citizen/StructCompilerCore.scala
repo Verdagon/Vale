@@ -127,8 +127,7 @@ class StructCompilerCore(
     val structDefT =
       StructDefinitionT(
         templateFullNameT,
-        placeholderedFullNameT,
-        interner.intern(StructTT(placeholderedFullNameT)),
+        placeholderedStructTT,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
         mutability,

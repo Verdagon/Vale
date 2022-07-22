@@ -10,7 +10,7 @@ import dev.vale.typing._
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, U, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
@@ -203,7 +203,7 @@ class ImplCompiler(
   Array[InterfaceTT] = {
     val subCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
     val subCitizenDefinition = coutputs.lookupCitizen(subCitizenTT)
-    val placeholderedSubCitizenTT = subCitizenDefinition.nameWithPlaceholders
+    val placeholderedSubCitizenTT = subCitizenDefinition.placeholderedCitizen
     coutputs
       .getParentImplsForSubCitizenTemplate(subCitizenTemplateFullName)
       .map({ case ImplT(_, parentInterfaceFromPlaceholderedSubCitizen, _, _) =>
@@ -211,9 +211,10 @@ class ImplCompiler(
           placeholderedSubCitizenTT.fullName.last.templateArgs.size ==
           subCitizenTT.fullName.last.templateArgs.size)
         val placeholderToTemplata =
-          placeholderedSubCitizenTT.fullName.last.templateArgs.toArray
-            .zip(subCitizenTT.fullName.last.templateArgs.toArray)
-            .map({
+          U.map[(ITemplata[ITemplataType], ITemplata[ITemplataType]), (PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])](
+            placeholderedSubCitizenTT.fullName.last.templateArgs
+              .zip(subCitizenTT.fullName.last.templateArgs).toArray,
+            {
               case (placeholder @ PlaceholderTemplata(_, _), templateArg) => placeholder -> templateArg
               case (_, _) => vcurious()
             })

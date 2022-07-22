@@ -9,7 +9,7 @@ import dev.vale.typing.env.TemplatasStore
 import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{FullNameT, InterfaceTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 
 sealed trait IMethod
@@ -28,17 +28,26 @@ class EdgeCompiler(
     interner: Interner,
     overloadCompiler: OverloadResolver) {
   def compileITables(coutputs: CompilerOutputs):
-  (Vector[InterfaceEdgeBlueprint], Map[InterfaceTT, Map[StructTT, Vector[PrototypeT]]]) = {
+  (
+    Vector[InterfaceEdgeBlueprint],
+    Map[
+      FullNameT[IInterfaceTemplateNameT],
+      Map[
+        FullNameT[ICitizenTemplateNameT],
+        Vector[PrototypeT]]]) = {
     val interfaceEdgeBlueprints =
       makeInterfaceEdgeBlueprints(coutputs)
 
     val itables =
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
-        val interface = interfaceEdgeBlueprint.interface
-        interface -> {
-          val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interface)
+        val interfaceTemplateFullName = interfaceEdgeBlueprint.interface
+        val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
+        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedCitizen
+        interfaceTemplateFullName -> {
+          val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
           overridingImpls.map(overridingImpl => {
             val overridingCitizen = overridingImpl.subCitizenTemplateName
+
             overridingCitizen -> {
               interfaceEdgeBlueprint.superFamilyRootBanners.map(abstractFunctionBanner => {
                 val abstractFunctionSignature = abstractFunctionBanner.toSignature
@@ -46,19 +55,32 @@ class EdgeCompiler(
                 val abstractIndex = abstractFunctionBanner.params.indexWhere(_.virtuality.nonEmpty)
                 vassert(abstractIndex >= 0)
                 val abstractParamType = abstractFunctionParamTypes(abstractIndex)
+                val abstractParamCitizen = abstractParamType.kind.expectCitizen()
+                val substituter =
+                  TemplataCompiler.getPlaceholderSubstituter(
+                    abstractParamCitizen, interfacePlaceholderedCitizen)
+                // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
+                // according to itself, not placeholdered according to the interface that it overrode.
+                // For example, if Firefly<X, Y> impl IShip<Y, X>, we want StructT(Firefly, (IShip:$_1, IShip:$_0))
+                // not StructT(Firefly, (Firefly:$_0, Firefly:$_1)).
+                // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
+                // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
+                val overridingParamType =
+                    abstractParamType
+                      .copy(kind = overridingImpl.subCitizenFromPlaceholderedParentInterface)
+                val overrideFunctionParamTypes =
+                  abstractFunctionParamTypes.updated(abstractIndex, overridingParamType)
+
+                val range = abstractFunctionBanner.originFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
+
                 val impreciseName =
                   vassertSome(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionSignature.fullName.last))
 
-                val overrideFunctionParamTypes =
-                  abstractFunctionParamTypes
-                    .updated(abstractIndex, abstractParamType.copy(kind = overridingCitizen))
-
-                val range = abstractFunctionBanner.originFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
                 val foundFunction =
                   compileOverride(
-                    coutputs, range, interface, overridingCitizen, impreciseName, overrideFunctionParamTypes)
+                    coutputs, range, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })
@@ -72,8 +94,8 @@ class EdgeCompiler(
   private def compileOverride(
       coutputs: CompilerOutputs,
       range: RangeS,
-      interface: FullNameT[InterfaceTemplateNameT],
-      overridingStruct: FullNameT[StructTemplateNameT],
+      interface: FullNameT[IInterfaceTemplateNameT],
+      overridingCitizen: FullNameT[ICitizenTemplateNameT],
       impreciseName: IImpreciseNameS,
       paramTypes: Vector[CoordT]):
   PrototypeT = {
@@ -85,7 +107,7 @@ class EdgeCompiler(
       Vector.empty, // No explicitly specified ones. It has to be findable just by param filters.
       Array.empty,
       paramTypes.map(ParamFilter(_, None)),
-      Vector(coutputs.getEnvForTemplate(overridingStruct)),
+      Vector(coutputs.getEnvForTemplate(overridingCitizen)),
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
       case Ok(x) => x.prototype
@@ -130,7 +152,7 @@ class EdgeCompiler(
       abstractFunctionHeadersByInterface
         .map({ case (interfaceTT, functionHeaders2) =>
           InterfaceEdgeBlueprint(
-            interfaceTT,
+            TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName),
             // This is where they're given order and get an implied index
             functionHeaders2.map(_.toBanner).toVector)
         })

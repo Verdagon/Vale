@@ -7,7 +7,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
-import dev.vale.typing.names.NameTranslator
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, ITemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -20,7 +20,6 @@ import dev.vale.typing._
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
-import dev.vale.typing.names.ICitizenNameT
 import dev.vale.typing.templata.ITemplata.expectMutability
 
 import scala.collection.immutable.List
@@ -79,12 +78,11 @@ class StructCompiler(
 
   def compileStruct(
     coutputs: CompilerOutputs,
-    structTemplata: StructTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+    structTemplata: StructTemplata):
   Unit = {
     Profiler.frame(() => {
       templateArgsLayer.compileStruct(
-        coutputs, structTemplata, uncoercedTemplateArgs)
+        coutputs, structTemplata)
     })
   }
 
@@ -105,11 +103,10 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+    interfaceTemplata: InterfaceTemplata):
   Unit = {
     templateArgsLayer.compileInterface(
-      coutputs, interfaceTemplata, uncoercedTemplateArgs)
+      coutputs, interfaceTemplata)
   }
 
   // Makes a struct to back a closure
@@ -149,19 +146,11 @@ object StructCompiler {
 
   def getMembers(coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
     val definition = coutputs.lookupStruct(structTT)
-    vassert(structTT.fullName.last.templateArgs.size == definition.nameWithPlaceholders.last.templateArgs.size)
-    val substitutions =
-      structTT.fullName.last.templateArgs.zip(definition.nameWithPlaceholders.last.templateArgs).map({
-        case (arg, p @ PlaceholderTemplata(_, _)) => {
-          (p, arg)
-        }
-      }).toArray
+    val placeholderSubstituter =
+      TemplataCompiler.getPlaceholderSubstituter(structTT, definition.placeholderedCitizen)
     definition.members.map({
       case StructMemberT(name, variability, ReferenceMemberTypeT(tyype)) => {
-        StructMemberT(
-          name,
-          variability,
-          ReferenceMemberTypeT(TemplataCompiler.substituteTemplatasInCoord(tyype, substitutions)))
+        StructMemberT(name, variability, ReferenceMemberTypeT(placeholderSubstituter.substituteForCoord(tyype)))
       }
       case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
         vcurious()
@@ -171,14 +160,8 @@ object StructCompiler {
 
   def getMutability(coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
-    vassert(structTT.fullName.last.templateArgs.size == definition.nameWithPlaceholders.last.templateArgs.size)
-    val substitutions =
-      structTT.fullName.last.templateArgs.zip(definition.nameWithPlaceholders.last.templateArgs).map({
-        case (arg, p @ PlaceholderTemplata(_, _)) => {
-          (p, arg)
-        }
-      }).toArray
-    val result = TemplataCompiler.substituteTemplatasInTemplata(definition.mutability, substitutions)
-    expectMutability(result)
+    val transformer = TemplataCompiler.getTemplataTransformer(coutputs, structTT)
+    val result = transformer(definition.mutability)
+    ITemplata.expectMutability(result)
   }
 }

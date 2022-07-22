@@ -148,6 +148,65 @@ object TemplataCompiler {
       case other => vimpl(other)
     }
   }
+
+  trait IPlaceholderSubstituter {
+    def substituteForCoord(coordT: CoordT): CoordT
+    def substituteForKind(coordT: KindT): KindT
+    def substituteForTemplata(coordT: ITemplata[ITemplataType]): ITemplata[ITemplataType]
+  }
+  // If you have a type (citizenTT) and it contains something (like a member) then
+  // you can use this function to figure out what the member looks like to you, the outsider.
+  // It will take out all the internal placeholders internal to the citizen, and replace them
+  // with what was given in citizenTT's template args.
+  def getPlaceholderSubstituter(citizenTT: ICitizenTT, placeholderedCitizenTT: ICitizenTT): IPlaceholderSubstituter = {
+    vassert(
+      TemplataCompiler.getCitizenTemplate(citizenTT.fullName) ==
+        TemplataCompiler.getCitizenTemplate(placeholderedCitizenTT.fullName))
+    vassert(
+      citizenTT.fullName.last.templateArgs.size ==
+        placeholderedCitizenTT.fullName.last.templateArgs.size)
+    val substitutions =
+      citizenTT.fullName.last.templateArgs.zip(placeholderedCitizenTT.fullName.last.templateArgs).map({
+        case (arg, p @ PlaceholderTemplata(_, _)) => {
+          (p, arg)
+        }
+      }).toArray
+    new IPlaceholderSubstituter {
+      // This parameter is another coord *with placeholders*. Those placeholders will be replaced
+      // according to the substitution created from citizenTT -> placeholderedCitizenTT
+      override def substituteForCoord(coordT: CoordT): CoordT = {
+        TemplataCompiler.substituteTemplatasInCoord(coordT, substitutions)
+      }
+      override def substituteForKind(kindT: KindT): KindT = {
+        TemplataCompiler.substituteTemplatasInKind(kindT, substitutions)
+      }
+      override def substituteForTemplata(templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
+        TemplataCompiler.substituteTemplatasInTemplata(templata, substitutions)
+      }
+    }
+  }
+
+  // If you have a type (citizenTT) and it contains something (like a member) then
+  // you can use this function to figure out what the member looks like to you, the outsider.
+  // It will take out all the internal placeholders internal to the citizen, and replace them
+  // with what was given in citizenTT's template args.
+  def getTemplataTransformer(coutputs: CompilerOutputs, citizenTT: ICitizenTT):
+  (ITemplata[ITemplataType]) => ITemplata[ITemplataType] = {
+    val citizenTemplateFullName = TemplataCompiler.getCitizenTemplate(citizenTT.fullName)
+    val citizenTemplateDefinition = coutputs.lookupCitizen(citizenTemplateFullName)
+    vassert(
+      citizenTT.fullName.last.templateArgs.size ==
+        citizenTemplateDefinition.placeholderedCitizen.fullName.last.templateArgs.size)
+    val substitutions =
+      citizenTT.fullName.last.templateArgs.zip(citizenTemplateDefinition.placeholderedCitizen.fullName.last.templateArgs).map({
+        case (arg, p @ PlaceholderTemplata(_, _)) => {
+          (p, arg)
+        }
+      }).toArray
+    (templataToTransform: ITemplata[ITemplataType]) => {
+      TemplataCompiler.substituteTemplatasInTemplata(templataToTransform, substitutions)
+    }
+  }
 }
 
 class TemplataCompiler(
