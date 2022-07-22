@@ -110,7 +110,7 @@ class Compiler(
             coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
 
-        override def getStaticSizedArrayKind(
+        override def resolveStaticSizedArrayKind(
             env: IEnvironment,
             coutputs: CompilerOutputs,
             mutability: ITemplata[MutabilityTemplataType],
@@ -121,7 +121,12 @@ class Compiler(
           arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2)
         }
 
-        override def getRuntimeSizedArrayKind(element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
+        override def resolveRuntimeSizedArrayKind(
+            env: IEnvironment,
+            state: CompilerOutputs,
+            element: CoordT,
+            arrayMutability: ITemplata[MutabilityTemplataType]):
+        RuntimeSizedArrayTT = {
           arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
         }
       })
@@ -601,6 +606,16 @@ class Compiler(
               case _ =>
             }
           })
+        })
+
+        coutputs.getAllStructs().foreach(structDefinition => {
+          ancestorHelper.compileParentImplsForSubCitizen(coutputs, structDefinition)
+        })
+
+        coutputs.getAllInterfaces().foreach(interfaceDefinition => {
+          ancestorHelper.compileChildImplsForParentInterface(coutputs, interfaceDefinition)
+          // We do this because interfaces can impl other interfaces too.
+          ancestorHelper.compileParentImplsForSubCitizen(coutputs, interfaceDefinition)
         })
 
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>

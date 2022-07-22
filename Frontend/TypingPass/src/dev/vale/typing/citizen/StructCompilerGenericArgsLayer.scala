@@ -50,7 +50,7 @@ class StructCompilerGenericArgsLayer(
         vfail("wat?")
       }
 
-      val callSiteRules = structA.rules.filter(inferCompiler.includeRuleInCallSiteSolve)
+      val callSiteRules = structA.rules.filter(InferCompiler.includeRuleInCallSiteSolve)
 
       // Check if its a valid use of this template
       val inferences =
@@ -94,7 +94,7 @@ class StructCompilerGenericArgsLayer(
         }
       }
 
-      val definitionRules = structA.rules.filter(inferCompiler.includeRuleInDefinitionSolve)
+      val definitionRules = structA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
       val placeholders = vimpl()
 
@@ -198,7 +198,7 @@ class StructCompilerGenericArgsLayer(
         vfail("wat?")
       }
 
-      val callSiteRules = interfaceA.rules.filter(inferCompiler.includeRuleInCallSiteSolve)
+      val callSiteRules = interfaceA.rules.filter(InferCompiler.includeRuleInCallSiteSolve)
 
       // This checks to make sure it's a valid use of this template.
       val inferences =

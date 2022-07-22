@@ -8,7 +8,7 @@ import dev.vale.typing.names._
 object simpleName {
   def unapply(fullName: FullNameT[INameT]): Option[String] = {
     fullName.last match {
-      case ImplDeclareNameT(_) => None
+//      case ImplDeclareNameT(_) => None
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
       case FreeNameT(_, _, _) => None

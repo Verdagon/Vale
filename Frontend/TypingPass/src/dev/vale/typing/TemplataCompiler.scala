@@ -4,7 +4,7 @@ import dev.vale.{RangeS, vassert, vassertOne, vfail, vimpl}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -44,7 +44,7 @@ trait ITemplataCompilerDelegate {
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   InterfaceTT
 
-  def getStaticSizedArrayKind(
+  def resolveStaticSizedArrayKind(
     env: IEnvironment,
     coutputs: CompilerOutputs,
     mutability: ITemplata[MutabilityTemplataType],
@@ -53,7 +53,7 @@ trait ITemplataCompilerDelegate {
     type2: CoordT):
   StaticSizedArrayTT
 
-  def getRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
+  def resolveRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
 }
 
 object TemplataCompiler {
@@ -76,6 +76,11 @@ object TemplataCompiler {
   def getInterfaceTemplate(fullName: FullNameT[IInterfaceNameT]): FullNameT[IInterfaceTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getPlaceholderTemplate(fullName: FullNameT[PlaceholderNameT]): FullNameT[PlaceholderTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.templateName)
   }
 
   def substituteTemplatasInCoord(
@@ -137,7 +142,7 @@ object TemplataCompiler {
     templata match {
       case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(c, substitutions))
       case KindTemplata(k) => KindTemplata(substituteTemplatasInKind(k, substitutions))
-      case p @ PlaceholderTemplata(FullNameT(_, _, PlaceholderNameT(index)), _)
+      case p @ PlaceholderTemplata(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))), _)
         if index < substitutions.length && p == substitutions(index)._1 => {
         substitutions(index)._2
       }

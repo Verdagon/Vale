@@ -30,14 +30,14 @@ case class ImplT(
 
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
   // Starting from a placeholdered sub citizen, this is the interface that would result.
+  // We get this by solving the impl, given a placeholdered sub citizen.
   parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
-  superInterfaceTemplateName: FullNameT[InterfaceTemplateNameT],
+  superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
   // Starting from a placeholdered super interface, this is the interface that would result.
+  // We get this by solving the impl, given a placeholdered sub citizen.
   subCitizenFromPlaceholderedParentInterface: ICitizenTT,
-) {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-}
+) extends IInterning
 
 case class KindExportT(
   range: RangeS,

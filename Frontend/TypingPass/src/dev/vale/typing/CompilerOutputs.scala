@@ -47,7 +47,8 @@ case class CompilerOutputs() {
   private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
-  private val allImpls: mutable.ArrayBuffer[ImplT] = mutable.ArrayBuffer()
+  // This is a HashSet to help deduplicate, see CIFBD.
+  private val allImpls: mutable.HashSet[ImplT] = mutable.HashSet()
   private val subCitizenTemplateToImpls: mutable.HashMap[FullNameT[ICitizenTemplateNameT], Vector[ImplT]] = mutable.HashMap()
   private val superInterfaceTemplateToImpls: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Vector[ImplT]] = mutable.HashMap()
 
@@ -203,6 +204,8 @@ case class CompilerOutputs() {
 //  }
 
   def addImpl(impl: ImplT): Unit = {
+    // There may be a collision here, but that's alright. See CIFBD.
+
     allImpls += impl
     subCitizenTemplateToImpls.put(
       impl.subCitizenTemplateName,

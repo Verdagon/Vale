@@ -149,6 +149,12 @@ case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawA
 case class RuntimeSizedArrayTemplateNameT() extends ITemplateNameT
 case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT
 
+// This exists because PlaceholderT is a kind, and all kinds need environments to assist
+// in call/overload resolution. Environments are associated with templates, so it makes
+// some sense to have a "placeholder template" notion.
+case class PlaceholderTemplateNameT(index: Int) extends ITemplateNameT
+case class PlaceholderNameT(templateName: PlaceholderTemplateNameT) extends INameT
+
 sealed trait IVarNameT extends INameT
 case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT
 case class TypingPassFunctionResultVarNameT() extends IVarNameT
@@ -162,7 +168,6 @@ case class ConstructingMemberNameT(name: StrI) extends IVarNameT
 case class WhileCondResultNameT(range: RangeS) extends IVarNameT
 case class IterableNameT(range: RangeS) extends IVarNameT {  }
 case class IteratorNameT(range: RangeS) extends IVarNameT {  }
-case class PlaceholderNameT(index: Int) extends IVarNameT {  }
 case class IterationOptionNameT(range: RangeS) extends IVarNameT {  }
 case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT
 case class CodeVarNameT(name: StrI) extends IVarNameT
