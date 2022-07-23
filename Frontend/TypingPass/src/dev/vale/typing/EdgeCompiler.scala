@@ -56,9 +56,6 @@ class EdgeCompiler(
                 vassert(abstractIndex >= 0)
                 val abstractParamType = abstractFunctionParamTypes(abstractIndex)
                 val abstractParamCitizen = abstractParamType.kind.expectCitizen()
-                val substituter =
-                  TemplataCompiler.getPlaceholderSubstituter(
-                    abstractParamCitizen, interfacePlaceholderedCitizen)
                 // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
                 // according to itself, not placeholdered according to the interface that it overrode.
                 // For example, if Firefly<X, Y> impl IShip<Y, X>, we want StructT(Firefly, (IShip:$_1, IShip:$_0))
@@ -115,7 +112,7 @@ class EdgeCompiler(
   }
 
   private def makeInterfaceEdgeBlueprints(coutputs: CompilerOutputs): Vector[InterfaceEdgeBlueprint] = {
-    val abstractFunctionHeadersByInterfaceWithoutEmpties =
+    val abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties =
       coutputs.getAllFunctions().flatMap({ case function =>
         function.header.getAbstractInterface match {
           case None => Vector.empty
@@ -125,10 +122,12 @@ class EdgeCompiler(
         .groupBy(_._1)
         .mapValues(_.map(_._2))
         .map({ case (interfaceTT, functions) =>
+          val interfaceTemplateFullName =
+            TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName)
           // Sort so that the interface's internal methods are first and in the same order
           // they were declared in. It feels right, and vivem also depends on it
           // when it calls array generators/consumers' first method.
-          val interfaceDef = coutputs.getAllInterfaces().find(_ == vimpl()/*_.getRef == interfaceTT*/).get
+          val interfaceDef = coutputs.getAllInterfaces().find(_.templateName == interfaceTemplateFullName).get
           // Make sure `functions` has everything that the interface def wanted.
           vassert((interfaceDef.internalMethods.map(_.toSignature).toSet -- functions.map(_.header.toSignature).toSet).isEmpty)
           // Move all the internal methods to the front.
@@ -137,22 +136,21 @@ class EdgeCompiler(
               functions.map(_.header).filter(x => {
                 !interfaceDef.internalMethods.exists(y => y.toSignature == x.toSignature)
               })
-          (interfaceTT -> orderedMethods)
+          (interfaceTemplateFullName -> orderedMethods)
         })
     // Some interfaces would be empty and they wouldn't be in
     // abstractFunctionsByInterfaceWithoutEmpties, so we add them here.
-    val abstractFunctionHeadersByInterface =
-    abstractFunctionHeadersByInterfaceWithoutEmpties ++
-      coutputs.getAllInterfaces().map({ case i =>
-        vimpl()
-        //(i.getRef -> abstractFunctionHeadersByInterfaceWithoutEmpties.getOrElse(i.getRef, Set()))
-      })
+    val abstractFunctionHeadersByInterfaceTemplateFullName =
+      abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties ++
+        coutputs.getAllInterfaces().map({ case i =>
+          (i.templateName -> abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties.getOrElse(i.templateName, Set()))
+        })
 
     val interfaceEdgeBlueprints =
-      abstractFunctionHeadersByInterface
-        .map({ case (interfaceTT, functionHeaders2) =>
+      abstractFunctionHeadersByInterfaceTemplateFullName
+        .map({ case (interfaceTemplateFullName, functionHeaders2) =>
           InterfaceEdgeBlueprint(
-            TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName),
+            interfaceTemplateFullName,
             // This is where they're given order and get an implied index
             functionHeaders2.map(_.toBanner).toVector)
         })

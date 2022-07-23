@@ -44,7 +44,7 @@ case class ProgramA(
     val matches = structs.find(_.name == name)
     vassert(matches.size == 1)
     matches.head match {
-      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _) => i
+      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
   def lookupStruct(name: String) = {
@@ -78,8 +78,13 @@ case class StructA(
     maybePredictedMutability: Option[MutabilityP],
     tyype: ITemplataType,
     genericParameters: Vector[GenericParameterS],
-    runeToType: Map[IRuneS, ITemplataType],
-    rules: Vector[IRulexSR],
+
+    // These are separated so that these alone can be run during resolving, see SMRASDR.
+    headerRuneToType: Map[IRuneS, ITemplataType],
+    headerRules: Array[IRulexSR],
+    // These are separated so they can be skipped during resolving, see SMRASDR.
+    membersRuneToType: Map[IRuneS, ITemplataType],
+    memberRules: Array[IRulexSR],
     members: Vector[IStructMemberS]
 ) extends TypeDefinitionA {
   val hash = range.hashCode() + name.hashCode()
@@ -106,7 +111,6 @@ case class StructA(
 case class ImplA(
   range: RangeS,
   name: IImplDeclarationNameS,
-  impreciseName: ImplImpreciseNameS, // The name of an impl is the human name of the subcitizen, see INSHN.
   identifyingRunes: Vector[RuneUsage],
   rules: Vector[IRulexSR],
   runeToType: Map[IRuneS, ITemplataType],

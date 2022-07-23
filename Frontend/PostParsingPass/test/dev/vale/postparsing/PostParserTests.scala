@@ -68,10 +68,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val program1 = compile("struct Moo { x int; }")
     val imoo = program1.lookupStruct("Moo")
 
-    imoo.rules shouldHave {
+    imoo.headerRules shouldHave {
       case LiteralSR(_, r, MutabilityLiteralSL(MutableP)) => vassert(r == imoo.mutabilityRune)
     }
-    imoo.rules shouldHave {
+    imoo.memberRules shouldHave {
       case LookupSR(_, m, CodeNameS(StrI("int"))) => vassert(m == imoo.members(0).typeRune)
     }
     imoo.members match {

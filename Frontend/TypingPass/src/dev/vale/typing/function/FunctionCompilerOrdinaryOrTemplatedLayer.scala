@@ -8,7 +8,7 @@ import dev.vale.typing.function.FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.postparsing.patterns._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
-import dev.vale.postparsing.{IEnvironment => _, _}
+import dev.vale.postparsing.{IEnvironmentS => _, _}
 import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing._
 import dev.vale.typing.ast._
@@ -105,7 +105,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
-      assembleCallSiteRules(function, explicitTemplateArgs.size)
+        TemplataCompiler.assembleCallSiteRules(
+            function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
@@ -158,7 +159,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(declaringEnv.function.isTemplate)
 
     val callSiteRules =
-      assembleCallSiteRules(function, 0)
+        TemplataCompiler.assembleCallSiteRules(
+            function.rules, function.genericParameters, 0)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
@@ -225,7 +227,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val callSiteRules =
-      assembleCallSiteRules(function, 0)
+        TemplataCompiler.assembleCallSiteRules(
+            function.rules, function.genericParameters, 0)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -295,7 +298,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val callSiteRules =
-      assembleCallSiteRules(function, 0)
+        TemplataCompiler.assembleCallSiteRules(
+            function.rules, function.genericParameters, 0)
 
     val inferences =
       inferCompiler.solveExpectComplete(
@@ -328,7 +332,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
-      assembleCallSiteRules(function, explicitTemplateArgs.size)
+      TemplataCompiler.assembleCallSiteRules(
+        function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
@@ -354,21 +359,6 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         runedEnv, coutputs, callRange, function)
 
     (EvaluateFunctionSuccess(banner))
-  }
-
-  private def assembleCallSiteRules(function: FunctionA, numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
-    function.rules.filter(
-      InferCompiler.includeRuleInCallSiteSolve) ++
-      (function.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
-        if (index >= numExplicitTemplateArgs) {
-          genericParam.default match {
-            case Some(x) => x.rules
-            case None => Vector()
-          }
-        } else {
-          Vector()
-        }
-      }))
   }
 
   private def assembleKnownTemplatas(
@@ -450,7 +440,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     checkClosureConcernsHandled(nearEnv)
 
     val callSiteRules =
-      assembleCallSiteRules(function, explicitTemplateArgs.size)
+        TemplataCompiler.assembleCallSiteRules(
+            function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
     val inferredTemplatas =
@@ -488,6 +479,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
+    val functionTemplateFullName =
+      nearEnv.parentEnv.fullName.addStep(
+        nameTranslator.translateFunctionNameToTemplateName(nearEnv.function.name))
+
     val definitionRules =
       function.rules.filter(
         InferCompiler.includeRuleInDefinitionSolve)
@@ -499,7 +494,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // In the future we might need to outlaw specialization, unsure.
     val preliminaryInferences =
       inferCompiler.solve(
-        nearEnv, None, coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector()) match {
+        nearEnv, Some(nearEnv), coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector()) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range, f))
         }
@@ -513,17 +508,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         preliminaryInferences.get(genericParam.rune.rune) match {
           case Some(x) => Some(InitialKnown(genericParam.rune, x))
           case None => {
-            genericParam.default match {
-              case Some(defaultGenericParam) => {
-                // Don't populate a placeholder for this, see DAPGPD.
-                None
-              }
-              case None => {
-                val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
-                val templata = templataCompiler.createPlaceholder(coutputs, nearEnv, index, runeType)
-                Some(InitialKnown(genericParam.rune, templata))
-              }
-            }
+            // Make a placeholder for every argument even if it has a default, see DUDEWCD.
+            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
+            val templata = templataCompiler.createPlaceholder(coutputs, nearEnv, functionTemplateFullName, index, runeType)
+            Some(InitialKnown(genericParam.rune, templata))
           }
         }
       })

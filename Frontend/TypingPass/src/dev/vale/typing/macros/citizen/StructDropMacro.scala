@@ -45,9 +45,10 @@ class StructDropMacro(
     val structNameS = structA.name
     val structType = structA.tyype
     val genericParams = structA.genericParameters
+    val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
     val structIdentifyingRuneToType =
       genericParams.map(_.rune.rune)
-        .zip(genericParams.map(_.rune.rune).map(structA.runeToType)).toMap
+        .zip(genericParams.map(_.rune.rune).map(allRuneToType)).toMap
 
     val dropFunctionA =
       makeFunction(

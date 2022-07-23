@@ -46,9 +46,10 @@ class StructFreeMacro(
         val structNameS = structA.name
         val structType = structA.tyype
         val structIdentifyingRunes = structA.genericParameters
+        val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
         val structIdentifyingRuneToType =
           structIdentifyingRunes.map(_.rune.rune)
-            .zip(structIdentifyingRunes.map(_.rune.rune).map(structA.runeToType)).toMap
+            .zip(structIdentifyingRunes.map(_.rune.rune).map(allRuneToType)).toMap
 
         val freeFunctionA =
           makeFunction(

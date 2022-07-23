@@ -2,14 +2,14 @@ package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType}
-import dev.vale.postparsing.rules.RuneUsage
+import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.names.NameTranslator
+import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceTemplateNameT, IStructTemplateNameT, NameTranslator, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Accumulator, Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.highertyping._
 import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.types._
@@ -18,7 +18,6 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerMiddle
 import dev.vale.typing.env._
-import dev.vale.typing.names.AnonymousSubstructNameT
 
 import scala.collection.immutable.List
 
@@ -29,9 +28,8 @@ class StructCompilerGenericArgsLayer(
     nameTranslator: NameTranslator,
     templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
-    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
-  val middle = new StructCompilerMiddle(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
+  val middle = new StructCompilerMiddle(opts, interner, keywords, nameTranslator, delegate)
 
   def resolveStruct(
     coutputs: CompilerOutputs,
@@ -43,16 +41,19 @@ class StructCompilerGenericArgsLayer(
     Profiler.frame(() => {
       val StructTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
-      val structName = structTemplateName.makeStructName(interner, templateArgs)
-      val fullName = declaringEnv.fullName.addStep(structName)
-      val structTT = interner.intern(StructTT(fullName))
 
-      // not sure if this is okay or not, do we allow this?
-      if (templateArgs.size != structA.genericParameters.size) {
-        vfail("wat?")
-      }
+      // We no longer assume this:
+      //   vassert(templateArgs.size == structA.genericParameters.size)
+      // because we have default generic arguments now.
 
-      val callSiteRules = structA.rules.filter(InferCompiler.includeRuleInCallSiteSolve)
+      val initialKnowns =
+        structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
+          InitialKnown(RuneUsage(callRange, genericParam.rune.rune), templateArg)
+        })
+
+      val callSiteRules =
+        TemplataCompiler.assembleCallSiteRules(
+          structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
       // Check if its a valid use of this template
       val inferences =
@@ -61,13 +62,68 @@ class StructCompilerGenericArgsLayer(
           Some(callingEnv),
           coutputs,
           callSiteRules,
-          structA.runeToType,
+          structA.headerRuneToType,
           callRange,
-          structA.genericParameters.map(_.rune.rune).zip(templateArgs)
-            .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
+          initialKnowns,
           Vector())
 
+      // We can't just make a StructTT with the args they gave us, because they may have been
+      // missing some, in which case we had to run some default rules.
+      // Let's use the inferences to make one.
+
+      val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
+      val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
+      val fullName = declaringEnv.fullName.addStep(structName)
+      val structTT = interner.intern(StructTT(fullName))
       structTT
+    })
+  }
+
+  def resolveInterface(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    interfaceTemplata: InterfaceTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    Profiler.frame(() => {
+      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
+
+      // We no longer assume this:
+      //   vassert(templateArgs.size == structA.genericParameters.size)
+      // because we have default generic arguments now.
+
+      val initialKnowns =
+        interfaceA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
+          InitialKnown(RuneUsage(callRange, genericParam.rune.rune), templateArg)
+        })
+
+      val callSiteRules =
+        TemplataCompiler.assembleCallSiteRules(
+          interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
+
+      // This checks to make sure it's a valid use of this template.
+      val inferences =
+        inferCompiler.solveExpectComplete(
+          env,
+          Some(callingEnv),
+          coutputs,
+          callSiteRules,
+          interfaceA.runeToType,
+          callRange,
+          initialKnowns,
+          Vector())
+
+      // We can't just make a StructTT with the args they gave us, because they may have been
+      // missing some, in which case we had to run some default rules.
+      // Let's use the inferences to make one.
+
+      val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
+      val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
+      val fullName = env.fullName.addStep(interfaceName)
+      val interfaceTT = interner.intern(InterfaceTT(fullName))
+      interfaceTT
     })
   }
 
@@ -80,23 +136,9 @@ class StructCompilerGenericArgsLayer(
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.fullName.addStep(structTemplateName)
 
-      if (coutputs.structDeclared(structTemplateFullName)) {
-        vcurious()
-        return
-      }
-
-      coutputs.declareTemplate(structTemplateFullName)
-
-      structA.maybePredictedMutability match {
-        case None =>
-        case Some(predictedMutability) => {
-          coutputs.declareTemplateMutability(
-            structTemplateFullName,
-            MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
-        }
-      }
-
-      val definitionRules = structA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
+      val allRulesS = structA.headerRules ++ structA.memberRules
+      val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
+      val definitionRules = allRulesS.filter(InferCompiler.includeRuleInDefinitionSolve)
 
       // This is temporary, to support specialization like:
       //   extern("vale_runtime_sized_array_mut_new")
@@ -104,14 +146,14 @@ class StructCompilerGenericArgsLayer(
       //   where M Mutability = mut, E Ref;
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
-      inferCompiler.solve(
-        declaringEnv, None, coutputs, definitionRules, structA.runeToType, structA.range, Vector(), Vector()) match {
-        case f @ FailedSolve(_, _, err) => {
-          throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
+        inferCompiler.solve(
+          declaringEnv, None, coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector()) match {
+          case f @ FailedSolve(_, _, err) => {
+            throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
+          }
+          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+          case CompleteSolve(conclusions) => conclusions
         }
-        case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-        case CompleteSolve(conclusions) => conclusions
-      }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
       val initialKnowns =
@@ -119,17 +161,10 @@ class StructCompilerGenericArgsLayer(
           preliminaryInferences.get(genericParam.rune.rune) match {
             case Some(x) => Some(InitialKnown(genericParam.rune, x))
             case None => {
-              genericParam.default match {
-                case Some(defaultGenericParam) => {
-                  // Don't populate a placeholder for this, see DAPGPD.
-                  None
-                }
-                case None => {
-                  val runeType = vassertSome(structA.runeToType.get(genericParam.rune.rune))
-                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, index, runeType)
-                  Some(InitialKnown(genericParam.rune, templata))
-                }
-              }
+              // Make a placeholder for every argument even if it has a default, see DUDEWCD.
+              val runeType = vassertSome(allRuneToType.get(genericParam.rune.rune))
+              val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, structTemplateFullName, index, runeType)
+              Some(InitialKnown(genericParam.rune, templata))
             }
           }
         })
@@ -140,8 +175,8 @@ class StructCompilerGenericArgsLayer(
           declaringEnv,
           None,
           coutputs,
-          definitionRules,
-          structA.runeToType,
+          definitionRules.toVector,
+          allRuneToType,
           structA.range,
           initialKnowns,
 //            structA.genericParameters.zip(templateArgs).map({ case (GenericParameterS(rune, default), genericArg) =>
@@ -171,22 +206,6 @@ class StructCompilerGenericArgsLayer(
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
 //      val fullName = env.fullName.addStep(interfaceLastName)
-
-      if (coutputs.interfaceDeclared(interfaceTemplateFullName)) {
-        vcurious()
-        return
-      }
-
-      coutputs.declareTemplate(interfaceTemplateFullName)
-
-      interfaceA.maybePredictedMutability match {
-        case None =>
-        case Some(predictedMutability) => {
-          coutputs.declareTemplateMutability(
-            interfaceTemplateFullName,
-            MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
-        }
-      }
 
       val definitionRules = interfaceA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
@@ -218,7 +237,7 @@ class StructCompilerGenericArgsLayer(
                 }
                 case None => {
                   val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
-                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, index, runeType)
+                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, interfaceTemplateFullName, index, runeType)
                   Some(InitialKnown(genericParam.rune, templata))
                 }
               }
@@ -246,44 +265,6 @@ class StructCompilerGenericArgsLayer(
       }
 
       middle.compileInterface(declaringEnv, coutputs, interfaceA, inferences)
-    })
-  }
-
-  def resolveInterface(
-    coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
-    interfaceTemplata: InterfaceTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
-    Profiler.frame(() => {
-      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
-      val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
-      val interfaceName = interfaceTemplateName.makeInterfaceName(interner, templateArgs)
-      val fullName = env.fullName.addStep(interfaceName)
-      val interfaceTT = interner.intern(InterfaceTT(fullName))
-
-      // not sure if this is okay or not, do we allow this?
-      if (templateArgs.size != interfaceA.genericParameters.size) {
-        vfail("wat?")
-      }
-
-      val callSiteRules = interfaceA.rules.filter(InferCompiler.includeRuleInCallSiteSolve)
-
-      // This checks to make sure it's a valid use of this template.
-      val inferences =
-        inferCompiler.solveExpectComplete(
-          env,
-          Some(callingEnv),
-          coutputs,
-          callSiteRules,
-          interfaceA.runeToType,
-          callRange,
-          interfaceA.genericParameters.map(_.rune.rune).zip(templateArgs)
-            .map({ case (a, b) => InitialKnown(RuneUsage(callRange, a), b) }),
-          Vector())
-
-      interfaceTT
     })
   }
 

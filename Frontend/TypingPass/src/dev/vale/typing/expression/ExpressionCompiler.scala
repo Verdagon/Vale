@@ -177,14 +177,12 @@ class ExpressionCompiler(
             case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
           }
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
-//        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
         val borrowExpr =
           localHelper.borrowSoftLoad(
             coutputs,
             LocalLookupTE(
               range,
               ReferenceLocalVariableT(nenv.fullName.addStep(interner.intern(ClosureParamNameT())), FinalT, closuredVarsStructRefCoord)))
-//        val index = closuredVarsStructDef.members.indexWhere(_.name == varName)
 
         val lookup =
           ast.ReferenceMemberLookupTE(range, borrowExpr, varName, tyype, variability)
@@ -248,7 +246,6 @@ class ExpressionCompiler(
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
         vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.fullName.addStep(member.name) == varName))
-        val index = closuredVarsStructDef.members.indexWhere(_.name == varName.last)
 
         val borrowExpr =
           localHelper.borrowSoftLoad(
@@ -256,8 +253,6 @@ class ExpressionCompiler(
             LocalLookupTE(
               range,
               ReferenceLocalVariableT(nenv.fullName.addStep(interner.intern(ClosureParamNameT())), FinalT, closuredVarsStructRefCoord)))
-
-//        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.ownership
 
         val lookup = ReferenceMemberLookupTE(range, borrowExpr, varName, tyype, variability)
         Some(lookup)
@@ -417,7 +412,7 @@ class ExpressionCompiler(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life, argsExprs1)
           val callExpr2 =
-            callCompiler.evaluateNamedPrefixCall(coutputs, nenv, range, name, rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
+            callCompiler.evaluateNamedPrefixCall(coutputs, nenv.snapshot, range, name, rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsPackExpr1) => {
@@ -425,7 +420,7 @@ class ExpressionCompiler(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life, argsPackExpr1)
           val callExpr2 =
-            callCompiler.evaluateNamedPrefixCall(coutputs, nenv, range, name, rules.toVector, Vector(), argsExprs2)
+            callCompiler.evaluateNamedPrefixCall(coutputs, nenv.snapshot, range, name, rules.toVector, Vector(), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, callableExpr1, argsExprs1) => {
@@ -669,7 +664,10 @@ class ExpressionCompiler(
                     case Some(x) => x
                   }
                 val memberFullName = structDef.templateName.addStep(structDef.members(memberIndex).name)
-                val memberType = structMember.tyype.expectReferenceMember().reference;
+                val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
+                val memberType =
+                  TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+                    .substituteForCoord(unsubstitutedMemberType)
 
                 vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
 

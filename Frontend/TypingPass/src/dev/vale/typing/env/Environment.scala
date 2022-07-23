@@ -211,7 +211,7 @@ object TemplatasStore {
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
       case ForwarderFunctionNameT(_, inner, index) => getImpreciseName(interner, inner)
-      case AnonymousSubstructImplTemplateNameT(inner) => getImpreciseName(interner, inner).map(ImplImpreciseNameS)
+//      case AnonymousSubstructImplTemplateNameT(inner) => getImpreciseName(interner, inner).map(ImplImpreciseNameS)
 //      case OverrideVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
 //      case AbstractVirtualFreeNameT(_, _) => Some(interner.intern(VirtualFreeImpreciseNameS()))
 //      case OverrideVirtualFreeNameT(_, _) => Some(interner.intern(VirtualFreeImpreciseNameS()))
@@ -282,7 +282,8 @@ case class TemplatasStore(
               getImpreciseName(interner, prototype.fullName.last).map(_ -> value)
           }
           case (key, value @ ImplEnvEntry(implA)) => {
-            List(implA.impreciseName -> value)
+            // Impls never need to be looked up.
+            List()//implA.impreciseName -> value)
           }
           case (key, value) => {
             getImpreciseName(interner, key).toList.map(_ -> value)

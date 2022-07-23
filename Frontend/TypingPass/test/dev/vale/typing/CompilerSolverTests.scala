@@ -121,7 +121,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Test rune type in generic param") {
     val compile = CompilerTestCompilation.test(
       """
-        |func bork<I int>() int { I }
+        |func bork<I Int>() int { I }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("bork")
@@ -148,60 +148,10 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
   }
 
-  test("Test generic parameter function that relies on another") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |func moo(x int) { }
-        |
-        |func bork<T, F Prot = func moo(T)void>
-        |(a T) T {
-        |  a
-        |}
-        |
-        |exported func main() {
-        |  bork(3);
-        |}
-      """.stripMargin)
-
-    val coutputs = compile.expectCompilerOutputs()
-    val main = coutputs.lookupFunction("main")
-    main shouldHave {
-      case FunctionCallTE(
-        PrototypeT(
-          FullNameT(_,
-            _,
-            FunctionNameT(
-            FunctionTemplateNameT(StrI("bork"), _),
-            Vector(CoordTemplata(CoordT(ShareT,IntT(32)))),
-            Vector(CoordT(ShareT,IntT(32))))),
-          CoordT(ShareT,IntT(32))),
-          Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
-      case FunctionCallTE(
-        PrototypeT(
-          FullNameT(_,_,
-            FunctionNameT(
-            FunctionTemplateNameT(StrI("bork"), _),
-              Vector(
-                CoordTemplata(CoordT(ShareT,IntT(32))),
-                PrototypeTemplata(_,
-                  PrototypeT(
-                    FullNameT(_,_,
-                      FunctionNameT(
-                        FunctionTemplateNameT(StrI("moo"), _),
-                        Vector(),
-                        Vector(CoordT(ShareT,IntT(32))))),
-                    CoordT(ShareT,VoidT())))),
-              Vector(CoordT(ShareT,IntT(32))))),
-          CoordT(ShareT,IntT(32))),
-        Vector(ConstantIntTE(IntegerTemplata(3),32))) =>
-    }
-  }
-
   test("Test calling a generic function with a drop concept function") {
     val compile = CompilerTestCompilation.test(
       """
-        |func bork<T>(a T)
-        |    where func drop(T)void {
+        |func bork<T>(a T) where func drop(T)void {
         |}
         |
         |struct Mork {}
@@ -322,8 +272,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Simple int rule") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |exported func main() int where N int = 3 {
+        |
+        |exported func main() int where N Int = 3 {
         |  return N;
         |}
         |""".stripMargin
@@ -335,8 +285,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Equals transitive") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |exported func main() int where N int = 3, M int = N {
+        |
+        |exported func main() int where N Int = 3, M Int = N {
         |  return M;
         |}
         |""".stripMargin
@@ -348,8 +298,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("OneOf") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |exported func main() int where N int = any(2, 3, 4), N = 3 {
+        |
+        |exported func main() int where N Int = any(2, 3, 4), N = 3 {
         |  return N;
         |}
         |""".stripMargin
@@ -380,7 +330,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Prototype rule, call via rune") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |func moo(i int, b bool) str { return "hello"; }
         |exported func main() str
         |where mooFunc Prot = func moo(int, bool)str
@@ -398,7 +348,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Prototype rule, call directly") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |func moo(i int, b bool) str { return "hello"; }
         |exported func main() str
         |where func moo(int, bool)str
@@ -416,7 +366,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Send struct to struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct MyStruct {}
         |func moo(m MyStruct) { }
         |exported func main() {
@@ -430,7 +380,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Send struct to interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct MyStruct {}
         |interface MyInterface {}
         |impl MyInterface for MyStruct;
@@ -446,7 +396,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Assume most specific generic param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct MyStruct {}
         |interface MyInterface {}
         |impl MyInterface for MyStruct;
@@ -530,8 +480,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val interner = new Interner()
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
-        |exported func main() int where N int {
+        |
+        |exported func main() int where N Int {
         |  M
         |}
         |""".stripMargin,
@@ -547,7 +497,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Stamps an interface template via a function return") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |interface MyInterface<X> where X Ref { }
         |
         |struct SomeStruct<X> where X Ref { x X; }
@@ -568,7 +518,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Pointer becomes share if kind is immutable") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |struct SomeStruct imm { i int; }
         |
@@ -588,7 +538,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Detects conflict between types") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct ShipA {}
         |struct ShipB {}
         |exported func main() where N Kind = ShipA, N Kind = ShipB {
@@ -605,7 +555,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Can match KindTemplataType() against StructEnvEntry / StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |struct SomeStruct<T> { x T; }
         |
@@ -626,7 +576,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Can turn a borrow coord into an owning coord") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |struct SomeStruct { }
         |
@@ -648,7 +598,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Can destructure and assemble tuple") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |func swap<T, Y>(x (T, Y)) (Y, T) {
         |  [a, b] = x;
@@ -669,7 +619,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Can destructure and assemble static sized array") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import v.builtins.arrays.*;
         |
         |func swap<N, T>(x [#N]T) [#N]T {
@@ -691,7 +641,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Impl rule") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |interface IShip {
         |  func getFuel(virtual self &IShip) int;
@@ -719,7 +669,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Prototype rule to get return type") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import v.builtins.panic.*;
         |
         |func moo(i int, b bool) str { return "hello"; }
@@ -740,7 +690,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Detects sending non-citizen to citizen") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |interface MyInterface {}
         |func moo<T>(a T)
         |where implements(T, MyInterface)

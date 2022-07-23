@@ -21,6 +21,7 @@ object simpleName {
       case StructTemplateNameT(humanName) => Some(humanName.str)
       case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => Some(humanName.str)
       case InterfaceTemplateNameT(humanName) => Some(humanName.str)
+      case AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(humanNamee)) => Some(humanNamee.str)
     }
   }
 }

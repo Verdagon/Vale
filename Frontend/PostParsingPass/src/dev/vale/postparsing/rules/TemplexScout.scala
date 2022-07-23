@@ -60,7 +60,7 @@ class TemplexScout(
   }
 
   def translateTemplex(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
     templex: ITemplexPT):
@@ -222,7 +222,7 @@ class TemplexScout(
   }
 
   def translateTypeIntoRune(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
     typeP: ITemplexPT):
@@ -240,7 +240,7 @@ class TemplexScout(
     }
   }
   def translateMaybeTypeIntoRune(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     range: RangeS,
     ruleBuilder: ArrayBuffer[IRulexSR],
@@ -257,7 +257,7 @@ class TemplexScout(
     }
   }
   def translateMaybeTypeIntoMaybeRune(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     range: RangeS,
     ruleBuilder: ArrayBuffer[IRulexSR],

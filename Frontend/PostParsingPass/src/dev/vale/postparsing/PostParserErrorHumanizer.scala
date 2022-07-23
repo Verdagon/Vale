@@ -135,6 +135,7 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructParentInterfaceRuneS() => "(anon sub parent)"
       case StructNameRuneS(inner) => humanizeName(inner)
       case FreeOverrideStructTemplateRuneS() => "(free override template)"
+      case FunctorPrototypeRuneNameS() => "(functor prototype)"
       case other => vimpl(other)
     }
   }

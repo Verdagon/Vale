@@ -7,7 +7,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
-import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, ITemplateNameT, NameTranslator}
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -58,11 +58,10 @@ class StructCompiler(
     nameTranslator: NameTranslator,
     templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
-    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
   val templateArgsLayer =
     new StructCompilerGenericArgsLayer(
-      opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, ancestorHelper, delegate)
+      opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, delegate)
 
   def resolveStruct(
     coutputs: CompilerOutputs,
@@ -77,13 +76,52 @@ class StructCompiler(
     })
   }
 
+  def precompileStruct(
+    coutputs: CompilerOutputs,
+    structTemplata: StructTemplata):
+  Unit = {
+    val StructTemplata(declaringEnv, structA) = structTemplata
+
+    val structTemplateFullName = templataCompiler.resolveStructTemplate(structTemplata)
+
+    coutputs.declareTemplate(structTemplateFullName)
+
+    structA.maybePredictedMutability match {
+      case None =>
+      case Some(predictedMutability) => {
+        coutputs.declareTemplateMutability(
+          structTemplateFullName,
+          MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+      }
+    }
+  }
+
+  def precompileInterface(
+    coutputs: CompilerOutputs,
+    interfaceTemplata: InterfaceTemplata):
+  Unit = {
+    val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+
+    val interfaceTemplateFullName = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
+
+    coutputs.declareTemplate(interfaceTemplateFullName)
+
+    interfaceA.maybePredictedMutability match {
+      case None =>
+      case Some(predictedMutability) => {
+        coutputs.declareTemplateMutability(
+          interfaceTemplateFullName,
+          MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+      }
+    }
+  }
+
   def compileStruct(
     coutputs: CompilerOutputs,
     structTemplata: StructTemplata):
   Unit = {
     Profiler.frame(() => {
-      templateArgsLayer.compileStruct(
-        coutputs, structTemplata)
+      templateArgsLayer.compileStruct(coutputs, structTemplata)
     })
   }
 
@@ -145,10 +183,10 @@ object StructCompiler {
     if (allMembersImmutable) ImmutableT else MutableT
   }
 
-  def getMembers(coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
+  def getMembers(interner: Interner, coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
     val definition = coutputs.lookupStruct(structTT)
     val placeholderSubstituter =
-      TemplataCompiler.getPlaceholderSubstituter(structTT, definition.placeholderedCitizen)
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
     definition.members.map({
       case StructMemberT(name, variability, ReferenceMemberTypeT(tyype)) => {
         StructMemberT(name, variability, ReferenceMemberTypeT(placeholderSubstituter.substituteForCoord(tyype)))
@@ -159,10 +197,10 @@ object StructCompiler {
     })
   }
 
-  def getMutability(coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
+  def getMutability(interner: Interner, coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
-    val transformer = TemplataCompiler.getTemplataTransformer(coutputs, structTT)
-    val result = transformer(definition.mutability)
+    val transformer = TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+    val result = transformer.substituteForTemplata(definition.mutability)
     ITemplata.expectMutability(result)
   }
 }

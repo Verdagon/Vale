@@ -682,7 +682,7 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
     iter.peek() match {
       case None => Ok(None)
 
-      case Some(WordLE(_, w)) if w == keywords.int => {
+      case Some(WordLE(_, w)) if w == keywords.IntCapitalized => {
         iter.advance(); Ok(Some(IntTypePR))
       }
       case Some(WordLE(_, w)) if w == keywords.Ref => {

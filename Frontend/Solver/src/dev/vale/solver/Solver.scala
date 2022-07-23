@@ -1,6 +1,6 @@
 package dev.vale.solver
 
-import dev.vale.{Err, Ok, Profiler, Result, vassert, vfail, vimpl, vpass}
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, vassert, vfail, vimpl, vpass}
 
 import scala.collection.immutable.Map
 import scala.collection.mutable
@@ -81,7 +81,10 @@ trait ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType] {
   ): Result[Unit, ISolverError[Rune, Conclusion, ErrType]]
 }
 
-class Solver[Rule, Rune, Env, State, Conclusion, ErrType](sanityCheck: Boolean, useOptimizedSolver: Boolean) {
+class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
+    sanityCheck: Boolean,
+    useOptimizedSolver: Boolean,
+    interner: Interner) {
   def solve(
     ruleToPuzzles: Rule => Array[Array[Rune]],
     state: State,
@@ -175,7 +178,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](sanityCheck: Boolean, 
       val step =
         solverState.initialStep(ruleToPuzzles, (stepState: IStepState[Rule, Rune, Conclusion]) => {
           initiallyKnownRunes.foreach({ case (rune, conclusion) =>
-            stepState.concludeRune(rune, conclusion)
+            stepState.concludeRune(RangeS.internal(interner, -6434324), rune, conclusion)
           })
           Ok(())
         }).getOrDie()

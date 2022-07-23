@@ -15,7 +15,6 @@ import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
 import dev.vale.typing.types.MutabilityT
 import dev.vale.highertyping.FunctionA
 import dev.vale.parsing.ast.UseP
-import dev.vale.postparsing.ImplImpreciseNameS
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules.Equivalencies
 import dev.vale.typing.ast._
@@ -79,7 +78,7 @@ class AnonymousInterfaceMacro(
       })
 
     val rules =
-      structA.rules :+
+      (structA.headerRules ++ structA.memberRules) :+
         LookupSR(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructTemplateRuneS()),
@@ -99,7 +98,8 @@ class AnonymousInterfaceMacro(
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
           interfaceA.genericParameters.map(_.rune).toArray)
     val runeToType =
-      structA.runeToType +
+      structA.headerRuneToType ++
+      structA.membersRuneToType +
         (AnonymousSubstructRuneS() -> KindTemplataType()) +
         (AnonymousSubstructTemplateRuneS() -> structA.tyype) +
         (AnonymousSubstructParentInterfaceRuneS() -> KindTemplataType()) +
@@ -108,16 +108,16 @@ class AnonymousInterfaceMacro(
     val interfaceKindRuneS = RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS())
 
     val implNameS = interner.intern(AnonymousSubstructImplDeclarationNameS(interfaceA.name))
-    val implImpreciseNameS = interner.intern(ImplImpreciseNameS(RuleScout.getRuneKindTemplate(rules, structKindRuneS.rune)))
+//    val implImpreciseNameS = interner.intern(ImplImpreciseNameS(RuleScout.getRuneKindTemplate(rules, structKindRuneS.rune)))
 
     val implA =
       ImplA(
         interfaceA.range,
         implNameS,
-        // Just getting the template name (or the kind name if not template), see INSHN.
-        implImpreciseNameS,
+//        // Just getting the template name (or the kind name if not template), see INSHN.
+//        implImpreciseNameS,
         structA.genericParameters.map(_.rune),
-        rules,
+        rules.toVector,
         runeToType,
         structKindRuneS,
         interfaceKindRuneS)
@@ -149,7 +149,9 @@ class AnonymousInterfaceMacro(
         KindTemplataType()),
       interfaceA.genericParameters ++ memberRunes.map(GenericParameterS(_, None)),
       interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType()),
-      interfaceA.rules,
+      interfaceA.rules.toArray,
+      Map(),
+      Array(),
       members)
   }
 
@@ -165,7 +167,7 @@ class AnonymousInterfaceMacro(
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
     val genericParams = struct.genericParameters
 
-    val runeToType = methodOriginalRuneToType ++ struct.runeToType
+    val runeToType = methodOriginalRuneToType ++ struct.headerRuneToType ++ struct.membersRuneToType
 
     val abstractParamIndex =
       originalParams.indexWhere(param => {

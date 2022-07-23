@@ -390,7 +390,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests defining a non-empty interface and an implementing struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |exported interface MyInterface {
+        |exported sealed interface MyInterface {
         |  func bork(virtual self &MyInterface);
         |}
         |exported struct MyStruct { }
@@ -417,7 +417,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Stamps an interface template via a function return") {
     val compile = CompilerTestCompilation.test(
       """
-        |interface MyInterface<X> where X Ref { }
+        |sealed interface MyInterface<X> where X Ref { }
         |
         |struct SomeStruct<X> where X Ref { x X; }
         |impl<X> MyInterface<X> for SomeStruct<X>;
@@ -497,7 +497,7 @@ class CompilerTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |interface MyOption<T> where T Ref { }
-        |func main(a MyOption<int>) { }
+        |func main(a &MyOption<int>) { }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val interner = compile.interner
@@ -505,12 +505,11 @@ class CompilerTests extends FunSuite with Matchers {
 
     coutputs.lookupInterface(
       interner.intern(
-        InterfaceTT(
-          FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
-    vassert(coutputs.lookupFunction("main").header.params.head.tyype ==
-        CoordT(OwnT,
+        InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
+    coutputs.lookupFunction("main").header.params.head.tyype shouldEqual
+        CoordT(BorrowT,
           interner.intern(
-            InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32))))))))))
+            InterfaceTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
 
     // Can't run it because there's nothing implementing that interface >_>
   }
@@ -553,7 +552,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests exporting interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |exported interface IMoo { func hi(virtual this &IMoo) void; }
+        |exported sealed interface IMoo { func hi(virtual this &IMoo) void; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupInterface("IMoo")
@@ -561,13 +560,23 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.tyype shouldEqual moo.placeholderedInterface
   }
 
+  test("Report imm mut mismatch for generic type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyImmContainer<T> imm where T Ref { value T; }
+        |struct MyMutStruct { }
+        |exported func main() { x = MyImmContainer<MyMutStruct>(); }
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.panic.*;
         |import panicutils.*;
-        |interface MyOption<T> imm where T Ref { }
-        |struct MySome<T> imm where T Ref { value T; }
+        |interface MyOption<T> where T Ref { }
+        |struct MySome<T> where T Ref { value T; }
         |impl<T> MyOption<T> for MySome<T>;
         |func moo(a MySome<int>) { }
         |exported func main() { moo(__pretend<MySome<int>>()); }
@@ -578,14 +587,11 @@ class CompilerTests extends FunSuite with Matchers {
 
     val interface =
       coutputs.lookupInterface(
-        interner.intern(
-          InterfaceTT(
-            FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
+        interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
 
     val struct =
       coutputs.lookupStruct(
-        interner.intern(
-          StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(StructNameT(interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
+        interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
 
     coutputs.lookupImpl(struct.templateName, interface.templateName)
   }
@@ -624,8 +630,7 @@ class CompilerTests extends FunSuite with Matchers {
     val keywords = compile.keywords
 
     coutputs.lookupStruct(
-      interner.intern(
-        StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(StructNameT(interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
+      interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
 
     val constructor = coutputs.lookupFunction("MySome")
     constructor.header match {
@@ -773,8 +778,8 @@ class CompilerTests extends FunSuite with Matchers {
 
     Collector.only(main, {
       case ReferenceMemberLookupTE(_,
-        SoftLoadTE(LocalLookupTE(_, ReferenceLocalVariableT(_, FinalT, CoordT(_,StructTT(_)))), BorrowT),
-        FullNameT(_, Vector(StructNameT(StructTemplateNameT(StrI("Vec3i")),Vector())),CodeVarNameT(StrI("x"))),CoordT(ShareT,IntT.i32),FinalT) =>
+        SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,StructTT(_)))),BorrowT),
+        FullNameT(_, Vector(StructTemplateNameT(StrI("Vec3i"))),CodeVarNameT(StrI("x"))),CoordT(ShareT,IntT.i32),FinalT) =>
     })
   }
 
@@ -783,7 +788,7 @@ class CompilerTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |
-        |interface MyOption<T> where T Ref { }
+        |sealed interface MyOption<T> where T Ref { }
         |
         |struct MySome<T> where T Ref {}
         |impl<T> MyOption<T> for MySome<T>;
@@ -875,6 +880,29 @@ class CompilerTests extends FunSuite with Matchers {
 
   }
 
+  test("Recursive struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct ListNode imm {
+        |  tail ListNode;
+        |}
+        |func main(a ListNode) {}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Recursive struct with Opt") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.opt.*;
+        |struct ListNode {
+        |  tail Opt<ListNode>;
+        |}
+        |func main(a ListNode) {}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   // Make sure a ListNode struct made it out
   test("Templated imm struct") {
     val compile = CompilerTestCompilation.test(
@@ -888,26 +916,6 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   test("Borrow-load member") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Bork {
-        |  x int;
-        |}
-        |func getX(bork &Bork) int { return bork.x; }
-        |struct List {
-        |  array! Bork;
-        |}
-        |exported func main() int {
-        |  l = List(Bork(0));
-        |  return getX(&l.array);
-        |}
-        """.stripMargin)
-
-    val coutputs = compile.expectCompilerOutputs()
-    vpass()
-  }
-
-  test("Pointer-load member") {
     val compile = CompilerTestCompilation.test(
       """
         |struct Bork {
@@ -942,6 +950,78 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Test struct default generic argument in call") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyHashSet<K Ref, H Int = 5> { }
+        |func moo() {
+        |  x = MyHashSet<bool>();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupFunction("moo")
+    val variable = Collector.only(moo, { case LetNormalTE(v, _) => v })
+    variable.reference match {
+      case CoordT(
+        OwnT,
+        StructTT(
+          FullNameT(_,_,
+            StructNameT(
+              StructTemplateNameT(StrI("MyHashSet")),
+              Vector(
+                CoordTemplata(CoordT(ShareT,BoolT())),
+                IntegerTemplata(5)))))) =>
+    }
+  }
+
+  test("Test struct default generic argument in type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyHashSet<K Ref, H Int = 5> { }
+        |struct MyStruct {
+        |  x MyHashSet<bool>();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupStruct("MyStruct")
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
+    tyype match {
+      case CoordT(
+        OwnT,
+        StructTT(
+          FullNameT(_,_,
+            StructNameT(
+              StructTemplateNameT(StrI("MyHashSet")),
+              Vector(
+                CoordTemplata(CoordT(ShareT,BoolT())),
+                IntegerTemplata(5)))))) =>
+    }
+  }
+
+  test("Test interface default generic argument in type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface MyHashSet<K Ref, H Int = 5> { }
+        |struct MyInterface {
+        |  x MyHashSet<bool>();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupInterface("MyInterface")
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
+    tyype match {
+      case CoordT(
+        OwnT,
+        InterfaceTT(
+          FullNameT(_,_,
+            InterfaceNameT(
+              InterfaceTemplateNameT(StrI("MyHashSet")),
+              Vector(
+                CoordTemplata(CoordT(ShareT,BoolT())),
+                IntegerTemplata(5)))))) =>
+    }
+  }
+
   test("Test imm array") {
     val compile = CompilerTestCompilation.test(
       """
@@ -958,7 +1038,6 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
   }
-
 
   test("Test Array of StructTemplata") {
     val compile = CompilerTestCompilation.test(
@@ -1573,7 +1652,7 @@ class CompilerTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantImplNonInterface(
-        tz, fireflyKind))
+        tz, KindTemplata(fireflyKind)))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       ImmStructCantHaveVaryingMember(

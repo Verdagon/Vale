@@ -12,6 +12,13 @@ object U {
       i = i + 1
     }
   }
+  def foreachIterable[T](vec: Iterable[T], func: scala.Function1[T, Unit]): Unit = {
+    //    vec.foreach(func)
+    val it = vec.iterator
+    while (it.hasNext) {
+      func(it.next())
+    }
+  }
   def map[T, R](vec: Array[T], func: scala.Function1[T, R])(implicit m: ClassTag[R]): Array[R] = {
 //    vec.map(func)
     val result = new Array[R](vec.size)

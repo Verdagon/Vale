@@ -13,6 +13,9 @@ class Accumulator[T] {
   def add(element: T): Unit = {
     elementsReversed = element :: elementsReversed
   }
+  def addAll[I <: Iterable[T]](c: I): Unit = {
+    U.foreachIterable(c, x => add(x))
+  }
 
   def buildArray()(implicit m: ClassTag[T]): Array[T] = {
     val attributes = new Array[T](elementsReversed.length)

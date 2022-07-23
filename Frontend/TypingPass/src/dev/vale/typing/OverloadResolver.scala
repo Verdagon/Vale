@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassertSome, vcurious, vfail, vimpl, vpass}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR}
 import dev.vale.solver.IIncompleteOrFailedSolve
@@ -16,7 +16,7 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate,
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CodeVarNameT, FullNameT}
+import dev.vale.typing.names.{CodeVarNameT, FullNameT, FunctionTemplateNameT}
 //import dev.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import dev.vale.postparsing.rules.{EqualsSR, TemplexSR, TypedSR}
 import dev.vale.typing.types._
@@ -395,29 +395,55 @@ class OverloadResolver(
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   Result[IValidCalleeCandidate, FindFunctionFailure] = {
-    val undedupedCandidates =
-      getCandidateBanners(
-        env, coutputs, callRange, functionName, explicitTemplateArgRulesS,
-        explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact)
-    val candidates = undedupedCandidates.distinct
-    val attempted =
-      candidates.map(candidate => {
-        attemptCandidateBanner(
-          env, coutputs, callRange, explicitTemplateArgRulesS,
-          explicitTemplateArgRunesS, args, candidate, exact)
-          .mapError(e => (candidate -> e))
-      })
-    val (successes, failedToReason) = Result.split(attempted)
+//    args.indexWhere(_.tyype.kind match { case FunctorT(_) => true case _ => false }) match {
+//      case -1 => {
+        val undedupedCandidates =
+          getCandidateBanners(
+            env, coutputs, callRange, functionName, explicitTemplateArgRulesS,
+            explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact)
+        val candidates = undedupedCandidates.distinct
+        val attempted =
+          candidates.map(candidate => {
+            attemptCandidateBanner(
+              env, coutputs, callRange, explicitTemplateArgRulesS,
+              explicitTemplateArgRunesS, args, candidate, exact)
+              .mapError(e => (candidate -> e))
+          })
+        val (successes, failedToReason) = Result.split(attempted)
 
-    if (successes.isEmpty) {
-      Err(FindFunctionFailure(functionName, args, failedToReason))
-    } else if (successes.size == 1) {
-      Ok(successes.head)
-    } else {
-      val (best, outscoreReasonByBanner) =
-        narrowDownCallableOverloads(coutputs, callRange, successes, args.map(_.tyype))
-      Ok(best)
-    }
+        if (successes.isEmpty) {
+          Err(FindFunctionFailure(functionName, args, failedToReason))
+        } else if (successes.size == 1) {
+          Ok(successes.head)
+        } else {
+          val (best, outscoreReasonByBanner) =
+            narrowDownCallableOverloads(coutputs, callRange, successes, args.map(_.tyype))
+          Ok(best)
+        }
+//      }
+//      case functorIndex => {
+//        val functor = args(functorIndex).tyype.kind
+//        val FunctorT(pt @ PrototypeTemplata(range, prototype)) = functor
+//        val actualArgs = args.slice(0, functorIndex) ++ args.slice(functorIndex + 1, args.length)
+//        functionName match {
+//          case CodeNameS(name) if name == keywords.underscoresCall => {
+//            val paramsT =
+//              pt.prototype.paramTypes.zipWithIndex.map({ case (p, i) =>
+//                ParameterT(CodeVarNameT(interner.intern(StrI(i.toString))), None, p)
+//              })
+//            paramsMatch(coutputs, actualArgs, paramsT, false) match {
+//              case Err(rejectionReason) => {
+//                val candidate = PrototypeTemplataCalleeCandidate(range, prototype)
+//                Err(FindFunctionFailure(functionName, args, Map(candidate -> rejectionReason)))
+//              }
+//              case Ok(()) => {
+//                Ok(ast.ValidPrototypeTemplataCalleeCandidate(pt))
+//              }
+//            }
+//          }
+//        }
+//      }
+//    }
   }
 
   // Returns either:

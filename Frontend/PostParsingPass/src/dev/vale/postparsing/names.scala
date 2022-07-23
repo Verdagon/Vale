@@ -153,9 +153,8 @@ case class CodeNameS(name: StrI) extends IImpreciseNameS {
 }
 // When we're calling a function, we're addressing an overload set, not a specific function.
 // If we want a specific function, we use TopLevelDeclarationNameS.
-case class GlobalFunctionFamilyNameS(name: String) extends INameS {
+case class GlobalFunctionFamilyNameS(name: String) extends INameS
 
-}
 // These are only made by the typingpass
 case class ArgumentRuneS(argIndex: Int) extends IRuneS {  }
 case class PatternInputRuneS(codeLoc: CodeLocationS) extends IRuneS {  }
@@ -165,6 +164,9 @@ case class AnonymousSubstructParentInterfaceRuneS() extends IRuneS {  }
 case class AnonymousSubstructTemplateRuneS() extends IRuneS {  }
 case class AnonymousSubstructRuneS() extends IRuneS {  }
 case class AnonymousSubstructMemberRuneS(index: Int) extends IRuneS {  }
+case class FunctorPrototypeRuneNameS() extends IRuneS
+case class FunctorParamRuneNameS(index: Int) extends IRuneS
+case class FunctorReturnRuneNameS() extends IRuneS
 // Vale has no notion of Self, it's just a convenient name for a first parameter.
 case class SelfNameS() extends IVarNameS with IImpreciseNameS {  }
 // A miscellaneous name, for when a name doesn't really make sense, like it's the only entry in the environment or something.
@@ -183,7 +185,8 @@ case class ImmInterfaceDestructorNameS(packageCoordinate: PackageCoordinate) ext
   override def getImpreciseName(interner: Interner): IImpreciseNameS = vimpl()
 }
 
-case class ImplImpreciseNameS(structImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
+case class ImplSubCitizenImpreciseNameS(subCitizenImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
+case class ImplSuperInterfaceImpreciseNameS(superInterfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 
 // See NSIDN for why we need this virtual name
 //case class VirtualFreeImpreciseNameS() extends IImpreciseNameS { }

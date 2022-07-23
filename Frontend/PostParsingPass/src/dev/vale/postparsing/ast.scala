@@ -71,7 +71,6 @@ case class StructS(
     attributes: Vector[ICitizenAttributeS],
     weakable: Boolean,
     genericParams: Vector[GenericParameterS],
-    runeToExplicitType: Map[IRuneS, ITemplataType],
     mutabilityRune: RuneUsage,
 
     // This is needed for recursive structures like
@@ -79,10 +78,17 @@ case class StructS(
     //     tail ListNode<T>;
     //   }
     maybePredictedMutability: Option[MutabilityP],
-    predictedRuneToType: Map[IRuneS, ITemplataType],
     maybePredictedType: Option[ITemplataType],
 
-    rules: Array[IRulexSR],
+    // These are separated so that these alone can be run during resolving, see SMRASDR.
+    headerRuneToExplicitType: Map[IRuneS, ITemplataType],
+    headerPredictedRuneToType: Map[IRuneS, ITemplataType],
+    headerRules: Array[IRulexSR],
+    // These are separated so they can be skipped during resolving, see SMRASDR.
+    membersRuneToExplicitType: Map[IRuneS, ITemplataType],
+    membersPredictedRuneToType: Map[IRuneS, ITemplataType],
+    memberRules: Array[IRulexSR],
+
     members: Vector[IStructMemberS]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 

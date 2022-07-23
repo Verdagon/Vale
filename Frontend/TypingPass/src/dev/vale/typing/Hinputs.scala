@@ -23,21 +23,20 @@ case class Hinputs(
   functionExterns: Vector[FunctionExternT]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
-  def lookupStruct(structTT: StructTT): StructDefinitionT = {
-    vimpl()
-//    structs.find(_.getRef == structTT) match {
-//      case None => vfail("Couldn't find struct: " + structTT)
-//      case Some(s) => s
-//    }
+  def lookupStruct(structTemplateName: StructTemplateNameT): StructDefinitionT = {
+    vassertSome(structs.find(_.templateName.last == structTemplateName))
   }
 
-  def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
-    vimpl()
-//    vassertSome(interfaces.find(_.getRef == interfaceTT))
+  def lookupInterface(interfaceTemplateName: InterfaceTemplateNameT): InterfaceDefinitionT = {
+    vassertSome(interfaces.find(_.templateName.last == interfaceTemplateName))
   }
 
   def lookupFunction(signature2: SignatureT): Option[FunctionT] = {
     functions.find(_.header.toSignature == signature2).headOption
+  }
+
+  def lookupFunction(funcTemplateName: IFunctionTemplateNameT): Option[FunctionT] = {
+    functions.find(_.header.fullName.last.template == funcTemplateName).headOption
   }
 
   def lookupFunction(humanName: String): FunctionT = {
@@ -56,19 +55,18 @@ case class Hinputs(
   }
 
   def lookupStruct(humanName: String): StructDefinitionT = {
-    vimpl()
-//    val matches = structs.filter(s => {
-//      s.fullName.last match {
-//        case CitizenNameT(CitizenTemplateNameT(n), _) if n.str == humanName => true
-//        case _ => false
-//      }
-//    })
-//    if (matches.size == 0) {
-//      vfail("Struct \"" + humanName + "\" not found!")
-//    } else if (matches.size > 1) {
-//      vfail("Multiple found!")
-//    }
-//    matches.head
+    val matches = structs.filter(s => {
+      s.templateName.last match {
+        case StructTemplateNameT(n) if n.str == humanName => true
+        case _ => false
+      }
+    })
+    if (matches.size == 0) {
+      vfail("Struct \"" + humanName + "\" not found!")
+    } else if (matches.size > 1) {
+      vfail("Multiple found!")
+    }
+    matches.head
   }
 
   def lookupImpl(
@@ -79,19 +77,18 @@ case class Hinputs(
   }
 
   def lookupInterface(humanName: String): InterfaceDefinitionT = {
-    vimpl()
-//    val matches = interfaces.filter(s => {
-//      s.fullName.last match {
-//        case CitizenNameT(CitizenTemplateNameT(n), _) if n.str == humanName => true
-//        case _ => false
-//      }
-//    })
-//    if (matches.size == 0) {
-//      vfail("Interface \"" + humanName + "\" not found!")
-//    } else if (matches.size > 1) {
-//      vfail("Multiple found!")
-//    }
-//    matches.head
+    val matches = interfaces.filter(s => {
+      s.templateName.last match {
+        case InterfaceTemplateNameT(n) if n.str == humanName => true
+        case _ => false
+      }
+    })
+    if (matches.size == 0) {
+      vfail("Interface \"" + humanName + "\" not found!")
+    } else if (matches.size > 1) {
+      vfail("Multiple found!")
+    }
+    matches.head
   }
 
   def lookupUserFunction(humanName: String): FunctionT = {

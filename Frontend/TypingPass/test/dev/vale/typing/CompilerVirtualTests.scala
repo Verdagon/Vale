@@ -16,7 +16,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     // See NIIRII
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |struct MyStruct {}
         |
@@ -39,7 +39,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |
         |interface Bork {
         |  func bork(virtual self &Bork) int;
@@ -56,7 +56,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Basic IFunction1 anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import ifunction.ifunction1.*;
         |
         |exported func main() int {
@@ -70,7 +70,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Upcast") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |interface IShip {}
         |struct Raza { fuel int; }
         |impl IShip for Raza;
@@ -85,7 +85,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Downcast with as") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import v.builtins.as.*;
         |import v.builtins.drop.*;
         |

@@ -1,8 +1,8 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.ImplA
-import dev.vale.postparsing.{IRuneS, ITemplataType, ImplImpreciseNameS}
-import dev.vale.postparsing.rules.Equivalencies
+import dev.vale.postparsing.{IRuneS, ITemplataType}
+import dev.vale.postparsing.rules.{Equivalencies, RuleScout}
 import dev.vale.solver.SolverErrorHumanizer
 import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing.env.{ExpressionLookupContext, TemplataLookupContext, TemplatasStore}
@@ -20,24 +20,11 @@ import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionFailure
 
 import scala.collection.immutable.List
 
-trait IAncestorHelperDelegate {
-  def resolveInterface(
-    coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
-    // We take the entire templata (which includes environment and parents) so we can incorporate
-    // their rules as needed
-    interfaceTemplata: InterfaceTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  InterfaceTT
-}
-
 class ImplCompiler(
     opts: TypingPassOptions,
-
     interner: Interner,
-    inferCompiler: InferCompiler,
-    delegate: IAncestorHelperDelegate) {
+    templataCompiler: TemplataCompiler,
+    inferCompiler: InferCompiler) {
 
   // We don't have an isAncestor call, see REMUIDDA.
 
@@ -47,7 +34,7 @@ class ImplCompiler(
     implTemplata: ImplTemplata):
   Map[IRuneS, ITemplata[ITemplataType]] = {
     val ImplTemplata(env, impl) = implTemplata
-    val ImplA(range, name, impreciseName, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
+    val ImplA(range, name, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
 
     val definitionRules = rules.filter(InferCompiler.includeRuleInDefinitionSolve)
     vcurious(rules == definitionRules)
@@ -63,7 +50,7 @@ class ImplCompiler(
     inferences
   }
 
-  private def compileImplGivenChildCitizen(
+  private def compileImplGivenSubCitizen(
     coutputs: CompilerOutputs,
     subCitizenDefinition: CitizenDefinitionT,
     implTemplata: ImplTemplata):
@@ -80,7 +67,7 @@ class ImplCompiler(
       inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
         case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
         case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-        case KindTemplata(other) => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
+        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
       }
 
     val parentInterfaceTemplateFullName =
@@ -91,13 +78,13 @@ class ImplCompiler(
     val inferencesFromPlaceholderedSuperInterface =
       solveImpl(
         coutputs,
-        Vector(InitialKnown(implTemplata.impl.structKindRune, KindTemplata(parentInterfaceDefinition.placeholderedInterface))),
+        Vector(InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parentInterfaceDefinition.placeholderedInterface))),
         implTemplata)
     val subCitizenFromPlaceholderedParentInterface =
-      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.interfaceKindRune.rune) match {
+      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.structKindRune.rune) match {
         case KindTemplata(cit : ICitizenTT) => cit
         case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-        case KindTemplata(other) => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
+        case other => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
       }
 
     val implT =
@@ -122,13 +109,13 @@ class ImplCompiler(
     val inferencesFromPlaceholderedSuperInterface =
       solveImpl(
         coutputs,
-        Vector(InitialKnown(implTemplata.impl.structKindRune, KindTemplata(placeholderedSuperInterfaceTT))),
+        Vector(InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(placeholderedSuperInterfaceTT))),
         implTemplata)
     val subCitizenFromPlaceholderedParentInterface =
-      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.interfaceKindRune.rune) match {
+      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.structKindRune.rune) match {
         case KindTemplata(cit : ICitizenTT) => cit
         case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-        case KindTemplata(other) => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
+        case other => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
       }
 
     val subCitizenTemplateFullName =
@@ -145,7 +132,7 @@ class ImplCompiler(
       inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
         case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
         case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-        case KindTemplata(other) => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
+        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
       }
 
     val implT =
@@ -159,45 +146,75 @@ class ImplCompiler(
     coutputs.addImpl(implT)
   }
 
-  def compileParentImplsForSubCitizen(
-    coutputs: CompilerOutputs,
-    subCitizenDefinition: CitizenDefinitionT):
-  Unit = {
-    Profiler.frame(() => {
-      val subCitizenTemplateFullName = subCitizenDefinition.templateName
-      val subCitizenEnv = coutputs.getEnvForTemplate(subCitizenTemplateFullName)
-      // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
-      val needleImplTemplateFullName = interner.intern(ImplTemplateSubNameT(subCitizenTemplateFullName))
-      val implTemplates =
-        subCitizenEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
-      implTemplates.foreach({
-        case it @ ImplTemplata(_, _) => {
-          compileImplGivenChildCitizen(coutputs, subCitizenDefinition, it)
-        }
-        case other => vwat(other)
-      })
-    })
-  }
+  def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplTemplata): Unit = {
+    val ImplTemplata(env, implA) = implTemplata
 
-  def compileChildImplsForParentInterface(
-    coutputs: CompilerOutputs,
-    parentInterfaceDefinition: InterfaceDefinitionT):
-  Unit = {
-    Profiler.frame(() => {
-      val parentInterfaceTemplateFullName = parentInterfaceDefinition.templateName
-      val parentInterfaceEnv = coutputs.getEnvForTemplate(parentInterfaceTemplateFullName)
-      // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
-      val needleImplTemplateFullName = interner.intern(ImplTemplateSuperNameT(parentInterfaceTemplateFullName))
-      val implTemplates =
-        parentInterfaceEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
-      implTemplates.foreach({
-        case impl @ ImplTemplata(_, _) => {
-          compileImplGivenSuperInterface(coutputs, parentInterfaceDefinition, impl)
-        }
-        case other => vwat(other)
-      })
-    })
+    // First, figure out what citizen is implementing.
+    val subCitizenImpreciseName = RuleScout.getRuneKindTemplate(implA.rules, implA.structKindRune.rune)
+    val subCitizenTemplateFullName =
+      env.lookupNearestWithImpreciseName(subCitizenImpreciseName, Set(TemplataLookupContext)) match {
+        case None => throw CompileErrorExceptionT(ImplSubCitizenNotFound(implA.range, subCitizenImpreciseName))
+        case Some(it @ InterfaceTemplata(_, _)) => templataCompiler.resolveInterfaceTemplate(it)
+        case Some(st @ StructTemplata(_, _)) => templataCompiler.resolveStructTemplate(st)
+        case Some(other) => throw CompileErrorExceptionT(NonCitizenCantImpl(implA.range, other))
+      }
+    val subCitizenDefinition = coutputs.lookupCitizen(subCitizenTemplateFullName)
+
+    // Now, figure out what interface is being implemented.
+    val superInterfaceImpreciseName = RuleScout.getRuneKindTemplate(implA.rules, implA.interfaceKindRune.rune)
+    val superInterfaceTemplateFullName =
+      env.lookupNearestWithImpreciseName(superInterfaceImpreciseName, Set(TemplataLookupContext)) match {
+        case None => throw CompileErrorExceptionT(ImplSuperInterfaceNotFound(implA.range, superInterfaceImpreciseName))
+        case Some(it @ InterfaceTemplata(_, _)) => templataCompiler.resolveInterfaceTemplate(it)
+        case Some(other) => throw CompileErrorExceptionT(CantImplNonInterface(implA.range, other))
+      }
+    val superInterfaceDefinition = coutputs.lookupInterface(superInterfaceTemplateFullName)
+
+    // Now compile it from the sub citizen's perspective.
+    compileImplGivenSubCitizen(coutputs, subCitizenDefinition, implTemplata)
+    // Now compile it from the super interface's perspective.
+    compileImplGivenSuperInterface(coutputs, superInterfaceDefinition, implTemplata)
   }
+//
+//  def compileParentImplsForSubCitizen(
+//    coutputs: CompilerOutputs,
+//    subCitizenDefinition: CitizenDefinitionT):
+//  Unit = {
+//    Profiler.frame(() => {
+//      val subCitizenTemplateFullName = subCitizenDefinition.templateName
+//      val subCitizenEnv = coutputs.getEnvForTemplate(subCitizenTemplateFullName)
+//      // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
+//      val needleImplTemplateFullName = interner.intern(ImplTemplateSubNameT(subCitizenTemplateFullName))
+//      val implTemplates =
+//        subCitizenEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
+//      implTemplates.foreach({
+//        case it @ ImplTemplata(_, _) => {
+//          compileImplGivenSubCitizen(coutputs, subCitizenDefinition, it)
+//        }
+//        case other => vwat(other)
+//      })
+//    })
+//  }
+//
+//  def compileChildImplsForParentInterface(
+//    coutputs: CompilerOutputs,
+//    parentInterfaceDefinition: InterfaceDefinitionT):
+//  Unit = {
+//    Profiler.frame(() => {
+//      val parentInterfaceTemplateFullName = parentInterfaceDefinition.templateName
+//      val parentInterfaceEnv = coutputs.getEnvForTemplate(parentInterfaceTemplateFullName)
+//      // See INSHN, the imprecise name for an impl is the wrapped imprecise name of its struct template.
+//      val needleImplTemplateFullName = interner.intern(ImplTemplateSuperNameT(parentInterfaceTemplateFullName))
+//      val implTemplates =
+//        parentInterfaceEnv.lookupAllWithName(needleImplTemplateFullName, Set(TemplataLookupContext))
+//      implTemplates.foreach({
+//        case impl @ ImplTemplata(_, _) => {
+//          compileImplGivenSuperInterface(coutputs, parentInterfaceDefinition, impl)
+//        }
+//        case other => vwat(other)
+//      })
+//    })
+//  }
 
 //  // Doesn't include self
 //  def compileGetAncestorInterfaces(
@@ -264,24 +281,12 @@ class ImplCompiler(
     subCitizenTT: ICitizenTT):
   Array[InterfaceTT] = {
     val subCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
-    val subCitizenDefinition = coutputs.lookupCitizen(subCitizenTT)
-    val placeholderedSubCitizenTT = subCitizenDefinition.placeholderedCitizen
     coutputs
       .getParentImplsForSubCitizenTemplate(subCitizenTemplateFullName)
       .map({ case ImplT(_, parentInterfaceFromPlaceholderedSubCitizen, _, _) =>
-        vassert(
-          placeholderedSubCitizenTT.fullName.last.templateArgs.size ==
-          subCitizenTT.fullName.last.templateArgs.size)
-        val placeholderToTemplata =
-          U.map[(ITemplata[ITemplataType], ITemplata[ITemplataType]), (PlaceholderTemplata[ITemplataType], ITemplata[ITemplataType])](
-            placeholderedSubCitizenTT.fullName.last.templateArgs
-              .zip(subCitizenTT.fullName.last.templateArgs).toArray,
-            {
-              case (placeholder @ PlaceholderTemplata(_, _), templateArg) => placeholder -> templateArg
-              case (_, _) => vcurious()
-            })
-        TemplataCompiler.substituteTemplatasInInterface(
-          parentInterfaceFromPlaceholderedSubCitizen, placeholderToTemplata)
+        val substituter =
+          TemplataCompiler.getPlaceholderSubstituter(interner, subCitizenTT)
+        substituter.substituteForInterface(parentInterfaceFromPlaceholderedSubCitizen)
       }).toArray
   }
 
