@@ -483,6 +483,7 @@ class Compiler(
             programA.interfaces.map(interfaceA => {
               val interfaceNameT = packageName.addStep(nameTranslator.translateNameStep(interfaceA.name))
               Vector((interfaceNameT, InterfaceEnvEntry(interfaceA))) ++
+              interfaceDropMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA) ++
                 (if (interfaceA.attributes.contains(SealedS)) {
                   Vector()
                 } else {

@@ -142,6 +142,7 @@ case class ArrayMutabilityImplicitRuneS() extends IRuneS {  }
 case class ArrayVariabilityImplicitRuneS() extends IRuneS {  }
 case class ReturnRuneS() extends IRuneS
 case class StructNameRuneS(structName: ICitizenDeclarationNameS) extends IRuneS
+case class InterfaceNameRuneS(interfaceName: ICitizenDeclarationNameS) extends IRuneS
 // Vale has no notion of Self, it's just a convenient name for a first parameter.
 case class SelfRuneS() extends IRuneS {  }
 case class SelfOwnershipRuneS() extends IRuneS {  }
