@@ -1,20 +1,20 @@
 
-import v.builtins.tup.*;
+
 import v.builtins.opt.*;
 import printutils.*;
 
-sealed interface MyOption<T> imm where T Ref { }
+sealed interface MyOption<T> where T Ref { }
 
-struct MySome<T> imm where T Ref {
+struct MySome<T> where T Ref {
   value T;
 }
 impl<T> MyOption<T> for MySome<T>;
 
-struct MyNone<T> imm where T Ref { }
+struct MyNone<T> where T Ref { }
 impl<T> MyOption<T> for MyNone<T>;
 
 
-struct MyList<T> imm where T Ref {
+struct MyList<T> where T Ref {
   value T;
   next @MyOption<@MyList<T>>;
 }

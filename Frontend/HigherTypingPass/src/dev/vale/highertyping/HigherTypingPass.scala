@@ -152,7 +152,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     env: Environment,
     structS: StructS):
   StructA = {
-    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, runeToExplicitType, mutabilityRuneS, maybePredictedMutability, predictedRuneToType, maybePredictedType, rulesS, members) = structS
+    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, mutabilityRuneS, maybePredictedMutability, maybePredictedType, headerRuneToExplicitType, headerPredictedRuneToType, headerRulesS, membersRuneToExplicitType, membersPredictedRuneToType, memberRulesS, members) = structS
 
     astrouts.codeLocationToStruct.get(rangeS.begin) match {
       case Some(value) => return value
@@ -169,11 +169,22 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     }
     astrouts.codeLocationToMaybeType.put(rangeS.begin, None)
 
+    val allRulesS = headerRulesS ++ memberRulesS
+    val allRuneToExplicitType = headerRuneToExplicitType ++ membersRuneToExplicitType
     val runeAToType =
-      calculateRuneTypes(astrouts, rangeS, genericParametersS.map(_.rune.rune), runeToExplicitType, Vector(), rulesS, env)
+      calculateRuneTypes(
+        astrouts, rangeS, genericParametersS.map(_.rune.rune), allRuneToExplicitType, Vector(), allRulesS, env)
+
+    val runesInHeader: Set[IRuneS] =
+      (genericParametersS.map(_.rune.rune) ++
+        genericParametersS.flatMap(_.default).flatMap(_.rules.map(_.runeUsages.map(_.rune))).flatten ++
+        headerRulesS.flatMap(_.runeUsages.map(_.rune))).toSet
+    val headerRuneAToType = runeAToType.filter(x => runesInHeader.contains(x._1))
+    val membersRuneAToType = runeAToType.filter(x => !runesInHeader.contains(x._1))
 
     // Shouldnt fail because we got a complete solve earlier
-    val tyype = PostParser.determineDenizenType(KindTemplataType(), genericParametersS.map(_.rune.rune), runeAToType).getOrDie()
+    val tyype =
+      PostParser.determineDenizenType(KindTemplataType(), genericParametersS.map(_.rune.rune), runeAToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     val structA =
@@ -186,8 +197,10 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         maybePredictedMutability,
         tyype,
         genericParametersS,
-        runeAToType,
-        rulesS.toVector,
+        headerRuneAToType,
+        headerRulesS,
+        membersRuneAToType,
+        memberRulesS,
         members)
     astrouts.codeLocationToStruct.put(rangeS.begin, structA)
     structA
@@ -285,8 +298,6 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     highertyping.ImplA(
       rangeS,
       nameS,
-      // Just getting the template name (or the kind name if not template), see INSHN.
-      interner.intern(ImplImpreciseNameS(RuleScout.getRuneKindTemplate(rulesS, structKindRuneS.rune))),
       identifyingRunesS,
       rulesS.toVector,
       runeSToType,

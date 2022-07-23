@@ -15,7 +15,7 @@ import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferF
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
@@ -74,6 +74,10 @@ object CompilerErrorHumanizer {
         case CouldntFindMemberT(range, memberName) => {
           "Couldn't find member " + memberName + "!"
         }
+        case CouldntEvaluatImpl(range, eff) => {
+          "Couldn't evaluate impl statement:\n" +
+            humanizeCandidateAndFailedSolve(codeMap, eff)
+      }
         case BodyResultDoesntMatch(range, functionName, expectedReturnType, resultType) => {
           "Function " + printableName(codeMap, functionName) + " return type " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType)) + " doesn't match body's result: " + humanizeTemplata(codeMap, CoordTemplata(resultType))
         }
@@ -97,7 +101,7 @@ object CompilerErrorHumanizer {
           "Wrong number of receivers; receiving " + actualNum + " but should be " + expectedNum + "."
         }
         case CantDowncastUnrelatedTypes(range, sourceKind, targetKind) => {
-          "Can't downcast `" + sourceKind + "` to unrelated `" + targetKind + "`"
+          "Can't downcast `" + humanizeTemplata(codeMap, KindTemplata(sourceKind)) + "` to unrelated `" + humanizeTemplata(codeMap, KindTemplata(targetKind)) + "`"
         }
         case CantDowncastToInterface(range, targetKind) => {
           "Can't downcast to an interface (" + targetKind + ") yet."
@@ -484,11 +488,13 @@ object CompilerErrorHumanizer {
       case LambdaCitizenTemplateNameT(codeLocation) => {
         "λ:" + humanizePos(codeMap, codeLocation)
       }
-      case PlaceholderNameT(index) => "_" + index
+      case PlaceholderNameT(template) => humanizeName(codeMap, template)
+      case PlaceholderTemplateNameT(index) => "_" + index
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
-      case FunctionNameT(humanName, templateArgs, parameters) => {
-        humanName +
+      case FunctionTemplateNameT(humanName, codeLoc) => humanName.str
+      case FunctionNameT(templateName, templateArgs, parameters) => {
+        humanizeName(codeMap, templateName) +
           (if (templateArgs.nonEmpty) {
             "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
           } else {

@@ -110,6 +110,52 @@ The above (SCIIMT) also means that one cannot just look for `ImplT(_, _, _, IObs
 They should instead search by the template name, like `ImplT(_, _, IObserver, _)`.
 
 
+# Structs Member Rules Are Skipped During Resolving (SMRASDR)
+
+When we have a recursive type like this:
+
+```
+struct ListNode<T> {
+  val T;
+  next Opt<ListNode<T>>;
+}
+```
+
+when we try to resolve the `Opt<ListNode<T>>` it will try to resolve the `ListNode<T>` which runs all these rules _again_, and goes into an infinite loop.
+
+The answer is to only run the innards when compiling the definition, not when we're resolving.
+
+
+
+# Compile Impl From Both Directions (CIFBD)
+
+We previously compiled all impls for a given struct. We did this for each struct.
+
+However, this would miss some things. For example, if we had this interface:
+
+```
+sealed interface MySerenityOrRazaUnion { }
+impl Serenity for MySerenityOrRazaUnion { }
+impl Raza for MySerenityOrRazaUnion { }
+```
+
+and it was in some hidden leaf dependency, not seen by Serenity or Raza, then it would be missed.
+
+For this reason, we also compile all impls for a given interface.
+
+This *could* result in collisions. For example:
+
+```
+interface MyInterface { }
+struct MyStruct { }
+impl MyStruct for MyInterface { }
+```
+
+Compiling this from both directions will result in the same impl.
+
+That's fine, the CompilerOutputs class will deduplicate them.
+
+
 # Require Explicit Multiple Upcasting to Indirect Descendants and Ancestors (REMUIDDA)
 
 If we have a Serenity which impls IFirefly which impls IShip:
@@ -141,6 +187,43 @@ This is just to save some compile speed. This way, we can just index the direct 
 This will likely also save us some space and complexity in the vtables; each vtable won't need *all* the descendants and ancestors.
 
 
+
+# Don't Use Default Expression When Compiling Denizen (DUDEWCD)
+
+When compiling definitions, we need to always populate placeholders for every argument, and never use default expressions.
+
+Let's say we have:
+
+```
+struct Thing<N Int = 5> {
+  vec Vec<N, Float>;
+}
+```
+
+When we compile the innards of that, we don't want to assume that N is 5, because it could be anything.
+
+So, we need to *not* execute that LiteralSR(N, 5) rule.
+
+
+
+
+
+
+```
+struct Thing<T Ref, F Ref = func moo(T)void> {
+
+}
+```
+
+ResolveSR will run in the caller, and give us an OverloadSetT.
+
+DefinitionFuncSR will establish that theres a `__call` that we can use on it, and produce a rune that can be in the env to make it callable.
+
+CallSiteFuncSR will check that theres a `__call` that we can use on it.
+
+
+
+
 # Don't Add Placeholders for Generic Params with Defaults (DAPGPD)
 
 Having a default parameter implies that the call site has enough information such that with this default value there will be enough to solve the entire function. So for any information the call site can provide, we just need an equivalent at definition time.
@@ -170,6 +253,13 @@ perhaps we should hand in a type, and then DefinitionFuncSR can add a prototypet
 but then what happens to definitionfuncsr when we get to hammer?
 
 its funny, we're really just trying to establish that there _is_ a prototype like that. we dont know the actual prototype, we're just establishing its shape. why is that so hard to represent/know/encode in these type systems?
+
+
+we just want to establish that there is a prototype like that.
+
+its similar to establishing a trait bound. we're not deciding the value, we're just... putting some knowledge into the environment.
+maybe definitionfuncsr will just add something to the env and then disappear when we hit hammer?
+
 
 
 

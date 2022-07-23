@@ -95,7 +95,7 @@ class FunctionScout(
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val userDeclaredRunes = (userSpecifiedIdentifyingRunes ++ userRunesFromRules).distinct
 
-    val functionEnv = postparsing.FunctionEnvironment(file, name, None, userDeclaredRunes.map(_.rune).toSet, paramsP.size, false)
+    val functionEnv = postparsing.FunctionEnvironmentS(file, name, None, userDeclaredRunes.map(_.rune).toSet, paramsP.size, false)
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
 
@@ -250,7 +250,7 @@ class FunctionScout(
     val closureStructName = interner.intern(LambdaStructDeclarationNameS(lambdaName))
 
     val functionEnv =
-      FunctionEnvironment(
+      FunctionEnvironmentS(
         parentStackFrame.file,
         lambdaName,
         Some(parentStackFrame.parentEnv),
@@ -431,7 +431,7 @@ class FunctionScout(
   // - Uses of parent variables.
   // - Magic params made/used inside.
   private def scoutBody(
-    functionEnv: FunctionEnvironment,
+    functionEnv: FunctionEnvironmentS,
     // This might be the block containing the lambda that we're evaluating now.
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
@@ -517,7 +517,7 @@ class FunctionScout(
   }
 
   def scoutInterfaceMember(
-    interfaceEnv: Environment,
+    interfaceEnv: EnvironmentS,
     interfaceIdentifyingRunes: Array[RuneUsage],
     interfaceRules: Array[IRulexSR],
     interfaceRuneToExplicitType: Map[IRuneS, ITemplataType],
@@ -578,7 +578,7 @@ class FunctionScout(
     ruleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP.toVector.flatMap(_.rules))
 
     val functionEnv =
-      postparsing.FunctionEnvironment(
+      postparsing.FunctionEnvironmentS(
         interfaceEnv.file, funcName, Some(interfaceEnv), userDeclaredRunes.map(_.rune).toSet, maybeParamsP.size, true)
 
     val genericParametersS =

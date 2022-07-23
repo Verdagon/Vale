@@ -123,7 +123,7 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
     vassertOne(
       compileFile(
         """
-          |struct Vecf<N> where N int
+          |struct Vecf<N> where N Int
           |{
           |  values [#N]float;
           |}
@@ -145,7 +145,7 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
     vassertOne(
       compileFile(
         """
-          |struct Vecf<N> where N int
+          |struct Vecf<N> where N Int
           |{
           |  values [#N]float;
           |}

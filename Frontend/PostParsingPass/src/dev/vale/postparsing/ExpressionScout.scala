@@ -101,7 +101,7 @@ class ExpressionScout(
   }
 
   def newBlock(
-    functionBodyEnv: FunctionEnvironment,
+    functionBodyEnv: FunctionEnvironmentS,
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,

@@ -30,7 +30,6 @@ class StructCompilerCore(
   interner: Interner,
   keywords: Keywords,
   nameTranslator: NameTranslator,
-  ancestorHelper: ImplCompiler,
   delegate: IStructCompilerDelegate) {
 
   def compileStruct(

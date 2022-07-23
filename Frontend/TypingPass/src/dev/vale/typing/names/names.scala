@@ -30,10 +30,6 @@ case class FullNameT[+T <: INameT](
   // PackageTopLevelName2 is just here because names have to have a last step.
   vassert(initSteps.collectFirst({ case PackageTopLevelNameT() => }).isEmpty)
 
-  vassert(!initSteps.exists({
-    case AnonymousSubstructTemplateNameT(_) => true
-    case _ => false
-  }))
   vcurious(initSteps.distinct == initSteps)
 
   def steps: Vector[INameT] = {
@@ -121,18 +117,6 @@ sealed trait IInterfaceNameT extends ICitizenNameT {
 }
 trait IImplTemplateNameT extends INameT
 trait IImplDeclareNameT extends INameT
-
-// Every impl has two names: a "sub name" which describes it in relation to its subclass,
-// and a "super name" which describes it in relation to its superinterface.
-// To find all impls for a struct, we look it up by the sub name.
-// To find all impls implementing an interface, we look it up by the super name.
-// Note that any impl must be in the same environment as the struct or the interface...
-// the struct might not be able to see it, but the interface can. This means:
-// - We can't know all a struct's superinterfaces by just looking in its env.
-// - To know if a struct implements an interface, we need to look in both the struct env
-//   and interface env. Or, just look up the ImplTemplateDeclareNameT.
-case class ImplTemplateSubNameT(subCitizenTemplateName: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
-case class ImplTemplateSuperNameT(superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
 
 case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplDeclareNameT
 case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplDeclareNameT

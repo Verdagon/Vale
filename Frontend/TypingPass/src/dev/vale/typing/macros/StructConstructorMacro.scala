@@ -61,10 +61,12 @@ class StructConstructorMacro(
   FunctionA = {
     Profiler.frame(() => {
       val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
-      runeToType ++= structA.runeToType
+      runeToType ++= structA.headerRuneToType
+      runeToType ++= structA.membersRuneToType
 
       val rules = mutable.ArrayBuffer[IRulexSR]()
-      rules ++= structA.rules
+      rules ++= structA.headerRules
+      rules ++= structA.memberRules
 
       val retRune = RuneUsage(structA.name.range, ReturnRuneS())
       runeToType += (retRune.rune -> CoordTemplataType())
@@ -120,18 +122,21 @@ class StructConstructorMacro(
     maybeRetCoord: Option[CoordT]):
   FunctionHeaderT = {
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
-    val members = StructCompiler.getMembers(coutputs, structTT)
+    val members = StructCompiler.getMembers(interner, coutputs, structTT)
+
+    val placeholderSubstituter =
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
 
     val constructorFullName = env.fullName
     vassert(constructorFullName.last.parameters.size == members.size)
     val constructorParams =
       members.map({
-        case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
-          ParameterT(name, None, reference)
+        case StructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
+          ParameterT(name, None, placeholderSubstituter.substituteForCoord(unsubstitutedReference))
         }
       })
     val constructorReturnOwnership =
-      StructCompiler.getMutability(coutputs, structTT) match {
+      StructCompiler.getMutability(interner, coutputs, structTT) match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT

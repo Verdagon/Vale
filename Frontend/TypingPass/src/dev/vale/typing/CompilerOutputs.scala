@@ -295,6 +295,7 @@ case class CompilerOutputs() {
   def lookupCitizen(templateName: FullNameT[ICitizenTemplateNameT]): CitizenDefinitionT = {
     val FullNameT(packageCoord, initSteps, last) = templateName
     last match {
+      case s @ AnonymousSubstructTemplateNameT(_) => lookupStruct(FullNameT(packageCoord, initSteps, s))
       case s @ StructTemplateNameT(_) => lookupStruct(FullNameT(packageCoord, initSteps, s))
       case s @ InterfaceTemplateNameT(_) => lookupInterface(FullNameT(packageCoord, initSteps, s))
     }

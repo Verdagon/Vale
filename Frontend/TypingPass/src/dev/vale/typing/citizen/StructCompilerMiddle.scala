@@ -23,12 +23,10 @@ import scala.collection.immutable.List
 class StructCompilerMiddle(
     opts: TypingPassOptions,
     interner: Interner,
-  keywords: Keywords,
+    keywords: Keywords,
     nameTranslator: NameTranslator,
-
-    ancestorHelper: ImplCompiler,
     delegate: IStructCompilerDelegate) {
-  val core = new StructCompilerCore(opts, interner, keywords, nameTranslator, ancestorHelper, delegate)
+  val core = new StructCompilerCore(opts, interner, keywords, nameTranslator, delegate)
 
   def compileStruct(
     structOuterEnv: IEnvironment,

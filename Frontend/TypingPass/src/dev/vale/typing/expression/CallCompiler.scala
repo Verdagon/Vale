@@ -97,7 +97,7 @@ class CallCompiler(
 
   private def evaluateNamedCall(
     coutputs: CompilerOutputs,
-    nenv: NodeEnvironment,
+    nenv: env.IEnvironment,
     range: RangeS,
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
@@ -283,13 +283,13 @@ class CallCompiler(
 
   def evaluateNamedPrefixCall(
     coutputs: CompilerOutputs,
-    nenv: NodeEnvironmentBox,
+    nenv: env.IEnvironment,
     rangeS: RangeS,
     functionName: IImpreciseNameS,
     rules: Vector[IRulexSR],
     templateArgs: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
-    evaluateNamedCall(coutputs, nenv.snapshot, rangeS, functionName, rules, templateArgs.toArray, argsExprs2)
+    evaluateNamedCall(coutputs, nenv, rangeS, functionName, rules, templateArgs.toArray, argsExprs2)
   }
 }

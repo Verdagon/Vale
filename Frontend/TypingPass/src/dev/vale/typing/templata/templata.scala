@@ -39,6 +39,14 @@ object ITemplata {
       case _ => vfail()
     }
   }
+
+  def expectKind(templata: ITemplata[ITemplataType]): ITemplata[KindTemplataType] = {
+    templata match {
+      case t @ KindTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, KindTemplataType()) => PlaceholderTemplata(fullNameT, KindTemplataType())
+      case _ => vfail()
+    }
+  }
 }
 
 sealed trait ITemplata[+T <: ITemplataType]  {
@@ -143,10 +151,11 @@ case class StructTemplata(
   override def tyype: TemplateTemplataType = {
     // Note that this might disagree with originStruct.tyype, which might not be a TemplateTemplataType().
     // In Compiler, StructTemplatas are templates, even if they have zero arguments.
+    val allRuneToType = originStruct.headerRuneToType ++ originStruct.membersRuneToType
     TemplateTemplataType(
       originStruct.genericParameters
         .map(_.rune.rune)
-        .map(originStruct.runeToType),
+        .map(allRuneToType),
       KindTemplataType())
   }
 

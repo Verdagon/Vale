@@ -17,7 +17,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
   // - new rules produced on the side while translating the given rules
   // - the translated versions of the given rules
   def translateRulexes(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
@@ -27,7 +27,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
   }
 
   def translateRulex(
-    env: IEnvironment,
+    env: IEnvironmentS,
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
@@ -185,27 +185,6 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     }
   }
 
-  def collectAllRunesNonDistinct(
-    destination: mutable.ArrayBuffer[IRuneS],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType],
-    rulex: IRulexPR):
-  Unit = {
-    rulex match {
-      case EqualsPR(_, leftP, rightP) => {
-        collectAllRunesNonDistinct(destination, runeToExplicitType, leftP)
-        collectAllRunesNonDistinct(destination, runeToExplicitType, rightP)
-      }
-      case OrPR(_, possibilitiesP) =>
-      case ComponentsPR(_, tyype, componentsP) =>
-      case TypedPR(_, None, tyype) =>
-      case TypedPR(_, Some(NameP(_, runeName)), tyype) => {
-        val rune = CodeRuneS(runeName)
-        destination += rune
-        runeToExplicitType.put(rune, translateType(tyype))
-      }
-      case TemplexPR(innerPR) => // Do nothing, we can't declare runes inside templexes
-    }
-  }
 }
 
 object RuleScout {
@@ -270,6 +249,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) =>
     case ResolveSR(range, resultRune, name, paramsListRune) =>
     case PackSR(range, resultRune, members) =>
+    case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) =>
     case other => vimpl(other)
   })
 

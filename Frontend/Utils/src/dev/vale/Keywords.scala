@@ -40,6 +40,7 @@ class Keywords(interner: Interner) {
   val rw: StrI = interner.intern(StrI("rw"))
   val virtual: StrI = interner.intern(StrI("virtual"))
   val impl: StrI = interner.intern(StrI("impl"))
+  val IntCapitalized: StrI = interner.intern(StrI("Int"))
   val Ref: StrI = interner.intern(StrI("Ref"))
   val Kind: StrI = interner.intern(StrI("Kind"))
   val Prot: StrI = interner.intern(StrI("Prot"))

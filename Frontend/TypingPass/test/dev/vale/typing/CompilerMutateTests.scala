@@ -31,7 +31,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Test mutating a local var") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |exported func main() {a = 3; set a = 4; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs();
@@ -47,7 +47,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val compile =
       CompilerTestCompilation.test(
         """
-          |import v.builtins.tup.*;
+          |
           |struct Engine { fuel int; }
           |struct Spaceship { engine! Engine; }
           |exported func main() {
@@ -70,7 +70,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Local-set upcasts") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |interface IXOption<T> where T Ref { }
         |struct XSome<T> where T Ref { value T; }
         |impl<T> IXOption<T> for XSome<T>;
@@ -93,7 +93,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Expr-set upcasts") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |interface IXOption<T> where T Ref { }
         |struct XSome<T> where T Ref { value T; }
         |impl<T> IXOption<T> for XSome<T>;
@@ -119,7 +119,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to mutate an imm struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct Vec3 imm { x float; y float; z float; }
         |exported func main() int {
         |  v = Vec3(3.0, 4.0, 5.0);
@@ -141,7 +141,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to mutate a final member in a struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |struct Vec3 { x float; y float; z float; }
         |exported func main() int {
         |  v = Vec3(3.0, 4.0, 5.0);
@@ -163,7 +163,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Can mutate an element in a runtime-sized array") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import v.builtins.arrays.*;
         |import v.builtins.drop.*;
         |exported func main() int {
@@ -181,7 +181,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to mutate an element in an imm static-sized array") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |import ifunction.ifunction1.*;
         |exported func main() int {
         |  arr = #[#10]({_});
@@ -201,7 +201,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to mutate a local variable with wrong type") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |exported func main() {
         |  a = 5;
         |  set a = "blah";
@@ -216,7 +216,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to override a non-interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.tup.*;
+        |
         |impl int for Bork;
         |struct Bork { }
         |exported func main() {
@@ -224,7 +224,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.getCompilerOutputs() match {
-      case Err(CantImplNonInterface(_, IntT(32)) )=>
+      case Err(CantImplNonInterface(_, KindTemplata(IntT(32)))) =>
       case _ => vfail()
     }
   }
@@ -324,7 +324,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantImplNonInterface(
-        tz, fireflyKind))
+        tz, KindTemplata(fireflyKind)))
       .nonEmpty)
   }
 }

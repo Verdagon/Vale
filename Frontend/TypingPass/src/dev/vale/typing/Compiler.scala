@@ -7,7 +7,7 @@ import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.citizen.{ImplCompiler, IAncestorHelperDelegate, IStructCompilerDelegate, StructCompiler}
+import dev.vale.typing.citizen._
 import dev.vale.typing.expression.{ExpressionCompiler, IExpressionCompilerDelegate}
 import dev.vale.typing.function.{DestructorCompiler, FunctionCompiler, FunctionCompilerCore, IFunctionCompilerDelegate, VirtualCompiler}
 import dev.vale.typing.infer.IInfererDelegate
@@ -22,7 +22,7 @@ import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSub
 import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, INameT, NameTranslator, PackageTopLevelNameT, PrimitiveNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
@@ -85,7 +85,7 @@ class Compiler(
       nameTranslator,
       new ITemplataCompilerDelegate {
         override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
-          ancestorHelper.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
+          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
 
         override def resolveStruct(
@@ -154,8 +154,8 @@ class Compiler(
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => ancestorHelper.isDescendant(coutputs, s)
-            case i @ InterfaceTT(_) => ancestorHelper.isDescendant(coutputs, i)
+            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, s)
+            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, i)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -209,7 +209,8 @@ class Compiler(
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
-            structCompiler.resolveInterface(state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
+            structCompiler.resolveInterface(
+              state, env.declaringEnv, callRange, templata, templateArgs)
         }
 
         override def resolveStruct(
@@ -220,7 +221,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.resolveStruct(
-            state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
+            state, env.declaringEnv, callRange, templata, templateArgs)
         }
 
         override def kindIsFromTemplate(
@@ -243,7 +244,7 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => ancestorHelper.getParents(coutputs, s)
+                case s : ICitizenTT => implCompiler.getParents(coutputs, s)
                 case _ => Array()
               })
         }
@@ -302,22 +303,9 @@ class Compiler(
       opts,
       new IConvertHelperDelegate {
         override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
-          ancestorHelper.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
+          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
       })
-
-  val ancestorHelper: ImplCompiler =
-    new ImplCompiler(opts, interner, inferCompiler, new IAncestorHelperDelegate {
-      override def resolveInterface(
-          coutputs: CompilerOutputs,
-          callingEnv: IEnvironment, // See CSSNCE
-          callRange: RangeS,
-          interfaceTemplata: InterfaceTemplata,
-          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-      InterfaceTT = {
-        structCompiler.resolveInterface(coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
-      }
-    })
 
   val structCompiler: StructCompiler =
     new StructCompiler(
@@ -327,7 +315,6 @@ class Compiler(
       nameTranslator,
       templataCompiler,
       inferCompiler,
-      ancestorHelper,
       new IStructCompilerDelegate {
         override def evaluateOrdinaryFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata): FunctionHeaderT = {
           functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(coutputs, functionTemplata)
@@ -351,6 +338,9 @@ class Compiler(
           }
         }
       })
+
+  val implCompiler: ImplCompiler =
+    new ImplCompiler(opts, interner, templataCompiler, inferCompiler)
 
   val functionCompiler: FunctionCompiler =
     new FunctionCompiler(opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, convertHelper, structCompiler,
@@ -420,7 +410,7 @@ class Compiler(
       inferCompiler,
       arrayCompiler,
       structCompiler,
-      ancestorHelper,
+      implCompiler,
       sequenceCompiler,
       overloadCompiler,
       destructorCompiler,
@@ -450,12 +440,12 @@ class Compiler(
 
   val edgeCompiler = new EdgeCompiler(interner, overloadCompiler)
 
-  val functorHelper = new FunctorHelper(interner, keywords, structCompiler)
+  val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator)
   val structDropMacro = new StructDropMacro(interner, keywords, nameTranslator, destructorCompiler)
   val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
   val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, overloadCompiler)
-  val asSubtypeMacro = new AsSubtypeMacro(keywords, ancestorHelper, expressionCompiler)
+  val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords)
   val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadCompiler)
@@ -465,8 +455,8 @@ class Compiler(
   val ssaLenMacro = new SSALenMacro(keywords)
   val rsaDropMacro = new RSADropIntoMacro(keywords, arrayCompiler)
   val ssaDropMacro = new SSADropIntoMacro(keywords, arrayCompiler)
-  val rsaFreeMacro = new RSAFreeMacro(keywords, arrayCompiler, destructorCompiler)
-  val ssaFreeMacro = new SSAFreeMacro(keywords, arrayCompiler, destructorCompiler)
+  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadCompiler, destructorCompiler)
+  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadCompiler, destructorCompiler)
 //  val ssaLenMacro = new SSALenMacro(keywords)
   val implDropMacro = new ImplDropMacro(interner, nameTranslator)
   val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)
@@ -593,6 +583,24 @@ class Compiler(
         arrayCompiler.compileStaticSizedArray(globalEnv, coutputs)
         arrayCompiler.compileRuntimeSizedArray(globalEnv, coutputs)
 
+
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+          templatas.entriesByNameT.map({ case (name, entry) =>
+            entry match {
+              case StructEnvEntry(structA) => {
+                val templata = StructTemplata(env, structA)
+                structCompiler.precompileStruct(coutputs, templata)
+              }
+              case InterfaceEnvEntry(interfaceA) => {
+                val templata = InterfaceTemplata(env, interfaceA)
+                structCompiler.precompileInterface(coutputs, templata)
+              }
+              case _ =>
+            }
+          })
+        })
+
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
           val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
           templatas.entriesByNameT.map({ case (name, entry) =>
@@ -610,14 +618,16 @@ class Compiler(
           })
         })
 
-        coutputs.getAllStructs().foreach(structDefinition => {
-          ancestorHelper.compileParentImplsForSubCitizen(coutputs, structDefinition)
-        })
-
-        coutputs.getAllInterfaces().foreach(interfaceDefinition => {
-          ancestorHelper.compileChildImplsForParentInterface(coutputs, interfaceDefinition)
-          // We do this because interfaces can impl other interfaces too.
-          ancestorHelper.compileParentImplsForSubCitizen(coutputs, interfaceDefinition)
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+          templatas.entriesByNameT.map({ case (name, entry) =>
+            entry match {
+              case ImplEnvEntry(implA) => {
+                implCompiler.compileImpl(coutputs, ImplTemplata(env, implA))
+              }
+              case _ =>
+            }
+          })
         })
 
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
