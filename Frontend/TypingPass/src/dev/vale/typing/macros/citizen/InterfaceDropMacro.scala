@@ -49,6 +49,12 @@ class InterfaceDropMacro(
     // Maybe we can just not do that.
     // Ok, thats option 3.
     //  3. Dont put runes in the environment! The solving is only useful for the definition anyway.
+    // actually that might not work. the members (and any child functions one day) will need to see
+    // those runes.
+    // but you know what, lets run the macros and stuff *before* making that environment, and then
+    // declare that env into the coutputs. then after that we can make an environment for the members.
+    // Not sure what we'll do for the functions one day... probably best just syntactically lift them
+    // out?
 
     def range(n: Int) = RangeS.internal(interner, n)
     def use(n: Int, rune: IRuneS) = RuneUsage(range(n), rune)
