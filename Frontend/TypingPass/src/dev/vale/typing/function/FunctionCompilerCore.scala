@@ -6,7 +6,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunction, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionHeaderT, FunctionT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
-import dev.vale.typing.env.{FunctionEnvironment, FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox, TemplataLookupContext}
+import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, NameTranslator}
 import dev.vale.typing.templata.CoordTemplata
@@ -59,38 +59,40 @@ class FunctionCompilerCore(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def evaluateFunctionForHeader(
-    startingFullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironment,
     coutputs: CompilerOutputs,
     callRange: RangeS,
     params2: Vector[ParameterT]):
   (FunctionHeaderT) = {
-    val fullEnv = FunctionEnvironmentBox(startingFullEnv)
-
     opts.debugOut("Evaluating function " + fullEnv.fullName)
+
+    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
+    coutputs.declareTemplate(functionTemplateName)
+    coutputs.declareEnvForTemplate(functionTemplateName, fullEnv)
 
     val life = LocationInFunctionEnvironment(Vector())
 
     val isDestructor =
       params2.nonEmpty &&
         params2.head.tyype.ownership == OwnT &&
-        (startingFullEnv.fullName.last match {
+        (fullEnv.fullName.last match {
           case FunctionNameT(humanName, _, _) if humanName == keywords.drop => true
           case _ => false
         })
 
     val maybeExport =
-      startingFullEnv.function.attributes.collectFirst { case e@ExportS(_) => e }
+      fullEnv.function.attributes.collectFirst { case e@ExportS(_) => e }
 
 
     val header =
-      startingFullEnv.function.body match {
+      fullEnv.function.body match {
         case CodeBodyS(body) => {
           declareAndEvaluateFunctionBodyAndAdd(
-            startingFullEnv, fullEnv, coutputs, life, params2, isDestructor)
+            fullEnv, coutputs, life, params2, isDestructor)
         }
         case ExternBodyS => {
           val maybeRetCoord =
-            fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune)), Set(TemplataLookupContext)).headOption
+            fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(fullEnv.function.maybeRetCoordRune.get.rune)), Set(TemplataLookupContext)).headOption
           val retCoord =
             maybeRetCoord match {
               case None => vfail("wat")
@@ -100,22 +102,22 @@ class FunctionCompilerCore(
             makeExternFunction(
               coutputs,
               fullEnv.fullName,
-              startingFullEnv.function.range,
-              translateFunctionAttributes(startingFullEnv.function.attributes),
+              fullEnv.function.range,
+              translateFunctionAttributes(fullEnv.function.attributes),
               params2,
               retCoord,
-              Some(startingFullEnv.function))
+              Some(fullEnv.function))
           (header)
         }
         case AbstractBodyS | GeneratedBodyS(_) => {
           val generatorId =
-            startingFullEnv.function.body match {
+            fullEnv.function.body match {
               case AbstractBodyS => keywords.abstractBody
               case GeneratedBodyS(generatorId) => generatorId
             }
           val signature2 = SignatureT(fullEnv.fullName);
           val maybeRetTemplata =
-            startingFullEnv.function.maybeRetCoordRune match {
+            fullEnv.function.maybeRetCoordRune match {
               case None => (None)
               case Some(retCoordRune) => {
                 fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(retCoordRune.rune)), Set(TemplataLookupContext)).headOption
@@ -149,8 +151,8 @@ class FunctionCompilerCore(
               val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
               val header =
                 generator.generateFunctionBody(
-                  fullEnv.snapshot, coutputs, generatorId, life, callRange,
-                  Some(startingFullEnv.function), params2, maybeRetCoord)
+                  fullEnv, coutputs, generatorId, life, callRange,
+                  Some(fullEnv.function), params2, maybeRetCoord)
               if (header.toSignature != signature2) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
                   "Expected:  " + signature2 + "\n" +
@@ -166,12 +168,12 @@ class FunctionCompilerCore(
       case None =>
       case Some(exportPackageCoord) => {
         val exportedName =
-          startingFullEnv.fullName.last match {
+          fullEnv.fullName.last match {
             case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
         coutputs.addFunctionExport(
-          startingFullEnv.function.range,
+          fullEnv.function.range,
           header.toPrototype,
           exportPackageCoord.packageCoordinate,
           exportedName)
@@ -181,7 +183,7 @@ class FunctionCompilerCore(
     if (header.attributes.contains(PureT)) {
       //      header.params.foreach(param => {
       //        if (param.tyype.permission != ReadonlyT) {
-      //          throw CompileErrorExceptionT(NonReadonlyReferenceFoundInPureFunctionParameter(startingFullEnv.function.range, param.name))
+      //          throw CompileErrorExceptionT(NonReadonlyReferenceFoundInPureFunctionParameter(fullEnv.function.range, param.name))
       //        }
       //      })
     }
@@ -194,105 +196,24 @@ class FunctionCompilerCore(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getFunctionPrototypeForCall(
-    startingFullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironment,
       coutputs: CompilerOutputs,
     callRange: RangeS,
       params2: Vector[ParameterT]):
   (PrototypeT) = {
     getFunctionPrototypeInnerForCall(
-      startingFullEnv, startingFullEnv.fullName)
-
-//      startingFullEnv.function.body match {
-//        case CodeBodyS(body) => {
-//        }
-//        case ExternBodyS => {
-//          val maybeRetCoord =
-//            fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(startingFullEnv.function.maybeRetCoordRune.get.rune)), Set(TemplataLookupContext)).headOption
-//          val retCoord =
-//            maybeRetCoord match {
-//              case None => vfail("wat")
-//              case Some(CoordTemplata(r)) => r
-//            }
-//          val header =
-//            makeExternFunction(
-//              coutputs,
-//              fullEnv.fullName,
-//              startingFullEnv.function.range,
-//              translateFunctionAttributes(startingFullEnv.function.attributes),
-//              params2,
-//              retCoord,
-//              Some(startingFullEnv.function))
-//          (header)
-//        }
-//        case AbstractBodyS | GeneratedBodyS(_) => {
-//          val generatorId =
-//            startingFullEnv.function.body match {
-//              case AbstractBodyS => keywords.abstractBody
-//              case GeneratedBodyS(generatorId) => generatorId
-//            }
-//          val signature2 = SignatureT(fullEnv.fullName);
-//          val maybeRetTemplata =
-//            startingFullEnv.function.maybeRetCoordRune match {
-//              case None => (None)
-//              case Some(retCoordRune) => {
-//                fullEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(retCoordRune.rune)), Set(TemplataLookupContext)).headOption
-//              }
-//            }
-//          val maybeRetCoord =
-//            maybeRetTemplata match {
-//              case None => (None)
-//              case Some(CoordTemplata(retCoord)) => {
-//                coutputs.declareFunctionReturnType(signature2, retCoord)
-//                (Some(retCoord))
-//              }
-//              case _ => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Must be a coord!"))
-//            }
-//
-//          // Funny story... let's say we're current instantiating a constructor,
-//          // for example MySome<T>().
-//          // The constructor returns a MySome<T>, which means when we do the above
-//          // evaluating of the function body, we stamp the MySome<T> struct.
-//          // That ends up stamping the entire struct, including the constructor.
-//          // That's what we were originally here for, and evaluating the body above
-//          // just did it for us O_o
-//          // So, here we check to see if we accidentally already did it.
-//          opts.debugOut("doesnt this mean we have to do this in every single generated function?")
-//
-//          coutputs.lookupFunction(signature2) match {
-//            case Some(function2) => {
-//              (function2.header)
-//            }
-//            case None => {
-//              val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
-//              val header =
-//                generator.generateFunctionBody(
-//                  fullEnv.snapshot, coutputs, generatorId, life, callRange,
-//                  Some(startingFullEnv.function), params2, maybeRetCoord)
-//              if (header.toSignature != signature2) {
-//                throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
-//                "Expected:  " + signature2 + "\n" +
-//                "Generated: " + header.toSignature))
-//              }
-//              (header)
-//            }
-//          }
-//        }
-//      }
+      fullEnv, fullEnv.fullName)
   }
 
   def declareAndEvaluateFunctionBodyAndAdd(
-    startingFullEnv: FunctionEnvironment,
-    fullEnvBox: FunctionEnvironmentBox,
+    fullEnv: FunctionEnvironment,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     paramsT: Vector[ParameterT],
     isDestructor: Boolean):
   FunctionHeaderT = {
-    val fullEnvSnapshot = fullEnvBox.snapshot
-    val functionFullName = fullEnvSnapshot.fullName
-
     val attributesWithoutExport =
-      startingFullEnv.function.attributes.filter({
+      fullEnv.function.attributes.filter({
         case ExportS(_) => false
         case _ => true
       })
@@ -300,9 +221,9 @@ class FunctionCompilerCore(
     val attributesT = translateAttributes(attributesWithoutExport)
 
     val maybeExplicitReturnCoord =
-      startingFullEnv.function.maybeRetCoordRune match {
+      fullEnv.function.maybeRetCoordRune match {
         case Some(retCoordRune) => {
-          startingFullEnv.lookupNearestWithImpreciseName(
+          fullEnv.lookupNearestWithImpreciseName(
 
               interner.intern(RuneNameS(retCoordRune.rune)),
               Set(TemplataLookupContext))  match {
@@ -317,10 +238,9 @@ class FunctionCompilerCore(
 //      case None => {
 //        opts.debugOut("Eagerly evaluating function: " + functionFullName)
 
-    val fullEnv = FunctionEnvironmentBox(fullEnvSnapshot)
     val (maybeInferredReturnCoord, body2) =
       bodyCompiler.declareAndEvaluateFunctionBody(
-        fullEnv, coutputs, life, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
+        FunctionEnvironmentBox(fullEnv), coutputs, life, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
 
     val returnCoord =
       maybeExplicitReturnCoord match {
@@ -380,12 +300,12 @@ class FunctionCompilerCore(
   }
 
   def getFunctionPrototypeInnerForCall(
-    startingFullEnv: FunctionEnvironment,
+    fullEnv: FunctionEnvironment,
     fullName: FullNameT[IFunctionNameT]):
   PrototypeT = {
-    val retCoordRune = vassertSome(startingFullEnv.function.maybeRetCoordRune)
+    val retCoordRune = vassertSome(fullEnv.function.maybeRetCoordRune)
     val returnCoord =
-      startingFullEnv.lookupNearestWithImpreciseName(
+      fullEnv.lookupNearestWithImpreciseName(
         interner.intern(RuneNameS(retCoordRune.rune)),
         Set(TemplataLookupContext))  match {
         case Some(CoordTemplata(retCoord)) => retCoord
@@ -395,7 +315,7 @@ class FunctionCompilerCore(
   }
 
   def finalizeHeader(
-      fullEnv: FunctionEnvironmentBox,
+      fullEnv: FunctionEnvironment,
       coutputs: CompilerOutputs,
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],

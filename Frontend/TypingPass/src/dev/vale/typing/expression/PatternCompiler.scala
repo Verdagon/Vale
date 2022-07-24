@@ -388,9 +388,12 @@ class PatternCompiler(
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
+    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+
     val memberLocals =
       structDefT.members
         .map(_.tyype.expectReferenceMember().reference)
+        .map(unsubstitutedMemberCoord => substituter.substituteForCoord(unsubstitutedMemberCoord))
         .zipWithIndex
         .map({ case (memberType, i) => localHelper.makeTemporaryLocal(nenv, life + 1 + i, memberType) }).toVector
     val destroyTE = DestroyTE(inputStructExpr, structTT, memberLocals)
@@ -466,13 +469,16 @@ class PatternCompiler(
 
     val member = structDefT.members(index)
 
-    val memberCoord = member.tyype.expectReferenceMember().reference
+    val unsubstitutedMemberCoord = member.tyype.expectReferenceMember().reference
+    val memberType =
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+        .substituteForCoord(unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(
       range,
       containerAlias,
       structDefT.templateName.addStep(structDefT.members(index).name),
-      memberCoord,
+      memberType,
       member.variability)
   }
 

@@ -206,60 +206,86 @@ So, we need to *not* execute that LiteralSR(N, 5) rule.
 
 
 
+# Need Abstract Function's Environment When Resolving Overload (NAFEWRO)
 
-
+Notice how both the abstract function and the override function have a bound:
 
 ```
-struct Thing<T Ref, F Ref = func moo(T)void> {
+abstract func drop<T>(virtual opt Opt<T>)
+where func drop(T)void;
 
+func drop<T>(opt Some<T>)
+where func drop(T)void
+{
+  [x] = opt;
 }
 ```
 
-ResolveSR will run in the caller, and give us an OverloadSetT.
+We eventually get to the late stages of the compiler, looking for overrides for that abstract `drop`. When we try to find one via OverloadCompiler, we have trouble evaluating the candidate (the second `drop` there) because there's no way for it to know if there actually exists a drop function.
 
-DefinitionFuncSR will establish that theres a `__call` that we can use on it, and produce a rune that can be in the env to make it callable.
+We need some way to convey the promise from the abstract function down to the override function.
 
-CallSiteFuncSR will check that theres a `__call` that we can use on it.
-
-
+So, when we resolve that override, we include the environment from the abstract function, so the override can find the guarantee that there is a drop for T.
 
 
-# Don't Add Placeholders for Generic Params with Defaults (DAPGPD)
+# Concept Functions With Generics (CFWG)
 
-Having a default parameter implies that the call site has enough information such that with this default value there will be enough to solve the entire function. So for any information the call site can provide, we just need an equivalent at definition time.
+Our current concept functions don't really work with default generic parameters that well.
 
-If a default param says to look up a func(int)void, then in definition time instead of populating a placeholder we should populate a rule saying that it's a func(int)void.
+Here's how it should work in a post-generics world.
 
 
 
+## Prototype-Based Concept Functions
+
+```
+struct Functor1<P1 Ref, R Ref, F Prot = func moo(P1)R> {
+}
+```
+
+No need of placeholders. We just go in and start figuring shit out.
+
+We start solving. We never know P1, R, or F, but we at least know that we can call a function named moo on things of those types.
+
+func moo(P1)R becomes:
+
+ * ResolveSR, which looks through the overload indexes for a single `moo` that fits the name and param requirements, even though we dont fully know the requirements yet.
+ * CallSiteFuncSR, which grabs its return type and equates it
+ * DefinitionSiteFuncSR, which just puts into the env the knowledge that this is a call that can be made.
 
 
-im also thinking DefinitionCallSR should be in the default argument spot, and CallSiteCallSR should just always be present.
+
+## Placeholder-Based Concept Functions
+
+```
+struct Functor1<P1 Ref, R Ref, F Ref> {
+  functor F = func moo(P1)R;
+}
+```
+
+```
+func Functor1<P1, R, F>(functor F = func moo(P1)R) Functor1<P1, R, F> {
+}
+```
+
+func moo(P1)R becomes:
+
+ * ResolveSR(X Ref, moo, P1, R);
+   runs when P1 and R are defined.
+   it will create an OverloadSet pointing at moo and put it in X.
+   the templex produces X ref as the result rune, so it ends up equal to F.
+ * DefinitionFuncSR(Z Prot, X, P1, R);
+   runs when X, P1, and R are all defined.
+   X is fed in as a placeholder, remember.
+   which puts the prototype Z into the environment to establish that X is callable.
+ * CallsiteFuncSR(Z Prot, X Ref, P1, R)
+   runs when X, P1, and R are all defined.
+   X will be an overload set from resolve-func, or a `__call`able type from user.
+   it makes sure that there is indeed a `__call` prototype taking X and P1 and returns R.
+   it assigns it into Z. it doesnt _really_ have to, but it means Z is always defined which is simpler.
 
 
-theres three possibilities if we have a default argument:
-
-- calling, but supplied no argument:
-   - use ResolveSR if its there
-   - hope that it can be figured out from other things, such as the normal arguments
-- calling, supplied an argument: want to use CallSiteFuncSR
-- defining: want to use DefinitionFuncSR
-   - but... (see below)
-
-
-if we use DefinitionFuncSR to make a PrototypeTemplata instead of a Placeholder, then the resulting FunctionT will have a bunch of those PrototypeTemplata's around. Shouldnt the hammer see some Placeholders instead?
-this is another hint that we're doing something slightly off.
-perhaps we should hand in a type, and then DefinitionFuncSR can add a prototypetemplata to the env. then the placeholder can still work.
-but then what happens to definitionfuncsr when we get to hammer?
-
-its funny, we're really just trying to establish that there _is_ a prototype like that. we dont know the actual prototype, we're just establishing its shape. why is that so hard to represent/know/encode in these type systems?
-
-
-we just want to establish that there is a prototype like that.
-
-its similar to establishing a trait bound. we're not deciding the value, we're just... putting some knowledge into the environment.
-maybe definitionfuncsr will just add something to the env and then disappear when we hit hammer?
-
+sucks that we need a functor. but honestly, that comes from this weird placeholder crap. if we didnt need placeholders, we could do this easier.
 
 
 

@@ -5,7 +5,7 @@ package dev.vale.typing
 import dev.vale.{Err, Interner, Ok, RangeS, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
-import dev.vale.typing.env.TemplatasStore
+import dev.vale.typing.env.{IEnvironment, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
@@ -48,8 +48,12 @@ class EdgeCompiler(
           overridingImpls.map(overridingImpl => {
             val overridingCitizen = overridingImpl.subCitizenTemplateName
 
-            overridingCitizen -> {
+            val foundFunctions =
               interfaceEdgeBlueprint.superFamilyRootBanners.map(abstractFunctionBanner => {
+                val abstractFunctionTemplateFullName =
+                  TemplataCompiler.getFunctionTemplate(abstractFunctionBanner.fullName)
+                val abstractFunctionEnv =
+                  coutputs.getEnvForTemplate(abstractFunctionTemplateFullName)
                 val abstractFunctionSignature = abstractFunctionBanner.toSignature
                 val abstractFunctionParamTypes = abstractFunctionSignature.paramTypes
                 val abstractIndex = abstractFunctionBanner.params.indexWhere(_.virtuality.nonEmpty)
@@ -77,11 +81,11 @@ class EdgeCompiler(
 
                 val foundFunction =
                   compileOverride(
-                    coutputs, range, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
+                    coutputs, range, abstractFunctionEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })
-            }
+            overridingCitizen -> foundFunctions
           }).toMap
         }
       }).toMap
@@ -91,20 +95,25 @@ class EdgeCompiler(
   private def compileOverride(
       coutputs: CompilerOutputs,
       range: RangeS,
+      abstractFunctionEnv: IEnvironment,
       interface: FullNameT[IInterfaceTemplateNameT],
       overridingCitizen: FullNameT[ICitizenTemplateNameT],
       impreciseName: IImpreciseNameS,
       paramTypes: Vector[CoordT]):
   PrototypeT = {
     overloadCompiler.findFunction(
-      coutputs.getEnvForTemplate(interface),
+      // It's like the abstract function is the one calling the override.
+      // This is important so the override can see existing concept functions, see NAFEWRO.
+      abstractFunctionEnv,
       coutputs,
       range,
       impreciseName,
-      Vector.empty, // No explicitly specified ones. It has to be findable just by param filters.
+      Vector.empty,
       Array.empty,
       paramTypes.map(ParamFilter(_, None)),
-      Vector(coutputs.getEnvForTemplate(overridingCitizen)),
+      Vector(
+        coutputs.getEnvForTemplate(interface),
+        coutputs.getEnvForTemplate(overridingCitizen)),
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
       case Ok(x) => x.prototype
