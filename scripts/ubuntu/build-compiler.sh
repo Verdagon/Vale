@@ -5,6 +5,21 @@
 
 set -eu
 
+LLVM_DIR="$1"
+if [ "$LLVM_DIR" == "" ]; then
+  echo "Please supply the LLVM directory."
+  echo "Example: ~/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10"
+  exit 1
+fi
+shift;
+
+LLVM_CMAKE_DIR="$LLVM_DIR/lib/cmake/llvm"
+if [ ! -d "$LLVM_CMAKE_DIR" ]; then
+  echo "Directory not found: $LLVM_CMAKE_DIR"
+  echo "Are you sure you specified the right LLVM directory?"
+  exit 1
+fi
+
 BOOTSTRAPPING_VALEC_DIR="$1"
 if [ "$BOOTSTRAPPING_VALEC_DIR" == "" ]; then
   echo "Please supply the bootstrapping valec directory."
@@ -46,7 +61,7 @@ sbt assembly || { echo 'Frontend build failed.' ; exit 1; }
 cd ../Backend
 
 echo Generating Backend...
-cmake -B build || { echo 'Backend generate failed, aborting.' ; exit 1; }
+cmake -B build -D LLVM_DIR="$LLVM_CMAKE_DIR" || { echo 'Backend generate failed, aborting.' ; exit 1; }
 
 echo Compiling Backend...
 cmake --build build || { echo 'Backend build failed, aborting.' ; exit 1; }

@@ -22,12 +22,15 @@ bail() {
   exit 1
 }
 
+CLANG_VERSION="13.0.1"
+CLANG_UBUNTU_VERSION="18.04"
+
 INSTALL_JAVA=0
 INSTALL_SBT=0
-INSTALL_LLVM=0
+LLVM_DIR=""
 BOOTSTRAPPING_VALEC_DIR=""
 
-while getopts ":hjslb:" opt; do
+while getopts ":hjsb:l:" opt; do
   case ${opt} in
     h )
       usage
@@ -40,7 +43,7 @@ while getopts ":hjslb:" opt; do
       INSTALL_SBT=1
       ;;
     l )
-      INSTALL_LLVM=1
+      LLVM_DIR="${OPTARG}"
       ;;
     b )
       BOOTSTRAPPING_VALEC_DIR="${OPTARG}"
@@ -51,7 +54,7 @@ while getopts ":hjslb:" opt; do
   esac
 done
 
-if [[ $INSTALL_JAVA == 0 && $INSTALL_SBT == 0 && $INSTALL_LLVM == 0 && $BOOTSTRAPPING_VALEC_DIR == "" ]]; then
+if [[ $INSTALL_JAVA == 0 && $INSTALL_SBT == 0 && $BOOTSTRAPPING_VALEC_DIR == "" && $LLVM_DIR == "" ]]; then
   echo "Nothing to do! Quitting."
   bail
 fi
@@ -88,16 +91,18 @@ fi
 if [[ $BOOTSTRAPPING_VALEC_DIR != "" ]]; then
   echo -e "\n${TEXT_GREEN}Downloading and unzipping stable bootstrapping valec to $BOOTSTRAPPING_VALEC_DIR...${TEXT_RESET}"
   # Install stable valec, for the .vale parts of the compiler
-  curl -L https://github.com/ValeLang/Vale/releases/download/v0.2.0/Vale-Ubuntu-0.2.0.12.zip -o /tmp/BootstrappingValeCompiler.zip
+  curl -L https://github.com/ValeLang/Vale/releases/download/v0.2.0/Vale-Ubuntu-0.2.0.11.zip -o /tmp/BootstrappingValeCompiler.zip
   unzip /tmp/BootstrappingValeCompiler.zip -d $BOOTSTRAPPING_VALEC_DIR
   # Doesnt work, see https://github.com/ValeLang/Vale/issues/306
   # echo 'export PATH=$PATH:~/ValeCompiler-0.1.3.3-Ubuntu' >> ~/.bashrc
 fi
 
 # Install LLVM
-if [[ $INSTALL_SBT != "" ]]; then
-  echo -e "\n${TEXT_GREEN}Installing LLVM...${TEXT_RESET}"
-  wget https://apt.llvm.org/llvm.sh
-  chmod +x llvm.sh
-  sudo ./llvm.sh 14
+if [[ $LLVM_DIR != "" ]]; then
+  echo -e "\n${TEXT_GREEN}Downloading and unzipping LLVM to $LLVM_DIR...${TEXT_RESET}"
+  # Install LLVM 13.0.0 (from https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
+  curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-$CLANG_VERSION/clang+llvm-$CLANG_VERSION-x86_64-linux-gnu-ubuntu-$CLANG_UBUNTU_VERSION.tar.xz --output /tmp/clang+llvm-$CLANG_VERSION-x86_64-linux-gnu-ubuntu-$CLANG_UBUNTU_VERSION.tar.xz
+  mkdir -p $LLVM_DIR
+  tar xf /tmp/clang+llvm-$CLANG_VERSION-x86_64-linux-gnu-ubuntu-$CLANG_UBUNTU_VERSION.tar.xz -C $LLVM_DIR
+  # Later, we'll need to feed this to a cmake command so it knows where the LLVM libraries are.
 fi
