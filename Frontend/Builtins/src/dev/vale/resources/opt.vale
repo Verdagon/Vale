@@ -30,7 +30,9 @@ func isEmpty<T>(opt &Some<T>) bool { return false; }
 
 abstract func isEmpty<T>(virtual opt Opt<T>) bool;
 func isEmpty<T>(opt None<T>) bool { return true; }
-func isEmpty<T>(opt Some<T>) bool { return false; }
+func isEmpty<T>(opt Some<T>) bool
+where func drop(T)void
+{ return false; }
 
 abstract func get<T>(virtual opt Opt<T>) T;
 func get<T>(opt None<T>) T { panic("Called get() on a None!"); }

@@ -16,23 +16,23 @@ impl<T> MyOption<T> for MyNone<T>;
 
 struct MyList<T> where T Ref {
   value T;
-  next @MyOption<@MyList<T>>;
+  next MyOption<MyList<T>>;
 }
 
-func printValues(list @MyList<int>) void {
+func printValues(list &MyList<int>) void {
   print(list.value);
   printNextValue(list.next);
 }
 
-func printNextValue(virtual opt @MyOption<@MyList<int>>) void { }
-func printNextValue(opt @MyNone<@MyList<int>>) void { }
-func printNextValue(opt @MySome<@MyList<int>>) void {
+func printNextValue(virtual opt &MyOption<MyList<int>>) void { }
+func printNextValue(opt &MyNone<MyList<int>>) void { }
+func printNextValue(opt &MySome<MyList<int>>) void {
   printValues(opt.value);
 }
 
 
 exported func main() int {
-  list = MyList<int>(10, MySome<@MyList<int>>(MyList<int>(20, MySome<@MyList<int>>(MyList<int>(30, MyNone<@MyList<int>>())))));
-  printValues(list);
+  list = MyList<int>(10, MySome<MyList<int>>(MyList<int>(20, MySome<MyList<int>>(MyList<int>(30, MyNone<MyList<int>>())))));
+  printValues(&list);
   return 0;
 }

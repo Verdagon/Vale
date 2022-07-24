@@ -32,6 +32,10 @@ object CompilerErrorHumanizer {
       err match {
         case RangedInternalErrorT(range, message) => { " " + message
         }
+        case CouldntFindOverrideT(range, fff) => {
+          "Couldn't find an override:\n" +
+            humanizeFindFunctionFailure(verbose, codeMap, range, fff)
+        }
         case NewImmRSANeedsCallable(range) => {
           "To make an immutable runtime-sized array, need two params: capacity int, plus lambda to populate that many elements."
         }

@@ -932,6 +932,15 @@ class CompilerRuleSolver[Env, State](
                     })
                     Ok(())
                   }
+                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface @ InterfaceTT(_))) => {
+                    if (templateInterface != instantiationInterface) {
+                      return Err(CallResultWasntExpectedType(it, result))
+                    }
+                    argRunes.zip(instantiationInterface.fullName.last.templateArgs).foreach({ case (rune, templateArg) =>
+                      stepState.concludeRune[ITypingPassSolverError](range, rune.rune, templateArg)
+                    })
+                    Ok(())
+                  }
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
