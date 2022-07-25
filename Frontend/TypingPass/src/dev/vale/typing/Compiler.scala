@@ -304,6 +304,25 @@ class Compiler(
               true)
         }
 
+        def predictFunction(
+          envs: InferEnv,
+          state: CompilerOutputs,
+          range: RangeS,
+          name: StrI,
+          paramCoords: Vector[CoordT],
+          returnCoord: CoordT):
+        PrototypeTemplata = {
+          PrototypeTemplata(
+            range,
+            PrototypeT(
+              envs.declaringEnv.fullName.addStep(
+                FunctionNameT(
+                  FunctionTemplateNameT(name, range.begin),
+                  Vector(),
+                  paramCoords)),
+              returnCoord))
+        }
+
         override def assemblePrototype(
             envs: InferEnv,
             state: CompilerOutputs,

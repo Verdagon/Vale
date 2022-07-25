@@ -187,14 +187,14 @@ object PostParserErrorHumanizer {
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)
       case RuneParentEnvLookupSR(range, rune) => "inherit " + humanizeRune(rune.rune)
       case PackSR(range, resultRune, members) => humanizeRune(resultRune.rune) + " = (" + members.map(x => humanizeRune(x.rune)).mkString(", ") + ")"
-      case ResolveSR(range, resultRune, name, paramsListRune) => {
-        humanizeRune(resultRune.rune) + " = resolve func " + name + "(" + humanizeRune(paramsListRune.rune) + ")"
+      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => {
+        humanizeRune(resultRune.rune) + " = resolve-func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
       }
       case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
-        humanizeRune(resultRune.rune) + " = callsite func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
+        humanizeRune(resultRune.rune) + " = callsite-func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
       }
       case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => {
-        humanizeRune(resultRune.rune) + " = definition func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
+        humanizeRune(resultRune.rune) + " = definition-func " + name + "(" + humanizeRune(paramsListRune.rune) + ")" + humanizeRune(returnRune.rune)
       }
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
         humanizeRune(resultRune.rune) + " = " + "[#" + humanizeRune(sizeRune.rune) + "]<" + humanizeRune(mutabilityRune.rune) + ", " + humanizeRune(variabilityRune.rune) + ">" + humanizeRune(elementRune.rune)

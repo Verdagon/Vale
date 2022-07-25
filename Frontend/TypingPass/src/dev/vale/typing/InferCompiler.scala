@@ -7,9 +7,9 @@ import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GlobalEnvironment, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
-import dev.vale.typing.infer.{CompilerSolver, IInfererDelegate, ITypingPassSolverError}
+import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
 
 import scala.collection.immutable.Set
 
@@ -109,12 +109,19 @@ class InferCompiler(
             rules,
             runeToType,
             alreadyKnown)
+      // Now we need to actually resolve all the functions and stuff that we said existed in there, see SFWPRL.
       outcome match {
         case CompleteSolve(conclusions) => {
-          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions)
+          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions) match {
+            case Ok(()) =>
+            case Err(e) => return FailedSolve(Vector(), Vector(), e) // DO NOT SUBMIT
+          }
         }
         case IncompleteSolve(_, _, _, incompleteConclusions) => {
-          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, incompleteConclusions)
+          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, incompleteConclusions) match {
+            case Ok(()) =>
+            case Err(e) => return FailedSolve(Vector(), Vector(), e)
+          }
         }
         case FailedSolve(_, _, _) =>
       }
@@ -156,8 +163,13 @@ class InferCompiler(
     state: CompilerOutputs,
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Unit = {
-    val name = declaringEnv.fullName.addStep(ResolvingEnvNameT())
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+    val callingEnv =
+      maybeCallingEnv match {
+        case None => return Ok(())
+        case Some(x) => x
+      }
+    val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
     val templatasStore =
       TemplatasStore(name, Map(), Map())
         .addEntries(
@@ -167,19 +179,59 @@ class InferCompiler(
           }).toVector)
     val temporaryEnv =
       ResolvingEnvironment(
-        declaringEnv.globalEnv, declaringEnv, name, templatasStore)
+        callingEnv.globalEnv, callingEnv, name, templatasStore)
 
     rules.foreach({
       case r @ CallSR(_, _, _, _) => {
-        checkCall(InferEnv(maybeCallingEnv, temporaryEnv), state, r, conclusions)
+        checkTemplateCall(InferEnv(Some(temporaryEnv), declaringEnv), state, r, conclusions)
+      }
+      case r @ ResolveSR(_, _, _, _, _) => {
+        checkFunctionCall(InferEnv(Some(temporaryEnv), declaringEnv), state, r, conclusions) match {
+          case Ok(_) =>
+          case Err(e) => {
+            return Err(e)
+          }
+        }
       }
       case _ =>
     })
+    Ok(())
   }
 
-  def checkCall(env: InferEnv, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
+  def checkFunctionCall(env: InferEnv, state: CompilerOutputs, c: ResolveSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+    val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
+
+    // If it was an incomplete solve, then just skip.
+    val returnCoord =
+      conclusions.get(returnRune.rune) match {
+        case Some(CoordTemplata(t)) => t
+        case None => return Ok(())
+      }
+    val paramCoords =
+      conclusions.get(paramsListRune.rune) match {
+        case None => return Ok(())
+        case Some(CoordListTemplata(paramList)) => paramList
+      }
+
+    val prototypeTemplata =
+      delegate.resolveFunction(env, state, range, name, paramCoords) match {
+        case Err(e) => {
+          return Err(RuleError(CouldntFindFunction(range, e)))
+        }
+        case Ok(x) => x
+      }
+
+    if (prototypeTemplata.prototype.returnType != returnCoord) {
+      return Err(SolverConflict(returnRune.rune, CoordTemplata(returnCoord), CoordTemplata(prototypeTemplata.prototype.returnType)))
+    }
+    Ok(())
+  }
+
+  def checkTemplateCall(env: InferEnv, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
     val CallSR(range, resultRune, templateRune, argRunes) = c
 
+    // If it was an incomplete solve, then just skip.
     val template =
       conclusions.get(templateRune.rune) match {
         case Some(t) => t
@@ -226,7 +278,7 @@ object InferCompiler {
   def includeRuleInDefinitionSolve(rule: IRulexSR): Boolean = {
     rule match {
       case CallSiteFuncSR(_, _, _, _, _) => false
-      case ResolveSR(_, _, _, _) => false
+      case ResolveSR(_, _, _, _, _) => false
       case _ => true
     }
   }

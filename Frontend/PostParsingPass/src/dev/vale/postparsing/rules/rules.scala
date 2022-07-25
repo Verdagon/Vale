@@ -81,7 +81,7 @@ case class ResolveSR(
 ) extends IRulexSR {
   vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune)
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune, returnRune)
 }
 
 case class CallSiteFuncSR(

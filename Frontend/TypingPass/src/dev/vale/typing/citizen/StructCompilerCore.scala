@@ -356,7 +356,6 @@ class StructCompilerCore(
 
     val understructTemplateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
     val understructTemplatedFullNameT = containingFunctionEnv.fullName.addStep(understructTemplateNameT)
-    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, containingFunctionEnv);
     val understructInstantiatedNameT = understructTemplateNameT.makeStructName(interner, Vector())
     val understructInstantiatedFullNameT = containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
@@ -401,7 +400,8 @@ class StructCompilerCore(
     // if it's not a template).
     val functionTemplata = FunctionTemplata(structEnv, functionA)
 
-    coutputs.declareTemplate(understructTemplatedFullNameT);
+    coutputs.declareTemplate(understructTemplatedFullNameT)
+    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, structEnv);
     coutputs.declareTemplateMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
 
     val closureStructDefinition =

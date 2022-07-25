@@ -309,12 +309,31 @@ class OverloadResolver(
             }
           }
         } else {
-          val banner = functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(coutputs, callRange, ft)
-          paramsMatch(coutputs, paramFilters, banner.paramTypes, exact) match {
-            case Ok(_) => {
-              Ok(ast.ValidCalleeCandidate(banner, ft))
+          vimpl()
+          // might need:
+//          val banner = functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(coutputs, callRange, ft)
+//          paramsMatch(coutputs, paramFilters, banner.paramTypes, exact) match {
+//            case Ok(_) => {
+//              Ok(ast.ValidCalleeCandidate(banner, ft))
+//            }
+//            case Err(reason) => Err(reason)
+//          }
+          functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+            coutputs, callRange, callingEnv, ft, Vector(), paramFilters) match {
+            case (EvaluateFunctionFailure(reason)) => {
+              Err(reason)
             }
-            case Err(reason) => Err(reason)
+            case (EvaluateFunctionSuccess(banner)) => {
+              paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
+                case Err(reason) => Err(reason)
+                case Ok(_) => {
+                  paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
+                    case Ok(_) => Ok(ValidPrototypeTemplataCalleeCandidate(banner))
+                    case Err(reason) => Err(reason)
+                  }
+                }
+              }
+            }
           }
         }
       }

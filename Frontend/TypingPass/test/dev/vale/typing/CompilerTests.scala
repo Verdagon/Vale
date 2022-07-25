@@ -218,6 +218,25 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
   }
 
+  test("Reports error") {
+    // https://github.com/ValeLang/Vale/issues/548
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface A {
+        |	func foo(virtual a &A) int;
+        |}
+        |
+        |struct B imm { val int; }
+        |impl A for B;
+        |
+        |func foo(b &B) int { return b.val; }
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    vimpl()
+  }
+
   test("Lambda with one magic arg") {
     val compile =
       CompilerTestCompilation.test(

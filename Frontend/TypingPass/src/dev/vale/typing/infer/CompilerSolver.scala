@@ -133,6 +133,15 @@ trait IInfererDelegate[Env, State] {
     coords: Vector[CoordT]):
   Result[PrototypeTemplata, FindFunctionFailure]
 
+  def predictFunction(
+    env: Env,
+    state: State,
+    range: RangeS,
+    name: StrI,
+    paramCoords: Vector[CoordT],
+    returnCoord: CoordT):
+  PrototypeTemplata
+
   def assemblePrototype(
     env: Env,
     state: State,
@@ -165,7 +174,7 @@ class CompilerSolver[Env, State](
           case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
           case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
-          case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
+          case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
           case OneOfSR(range, rune, literals) => Array(rune)
           case IsConcreteSR(range, rune) => Array(rune)
           case IsInterfaceSR(range, rune) => Array(rune)
@@ -206,7 +215,7 @@ class CompilerSolver[Env, State](
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
       case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
-      case ResolveSR(range, resultRune, name, paramsListRune) => Array(Array(paramsListRune.rune))
+      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(Array(paramsListRune.rune, returnRune.rune))
       case OneOfSR(range, rune, literals) => Array(Array(rune.rune))
       case EqualsSR(range, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
       case IsConcreteSR(range, rune) => Array(Array(rune.rune))
@@ -530,16 +539,11 @@ class CompilerRuleSolver[Env, State](
         // via the `func moo(int)void` syntax) or let the caller pass it in.
 
         val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
-        val CoordTemplata(returnCoord) = 
-        vimpl() // make this conjure, and postpone
-        val prototypeTemplata =
-          delegate.resolveFunction(env, state, range, name, paramCoords) match {
-            case Err(e) => return Err(CouldntFindFunction(range, e))
-            case Ok(x) => x
-          }
+        val CoordTemplata(returnCoord) = vassertSome(stepState.getConclusion(returnRune.rune))
+        // We only pretend this function exists for now, and postpone actually resolving it until later, see SFWPRL.
+        val prototypeTemplata = delegate.predictFunction(env, state, range, name, paramCoords, returnCoord)
         stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, prototypeTemplata)
         Ok(())
-
       }
       case CallSiteFuncSR(range, prototypeRune, name, paramListRune, returnRune) => {
         // If we're here, then we're solving in the callsite, not the definition.
@@ -984,6 +988,29 @@ class CompilerRuleSolver[Env, State](
                     }
                     vassert(argRunes.size == struct.fullName.last.templateArgs.size)
                     argRunes.zip(struct.fullName.last.templateArgs).foreach({ case (rune, templateArg) =>
+                      stepState.concludeRune[ITypingPassSolverError](range, rune.rune, templateArg)
+                    })
+                    Ok(())
+                  }
+                  case _ => return Err(CallResultWasntExpectedType(template, result))
+                }
+              }
+              case it@KindTemplata(structTT@StructTT(_)) => {
+                result match {
+                  case KindTemplata(instantiationStruct@StructTT(_)) => {
+                    if (structTT != instantiationStruct) {
+                      return Err(CallResultWasntExpectedType(it, result))
+                    }
+                    argRunes.zip(instantiationStruct.fullName.last.templateArgs).foreach({ case (rune, templateArg) =>
+                      stepState.concludeRune[ITypingPassSolverError](range, rune.rune, templateArg)
+                    })
+                    Ok(())
+                  }
+                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationStruct@StructTT(_))) => {
+                    if (structTT != instantiationStruct) {
+                      return Err(CallResultWasntExpectedType(it, result))
+                    }
+                    argRunes.zip(instantiationStruct.fullName.last.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range, rune.rune, templateArg)
                     })
                     Ok(())

@@ -247,7 +247,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case OneOfSR(range, rune, literals) =>
     case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) =>
     case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) =>
-    case ResolveSR(range, resultRune, name, paramsListRune) =>
+    case ResolveSR(range, resultRune, name, paramsListRune, returnRune) =>
     case PackSR(range, resultRune, members) =>
     case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) =>
     case other => vimpl(other)
