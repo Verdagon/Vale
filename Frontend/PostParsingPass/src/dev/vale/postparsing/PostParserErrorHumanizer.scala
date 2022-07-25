@@ -136,6 +136,8 @@ object PostParserErrorHumanizer {
       case StructNameRuneS(inner) => humanizeName(inner)
       case FreeOverrideStructTemplateRuneS() => "(free override template)"
       case FunctorPrototypeRuneNameS() => "(functor prototype)"
+      case MacroSelfRuneS() => "_MSelf"
+      case MacroVoidRuneS() => "_MVoid"
       case other => vimpl(other)
     }
   }

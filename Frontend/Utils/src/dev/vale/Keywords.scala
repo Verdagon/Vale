@@ -100,6 +100,7 @@ class Keywords(interner: Interner) {
   val DeriveStructDrop: StrI = interner.intern(StrI("DeriveStructDrop"))
   val DeriveStructFree: StrI = interner.intern(StrI("DeriveStructFree"))
   val DeriveImplFree: StrI = interner.intern(StrI("DeriveImplFree"))
+  val DeriveAnonymousSubstruct: StrI = interner.intern(StrI("DeriveAnonymousSubstruct"))
   val DeriveInterfaceFree: StrI = interner.intern(StrI("DeriveInterfaceFree"))
   val DeriveInterfaceDrop: StrI = interner.intern(StrI("DeriveInterfaceDrop"))
   val DeriveImplDrop: StrI = interner.intern(StrI("DeriveImplDrop"))

@@ -45,7 +45,7 @@ trait IStructCompilerDelegate {
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   PrototypeT
@@ -125,6 +125,34 @@ class StructCompiler(
     })
   }
 
+  // See SFWPRL for how this is different from resolveInterface.
+  def predictInterface(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    // We take the entire templata (which includes environment and parents) so we can incorporate
+    // their rules as needed
+    interfaceTemplata: InterfaceTemplata,
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    templateArgsLayer.predictInterface(
+      coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
+  }
+
+  // See SFWPRL for how this is different from resolveStruct.
+  def predictStruct(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    // We take the entire templata (which includes environment and parents) so we can incorporate
+    // their rules as needed
+    structTemplata: StructTemplata,
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (StructTT) = {
+    templateArgsLayer.predictStruct(
+      coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
+  }
+
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
@@ -161,17 +189,17 @@ class StructCompiler(
 //    })
   }
 
-  def getMemberCoords(coutputs: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
-    coutputs.lookupStruct(structTT).members.map(_.tyype).map({
-      case ReferenceMemberTypeT(coord) => coord
-      case AddressMemberTypeT(_) => {
-        // At time of writing, the only one who calls this is the inferer, who wants to know so it
-        // can match incoming arguments into a destructure. Can we even destructure things with
-        // addressible members?
-        vcurious()
-      }
-    })
-  }
+//  def getMemberCoords(coutputs: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
+//    coutputs.lookupStruct(structTT).members.map(_.tyype).map({
+//      case ReferenceMemberTypeT(coord) => coord
+//      case AddressMemberTypeT(_) => {
+//        // At time of writing, the only one who calls this is the inferer, who wants to know so it
+//        // can match incoming arguments into a destructure. Can we even destructure things with
+//        // addressible members?
+//        vcurious()
+//      }
+//    })
+//  }
 
 }
 
@@ -183,23 +211,9 @@ object StructCompiler {
     if (allMembersImmutable) ImmutableT else MutableT
   }
 
-  def getMembers(interner: Interner, coutputs: CompilerOutputs, structTT: StructTT): Vector[StructMemberT] = {
-    val definition = coutputs.lookupStruct(structTT)
-    val placeholderSubstituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
-    definition.members.map({
-      case StructMemberT(name, variability, ReferenceMemberTypeT(tyype)) => {
-        StructMemberT(name, variability, ReferenceMemberTypeT(placeholderSubstituter.substituteForCoord(tyype)))
-      }
-      case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
-        vcurious()
-      }
-    })
-  }
-
   def getMutability(interner: Interner, coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
-    val transformer = TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+    val transformer = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
     val result = transformer.substituteForTemplata(definition.mutability)
     ITemplata.expectMutability(result)
   }

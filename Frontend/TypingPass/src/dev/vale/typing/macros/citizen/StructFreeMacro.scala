@@ -5,7 +5,7 @@ import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, EqualsSR, LookupSR, RuneUsage}
 import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.typing.{Compiler, CompilerOutputs, ast, env}
+import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, ast, env}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.expression.CallCompiler
@@ -19,7 +19,6 @@ import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
-import dev.vale.typing.OverloadResolver
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
 
 class StructFreeMacro(
@@ -33,7 +32,7 @@ class StructFreeMacro(
 
   val freeGeneratorId: StrI = keywords.freeGenerator
 
-  override def getStructSiblingEntries(macroName: StrI, structName: FullNameT[INameT], structA: StructA):
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
@@ -195,10 +194,13 @@ class StructFreeMacro(
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+
     val memberLocalVariables =
       structDef.members.flatMap({
         case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
-          Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
+          Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, substituter.substituteForCoord(reference)))
         }
         case StructMemberT(_, _, AddressMemberTypeT(_)) => {
           // See Destructure2 and its handling of addressible members for why

@@ -47,13 +47,13 @@ case class FunctionDoesntHaveName(range: RangeS, name: IFunctionNameT) extends I
 case class CantGetComponentsOfPlaceholderPrototype(range: RangeS) extends ITypingPassSolverError
 
 trait IInfererDelegate[Env, State] {
-  def lookupMemberTypes(
-    state: State,
-    kind: KindT,
-    // This is here so that the predictor can just give us however many things
-    // we expect.
-    expectedNumMembers: Int
-  ): Option[Vector[CoordT]]
+//  def lookupMemberTypes(
+//    state: State,
+//    kind: KindT,
+//    // This is here so that the predictor can just give us however many things
+//    // we expect.
+//    expectedNumMembers: Int
+//  ): Option[Vector[CoordT]]
 
   def getMutability(state: State, kind: KindT): ITemplata[MutabilityTemplataType]
 
@@ -74,7 +74,25 @@ trait IInfererDelegate[Env, State] {
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
+  // See SFWPRL for how this is different from resolveStruct.
+  def predictStruct(
+    env: Env,
+    state: State,
+    callRange: RangeS,
+    templata: StructTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (KindT)
+
   def resolveInterface(
+    env: Env,
+    state: State,
+    callRange: RangeS,
+    templata: InterfaceTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (KindT)
+
+  // See SFWPRL for how this is different from resolveInterface.
+  def predictInterface(
     env: Env,
     state: State,
     callRange: RangeS,
@@ -98,8 +116,6 @@ trait IInfererDelegate[Env, State] {
 
   def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType
   def getStructTemplataType()(st: StructTemplata): ITemplataType
-
-  def getMemberCoords(state: State, structTT: StructTT): Vector[CoordT]
 
   def structIsClosure(state: State, structTT: StructTT): Boolean
 
@@ -208,6 +224,8 @@ class CompilerSolver[Env, State](
     }
   }
 
+  // During the solve, we postponed resolving structs and interfaces, see SFWPRL.
+  // Caller should remember to do that!
   def solve(
     range: RangeS,
     env: Env,
@@ -239,28 +257,30 @@ class CompilerSolver[Env, State](
         initiallyKnownRuneToTemplata)
 
     val ruleSolver = new CompilerRuleSolver(interner, delegate, runeToType)
-    solver.solve(
-        (rule: IRulexSR) => getPuzzles(rule),
-        state,
-        env,
-        solverState,
-        ruleSolver) match {
-      case Err(f @ FailedSolve(_, _, _)) => f
-      case Ok((stepsStream, conclusionsStream)) => {
-        val conclusions = conclusionsStream.toMap
-        val allRunes = runeToType.keySet ++ solverState.getAllRunes().map(solverState.getUserRune)
-        if (conclusions.keySet != allRunes) {
-          IncompleteSolve(
-            stepsStream.toVector,
-//            conclusions,
-//            solverState.getAllRules(),
-            solverState.getUnsolvedRules(),
-            allRunes -- conclusions.keySet,
-            conclusions)
-        } else {
-          CompleteSolve(conclusions)
-        }
+    val (stepsStream, conclusionsStream) =
+      solver.solve(
+          (rule: IRulexSR) => getPuzzles(rule),
+          state,
+          env,
+          solverState,
+          ruleSolver) match {
+        case Err(f@FailedSolve(_, _, _)) => return f
+        case Ok(x) => x
       }
+
+    val conclusions = conclusionsStream.toMap
+    val allRunes = runeToType.keySet ++ solverState.getAllRunes().map(solverState.getUserRune)
+
+    // During the solve, we postponed resolving structs and interfaces, see SFWPRL.
+    // Caller should remember to do that!
+    if (conclusions.keySet != allRunes) {
+      IncompleteSolve(
+        stepsStream.toVector,
+        solverState.getUnsolvedRules(),
+        allRunes -- conclusions.keySet,
+        conclusions)
+    } else {
+      CompleteSolve(conclusions)
     }
   }
 }
@@ -510,6 +530,7 @@ class CompilerRuleSolver[Env, State](
         // via the `func moo(int)void` syntax) or let the caller pass it in.
 
         val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+        vimpl() // make this conjure, and postpone
         val prototypeTemplata =
           delegate.resolveFunction(env, state, range, name, paramCoords) match {
             case Err(e) => return Err(CouldntFindFunction(range, e))
@@ -896,10 +917,10 @@ class CompilerRuleSolver[Env, State](
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case it @ InterfaceTemplata(_, _) => {
+              case it@InterfaceTemplata(_, _) => {
                 result match {
-                  case KindTemplata(interface @ InterfaceTT(_)) => {
-                    if (!delegate.kindIsFromTemplate(state,interface, it)) {
+                  case KindTemplata(interface@InterfaceTT(_)) => {
+                    if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
                     vassert(argRunes.size == interface.fullName.last.templateArgs.size)
@@ -908,8 +929,8 @@ class CompilerRuleSolver[Env, State](
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, interface @ InterfaceTT(_))) => {
-                    if (!delegate.kindIsFromTemplate(state,interface, it)) {
+                  case CoordTemplata(CoordT(OwnT | ShareT, interface@InterfaceTT(_))) => {
+                    if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
                     vassert(argRunes.size == interface.fullName.last.templateArgs.size)
@@ -921,9 +942,9 @@ class CompilerRuleSolver[Env, State](
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case it @ KindTemplata(templateInterface @ InterfaceTT(_)) => {
+              case it@KindTemplata(templateInterface@InterfaceTT(_)) => {
                 result match {
-                  case KindTemplata(instantiationInterface @ InterfaceTT(_)) => {
+                  case KindTemplata(instantiationInterface@InterfaceTT(_)) => {
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -932,7 +953,7 @@ class CompilerRuleSolver[Env, State](
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface @ InterfaceTT(_))) => {
+                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface@InterfaceTT(_))) => {
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -944,10 +965,10 @@ class CompilerRuleSolver[Env, State](
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case st @ StructTemplata(_, _) => {
+              case st@StructTemplata(_, _) => {
                 result match {
-                  case KindTemplata(struct @ StructTT(_)) => {
-                    if (!delegate.kindIsFromTemplate(state,struct, st)) {
+                  case KindTemplata(struct@StructTT(_)) => {
+                    if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
                     vassert(argRunes.size == struct.fullName.last.templateArgs.size)
@@ -956,8 +977,8 @@ class CompilerRuleSolver[Env, State](
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, struct @ StructTT(_))) => {
-                    if (!delegate.kindIsFromTemplate(state,struct, st)) {
+                  case CoordTemplata(CoordT(OwnT | ShareT, struct@StructTT(_))) => {
+                    if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
                     vassert(argRunes.size == struct.fullName.last.templateArgs.size)
@@ -983,13 +1004,15 @@ class CompilerRuleSolver[Env, State](
               }
               case it @ StructTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val kind = delegate.resolveStruct(env, state, range, it, args.toVector)
+                // See SFWPRL for why we're calling predictStruct instead of resolveStruct
+                val kind = delegate.predictStruct(env, state, range, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, KindTemplata(kind))
                 Ok(())
               }
               case it @ InterfaceTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val kind = delegate.resolveInterface(env, state, range, it, args.toVector)
+                // See SFWPRL for why we're calling predictInterface instead of resolveInterface
+                val kind = delegate.predictInterface(env, state, range, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, KindTemplata(kind))
                 Ok(())
               }

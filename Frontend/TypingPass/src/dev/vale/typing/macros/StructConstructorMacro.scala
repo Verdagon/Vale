@@ -44,7 +44,7 @@ class StructConstructorMacro(
     Vector()
   }
 
-  override def getStructSiblingEntries(macroName: StrI, structName: FullNameT[INameT], structA: StructA):
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     if (structA.members.collect({ case VariadicStructMemberS(_, _, _) => }).nonEmpty) {
       // Dont generate constructors for variadic structs, not supported yet.
@@ -122,19 +122,23 @@ class StructConstructorMacro(
     maybeRetCoord: Option[CoordT]):
   FunctionHeaderT = {
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
-    val members = StructCompiler.getMembers(interner, coutputs, structTT)
-
+    val definition = coutputs.lookupStruct(structTT)
     val placeholderSubstituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+    val members =
+      definition.members.map({
+        case StructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
+          (name, placeholderSubstituter.substituteForCoord(tyype))
+        }
+        case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
+          vcurious()
+        }
+      })
 
     val constructorFullName = env.fullName
     vassert(constructorFullName.last.parameters.size == members.size)
     val constructorParams =
-      members.map({
-        case StructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
-          ParameterT(name, None, placeholderSubstituter.substituteForCoord(unsubstitutedReference))
-        }
-      })
+      members.map({ case (name, coord) => ParameterT(name, None, coord) })
     val constructorReturnOwnership =
       StructCompiler.getMutability(interner, coutputs, structTT) match {
         case MutabilityTemplata(MutableT) => OwnT

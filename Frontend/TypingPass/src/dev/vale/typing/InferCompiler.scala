@@ -1,13 +1,17 @@
 package dev.vale.typing
 
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vfail, vimpl, vwat}
+import dev.vale.highertyping.FunctionA
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
-import dev.vale.typing.env.IEnvironment
+import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GlobalEnvironment, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, IInfererDelegate, ITypingPassSolverError}
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.templata.{CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+
+import scala.collection.immutable.Set
 
 case class InferEnv(
   // We look in this for declared functions, see CSSNCE.
@@ -28,6 +32,7 @@ case class InitialKnown(
 class InferCompiler(
     opts: TypingPassOptions,
     interner: Interner,
+    nameTranslator: NameTranslator,
     delegate: IInfererDelegate[InferEnv, CompilerOutputs]) {
   def solveComplete(
     declaringEnv: IEnvironment,
@@ -67,6 +72,7 @@ class InferCompiler(
     }
   }
 
+
   def solve(
     declaringEnv: IEnvironment,
     callingEnv: Option[IEnvironment], // See CSSNCE
@@ -94,15 +100,116 @@ class InferCompiler(
           (senderRune.rune -> senderTemplata)
         })
 
-      new CompilerSolver[InferEnv, CompilerOutputs](opts.globalOptions, interner, delegate)
-        .solve(
-          invocationRange,
-          InferEnv(callingEnv, declaringEnv),
-          state,
-          rules,
-          runeToType,
-          alreadyKnown)
+      val outcome =
+        new CompilerSolver[InferEnv, CompilerOutputs](opts.globalOptions, interner, delegate)
+          .solve(
+            invocationRange,
+            InferEnv(callingEnv, declaringEnv),
+            state,
+            rules,
+            runeToType,
+            alreadyKnown)
+      outcome match {
+        case CompleteSolve(conclusions) => {
+          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions)
+        }
+        case IncompleteSolve(_, _, _, incompleteConclusions) => {
+          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, incompleteConclusions)
+        }
+        case FailedSolve(_, _, _) =>
+      }
+      outcome
     })
+  }
+
+
+  case class ResolvingEnvironment(
+    globalEnv: GlobalEnvironment,
+    parentEnv: IEnvironment,
+    fullName: FullNameT[ResolvingEnvNameT],
+    templatas: TemplatasStore
+  ) extends IEnvironment {
+    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+    override def lookupWithNameInner(
+      name: INameT,
+      lookupFilter: Set[ILookupContext],
+      getOnlyNearest: Boolean):
+    Iterable[ITemplata[ITemplataType]] = {
+      EnvironmentHelper.lookupWithNameInner(
+        this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+    }
+
+    override def lookupWithImpreciseNameInner(
+      name: IImpreciseNameS,
+      lookupFilter: Set[ILookupContext],
+      getOnlyNearest: Boolean):
+    Iterable[ITemplata[ITemplataType]] = {
+      EnvironmentHelper.lookupWithImpreciseNameInner(
+        this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+    }
+  }
+
+  def checkTemplateInstantiations(
+    declaringEnv: IEnvironment,
+    maybeCallingEnv: Option[IEnvironment], // See CSSNCE
+    state: CompilerOutputs,
+    rules: Array[IRulexSR],
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Unit = {
+    val name = declaringEnv.fullName.addStep(ResolvingEnvNameT())
+    val templatasStore =
+      TemplatasStore(name, Map(), Map())
+        .addEntries(
+          interner,
+          conclusions.map({case (nameS, templata) =>
+            interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+          }).toVector)
+    val temporaryEnv =
+      ResolvingEnvironment(
+        declaringEnv.globalEnv, declaringEnv, name, templatasStore)
+
+    rules.foreach({
+      case r @ CallSR(_, _, _, _) => {
+        checkCall(InferEnv(maybeCallingEnv, temporaryEnv), state, r, conclusions)
+      }
+      case _ =>
+    })
+  }
+
+  def checkCall(env: InferEnv, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
+    val CallSR(range, resultRune, templateRune, argRunes) = c
+
+    val template =
+      conclusions.get(templateRune.rune) match {
+        case Some(t) => t
+        case None => return
+      }
+    val args =
+      argRunes.map(argRune => {
+        conclusions.get(argRune.rune) match {
+          case Some(t) => t
+          case None => return
+        }
+      })
+
+    template match {
+      case RuntimeSizedArrayTemplateTemplata() => {
+        val Array(m, CoordTemplata(coord)) = args
+        val mutability = ITemplata.expectMutability(m)
+        delegate.getRuntimeSizedArrayKind(env, state, coord, mutability)
+      }
+      case it @ StructTemplata(_, _) => {
+        delegate.resolveStruct(env, state, range, it, args.toVector)
+      }
+      case it @ InterfaceTemplata(_, _) => {
+        delegate.resolveInterface(env, state, range, it, args.toVector)
+      }
+      case kt @ KindTemplata(_) => {
+        Ok(kt)
+      }
+      case other => vimpl(other)
+    }
   }
 }
 

@@ -79,6 +79,116 @@ class StructCompilerGenericArgsLayer(
     })
   }
 
+  // See SFWPRL for how this is different from resolveInterface.
+  def predictInterface(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    interfaceTemplata: InterfaceTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (InterfaceTT) = {
+    Profiler.frame(() => {
+      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
+
+      // We no longer assume this:
+      //   vassert(templateArgs.size == structA.genericParameters.size)
+      // because we have default generic arguments now.
+
+      val initialKnowns =
+        interfaceA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
+          InitialKnown(RuneUsage(callRange, genericParam.rune.rune), templateArg)
+        })
+
+      val callSiteRules =
+        TemplataCompiler.assemblePredictRules(
+          interfaceA.genericParameters, templateArgs.size)
+      val runesForPrediction =
+        (interfaceA.genericParameters.map(_.rune.rune) ++
+          callSiteRules.flatMap(_.runeUsages.map(_.rune))).toSet
+      val runeToTypeForPrediction =
+        runesForPrediction.toArray.map(r => r -> interfaceA.runeToType(r)).toMap
+
+      // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
+      // just to populate any generic parameter default values.
+      val inferences =
+        inferCompiler.solveExpectComplete(
+          env,
+          Some(callingEnv),
+          coutputs,
+          callSiteRules,
+          runeToTypeForPrediction,
+          callRange,
+          initialKnowns,
+          Vector())
+
+      // We can't just make a StructTT with the args they gave us, because they may have been
+      // missing some, in which case we had to run some default rules.
+      // Let's use the inferences to make one.
+
+      val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
+      val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
+      val fullName = env.fullName.addStep(interfaceName)
+      val interfaceTT = interner.intern(InterfaceTT(fullName))
+      interfaceTT
+    })
+  }
+
+  // See SFWPRL for how this is different from resolveStruct.
+  def predictStruct(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    structTemplata: StructTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  (StructTT) = {
+    Profiler.frame(() => {
+      val StructTemplata(env, structA) = structTemplata
+      val structTemplateName = nameTranslator.translateStructName(structA.name)
+
+      // We no longer assume this:
+      //   vassert(templateArgs.size == structA.genericParameters.size)
+      // because we have default generic arguments now.
+
+      val initialKnowns =
+        structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
+          InitialKnown(RuneUsage(callRange, genericParam.rune.rune), templateArg)
+        })
+
+      val callSiteRules =
+        TemplataCompiler.assemblePredictRules(
+          structA.genericParameters, templateArgs.size)
+      val runesForPrediction =
+        (structA.genericParameters.map(_.rune.rune) ++
+          callSiteRules.flatMap(_.runeUsages.map(_.rune))).toSet
+      val runeToTypeForPrediction =
+        runesForPrediction.toArray.map(r => r -> structA.headerRuneToType(r)).toMap
+
+      // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
+      // just to populate any generic parameter default values.
+      val inferences =
+      inferCompiler.solveExpectComplete(
+        env,
+        Some(callingEnv),
+        coutputs,
+        callSiteRules,
+        runeToTypeForPrediction,
+        callRange,
+        initialKnowns,
+        Vector())
+
+      // We can't just make a StructTT with the args they gave us, because they may have been
+      // missing some, in which case we had to run some default rules.
+      // Let's use the inferences to make one.
+
+      val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
+      val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
+      val fullName = env.fullName.addStep(structName)
+      val structTT = interner.intern(StructTT(fullName))
+      structTT
+    })
+  }
+
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
@@ -135,6 +245,7 @@ class StructCompilerGenericArgsLayer(
       val StructTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.fullName.addStep(structTemplateName)
+      coutputs.declareEnvForTemplate(structTemplateFullName, declaringEnv)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
@@ -205,7 +316,9 @@ class StructCompilerGenericArgsLayer(
       val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
-//      val fullName = env.fullName.addStep(interfaceLastName)
+      coutputs.declareEnvForTemplate(interfaceTemplateFullName, declaringEnv)
+
+      //      val fullName = env.fullName.addStep(interfaceLastName)
 
       val definitionRules = interfaceA.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
 
@@ -250,7 +363,7 @@ class StructCompilerGenericArgsLayer(
           declaringEnv,
           None,
           coutputs,
-          interfaceA.rules,
+          definitionRules,
           interfaceA.runeToType,
           interfaceA.range,
           initialKnowns,

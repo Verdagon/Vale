@@ -180,7 +180,7 @@ case class CompilerOutputs() {
 
   def add(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == MutabilityTemplata(ImmutableT)) {
-      if (structDef.members.exists(_.tyype.reference.ownership != ShareT)) {
+      if (structDef.members.exists(_.tyype.reference.unsubstitutedCoord.ownership != ShareT)) {
         vfail("ImmutableP contains a non-immutable!")
       }
     }

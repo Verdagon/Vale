@@ -36,8 +36,10 @@ class ImplCompiler(
     val ImplTemplata(env, impl) = implTemplata
     val ImplA(range, name, identifyingRunes, rules, runeToType, structKindRune, interfaceKindRune) = impl
 
+    // Remember, impls can have rules too, such as:
+    //   impl<T> Opt<T> for Some<T> where func drop(T)void;
+    // so we do need to filter them out when compiling.
     val definitionRules = rules.filter(InferCompiler.includeRuleInDefinitionSolve)
-    vcurious(rules == definitionRules)
 
     val result =
       inferCompiler.solveComplete(
@@ -285,7 +287,7 @@ class ImplCompiler(
       .getParentImplsForSubCitizenTemplate(subCitizenTemplateFullName)
       .map({ case ImplT(_, parentInterfaceFromPlaceholderedSubCitizen, _, _) =>
         val substituter =
-          TemplataCompiler.getPlaceholderSubstituter(interner, subCitizenTT)
+          TemplataCompiler.getPlaceholderSubstituter(interner, subCitizenTT.fullName)
         substituter.substituteForInterface(parentInterfaceFromPlaceholderedSubCitizen)
       }).toArray
   }

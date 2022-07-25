@@ -148,6 +148,8 @@ case class SelfRuneS() extends IRuneS {  }
 case class SelfOwnershipRuneS() extends IRuneS {  }
 case class SelfKindRuneS() extends IRuneS {  }
 case class SelfKindTemplateRuneS() extends IRuneS {  }
+case class MacroVoidRuneS() extends IRuneS {  }
+case class MacroSelfRuneS() extends IRuneS {  }
 case class CodeNameS(name: StrI) extends IImpreciseNameS {
   vpass()
   vassert(name.str != "_")

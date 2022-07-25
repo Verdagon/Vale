@@ -4,13 +4,12 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.LocationInFunctionEnvironment
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, INameT, IVarNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing._
-import dev.vale.typing.names.BuildingFunctionNameWithClosuredsAndTemplateArgsT
 import dev.vale.typing.types.StructTT
 import dev.vale.{Interner, Profiler, vassert, vcurious, vfail, vimpl, vpass, vwat}
 
@@ -19,7 +18,7 @@ import scala.collection.immutable.{List, Map, Set}
 case class BuildingFunctionEnvironmentWithClosureds(
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
-  fullName: FullNameT[BuildingFunctionNameWithClosuredsT],
+  fullName: FullNameT[IFunctionTemplateNameT],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT]
@@ -578,7 +577,7 @@ case class ReferenceClosureVariableT(
 }
 
 object EnvironmentHelper {
-  private[env] def lookupWithNameInner(
+  def lookupWithNameInner(
     requestingEnv: IEnvironment,
     templatas: TemplatasStore,
     parent: IEnvironment,
@@ -595,7 +594,7 @@ object EnvironmentHelper {
     }
   }
 
-  private[env] def lookupWithImpreciseNameInner(
+  def lookupWithImpreciseNameInner(
     requestingEnv: IEnvironment,
     templatas: TemplatasStore,
     parent: IEnvironment,

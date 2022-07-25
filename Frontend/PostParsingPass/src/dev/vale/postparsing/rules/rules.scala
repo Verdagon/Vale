@@ -76,8 +76,10 @@ case class ResolveSR(
   range: RangeS,
   resultRune: RuneUsage,
   name: StrI,
-  paramsListRune: RuneUsage
+  paramsListRune: RuneUsage,
+  returnRune: RuneUsage
 ) extends IRulexSR {
+  vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune)
 }

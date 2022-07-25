@@ -1,10 +1,10 @@
 package dev.vale.typing.macros
 
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
-import dev.vale.{CodeLocationS, Interner, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
+import dev.vale.{CodeLocationS, Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.parsing.ast.{FinalP, UseP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
-import dev.vale.postparsing._
+import dev.vale.postparsing.{SealedS, _}
 import dev.vale.postparsing.rules.{CallSR, CoordComponentsSR, LookupSR, RuleScout, RuneUsage}
 import dev.vale.typing.{OverloadResolver, TypingPassOptions}
 import dev.vale.typing.citizen.StructCompiler
@@ -24,15 +24,15 @@ import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.names.AnonymousSubstructImplNameT
 import dev.vale.typing.templata.ExternFunctionTemplata
 import dev.vale.typing.ast
-import dev.vale.typing.types.ParamFilter
+import dev.vale.typing.types.CoordT
 
 import scala.collection.immutable.List
 import scala.collection.mutable
 
 class AnonymousInterfaceMacro(
     opts: TypingPassOptions,
-
     interner: Interner,
+    keywords: Keywords,
     nameTranslator: NameTranslator,
     overloadCompiler: OverloadResolver,
     structCompiler: StructCompiler,
@@ -43,7 +43,7 @@ class AnonymousInterfaceMacro(
     implDropMacro: ImplDropMacro
 ) extends IOnInterfaceDefinedMacro {
 
-  val macroName: String = "DeriveAnonymousSubstruct"
+  val macroName: StrI = keywords.DeriveAnonymousSubstruct
 
 //  val generatorId: String = "interfaceConstructorGenerator"
 
@@ -52,6 +52,10 @@ class AnonymousInterfaceMacro(
   }
 
   override def getInterfaceSiblingEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+    if (interfaceA.attributes.contains(SealedS)) {
+      return Vector()
+    }
+
     val memberRunes =
       interfaceA.internalMethods.zipWithIndex.map({ case (method, index) =>
         RuneUsage(RangeS(method.range.begin, method.range.begin), AnonymousSubstructMemberRuneS(index))
@@ -67,9 +71,9 @@ class AnonymousInterfaceMacro(
 
     val moreEntries =
         interfaceFreeMacro.getInterfaceSiblingEntries(structNameT, interfaceA) ++
-        structConstructorMacro.getStructSiblingEntries(structConstructorMacro.macroName, structNameT, structA) ++
-        structDropMacro.getStructSiblingEntries(structDropMacro.macroName, structNameT, structA) ++
-        structFreeMacro.getStructSiblingEntries(structFreeMacro.macroName, structNameT, structA)
+        structConstructorMacro.getStructSiblingEntries(structNameT, structA) ++
+        structDropMacro.getStructSiblingEntries(structNameT, structA) ++
+        structFreeMacro.getStructSiblingEntries(structNameT, structA)
 
     val forwarderMethods =
       interfaceA.internalMethods.zip(memberRunes).zipWithIndex.map({ case ((method, rune), methodIndex) =>

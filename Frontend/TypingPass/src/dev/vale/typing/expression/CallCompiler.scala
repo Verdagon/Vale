@@ -49,11 +49,6 @@ class CallCompiler(
         // we might be in the middle of a recursive call like:
         // func main():Int(main())
 
-        val argsParamFilters =
-          unconvertedArgsPointerTypes2.map(unconvertedArgsPointerType2 => {
-            ParamFilter(unconvertedArgsPointerType2, None)
-          })
-
         val prototype =
           overloadCompiler.findFunction(
               overloadSetEnv,
@@ -62,7 +57,7 @@ class CallCompiler(
               functionName,
               explicitTemplateArgRulesS,
               explicitTemplateArgRunesS,
-              argsParamFilters,
+              unconvertedArgsPointerTypes2,
               Vector.empty,
               false) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
@@ -111,11 +106,6 @@ class CallCompiler(
     // we might be in the middle of a recursive call like:
     // func main():Int(main())
 
-    val argsParamFilters =
-      unconvertedArgsPointerTypes2.map(unconvertedArgsPointerType2 => {
-        ParamFilter(unconvertedArgsPointerType2, None)
-      })
-
     val prototype =
       overloadCompiler.findFunction(
         nenv,
@@ -124,7 +114,7 @@ class CallCompiler(
         functionName,
         explicitTemplateArgRulesS,
         explicitTemplateArgRunesS,
-        argsParamFilters,
+        unconvertedArgsPointerTypes2,
         Vector.empty,
         false) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
@@ -187,9 +177,7 @@ class CallCompiler(
 
     val argsTypes2 = givenArgsExprs2.map(_.result.reference)
     val closureParamType = CoordT(givenCallableBorrowExpr2.result.reference.ownership, kind)
-    val paramFilters =
-      Vector(ParamFilter(closureParamType, None)) ++
-        argsTypes2.map(argType => ParamFilter(argType, None))
+    val paramFilters = Vector(closureParamType) ++ argsTypes2
     val prototype2 =
       overloadCompiler.findFunction(
         env, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false) match {

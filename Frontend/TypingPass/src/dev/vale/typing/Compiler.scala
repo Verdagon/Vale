@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, PackageCoordinateMap, Profiler, RangeS, Result, vassert, vassertOne, vcurious, vfail, vimpl, vwat, _}
 import dev.vale.options.GlobalOptions
-import dev.vale.parsing.ast.UseP
+import dev.vale.parsing.ast.{CallMacroP, DontCallMacroP, UseP}
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
@@ -18,7 +18,7 @@ import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
-import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
+import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
@@ -34,7 +34,6 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
-import dev.vale.typing.macros.SameInstanceMacro
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -134,6 +133,7 @@ class Compiler(
     new InferCompiler(
       opts,
       interner,
+      nameTranslator,
       new IInfererDelegate[InferEnv, CompilerOutputs] {
         override def lookupTemplata(
           envs: InferEnv,
@@ -179,16 +179,16 @@ class Compiler(
           templataCompiler.lookupTemplata(envs.declaringEnv, state, range, name)
         }
 
-        override def lookupMemberTypes(state: CompilerOutputs, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
-            val underlyingstructTT =
-              kind match {
-                case sr@StructTT(_) => sr
-                case _ => return None
-              }
-            val structDefT = state.lookupStruct(underlyingstructTT)
-            val structMemberTypes = structDefT.members.map(_.tyype.reference)
-            Some(structMemberTypes)
-        }
+//        override def lookupMemberTypes(state: CompilerOutputs, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
+//            val underlyingstructTT =
+//              kind match {
+//                case sr@StructTT(_) => sr
+//                case _ => return None
+//              }
+//            val structDefT = state.lookupStruct(underlyingstructTT)
+//            val structMemberTypes = structDefT.members.map(m => m.tyype.reference)
+//            Some(structMemberTypes)
+//        }
 
         override def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType] = {
             Compiler.getMutability(state, kind)
@@ -209,8 +209,8 @@ class Compiler(
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
-            structCompiler.resolveInterface(
-              state, env.declaringEnv, callRange, templata, templateArgs)
+          structCompiler.resolveInterface(
+            state, env.declaringEnv, callRange, templata, templateArgs)
         }
 
         override def resolveStruct(
@@ -221,6 +221,28 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.resolveStruct(
+            state, env.declaringEnv, callRange, templata, templateArgs)
+        }
+
+        override def predictInterface(
+          env: InferEnv,
+          state: CompilerOutputs,
+          callRange: RangeS,
+          templata: InterfaceTemplata,
+          templateArgs: Vector[ITemplata[ITemplataType]]):
+        (KindT) = {
+            structCompiler.predictInterface(
+              state, env.declaringEnv, callRange, templata, templateArgs)
+        }
+
+        override def predictStruct(
+          env: InferEnv,
+          state: CompilerOutputs,
+          callRange: RangeS,
+          templata: StructTemplata,
+          templateArgs: Vector[ITemplata[ITemplataType]]):
+        (KindT) = {
+          structCompiler.predictStruct(
             state, env.declaringEnv, callRange, templata, templateArgs)
         }
 
@@ -249,10 +271,10 @@ class Compiler(
               })
         }
 
-        override def getMemberCoords(state: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
-            structCompiler.getMemberCoords(state, structTT)
-
-        }
+//        override def getMemberCoords(state: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
+//            structCompiler.getMemberCoords(state, structTT)
+//
+//        }
 
 
         override def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType = {
@@ -277,7 +299,7 @@ class Compiler(
               interner.intern(CodeNameS(interner.intern(name))),
               Vector.empty,
               Array.empty,
-              coords.map(ParamFilter(_, None)),
+              coords,
               Vector.empty,
               true)
         }
@@ -328,7 +350,7 @@ class Compiler(
           env: IEnvironment, coutputs: CompilerOutputs, callRange: RangeS, functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
-          args: Vector[ParamFilter], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
+          args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
         PrototypeT = {
           overloadCompiler.findFunction(env, coutputs, callRange, functionName,
             explicitTemplateArgRulesS,
@@ -422,7 +444,7 @@ class Compiler(
             callRange: RangeS,
             functionTemplata: FunctionTemplata,
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-            args: Vector[ParamFilter]):
+            args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
         }
@@ -466,29 +488,58 @@ class Compiler(
   val sameInstanceMacro = new SameInstanceMacro(keywords)
   val anonymousInterfaceMacro =
     new AnonymousInterfaceMacro(
-      opts, interner, nameTranslator, overloadCompiler, structCompiler, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
+      opts, interner, keywords, nameTranslator, overloadCompiler, structCompiler, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
     try {
       Profiler.frame(() => {
+        val nameToStructDefinedMacro =
+          Map(
+            structConstructorMacro.macroName -> structConstructorMacro,
+            structDropMacro.macroName -> structDropMacro,
+            structFreeMacro.macroName -> structFreeMacro,
+            implFreeMacro.macroName -> implFreeMacro)
+        val nameToInterfaceDefinedMacro =
+          Map(
+            interfaceDropMacro.macroName -> interfaceDropMacro,
+            interfaceFreeMacro.macroName -> interfaceFreeMacro,
+            anonymousInterfaceMacro.macroName -> anonymousInterfaceMacro)
+        val nameToImplDefinedMacro = Map[StrI, IOnImplDefinedMacro]()
+        val nameToFunctionBodyMacro =
+          Map(
+            abstractBodyMacro.generatorId -> abstractBodyMacro,
+            structConstructorMacro.generatorId -> structConstructorMacro,
+            structFreeMacro.freeGeneratorId -> structFreeMacro,
+            structDropMacro.dropGeneratorId -> structDropMacro,
+            rsaLenMacro.generatorId -> rsaLenMacro,
+            rsaMutNewMacro.generatorId -> rsaMutNewMacro,
+            rsaImmNewMacro.generatorId -> rsaImmNewMacro,
+            rsaPushMacro.generatorId -> rsaPushMacro,
+            rsaPopMacro.generatorId -> rsaPopMacro,
+            rsaCapacityMacro.generatorId -> rsaCapacityMacro,
+            ssaLenMacro.generatorId -> ssaLenMacro,
+            rsaDropMacro.generatorId -> rsaDropMacro,
+            ssaDropMacro.generatorId -> ssaDropMacro,
+            rsaFreeMacro.generatorId -> rsaFreeMacro,
+            ssaFreeMacro.generatorId -> ssaFreeMacro,
+            lockWeakMacro.generatorId -> lockWeakMacro,
+            sameInstanceMacro.generatorId -> sameInstanceMacro,
+            asSubtypeMacro.generatorId -> asSubtypeMacro)
+
         val fullNameAndEnvEntry: Vector[(FullNameT[INameT], IEnvEntry)] =
           packageToProgramA.flatMap({ case (coord, programA) =>
             val packageName = FullNameT(coord, Vector(), interner.intern(PackageTopLevelNameT()))
             programA.structs.map(structA => {
               val structNameT = packageName.addStep(nameTranslator.translateNameStep(structA.name))
               Vector((structNameT, StructEnvEntry(structA))) ++
-              structConstructorMacro.getStructSiblingEntries(structConstructorMacro.macroName, structNameT, structA)
+                preprocessStruct(nameToStructDefinedMacro, structNameT, structA)
             }) ++
             programA.interfaces.map(interfaceA => {
               val interfaceNameT = packageName.addStep(nameTranslator.translateNameStep(interfaceA.name))
+
               Vector((interfaceNameT, InterfaceEnvEntry(interfaceA))) ++
-              interfaceDropMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA) ++
-                (if (interfaceA.attributes.contains(SealedS)) {
-                  Vector()
-                } else {
-                  anonymousInterfaceMacro.getInterfaceSiblingEntries(interfaceNameT, interfaceA)
-                })
+                preprocessInterface(nameToInterfaceDefinedMacro, interfaceNameT, interfaceA)
             }) ++
             programA.impls.map(implA => {
               val implNameT = packageName.addStep(nameTranslator.translateImplName(implA.name))
@@ -524,34 +575,10 @@ class Compiler(
             interfaceDropMacro,
             interfaceFreeMacro,
             anonymousInterfaceMacro,
-            Map(
-              structDropMacro.macroName -> structDropMacro,
-              structFreeMacro.macroName -> structFreeMacro,
-              implFreeMacro.macroName -> implFreeMacro),
-            Map(
-              interfaceDropMacro.macroName -> interfaceDropMacro,
-              interfaceFreeMacro.macroName -> interfaceFreeMacro),
-            Map(),
-            Map(
-              abstractBodyMacro.generatorId -> abstractBodyMacro,
-              structConstructorMacro.generatorId -> structConstructorMacro,
-              structFreeMacro.freeGeneratorId -> structFreeMacro,
-//              interfaceFreeMacro.generatorId -> interfaceFreeMacro,
-              structDropMacro.dropGeneratorId -> structDropMacro,
-              rsaLenMacro.generatorId -> rsaLenMacro,
-              rsaMutNewMacro.generatorId -> rsaMutNewMacro,
-              rsaImmNewMacro.generatorId -> rsaImmNewMacro,
-              rsaPushMacro.generatorId -> rsaPushMacro,
-              rsaPopMacro.generatorId -> rsaPopMacro,
-              rsaCapacityMacro.generatorId -> rsaCapacityMacro,
-              ssaLenMacro.generatorId -> ssaLenMacro,
-              rsaDropMacro.generatorId -> rsaDropMacro,
-              ssaDropMacro.generatorId -> ssaDropMacro,
-              rsaFreeMacro.generatorId -> rsaFreeMacro,
-              ssaFreeMacro.generatorId -> ssaFreeMacro,
-              lockWeakMacro.generatorId -> lockWeakMacro,
-              sameInstanceMacro.generatorId -> sameInstanceMacro,
-              asSubtypeMacro.generatorId -> asSubtypeMacro),
+            nameToStructDefinedMacro,
+            nameToInterfaceDefinedMacro,
+            nameToImplDefinedMacro,
+            nameToFunctionBodyMacro,
             namespaceNameToTemplatas,
             // Bulitins
             env.TemplatasStore(FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector(), interner.intern(PackageTopLevelNameT())), Map(), Map()).addEntries(
@@ -862,6 +889,58 @@ class Compiler(
     }
   }
 
+  private def preprocessStruct(
+    nameToStructDefinedMacro: Map[StrI, IOnStructDefinedMacro],
+    structNameT: FullNameT[INameT],
+    structA: StructA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+    val defaultCalledMacros =
+      Vector(
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructConstructor),
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop),
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
+    determineMacrosToCall(nameToStructDefinedMacro, defaultCalledMacros, structA.range, structA.attributes)
+      .flatMap(_.getStructSiblingEntries(structNameT, structA))
+  }
+
+  private def preprocessInterface(
+    nameToInterfaceDefinedMacro: Map[StrI, IOnInterfaceDefinedMacro],
+    interfaceNameT: FullNameT[INameT],
+    interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+    val defaultCalledMacros =
+      Vector(
+        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceDrop),
+        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree),
+        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveAnonymousSubstruct))
+    determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, interfaceA.range, interfaceA.attributes)
+      .flatMap(_.getInterfaceSiblingEntries(interfaceNameT, interfaceA))
+  }
+
+  private def determineMacrosToCall[T](
+      nameToMacro: Map[StrI, T],
+      defaultCalledMacros: Vector[MacroCallS],
+      range: RangeS,
+      attributes: Vector[ICitizenAttributeS]):
+  Vector[T] = {
+    attributes.foldLeft(defaultCalledMacros)({
+      case (macrosToCall, mc@MacroCallS(range, CallMacroP, macroName)) => {
+        if (macrosToCall.exists(_.macroName == macroName)) {
+          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
+        }
+        macrosToCall :+ mc
+      }
+      case (macrosToCall, MacroCallS(_, DontCallMacroP, macroName)) => macrosToCall.filter(_.macroName != macroName)
+      case (macrosToCall, _) => macrosToCall
+    }).map(macroCall => {
+      nameToMacro.get(macroCall.macroName) match {
+        case None => {
+          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroCall.macroName))
+        }
+        case Some(m) => m
+      }
+    })
+  }
+
   def ensureDeepExports(coutputs: CompilerOutputs): Unit = {
     val packageToKindToExport =
       coutputs.getKindExports
@@ -911,7 +990,7 @@ class Compiler(
           case sr@StructTT(_) => {
             val structDef = coutputs.lookupStruct(sr)
             structDef.members.foreach({ case StructMemberT(_, _, member) =>
-              val CoordT(_, memberKind) = member.reference
+              val UnsubstitutedCoordT(CoordT(_, memberKind)) = member.reference
               if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
                 throw CompileErrorExceptionT(
                   vale.typing.ExportedImmutableKindDependedOnNonExportedKind(

@@ -17,7 +17,7 @@ import dev.vale.typing.env.FunctionEnvEntry
 import dev.vale.typing.macros.IOnImplDefinedMacro
 import dev.vale.typing.names._
 import dev.vale.typing.templata.ITemplata
-import dev.vale.typing.types.ParamFilter
+import dev.vale.typing.types.CoordT
 
 class ImplFreeMacro(
   interner: Interner,
@@ -27,7 +27,7 @@ class ImplFreeMacro(
   val macroName: StrI = keywords.DeriveImplFree
 //  val generatorId = "freeImplGenerator"
 
-  override def getStructSiblingEntries(macroName: StrI, structName: FullNameT[INameT], structA: StructA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA): Vector[(FullNameT[INameT], IEnvEntry)] = {
     Vector()
   }
 

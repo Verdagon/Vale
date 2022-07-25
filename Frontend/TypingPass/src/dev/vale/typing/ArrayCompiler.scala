@@ -158,8 +158,8 @@ class ArrayCompiler(
               RuneParentEnvLookupSR(range, RuneUsage(range, e))
             }),
             Array(CodeRuneS(keywords.M)) ++ maybeElementTypeRune,
-            Vector(ParamFilter(sizeTE.result.reference, None)) ++
-              maybeCallableTE.map(c => ParamFilter(c.result.reference, None)),
+            Vector(sizeTE.result.reference) ++
+              maybeCallableTE.map(c => c.result.reference),
             Vector(),
             true) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))

@@ -4,13 +4,14 @@ import dev.vale.{Interner, RangeS, vassert, vassertOne, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
+import dev.vale.typing.ast.UnsubstitutedCoordT
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
@@ -58,6 +59,20 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
+  // See SFWPRL
+  def assemblePredictRules(genericParameters: Vector[GenericParameterS], numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
+    genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
+      if (index >= numExplicitTemplateArgs) {
+        genericParam.default match {
+          case Some(x) => x.rules
+          case None => Vector()
+        }
+      } else {
+        Vector()
+      }
+    })
+  }
+
   def assembleCallSiteRules(rules: Vector[IRulexSR], genericParameters: Vector[GenericParameterS], numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
     rules.filter(InferCompiler.includeRuleInCallSiteSolve) ++
       (genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
@@ -78,6 +93,11 @@ object TemplataCompiler {
   }
 
   def getCitizenTemplate(fullName: FullNameT[ICitizenNameT]): FullNameT[ICitizenTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getTemplate(fullName: FullNameT[IInstantiationNameT]): FullNameT[ITemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
   }
@@ -217,6 +237,9 @@ object TemplataCompiler {
   }
 
   trait IPlaceholderSubstituter {
+    def substituteForCoord(coordT: UnsubstitutedCoordT): CoordT = {
+      substituteForCoord(coordT.unsubstitutedCoord)
+    }
     def substituteForCoord(coordT: CoordT): CoordT
     def substituteForInterface(interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coordT: ITemplata[ITemplataType]): ITemplata[ITemplataType]
@@ -230,13 +253,13 @@ object TemplataCompiler {
   def getPlaceholderSubstituter(
     interner: Interner,
     // This is the Ship<WarpFuel>.
-    instantiationCitizenTT: ICitizenTT
+    instantiationFullName: FullNameT[IInstantiationNameT]
     // The Engine<T> is given later to the IPlaceholderSubstituter
   ):
   IPlaceholderSubstituter = {
-    val template = TemplataCompiler.getCitizenTemplate(instantiationCitizenTT.fullName)
+    val template = TemplataCompiler.getTemplate(instantiationFullName)
     val substitutions =
-      instantiationCitizenTT.fullName.last.templateArgs.zipWithIndex.map({ case (arg, index) =>
+      instantiationFullName.last.templateArgs.zipWithIndex.map({ case (arg, index) =>
         val placeholderFullName = template.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
         placeholderFullName -> arg
       }).toArray

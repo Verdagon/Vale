@@ -19,7 +19,7 @@ import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplat
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
-import dev.vale.typing.types.ParamFilter
+import dev.vale.typing.types.CoordT
 import dev.vale.RangeS
 
 object CompilerErrorHumanizer {
@@ -191,8 +191,7 @@ object CompilerErrorHumanizer {
       PostParserErrorHumanizer.humanizeImpreciseName(name) +
       "(" +
       args.map({
-        case ParamFilter(tyype, Some(AbstractT())) => humanizeTemplata(codeMap, CoordTemplata(tyype)) + " abstract"
-        case ParamFilter(tyype, None) => humanizeTemplata(codeMap, CoordTemplata(tyype))
+        case tyype => humanizeTemplata(codeMap, CoordTemplata(tyype))
       }).mkString(", ") +
       "). " +
       (if (rejectedCalleeToReason.isEmpty) {

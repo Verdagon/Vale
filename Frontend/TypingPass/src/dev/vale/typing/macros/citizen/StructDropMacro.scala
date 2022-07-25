@@ -1,26 +1,25 @@
 package dev.vale.typing.macros.citizen
 
-import dev.vale.highertyping.{FunctionA, StructA}
-import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, CoordComponentsSR, EqualsSR, LookupSR, RuneUsage}
-import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
+import dev.vale.highertyping._
+import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
+import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, CoordComponentsSR, EqualsSR, IRulexSR, LookupSR, RuneUsage}
+import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
-import dev.vale.typing.{Compiler, CompilerOutputs, ast, env}
+import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, ast, env}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
 import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
 import dev.vale.typing.types._
-import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
-import dev.vale.typing.OverloadResolver
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
+
+import scala.collection.mutable
 
 class StructDropMacro(
   interner: Interner,
@@ -34,13 +33,7 @@ class StructDropMacro(
   val dropGeneratorId: StrI = keywords.dropGenerator
 
   override def getStructSiblingEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA):
-  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    Vector()
-  }
-
-  override def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
+    structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     val structNameS = structA.name
     val structType = structA.tyype
@@ -50,88 +43,74 @@ class StructDropMacro(
       genericParams.map(_.rune.rune)
         .zip(genericParams.map(_.rune.rune).map(allRuneToType)).toMap
 
+
+    def range(n: Int) = RangeS.internal(interner, n)
+    def use(n: Int, rune: IRuneS) = RuneUsage(range(n), rune)
+
+    val rules = new Accumulator[IRulexSR]()
+    // Use the same rules as the original struct, see MDSFONARFO.
+    structA.headerRules.foreach(r => rules.add(r))
+    val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
+    // Use the same runes as the original struct, see MDSFONARFO.
+    structA.headerRuneToType.foreach(runeToType += _)
+
+    val vooid = MacroVoidRuneS()
+    runeToType.put(vooid, CoordTemplataType())
+    rules.add(LookupSR(range(-1672147),use(-64002, vooid),interner.intern(CodeNameS(keywords.void))))
+
+    val structNameRune = StructNameRuneS(structA.name)
+    runeToType += (structNameRune -> structA.tyype)
+
+    val self = MacroSelfRuneS()
+    runeToType += (self -> CoordTemplataType())
+    rules.add(
+      LookupSR(
+        structA.name.range,
+        RuneUsage(structA.name.range, structNameRune),
+        structA.name.getImpreciseName(interner)))
+    rules.add(
+      CallSR(
+        structA.name.range,
+        use(-64002, self),
+        RuneUsage(structA.name.range, structNameRune),
+        structA.genericParameters.map(_.rune).toArray))
+
+    // Use the same generic parameters as the struct
+    val functionGenericParameters = structA.genericParameters
+
+    val functionTemplataType =
+      TemplateTemplataType(
+        functionGenericParameters.map(_.rune.rune).map(runeToType),
+        FunctionTemplataType())
+
+    val nameS = interner.intern(FunctionNameS(keywords.drop, structA.range.begin))
     val dropFunctionA =
-      makeFunction(
-        true,
-        structNameS,
+      FunctionA(
         structA.range,
-        structType,
-        genericParams.map(_.rune.rune),
-        structIdentifyingRuneToType)
+        nameS,
+        Vector(),
+        functionTemplataType,
+        functionGenericParameters,
+        runeToType.toMap,
+        Vector(
+          ParameterS(
+            AtomSP(
+              range(-1340),
+              Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),
+              None,
+              Some(use(-64002, self)), None))),
+        Some(use(-64002, vooid)),
+        rules.buildArray().toVector,
+        GeneratedBodyS(dropGeneratorId))
+
     val dropNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
   }
 
-  def makeFunction(
-    isDrop: Boolean, // If false, generate the free() function
-    structNameS: ICitizenDeclarationNameS,
-    structRange: RangeS,
-    structType: ITemplataType,
-    structGenericParams: Vector[IRuneS],
-    structIdentifyingRuneToType: Map[IRuneS, ITemplataType]):
-  FunctionA = {
-    val nameS =
-      if (isDrop) {
-        interner.intern(FunctionNameS(keywords.drop, structRange.begin))
-      } else {
-        interner.intern(FreeDeclarationNameS(structRange.begin))
-      }
-    FunctionA(
-      structRange,
-      nameS,
-      Vector(),
-      structType match {
-        case KindTemplataType() => FunctionTemplataType()
-        case TemplateTemplataType(paramTypes, KindTemplataType()) => {
-          TemplateTemplataType(paramTypes, FunctionTemplataType())
-        }
-      },
-      structGenericParams
-        .map(p => GenericParameterS(RuneUsage(RangeS.internal(interner, -64002), p), None)),
-      structIdentifyingRuneToType ++
-        (structType match {
-          case KindTemplataType() => Map()
-          case TemplateTemplataType(_, _) => Map(CodeRuneS(keywords.DropStructTemplate) -> structType)
-        }) ++
-        Map(
-          CodeRuneS(keywords.DropStruct) -> KindTemplataType(),
-          CodeRuneS(keywords.DropP1) -> CoordTemplataType(),
-          CodeRuneS(keywords.DropV) -> CoordTemplataType()),
-      Vector(
-        ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1))), None))),
-      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV))),
-    (structType match {
-        case KindTemplataType() => {
-          Vector(
-            LookupSR(
-              RangeS.internal(interner, -1672159),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
-              structNameS.getImpreciseName(interner)),
-            CoerceToCoordSR(
-              RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct))))
-        }
-        case TemplateTemplataType(_, KindTemplataType()) => {
-          Vector(
-            LookupSR(
-              RangeS.internal(interner, -1672159),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStructTemplate)),
-              structNameS.getImpreciseName(interner)),
-            CallSR(
-              RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStructTemplate)),
-              structGenericParams.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
-            CoerceToCoordSR(
-              RangeS.internal(interner, -167215),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropStruct))))
-        }
-      }) ++
-      Vector(
-        LookupSR(RangeS.internal(interner, -1672160), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.DropV)), interner.intern(CodeNameS(keywords.void)))),
-      GeneratedBodyS(dropGeneratorId))
+  override def getStructChildEntries(
+    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
+  Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
+    Vector()
   }
 
   // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
@@ -194,7 +173,9 @@ class StructDropMacro(
 
     val memberLocalVariables =
       structDef.members.flatMap({
-        case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
+        case StructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
+          val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+          val reference = substituter.substituteForCoord(unsubstitutedReference)
           Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
         }
         case StructMemberT(_, _, AddressMemberTypeT(_)) => {
