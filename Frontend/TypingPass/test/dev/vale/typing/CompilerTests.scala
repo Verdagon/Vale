@@ -322,7 +322,7 @@ class CompilerTests extends FunSuite with Matchers {
       _,
       false,
       MutabilityTemplata(MutableT),
-      Vector(StructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(CoordT(ShareT, IntT.i32)))),
+      Vector(StructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32))))),
       false) =>
     }).get
     // Check there's a constructor
@@ -984,7 +984,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupStruct("MyStruct")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
     tyype match {
       case CoordT(
         OwnT,
@@ -1008,7 +1008,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupInterface("MyInterface")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
     tyype match {
       case CoordT(
         OwnT,
@@ -1020,6 +1020,10 @@ class CompilerTests extends FunSuite with Matchers {
                 CoordTemplata(CoordT(ShareT,BoolT())),
                 IntegerTemplata(5)))))) =>
     }
+  }
+
+  test("DO NOT SUBMIT") {
+    vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
   }
 
   test("Test imm array") {

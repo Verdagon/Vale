@@ -20,7 +20,7 @@ import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFu
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT}
 import dev.vale.typing.templata._
-import dev.vale.typing.types.ParamFilter
+import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
 import dev.vale.vwat
 
@@ -97,7 +97,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[ParamFilter]):
+    args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = nearEnv.function
     // Check preconditions
@@ -133,11 +133,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype))
   }
 
-  private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[ParamFilter]):
+  private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[CoordT]):
   Vector[InitialSend] = {
     function.params.map(_.pattern.coordRune.get).zip(args).zipWithIndex
       .map({ case ((paramRune, argTemplata), argIndex) =>
-        InitialSend(RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune, CoordTemplata(argTemplata.tyype))
+        InitialSend(RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune, CoordTemplata(argTemplata))
       })
   }
 
@@ -151,8 +151,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       callingEnv: IEnvironment, // See CSSNCE
       callRange: RangeS,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[FunctionBannerT]) = {
+      args: Vector[CoordT]):
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = declaringEnv.function
     // Check preconditions
     checkClosureConcernsHandled(declaringEnv)
@@ -321,7 +321,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[ParamFilter]):
+      args: Vector[CoordT]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     val function = nearEnv.function
     // Check preconditions
@@ -363,7 +363,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
   private def assembleKnownTemplatas(
     function: FunctionA,
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]]):
   Vector[InitialKnown] = {
     // Sometimes we look for an overload for a given override, assemble knowns from that here
@@ -408,7 +408,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         fullName.packageCoord,
         fullName.initSteps,
         BuildingFunctionNameWithClosuredsAndTemplateArgsT(
-          fullName.last.templateName, identifyingTemplatas))
+          fullName.last, identifyingTemplatas))
 
     val newEntries =
       templatas.addEntries(
@@ -433,7 +433,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[ParamFilter]):
+    args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = nearEnv.function
     // Check preconditions

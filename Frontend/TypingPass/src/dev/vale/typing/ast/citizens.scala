@@ -55,7 +55,7 @@ case class StructMemberT(
 }
 
 sealed trait IMemberTypeT  {
-  def reference: CoordT
+  def reference: UnsubstitutedCoordT
 
   def expectReferenceMember(): ReferenceMemberTypeT = {
     this match {
@@ -70,8 +70,10 @@ sealed trait IMemberTypeT  {
     }
   }
 }
-case class AddressMemberTypeT(reference: CoordT) extends IMemberTypeT
-case class ReferenceMemberTypeT(reference: CoordT) extends IMemberTypeT
+// DO NOT SUBMIT document
+case class UnsubstitutedCoordT(unsubstitutedCoord: CoordT)
+case class AddressMemberTypeT(reference: UnsubstitutedCoordT) extends IMemberTypeT
+case class ReferenceMemberTypeT(reference: UnsubstitutedCoordT) extends IMemberTypeT
 
 case class InterfaceDefinitionT(
   templateName: FullNameT[IInterfaceTemplateNameT],

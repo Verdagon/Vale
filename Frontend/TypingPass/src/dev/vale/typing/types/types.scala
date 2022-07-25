@@ -175,14 +175,3 @@ case class OverloadSetT(
 }
 
 case class PlaceholderT(fullName: FullNameT[PlaceholderNameT]) extends KindT
-
-// This is what we use to search for overloads.
-case class ParamFilter(
-    tyype: CoordT,
-    virtuality: Option[AbstractT]) {
-   override def equals(obj: Any): Boolean = vcurious();
-
-  def debugString: String = {
-    tyype.toString + virtuality.map(x => " abstract").getOrElse("")
-  }
-}

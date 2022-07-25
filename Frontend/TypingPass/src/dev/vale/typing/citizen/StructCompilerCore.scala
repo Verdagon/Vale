@@ -84,7 +84,9 @@ class StructCompilerCore(
       macrosToCall.flatMap({ case MacroCallS(range, CallMacroP, macroName) =>
         val maacro =
           structRunesEnv.globalEnv.nameToStructDefinedMacro.get(macroName) match {
-            case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            case None => {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            }
             case Some(m) => m
           }
         val newEntriesList =
@@ -103,8 +105,6 @@ class StructCompilerCore(
         structRunesEnv.globalEnv, structRunesEnv, placeholderedFullNameT,
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
-
-    coutputs.declareEnvForTemplate(templateFullNameT, structInnerEnv)
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
@@ -212,7 +212,9 @@ class StructCompilerCore(
       macrosToCall.flatMap({ case MacroCallS(range, CallMacroP, macroName) =>
         val maacro =
           interfaceRunesEnv.globalEnv.nameToInterfaceDefinedMacro.get(macroName) match {
-            case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            case None => {
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+            }
             case Some(m) => m
           }
         val newEntriesList = maacro.getInterfaceChildEntries(placeholderedFullNameT, interfaceA, mutability)
@@ -246,8 +248,6 @@ class StructCompilerCore(
                 val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
                 (functionName -> FunctionEnvEntry(internalMethod))
               })))
-
-    coutputs.declareEnvForTemplate(templateFullNameT, interfaceInnerEnv)
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
@@ -313,12 +313,16 @@ class StructCompilerCore(
     member match {
       case NormalStructMemberS(_, name, _, _) => {
         val CoordTemplata(coord) = typeTemplata
-        Vector(StructMemberT(interner.intern(CodeVarNameT(name)), variabilityT, ReferenceMemberTypeT(coord)))
+        Vector(
+          StructMemberT(
+            interner.intern(CodeVarNameT(name)),
+            variabilityT,
+            ReferenceMemberTypeT(UnsubstitutedCoordT(coord))))
       }
       case VariadicStructMemberS(_, _, _) => {
         val CoordListTemplata(coords) = typeTemplata
         coords.zipWithIndex.map({ case (coord, index) =>
-          StructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI(index.toString)))), variabilityT, ReferenceMemberTypeT(coord))
+          StructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI(index.toString)))), variabilityT, ReferenceMemberTypeT(UnsubstitutedCoordT(coord)))
         })
       }
     }
@@ -339,7 +343,7 @@ class StructCompilerCore(
         } else {
           tyype match {
             case AddressMemberTypeT(reference) => true
-            case ReferenceMemberTypeT(reference) => {
+            case ReferenceMemberTypeT(UnsubstitutedCoordT(reference)) => {
               reference.ownership match {
                 case OwnT | BorrowT | WeakT => true
                 case ShareT => false
@@ -352,6 +356,7 @@ class StructCompilerCore(
 
     val understructTemplateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
     val understructTemplatedFullNameT = containingFunctionEnv.fullName.addStep(understructTemplateNameT)
+    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, containingFunctionEnv);
     val understructInstantiatedNameT = understructTemplateNameT.makeStructName(interner, Vector())
     val understructInstantiatedFullNameT = containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
@@ -398,7 +403,6 @@ class StructCompilerCore(
 
     coutputs.declareTemplate(understructTemplatedFullNameT);
     coutputs.declareTemplateMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
-    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, structEnv);
 
     val closureStructDefinition =
       StructDefinitionT(

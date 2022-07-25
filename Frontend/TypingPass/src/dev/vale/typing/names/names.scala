@@ -85,7 +85,11 @@ sealed trait ITemplateNameT extends INameT
 sealed trait IFunctionTemplateNameT extends ITemplateNameT {
   def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT
 }
-sealed trait IFunctionNameT extends INameT {
+sealed trait IInstantiationNameT extends INameT {
+  def template: ITemplateNameT
+  def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+sealed trait IFunctionNameT extends IInstantiationNameT {
   def template: IFunctionTemplateNameT
   def templateArgs: Vector[ITemplata[ITemplataType]]
   def parameters: Vector[CoordT]
@@ -103,7 +107,7 @@ sealed trait IStructTemplateNameT extends ICitizenTemplateNameT {
 sealed trait IInterfaceTemplateNameT extends ICitizenTemplateNameT {
   def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IInterfaceNameT
 }
-sealed trait ICitizenNameT extends INameT {
+sealed trait ICitizenNameT extends IInstantiationNameT {
   def template: ICitizenTemplateNameT
   def templateArgs: Vector[ITemplata[ITemplataType]]
 }
@@ -218,6 +222,12 @@ case class FunctionTemplateNameT(
     humanName: StrI,
     codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
+  this match {
+    case FunctionTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
+      vpass()
+    }
+    case _ =>
+  }
   vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
     interner.intern(FunctionNameT(this, templateArgs, params))
@@ -462,4 +472,8 @@ case class AnonymousSubstructNameT(
 }
 case class AnonymousSubstructImplNameT() extends INameT {
 
+}
+
+case class ResolvingEnvNameT() extends INameT {
+  vpass()
 }

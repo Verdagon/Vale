@@ -14,10 +14,9 @@ import FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{AddressibleClosureVariableT, BuildingFunctionEnvironmentWithClosureds, IEnvEntry, IEnvironment, IVariableT, ReferenceClosureVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, TemplataCompiler, TypingPassOptions, env}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionTemplateNameT, INameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.typing.names.BuildingFunctionNameWithClosuredsT
 
 import scala.collection.immutable.{List, Map}
 
@@ -67,6 +66,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForBanner(
       newEnv, coutputs, callRange)
   }
@@ -79,12 +80,14 @@ class FunctionCompilerClosureOrLightLayer(
       closureStructRef: StructTT,
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      argTypes2: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[FunctionBannerT]) = {
+      argTypes2: Vector[CoordT]):
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = makeNameWithClosureds(declaringEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, declaringEnv)
     val newEnv =
       BuildingFunctionEnvironmentWithClosureds(
         declaringEnv.globalEnv,
@@ -106,12 +109,14 @@ class FunctionCompilerClosureOrLightLayer(
     closureStructRef: StructTT,
     function: FunctionA,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    argTypes2: Vector[ParamFilter]):
+    argTypes2: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
         outerEnv.globalEnv,
@@ -131,12 +136,14 @@ class FunctionCompilerClosureOrLightLayer(
       callRange: RangeS,
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[ParamFilter]):
+      args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     checkNotClosure(function);
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, ourEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
       newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
@@ -148,7 +155,7 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: RangeS,
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[ParamFilter]):
+    args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     checkNotClosure(function);
 
@@ -165,6 +172,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
       newEnv, coutputs)
   }
@@ -175,6 +184,8 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA):
   (FunctionHeaderT) = {
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       newEnv, coutputs)
   }
@@ -187,6 +198,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
       newEnv, coutputs)
   }
@@ -205,6 +218,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
         outerEnv.globalEnv,
@@ -227,6 +242,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -252,6 +269,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -278,6 +297,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -303,6 +324,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
+    coutputs.declareTemplate(name)
+    coutputs.declareEnvForTemplate(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -326,12 +349,14 @@ class FunctionCompilerClosureOrLightLayer(
       callRange: RangeS,
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[ParamFilter]):
+      args: Vector[CoordT]):
   (IEvaluateFunctionResult[FunctionBannerT]) = {
     checkNotClosure(function)
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, declaringEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
         newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
@@ -343,11 +368,13 @@ class FunctionCompilerClosureOrLightLayer(
       function: FunctionA,
       callRange: RangeS,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      paramFilters: Vector[ParamFilter]):
-  (IEvaluateFunctionResult[FunctionBannerT]) = {
+      paramFilters: Vector[CoordT]):
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    coutputs.declareTemplate(newEnv.fullName)
+    coutputs.declareEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, paramFilters)
   }
@@ -369,9 +396,8 @@ class FunctionCompilerClosureOrLightLayer(
   private def makeNameWithClosureds(
     outerEnv: IEnvironment,
     functionName: IFunctionDeclarationNameS
-  ): FullNameT[BuildingFunctionNameWithClosuredsT] = {
-    val templateName = nameTranslator.translateFunctionNameToTemplateName(functionName)
-    outerEnv.fullName.addStep(interner.intern(BuildingFunctionNameWithClosuredsT(templateName)))
+  ): FullNameT[IFunctionTemplateNameT] = {
+    outerEnv.fullName.addStep(nameTranslator.translateFunctionNameToTemplateName(functionName))
   }
 
   private def checkNotClosure(function: FunctionA) = {
@@ -387,15 +413,19 @@ class FunctionCompilerClosureOrLightLayer(
   private def makeClosureVariablesAndEntries(coutputs: CompilerOutputs, closureStructRef: StructTT):
   (Vector[IVariableT], Vector[(INameT, IEnvEntry)]) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
     val variables =
       closureStructDef.members.map(member => {
         val variableFullName = closureStructDef.templateName.addStep(member.name)
         member.tyype match {
           case AddressMemberTypeT(reference) => {
-            AddressibleClosureVariableT(variableFullName, closureStructRef, member.variability, reference)
+            AddressibleClosureVariableT(
+              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(reference))
           }
           case ReferenceMemberTypeT(reference) => {
-            ReferenceClosureVariableT(variableFullName, closureStructRef, member.variability, reference)
+            ReferenceClosureVariableT(
+              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(reference))
           }
         }
       })

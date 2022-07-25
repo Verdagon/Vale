@@ -15,7 +15,7 @@ import dev.vale.typing.types._
 sealed trait IMethod
 case class NeededOverride(
   name: IImpreciseNameS,
-  paramFilters: Vector[ParamFilter]
+  paramFilters: Vector[CoordT]
 ) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 case class FoundFunction(prototype: PrototypeT) extends IMethod { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
@@ -43,8 +43,8 @@ class EdgeCompiler(
         val interfaceTemplateFullName = interfaceEdgeBlueprint.interface
         val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
         val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
-        interfaceTemplateFullName -> {
-          val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
+        val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
+        val overridingCitizenToFoundFunction =
           overridingImpls.map(overridingImpl => {
             val overridingCitizen = overridingImpl.subCitizenTemplateName
 
@@ -80,19 +80,19 @@ class EdgeCompiler(
                       interner, abstractFunctionSignature.fullName.last))
 
                 val foundFunction =
-                  compileOverride(
+                  resolveOverride(
                     coutputs, range, abstractFunctionEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })
             overridingCitizen -> foundFunctions
           }).toMap
-        }
+        interfaceTemplateFullName -> overridingCitizenToFoundFunction
       }).toMap
     (interfaceEdgeBlueprints, itables)
   }
 
-  private def compileOverride(
+  private def resolveOverride(
       coutputs: CompilerOutputs,
       range: RangeS,
       abstractFunctionEnv: IEnvironment,
@@ -110,7 +110,7 @@ class EdgeCompiler(
       impreciseName,
       Vector.empty,
       Array.empty,
-      paramTypes.map(ParamFilter(_, None)),
+      paramTypes,
       Vector(
         coutputs.getEnvForTemplate(interface),
         coutputs.getEnvForTemplate(overridingCitizen)),

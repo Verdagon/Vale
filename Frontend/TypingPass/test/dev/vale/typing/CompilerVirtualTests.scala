@@ -1,7 +1,7 @@
 package dev.vale.typing
 
-import dev.vale.typing.ast.AsSubtypeTE
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.ast.{AsSubtypeTE, SignatureT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, vassert}
@@ -12,12 +12,29 @@ import scala.collection.immutable.Set
 
 class CompilerVirtualTests extends FunSuite with Matchers {
 
+  test("Regular interface and struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface Opt { }
+        |
+        |struct Some { x int; }
+        |impl Opt for Some;
+      """.stripMargin)
+    val interner = compile.interner
+    val coutputs = compile.expectCompilerOutputs()
+
+    // Make sure there's two drop functions
+    val dropFuncNames =
+      coutputs.functions.map(_.header.fullName).collect({
+        case f @ FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)) => f
+      })
+    dropFuncNames.size shouldEqual 2
+  }
+
   test("Implementing two interfaces causes no vdrop conflict") {
     // See NIIRII
     val compile = CompilerTestCompilation.test(
       """
-        |
-        |
         |struct MyStruct {}
         |
         |interface IA {}
@@ -39,8 +56,6 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
-        |
-        |
         |interface Bork {
         |  func bork(virtual self &Bork) int;
         |}
@@ -152,6 +167,51 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |  rebork(&Bork());
         |}
         |""".stripMargin)
+  }
+
+  test("Templated interface and struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface Opt<T Ref>
+        |where func drop(T)void
+        |{ }
+        |
+        |struct Some<T>
+        |where func drop(T)void
+        |{ x T; }
+        |
+        |impl<T> Opt<T> for Some<T>
+        |where func drop(T)void;
+        |""".stripMargin)
+    val interner = compile.interner
+    val coutputs = compile.expectCompilerOutputs()
+    val dropFuncNames =
+      coutputs.functions.map(_.header.fullName).collect({
+        case f @ FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)) => f
+      })
+    dropFuncNames.size shouldEqual 2
+  }
+
+  test("Custom drop with concept function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |sealed interface Opt<T Ref> { }
+        |
+        |abstract func drop<T>(virtual opt Opt<T>)
+        |where func drop(T)void;
+        |
+        |#!DeriveStructDrop
+        |struct Some<T> { x T; }
+        |impl<T> Opt<T> for Some<T>;
+        |
+        |func drop<T>(opt Some<T>)
+        |where func drop(T)void
+        |{
+        |  [x] = opt;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
   }
 
 }

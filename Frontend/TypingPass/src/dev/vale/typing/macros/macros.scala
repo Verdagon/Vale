@@ -32,7 +32,7 @@ trait IFunctionBodyMacro {
 
 trait IOnStructDefinedMacro {
   def getStructSiblingEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA):
+    structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], IEnvEntry)]
 
   def getStructChildEntries(

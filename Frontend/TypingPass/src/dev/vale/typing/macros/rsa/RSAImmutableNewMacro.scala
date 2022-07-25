@@ -73,9 +73,7 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResol
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
         Array(),
-        Vector(
-          ParamFilter(generatorArgCoord, None),
-          ParamFilter(CoordT(ShareT, IntT(32)), None)),
+        Vector(generatorArgCoord, CoordT(ShareT, IntT(32))),
         Vector(),
         false) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))

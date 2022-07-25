@@ -47,9 +47,7 @@ class RSAFreeMacro(
 
     val dropFunction = destructorCompiler.getDropFunction(env, coutputs, callRange, elementCoord)
 
-    val args =
-      Vector(ParamFilter(CoordT(ShareT, VoidT()), None)) ++
-        dropFunction.prototype.paramTypes.map(coord => ParamFilter(coord, None))
+    val args = Vector(CoordT(ShareT, VoidT())) ++ dropFunction.prototype.paramTypes
 
     val newEnv =
       env.addEntries(

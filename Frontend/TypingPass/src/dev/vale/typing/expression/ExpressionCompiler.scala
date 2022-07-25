@@ -40,7 +40,7 @@ trait IExpressionCompilerDelegate {
     callRange: RangeS,
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[ParamFilter]):
+    args: Vector[CoordT]):
   IEvaluateFunctionResult[PrototypeTemplata]
 
   def evaluateClosureStruct(
@@ -231,7 +231,7 @@ class ExpressionCompiler(
         vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.fullName.addStep(member.name) == id))
 
         val index = closuredVarsStructDef.members.indexWhere(_.name == id.last)
-        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.ownership
+        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.unsubstitutedCoord.ownership
         val lookup = AddressMemberLookupTE(range, borrowExpr, id, tyype, variability)
         Some(lookup)
       }
@@ -269,6 +269,7 @@ class ExpressionCompiler(
       closureStructRef: StructTT):
   (ReferenceExpressionTE) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
+    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
       closureStructDef.members.map({
@@ -279,19 +280,21 @@ class ExpressionCompiler(
               case Some(l) => l
             }
           tyype match {
-            case ReferenceMemberTypeT(reference) => {
+            case ReferenceMemberTypeT(unsubstitutedCoord) => {
+              val coord = substituter.substituteForCoord(unsubstitutedCoord)
               // We might have to softload an own into a borrow, but the kinds
               // should at least be the same right here.
-              vassert(reference.kind == lookup.result.reference.kind)
+              vassert(coord.kind == lookup.result.reference.kind)
               // Closures never contain owning references.
               // If we're capturing an own, then on the inside of the closure
               // it's a borrow or a weak. See "Captured own is borrow" test for more.
 
-              vassert(reference.ownership != OwnT)
+              vassert(coord.ownership != OwnT)
               localHelper.borrowSoftLoad(coutputs, lookup)
             }
-            case AddressMemberTypeT(reference) => {
-              vassert(reference == lookup.result.reference)
+            case AddressMemberTypeT(unsubstitutedCoord) => {
+              val coord = substituter.substituteForCoord(unsubstitutedCoord)
+              vassert(coord == lookup.result.reference)
               (lookup)
             }
             case _ => vwat()
@@ -666,7 +669,7 @@ class ExpressionCompiler(
                 val memberFullName = structDef.templateName.addStep(structDef.members(memberIndex).name)
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
-                  TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+                  TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
                     .substituteForCoord(unsubstitutedMemberType)
 
                 vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
@@ -1043,12 +1046,14 @@ class ExpressionCompiler(
             innerExpr2.kind match {
               case structTT@StructTT(_) => {
                 val structDef = coutputs.lookupStruct(structTT)
+                val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
                 DestroyTE(
                   innerExpr2,
                   structTT,
                   structDef.members.map(_.tyype).zipWithIndex.map({ case (memberType, index) =>
                     memberType match {
-                      case ReferenceMemberTypeT(reference) => {
+                      case ReferenceMemberTypeT(unsubstitutedCoord) => {
+                        val reference = substituter.substituteForCoord(unsubstitutedCoord)
                         localHelper.makeTemporaryLocal(nenv, life + 1 + index, reference)
                       }
                       case _ => vfail()
@@ -1188,7 +1193,7 @@ class ExpressionCompiler(
       }
     val someConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(ParamFilter(containedCoord, None))) match {
+        coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(containedCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
@@ -1230,7 +1235,7 @@ class ExpressionCompiler(
       }
     val okConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedSuccessCoord, None))) match {
+        coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedSuccessCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }
@@ -1242,7 +1247,7 @@ class ExpressionCompiler(
       }
     val errConstructor =
       delegate.evaluateTemplatedFunctionFromCallForPrototype(
-        coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(ParamFilter(containedFailCoord, None))) match {
+        coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedFailCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
       }

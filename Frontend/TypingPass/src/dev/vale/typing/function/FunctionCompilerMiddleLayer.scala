@@ -110,7 +110,7 @@ class FunctionCompilerMiddleLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     function1: FunctionA):
-  (FunctionBannerT) = {
+  (PrototypeTemplata) = {
 
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
@@ -123,32 +123,16 @@ class FunctionCompilerMiddleLayer(
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
     val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName, params2)
 
-//    // Now we want to add its Function2 into the coutputs.
-//    coutputs.getDeclaredSignatureOrigin(banner.toSignature) match {
-//      case Some(existingFunctionOrigin) => {
-//        if (function1.range != existingFunctionOrigin) {
-//          throw CompileErrorExceptionT(FunctionAlreadyExists(existingFunctionOrigin, function1.range, banner.toSignature))
-//        }
-//        // Someone else is already working on it (or has finished), so
-//        // just return.
-//        banner
-//      }
-//      case None => {
-//        val signature = banner.toSignature
-//        coutputs.declareFunctionSignature(function1.range, signature, Some(namedEnv))
-//        val params2 = assembleFunctionParams(namedEnv, coutputs, function1.params)
-        val header =
-          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
-        if (!header.toBanner.same(banner)) {
-          val bannerFromHeader = header.toBanner
-          vfail("wut\n" + bannerFromHeader + "\n" + banner)
-        }
+    val header =
+      core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
+    if (!header.toBanner.same(banner)) {
+      val bannerFromHeader = header.toBanner
+      vfail("wut\n" + bannerFromHeader + "\n" + banner)
+    }
 
 //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
 
-        (header.toBanner)
-//      }
-//    }
+    PrototypeTemplata(function1.range, header.toPrototype)
   }
 
   // Preconditions:

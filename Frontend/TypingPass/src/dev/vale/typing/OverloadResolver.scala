@@ -51,7 +51,7 @@ object OverloadResolver {
 
   case class FindFunctionFailure(
     name: IImpreciseNameS,
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     // All the banners we rejected, and the reason why
     rejectedCalleeToReason: Iterable[(ICalleeCandidate, IFindFunctionFailureReason)]
   ) {
@@ -61,7 +61,7 @@ object OverloadResolver {
 
   case class EvaluateFunctionFailure(
     name: IImpreciseNameS,
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     // All the banners we rejected, and the reason why
     rejectedCalleeToReason: Iterable[(IValidCalleeCandidate, IFindFunctionFailureReason)]
   ) {
@@ -86,7 +86,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   Result[PrototypeTemplata, FindFunctionFailure] = {
@@ -111,8 +111,8 @@ class OverloadResolver(
 
   private def paramsMatch(
     coutputs: CompilerOutputs,
-    desiredParams: Vector[ParamFilter],
-    candidateParams: Vector[ParameterT],
+    desiredParams: Vector[CoordT],
+    candidateParams: Vector[CoordT],
     exact: Boolean):
   Result[Unit, IFindFunctionFailureReason] = {
     if (desiredParams.size != candidateParams.size) {
@@ -120,8 +120,8 @@ class OverloadResolver(
     }
     desiredParams.zip(candidateParams).zipWithIndex.foreach({
       case ((desiredParam, candidateParam), paramIndex) => {
-        val ParamFilter(desiredTemplata, desiredMaybeVirtuality) = desiredParam
-        val ParameterT(_, candidateMaybeVirtuality, candidateType) = candidateParam
+        val desiredTemplata = desiredParam
+        val candidateType = candidateParam
 
         if (exact) {
           if (desiredTemplata != candidateType) {
@@ -130,14 +130,6 @@ class OverloadResolver(
         } else {
           if (!templataCompiler.isTypeConvertible(coutputs, desiredTemplata, candidateType)) {
             return Err(SpecificParamDoesntSend(paramIndex, desiredTemplata, candidateType))
-          }
-        }
-        desiredMaybeVirtuality match {
-          case None =>
-          case desiredVirtuality => {
-            if (desiredVirtuality != candidateMaybeVirtuality) {
-              return Err(SpecificParamVirtualityDoesntMatch(paramIndex))
-            }
           }
         }
       }
@@ -153,7 +145,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
-    paramFilters: Vector[ParamFilter],
+    paramFilters: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   Vector[ICalleeCandidate] = {
@@ -193,7 +185,7 @@ class OverloadResolver(
     callRange: RangeS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
-    paramFilters: Vector[ParamFilter],
+    paramFilters: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean):
   Result[IValidCalleeCandidate, IFindFunctionFailureReason] = {
@@ -284,10 +276,10 @@ class OverloadResolver(
                         coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters) match {
                         case (EvaluateFunctionFailure(reason)) => Err(reason)
                         case (EvaluateFunctionSuccess(banner)) => {
-                          paramsMatch(coutputs, paramFilters, banner.params, exact) match {
+                          paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
                             case Err(rejectionReason) => Err(rejectionReason)
                             case Ok(()) => {
-                              Ok(ast.ValidCalleeCandidate(banner, ft))
+                              Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
                             }
                           }
                         }
@@ -306,10 +298,10 @@ class OverloadResolver(
                   Err(reason)
                 }
                 case (EvaluateFunctionSuccess(banner)) => {
-                  paramsMatch(coutputs, paramFilters, banner.params, exact) match {
+                  paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
                     case Err(reason) => Err(reason)
                     case Ok(_) => {
-                      Ok(ValidCalleeCandidate(banner, ft))
+                      Ok(ValidPrototypeTemplataCalleeCandidate(banner))
                     }
                   }
                 }
@@ -318,7 +310,7 @@ class OverloadResolver(
           }
         } else {
           val banner = functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(coutputs, callRange, ft)
-          paramsMatch(coutputs, paramFilters, banner.params, exact) match {
+          paramsMatch(coutputs, paramFilters, banner.paramTypes, exact) match {
             case Ok(_) => {
               Ok(ast.ValidCalleeCandidate(banner, ft))
             }
@@ -327,7 +319,7 @@ class OverloadResolver(
         }
       }
       case HeaderCalleeCandidate(header) => {
-        paramsMatch(coutputs, paramFilters, header.params, exact) match {
+        paramsMatch(coutputs, paramFilters, header.paramTypes, exact) match {
           case Ok(_) => {
             Ok(ValidHeaderCalleeCandidate(header))
           }
@@ -335,7 +327,10 @@ class OverloadResolver(
         }
       }
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
-        val params = prototype.fullName.last.parameters.map(paramType => ParameterT(CodeVarNameT(keywords.emptyString), None, paramType))
+        val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, prototype.fullName)
+        val params = prototype.fullName.last.parameters.map(paramType => {
+          substituter.substituteForCoord(paramType)
+        })
         paramsMatch(coutputs, paramFilters, params, exact) match {
           case Ok(_) => {
             Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, prototype)))
@@ -347,19 +342,14 @@ class OverloadResolver(
   }
 
   // Gets all the environments for all the arguments.
-  private def getParamEnvironments(coutputs: CompilerOutputs, paramFilters: Vector[ParamFilter]):
+  private def getParamEnvironments(coutputs: CompilerOutputs, paramFilters: Vector[CoordT]):
   Vector[IEnvironment] = {
-    paramFilters.flatMap({ case ParamFilter(tyype, virtuality) =>
+    paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
         case sr @ StructTT(_) => Vector(coutputs.getEnvForTemplate(TemplataCompiler.getStructTemplate(sr.fullName)))
         case ir @ InterfaceTT(_) => Vector(coutputs.getEnvForTemplate(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
         case _ => Vector.empty
-      }) ++
-        (virtuality match {
-          case None => Vector.empty
-          case Some(AbstractT()) => Vector.empty
-//          case Some(OverrideT(ir)) => Vector(coutputs.getEnvForKind(ir))
-        })
+      })
     })
   }
 
@@ -368,7 +358,7 @@ class OverloadResolver(
       env: IEnvironment,
       coutputs: CompilerOutputs,
       impreciseName: IImpreciseNameS,
-      paramFilters: Vector[ParamFilter],
+      paramFilters: Vector[CoordT],
       extraEnvsToLookIn: Vector[IEnvironment]):
   Vector[ITemplata[ITemplataType]] = {
     val environments = Vector(env) ++ getParamEnvironments(coutputs, paramFilters) ++ extraEnvsToLookIn
@@ -391,7 +381,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
-    args: Vector[ParamFilter],
+    args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean):
   Result[IValidCalleeCandidate, FindFunctionFailure] = {
@@ -417,7 +407,7 @@ class OverloadResolver(
           Ok(successes.head)
         } else {
           val (best, outscoreReasonByBanner) =
-            narrowDownCallableOverloads(coutputs, callRange, successes, args.map(_.tyype))
+            narrowDownCallableOverloads(coutputs, callRange, successes, args)
           Ok(best)
         }
 //      }
@@ -583,7 +573,7 @@ class OverloadResolver(
         if (ft.function.isTemplate) {
           val (EvaluateFunctionSuccess(banner)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForBanner(
-              coutputs, callingEnv, callRange, ft, Vector.empty, signature.paramTypes.map(p => ParamFilter(p, None)));
+              coutputs, callingEnv, callRange, ft, Vector.empty, signature.paramTypes);
           (banner)
         } else {
           functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
@@ -601,7 +591,7 @@ class OverloadResolver(
       callingEnv: IEnvironment, // See CSSNCE
       callRange: RangeS,
       potentialBanner: IValidCalleeCandidate,
-      args: Vector[ParamFilter]):
+      args: Vector[CoordT]):
   (PrototypeTemplata) = {
     potentialBanner match {
       case ValidCalleeCandidate(signature, ft @ FunctionTemplata(_, _)) => {
@@ -647,8 +637,8 @@ class OverloadResolver(
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(
-        ParamFilter(callableTE.result.underlyingReference, None),
-        ParamFilter(CoordT(ShareT, IntT.i32), None))
+        callableTE.result.underlyingReference,
+        CoordT(ShareT, IntT.i32))
       findFunction(
         callingEnv, coutputs, range, funcName, Vector.empty, Array.empty,
         paramFilters, Vector.empty, false) match {
@@ -667,8 +657,8 @@ class OverloadResolver(
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
       Vector(
-        ParamFilter(callableTE.result.underlyingReference, None),
-        ParamFilter(elementType, None))
+        callableTE.result.underlyingReference,
+        elementType)
     findFunction(
       fate.snapshot, coutputs, range, funcName, Vector.empty, Array.empty, paramFilters, Vector.empty, false) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))

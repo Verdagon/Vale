@@ -1,4 +1,15 @@
 
+# Basic Concepts
+
+Back when we did templates, every time we used (resolved) a struct, we would lazily compile it for that set of template args, unless we've seen that combination before.
+
+Now, we **compile** them all ahead of time, outside of any particular use.
+
+However, sometimes during the compilation, we'll be resolving _other_ templates. Those may or may not have been compiled yet.
+
+...we may need to do a declare phase so we can populate the overload index one day.
+
+
 # Some Rules Only Apply to Call Site or Definition (SROACSD)
 
 This snippet is using a function bound:
@@ -448,3 +459,77 @@ means locals, members, parameters wouldnt need to do anything different.
 
 but StaticSizedArrayT would need to contain e.g. ITemplata[OwnershipTemplata]
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"Tests a templated linked list" test fails
+I think it's because interface Opt<T> is trying to define a drop, even though
+it has #!DeriveInterfaceDrop. Thats cuz this method is called directly, regardless
+of whether the #! thing is there or not.
+We need to make it conditionally run.
+We cant have this as a child entry because then it will be under the defining environment
+of the interface, with all sorts of placeholders and nonsense in it.
+Perhaps we can:
+ 1. just run this from Compiler.scala, if the #! thing isnt there.
+ 2. make an umbrella environment that has siblings and interface in it, so the interface's
+   placeholder runes dont get into it.
+Why do we even put that declaring environment anywhere?
+Ah, its for overload resolution, so we can see its siblings and parents.
+Well then, we dont have to have the runes in there. Why do we put the runes into an environment?
+Maybe we can just not do that.
+Ok, thats option 3.
+ 3. Dont put runes in the environment! The solving is only useful for the definition anyway.
+actually that might not work. the members (and any child functions one day) will need to see
+those runes.
+but you know what, lets run the macros and stuff *before* making that environment, and then
+declare that env into the coutputs. then after that we can make an environment for the members.
+Not sure what we'll do for the functions one day... probably best just syntactically lift them
+out?
+
+
+
+
+
+
+
+
+
+
+we have a bit of a problem.
+
+
+```
+sealed interface Opt<T Ref>
+where func drop(T)void
+{ }
+
+struct Some<T>
+where func drop(T)void
+{ x T; }
+
+impl<T> Opt<T> for Some<T>
+where func drop(T)void;
+```
+
+Here, when we're compiling that impl, two things need to happen:
+
+ * The DefinitionFuncSR puts the `drop` function into the environment.
+ * We resolve the Some<T>, which requires that a `drop` function exists in the environment.

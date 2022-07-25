@@ -388,7 +388,7 @@ class PatternCompiler(
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
-    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
 
     val memberLocals =
       structDefT.members
@@ -471,7 +471,7 @@ class PatternCompiler(
 
     val unsubstitutedMemberCoord = member.tyype.expectReferenceMember().reference
     val memberType =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT)
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
         .substituteForCoord(unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(
