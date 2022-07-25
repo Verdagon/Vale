@@ -523,13 +523,14 @@ class CompilerRuleSolver[Env, State](
         stepState.concludeRune[ITypingPassSolverError](range, kindRune.rune, CoordTemplata(prototype.returnType))
         Ok(())
       }
-      case ResolveSR(range, resultRune, name, paramListRune) => {
+      case ResolveSR(range, resultRune, name, paramListRune, returnRune) => {
         // If we're here, then we're resolving a prototype.
         // This happens at the call-site.
         // The function (or struct) can either supply a default resolve rule (usually
         // via the `func moo(int)void` syntax) or let the caller pass it in.
 
         val CoordListTemplata(paramCoords) = vassertSome(stepState.getConclusion(paramListRune.rune))
+        val CoordTemplata(returnCoord) = 
         vimpl() // make this conjure, and postpone
         val prototypeTemplata =
           delegate.resolveFunction(env, state, range, name, paramCoords) match {
