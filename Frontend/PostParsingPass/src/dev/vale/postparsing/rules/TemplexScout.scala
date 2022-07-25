@@ -158,7 +158,7 @@ class TemplexScout(
               // Only appears in definition; filtered out when solving call site
               ruleBuilder += DefinitionFuncSR(rangeS, resultRuneS, name, paramListRuneS, returnRuneS)
               // Only appears in definition; filtered out when solving call site
-              ruleBuilder += ResolveSR(rangeS, resultRuneS, name, paramListRuneS)
+              ruleBuilder += ResolveSR(rangeS, resultRuneS, name, paramListRuneS, returnRuneS)
 
               resultRuneS
             }

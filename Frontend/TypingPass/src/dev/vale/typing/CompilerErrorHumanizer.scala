@@ -471,7 +471,12 @@ object CompilerErrorHumanizer {
         "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case StringTemplata(value) => "\"" + value + "\""
-      case PlaceholderTemplata(fullNameT, tyype) => humanizeTemplataType(tyype) + "$" + humanizeName(codeMap, fullNameT)
+      case PlaceholderTemplata(fullNameT, tyype) => {
+        tyype match {
+          case CoordTemplataType() => "$" + humanizeName(codeMap, fullNameT)
+          case _ => humanizeTemplataType(tyype) + "$" + humanizeName(codeMap, fullNameT)
+        }
+      }
       case other => vimpl(other)
     }
   }

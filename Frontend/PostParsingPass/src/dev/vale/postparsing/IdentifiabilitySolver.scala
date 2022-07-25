@@ -26,7 +26,7 @@ object IdentifiabilitySolver {
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
-        case ResolveSR(range, resultRune, name, paramsListRune) => Array(resultRune, paramsListRune)
+        case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
         case CallSiteFuncSR(range, prototypeRune, name, paramsListRune, returnRune) => Array(prototypeRune, paramsListRune, returnRune)
         case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
         case OneOfSR(range, rune, literals) => Array(rune)
@@ -73,7 +73,7 @@ object IdentifiabilitySolver {
       case KindComponentsSR(range, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array())
       case PrototypeComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array())
-      case ResolveSR(range, resultRune, nameRune, paramsListRune) => Array(Array())
+      case ResolveSR(range, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
       case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) => Array(Array())
       case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(Array())
       case OneOfSR(range, rune, literals) => Array(Array())
@@ -125,9 +125,10 @@ object IdentifiabilitySolver {
         })
         Ok(())
       }
-      case ResolveSR(range, resultRune, name, paramListRune) => {
+      case ResolveSR(range, resultRune, name, paramListRune, returnRune) => {
         stepState.concludeRune(range, resultRune.rune, true)
         stepState.concludeRune(range, paramListRune.rune, true)
+        stepState.concludeRune(range, returnRune.rune, true)
         Ok(())
       }
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => {

@@ -258,7 +258,7 @@ object PostParser {
           case r @ PackSR(_, _, _) => ruleBuilder += r // Hoist it up into regular rules
           case r @ LiteralSR(_, _, _) => rulesToLeaveInDefaultArgument.add(r)
           case r @ LookupSR(_, _, _) => rulesToLeaveInDefaultArgument.add(r)
-          case r @ ResolveSR(_, _, _, _) => rulesToLeaveInDefaultArgument.add(r)
+          case r @ ResolveSR(_, _, _, _, _) => rulesToLeaveInDefaultArgument.add(r)
           case r @ EqualsSR(_, _, _) => ruleBuilder += r // Hoist it up into regular rules
           case r @ CallSiteFuncSR(_, _, _, _, _) => ruleBuilder += r // Hoist it up into regular rules
           case r @ DefinitionFuncSR(_, _, _, _, _) => ruleBuilder += r // Hoist it up into regular rules
