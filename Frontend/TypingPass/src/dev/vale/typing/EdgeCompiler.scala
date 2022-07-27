@@ -52,8 +52,6 @@ class EdgeCompiler(
               interfaceEdgeBlueprint.superFamilyRootBanners.map(abstractFunctionBanner => {
                 val abstractFunctionTemplateFullName =
                   TemplataCompiler.getFunctionTemplate(abstractFunctionBanner.fullName)
-                val abstractFunctionEnv =
-                  coutputs.getEnvForTemplate(abstractFunctionTemplateFullName)
                 val abstractFunctionSignature = abstractFunctionBanner.toSignature
                 val abstractFunctionParamTypes = abstractFunctionSignature.paramTypes
                 val abstractIndex = abstractFunctionBanner.params.indexWhere(_.virtuality.nonEmpty)
@@ -79,9 +77,14 @@ class EdgeCompiler(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionSignature.fullName.last))
 
+                // We need the abstract function's env because it contains knowledge of the existence
+                // of certain things like concept functions, see NFIEFRO.
+
+                val abstractFunctionInnerEnv =
+                  coutputs.getInnerEnvForTemplate(abstractFunctionTemplateFullName)
                 val foundFunction =
                   resolveOverride(
-                    coutputs, range, abstractFunctionEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
+                    coutputs, range, abstractFunctionInnerEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })
@@ -112,8 +115,8 @@ class EdgeCompiler(
       Array.empty,
       paramTypes,
       Vector(
-        coutputs.getEnvForTemplate(interface),
-        coutputs.getEnvForTemplate(overridingCitizen)),
+        coutputs.getOuterEnvForTemplate(interface),
+        coutputs.getOuterEnvForTemplate(overridingCitizen)),
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
       case Ok(x) => x.prototype

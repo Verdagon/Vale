@@ -99,13 +99,13 @@ object PostParserErrorHumanizer {
 
   def humanizeImpreciseName(name: IImpreciseNameS): String = {
     name match {
-      case SelfNameS() => "(self)"
+      case SelfNameS() => "_Self"
       case CodeNameS(n) => n.str
-      case FreeImpreciseNameS() => "(free)"
+      case FreeImpreciseNameS() => "_Free"
       case RuneNameS(rune) => humanizeRune(rune)
-      case AnonymousSubstructTemplateImpreciseNameS(interfaceHumanName) => "(anon substruct template of " + humanizeImpreciseName(interfaceHumanName) + ")"
+      case AnonymousSubstructTemplateImpreciseNameS(interfaceHumanName) => humanizeImpreciseName(interfaceHumanName) + "._AnonSub"
       case LambdaStructImpreciseNameS(lambdaName) => humanizeImpreciseName(lambdaName) + ".struct"
-      case LambdaImpreciseNameS() => "(lambda)"
+      case LambdaImpreciseNameS() => "_Lam"
 //      case VirtualFreeImpreciseNameS() => "(abstract virtual free)"
 //      case VirtualFreeImpreciseNameS() => "(override virtual free)"
     }

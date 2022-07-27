@@ -59,11 +59,6 @@ case class ProgramA(
   }
 }
 
-
-trait TypeDefinitionA {
-  def name: INameS;
-}
-
 case class StructA(
     range: RangeS,
     name: IStructDeclarationNameS,
@@ -86,7 +81,7 @@ case class StructA(
     membersRuneToType: Map[IRuneS, ITemplataType],
     memberRules: Array[IRulexSR],
     members: Vector[IStructMemberS]
-) extends TypeDefinitionA {
+) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
 
@@ -143,6 +138,8 @@ case class ExportAsA(
   }
 }
 
+sealed trait CitizenA
+
 case class InterfaceA(
     range: RangeS,
     name: TopLevelInterfaceDeclarationNameS,
@@ -161,7 +158,8 @@ case class InterfaceA(
     runeToType: Map[IRuneS, ITemplataType],
   rules: Vector[IRulexSR],
     // See IMRFDI
-    internalMethods: Vector[FunctionA]) {
+    internalMethods: Vector[FunctionA]
+) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

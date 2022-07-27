@@ -4,7 +4,7 @@ import dev.vale.{Interner, RangeS, vassert, vassertOne, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
 import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -197,6 +197,7 @@ object TemplataCompiler {
           initSteps,
           last match {
             case StructNameT(template, templateArgs) => interner.intern(StructNameT(template, templateArgs.map(substituteTemplatasInTemplata(interner, _, substitutions))))
+            case LambdaCitizenNameT(template) => interner.intern(LambdaCitizenNameT(template))
           })))
   }
 
@@ -583,6 +584,13 @@ class TemplataCompiler(
     declaringEnv.fullName.addStep(nameTranslator.translateInterfaceName(interfaceA.name))
   }
 
+  def resolveCitizenTemplate(citizenTemplata: CitizenTemplata): FullNameT[ICitizenTemplateNameT] = {
+    citizenTemplata match {
+      case st @ StructTemplata(_, _) => resolveStructTemplate(st)
+      case it @ InterfaceTemplata(_, _) => resolveInterfaceTemplate(it)
+    }
+  }
+
   def citizenIsFromTemplate(actualCitizenRef: ICitizenTT, expectedCitizenTemplata: ITemplata[ITemplataType]): Boolean = {
     val citizenTemplateFullName =
       expectedCitizenTemplata match {
@@ -612,7 +620,8 @@ class TemplataCompiler(
       case KindTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
         coutputs.declareTemplate(placeholderTemplateFullName)
-        coutputs.declareEnvForTemplate(placeholderTemplateFullName, env)
+        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, env)
+        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, env)
         KindTemplata(placeholderKindT)
       }
       // TODO: Not sure what to put here when we do regions. We might need to
@@ -624,7 +633,8 @@ class TemplataCompiler(
       case CoordTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
         coutputs.declareTemplate(placeholderTemplateFullName)
-        coutputs.declareEnvForTemplate(placeholderTemplateFullName, env)
+        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, env)
+        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, env)
         CoordTemplata(CoordT(OwnT, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, tyype)

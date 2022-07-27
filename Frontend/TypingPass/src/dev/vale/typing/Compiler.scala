@@ -135,6 +135,26 @@ class Compiler(
       interner,
       nameTranslator,
       new IInfererDelegate[InferEnv, CompilerOutputs] {
+        override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit = {
+          val placeholderFullNames =
+            Collector.all(templata, {
+              case n@FullNameT(_, _, PlaceholderTemplateNameT(_)) => n
+              case n@FullNameT(_, _, PlaceholderNameT(_)) => n
+            })
+
+          env.callingEnv.getOrElse(env.declaringEnv).getCallingTopLevelDenizenName() match {
+            case None => {
+              vassert(placeholderFullNames.isEmpty)
+            }
+            case Some(topLevelDeclaringEnvName) => {
+              placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
+                val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
+                vassert(placeholderDeclaringEnvName == topLevelDeclaringEnvName)
+              })
+            }
+          }
+        }
+
         override def lookupTemplata(
           envs: InferEnv,
           coutputs: CompilerOutputs,
@@ -210,7 +230,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.resolveInterface(
-            state, env.declaringEnv, callRange, templata, templateArgs)
+            state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
         }
 
         override def resolveStruct(
@@ -221,7 +241,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.resolveStruct(
-            state, env.declaringEnv, callRange, templata, templateArgs)
+            state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
         }
 
         override def predictInterface(
@@ -381,7 +401,7 @@ class Compiler(
       })
 
   val implCompiler: ImplCompiler =
-    new ImplCompiler(opts, interner, templataCompiler, inferCompiler)
+    new ImplCompiler(opts, interner, structCompiler, templataCompiler, inferCompiler)
 
   val functionCompiler: FunctionCompiler =
     new FunctionCompiler(opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, convertHelper, structCompiler,

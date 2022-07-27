@@ -144,7 +144,9 @@ case class StructTemplata(
   // This is the env entry that the struct came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   originStruct: StructA,
-) extends ITemplata[TemplateTemplataType] {
+) extends CitizenTemplata {
+  override def originCitizen: CitizenA = originStruct
+
   vassert(declaringEnv.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -178,17 +180,32 @@ case class ContainerStruct(struct: StructA) extends IContainer { val hash = runt
 case class ContainerFunction(function: FunctionA) extends IContainer { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ContainerImpl(impl: ImplA) extends IContainer { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
+sealed trait CitizenTemplata extends ITemplata[TemplateTemplataType] {
+  def declaringEnv: IEnvironment
+  def originCitizen: CitizenA
+}
+object CitizenTemplata {
+  def unapply(c: CitizenTemplata): Option[(IEnvironment, CitizenA)] = {
+    c match {
+      case StructTemplata(env, origin) => Some((env, origin))
+      case InterfaceTemplata(env, origin) => Some((env, origin))
+    }
+  }
+}
+
 case class InterfaceTemplata(
   // The paackage this interface was declared in.
   // Has the name of the surrounding environment, does NOT include interface's name.
   // See TMRE for more on these environments.
-  env: IEnvironment,
+  declaringEnv: IEnvironment,
 
   // This is the env entry that the interface came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   originInterface: InterfaceA
-) extends ITemplata[TemplateTemplataType] {
-  vassert(env.fullName.packageCoord == originInterface.name.range.file.packageCoordinate)
+) extends CitizenTemplata {
+  override def originCitizen: CitizenA = originInterface
+
+  vassert(declaringEnv.fullName.packageCoord == originInterface.name.range.file.packageCoordinate)
 
   vpass()
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -205,7 +222,7 @@ case class InterfaceTemplata(
   // This assertion is helpful now, but will false-positive trip when someone
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
-  (env.fullName.last, originInterface.name) match {
+  (declaringEnv.fullName.last, originInterface.name) match {
     case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
@@ -216,7 +233,7 @@ case class InterfaceTemplata(
     InterfaceTemplateNameT(originInterface.name.name)//, nameTranslator.translateCodeLocation(originInterface.name.range.begin))
   }
 
-  def debugString: String = env.fullName + ":" + originInterface.name
+  def debugString: String = declaringEnv.fullName + ":" + originInterface.name
 }
 
 case class ImplTemplata(

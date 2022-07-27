@@ -8,13 +8,14 @@ import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GlobalEnvironment, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
 
 import scala.collection.immutable.Set
 
 case class InferEnv(
   // We look in this for declared functions, see CSSNCE.
+  // DO NOT SUBMIT we no longer need this because of SFWPRL
   callingEnv: Option[IEnvironment],
   // We look in this for everything else, such as type names like "int" etc.
   declaringEnv: IEnvironment,
@@ -84,6 +85,8 @@ class InferCompiler(
     initialSends: Vector[InitialSend]
   ): ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
+      val envs = InferEnv(callingEnv, declaringEnv)
+
       val runeToType =
         initialRuneToType ++
         initialSends.map({ case InitialSend(senderRune, _, _) =>
@@ -95,8 +98,16 @@ class InferCompiler(
           CoordSendSR(receiverRune.range, senderRune, receiverRune)
         })
       val alreadyKnown =
-        initialKnowns.map({ case InitialKnown(rune, templata) => rune.rune -> templata }).toMap ++
+        initialKnowns.map({ case InitialKnown(rune, templata) =>
+          if (opts.globalOptions.sanityCheck) {
+            delegate.sanityCheckConclusion(envs, state, rune.rune, templata)
+          }
+          rune.rune -> templata
+        }).toMap ++
         initialSends.map({ case InitialSend(senderRune, _, senderTemplata) =>
+          if (opts.globalOptions.sanityCheck) {
+            delegate.sanityCheckConclusion(envs, state, senderRune.rune, senderTemplata)
+          }
           (senderRune.rune -> senderTemplata)
         })
 
@@ -104,27 +115,24 @@ class InferCompiler(
         new CompilerSolver[InferEnv, CompilerOutputs](opts.globalOptions, interner, delegate)
           .solve(
             invocationRange,
-            InferEnv(callingEnv, declaringEnv),
+            envs,
             state,
             rules,
             runeToType,
             alreadyKnown)
+      val conclusions: Map[IRuneS, ITemplata[ITemplataType]] =
+        outcome match {
+          case CompleteSolve(conclusions) => conclusions
+          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+          case FailedSolve(_, _, _) => Map()
+        }
+
       // Now we need to actually resolve all the functions and stuff that we said existed in there, see SFWPRL.
-      outcome match {
-        case CompleteSolve(conclusions) => {
-          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions) match {
-            case Ok(()) =>
-            case Err(e) => return FailedSolve(Vector(), Vector(), e) // DO NOT SUBMIT
-          }
-        }
-        case IncompleteSolve(_, _, _, incompleteConclusions) => {
-          checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, incompleteConclusions) match {
-            case Ok(()) =>
-            case Err(e) => return FailedSolve(Vector(), Vector(), e)
-          }
-        }
-        case FailedSolve(_, _, _) =>
+      checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions) match {
+        case Ok(()) =>
+        case Err(e) => return FailedSolve(Vector(), Vector(), e) // DO NOT SUBMIT
       }
+
       outcome
     })
   }
@@ -137,6 +145,8 @@ class InferCompiler(
     templatas: TemplatasStore
   ) extends IEnvironment {
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+    override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
 
     override def lookupWithNameInner(
       name: INameT,
@@ -164,13 +174,27 @@ class InferCompiler(
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+    // This is a temporary env which contains all of our conclusions.
+    // This is important if we want to resolve some sort of existing type, like how
+    //   impl<T> Opt<T> for Some<T> where func drop(T)void;
+    // will want to resolve that Some<T> and want it to see that there's a drop(T).
+    //
+    // However, we *dont* want to use this temporary env when imposing conditions on the caller.
+    // If we have:
+    //   func moo(x Bork<int>) { }
+    //   struct Bork<T> where func drop(T)void { }
+    // then when we're compiling moo's Bork<int>, we *dont* want the conclusions we just figured
+    // out, because we'd see the temporary func drop(T) void that the CallSiteSR just conjured up.
+    //
+    // So, if we're invoking a template (like CallSR) then we want to use the temporary env...
+    // ...but if we want to impose a restriction on above, we don't.
     val callingEnv =
       maybeCallingEnv match {
         case None => return Ok(())
         case Some(x) => x
       }
     val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
-    val templatasStore =
+        val templatasStore =
       TemplatasStore(name, Map(), Map())
         .addEntries(
           interner,
@@ -186,7 +210,7 @@ class InferCompiler(
         checkTemplateCall(InferEnv(Some(temporaryEnv), declaringEnv), state, r, conclusions)
       }
       case r @ ResolveSR(_, _, _, _, _) => {
-        checkFunctionCall(InferEnv(Some(temporaryEnv), declaringEnv), state, r, conclusions) match {
+        checkFunctionCall(InferEnv(maybeCallingEnv, declaringEnv), state, r, conclusions) match {
           case Ok(_) =>
           case Err(e) => {
             return Err(e)

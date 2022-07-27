@@ -6,6 +6,7 @@ import org.scalatest.{FunSuite, Matchers}
 import scala.collection.immutable.Map
 
 class TestRuleSolver(interner: Interner) extends ISolveRule[IRule, Long, Unit, Unit, String, String] {
+  override def sanityCheckConclusion(env: Unit, state: Unit, rune: Long, conclusion: String): Unit = {}
 
   def instantiateAncestorTemplate(descendants: Vector[String], ancestorTemplate: String): String = {
     // IRL, we may want to doublecheck that all descendants *can* instantiate as the ancestor template.

@@ -277,7 +277,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     functionTemplata: FunctionTemplata):
-  (FunctionBannerT) = {
+  (PrototypeTemplata) = {
     Profiler.frame(() => {
         val FunctionTemplata(env, function) = functionTemplata
         if (function.isLight()) {
@@ -308,7 +308,7 @@ class FunctionCompiler(
       coutputs: CompilerOutputs,
     callRange: RangeS,
     function: FunctionA):
-  (FunctionBannerT) = {
+  (PrototypeTemplata) = {
     closureOrLightLayer.evaluateOrdinaryLightFunctionFromNonCallForBanner(
       env, coutputs, callRange, function)
   }
@@ -324,8 +324,8 @@ class FunctionCompiler(
     Profiler.frame(() => {
         val FunctionTemplata(declaringEnv, function) = functionTemplata
         if (function.isLight()) {
-          evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, alreadySpecifiedTemplateArgs, paramFilters)
+          evaluateTemplatedLightFunctionFromCallForBanner(
+            coutputs, callingEnv, callRange, functionTemplata, alreadySpecifiedTemplateArgs, paramFilters)
         } else {
           val lambdaCitizenName2 =
             functionTemplata.function.name match {
@@ -369,7 +369,7 @@ class FunctionCompiler(
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     paramFilters: Vector[CoordT]):
-  (IEvaluateFunctionResult[FunctionBannerT]) = {
+  (IEvaluateFunctionResult[PrototypeTemplata]) = {
     Profiler.frame(() => {
         val FunctionTemplata(declaringEnv, function) = functionTemplata
         closureOrLightLayer.evaluateTemplatedLightBannerFromCall(
@@ -418,7 +418,7 @@ class FunctionCompiler(
     callRange: RangeS,
     closureStructRef: StructTT,
     function: FunctionA):
-  (FunctionBannerT) = {
+  (PrototypeTemplata) = {
     closureOrLightLayer.evaluateOrdinaryClosureFunctionFromNonCallForBanner(
       env, coutputs, callRange, closureStructRef, function)
   }

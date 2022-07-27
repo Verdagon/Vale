@@ -329,9 +329,11 @@ class ArrayCompiler(
         globalEnv,
         PackageEnvironment(globalEnv, templateName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateName,
+        templateName,
         TemplatasStore(templateName, Map(), Map()))
     coutputs.declareTemplate(templateName)
-    coutputs.declareEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareOuterEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareInnerEnvForTemplate(templateName, arrayEnv)
   }
 
   def resolveStaticSizedArray(
@@ -357,9 +359,11 @@ class ArrayCompiler(
         globalEnv,
         PackageEnvironment(globalEnv, templateName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateName,
+        templateName,
         TemplatasStore(templateName, Map(), Map()))
     coutputs.declareTemplate(templateName)
-    coutputs.declareEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareOuterEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareInnerEnvForTemplate(templateName, arrayEnv)
   }
 
   def resolveRuntimeSizedArray(type2: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]):
