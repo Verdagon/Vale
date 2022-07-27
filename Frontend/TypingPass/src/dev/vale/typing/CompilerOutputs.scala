@@ -43,7 +43,10 @@ case class CompilerOutputs() {
   // Things will appear here before they appear in structTemplateNameToDefinition/interfaceTemplateNameToDefinition
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
   private val declaredTemplateNames: mutable.HashSet[FullNameT[ITemplateNameT]] = mutable.HashSet()
-  private val templateNameToEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
+  // Outer env is the env that contains the template.
+  private val templateNameToOuterEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
+  // Inner env is the env that contains the solved rules for the declaration, given placeholders.
+  private val templateNameToInnerEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
   private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
@@ -169,13 +172,24 @@ case class CompilerOutputs() {
     templateNameToMutability += (templateName -> mutability)
   }
 
-  def declareEnvForTemplate(
+  def declareOuterEnvForTemplate(
     templateNameT: FullNameT[ITemplateNameT],
     env: IEnvironment,
   ): Unit = {
     vassert(declaredTemplateNames.contains(templateNameT))
-    vassert(!templateNameToEnv.contains(templateNameT))
-    templateNameToEnv += (templateNameT -> env)
+    vassert(!templateNameToOuterEnv.contains(templateNameT))
+    templateNameToOuterEnv += (templateNameT -> env)
+  }
+
+  def declareInnerEnvForTemplate(
+    templateNameT: FullNameT[ITemplateNameT],
+    env: IEnvironment,
+  ): Unit = {
+    vassert(declaredTemplateNames.contains(templateNameT))
+    // One should declare the outer env first
+    vassert(templateNameToOuterEnv.contains(templateNameT))
+    vassert(!templateNameToInnerEnv.contains(templateNameT))
+    templateNameToInnerEnv += (templateNameT -> env)
   }
 
   def add(structDef: StructDefinitionT): Unit = {
@@ -321,8 +335,11 @@ case class CompilerOutputs() {
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
     vassertSome(envByFunctionSignature.get(sig))
   }
-  def getEnvForTemplate(name: FullNameT[ITemplateNameT]): IEnvironment = {
-    vassertSome(templateNameToEnv.get(name))
+  def getOuterEnvForTemplate(name: FullNameT[ITemplateNameT]): IEnvironment = {
+    vassertSome(templateNameToOuterEnv.get(name))
+  }
+  def getInnerEnvForTemplate(name: FullNameT[ITemplateNameT]): IEnvironment = {
+    vassertSome(templateNameToInnerEnv.get(name))
   }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)

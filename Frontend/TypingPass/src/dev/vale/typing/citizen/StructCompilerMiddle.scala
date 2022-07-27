@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{CitizenEnvironment, IEnvironment, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions, env}
-import dev.vale.typing.names.{NameTranslator, RuneNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator, RuneNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vfail, vimpl}
@@ -16,7 +16,6 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.CitizenEnvironment
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.names.AnonymousSubstructNameT
 
 import scala.collection.immutable.List
 
@@ -30,6 +29,7 @@ class StructCompilerMiddle(
 
   def compileStruct(
     structOuterEnv: IEnvironment,
+    structTemplateFullName: FullNameT[IStructTemplateNameT],
     coutputs: CompilerOutputs,
     structS: StructA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
@@ -40,6 +40,7 @@ class StructCompilerMiddle(
       CitizenEnvironment(
         structOuterEnv.globalEnv,
         structOuterEnv,
+        structTemplateFullName,
         structOuterEnv.fullName,
         TemplatasStore(structOuterEnv.fullName, Map(), Map())
           .addEntries(
@@ -47,12 +48,15 @@ class StructCompilerMiddle(
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
     core.compileStruct(
-      localEnv, coutputs, structS, coercedFinalTemplateArgs2)
+      localEnv,
+      structTemplateFullName,
+      coutputs, structS, coercedFinalTemplateArgs2)
   }
 
   def compileInterface(
     interfaceOuterEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    interfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
     interfaceA: InterfaceA,
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]):
   Unit = {
@@ -62,13 +66,14 @@ class StructCompilerMiddle(
       env.CitizenEnvironment(
         interfaceOuterEnv.globalEnv,
         interfaceOuterEnv,
+        interfaceTemplateName,
         interfaceOuterEnv.fullName,
         env.TemplatasStore(interfaceOuterEnv.fullName, Map(), Map())
           .addEntries(
             interner,
             templatasByRune.toVector
               .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
-    core.compileInterface(localEnv, coutputs, interfaceA, coercedFinalTemplateArgs2)
+    core.compileInterface(localEnv, coutputs, interfaceTemplateName, interfaceA, coercedFinalTemplateArgs2)
   }
 
   // Makes a struct to back a closure

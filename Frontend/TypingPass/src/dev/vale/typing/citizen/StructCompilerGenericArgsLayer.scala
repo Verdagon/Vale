@@ -245,7 +245,15 @@ class StructCompilerGenericArgsLayer(
       val StructTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.fullName.addStep(structTemplateName)
-      coutputs.declareEnvForTemplate(structTemplateFullName, declaringEnv)
+
+      val outerEnv =
+        CitizenEnvironment(
+          declaringEnv.globalEnv,
+          declaringEnv,
+          structTemplateFullName,
+          structTemplateFullName,
+          TemplatasStore(structTemplateFullName, Map(), Map()))
+      coutputs.declareOuterEnvForTemplate(structTemplateFullName, outerEnv)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
@@ -258,7 +266,7 @@ class StructCompilerGenericArgsLayer(
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
         inferCompiler.solve(
-          declaringEnv, None, coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector()) match {
+          outerEnv, None, coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector()) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
           }
@@ -274,7 +282,7 @@ class StructCompilerGenericArgsLayer(
             case None => {
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val runeType = vassertSome(allRuneToType.get(genericParam.rune.rune))
-              val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, structTemplateFullName, index, runeType)
+              val templata = templataCompiler.createPlaceholder(coutputs, outerEnv, structTemplateFullName, index, runeType)
               Some(InitialKnown(genericParam.rune, templata))
             }
           }
@@ -283,7 +291,7 @@ class StructCompilerGenericArgsLayer(
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          declaringEnv,
+          outerEnv,
           None,
           coutputs,
           definitionRules.toVector,
@@ -304,7 +312,9 @@ class StructCompilerGenericArgsLayer(
         case Some(_) =>
       }
 
-      middle.compileStruct(declaringEnv, coutputs, structA, inferences)
+      coutputs.declareInnerEnvForTemplate(structTemplateFullName, outerEnv)
+
+      middle.compileStruct(outerEnv, structTemplateFullName, coutputs, structA, inferences)
     })
   }
 
@@ -316,7 +326,22 @@ class StructCompilerGenericArgsLayer(
       val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
-      coutputs.declareEnvForTemplate(interfaceTemplateFullName, declaringEnv)
+
+      val interfaceTemplateEnv =
+        CitizenEnvironment(
+          declaringEnv.globalEnv,
+          declaringEnv,
+          interfaceTemplateFullName,
+          declaringEnv.fullName,
+          TemplatasStore(declaringEnv.fullName, Map(), Map())
+            .addEntries(
+              interner,
+              interfaceA.internalMethods
+                .map(internalMethod => {
+                  val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
+                  (functionName -> FunctionEnvEntry(internalMethod))
+                })))
+      coutputs.declareOuterEnvForTemplate(interfaceTemplateFullName, interfaceTemplateEnv)
 
       //      val fullName = env.fullName.addStep(interfaceLastName)
 
@@ -329,7 +354,7 @@ class StructCompilerGenericArgsLayer(
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
         inferCompiler.solve(
-          declaringEnv, None, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector()) match {
+          interfaceTemplateEnv, None, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector()) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range, f))
           }
@@ -350,7 +375,7 @@ class StructCompilerGenericArgsLayer(
                 }
                 case None => {
                   val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
-                  val templata = templataCompiler.createPlaceholder(coutputs, declaringEnv, interfaceTemplateFullName, index, runeType)
+                  val templata = templataCompiler.createPlaceholder(coutputs, interfaceTemplateEnv, interfaceTemplateFullName, index, runeType)
                   Some(InitialKnown(genericParam.rune, templata))
                 }
               }
@@ -360,7 +385,7 @@ class StructCompilerGenericArgsLayer(
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          declaringEnv,
+          interfaceTemplateEnv,
           None,
           coutputs,
           definitionRules,
@@ -377,7 +402,9 @@ class StructCompilerGenericArgsLayer(
         case Some(_) =>
       }
 
-      middle.compileInterface(declaringEnv, coutputs, interfaceA, inferences)
+      coutputs.declareInnerEnvForTemplate(interfaceTemplateFullName, interfaceTemplateEnv)
+
+      middle.compileInterface(interfaceTemplateEnv, coutputs, interfaceTemplateFullName, interfaceA, inferences)
     })
   }
 

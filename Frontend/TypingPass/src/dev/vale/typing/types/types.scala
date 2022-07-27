@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, IVarNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -158,9 +158,19 @@ sealed trait ICitizenTT extends KindT with IInterning {
 }
 
 // These should only be made by struct typingpass, which puts the definition into coutputs at the same time
-case class StructTT(fullName: FullNameT[IStructNameT]) extends ICitizenTT
+case class StructTT(fullName: FullNameT[IStructNameT]) extends ICitizenTT {
+  (fullName.initSteps.lastOption, fullName.last) match {
+    case (Some(StructTemplateNameT(_)), StructNameT(_, _)) => vfail()
+    case _ =>
+  }
+}
 
-case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT
+case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT {
+  (fullName.initSteps.lastOption, fullName.last) match {
+    case (Some(InterfaceTemplateNameT(_)), InterfaceNameT(_, _)) => vfail()
+    case _ =>
+  }
+}
 
 // Represents a bunch of functions that have the same name.
 // See ROS.

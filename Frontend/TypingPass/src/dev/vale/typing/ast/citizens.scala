@@ -1,6 +1,6 @@
 package dev.vale.typing.ast
 
-import dev.vale.postparsing.MutabilityTemplataType
+import dev.vale.postparsing.{ITemplataType, MutabilityTemplataType}
 import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
@@ -9,6 +9,7 @@ import dev.vale.{StrI, vcurious, vfail, vpass}
 // A "citizen" is a struct or an interface.
 trait CitizenDefinitionT {
   def templateName: FullNameT[ICitizenTemplateNameT]
+  def genericParamTypes: Vector[ITemplataType]
   def placeholderedCitizen: ICitizenTT
 }
 
@@ -21,6 +22,10 @@ case class StructDefinitionT(
   members: Vector[StructMemberT],
   isClosure: Boolean
 ) extends CitizenDefinitionT {
+  override def genericParamTypes: Vector[ITemplataType] = {
+    placeholderedCitizen.fullName.last.templateArgs.map(_.tyype)
+  }
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
 //  override def getRef: StructTT = ref
@@ -86,6 +91,10 @@ case class InterfaceDefinitionT(
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[FunctionHeaderT]
 ) extends CitizenDefinitionT  {
+  override def genericParamTypes: Vector[ITemplataType] = {
+    placeholderedCitizen.fullName.last.templateArgs.map(_.tyype)
+  }
+
   override def placeholderedCitizen: ICitizenTT = placeholderedInterface
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 //  override def getRef = ref

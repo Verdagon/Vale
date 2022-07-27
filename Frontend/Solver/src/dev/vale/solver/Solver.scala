@@ -79,6 +79,8 @@ trait ISolveRule[Rule, Rune, Env, State, Conclusion, ErrType] {
     solverState: ISolverState[Rule, Rune, Conclusion],
     stepState: IStepState[Rule, Rune, Conclusion]
   ): Result[Unit, ISolverError[Rune, Conclusion, ErrType]]
+
+  def sanityCheckConclusion(env: Env, state: State, rune: Rune, conclusion: Conclusion): Unit
 }
 
 class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
@@ -96,6 +98,10 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
 
       if (sanityCheck) {
         solverState.sanityCheck()
+
+        solverState.userifyConclusions().foreach({ case (rune, conclusion) =>
+          solveRule.sanityCheckConclusion(env, state, rune, conclusion)
+        })
       }
 
       while ( {
@@ -112,6 +118,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
 
               val canonicalConclusions =
                 step.conclusions.map({ case (userRune, conclusion) => solverState.getCanonicalRune(userRune) -> conclusion }).toMap
+
               //            println(s"Got conclusions for ${solvingRuleIndex}: " + canonicalConclusions.keySet)
               solverState.markRulesSolved[ErrType](Array(solvingRuleIndex), canonicalConclusions) match {
                 case Ok(_) =>
@@ -119,7 +126,9 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
               }
 
               if (sanityCheck) {
-                //              println("Sanity checking")
+                step.conclusions.foreach({ case (rune, conclusion) =>
+                  solveRule.sanityCheckConclusion(env, state, rune, conclusion)
+                })
                 solverState.sanityCheck()
               }
               true

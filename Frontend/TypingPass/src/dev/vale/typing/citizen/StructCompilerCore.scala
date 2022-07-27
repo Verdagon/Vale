@@ -18,7 +18,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FunctionTemplateNameT, INameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -35,14 +35,14 @@ class StructCompilerCore(
   def compileStruct(
     // The environment that the struct was defined in.
     structRunesEnv: CitizenEnvironment[INameT],
+    templateFullNameT: FullNameT[IStructTemplateNameT],
     coutputs: CompilerOutputs,
     structA: StructA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   Unit = {
     val templateNameT = nameTranslator.translateStructName(structA.name)
-    val templateFullNameT = structRunesEnv.fullName.addStep(templateNameT)
     val placeholderedNameT = templateNameT.makeStructName(interner, coercedFinalTemplateArgs)
-    val placeholderedFullNameT = structRunesEnv.fullName.addStep(placeholderedNameT)
+    val placeholderedFullNameT = templateFullNameT.copy(last = placeholderedNameT)
     val placeholderedStructTT = interner.intern(StructTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =
@@ -102,7 +102,10 @@ class StructCompilerCore(
 
     val structInnerEnv =
       CitizenEnvironment(
-        structRunesEnv.globalEnv, structRunesEnv, placeholderedFullNameT,
+        structRunesEnv.globalEnv,
+        structRunesEnv,
+        templateFullNameT,
+        placeholderedFullNameT,
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
@@ -168,12 +171,12 @@ class StructCompilerCore(
   def compileInterface(
     interfaceRunesEnv: CitizenEnvironment[INameT],
     coutputs: CompilerOutputs,
+    templateFullNameT: FullNameT[IInterfaceTemplateNameT],
     interfaceA: InterfaceA,
     coercedFinalTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceDefinitionT) = {
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
     val templateNameT = nameTranslator.translateInterfaceName(interfaceA.name)
-    val templateFullNameT = interfaceRunesEnv.fullName.addStep(templateNameT)
     val placeholderedNameT = templateNameT.makeInterfaceName(interner, coercedFinalTemplateArgs)
     val placeholderedFullNameT = interfaceRunesEnv.fullName.addStep(placeholderedNameT)
     val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT))
@@ -231,6 +234,7 @@ class StructCompilerCore(
       CitizenEnvironment(
         interfaceRunesEnv.globalEnv,
         interfaceRunesEnv,
+        templateFullNameT,
         placeholderedFullNameT,
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros)
@@ -240,14 +244,7 @@ class StructCompilerCore(
               .map({ case (genericParam, templata) => (interner.intern(RuneNameT(genericParam.rune.rune)), TemplataEnvEntry(templata)) }))
           .addEntries(
             interner,
-            Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(placeholderedInterfaceTT))))
-          .addEntries(
-            interner,
-            interfaceA.internalMethods
-              .map(internalMethod => {
-                val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
-                (functionName -> FunctionEnvEntry(internalMethod))
-              })))
+            Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(placeholderedInterfaceTT)))))
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
@@ -374,6 +371,7 @@ class StructCompilerCore(
       CitizenEnvironment(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
+        understructTemplatedFullNameT,
         understructInstantiatedFullNameT,
         TemplatasStore(understructInstantiatedFullNameT, Map(), Map())
           .addEntries(
@@ -401,7 +399,8 @@ class StructCompilerCore(
     val functionTemplata = FunctionTemplata(structEnv, functionA)
 
     coutputs.declareTemplate(understructTemplatedFullNameT)
-    coutputs.declareEnvForTemplate(understructTemplatedFullNameT, structEnv);
+    coutputs.declareOuterEnvForTemplate(understructTemplatedFullNameT, containingFunctionEnv)
+    coutputs.declareInnerEnvForTemplate(understructTemplatedFullNameT, structEnv)
     coutputs.declareTemplateMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
 
     val closureStructDefinition =

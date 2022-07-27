@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.LocationInFunctionEnvironment
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, IVarNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -23,6 +23,8 @@ case class BuildingFunctionEnvironmentWithClosureds(
   function: FunctionA,
   variables: Vector[IVariableT]
 ) extends IEnvironment {
+
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -62,6 +64,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   function: FunctionA,
   variables: Vector[IVariableT]
 ) extends IEnvironment {
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -107,6 +110,8 @@ case class NodeEnvironment(
   // This can refer to vars in parent blocks, see UCRTVPE.
   unstackifiedLocals: Set[FullNameT[IVarNameT]]
 ) extends IEnvironment {
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
+
   vassert(declaredLocals.map(_.id) == declaredLocals.map(_.id).distinct)
 
   val hash = fullName.hashCode() ^ life.hashCode();
@@ -377,6 +382,13 @@ case class FunctionEnvironment(
   // Eventually we might have a list of imported environments here, pointing at the
   // environments in the global environment.
 ) extends IEnvironment {
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => Some(TemplataCompiler.getFunctionTemplate(fullName))
+      case _ => parentEnv.getCallingTopLevelDenizenName()
+    }
+  }
+
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
 
   override def equals(obj: Any): Boolean = {
@@ -470,6 +482,8 @@ case class FunctionEnvironment(
 
 case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) extends IEnvironmentBox {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
+
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = functionEnvironment.getCallingTopLevelDenizenName()
 
   override def snapshot: FunctionEnvironment = functionEnvironment
   def fullName: FullNameT[IFunctionNameT] = functionEnvironment.fullName

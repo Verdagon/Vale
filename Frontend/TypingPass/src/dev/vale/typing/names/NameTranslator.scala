@@ -142,7 +142,7 @@ class NameTranslator(interner: Interner) {
     }
   }
 
-  def translateImplName(n: IImplDeclarationNameS): IImplDeclareNameT = {
+  def translateImplName(n: IImplDeclarationNameS): IImplTemplateNameT = {
     n match {
       case ImplDeclarationNameS(l) => {
         interner.intern(ImplTemplateDeclareNameT(translateCodeLocation(l)))

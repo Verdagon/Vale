@@ -66,6 +66,8 @@ trait IInfererDelegate[Env, State] {
   def isDescendant(env: Env, state: State, kind: KindT): Boolean
   def isAncestor(env: Env, state: State, kind: KindT): Boolean
 
+  def sanityCheckConclusion(env: Env, state: State, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit
+
   def resolveStruct(
     env: Env,
     state: State,
@@ -252,6 +254,9 @@ class CompilerSolver[Env, State](
       rules.collect({ case DefinitionFuncSR(range, _, _, _, _) => }).isEmpty)
 
     initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
+      if (globalOptions.sanityCheck) {
+        delegate.sanityCheckConclusion(env, state, rune, templata)
+      }
       vassert(templata.tyype == vassertSome(runeToType.get(rune)))
     })
 
@@ -265,7 +270,7 @@ class CompilerSolver[Env, State](
         (rule: IRulexSR) => getPuzzles(rule),
         initiallyKnownRuneToTemplata)
 
-    val ruleSolver = new CompilerRuleSolver(interner, delegate, runeToType)
+    val ruleSolver = new CompilerRuleSolver(globalOptions.sanityCheck, interner, delegate, runeToType)
     val (stepsStream, conclusionsStream) =
       solver.solve(
           (rule: IRulexSR) => getPuzzles(rule),
@@ -295,10 +300,15 @@ class CompilerSolver[Env, State](
 }
 
 class CompilerRuleSolver[Env, State](
+  sanityCheck: Boolean,
     interner: Interner,
     delegate: IInfererDelegate[Env, State],
     runeToType: Map[IRuneS, ITemplataType])
   extends ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError] {
+
+  override def sanityCheckConclusion(env: Env, state: State, rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
+    delegate.sanityCheckConclusion(env, state, rune, conclusion)
+  }
 
   override def complexSolve(
       state: State,

@@ -166,6 +166,21 @@ class StructCompiler(
       coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
   }
 
+  def resolveCitizen(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    // We take the entire templata (which includes environment and parents) so we can incorporate
+    // their rules as needed
+    citizenTemplata: CitizenTemplata,
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+  (ICitizenTT) = {
+    citizenTemplata match {
+      case st @ StructTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs)
+      case it @ InterfaceTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs)
+    }
+  }
+
   def compileInterface(
     coutputs: CompilerOutputs,
     // We take the entire templata (which includes environment and parents) so we can incorporate

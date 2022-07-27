@@ -119,20 +119,27 @@ sealed trait IInterfaceNameT extends ICitizenNameT {
   override def template: InterfaceTemplateNameT
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
-trait IImplTemplateNameT extends INameT
-trait IImplDeclareNameT extends INameT
+trait IImplTemplateNameT extends ITemplateNameT
 
-case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplDeclareNameT
-case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplDeclareNameT
+case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT
+case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplTemplateNameT
 
 case class LetNameT(codeLocation: CodeLocationS) extends INameT
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
 
 case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT
 
-case class StaticSizedArrayTemplateNameT() extends ITemplateNameT
+case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
+  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
+    vimpl()
+  }
+}
 case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawArrayNameT) extends INameT
-case class RuntimeSizedArrayTemplateNameT() extends ITemplateNameT
+case class RuntimeSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
+  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
+    vimpl()
+  }
+}
 case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT
 
 // This exists because PlaceholderT is a kind, and all kinds need environments to assist

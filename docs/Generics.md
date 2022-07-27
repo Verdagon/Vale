@@ -512,9 +512,9 @@ out?
 
 
 
+# Solve First With Predictions, Resolve Later (SFWPRL)
 
-we have a bit of a problem.
-
+Sometimes, the `func drop(T)void` rule doesn't run soon enough for us. For example:
 
 ```
 sealed interface Opt<T Ref>
@@ -532,4 +532,92 @@ where func drop(T)void;
 Here, when we're compiling that impl, two things need to happen:
 
  * The DefinitionFuncSR puts the `drop` function into the environment.
- * We resolve the Some<T>, which requires that a `drop` function exists in the environment.
+ * We resolve the `Some<T>`, which requires that a `drop` function exists in the environment.
+
+There are two ways we might solve this:
+
+ * Somehow force the drop rule to run sooner.
+ * Force the resolve of the `Some<T>` to happen later.
+
+The former might require some sort of priority mechanism in the solver, so we're doing the latter.
+
+Basically, during a solve, if the solver wants to resolve an interface or struct, it doesn't actually call the StructCompiler's `resolveStruct`/`resolveInterface` which checks all the requirements are there.
+
+Instead, it will call StructCompiler's `predictStruct`/`predictInterface` which do very little, they mostly just create a name, plus solve some default generic parameters.
+
+Later, after the solve, we go back through and do the actual `resolveStruct`/`resolveInterface`.
+
+We do this with functions too. ResolveSR will actually just create a prototype out of thin air. It's only afterward that we actually go and find it. (This is also why ResolveSR needs a return type rune)
+
+
+# Macro-Derived Sibling Functions Often Need All Rules From Original (MDSFONARFO)
+
+Macros can take a denizen and generate new denizens right next to them.
+
+For example, in:
+
+```
+sealed interface Opt<T Ref>
+where func drop(T)void
+{ }
+
+struct Some<T>
+where func drop(T)void
+{ x T; }
+
+impl<T> Opt<T> for Some<T>
+where func drop(T)void;
+```
+
+The implicit InterfaceDropMacro defines a drop function for that interface.
+
+It almost looks like this:
+
+```
+func drop(this Opt<T>) void {
+  [x] = this;
+}
+```
+
+But wait! That doesn't work! There needs to be a `<T>` parameter and there needs to exist a drop for that T, like:
+
+```
+func drop<T>(this Opt<T>) void
+where func drop(T)void {
+  [x] = this;
+}
+```
+
+We can see now that this `drop` function actually takes a _lot_ from the original interface.
+
+It needs:
+
+ * Generic parameters
+ * Concept functions
+ * Rune types
+
+Pretty much everything.
+
+
+# Need Function Inner Env For Resolving Overrides (NFIEFRO)
+
+Let's say we have these functions:
+
+```
+abstract func drop<T>(x Opt<T>)
+where func drop(T)void;
+
+func drop<T>(x Some<T>)
+where func drop(T)void {
+  [_] = x;
+}
+```
+
+When we're figuring out the itables, we see the abstract one, and so we try to resolve for the one taking a `Some<T>`.
+
+However, when we do that, it failed the second `where func drop(T)void` there. That's because when the abstract function is "calling" the override, it didn't have the abstract function's original environment which contained the knowledge that there exists a `func drop(T)void`.
+
+So, we need to recall the abstract function's inner environment when we do that resolve. To do that, we need to track the inner env in the CompilerOutputs.
+
+
+

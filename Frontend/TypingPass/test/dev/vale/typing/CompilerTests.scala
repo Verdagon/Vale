@@ -637,7 +637,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests calling a templated struct's constructor") {
     val compile = CompilerTestCompilation.test(
       """
-        |struct MySome<T> where T Ref { value T; }
+        |struct MySome<T Ref> where func drop(T)void { value T; }
         |exported func main() int {
         |  return MySome<int>(4).value;
         |}
