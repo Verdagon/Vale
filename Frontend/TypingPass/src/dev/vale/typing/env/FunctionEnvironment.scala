@@ -4,7 +4,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.LocationInFunctionEnvironment
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IVarNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -64,12 +64,19 @@ case class BuildingFunctionEnvironmentWithClosureds(
 case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
-  fullName: FullNameT[BuildingFunctionNameWithClosuredsAndTemplateArgsT],
+  fullName: FullNameT[IFunctionTemplateNameT],
+  templateArgs: Vector[ITemplata[ITemplataType]],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT]
 ) extends IEnvironment {
-  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
+
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => Some(fullName)
+      case _ => parentEnv.getCallingTopLevelDenizenName()
+    }
+  }
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

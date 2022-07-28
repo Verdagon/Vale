@@ -178,7 +178,7 @@ class StructCompilerCore(
     val TopLevelCitizenDeclarationNameS(humanName, codeLocation) = interfaceA.name
     val templateNameT = nameTranslator.translateInterfaceName(interfaceA.name)
     val placeholderedNameT = templateNameT.makeInterfaceName(interner, coercedFinalTemplateArgs)
-    val placeholderedFullNameT = interfaceRunesEnv.fullName.addStep(placeholderedNameT)
+    val placeholderedFullNameT = interfaceRunesEnv.fullName.copy(last = placeholderedNameT)
     val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =

@@ -104,7 +104,7 @@ object CompilerErrorHumanizer {
         case WrongNumberOfDestructuresError(range, actualNum, expectedNum) => {
           "Wrong number of receivers; receiving " + actualNum + " but should be " + expectedNum + "."
         }
-        case CantDowncastUnrelatedTypes(range, sourceKind, targetKind) => {
+        case CantDowncastUnrelatedTypes(range, sourceKind, targetKind, candidates) => {
           "Can't downcast `" + humanizeTemplata(codeMap, KindTemplata(sourceKind)) + "` to unrelated `" + humanizeTemplata(codeMap, KindTemplata(targetKind)) + "`"
         }
         case CantDowncastToInterface(range, targetKind) => {

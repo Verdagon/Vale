@@ -18,7 +18,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT}
+import dev.vale.typing.names.{FullNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -419,12 +419,12 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
-    val newName =
-      FullNameT(
-        fullName.packageCoord,
-        fullName.initSteps,
-        BuildingFunctionNameWithClosuredsAndTemplateArgsT(
-          fullName.last, identifyingTemplatas))
+//    val newName =
+//      FullNameT(
+//        fullName.packageCoord,
+//        fullName.initSteps,
+//        interner.intern(BuildingFunctionNameWithClosuredsAndTemplateArgsT(
+//          fullName.last, identifyingTemplatas)))
 
     val newEntries =
       templatas.addEntries(
@@ -433,7 +433,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      globalEnv, parentEnv, newName, newEntries, function, variables)
+      globalEnv, parentEnv, fullName, identifyingTemplatas, newEntries, function, variables)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -539,7 +539,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         nearEnv, Some(nearEnv), coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareInnerEnvForTemplate(runedEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)

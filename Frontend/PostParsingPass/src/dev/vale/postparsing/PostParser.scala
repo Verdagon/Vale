@@ -171,15 +171,15 @@ object PostParser {
     Ok(tyype)
   }
 
-  def getHumanName(templex: ITemplexPT): IImpreciseNameS = {
+  def getHumanName(interner: Interner, templex: ITemplexPT): IImpreciseNameS = {
     templex match {
       //      case NullablePT(_, inner) => getHumanName(inner)
-      case InlinePT(_, inner) => getHumanName(inner)
+      case InlinePT(_, inner) => getHumanName(interner, inner)
       //      case PermissionedPT(_, permission, inner) => getHumanName(inner)
-      case InterpretedPT(_, ownership, inner) => getHumanName(inner)
+      case InterpretedPT(_, ownership, inner) => getHumanName(interner, inner)
       case AnonymousRunePT(_) => vwat()
-      case NameOrRunePT(NameP(_, name)) => CodeNameS(name)
-      case CallPT(_, template, args) => getHumanName(template)
+      case NameOrRunePT(NameP(_, name)) => interner.intern(CodeNameS(name))
+      case CallPT(_, template, args) => getHumanName(interner, template)
       case StaticSizedArrayPT(_, mutability, variability, size, element) => vwat()
       case TuplePT(_, members) => vwat()
       case IntPT(_, value) => vwat()
@@ -364,15 +364,15 @@ class PostParser(
 
     val subCitizenImpreciseName =
       struct match {
-        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
-        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => interner.intern(CodeNameS(name.str))
+        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => interner.intern(CodeNameS(name.str))
         case _ => throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(file, struct.range), "Can't determine name of struct!"))
       }
 
     val superInterfaceImpreciseName =
       interface match {
-        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
-        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => interner.intern(CodeNameS(name.str))
+        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => interner.intern(CodeNameS(name.str))
         case _ => throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(file, struct.range), "Can't determine name of struct!"))
       }
 
