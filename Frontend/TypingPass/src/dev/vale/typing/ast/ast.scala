@@ -28,6 +28,8 @@ case class ImplT(
   // We do this because a struct might implement an interface in multiple ways, see SCIIMT.
   // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
+  templata: ImplTemplata,
+
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
 //  // Starting from a placeholdered sub citizen, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.

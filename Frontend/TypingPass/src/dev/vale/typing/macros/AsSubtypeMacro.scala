@@ -4,7 +4,7 @@ import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
-import dev.vale.typing.citizen.ImplCompiler
+import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
 import dev.vale.typing.templata.KindTemplata
@@ -40,13 +40,13 @@ class AsSubtypeMacro(
     val sourceCitizen =
       sourceKind match {
         case c : ICitizenTT => c
-        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
+        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
       }
 
     val targetCitizen =
       targetKind match {
         case c : ICitizenTT => c
-        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
+        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
       }
 
     // We dont support downcasting to interfaces yet
@@ -74,15 +74,18 @@ class AsSubtypeMacro(
     val asSubtypeExpr: ReferenceExpressionTE =
       sourceCitizen match {
         case sourceInterface @ InterfaceTT(_) => {
-          if (ancestorHelper.isParent(coutputs, targetStruct, sourceInterface)) {
-            AsSubtypeTE(
-              ArgLookupTE(0, incomingCoord),
-              targetKind,
-              resultCoord,
-              okConstructor,
-              errConstructor)
-          } else {
-            throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
+          ancestorHelper.isParent(coutputs, targetStruct, sourceInterface) match {
+            case IsParent(conclusions) => {
+              AsSubtypeTE(
+                ArgLookupTE(0, incomingCoord),
+                targetKind,
+                resultCoord,
+                okConstructor,
+                errConstructor)
+            }
+            case IsntParent(candidates) => {
+              throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, candidates))
+            }
           }
         }
         case sourceStruct @ StructTT(_) => {
@@ -91,7 +94,7 @@ class AsSubtypeMacro(
               okConstructor,
               Vector(ArgLookupTE(0, incomingCoord)))
           } else {
-            throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind))
+            throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
           }
         }
       }

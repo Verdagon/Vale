@@ -1683,7 +1683,7 @@ class CompilerTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantDowncastUnrelatedTypes(
-        tz, ispaceshipKind, unrelatedKind))
+        tz, ispaceshipKind, unrelatedKind, Vector()))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantDowncastToInterface(
@@ -1743,7 +1743,7 @@ class CompilerTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.getCompilerOutputs() match {
-      case Err(CantDowncastUnrelatedTypes(_, _, _)) =>
+      case Err(CantDowncastUnrelatedTypes(_, _, _, _)) =>
     }
   }
 

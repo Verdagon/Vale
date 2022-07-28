@@ -285,9 +285,9 @@ case class TemplatasStore(
           }
           case (key, entry @ ImplEnvEntry(implA)) => {
             List(
-              ImplImpreciseNameS(implA.superInterfaceImpreciseName, implA.subCitizenImpreciseName) -> entry,
-              ImplSubCitizenImpreciseNameS(implA.subCitizenImpreciseName) -> entry,
-              ImplSuperInterfaceImpreciseNameS(implA.superInterfaceImpreciseName) -> entry)
+              interner.intern(ImplImpreciseNameS(implA.superInterfaceImpreciseName, implA.subCitizenImpreciseName)) -> entry,
+              interner.intern(ImplSubCitizenImpreciseNameS(implA.subCitizenImpreciseName)) -> entry,
+              interner.intern(ImplSuperInterfaceImpreciseNameS(implA.superInterfaceImpreciseName)) -> entry)
           }
           case (key, value) => {
             getImpreciseName(interner, key).toList.map(_ -> value)
