@@ -137,7 +137,7 @@ class StructCompilerGenericArgsLayer(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: Option[IEnvironment], // See CSSNCE
     callRange: RangeS,
     structTemplata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
@@ -169,7 +169,7 @@ class StructCompilerGenericArgsLayer(
       val inferences =
       inferCompiler.solveExpectComplete(
         env,
-        Some(callingEnv),
+        callingEnv,
         coutputs,
         callSiteRules,
         runeToTypeForPrediction,
@@ -332,8 +332,8 @@ class StructCompilerGenericArgsLayer(
           declaringEnv.globalEnv,
           declaringEnv,
           interfaceTemplateFullName,
-          declaringEnv.fullName,
-          TemplatasStore(declaringEnv.fullName, Map(), Map())
+          interfaceTemplateFullName,
+          TemplatasStore(interfaceTemplateFullName, Map(), Map())
             .addEntries(
               interner,
               interfaceA.internalMethods

@@ -263,7 +263,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, env.declaringEnv, callRange, templata, templateArgs)
+            state, Some(env.callingEnv.getOrElse(env.declaringEnv)), callRange, templata, templateArgs)
         }
 
         override def kindIsFromTemplate(

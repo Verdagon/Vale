@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.{Interner, RangeS, vassert, vassertOne, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
-import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -13,7 +13,6 @@ import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
 import dev.vale.typing.ast.UnsubstitutedCoordT
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsParentResult, IsntParent}
-import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -622,8 +621,9 @@ class TemplataCompiler(
       case KindTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
         coutputs.declareTemplate(placeholderTemplateFullName)
-        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, env)
-        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, env)
+        val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
+        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
         KindTemplata(placeholderKindT)
       }
       // TODO: Not sure what to put here when we do regions. We might need to
@@ -635,8 +635,9 @@ class TemplataCompiler(
       case CoordTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
         coutputs.declareTemplate(placeholderTemplateFullName)
-        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, env)
-        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, env)
+        val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
+        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
         CoordTemplata(CoordT(OwnT, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, tyype)

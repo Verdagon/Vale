@@ -9,7 +9,7 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, Functio
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, ExpressionLookupContext, FunctionEnvironment, IEnvironment, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsAndTemplateArgsT, FullNameT, IFunctionNameT, NameTranslator, TypingIgnoredParamNameT}
+import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, NameTranslator, TypingIgnoredParamNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -18,7 +18,6 @@ import dev.vale.postparsing.patterns._
 import dev.vale.typing.{ast, names, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import dev.vale.typing.names.AnonymousSubstructConstructorNameT
 
 import scala.collection.immutable.{List, Set}
 
@@ -157,7 +156,7 @@ class FunctionCompilerMiddleLayer(
     })
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-    val functionFullName = assembleName(runedEnv.fullName, paramTypes2)
+    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionT(header, _)) => {
@@ -201,7 +200,7 @@ class FunctionCompilerMiddleLayer(
     })
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-    val functionFullName = assembleName(runedEnv.fullName, paramTypes2)
+    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     val p = vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
     PrototypeTemplata(function1.range, p)
@@ -288,20 +287,20 @@ class FunctionCompilerMiddleLayer(
     paramTypes: Vector[CoordT],
     maybeReturnType: Option[CoordT]
   ): FunctionEnvironment = {
-    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, parentEnv, oldName, templatas, function, variables) = runedEnv
+    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, parentEnv, oldName, templateArgs, templatas, function, variables) = runedEnv
 
     // We fill out the params here to get the function's full name.
-    val newName = assembleName(oldName, paramTypes)
+    val newName = assembleName(oldName, templateArgs, paramTypes)
 
     FunctionEnvironment(globalEnv, parentEnv, newName, templatas, function, maybeReturnType, variables)
   }
 
   private def assembleName(
-    name: FullNameT[BuildingFunctionNameWithClosuredsAndTemplateArgsT],
+    name: FullNameT[IFunctionTemplateNameT],
+    templateArgs: Vector[ITemplata[ITemplataType]],
     params: Vector[CoordT]):
   FullNameT[IFunctionNameT] = {
-    val BuildingFunctionNameWithClosuredsAndTemplateArgsT(templateName, templateArgs) = name.last
-    val newLastStep = templateName.makeFunctionName(interner, keywords, templateArgs, params)
+    val newLastStep = name.last.makeFunctionName(interner, keywords, templateArgs, params)
     FullNameT(name.packageCoord, name.initSteps, newLastStep)
   }
 
@@ -412,7 +411,7 @@ class FunctionCompilerMiddleLayer(
     })
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-    val functionFullName = assembleName(runedEnv.fullName, paramTypes2)
+    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionT(header, _)) => {

@@ -418,7 +418,7 @@ class ImplCompiler(
       }
     val parentTT = conclusions.get(implTemplata.impl.subCitizenRune.rune)
     vassertSome(parentTT) match {
-      case KindTemplata(i @ InterfaceTT(_)) => Ok(i)
+      case KindTemplata(i : ICitizenTT) => Ok(i)
       case _ => vwat()
     }
   }
@@ -459,7 +459,7 @@ class ImplCompiler(
         case Some(n) => n
       }
     val implImpreciseNameS =
-      ImplSubCitizenImpreciseNameS(subCitizenImpreciseName)
+      interner.intern(ImplSubCitizenImpreciseNameS(subCitizenImpreciseName))
 
     val subCitizenEnv =
       coutputs.getOuterEnvForTemplate(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))

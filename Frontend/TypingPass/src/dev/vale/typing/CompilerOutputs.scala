@@ -178,6 +178,7 @@ case class CompilerOutputs() {
   ): Unit = {
     vassert(declaredTemplateNames.contains(templateNameT))
     vassert(!templateNameToOuterEnv.contains(templateNameT))
+    vassert(templateNameT == env.fullName)
     templateNameToOuterEnv += (templateNameT -> env)
   }
 
@@ -189,6 +190,7 @@ case class CompilerOutputs() {
     // One should declare the outer env first
     vassert(templateNameToOuterEnv.contains(templateNameT))
     vassert(!templateNameToInnerEnv.contains(templateNameT))
+    vassert(templateNameT == env.fullName)
     templateNameToInnerEnv += (templateNameT -> env)
   }
 

@@ -6,7 +6,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
-import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GlobalEnvironment, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
@@ -137,36 +137,6 @@ class InferCompiler(
     })
   }
 
-
-  case class ResolvingEnvironment(
-    globalEnv: GlobalEnvironment,
-    parentEnv: IEnvironment,
-    fullName: FullNameT[ResolvingEnvNameT],
-    templatas: TemplatasStore
-  ) extends IEnvironment {
-    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-
-    override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
-
-    override def lookupWithNameInner(
-      name: INameT,
-      lookupFilter: Set[ILookupContext],
-      getOnlyNearest: Boolean):
-    Iterable[ITemplata[ITemplataType]] = {
-      EnvironmentHelper.lookupWithNameInner(
-        this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
-    }
-
-    override def lookupWithImpreciseNameInner(
-      name: IImpreciseNameS,
-      lookupFilter: Set[ILookupContext],
-      getOnlyNearest: Boolean):
-    Iterable[ITemplata[ITemplataType]] = {
-      EnvironmentHelper.lookupWithImpreciseNameInner(
-        this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
-    }
-  }
-
   def checkTemplateInstantiations(
     declaringEnv: IEnvironment,
     maybeCallingEnv: Option[IEnvironment], // See CSSNCE
@@ -194,16 +164,15 @@ class InferCompiler(
         case Some(x) => x
       }
     val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
-        val templatasStore =
-      TemplatasStore(name, Map(), Map())
-        .addEntries(
-          interner,
-          conclusions.map({case (nameS, templata) =>
-            interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-          }).toVector)
+
     val temporaryEnv =
-      ResolvingEnvironment(
-        callingEnv.globalEnv, callingEnv, name, templatasStore)
+      GeneralEnvironment.childOf(
+        interner,
+        callingEnv,
+        name,
+        conclusions.map({case (nameS, templata) =>
+          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+        }).toVector)
 
     rules.foreach({
       case r @ CallSR(_, _, _, _) => {

@@ -142,7 +142,7 @@ class StructCompiler(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: Option[IEnvironment], // See CSSNCE
     callRange: RangeS,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed

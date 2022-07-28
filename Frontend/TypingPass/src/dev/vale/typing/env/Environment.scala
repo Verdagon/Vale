@@ -442,3 +442,50 @@ case class CitizenEnvironment[+T <: INameT](
     }
   }
 }
+
+object GeneralEnvironment {
+  def childOf[Y <: INameT](
+    interner: Interner,
+    parentEnv: IEnvironment,
+    newName: FullNameT[Y],
+    newEntriesList: Vector[(INameT, IEnvEntry)] = Vector()):
+  GeneralEnvironment[Y] = {
+    GeneralEnvironment(
+      parentEnv.globalEnv,
+      parentEnv,
+      newName,
+      new TemplatasStore(newName, Map(), Map())
+        .addEntries(interner, newEntriesList))
+  }
+}
+
+case class GeneralEnvironment[+T <: INameT](
+  globalEnv: GlobalEnvironment,
+  parentEnv: IEnvironment,
+  fullName: FullNameT[T],
+  templatas: TemplatasStore
+) extends IEnvironment {
+  override def equals(obj: Any): Boolean = vcurious();
+
+  override def hashCode(): Int = vcurious()
+
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
+
+  override def lookupWithNameInner(
+    name: INameT,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplata[ITemplataType]] = {
+    EnvironmentHelper.lookupWithNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+  }
+
+  override def lookupWithImpreciseNameInner(
+    name: IImpreciseNameS,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplata[ITemplataType]] = {
+    EnvironmentHelper.lookupWithImpreciseNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+  }
+}

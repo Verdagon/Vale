@@ -190,16 +190,6 @@ case class BuildingFunctionNameWithClosuredsT(
 
 
 }
-// This is the name of a function that we're still figuring out in the function typingpass.
-// We have its closured variables and template args, but are still figuring out its params.
-case class BuildingFunctionNameWithClosuredsAndTemplateArgsT(
-  templateName: IFunctionTemplateNameT,
-  templateArgs: Vector[ITemplata[ITemplataType]]
-) extends INameT {
-
-
-
-}
 
 case class ExternFunctionNameT(
   humanName: StrI,
