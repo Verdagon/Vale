@@ -6,6 +6,7 @@ import dev.vale.{RangeS, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
+import dev.vale.typing.citizen.{IsParent, IsParentResult, IsntParent}
 //import dev.vale.astronomer.IRulexSR
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.IEnvironmentBox
@@ -21,7 +22,7 @@ trait IConvertHelperDelegate {
     coutputs: CompilerOutputs,
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
-  Boolean
+  IsParentResult
 }
 
 class ConvertHelper(
@@ -114,10 +115,13 @@ class ConvertHelper(
     sourceStructRef: StructTT,
     targetInterfaceRef: InterfaceTT):
   (ReferenceExpressionTE) = {
-    if (delegate.isParent(coutputs, sourceStructRef, targetInterfaceRef)) {
-      StructToInterfaceUpcastTE(sourceExpr, targetInterfaceRef)
-    } else {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceStructRef + " to a " + targetInterfaceRef))
+    delegate.isParent(coutputs, sourceStructRef, targetInterfaceRef) match {
+      case IsParent(_) => {
+        StructToInterfaceUpcastTE(sourceExpr, targetInterfaceRef)
+      }
+      case IsntParent(candidates) => {
+        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceStructRef + " to a " + targetInterfaceRef + ": " + candidates))
+      }
     }
   }
 }

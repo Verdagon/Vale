@@ -122,6 +122,14 @@ sealed trait IInterfaceNameT extends ICitizenNameT {
 trait IImplTemplateNameT extends ITemplateNameT
 
 case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT
+
+// The name of an impl that is subclassing some interface. To find all impls subclassing an interface,
+// look for this name.
+case class ImplImplementingSuperInterfaceNameT(superInterface: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
+// The name of an impl that is augmenting some sub citizen. To find all impls subclassing an interface,
+// look for this name.
+case class ImplAugmentingSubCitizenNameT(subCitizen: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
+
 case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplTemplateNameT
 
 case class LetNameT(codeLocation: CodeLocationS) extends INameT

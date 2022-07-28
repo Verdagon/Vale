@@ -29,14 +29,14 @@ case class ImplT(
   // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
-  // Starting from a placeholdered sub citizen, this is the interface that would result.
-  // We get this by solving the impl, given a placeholdered sub citizen.
-  parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
+//  // Starting from a placeholdered sub citizen, this is the interface that would result.
+//  // We get this by solving the impl, given a placeholdered sub citizen.
+//  parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
   superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
-  // Starting from a placeholdered super interface, this is the interface that would result.
-  // We get this by solving the impl, given a placeholdered sub citizen.
-  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
+//  // Starting from a placeholdered super interface, this is the interface that would result.
+//  // We get this by solving the impl, given a placeholdered sub citizen.
+//  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
 ) extends IInterning
 
 case class KindExportT(
@@ -104,9 +104,6 @@ object ProgramT {
   val intType = CoordT(ShareT, IntT.i32)
   val boolType = CoordT(ShareT, BoolT())
 }
-
-sealed trait IFunctionBound
-case class ConceptFunctionBound(prototype: PrototypeT) extends IFunctionBound
 
 case class FunctionT(
   header: FunctionHeaderT,

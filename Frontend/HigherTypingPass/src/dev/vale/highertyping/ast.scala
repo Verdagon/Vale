@@ -109,8 +109,10 @@ case class ImplA(
   identifyingRunes: Vector[RuneUsage],
   rules: Vector[IRulexSR],
   runeToType: Map[IRuneS, ITemplataType],
-  structKindRune: RuneUsage,
-  interfaceKindRune: RuneUsage) {
+  subCitizenRune: RuneUsage,
+  subCitizenImpreciseName: IImpreciseNameS,
+  interfaceKindRune: RuneUsage,
+  superInterfaceImpreciseName: IImpreciseNameS) {
 
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;

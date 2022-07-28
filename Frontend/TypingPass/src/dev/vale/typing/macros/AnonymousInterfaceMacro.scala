@@ -124,7 +124,9 @@ class AnonymousInterfaceMacro(
         rules.toVector,
         runeToType,
         structKindRuneS,
-        interfaceKindRuneS)
+        subCitizenImpreciseName,
+        interfaceKindRuneS,
+        superInterfaceImpreciseName)
     val implNameT = structNameT.copy(last = nameTranslator.translateNameStep(implA.name))
     val implSiblingEntries =
       implDropMacro.getImplSiblingEntries(implNameT, implA)

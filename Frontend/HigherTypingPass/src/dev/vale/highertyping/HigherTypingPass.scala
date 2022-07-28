@@ -279,7 +279,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   }
 
   def translateImpl(astrouts: Astrouts,  env: Environment, implS: ImplS): ImplA = {
-    val ImplS(rangeS, nameS, identifyingRunesS, rulesS, runeToExplicitType, structKindRuneS, interfaceKindRuneS) = implS
+    val ImplS(rangeS, nameS, identifyingRunesS, rulesS, runeToExplicitType, structKindRuneS, subCitizenImpreciseName, interfaceKindRuneS, superInterfaceImpreciseName) = implS
 
     val runeSToType =
       calculateRuneTypes(
@@ -302,7 +302,9 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       rulesS.toVector,
       runeSToType,
       structKindRuneS,
-      interfaceKindRuneS)
+      subCitizenImpreciseName,
+      interfaceKindRuneS,
+      superInterfaceImpreciseName)
   }
 
   def translateExport(astrouts: Astrouts,  env: Environment, exportS: ExportAsS): ExportAsA = {

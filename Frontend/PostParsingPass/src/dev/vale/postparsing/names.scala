@@ -188,6 +188,7 @@ case class ImmInterfaceDestructorNameS(packageCoordinate: PackageCoordinate) ext
   override def getImpreciseName(interner: Interner): IImpreciseNameS = vimpl()
 }
 
+case class ImplImpreciseNameS(superInterfaceImpreciseName: IImpreciseNameS, subCitizenImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 case class ImplSubCitizenImpreciseNameS(subCitizenImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 case class ImplSuperInterfaceImpreciseNameS(superInterfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 
