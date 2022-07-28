@@ -24,7 +24,12 @@ case class BuildingFunctionEnvironmentWithClosureds(
   variables: Vector[IVariableT]
 ) extends IEnvironment {
 
-  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
+  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => Some(fullName)
+      case _ => parentEnv.getCallingTopLevelDenizenName()
+    }
+  }
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

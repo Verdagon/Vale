@@ -83,6 +83,13 @@ sealed trait KindT {
       case _ => vfail()
     }
   }
+
+  def expectInterface(): InterfaceTT = {
+    this match {
+      case c @ InterfaceTT(_) => c
+      case _ => vfail()
+    }
+  }
 }
 
 // like Scala's Nothing. No instance of this can ever happen.

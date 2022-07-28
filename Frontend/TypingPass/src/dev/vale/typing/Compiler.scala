@@ -499,7 +499,7 @@ class Compiler(
         }
       })
 
-  val edgeCompiler = new EdgeCompiler(interner, overloadCompiler)
+  val edgeCompiler = new EdgeCompiler(interner, overloadCompiler, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator)

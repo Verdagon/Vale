@@ -9,6 +9,7 @@ import dev.vale.typing.env.{IEnvironment, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.ast._
+import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 
@@ -26,7 +27,8 @@ case class PartialEdgeT(
 
 class EdgeCompiler(
     interner: Interner,
-    overloadCompiler: OverloadResolver) {
+    overloadCompiler: OverloadResolver,
+    implCompiler: ImplCompiler) {
   def compileITables(coutputs: CompilerOutputs):
   (
     Vector[InterfaceEdgeBlueprint],
@@ -57,18 +59,25 @@ class EdgeCompiler(
                 val abstractIndex = abstractFunctionBanner.params.indexWhere(_.virtuality.nonEmpty)
                 vassert(abstractIndex >= 0)
                 val abstractParamType = abstractFunctionParamTypes(abstractIndex)
-                val abstractParamCitizen = abstractParamType.kind.expectCitizen()
+                val abstractParamCitizen = abstractParamType.kind.expectInterface()
+                val abstractFunctionOuterEnv =
+                  coutputs.getOuterEnvForTemplate(abstractFunctionTemplateFullName)
+                val abstractFunctionInnerEnv =
+                  coutputs.getInnerEnvForTemplate(abstractFunctionTemplateFullName)
                 // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
                 // according to itself, not placeholdered according to the interface that it overrode.
                 // For example, if Firefly<X, Y> impl IShip<Y, X>, we want StructT(Firefly, (IShip:$_1, IShip:$_0))
                 // not StructT(Firefly, (Firefly:$_0, Firefly:$_1)).
                 // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
                 // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
-                val overridingParamType =
-                    abstractParamType
-                      .copy(kind = overridingImpl.subCitizenFromPlaceholderedParentInterface)
+                val overridingParamKind =
+                    implCompiler.getImplDescendantGivenParent(coutputs, Some(abstractFunctionOuterEnv), overridingImpl.templata, abstractParamCitizen) match {
+                      case Ok(c) => c
+                      case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(overridingImpl.templata.impl.range, e))
+                    }
+                val overridingParamCoord = abstractParamType.copy(kind = overridingParamKind)
                 val overrideFunctionParamTypes =
-                  abstractFunctionParamTypes.updated(abstractIndex, overridingParamType)
+                  abstractFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
 
                 val range = abstractFunctionBanner.originFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
 
@@ -80,8 +89,6 @@ class EdgeCompiler(
                 // We need the abstract function's env because it contains knowledge of the existence
                 // of certain things like concept functions, see NFIEFRO.
 
-                val abstractFunctionInnerEnv =
-                  coutputs.getInnerEnvForTemplate(abstractFunctionTemplateFullName)
                 val foundFunction =
                   resolveOverride(
                     coutputs, range, abstractFunctionInnerEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
