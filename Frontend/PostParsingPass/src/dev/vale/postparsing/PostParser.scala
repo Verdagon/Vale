@@ -330,6 +330,7 @@ class PostParser(
       RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(templateRulesP)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val userDeclaredRunes = identifyingRunes ++ runesFromRules
+    val userDeclaredRunesSet = userDeclaredRunes.map(_.rune).toSet
 
     val implEnv = postparsing.EnvironmentS(file, None, implName, userDeclaredRunes.map(_.rune).toSet)
 
@@ -361,6 +362,20 @@ class PostParser(
         ruleBuilder,
         Some(interface))
 
+    val subCitizenImpreciseName =
+      struct match {
+        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case _ => throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(file, struct.range), "Can't determine name of struct!"))
+      }
+
+    val superInterfaceImpreciseName =
+      interface match {
+        case CallPT(_, NameOrRunePT(name), _) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case NameOrRunePT(name) if !userDeclaredRunesSet.contains(CodeRuneS(name.str)) => CodeNameS(name.str)
+        case _ => throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(file, struct.range), "Can't determine name of struct!"))
+      }
+
     ImplS(
       PostParser.evalRange(file, range),
       implName,
@@ -368,7 +383,9 @@ class PostParser(
       ruleBuilder.toArray,
       runeToExplicitType.toMap,
       structRune,
-      interfaceRune)
+      subCitizenImpreciseName,
+      interfaceRune,
+      superInterfaceImpreciseName)
   }
 
   private def scoutExportAs(file: FileCoordinate, exportAsP: ExportAsP): ExportAsS = {

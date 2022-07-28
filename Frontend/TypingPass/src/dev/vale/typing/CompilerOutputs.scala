@@ -218,6 +218,7 @@ case class CompilerOutputs() {
 //  }
 
   def addImpl(impl: ImplT): Unit = {
+    vfail()
     // There may be a collision here, but that's alright. See CIFBD.
 
     allImpls += impl

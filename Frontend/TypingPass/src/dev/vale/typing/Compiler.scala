@@ -83,7 +83,7 @@ class Compiler(
       opts,
       nameTranslator,
       new ITemplataCompilerDelegate {
-        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
           implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
 
@@ -363,7 +363,7 @@ class Compiler(
     new ConvertHelper(
       opts,
       new IConvertHelperDelegate {
-        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): Boolean = {
+        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
           implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
         }
       })
@@ -668,6 +668,8 @@ class Compiler(
           })
         })
 
+        // Indexing phase
+
         globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
           val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
           templatas.entriesByNameT.map({ case (name, entry) =>
@@ -689,24 +691,8 @@ class Compiler(
           val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
-              case ImplEnvEntry(implA) => {
-                implCompiler.compileImpl(coutputs, ImplTemplata(env, implA))
-              }
-              case _ =>
-            }
-          })
-        })
-
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
-          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
-          templatas.entriesByNameT.map({ case (name, entry) =>
-            entry match {
               case ImplEnvEntry(impl) => {
-                if (impl.isTemplate) {
-                  // Do nothing, it's a template
-                } else {
-
-                }
+                implCompiler.compileImpl(coutputs, ImplTemplata(env, impl))
               }
               case _ =>
             }

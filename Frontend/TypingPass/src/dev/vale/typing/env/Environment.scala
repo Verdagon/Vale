@@ -283,9 +283,11 @@ case class TemplatasStore(
             getImpreciseName(interner, key).toList.map(_ -> value) ++
               getImpreciseName(interner, prototype.fullName.last).map(_ -> value)
           }
-          case (key, value @ ImplEnvEntry(implA)) => {
-            // Impls never need to be looked up.
-            List()//implA.impreciseName -> value)
+          case (key, entry @ ImplEnvEntry(implA)) => {
+            List(
+              ImplImpreciseNameS(implA.superInterfaceImpreciseName, implA.subCitizenImpreciseName) -> entry,
+              ImplSubCitizenImpreciseNameS(implA.subCitizenImpreciseName) -> entry,
+              ImplSuperInterfaceImpreciseNameS(implA.superInterfaceImpreciseName) -> entry)
           }
           case (key, value) => {
             getImpreciseName(interner, key).toList.map(_ -> value)

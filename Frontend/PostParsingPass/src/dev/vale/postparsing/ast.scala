@@ -143,9 +143,11 @@ case class ImplS(
     name: ImplDeclarationNameS,
     userSpecifiedIdentifyingRunes: Vector[RuneUsage],
     rules: Array[IRulexSR],
-  runeToExplicitType: Map[IRuneS, ITemplataType],
+    runeToExplicitType: Map[IRuneS, ITemplataType],
     structKindRune: RuneUsage,
-    interfaceKindRune: RuneUsage) {
+    subCitizenImpreciseName: IImpreciseNameS,
+    interfaceKindRune: RuneUsage,
+    superInterfaceImpreciseName: IImpreciseNameS) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 

@@ -12,7 +12,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
 import dev.vale.typing.ast.UnsubstitutedCoordT
-import dev.vale.typing.citizen.ImplCompiler
+import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsParentResult, IsntParent}
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
 import dev.vale.typing.types._
@@ -26,7 +26,7 @@ trait ITemplataCompilerDelegate {
     coutputs: CompilerOutputs,
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
-  Boolean
+  IsParentResult
 
   def resolveStruct(
     coutputs: CompilerOutputs,
@@ -326,13 +326,15 @@ class TemplataCompiler(
       case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
       case (_, StructTT(_)) => return false
       case (a @ StructTT(_), b @ InterfaceTT(_)) => {
-        if (!delegate.isParent(coutputs, a, b)) {
-          return false
+        delegate.isParent(coutputs, a, b) match {
+          case IsParent(conclusions) =>
+          case IsntParent(_) => return false
         }
       }
       case (a @ InterfaceTT(_), b @ InterfaceTT(_)) => {
-        if (!delegate.isParent(coutputs, a, b)) {
-          return false
+        delegate.isParent(coutputs, a, b) match {
+          case IsParent(conclusions) =>
+          case IsntParent(_) => return false
         }
       }
       case _ => {
