@@ -165,18 +165,24 @@ class InferCompiler(
       }
     val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
 
-    val temporaryEnv =
-      GeneralEnvironment.childOf(
-        interner,
-        callingEnv,
-        name,
-        conclusions.map({case (nameS, templata) =>
-          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-        }).toVector)
+//    val temporaryEnv =
+//      GeneralEnvironment.childOf(
+//        interner,
+//        // "Caller" called us, now we're calling someone ("callee").
+//        // We don't want our callee to see our caller. We want them to only see us.
+//        // So, this temporary environment's parent is our own environment, not the caller's env.
+//        // See OSDCE for more and an example.
+//        // (or maybe this should just not have a parent?)
+//        // or maybe we should not do things deeply.
+//        declaringEnv,
+//        name,
+//        conclusions.map({case (nameS, templata) =>
+//          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+//        }).toVector)
 
     rules.foreach({
       case r @ CallSR(_, _, _, _) => {
-        checkTemplateCall(InferEnv(Some(temporaryEnv), declaringEnv), state, r, conclusions)
+        checkTemplateCall(InferEnv(maybeCallingEnv, declaringEnv), state, r, conclusions)
       }
       case r @ ResolveSR(_, _, _, _, _) => {
         checkFunctionCall(InferEnv(maybeCallingEnv, declaringEnv), state, r, conclusions) match {

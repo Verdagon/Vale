@@ -1043,6 +1043,9 @@ class CompilerTests extends FunSuite with Matchers {
 
   test("DO NOT SUBMIT") {
     vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
+
+
+    vimpl() // OSDCE might be obsolete
   }
 
   test("Test imm array") {

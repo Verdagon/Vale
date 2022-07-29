@@ -464,18 +464,18 @@ class FunctionCompiler(
       env, coutputs, function)
   }
 
-  def evaluateOrdinaryLightFunctionFromNonCallForCompilerOutputs(
-      coutputs: CompilerOutputs,
-      functionTemplata: FunctionTemplata):
-  Unit = {
-    Profiler.frame(() => {
-        val FunctionTemplata(env, function) = functionTemplata
-        val _ =
-          evaluateOrdinaryLightFunctionFromNonCallForHeader(
-            env, coutputs, function)
-      })
-
-  }
+//  def evaluateOrdinaryLightFunctionFromNonCallForCompilerOutputs(
+//      coutputs: CompilerOutputs,
+//      functionTemplata: FunctionTemplata):
+//  Unit = {
+//    Profiler.frame(() => {
+//        val FunctionTemplata(env, function) = functionTemplata
+//        val _ =
+//          evaluateOrdinaryLightFunctionFromNonCallForHeader(
+//            env, coutputs, function)
+//      })
+//
+//  }
 
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,

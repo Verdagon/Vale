@@ -51,63 +51,56 @@ class StructConstructorMacro(
       // Only one we have right now is tuple, which has its own special syntax for constructing.
       return Vector()
     }
-    val functionA = defineConstructorFunction(structA)
+    val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
+    runeToType ++= structA.headerRuneToType
+    runeToType ++= structA.membersRuneToType
+
+    val rules = mutable.ArrayBuffer[IRulexSR]()
+    rules ++= structA.headerRules
+    rules ++= structA.memberRules
+
+    val retRune = RuneUsage(structA.name.range, ReturnRuneS())
+    runeToType += (retRune.rune -> CoordTemplataType())
+    val structNameRange = structA.name.range
+    if (structA.isTemplate) {
+      val structNameRune = StructNameRuneS(structA.name)
+      runeToType += (structNameRune -> structA.tyype)
+      rules += LookupSR(structNameRange, RuneUsage(structNameRange, structNameRune), structA.name.getImpreciseName(interner))
+      rules += CallSR(structNameRange, retRune, RuneUsage(structNameRange, structNameRune), structA.genericParameters.map(_.rune).toArray)
+    } else {
+      rules += LookupSR(structNameRange, retRune, structA.name.getImpreciseName(interner))
+    }
+
+    val params =
+      structA.members.zipWithIndex.flatMap({
+        case (NormalStructMemberS(range, name, variability, typeRune), index) => {
+          val capture = CaptureS(interner.intern(CodeVarNameS(name)))
+          Vector(ParameterS(AtomSP(range, Some(capture), None, Some(typeRune), None)))
+        }
+        case (VariadicStructMemberS(range, variability, typeRune), index) => {
+          Vector()
+        }
+      })
+
+    val functionA =
+      FunctionA(
+        structA.range,
+        interner.intern(ConstructorNameS(structA.name)),
+        Vector(),
+        structA.tyype match {
+          case KindTemplataType() => FunctionTemplataType()
+          case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
+        },
+        structA.genericParameters,
+        runeToType.toMap,
+        params,
+        Some(retRune),
+        rules.toVector,
+        GeneratedBodyS(generatorId))
+
     Vector(
       structName.copy(last = nameTranslator.translateNameStep(functionA.name)) ->
         FunctionEnvEntry(functionA))
-  }
-
-  private def defineConstructorFunction(structA: StructA):
-  FunctionA = {
-    Profiler.frame(() => {
-      val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
-      runeToType ++= structA.headerRuneToType
-      runeToType ++= structA.membersRuneToType
-
-      val rules = mutable.ArrayBuffer[IRulexSR]()
-      rules ++= structA.headerRules
-      rules ++= structA.memberRules
-
-      val retRune = RuneUsage(structA.name.range, ReturnRuneS())
-      runeToType += (retRune.rune -> CoordTemplataType())
-      val structNameRange = structA.name.range
-      if (structA.isTemplate) {
-        val structNameRune = StructNameRuneS(structA.name)
-        runeToType += (structNameRune -> structA.tyype)
-        rules += LookupSR(structNameRange, RuneUsage(structNameRange, structNameRune), structA.name.getImpreciseName(interner))
-        rules += CallSR(structNameRange, retRune, RuneUsage(structNameRange, structNameRune), structA.genericParameters.map(_.rune).toArray)
-      } else {
-        rules += LookupSR(structNameRange, retRune, structA.name.getImpreciseName(interner))
-      }
-
-      val params =
-        structA.members.zipWithIndex.flatMap({
-          case (NormalStructMemberS(range, name, variability, typeRune), index) => {
-            val capture = CaptureS(interner.intern(CodeVarNameS(name)))
-            Vector(ParameterS(AtomSP(range, Some(capture), None, Some(typeRune), None)))
-          }
-          case (VariadicStructMemberS(range, variability, typeRune), index) => {
-            Vector()
-          }
-        })
-
-      val functionA =
-        FunctionA(
-          structA.range,
-          interner.intern(ConstructorNameS(structA.name)),
-          Vector(),
-          structA.tyype match {
-            case KindTemplataType() => FunctionTemplataType()
-            case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
-          },
-          structA.genericParameters,
-          runeToType.toMap,
-          params,
-          Some(retRune),
-          rules.toVector,
-          GeneratedBodyS(generatorId))
-      functionA
-    })
   }
 
 

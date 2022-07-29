@@ -550,6 +550,56 @@ Later, after the solve, we go back through and do the actual `resolveStruct`/`re
 We do this with functions too. ResolveSR will actually just create a prototype out of thin air. It's only afterward that we actually go and find it. (This is also why ResolveSR needs a return type rune)
 
 
+## Only See Direct Caller's Environment (OSDCE)
+
+Let's say we have these definitions:
+
+```
+interface MyInterface<T>
+where func drop(T)void { }
+
+struct MyStruct<T>
+where func drop(T)void { ... }
+
+impl MyInterface<T> for MyStruct<T>
+where func drop(T)void;
+```
+
+Which expands to something like this:
+
+```
+#!DeriveInterfaceDrop
+interface MyInterface<T>
+where func drop(T)void { }
+
+virtual func drop(self MyInterface<T>);
+
+#!DeriveStructDrop
+struct MyStruct<T>
+where func drop(T)void { ... }
+
+func drop(self MyInterface<T>);
+
+impl MyInterface<T> for MyStruct<T>
+where func drop(T)void;
+```
+
+This tree of steps happens when we compile the itables:
+
+ * We're looking for all overrides for the abstract function `func drop(self MyInterface<T>)void`.
+    * We use the environment from it, **which includes a conjured** `where func drop(T)void` bound.
+    * We use a placeholder for `T` (named `drop(MyInterface<T>).$0`, but we'll keep calling it `T`).
+    * We see that `MyStruct` implements it, so we try resolving a function `func drop(MyStruct<T>)void`.
+       * During solving, we conjure a `MyStruct<T>` and postpone its resolving.
+       * We conjure an environment with the conclusions from the solving, **including the conjured** `func drop(MyStruct<T>)void`.
+       * Now after solving, we're actually resolving that `MyStruct<T>`.
+          * During solving, we conjure a `func drop(T)void` and postpone its resolving.
+          * Afer solving, we actually want to resolve that `func drop(T)void`.
+             * Uh oh! We find **two** matchine prototypes.
+
+So, we shouldn't be able to see the caller's caller's environment when we resolve things.
+
+
 # Macro-Derived Sibling Functions Often Need All Rules From Original (MDSFONARFO)
 
 Macros can take a denizen and generate new denizens right next to them.
