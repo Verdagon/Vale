@@ -57,10 +57,11 @@ class FunctionCompilerClosureOrLightLayer(
 
 
   def evaluateOrdinaryLightFunctionFromNonCallForBanner(
-      outerEnv: IEnvironment,
-      coutputs: CompilerOutputs,
+    outerEnv: IEnvironment,
+    coutputs: CompilerOutputs,
     callRange: RangeS,
-    function: FunctionA):
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     checkNotClosure(function);
     vassert(!function.isTemplate)
@@ -73,7 +74,7 @@ class FunctionCompilerClosureOrLightLayer(
 //    coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
 
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForBanner(
-      newEnv, coutputs, callRange)
+      newEnv, coutputs, callRange, verifyConclusions)
   }
 
   def evaluateTemplatedClosureFunctionFromCallForBanner(
@@ -113,7 +114,8 @@ class FunctionCompilerClosureOrLightLayer(
     closureStructRef: StructTT,
     function: FunctionA,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    argTypes2: Vector[CoordT]):
+    argTypes2: Vector[CoordT],
+    verifyConclusions: Boolean):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     vassert(function.isTemplate)
 
@@ -130,7 +132,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
-      newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes2)
+      newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes2, verifyConclusions)
   }
 
   def evaluateTemplatedLightFunctionFromCallForPrototype2(
@@ -140,7 +142,8 @@ class FunctionCompilerClosureOrLightLayer(
       callRange: RangeS,
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[CoordT]):
+      args: Vector[CoordT],
+      verifyConclusions: Boolean):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     checkNotClosure(function);
     vassert(function.isTemplate)
@@ -149,7 +152,7 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareTemplate(newEnv.fullName)
     coutputs.declareOuterEnvForTemplate(newEnv.fullName, ourEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
-      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
+      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args, verifyConclusions)
   }
 
   def evaluateGenericLightFunctionFromCallForPrototype2(
@@ -169,9 +172,10 @@ class FunctionCompilerClosureOrLightLayer(
   }
 
   def evaluateOrdinaryLightFunctionFromNonCallForHeader(
-      outerEnv: IEnvironment,
-      coutputs: CompilerOutputs,
-    function: FunctionA):
+    outerEnv: IEnvironment,
+    coutputs: CompilerOutputs,
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     vassert(!function.isTemplate)
 
@@ -179,25 +183,27 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareTemplate(newEnv.fullName)
     coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, coutputs)
+      newEnv, coutputs, verifyConclusions)
   }
 
   def evaluateGenericLightFunctionFromNonCall(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    function: FunctionA):
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
     coutputs.declareTemplate(newEnv.fullName)
     coutputs.declareOuterEnvForTemplate(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
-      newEnv, coutputs)
+      newEnv, coutputs, verifyConclusions)
   }
 
   def evaluateTemplatedLightFunctionFromNonCallForHeader(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    function: FunctionA):
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     vassert(function.isTemplate)
 
@@ -205,7 +211,7 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareTemplate(newEnv.fullName)
     coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs)
+      newEnv, coutputs, verifyConclusions)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -239,7 +245,8 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs: CompilerOutputs,
     callRange: RangeS,
     closureStructRef: StructTT,
-    function: FunctionA):
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     vassert(!function.isTemplate)
 
@@ -256,14 +263,15 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForBanner(
-      newEnv, coutputs, callRange)
+      newEnv, coutputs, callRange, verifyConclusions)
   }
 
   def evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-      outerEnv: IEnvironment,
-      coutputs: CompilerOutputs,
-      closureStructRef: StructTT,
-    function: FunctionA):
+    outerEnv: IEnvironment,
+    coutputs: CompilerOutputs,
+    closureStructRef: StructTT,
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     // We dont here because it knows from how many variables
     // it closures... but even lambdas without closured vars are still closures and are still
@@ -283,7 +291,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, coutputs)
+      newEnv, coutputs, verifyConclusions)
   }
 
   def evaluateOrdinaryClosureFunctionFromCallForPrototype(
@@ -318,7 +326,8 @@ class FunctionCompilerClosureOrLightLayer(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
     closureStructRef: StructTT,
-    function: FunctionA):
+    function: FunctionA,
+    verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     // We dont here because it knows from how many variables
     // it closures... but even lambdas without closured vars are still closures and are still
@@ -338,7 +347,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs)
+      newEnv, coutputs, verifyConclusions)
   }
 
   // This is called while we're trying to figure out what function1s to call when there

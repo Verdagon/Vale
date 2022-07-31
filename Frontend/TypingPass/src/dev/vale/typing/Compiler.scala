@@ -84,7 +84,7 @@ class Compiler(
       nameTranslator,
       new ITemplataCompilerDelegate {
         override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
-          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
+          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef, true)
         }
 
         override def resolveStruct(
@@ -134,7 +134,7 @@ class Compiler(
       opts,
       interner,
       nameTranslator,
-      new IInfererDelegate[InferEnv, CompilerOutputs] {
+      new IInfererDelegate {
         override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit = {
           val placeholderFullNames =
             Collector.all(templata, {
@@ -142,17 +142,11 @@ class Compiler(
               case n@FullNameT(_, _, PlaceholderNameT(_)) => n
             })
 
-          env.callingEnv.getOrElse(env.declaringEnv).getCallingTopLevelDenizenName() match {
-            case None => {
-              vassert(placeholderFullNames.isEmpty)
-            }
-            case Some(topLevelDeclaringEnvName) => {
-              placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
-                val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
-                vassert(placeholderDeclaringEnvName == topLevelDeclaringEnvName)
-              })
-            }
-          }
+          val originalCallingEnvName = env.originalCallingEnv.fullName
+          placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
+            val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
+            vassert(placeholderDeclaringEnvName == originalCallingEnvName)
+          })
         }
 
         override def lookupTemplata(
@@ -161,7 +155,7 @@ class Compiler(
           range: RangeS,
           name: INameT):
         ITemplata[ITemplataType] = {
-          templataCompiler.lookupTemplata(envs.declaringEnv, coutputs, range, name)
+          templataCompiler.lookupTemplata(envs.selfEnv, coutputs, range, name)
         }
 
         override def isDescendant(
@@ -174,8 +168,8 @@ class Compiler(
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, s)
-            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, i)
+            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, s, false)
+            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -196,52 +190,19 @@ class Compiler(
         }
 
         override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
-          templataCompiler.lookupTemplata(envs.declaringEnv, state, range, name)
+          templataCompiler.lookupTemplata(envs.selfEnv, state, range, name)
         }
-
-//        override def lookupMemberTypes(state: CompilerOutputs, kind: KindT, expectedNumMembers: Int): Option[Vector[CoordT]] = {
-//            val underlyingstructTT =
-//              kind match {
-//                case sr@StructTT(_) => sr
-//                case _ => return None
-//              }
-//            val structDefT = state.lookupStruct(underlyingstructTT)
-//            val structMemberTypes = structDefT.members.map(m => m.tyype.reference)
-//            Some(structMemberTypes)
-//        }
 
         override def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType] = {
             Compiler.getMutability(state, kind)
         }
 
-        override def getStaticSizedArrayKind(envs: InferEnv, state: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): (StaticSizedArrayTT) = {
+        override def predictStaticSizedArrayKind(envs: InferEnv, state: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): (StaticSizedArrayTT) = {
             arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element)
         }
 
-        override def getRuntimeSizedArrayKind(envs: InferEnv, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
+        override def predictRuntimeSizedArrayKind(envs: InferEnv, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
             arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
-        }
-
-        override def resolveInterface(
-          env: InferEnv,
-          state: CompilerOutputs,
-          callRange: RangeS,
-          templata: InterfaceTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]]):
-        (KindT) = {
-          structCompiler.resolveInterface(
-            state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
-        }
-
-        override def resolveStruct(
-          env: InferEnv,
-          state: CompilerOutputs,
-          callRange: RangeS,
-          templata: StructTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]]):
-        (KindT) = {
-          structCompiler.resolveStruct(
-            state, vassertSome(env.callingEnv), callRange, templata, templateArgs)
         }
 
         override def predictInterface(
@@ -252,7 +213,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
             structCompiler.predictInterface(
-              state, env.declaringEnv, callRange, templata, templateArgs)
+              state, env.selfEnv, callRange, templata, templateArgs)
         }
 
         override def predictStruct(
@@ -263,7 +224,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, Some(env.callingEnv.getOrElse(env.declaringEnv)), callRange, templata, templateArgs)
+            state, env.selfEnv, callRange, templata, templateArgs)
         }
 
         override def kindIsFromTemplate(
@@ -286,20 +247,13 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => implCompiler.getParents(coutputs, s)
+                case s : ICitizenTT => implCompiler.getParents(coutputs, s, true)
                 case _ => Array()
               })
         }
 
-//        override def getMemberCoords(state: CompilerOutputs, structTT: StructTT): Vector[CoordT] = {
-//            structCompiler.getMemberCoords(state, structTT)
-//
-//        }
-
-
         override def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType = {
             it.originInterface.tyype
-
         }
 
         override def getStructTemplataType()(st: StructTemplata): ITemplataType = {
@@ -309,19 +263,6 @@ class Compiler(
         override def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean = {
             val structDef = state.lookupStruct(structTT)
             structDef.isClosure
-        }
-
-        override def resolveFunction(envs: InferEnv, state: CompilerOutputs, range: RangeS, name: StrI, coords: Vector[CoordT]): Result[PrototypeTemplata, FindFunctionFailure] = {
-            overloadCompiler.findFunction(
-              vassertSome(envs.callingEnv),
-              state,
-              range,
-              interner.intern(CodeNameS(interner.intern(name))),
-              Vector.empty,
-              Array.empty,
-              coords,
-              Vector.empty,
-              true)
         }
 
         def predictFunction(
@@ -335,7 +276,7 @@ class Compiler(
           PrototypeTemplata(
             range,
             PrototypeT(
-              envs.declaringEnv.fullName.addStep(
+              envs.selfEnv.fullName.addStep(
                 FunctionNameT(
                   FunctionTemplateNameT(name, range.begin),
                   Vector(),
@@ -352,11 +293,65 @@ class Compiler(
             returnType: CoordT):
         PrototypeT = {
           PrototypeT(
-            envs.declaringEnv.fullName.addStep(
+            envs.selfEnv.fullName.addStep(
               interner.intern(
                 FunctionNameT(
                   interner.intern(FunctionTemplateNameT(name, range.begin)), Vector(), coords))),
             returnType)
+        }
+      },
+      new IInferCompilerDelegate {
+        override def resolveInterface(
+          callingEnv: IEnvironment,
+          state: CompilerOutputs,
+          callRange: RangeS,
+          templata: InterfaceTemplata,
+          templateArgs: Vector[ITemplata[ITemplataType]],
+          verifyConclusions: Boolean):
+        InterfaceTT = {
+          vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
+          structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs)
+        }
+
+        override def resolveStruct(
+          callingEnv: IEnvironment,
+          state: CompilerOutputs,
+          callRange: RangeS,
+          templata: StructTemplata,
+          templateArgs: Vector[ITemplata[ITemplataType]],
+          verifyConclusions: Boolean):
+        StructTT = {
+          vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
+          structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs)
+        }
+
+        override def resolveFunction(
+          callingEnv: IEnvironment,
+          state: CompilerOutputs,
+          range: RangeS,
+          name: StrI,
+          coords: Vector[CoordT],
+          verifyConclusions: Boolean):
+        Result[PrototypeTemplata, FindFunctionFailure] = {
+          overloadCompiler.findFunction(
+            callingEnv,
+            state,
+            range,
+            interner.intern(CodeNameS(interner.intern(name))),
+            Vector.empty,
+            Array.empty,
+            coords,
+            Vector.empty,
+            true,
+            verifyConclusions)
+        }
+
+        override def resolveStaticSizedArrayKind(coutputs: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): StaticSizedArrayTT = {
+          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element)
+        }
+
+        override def resolveRuntimeSizedArrayKind(coutputs: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
+          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
         }
       })
   val convertHelper =
@@ -364,7 +359,7 @@ class Compiler(
       opts,
       new IConvertHelperDelegate {
         override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
-          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef)
+          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef, true)
         }
       })
 
@@ -377,23 +372,23 @@ class Compiler(
       templataCompiler,
       inferCompiler,
       new IStructCompilerDelegate {
-        override def evaluateOrdinaryFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata): FunctionHeaderT = {
-          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(coutputs, functionTemplata)
+        override def evaluateOrdinaryFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata, verifyConclusions: Boolean): FunctionHeaderT = {
+          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(coutputs, functionTemplata, verifyConclusions)
         }
 
-        override def evaluateTemplatedFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata): FunctionHeaderT = {
-          functionCompiler.evaluateTemplatedFunctionFromNonCallForHeader(coutputs, functionTemplata)
+        override def evaluateTemplatedFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata, verifyConclusions: Boolean): FunctionHeaderT = {
+          functionCompiler.evaluateTemplatedFunctionFromNonCallForHeader(coutputs, functionTemplata, verifyConclusions)
         }
 
         override def scoutExpectedFunctionForPrototype(
           env: IEnvironment, coutputs: CompilerOutputs, callRange: RangeS, functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
-          args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean):
+          args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
         PrototypeT = {
           overloadCompiler.findFunction(env, coutputs, callRange, functionName,
             explicitTemplateArgRulesS,
-            explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact) match {
+            explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact, verifyConclusions) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
             case Ok(x) => x.prototype
           }
@@ -485,7 +480,7 @@ class Compiler(
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
             args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
-          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
+          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args, true)
         }
 
         override def evaluateClosureStruct(
@@ -495,7 +490,7 @@ class Compiler(
             name: IFunctionDeclarationNameS,
             function1: FunctionA):
         StructTT = {
-          functionCompiler.evaluateClosureStruct(coutputs, containingNodeEnv, callRange, name, function1)
+          functionCompiler.evaluateClosureStruct(coutputs, containingNodeEnv, callRange, name, function1, true)
         }
       })
 
@@ -705,8 +700,7 @@ class Compiler(
             entry match {
               case FunctionEnvEntry(functionA) => {
                 functionCompiler.evaluateGenericFunctionFromNonCall(
-                  coutputs,
-                  FunctionTemplata(env, functionA))
+                  coutputs, FunctionTemplata(env, functionA), true)
               }
               case _ =>
             }
@@ -723,7 +717,7 @@ class Compiler(
 
             val templataByRune =
               inferCompiler.solveExpectComplete(
-                env, None, coutputs, rules, runeToType, range, Vector(), Vector())
+                InferEnv(env, env), coutputs, rules, runeToType, range, Vector(), Vector(), true)
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

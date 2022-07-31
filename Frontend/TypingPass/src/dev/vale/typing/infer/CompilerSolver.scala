@@ -15,7 +15,7 @@ import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.{templata, types}
+import dev.vale.typing.{CompilerOutputs, InferEnv, templata, types}
 import dev.vale.typing.types._
 
 import scala.collection.immutable.HashSet
@@ -46,98 +46,74 @@ case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSo
 case class FunctionDoesntHaveName(range: RangeS, name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: RangeS) extends ITypingPassSolverError
 
-trait IInfererDelegate[Env, State] {
+trait IInfererDelegate {
 //  def lookupMemberTypes(
-//    state: State,
+//    state: CompilerOutputs,
 //    kind: KindT,
 //    // This is here so that the predictor can just give us however many things
 //    // we expect.
 //    expectedNumMembers: Int
 //  ): Option[Vector[CoordT]]
 
-  def getMutability(state: State, kind: KindT): ITemplata[MutabilityTemplataType]
+  def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType]
 
-  def lookupTemplata(env: Env, state: State, range: RangeS, name: INameT): ITemplata[ITemplataType]
+  def lookupTemplata(env: InferEnv, state: CompilerOutputs, range: RangeS, name: INameT): ITemplata[ITemplataType]
 
-  def lookupTemplataImprecise(env: Env, state: State, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]]
+  def lookupTemplataImprecise(env: InferEnv, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]]
 
-  def coerce(env: Env, state: State, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType]
+  def coerce(env: InferEnv, state: CompilerOutputs, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType]
 
-  def isDescendant(env: Env, state: State, kind: KindT): Boolean
-  def isAncestor(env: Env, state: State, kind: KindT): Boolean
+  def isDescendant(env: InferEnv, state: CompilerOutputs, kind: KindT): Boolean
+  def isAncestor(env: InferEnv, state: CompilerOutputs, kind: KindT): Boolean
 
-  def sanityCheckConclusion(env: Env, state: State, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit
-
-  def resolveStruct(
-    env: Env,
-    state: State,
-    callRange: RangeS,
-    templata: StructTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]]):
-  (KindT)
+  def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit
 
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
-    env: Env,
-    state: State,
+    env: InferEnv,
+    state: CompilerOutputs,
     callRange: RangeS,
     templata: StructTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]]):
-  (KindT)
-
-  def resolveInterface(
-    env: Env,
-    state: State,
-    callRange: RangeS,
-    templata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
   // See SFWPRL for how this is different from resolveInterface.
   def predictInterface(
-    env: Env,
-    state: State,
+    env: InferEnv,
+    state: CompilerOutputs,
     callRange: RangeS,
     templata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
-  def getStaticSizedArrayKind(
-    env: Env,
-    state: State,
+  def predictStaticSizedArrayKind(
+    env: InferEnv,
+    state: CompilerOutputs,
     mutability: ITemplata[MutabilityTemplataType],
     variability: ITemplata[VariabilityTemplataType],
     size: ITemplata[IntegerTemplataType],
     element: CoordT):
   StaticSizedArrayTT
 
-  def getRuntimeSizedArrayKind(env: Env, state: State, type2: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
+  def predictRuntimeSizedArrayKind(env: InferEnv, state: CompilerOutputs, type2: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
 
-  def getAncestors(coutputs: State, descendant: KindT, includeSelf: Boolean):
+  def getAncestors(coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean):
   (Set[KindT])
 
   def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType
   def getStructTemplataType()(st: StructTemplata): ITemplataType
 
-  def structIsClosure(state: State, structTT: StructTT): Boolean
+  def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean
 
   def kindIsFromTemplate(
-    state: State,
+    state: CompilerOutputs,
     actualCitizenRef: KindT,
     expectedCitizenTemplata: ITemplata[ITemplataType]):
   Boolean
 
-  def resolveFunction(
-    env: Env,
-    state: State,
-    range: RangeS,
-    name: StrI,
-    coords: Vector[CoordT]):
-  Result[PrototypeTemplata, FindFunctionFailure]
-
   def predictFunction(
-    env: Env,
-    state: State,
+    env: InferEnv,
+    state: CompilerOutputs,
     range: RangeS,
     name: StrI,
     paramCoords: Vector[CoordT],
@@ -145,8 +121,8 @@ trait IInfererDelegate[Env, State] {
   PrototypeTemplata
 
   def assemblePrototype(
-    env: Env,
-    state: State,
+    env: InferEnv,
+    state: CompilerOutputs,
     range: RangeS,
     name: StrI,
     coords: Vector[CoordT],
@@ -154,10 +130,10 @@ trait IInfererDelegate[Env, State] {
   PrototypeT
 }
 
-class CompilerSolver[Env, State](
+class CompilerSolver(
   globalOptions: GlobalOptions,
   interner: Interner,
-  delegate: IInfererDelegate[Env, State]
+  delegate: IInfererDelegate
 ) {
 
   def getRunes(rule: IRulexSR): Array[IRuneS] = {
@@ -239,8 +215,8 @@ class CompilerSolver[Env, State](
   // Caller should remember to do that!
   def solve(
     range: RangeS,
-    env: Env,
-    state: State,
+    env: InferEnv,
+    state: CompilerOutputs,
     rules: IndexedSeq[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     initiallyKnownRuneToTemplata: Map[IRuneS, ITemplata[ITemplataType]]):
@@ -261,7 +237,7 @@ class CompilerSolver[Env, State](
     })
 
     val solver =
-      new Solver[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError](
+      new Solver[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITemplataType], ITypingPassSolverError](
         globalOptions.sanityCheck, globalOptions.useOptimizedSolver, interner)
     val solverState =
       solver.makeInitialSolverState(
@@ -289,30 +265,30 @@ class CompilerSolver[Env, State](
     // Caller should remember to do that!
     if (conclusions.keySet != allRunes) {
       IncompleteSolve(
-        stepsStream.toVector,
+        stepsStream,
         solverState.getUnsolvedRules(),
         allRunes -- conclusions.keySet,
         conclusions)
     } else {
-      CompleteSolve(conclusions)
+      CompleteSolve(stepsStream, conclusions)
     }
   }
 }
 
-class CompilerRuleSolver[Env, State](
+class CompilerRuleSolver(
   sanityCheck: Boolean,
     interner: Interner,
-    delegate: IInfererDelegate[Env, State],
+    delegate: IInfererDelegate,
     runeToType: Map[IRuneS, ITemplataType])
-  extends ISolveRule[IRulexSR, IRuneS, Env, State, ITemplata[ITemplataType], ITypingPassSolverError] {
+  extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITemplataType], ITypingPassSolverError] {
 
-  override def sanityCheckConclusion(env: Env, state: State, rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
+  override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, conclusion: ITemplata[ITemplataType]): Unit = {
     delegate.sanityCheckConclusion(env, state, rune, conclusion)
   }
 
   override def complexSolve(
-      state: State,
-      env: Env,
+      state: CompilerOutputs,
+      env: InferEnv,
       solverState: ISolverState[IRulexSR, IRuneS, ITemplata[ITemplataType]],
       stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
@@ -398,7 +374,7 @@ class CompilerRuleSolver[Env, State](
   }
 
   private def solveReceives(
-    state: State,
+    state: CompilerOutputs,
     senders: Vector[(IRuneS, CoordT)],
     callTemplates: Vector[ITemplata[ITemplataType]],
     allSendersKnown: Boolean,
@@ -455,7 +431,7 @@ class CompilerRuleSolver[Env, State](
   }
 
   def narrow(
-    state: State,
+    state: CompilerOutputs,
     kinds: Set[KindT]):
   Result[KindT, ITypingPassSolverError] = {
     vassert(kinds.size > 1)
@@ -475,8 +451,8 @@ class CompilerRuleSolver[Env, State](
   }
 
   override def solve(
-    state: State,
-    env: Env,
+    state: CompilerOutputs,
+    env: InferEnv,
     solverState: ISolverState[IRulexSR, IRuneS, ITemplata[ITemplataType]],
     ruleIndex: Int,
     rule: IRulexSR,
@@ -504,8 +480,8 @@ class CompilerRuleSolver[Env, State](
   }
 
   private def solveRule(
-    state: State,
-    env: Env,
+    state: CompilerOutputs,
+    env: InferEnv,
     ruleIndex: Int,
     rule: IRulexSR,
     stepState: IStepState[IRulexSR, IRuneS, ITemplata[ITemplataType]]):
@@ -846,7 +822,7 @@ class CompilerRuleSolver[Env, State](
             val size = ITemplata.expectInteger(vassertSome(stepState.getConclusion(sizeRune.rune)))
             val CoordTemplata(element) = vassertSome(stepState.getConclusion(elementRune.rune))
             val arrKind =
-              delegate.getStaticSizedArrayKind(env, state, mutability, variability, size, element)
+              delegate.predictStaticSizedArrayKind(env, state, mutability, variability, size, element)
             stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, KindTemplata(arrKind))
             Ok(())
           }
@@ -877,7 +853,7 @@ class CompilerRuleSolver[Env, State](
             val mutability = ITemplata.expectMutability(vassertSome(stepState.getConclusion(mutabilityRune.rune)))
             val CoordTemplata(element) = vassertSome(stepState.getConclusion(elementRune.rune))
             val arrKind =
-              delegate.getRuntimeSizedArrayKind(env, state, element, mutability)
+              delegate.predictRuntimeSizedArrayKind(env, state, element, mutability)
             stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, KindTemplata(arrKind))
             Ok(())
           }
@@ -1036,7 +1012,7 @@ class CompilerRuleSolver[Env, State](
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 val Array(m, CoordTemplata(coord)) = args
                 val mutability = ITemplata.expectMutability(m)
-                val rsaKind = delegate.getRuntimeSizedArrayKind(env, state, coord, mutability)
+                val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability)
                 stepState.concludeRune[ITypingPassSolverError](range, resultRune.rune, KindTemplata(rsaKind))
                 Ok(())
               }

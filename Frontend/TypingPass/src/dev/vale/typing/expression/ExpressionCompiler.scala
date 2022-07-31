@@ -269,7 +269,8 @@ class ExpressionCompiler(
       closureStructRef: StructTT):
   (ReferenceExpressionTE) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
-    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
       closureStructDef.members.map({
@@ -715,7 +716,7 @@ class ExpressionCompiler(
           // would we need a sequence templata? probably right?
           val expr2 =
             arrayCompiler.evaluateStaticSizedArrayFromValues(
-              coutputs, nenv.snapshot, range, rules.toVector, maybeElementTypeRuneA.map(_.rune), sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2)
+              coutputs, nenv.snapshot, range, rules.toVector, maybeElementTypeRuneA.map(_.rune), sizeRuneA.rune, mutabilityRune.rune, variabilityRune.rune, exprs2, true)
           (expr2, returnsFromElements)
         }
         case StaticArrayFromCallableSE(range, rules, maybeElementTypeRune, maybeMutabilityRune, maybeVariabilityRune, sizeRuneA, callableAE) => {
@@ -723,7 +724,7 @@ class ExpressionCompiler(
             evaluateAndCoerceToReferenceExpression(coutputs, nenv, life, callableAE);
           val expr2 =
             arrayCompiler.evaluateStaticSizedArrayFromCallable(
-              coutputs, nenv.snapshot, range, rules.toVector, maybeElementTypeRune.map(_.rune), sizeRuneA.rune, maybeMutabilityRune.rune, maybeVariabilityRune.rune, callableTE)
+              coutputs, nenv.snapshot, range, rules.toVector, maybeElementTypeRune.map(_.rune), sizeRuneA.rune, maybeMutabilityRune.rune, maybeVariabilityRune.rune, callableTE, true)
           (expr2, returnsFromCallable)
         }
         case NewRuntimeSizedArraySE(range, rulesA, maybeElementTypeRune, mutabilityRune, sizeAE, maybeCallableAE) => {
@@ -742,7 +743,7 @@ class ExpressionCompiler(
 
           val expr2 =
             arrayCompiler.evaluateRuntimeSizedArrayFromCallable(
-              coutputs, nenv.snapshot, range, rulesA.toVector, maybeElementTypeRune.map(_.rune), mutabilityRune.rune, sizeTE, maybeCallableTE)
+              coutputs, nenv.snapshot, range, rulesA.toVector, maybeElementTypeRune.map(_.rune), mutabilityRune.rune, sizeTE, maybeCallableTE, true)
           (expr2, returnsFromSize ++ returnsFromCallable)
         }
         case LetSE(range, rulesA, pattern, sourceExpr1) => {
@@ -839,8 +840,8 @@ class ExpressionCompiler(
               case (_, NeverT(true)) => uncoercedThenBlock2.result.reference
               case (a, b) if a == b => uncoercedThenBlock2.result.reference
               case (a : ICitizenTT, b : ICitizenTT) => {
-                val aAncestors = ancestorHelper.getParents(coutputs, a).toSet
-                val bAncestors = ancestorHelper.getParents(coutputs, b).toSet
+                val aAncestors = ancestorHelper.getParents(coutputs, a, true).toSet
+                val bAncestors = ancestorHelper.getParents(coutputs, b, true).toSet
                 val commonAncestors = aAncestors.intersect(bAncestors)
 
                 if (uncoercedElseBlock2.result.reference.ownership != uncoercedElseBlock2.result.reference.ownership) {

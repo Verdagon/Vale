@@ -65,7 +65,7 @@ class RSAFreeMacro(
     val callRunes = Array[IRuneS](FunctorParamRuneNameS(0), FunctorReturnRuneNameS())//, FunctorPrototypeRuneNameS())
     val consumerPrototype =
       overloadResolver.findFunction(
-        newEnv, coutputs, callRange, callName, callRules, callRunes, args, Vector(), true) match {
+        newEnv, coutputs, callRange, callName, callRules, callRunes, args, Vector(), true, true) match {
         case Ok(prototype) => prototype.prototype
         case Err(fffr) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, fffr))
       }

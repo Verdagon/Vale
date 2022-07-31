@@ -264,7 +264,7 @@ object IdentifiabilitySolver {
             solveRule(state, env, ruleIndex, rule, stepState)
           }
         }) match {
-        case Ok((steps, conclusionsStream)) => (steps.toVector, conclusionsStream.toMap)
+        case Ok((steps, conclusionsStream)) => (steps, conclusionsStream.toMap)
         case Err(e) => return Err(IdentifiabilitySolveError(range, e))
       }
     val allRunes = solverState.getAllRunes().map(solverState.getUserRune)

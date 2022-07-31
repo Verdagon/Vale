@@ -14,6 +14,7 @@ import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
+import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
@@ -1720,12 +1721,12 @@ class CompilerTests extends FunSuite with Matchers {
         tz,
         FailedSolve(
           Vector(
-            Step(
+            Step[IRulexSR, IRuneS, ITemplata[ITemplataType]](
               false,
               Vector(),
               Vector(),
               Map(
-                CodeRuneS(StrI("X")) -> KindTemplata(fireflyKind)))),
+                CodeRuneS(StrI("X")) -> KindTemplata(fireflyKind)))).toStream,
           Vector(),
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)

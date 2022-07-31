@@ -1,24 +1,35 @@
 package dev.vale.typing
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
+import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
-import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.types.{CoordT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
 import scala.collection.immutable.Set
 
 case class InferEnv(
-  // We look in this for declared functions, see CSSNCE.
-  // DO NOT SUBMIT we no longer need this because of SFWPRL
-  callingEnv: Option[IEnvironment],
+  // This is the only one that matters when checking template instantiations.
+  // This is also the one that the placeholders come from.
+  originalCallingEnv: IEnvironment,
+
+//
+//  // We look in this for declared functions, see CSSNCE.
+//  // DO NOT SUBMIT we no longer need this because of SFWPRL
+//  directlyCallingEnv: IEnvironment,
+
   // We look in this for everything else, such as type names like "int" etc.
-  declaringEnv: IEnvironment,
+  selfEnv: IEnvironment,
+
+
+  // Sometimes these can be all equal.
 )
 
 case class InitialSend(
@@ -30,63 +41,105 @@ case class InitialKnown(
   rune: RuneUsage,
   templata: ITemplata[ITemplataType])
 
+trait IInferCompilerDelegate {
+  def resolveStruct(
+    callingEnv: IEnvironment,
+    state: CompilerOutputs,
+    callRange: RangeS,
+    templata: StructTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]],
+    verifyConclusions: Boolean):
+  StructTT
+
+  def resolveInterface(
+    callingEnv: IEnvironment,
+    state: CompilerOutputs,
+    callRange: RangeS,
+    templata: InterfaceTemplata,
+    templateArgs: Vector[ITemplata[ITemplataType]],
+    verifyConclusions: Boolean):
+  InterfaceTT
+
+  def resolveStaticSizedArrayKind(
+    coutputs: CompilerOutputs,
+    mutability: ITemplata[MutabilityTemplataType],
+    variability: ITemplata[VariabilityTemplataType],
+    size: ITemplata[IntegerTemplataType],
+    element: CoordT):
+  StaticSizedArrayTT
+
+  def resolveRuntimeSizedArrayKind(
+    coutputs: CompilerOutputs,
+    type2: CoordT,
+    arrayMutability: ITemplata[MutabilityTemplataType]):
+  RuntimeSizedArrayTT
+
+  def resolveFunction(
+    callingEnv: IEnvironment,
+    state: CompilerOutputs,
+    range: RangeS,
+    name: StrI,
+    coords: Vector[CoordT],
+    verifyConclusions: Boolean):
+  Result[PrototypeTemplata, FindFunctionFailure]
+}
+
 class InferCompiler(
     opts: TypingPassOptions,
     interner: Interner,
     nameTranslator: NameTranslator,
-    delegate: IInfererDelegate[InferEnv, CompilerOutputs]) {
+    infererDelegate: IInfererDelegate,
+    delegate: IInferCompilerDelegate) {
   def solveComplete(
-    declaringEnv: IEnvironment,
-    callingEnv: Option[IEnvironment], // See CSSNCE
+    envs: InferEnv, // See CSSNCE
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
-    initialSends: Vector[InitialSend]):
+    initialSends: Vector[InitialSend],
+    verifyConclusions: Boolean):
   Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    solve(declaringEnv, callingEnv, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _, _) => Err(i)
-      case CompleteSolve(conclusions) => Ok(conclusions)
+      case CompleteSolve(_, conclusions) => Ok(conclusions)
     }
   }
 
   def solveExpectComplete(
-    declaringEnv: IEnvironment,
-    callingEnv: Option[IEnvironment], // See CSSNCE
+    envs: InferEnv, // See CSSNCE
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
-    initialSends: Vector[InitialSend]):
+    initialSends: Vector[InitialSend],
+    verifyConclusions: Boolean):
   Map[IRuneS, ITemplata[ITemplataType]] = {
-    solve(declaringEnv, callingEnv, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
       case i @ IncompleteSolve(_, _, _, _) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, i))
       }
-      case CompleteSolve(conclusions) => conclusions
+      case CompleteSolve(_, conclusions) => conclusions
     }
   }
 
 
   def solve(
-    declaringEnv: IEnvironment,
-    callingEnv: Option[IEnvironment], // See CSSNCE
+    envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     initialRules: Vector[IRulexSR],
     initialRuneToType: Map[IRuneS, ITemplataType],
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
-    initialSends: Vector[InitialSend]
-  ): ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
+    initialSends: Vector[InitialSend],
+    verifyConclusions: Boolean):
+  ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
-      val envs = InferEnv(callingEnv, declaringEnv)
-
       val runeToType =
         initialRuneToType ++
         initialSends.map({ case InitialSend(senderRune, _, _) =>
@@ -100,19 +153,19 @@ class InferCompiler(
       val alreadyKnown =
         initialKnowns.map({ case InitialKnown(rune, templata) =>
           if (opts.globalOptions.sanityCheck) {
-            delegate.sanityCheckConclusion(envs, state, rune.rune, templata)
+            infererDelegate.sanityCheckConclusion(envs, state, rune.rune, templata)
           }
           rune.rune -> templata
         }).toMap ++
         initialSends.map({ case InitialSend(senderRune, _, senderTemplata) =>
           if (opts.globalOptions.sanityCheck) {
-            delegate.sanityCheckConclusion(envs, state, senderRune.rune, senderTemplata)
+            infererDelegate.sanityCheckConclusion(envs, state, senderRune.rune, senderTemplata)
           }
           (senderRune.rune -> senderTemplata)
         })
 
       val outcome =
-        new CompilerSolver[InferEnv, CompilerOutputs](opts.globalOptions, interner, delegate)
+        new CompilerSolver(opts.globalOptions, interner, infererDelegate)
           .solve(
             invocationRange,
             envs,
@@ -120,26 +173,29 @@ class InferCompiler(
             rules,
             runeToType,
             alreadyKnown)
-      val conclusions: Map[IRuneS, ITemplata[ITemplataType]] =
+      if (verifyConclusions) {
         outcome match {
-          case CompleteSolve(conclusions) => conclusions
-          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case FailedSolve(_, _, _) => Map()
+          case CompleteSolve(steps, conclusions) => {
+            checkTemplateInstantiations(envs, state, rules.toArray, conclusions) match {
+              case Ok(c) =>
+              case Err(e) => return FailedSolve(steps, Vector(), e)
+            }
+          }
+          case IncompleteSolve(steps, unsolvedRules, _, incompleteConclusions) => {
+            checkTemplateInstantiations(envs, state, rules.toArray, incompleteConclusions) match {
+              case Ok(c) =>
+              case Err(e) => return FailedSolve(steps, unsolvedRules, e)
+            }
+          }
+          case FailedSolve(_, _, _) =>
         }
-
-      // Now we need to actually resolve all the functions and stuff that we said existed in there, see SFWPRL.
-      checkTemplateInstantiations(declaringEnv, callingEnv, state, rules.toArray, conclusions) match {
-        case Ok(()) =>
-        case Err(e) => return FailedSolve(Vector(), Vector(), e) // DO NOT SUBMIT
       }
-
       outcome
     })
   }
 
   def checkTemplateInstantiations(
-    declaringEnv: IEnvironment,
-    maybeCallingEnv: Option[IEnvironment], // See CSSNCE
+    envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
@@ -158,76 +214,73 @@ class InferCompiler(
     //
     // So, if we're invoking a template (like CallSR) then we want to use the temporary env...
     // ...but if we want to impose a restriction on above, we don't.
-    val callingEnv =
-      maybeCallingEnv match {
-        case None => return Ok(())
-        case Some(x) => x
-      }
-    val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
+//    val callingEnv =
+//      maybeCallingEnv match {
+//        case None => return Ok(())
+//        case Some(x) => x
+//      }
+//    val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
 
-//    val temporaryEnv =
-//      GeneralEnvironment.childOf(
-//        interner,
-//        // "Caller" called us, now we're calling someone ("callee").
-//        // We don't want our callee to see our caller. We want them to only see us.
-//        // So, this temporary environment's parent is our own environment, not the caller's env.
-//        // See OSDCE for more and an example.
-//        // (or maybe this should just not have a parent?)
-//        // or maybe we should not do things deeply.
-//        declaringEnv,
-//        name,
-//        conclusions.map({case (nameS, templata) =>
-//          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-//        }).toVector)
+    val originalCallingEnvWithUnverifiedConclusions =
+      if (envs.originalCallingEnv.fullName == envs.selfEnv.fullName) {
+        // If this is the original calling env, in other words, if we're the original caller for
+        // this particular solve, then lets add all of our templatas to the environment.
+        GeneralEnvironment.childOf(
+          interner,
+          envs.originalCallingEnv,
+          envs.originalCallingEnv.fullName,
+          conclusions.map({ case (nameS, templata) =>
+            interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+          }).toVector)
+      } else {
+        envs.originalCallingEnv
+      }
 
     rules.foreach({
       case r @ CallSR(_, _, _, _) => {
-        checkTemplateCall(InferEnv(maybeCallingEnv, declaringEnv), state, r, conclusions)
+        checkTemplateCall(originalCallingEnvWithUnverifiedConclusions, state, r, conclusions)
       }
       case r @ ResolveSR(_, _, _, _, _) => {
-        checkFunctionCall(InferEnv(maybeCallingEnv, declaringEnv), state, r, conclusions) match {
-          case Ok(_) =>
-          case Err(e) => {
-            return Err(e)
-          }
-        }
+        checkFunctionCall(originalCallingEnvWithUnverifiedConclusions, state, r, conclusions)
       }
       case _ =>
     })
     Ok(())
   }
 
-  def checkFunctionCall(env: InferEnv, state: CompilerOutputs, c: ResolveSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  def checkFunctionCall(
+    callingEnv: IEnvironment,
+    state: CompilerOutputs,
+    c: ResolveSR,
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Unit = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.
     val returnCoord =
       conclusions.get(returnRune.rune) match {
         case Some(CoordTemplata(t)) => t
-        case None => return Ok(())
+        case None => return
       }
     val paramCoords =
       conclusions.get(paramsListRune.rune) match {
-        case None => return Ok(())
+        case None => return
         case Some(CoordListTemplata(paramList)) => paramList
       }
 
     val prototypeTemplata =
-      delegate.resolveFunction(env, state, range, name, paramCoords) match {
-        case Err(e) => {
-          return Err(RuleError(CouldntFindFunction(range, e)))
-        }
+      delegate.resolveFunction(callingEnv, state, range, name, paramCoords, true) match {
+        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x
       }
 
     if (prototypeTemplata.prototype.returnType != returnCoord) {
-      return Err(SolverConflict(returnRune.rune, CoordTemplata(returnCoord), CoordTemplata(prototypeTemplata.prototype.returnType)))
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Return type conflict"))
     }
     Ok(())
   }
 
-  def checkTemplateCall(env: InferEnv, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
+  def checkTemplateCall(callingEnv: IEnvironment, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
     val CallSR(range, resultRune, templateRune, argRunes) = c
 
     // If it was an incomplete solve, then just skip.
@@ -248,13 +301,13 @@ class InferCompiler(
       case RuntimeSizedArrayTemplateTemplata() => {
         val Array(m, CoordTemplata(coord)) = args
         val mutability = ITemplata.expectMutability(m)
-        delegate.getRuntimeSizedArrayKind(env, state, coord, mutability)
+        delegate.resolveRuntimeSizedArrayKind(state, coord, mutability)
       }
       case it @ StructTemplata(_, _) => {
-        delegate.resolveStruct(env, state, range, it, args.toVector)
+        delegate.resolveStruct(callingEnv, state, range, it, args.toVector, true)
       }
       case it @ InterfaceTemplata(_, _) => {
-        delegate.resolveInterface(env, state, range, it, args.toVector)
+        delegate.resolveInterface(callingEnv, state, range, it, args.toVector, true)
       }
       case kt @ KindTemplata(_) => {
         Ok(kt)

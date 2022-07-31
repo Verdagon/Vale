@@ -30,12 +30,14 @@ case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: B
 trait IStructCompilerDelegate {
   def evaluateOrdinaryFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
-    functionTemplata: FunctionTemplata):
+    functionTemplata: FunctionTemplata,
+    verifyConclusions: Boolean):
   FunctionHeaderT
 
   def evaluateTemplatedFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
-    functionTemplata: FunctionTemplata):
+    functionTemplata: FunctionTemplata,
+    verifyConclusions: Boolean):
   FunctionHeaderT
 
   def scoutExpectedFunctionForPrototype(
@@ -47,7 +49,8 @@ trait IStructCompilerDelegate {
     explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
-    exact: Boolean):
+    exact: Boolean,
+    verifyConclusions: Boolean):
   PrototypeT
 }
 
@@ -142,7 +145,7 @@ class StructCompiler(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    callingEnv: Option[IEnvironment], // See CSSNCE
+    callingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
@@ -228,7 +231,8 @@ object StructCompiler {
 
   def getMutability(interner: Interner, coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
-    val transformer = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+    val transformer =
+      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
     val result = transformer.substituteForTemplata(definition.mutability)
     ITemplata.expectMutability(result)
   }

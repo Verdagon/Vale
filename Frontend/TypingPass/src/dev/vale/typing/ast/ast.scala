@@ -1,12 +1,12 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.IRuneS
+import dev.vale.postparsing.{IRuneS, ITemplataType}
 import dev.vale.typing._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -82,7 +82,7 @@ case class FunctionExternT(
 
 case class InterfaceEdgeBlueprint(
   interface: FullNameT[IInterfaceTemplateNameT],
-  superFamilyRootBanners: Vector[FunctionBannerT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+  superFamilyRootHeaders: Vector[FunctionHeaderT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(
     struct: FullNameT[ICitizenTemplateNameT],
@@ -117,7 +117,7 @@ case class FunctionT(
 }
 
 object getFunctionLastName {
-  def unapply(f: FunctionT): Option[IFunctionNameT] = Some(f.header.fullName.last)
+  def unapply(f: FunctionT): Option[IFunctionTemplateNameT] = Some(f.header.fullName.last)
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
@@ -154,7 +154,7 @@ sealed trait ICalleeCandidate
 case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
+case class HeaderCalleeCandidate(header: FunctionHeaderT, templateArgs: Vector[ITemplata[ITemplataType]]) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT) extends ICalleeCandidate {
@@ -166,7 +166,8 @@ sealed trait IValidCalleeCandidate {
   def paramTypes: Array[CoordT]
 }
 case class ValidHeaderCalleeCandidate(
-  header: FunctionHeaderT
+  header: FunctionHeaderT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -182,12 +183,13 @@ case class ValidPrototypeTemplataCalleeCandidate(
   override def paramTypes: Array[CoordT] = prototype.prototype.fullName.last.parameters.toArray
 }
 case class ValidCalleeCandidate(
-  banner: FunctionBannerT,
+  banner: FunctionHeaderT,
+  templateArgs: Vector[ITemplata[ITemplataType]],
   function: FunctionTemplata
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
-  override def range: Option[RangeS] = banner.originFunction.map(_.range)
+  override def range: Option[RangeS] = banner.maybeOriginFunction.map(_.range)
   override def paramTypes: Array[CoordT] = banner.paramTypes.toArray
 }
 
@@ -210,8 +212,7 @@ case class SignatureT(fullName: FullNameT[IFunctionNameT]) {
 
 case class FunctionBannerT(
   originFunction: Option[FunctionA],
-  fullName: FullNameT[IFunctionNameT],
-  params: Vector[ParameterT])   {
+  templateName: FullNameT[IFunctionTemplateNameT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Use same instead, see EHCFBD for why we dont like equals.
@@ -219,15 +220,70 @@ case class FunctionBannerT(
 
   def same(that: FunctionBannerT): Boolean = {
     originFunction == that.originFunction &&
-      fullName == that.fullName &&
-      params.size == that.params.size &&
-      params.zip(that.params).forall({ case (a, b) => a.same(b) })
+      templateName == that.templateName
   }
 
-  vassert(fullName.last.parameters == params.map(_.tyype))
 
-  def toSignature: SignatureT = SignatureT(fullName)
-  def paramTypes: Vector[CoordT] = params.map(_.tyype)
+
+//  def unapply(arg: FunctionBannerT):
+//  Option[(FullNameT[IFunctionNameT], Vector[ParameterT])] =
+//    Some(templateName, params)
+
+  override def toString: String = {
+    // # is to signal that we override this
+    "FunctionBanner2#(" + templateName + ")"
+    //    "FunctionBanner2#(" + templateName + ", " + params + ")"
+  }
+}
+
+sealed trait IFunctionAttributeT
+sealed trait ICitizenAttributeT
+case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+}
+// There's no Export2 here, we use separate KindExport and FunctionExport constructs.
+//case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
+case object PureT extends IFunctionAttributeT
+case object SealedT extends ICitizenAttributeT
+case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
+
+case class FunctionHeaderT(
+  fullName: FullNameT[IFunctionTemplateNameT],
+  attributes: Vector[IFunctionAttributeT],
+  params: Vector[ParameterT],
+  returnType: CoordT,
+  maybeOriginFunction: Option[FunctionA])  {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case FunctionHeaderT(thatName, _, _, _, _) => {
+        fullName == thatName
+      }
+      case _ => false
+    }
+  }
+
+  // Make sure there's no duplicate names
+  vassert(params.map(_.name).toSet.size == params.size);
+
+//  vassert(fullName.last.parameters == paramTypes)
+
+  def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
+  //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
+  def isUserFunction = attributes.contains(UserFunctionT)
+//  def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface
+////  def getOverride: Option[(StructTT, InterfaceTT)] = toBanner.getOverride
+//  def getVirtualIndex: Option[Int] = toBanner.getVirtualIndex
+
+//  def toSignature(interner: Interner, keywords: Keywords): SignatureT = {
+//    val newLastStep = templateName.last.makeFunctionName(interner, keywords, templateArgs, params)
+//    val fullName = FullNameT(templateName.packageCoord, name.initSteps, newLastStep)
+//
+//    SignatureT(fullName)
+//
+//  }
+//  def paramTypes: Vector[CoordT] = params.map(_.tyype)
 
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
@@ -247,82 +303,35 @@ case class FunctionBannerT(
     indices.headOption
   }
 
+//  maybeOriginFunction.foreach(originFunction => {
+//    if (originFunction.genericParameters.size != fullName.last.templateArgs.size) {
+//      vfail("wtf m8")
+//    }
+//  })
 
-
-  def unapply(arg: FunctionBannerT):
-  Option[(FullNameT[IFunctionNameT], Vector[ParameterT])] =
-    Some(fullName, params)
-
-  override def toString: String = {
-    // # is to signal that we override this
-    "FunctionBanner2#(" + fullName + ", " + params + ")"
+  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunction, fullName)
+  def toPrototype(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]]): PrototypeT = {
+    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
+    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
+    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
+    val newName = FullNameT(fullName.packageCoord, fullName.initSteps, newLastStep)
+    PrototypeT(newName, returnType)
   }
-}
-
-sealed trait IFunctionAttributeT
-sealed trait ICitizenAttributeT
-case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-}
-// There's no Export2 here, we use separate KindExport and FunctionExport constructs.
-//case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
-case object PureT extends IFunctionAttributeT
-case object SealedT extends ICitizenAttributeT
-case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
-
-case class FunctionHeaderT(
-  fullName: FullNameT[IFunctionNameT],
-  attributes: Vector[IFunctionAttributeT],
-  params: Vector[ParameterT],
-  returnType: CoordT,
-  maybeOriginFunction: Option[FunctionA])  {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-
-  override def equals(obj: Any): Boolean = {
-    obj match {
-      case FunctionHeaderT(thatName, _, _, _, _) => {
-        fullName == thatName
-      }
-      case _ => false
-    }
+  def toSignature(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]]): SignatureT = {
+    toPrototype(interner, keywords, templateArgs).toSignature
   }
-
-  // Make sure there's no duplicate names
-  vassert(params.map(_.name).toSet.size == params.size);
-
-  vassert(fullName.last.parameters == paramTypes)
-
-  def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
-  //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
-  def isUserFunction = attributes.contains(UserFunctionT)
-  def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface
-//  def getOverride: Option[(StructTT, InterfaceTT)] = toBanner.getOverride
-  def getVirtualIndex: Option[Int] = toBanner.getVirtualIndex
-
-  maybeOriginFunction.foreach(originFunction => {
-    if (originFunction.genericParameters.size != fullName.last.templateArgs.size) {
-      vfail("wtf m8")
-    }
-  })
-
-  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunction, fullName, params)
-  def toPrototype: PrototypeT = PrototypeT(fullName, returnType)
-  def toSignature: SignatureT = toPrototype.toSignature
 
   def paramTypes: Vector[CoordT] = params.map(_.tyype)
 
-
-
-  def unapply(arg: FunctionHeaderT): Option[(FullNameT[IFunctionNameT], Vector[ParameterT], CoordT)] =
+  def unapply(arg: FunctionHeaderT): Option[(FullNameT[IFunctionTemplateNameT], Vector[ParameterT], CoordT)] = {
     Some(fullName, params, returnType)
+  }
 }
 
 case class PrototypeT(
-  fullName: FullNameT[IFunctionNameT],
-  returnType: CoordT)  {
+    fullName: FullNameT[IFunctionNameT],
+    returnType: CoordT)  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordT] = fullName.last.parameters
   def toSignature: SignatureT = SignatureT(fullName)
-
-
 }

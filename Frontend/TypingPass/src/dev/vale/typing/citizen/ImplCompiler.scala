@@ -38,9 +38,10 @@ class ImplCompiler(
 
   private def solveImpl(
     coutputs: CompilerOutputs,
-    maybeCallingEnv: Option[IEnvironment],
+    callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
-    implTemplata: ImplTemplata):
+    implTemplata: ImplTemplata,
+    verifyConclusions: Boolean):
   Result[
       Map[IRuneS, ITemplata[ITemplataType]],
       IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
@@ -75,7 +76,8 @@ class ImplCompiler(
 
     val result =
       inferCompiler.solveComplete(
-        outerEnv, maybeCallingEnv, coutputs, definitionRules, runeToType, range, initialKnowns, Vector())
+        InferEnv(outerEnv, outerEnv),
+        coutputs, definitionRules, runeToType, range, initialKnowns, Vector(), true)
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -204,7 +206,7 @@ class ImplCompiler(
       })
 
     val inferences =
-      solveImpl(coutputs, None, implPlaceholders, implTemplata) match {
+      solveImpl(coutputs, implOuterEnv, implPlaceholders, implTemplata, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(implA.range, e))
       }
@@ -398,21 +400,22 @@ class ImplCompiler(
   //  }
   //
 
-  def isDescendant(coutputs: CompilerOutputs, kind: KindT): Boolean = {
-    getParents(coutputs, kind).nonEmpty
+  def isDescendant(coutputs: CompilerOutputs, kind: KindT, verifyConclusions: Boolean): Boolean = {
+    getParents(coutputs, kind, verifyConclusions).nonEmpty
   }
 
   def getImplDescendantGivenParent(
     coutputs: CompilerOutputs,
-    maybeCallingEnv: Option[IEnvironment],
+    callingEnv: IEnvironment,
     implTemplata: ImplTemplata,
-    parent: InterfaceTT):
+    parent: InterfaceTT,
+    verifyConclusions: Boolean):
   Result[ICitizenTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
     val conclusions =
-      solveImpl(coutputs, maybeCallingEnv, initialKnowns, implTemplata) match {
+      solveImpl(coutputs, callingEnv, initialKnowns, implTemplata, verifyConclusions) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
       }
@@ -426,7 +429,8 @@ class ImplCompiler(
   def getImplParentGivenSubCitizen(
     coutputs: CompilerOutputs,
     implTemplata: ImplTemplata,
-    child: ICitizenTT):
+    child: ICitizenTT,
+    verifyConclusions: Boolean):
   Result[InterfaceTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val initialKnowns =
       Vector(
@@ -435,7 +439,7 @@ class ImplCompiler(
       coutputs.getOuterEnvForTemplate(
         TemplataCompiler.getCitizenTemplate(child.fullName))
     val conclusions =
-      solveImpl(coutputs, Some(childEnv), initialKnowns, implTemplata) match {
+      solveImpl(coutputs, childEnv, initialKnowns, implTemplata, verifyConclusions) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
       }
@@ -446,7 +450,7 @@ class ImplCompiler(
     }
   }
 
-  def getParents(coutputs: CompilerOutputs, kind: KindT): Array[InterfaceTT] = {
+  def getParents(coutputs: CompilerOutputs, kind: KindT, verifyConclusions: Boolean): Array[InterfaceTT] = {
     val subCitizenTT =
       kind match {
         case c : ICitizenTT => c
@@ -476,7 +480,7 @@ class ImplCompiler(
       implsWithDuplicates.groupBy(_.impl.range).map(_._2.head)
 
     impls.flatMap(impl => {
-      getImplParentGivenSubCitizen(coutputs, impl, subCitizenTT) match {
+      getImplParentGivenSubCitizen(coutputs, impl, subCitizenTT, verifyConclusions) match {
         case Ok(x) => List(x)
         case Err(_) => List()
       }
@@ -486,7 +490,7 @@ class ImplCompiler(
   def isParent(
     coutputs: CompilerOutputs,
     subCitizenTT: ICitizenTT,
-    superInterfaceTT: InterfaceTT):
+    superInterfaceTT: InterfaceTT, verifyConclusions: Boolean):
   IsParentResult = {
     val superInterfaceImpreciseName =
       TemplatasStore.getImpreciseName(interner, superInterfaceTT.fullName.last) match {
@@ -524,7 +528,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplata(subCitizenTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superInterfaceTT)))
-        solveImpl(coutputs, None, initialKnowns, impl)
+        solveImpl(coutputs, impl.env, initialKnowns, impl, verifyConclusions)
       })
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)

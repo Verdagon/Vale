@@ -120,8 +120,7 @@ class PatternCompiler(
           case Some(receiverRune) => {
             val templatasByRune =
               inferCompiler.solveExpectComplete(
-                nenv.snapshot,
-                Some(nenv.snapshot),
+                InferEnv(nenv.snapshot, nenv.snapshot),
                 coutputs,
                 rules,
                 runeToType,
@@ -131,7 +130,8 @@ class PatternCompiler(
                   InitialSend(
                     RuneUsage(pattern.range, PatternInputRuneS(pattern.range.begin)),
                     receiverRune,
-                    CoordTemplata(unconvertedInputExpr.result.reference))))
+                    CoordTemplata(unconvertedInputExpr.result.reference))),
+                true)
             nenv.addEntries(
               interner,
               templatasByRune.toVector

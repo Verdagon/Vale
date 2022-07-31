@@ -33,7 +33,7 @@ class StructCompilerGenericArgsLayer(
 
   def resolveStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     structTemplata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
@@ -58,14 +58,14 @@ class StructCompilerGenericArgsLayer(
       // Check if its a valid use of this template
       val inferences =
         inferCompiler.solveExpectComplete(
-          declaringEnv,
-          Some(callingEnv),
+          InferEnv(originalCallingEnv, declaringEnv),
           coutputs,
           callSiteRules,
           structA.headerRuneToType,
           callRange,
           initialKnowns,
-          Vector())
+          Vector(),
+          true)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -82,13 +82,13 @@ class StructCompilerGenericArgsLayer(
   // See SFWPRL for how this is different from resolveInterface.
   def predictInterface(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     interfaceTemplata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     Profiler.frame(() => {
-      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -113,14 +113,15 @@ class StructCompilerGenericArgsLayer(
       // just to populate any generic parameter default values.
       val inferences =
         inferCompiler.solveExpectComplete(
-          env,
-          Some(callingEnv),
+          InferEnv(originalCallingEnv, declaringEnv),
           coutputs,
           callSiteRules,
           runeToTypeForPrediction,
           callRange,
           initialKnowns,
-          Vector())
+          Vector(),
+          // False because we're just predicting, see STCMBDP.
+          false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -128,7 +129,7 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
-      val fullName = env.fullName.addStep(interfaceName)
+      val fullName = declaringEnv.fullName.addStep(interfaceName)
       val interfaceTT = interner.intern(InterfaceTT(fullName))
       interfaceTT
     })
@@ -137,13 +138,13 @@ class StructCompilerGenericArgsLayer(
   // See SFWPRL for how this is different from resolveStruct.
   def predictStruct(
     coutputs: CompilerOutputs,
-    callingEnv: Option[IEnvironment], // See CSSNCE
+    originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     structTemplata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
-      val StructTemplata(env, structA) = structTemplata
+      val StructTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
 
       // We no longer assume this:
@@ -167,15 +168,16 @@ class StructCompilerGenericArgsLayer(
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
       val inferences =
-      inferCompiler.solveExpectComplete(
-        env,
-        callingEnv,
-        coutputs,
-        callSiteRules,
-        runeToTypeForPrediction,
-        callRange,
-        initialKnowns,
-        Vector())
+        inferCompiler.solveExpectComplete(
+          InferEnv(originalCallingEnv, declaringEnv),
+          coutputs,
+          callSiteRules,
+          runeToTypeForPrediction,
+          callRange,
+          initialKnowns,
+          Vector(),
+          // False because we're just predicting, see STCMBDP.
+          false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -183,7 +185,7 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
-      val fullName = env.fullName.addStep(structName)
+      val fullName = declaringEnv.fullName.addStep(structName)
       val structTT = interner.intern(StructTT(fullName))
       structTT
     })
@@ -191,13 +193,13 @@ class StructCompilerGenericArgsLayer(
 
   def resolveInterface(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: RangeS,
     interfaceTemplata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     Profiler.frame(() => {
-      val InterfaceTemplata(env, interfaceA) = interfaceTemplata
+      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -216,14 +218,14 @@ class StructCompilerGenericArgsLayer(
       // This checks to make sure it's a valid use of this template.
       val inferences =
         inferCompiler.solveExpectComplete(
-          env,
-          Some(callingEnv),
+          InferEnv(originalCallingEnv, declaringEnv),
           coutputs,
           callSiteRules,
           interfaceA.runeToType,
           callRange,
           initialKnowns,
-          Vector())
+          Vector(),
+          true)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -231,7 +233,7 @@ class StructCompilerGenericArgsLayer(
 
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
-      val fullName = env.fullName.addStep(interfaceName)
+      val fullName = declaringEnv.fullName.addStep(interfaceName)
       val interfaceTT = interner.intern(InterfaceTT(fullName))
       interfaceTT
     })
@@ -266,12 +268,13 @@ class StructCompilerGenericArgsLayer(
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
         inferCompiler.solve(
-          outerEnv, None, coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector()) match {
+          InferEnv(outerEnv, outerEnv),
+          coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector(), true) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
           }
           case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteSolve(conclusions) => conclusions
+          case CompleteSolve(_, conclusions) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -291,8 +294,7 @@ class StructCompilerGenericArgsLayer(
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          outerEnv,
-          None,
+          InferEnv(outerEnv, outerEnv),
           coutputs,
           definitionRules.toVector,
           allRuneToType,
@@ -301,7 +303,8 @@ class StructCompilerGenericArgsLayer(
 //            structA.genericParameters.zip(templateArgs).map({ case (GenericParameterS(rune, default), genericArg) =>
 //              InitialKnown(RuneUsage(rune.range, rune.rune), genericArg)
 //            }),
-          Vector())
+          Vector(),
+          true)
 
       structA.maybePredictedMutability match {
         case None => {
@@ -354,12 +357,13 @@ class StructCompilerGenericArgsLayer(
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
         inferCompiler.solve(
-          interfaceTemplateEnv, None, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector()) match {
+          InferEnv(interfaceTemplateEnv, interfaceTemplateEnv),
+          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector(), true) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range, f))
           }
           case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteSolve(conclusions) => conclusions
+          case CompleteSolve(_, conclusions) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -385,14 +389,14 @@ class StructCompilerGenericArgsLayer(
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          interfaceTemplateEnv,
-          None,
+          InferEnv(interfaceTemplateEnv, interfaceTemplateEnv),
           coutputs,
           definitionRules,
           interfaceA.runeToType,
           interfaceA.range,
           initialKnowns,
-          Vector())
+          Vector(),
+          true)
 
       interfaceA.maybePredictedMutability match {
         case None => {

@@ -595,9 +595,35 @@ This tree of steps happens when we compile the itables:
        * Now after solving, we're actually resolving that `MyStruct<T>`.
           * During solving, we conjure a `func drop(T)void` and postpone its resolving.
           * Afer solving, we actually want to resolve that `func drop(T)void`.
-             * Uh oh! We find **two** matchine prototypes.
+             * Uh oh! We find **two** matching prototypes.
 
-So, we shouldn't be able to see the caller's caller's environment when we resolve things.
+It seems that both of them are conjuring a prototype to use and requiring things.
+
+So, we don't send anything downward.
+
+
+# Solving Then Checking Must Be Different Phases (STCMBDP)
+
+When compiling a definition, we declare that certain concept functions exist.
+
+There's a cyclical dependency here though:
+
+ 1. To declare that a function exists, we need to know the actual types of the params and returns.
+ 2. To know the actual types we're resolving, we need to check their requirements.
+ 3. To check their requirements, we need to know that a function actualy exists in our scope.
+
+One of those dependencies needs to be changed up.
+
+ 1. We might be able to change this if we could make our system operate on partial data.
+ 2. We can check their requirements later.
+ 3. This can't be changed.
+
+#2 seems easiest for now.
+
+So, when compiling a denizen, we do all the checking of calls _later_.
+
+
+
 
 
 # Macro-Derived Sibling Functions Often Need All Rules From Original (MDSFONARFO)

@@ -2,7 +2,7 @@ package dev.vale.typing
 
 //import dev.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 //import dev.vale.astronomer.VirtualFreeImpreciseNameS
-import dev.vale.{Err, Interner, Ok, RangeS, vassert, vassertSome, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.{IEnvironment, TemplatasStore}
@@ -27,6 +27,7 @@ case class PartialEdgeT(
 
 class EdgeCompiler(
     interner: Interner,
+    keywords: Keywords,
     overloadCompiler: OverloadResolver,
     implCompiler: ImplCompiler) {
   def compileITables(coutputs: CompilerOutputs):
@@ -51,12 +52,13 @@ class EdgeCompiler(
             val overridingCitizen = overridingImpl.subCitizenTemplateName
 
             val foundFunctions =
-              interfaceEdgeBlueprint.superFamilyRootBanners.map(abstractFunctionBanner => {
+              interfaceEdgeBlueprint.superFamilyRootHeaders.map(abstractFunctionHeader => {
                 val abstractFunctionTemplateFullName =
-                  TemplataCompiler.getFunctionTemplate(abstractFunctionBanner.fullName)
-                val abstractFunctionSignature = abstractFunctionBanner.toSignature
-                val abstractFunctionParamTypes = abstractFunctionSignature.paramTypes
-                val abstractIndex = abstractFunctionBanner.params.indexWhere(_.virtuality.nonEmpty)
+//                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
+                  abstractFunctionHeader.fullName
+//                val abstractFunctionSignature = abstractFunctionBanner.toSignature
+                val abstractFunctionParamTypes = abstractFunctionHeader.paramTypes
+                val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
                 vassert(abstractIndex >= 0)
                 val abstractParamType = abstractFunctionParamTypes(abstractIndex)
                 val abstractParamCitizen = abstractParamType.kind.expectInterface()
@@ -64,6 +66,7 @@ class EdgeCompiler(
                   coutputs.getOuterEnvForTemplate(abstractFunctionTemplateFullName)
                 val abstractFunctionInnerEnv =
                   coutputs.getInnerEnvForTemplate(abstractFunctionTemplateFullName)
+
                 // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
                 // according to itself, not placeholdered according to the interface that it overrode.
                 // For example, if Firefly<X, Y> impl IShip<Y, X>, we want StructT(Firefly, (IShip:$_1, IShip:$_0))
@@ -71,7 +74,7 @@ class EdgeCompiler(
                 // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
                 // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
                 val overridingParamKind =
-                    implCompiler.getImplDescendantGivenParent(coutputs, Some(abstractFunctionOuterEnv), overridingImpl.templata, abstractParamCitizen) match {
+                    implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true) match {
                       case Ok(c) => c
                       case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(overridingImpl.templata.impl.range, e))
                     }
@@ -79,12 +82,12 @@ class EdgeCompiler(
                 val overrideFunctionParamTypes =
                   abstractFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
 
-                val range = abstractFunctionBanner.originFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
+                val range = abstractFunctionHeader.maybeOriginFunction.map(_.range).getOrElse(RangeS.internal(interner, -2976395))
 
                 val impreciseName =
                   vassertSome(
                     TemplatasStore.getImpreciseName(
-                      interner, abstractFunctionSignature.fullName.last))
+                      interner, abstractFunctionHeader.fullName.last))
 
                 // We need the abstract function's env because it contains knowledge of the existence
                 // of certain things like concept functions, see NFIEFRO.
@@ -124,6 +127,7 @@ class EdgeCompiler(
       Vector(
         coutputs.getOuterEnvForTemplate(interface),
         coutputs.getOuterEnvForTemplate(overridingCitizen)),
+      true,
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
       case Ok(x) => x.prototype
@@ -148,12 +152,12 @@ class EdgeCompiler(
           // when it calls array generators/consumers' first method.
           val interfaceDef = coutputs.getAllInterfaces().find(_.templateName == interfaceTemplateFullName).get
           // Make sure `functions` has everything that the interface def wanted.
-          vassert((interfaceDef.internalMethods.map(_.toSignature).toSet -- functions.map(_.header.toSignature).toSet).isEmpty)
+          vassert((interfaceDef.internalMethods.toSet -- functions.map(_.header).toSet).isEmpty)
           // Move all the internal methods to the front.
           val orderedMethods =
             interfaceDef.internalMethods ++
               functions.map(_.header).filter(x => {
-                !interfaceDef.internalMethods.exists(y => y.toSignature == x.toSignature)
+                !interfaceDef.internalMethods.contains(x)//exists(y => y.toSignature == x.toSignature)
               })
           (interfaceTemplateFullName -> orderedMethods)
         })
@@ -171,7 +175,7 @@ class EdgeCompiler(
           InterfaceEdgeBlueprint(
             interfaceTemplateFullName,
             // This is where they're given order and get an implied index
-            functionHeaders2.map(_.toBanner).toVector)
+            functionHeaders2.toVector)
         })
     interfaceEdgeBlueprints.toVector
   }

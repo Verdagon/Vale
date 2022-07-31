@@ -41,7 +41,8 @@ class ArrayCompiler(
     sizeRuneA: IRuneS,
     mutabilityRune: IRuneS,
     variabilityRune: IRuneS,
-    callableTE: ReferenceExpressionTE):
+    callableTE: ReferenceExpressionTE,
+    verifyConclusions: Boolean):
   StaticArrayFromCallableTE = {
 //    val builtinNamespaceCoord =
 //      interner.intern(PackageCoordinate(keywords.emptyString, Vector.empty))
@@ -63,11 +64,12 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
+
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRune)))
-    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, range, callableTE)
+    val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, range, callableTE, true)
     val ssaMT = resolveStaticSizedArray(mutability, variability, size, prototype.returnType)
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
@@ -89,7 +91,8 @@ class ArrayCompiler(
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
     sizeTE: ReferenceExpressionTE,
-    maybeCallableTE: Option[ReferenceExpressionTE]):
+    maybeCallableTE: Option[ReferenceExpressionTE],
+    verifyConclusions: Boolean):
   ReferenceExpressionTE = {
     val runeToType =
       runeTypeSolver.solve(
@@ -108,7 +111,7 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -126,7 +129,7 @@ class ArrayCompiler(
 
         val prototype =
           overloadResolver.getArrayGeneratorPrototype(
-            coutputs, callingEnv, range, callableTE)
+            coutputs, callingEnv, range, callableTE, true)
         val rsaMT = resolveRuntimeSizedArray(prototype.returnType, mutability)
 
         maybeElementTypeRune.foreach(elementTypeRuneA => {
@@ -161,6 +164,7 @@ class ArrayCompiler(
             Vector(sizeTE.result.reference) ++
               maybeCallableTE.map(c => c.result.reference),
             Vector(),
+            true,
             true) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
             case Ok(x) => x
@@ -202,7 +206,8 @@ class ArrayCompiler(
       sizeRuneA: IRuneS,
       mutabilityRuneA: IRuneS,
       variabilityRuneA: IRuneS,
-      exprs2: Vector[ReferenceExpressionTE]):
+      exprs2: Vector[ReferenceExpressionTE],
+      verifyConclusions: Boolean):
    StaticArrayFromValuesTE = {
     val runeToType =
       runeTypeSolver.solve(
@@ -226,7 +231,7 @@ class ArrayCompiler(
 
     val templatas =
       inferCompiler.solveExpectComplete(
-        callingEnv, Some(callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector())
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
@@ -270,7 +275,7 @@ class ArrayCompiler(
 
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
-        coutputs, fate, range, callableTE, arrayTT.elementType)
+        coutputs, fate, range, callableTE, arrayTT.elementType, true)
 
     ast.DestroyStaticSizedArrayIntoFunctionTE(
       arrTE,
@@ -306,7 +311,7 @@ class ArrayCompiler(
 
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
-        coutputs, fate, range, callableTE, arrayTT.elementType)
+        coutputs, fate, range, callableTE, arrayTT.elementType, true)
 
     ast.DestroyImmRuntimeSizedArrayTE(
       arrTE,

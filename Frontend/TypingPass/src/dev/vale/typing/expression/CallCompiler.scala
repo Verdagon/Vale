@@ -59,7 +59,8 @@ class CallCompiler(
               explicitTemplateArgRunesS,
               unconvertedArgsPointerTypes2,
               Vector.empty,
-              false) match {
+              false,
+              true) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
             case Ok(x) => x
           }
@@ -116,7 +117,8 @@ class CallCompiler(
         explicitTemplateArgRunesS,
         unconvertedArgsPointerTypes2,
         Vector.empty,
-        false) match {
+        false,
+        true) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x
       }
@@ -180,7 +182,9 @@ class CallCompiler(
     val paramFilters = Vector(closureParamType) ++ argsTypes2
     val prototype2 =
       overloadCompiler.findFunction(
-        env, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false) match {
+        env, coutputs, range,
+        interner.intern(CodeNameS(keywords.underscoresCall)),
+        explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, false, true) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x
       }
