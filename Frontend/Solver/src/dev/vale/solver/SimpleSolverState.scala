@@ -251,5 +251,5 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
     }
   }
 
-  override def getSteps(): Vector[Step[Rule, Rune, Conclusion]] = steps
+  override def getSteps(): Stream[Step[Rule, Rune, Conclusion]] = steps.toStream
 }

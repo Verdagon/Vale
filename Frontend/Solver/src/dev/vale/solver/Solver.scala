@@ -7,21 +7,23 @@ import scala.collection.mutable
 
 case class Step[Rule, Rune, Conclusion](complex: Boolean, solvedRules: Vector[(Int, Rule)], addedRules: Vector[Rule], conclusions: Map[Rune, Conclusion])
 
+
 sealed trait ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
   def getOrDie(): Map[Rune, Conclusion]
 }
 sealed trait IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] extends ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
   def unsolvedRules: Vector[Rule]
   def unsolvedRunes: Vector[Rune]
-  def steps: Vector[Step[Rule, Rune, Conclusion]]
+  def steps: Stream[Step[Rule, Rune, Conclusion]]
 }
 case class CompleteSolve[Rule, Rune, Conclusion, ErrType](
+  steps: Stream[Step[Rule, Rune, Conclusion]],
   conclusions: Map[Rune, Conclusion]
 ) extends ISolverOutcome[Rule, Rune, Conclusion, ErrType] {
   override def getOrDie(): Map[Rune, Conclusion] = conclusions
 }
 case class IncompleteSolve[Rule, Rune, Conclusion, ErrType](
-  steps: Vector[Step[Rule, Rune, Conclusion]],
+  steps: Stream[Step[Rule, Rune, Conclusion]],
   unsolvedRules: Vector[Rule],
   unknownRunes: Set[Rune],
   incompleteConclusions: Map[Rune, Conclusion]
@@ -33,7 +35,7 @@ case class IncompleteSolve[Rule, Rune, Conclusion, ErrType](
 }
 
 case class FailedSolve[Rule, Rune, Conclusion, ErrType](
-  steps: Vector[Step[Rule, Rune, Conclusion]],
+  steps: Stream[Step[Rule, Rune, Conclusion]],
   unsolvedRules: Vector[Rule],
   error: ISolverError[Rune, Conclusion, ErrType]
 ) extends IIncompleteOrFailedSolve[Rule, Rune, Conclusion, ErrType] {

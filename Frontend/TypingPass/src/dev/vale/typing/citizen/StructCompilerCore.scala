@@ -253,13 +253,15 @@ class StructCompilerCore(
             coutputs,
             FunctionTemplata(
               interfaceInnerEnv,
-              internalMethod))
+              internalMethod),
+            true)
         } else {
           delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
             coutputs,
             FunctionTemplata(
               interfaceInnerEnv,
-              internalMethod))
+              internalMethod),
+            true)
         }
       })
 
@@ -421,7 +423,8 @@ class StructCompilerCore(
         structEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
           case Some(ft@FunctionTemplata(_, _)) => ft
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure free function we just added!"))
-        })
+        },
+        true)
       // Adds the drop function to the coutputs
       // Drop is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
@@ -430,7 +433,8 @@ class StructCompilerCore(
         structEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
           case Some(ft@FunctionTemplata(_, _)) => ft
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure drop function we just added!"))
-        })
+        },
+        true)
     }
 
     (closuredVarsStructRef, mutability, functionTemplata)

@@ -6,19 +6,17 @@ import dev.vale.{CodeLocationS, Collector, Err, FileCoordinate, FileCoordinateMa
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.CoordComponentsSR
+import dev.vale.postparsing.rules.{CoordComponentsSR, IRulexSR, KindComponentsSR, RuneUsage}
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{CoordComponentsSR, KindComponentsSR, RuneUsage}
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
-import dev.vale.typing.infer.{KindIsNotConcrete, SendingNonCitizen}
+import dev.vale.typing.infer.{ITypingPassSolverError, KindIsNotConcrete, SendingNonCitizen}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.infer.SendingNonCitizen
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
@@ -231,14 +229,14 @@ class CompilerSolverTests extends FunSuite with Matchers {
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       TypingPassSolverError(
         tz,
-        FailedSolve(
+        FailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
           Vector(
-            Step(
+            Step[IRulexSR, IRuneS, ITemplata[ITemplataType]](
               false,
               Vector(),
               Vector(),
               Map(
-                CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))),
+                CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))).toStream,
           unsolvedRules,
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
@@ -249,12 +247,12 @@ class CompilerSolverTests extends FunSuite with Matchers {
           tz,
           IncompleteSolve(
             Vector(
-              Step(
+              Step[IRulexSR, IRuneS, ITemplata[ITemplataType]](
                 false,
                 Vector(),
                 Vector(),
                 Map(
-                  CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))),
+                  CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))).toStream,
             unsolvedRules,
             Set(
               CodeRuneS(interner.intern(StrI("I"))),

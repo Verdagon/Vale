@@ -16,7 +16,7 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate,
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CodeVarNameT, FullNameT, FunctionTemplateNameT}
+import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FullNameT, FunctionTemplateNameT}
 //import dev.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import dev.vale.postparsing.rules.{EqualsSR, TemplexSR, TypedSR}
 import dev.vale.typing.types._
@@ -88,7 +88,8 @@ class OverloadResolver(
     explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
-    exact: Boolean):
+    exact: Boolean,
+    verifyConclusions: Boolean):
   Result[PrototypeTemplata, FindFunctionFailure] = {
     Profiler.frame(() => {
       findPotentialFunction(
@@ -100,10 +101,11 @@ class OverloadResolver(
         explicitTemplateArgRunesS,
         args,
         extraEnvsToLookIn,
-        exact) match {
+        exact,
+        verifyConclusions) match {
         case Err(e) => return Err(e)
         case Ok(potentialBanner) => {
-          Ok(stampPotentialFunctionForPrototype(coutputs, callingEnv, callRange, potentialBanner, args))
+          Ok(stampPotentialFunctionForPrototype(coutputs, callingEnv, callRange, potentialBanner, args, verifyConclusions))
         }
       }
     })
@@ -168,7 +170,7 @@ class OverloadResolver(
           interfaceEnv, coutputs, callRange, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case ExternFunctionTemplata(header) => {
-        Vector(HeaderCalleeCandidate(header))
+        Vector(HeaderCalleeCandidate(header, Vector()))
       }
       case PrototypeTemplata(declarationRange, prototype) => {
         Vector(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
@@ -187,7 +189,8 @@ class OverloadResolver(
     explicitTemplateArgRunesS: Array[IRuneS],
     paramFilters: Vector[CoordT],
     candidate: ICalleeCandidate,
-    exact: Boolean):
+    exact: Boolean,
+    verifyConclusions: Boolean):
   Result[IValidCalleeCandidate, IFindFunctionFailureReason] = {
     candidate match {
       case FunctionCalleeCandidate(ft@FunctionTemplata(declaringEnv, function)) => {
@@ -255,21 +258,26 @@ class OverloadResolver(
                       }
                     })
 
+                  val callEnv =
+                    GeneralEnvironment.childOf(
+                      interner, callingEnv, callingEnv.fullName.addStep(CallEnvNameT()))
+
                   // We only want to solve the template arg runes
                   inferCompiler.solveComplete(
-                    declaringEnv,
-                    Some(callingEnv),
+                    InferEnv(callEnv, declaringEnv),
                     coutputs,
                     rulesWithoutRuneParentEnvLookups,
                     explicitTemplateArgRuneToType ++ runeTypeConclusions,
                     callRange,
                     initialKnowns,
-                    Vector()) match {
+                    Vector(),
+                    true) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
                     }
                     case (Ok(explicitRuneSToTemplata)) => {
-                      val explicitlySpecifiedTemplateArgTemplatas = explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
+                      val explicitlySpecifiedTemplateArgTemplatas =
+                        explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 
                       if (ft.function.isLambda()) {
                         // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
@@ -326,7 +334,9 @@ class OverloadResolver(
           }
         } else {
           if (ft.function.isLambda()) {
-            val banner = functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(coutputs, callRange, ft)
+            val banner =
+              functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
+                coutputs, callRange, ft, verifyConclusions)
             paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
               case Ok(_) => {
                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
@@ -354,10 +364,10 @@ class OverloadResolver(
           }
         }
       }
-      case HeaderCalleeCandidate(header) => {
+      case HeaderCalleeCandidate(header, templateArgs) => {
         paramsMatch(coutputs, paramFilters, header.paramTypes, exact) match {
           case Ok(_) => {
-            Ok(ValidHeaderCalleeCandidate(header))
+            Ok(ValidHeaderCalleeCandidate(header, templateArgs))
           }
           case Err(fff) => Err(fff)
         }
@@ -419,7 +429,8 @@ class OverloadResolver(
     explicitTemplateArgRunesS: Array[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
-    exact: Boolean):
+    exact: Boolean,
+    verifyConclusions: Boolean):
   Result[IValidCalleeCandidate, FindFunctionFailure] = {
 //    args.indexWhere(_.tyype.kind match { case FunctorT(_) => true case _ => false }) match {
 //      case -1 => {
@@ -432,7 +443,7 @@ class OverloadResolver(
           candidates.map(candidate => {
             attemptCandidateBanner(
               env, coutputs, callRange, explicitTemplateArgRulesS,
-              explicitTemplateArgRunesS, args, candidate, exact)
+              explicitTemplateArgRunesS, args, candidate, exact, verifyConclusions)
               .mapError(e => (candidate -> e))
           })
         val (successes, failedToReason) = Result.split(attempted)
@@ -528,9 +539,9 @@ class OverloadResolver(
       dedupedBanners.groupBy(_.paramTypes).values.flatMap({ potentialBannersWithSameParamTypes =>
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
-            case ValidCalleeCandidate(_, function) => !function.function.isTemplate
+            case ValidCalleeCandidate(_, _, function) => !function.function.isTemplate
             case ValidPrototypeTemplataCalleeCandidate(prototype) => true
-            case ValidHeaderCalleeCandidate(_) => true
+            case ValidHeaderCalleeCandidate(_, _) => true
           })
         if (ordinaryBanners.isEmpty) {
           // No ordinary banners, so include all the templated ones
@@ -599,42 +610,44 @@ class OverloadResolver(
   }
 
   def stampPotentialFunctionForBanner(
-      callingEnv: IEnvironmentBox,
-      coutputs: CompilerOutputs,
-      callRange: RangeS,
-      potentialBanner: IValidCalleeCandidate):
+    callingEnv: IEnvironmentBox,
+    coutputs: CompilerOutputs,
+    callRange: RangeS,
+    potentialBanner: IValidCalleeCandidate,
+    verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     potentialBanner match {
-      case ValidCalleeCandidate(signature, ft @ FunctionTemplata(_, _)) => {
+      case ValidCalleeCandidate(banner, _, ft @ FunctionTemplata(_, _)) => {
         if (ft.function.isTemplate) {
-          val (EvaluateFunctionSuccess(banner)) =
+          val (EvaluateFunctionSuccess(successBanner)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForBanner(
-              coutputs, callingEnv, callRange, ft, Vector.empty, signature.paramTypes);
-          (banner)
+              coutputs, callingEnv, callRange, ft, Vector.empty, banner.paramTypes);
+          (successBanner)
         } else {
           functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
-            coutputs, callRange, ft)
+            coutputs, callRange, ft, verifyConclusions)
         }
       }
-      case ValidHeaderCalleeCandidate(header) => {
-        PrototypeTemplata(vassertSome(header.maybeOriginFunction).range, header.toPrototype)
+      case ValidHeaderCalleeCandidate(header, templateArgs) => {
+        PrototypeTemplata(vassertSome(header.maybeOriginFunction).range, header.toPrototype(interner, keywords, templateArgs))
       }
     }
   }
 
   private def stampPotentialFunctionForPrototype(
-      coutputs: CompilerOutputs,
-      callingEnv: IEnvironment, // See CSSNCE
-      callRange: RangeS,
-      potentialBanner: IValidCalleeCandidate,
-      args: Vector[CoordT]):
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: RangeS,
+    potentialBanner: IValidCalleeCandidate,
+    args: Vector[CoordT],
+    verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     potentialBanner match {
-      case ValidCalleeCandidate(signature, ft @ FunctionTemplata(_, _)) => {
+      case ValidCalleeCandidate(header, templateArgs, ft @ FunctionTemplata(_, _)) => {
         if (ft.function.isLambda()) {
           if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-              coutputs,callRange, callingEnv, ft, signature.fullName.last.templateArgs, args) match {
+                coutputs,callRange, callingEnv, ft, templateArgs, args, verifyConclusions) match {
               case (EvaluateFunctionSuccess(prototype)) => (prototype)
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
@@ -646,7 +659,7 @@ class OverloadResolver(
           }
         } else {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, ft, signature.fullName.last.templateArgs, args) match {
+            coutputs, callRange, callingEnv, ft, templateArgs, args) match {
             case (EvaluateFunctionSuccess(prototype)) => (prototype)
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
@@ -654,9 +667,9 @@ class OverloadResolver(
           }
         }
       }
-      case ValidHeaderCalleeCandidate(header) => {
+      case ValidHeaderCalleeCandidate(header, templateArgs) => {
         val declarationRange = vassertSome(header.maybeOriginFunction).range
-        PrototypeTemplata(declarationRange, header.toPrototype)
+        PrototypeTemplata(declarationRange, header.toPrototype(interner, keywords, templateArgs))
       }
       case ValidPrototypeTemplataCalleeCandidate(prototype) => {
         prototype
@@ -668,7 +681,8 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
     range: RangeS,
-    callableTE: ReferenceExpressionTE):
+    callableTE: ReferenceExpressionTE,
+    verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
@@ -677,7 +691,7 @@ class OverloadResolver(
         CoordT(ShareT, IntT.i32))
       findFunction(
         callingEnv, coutputs, range, funcName, Vector.empty, Array.empty,
-        paramFilters, Vector.empty, false) match {
+        paramFilters, Vector.empty, false, verifyConclusions) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x.prototype
       }
@@ -688,7 +702,8 @@ class OverloadResolver(
     fate: FunctionEnvironmentBox,
     range: RangeS,
     callableTE: ReferenceExpressionTE,
-    elementType: CoordT):
+    elementType: CoordT,
+    verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
     val paramFilters =
@@ -696,7 +711,7 @@ class OverloadResolver(
         callableTE.result.underlyingReference,
         elementType)
     findFunction(
-      fate.snapshot, coutputs, range, funcName, Vector.empty, Array.empty, paramFilters, Vector.empty, false) match {
+      fate.snapshot, coutputs, range, funcName, Vector.empty, Array.empty, paramFilters, Vector.empty, false, verifyConclusions) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
       case Ok(x) => x.prototype
     }

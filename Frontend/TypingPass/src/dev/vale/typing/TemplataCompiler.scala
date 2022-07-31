@@ -244,6 +244,18 @@ object TemplataCompiler {
     def substituteForInterface(interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coordT: ITemplata[ITemplataType]): ITemplata[ITemplataType]
   }
+  def getPlaceholderSubstituter(
+    interner: Interner,
+    // This is the Ship<WarpFuel>.
+    name: FullNameT[IInstantiationNameT]):
+    // The Engine<T> is given later to the IPlaceholderSubstituter
+  IPlaceholderSubstituter = {
+    TemplataCompiler.getPlaceholderSubstituter(
+      interner,
+      TemplataCompiler.getTemplate(name),
+      name.last.templateArgs)
+  }
+
   // Let's say you have the line:
   //   myShip.engine
   // You need to somehow combine these two bits of knowledge:
@@ -253,14 +265,13 @@ object TemplataCompiler {
   def getPlaceholderSubstituter(
     interner: Interner,
     // This is the Ship<WarpFuel>.
-    instantiationFullName: FullNameT[IInstantiationNameT]
+    templateName: FullNameT[ITemplateNameT],
     // The Engine<T> is given later to the IPlaceholderSubstituter
-  ):
+    templateArgs: Vector[ITemplata[ITemplataType]]):
   IPlaceholderSubstituter = {
-    val template = TemplataCompiler.getTemplate(instantiationFullName)
     val substitutions =
-      instantiationFullName.last.templateArgs.zipWithIndex.map({ case (arg, index) =>
-        val placeholderFullName = template.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
+      templateArgs.zipWithIndex.map({ case (arg, index) =>
+        val placeholderFullName = templateName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
         placeholderFullName -> arg
       }).toArray
     new IPlaceholderSubstituter {

@@ -482,3 +482,7 @@ case class AnonymousSubstructImplNameT() extends INameT {
 case class ResolvingEnvNameT() extends INameT {
   vpass()
 }
+
+case class CallEnvNameT() extends INameT {
+  vpass()
+}

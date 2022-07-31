@@ -176,7 +176,7 @@ case class OptimizedSolverState[Rule, Rune, Conclusion](
     }
   }
 
-  override def getSteps(): Vector[Step[Rule, Rune, Conclusion]] = steps.toVector
+  override def getSteps(): Stream[Step[Rule, Rune, Conclusion]] = steps.toStream
 
   override def simpleStep[ErrType](
     ruleToPuzzles: Rule => Array[Array[Rune]],

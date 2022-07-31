@@ -90,8 +90,6 @@ trait IEnvironment {
   }
 
   def fullName: FullNameT[INameT]
-
-  def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]]
 }
 
 trait IEnvironmentBox extends IEnvironment {
@@ -352,8 +350,6 @@ case class PackageEnvironment[+T <: INameT](
 ) extends IEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
 
-  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = None
-
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IEnvironment]) {
       return false
@@ -398,13 +394,6 @@ case class CitizenEnvironment[+T <: INameT](
   templatas: TemplatasStore
 ) extends IEnvironment {
   vassert(templatas.templatasStoreName == fullName)
-
-  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = {
-    parentEnv match {
-      case PackageEnvironment(_, _, _) => Some(templateName)
-      case _ => parentEnv.getCallingTopLevelDenizenName()
-    }
-  }
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -468,8 +457,6 @@ case class GeneralEnvironment[+T <: INameT](
   override def equals(obj: Any): Boolean = vcurious();
 
   override def hashCode(): Int = vcurious()
-
-  override def getCallingTopLevelDenizenName(): Option[FullNameT[ITemplateNameT]] = parentEnv.getCallingTopLevelDenizenName()
 
   override def lookupWithNameInner(
     name: INameT,

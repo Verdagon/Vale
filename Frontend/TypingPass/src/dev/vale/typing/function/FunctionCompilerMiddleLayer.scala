@@ -55,8 +55,7 @@ class FunctionCompilerMiddleLayer(
 
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = FunctionBannerT(Some(function1), namedEnv.fullName, params2)
+    val banner = FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
     banner
   }
 
@@ -119,11 +118,11 @@ class FunctionCompilerMiddleLayer(
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName, params2)
+//    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+    val banner = ast.FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
 
     val header =
-      core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
+      core.evaluateFunctionForHeader(runedEnv, coutputs, callRange, params2)
     if (!header.toBanner.same(banner)) {
       val bannerFromHeader = header.toBanner
       vfail("wut\n" + bannerFromHeader + "\n" + banner)
@@ -131,7 +130,7 @@ class FunctionCompilerMiddleLayer(
 
 //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
 
-    PrototypeTemplata(function1.range, header.toPrototype)
+    PrototypeTemplata(function1.range, header.toPrototype(interner, keywords, runedEnv.templateArgs))
   }
 
   // Preconditions:
@@ -281,28 +280,15 @@ class FunctionCompilerMiddleLayer(
         ParameterT(nameT, maybeVirtuality, coord)
       })
   }
-
-  def makeNamedEnv(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
-    paramTypes: Vector[CoordT],
-    maybeReturnType: Option[CoordT]
-  ): FunctionEnvironment = {
-    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(globalEnv, parentEnv, oldName, templateArgs, templatas, function, variables) = runedEnv
-
-    // We fill out the params here to get the function's full name.
-    val newName = assembleName(oldName, templateArgs, paramTypes)
-
-    FunctionEnvironment(globalEnv, parentEnv, newName, templatas, function, maybeReturnType, variables)
-  }
-
-  private def assembleName(
-    name: FullNameT[IFunctionTemplateNameT],
-    templateArgs: Vector[ITemplata[ITemplataType]],
-    params: Vector[CoordT]):
-  FullNameT[IFunctionNameT] = {
-    val newLastStep = name.last.makeFunctionName(interner, keywords, templateArgs, params)
-    FullNameT(name.packageCoord, name.initSteps, newLastStep)
-  }
+//
+//  private def assembleName(
+//    name: FullNameT[IFunctionTemplateNameT],
+//    templateArgs: Vector[ITemplata[ITemplataType]],
+//    params: Vector[CoordT]):
+//  FullNameT[IFunctionNameT] = {
+//    val newLastStep = name.last.makeFunctionName(interner, keywords, templateArgs, params)
+//    FullNameT(name.packageCoord, name.initSteps, newLastStep)
+//  }
 
   private def getMaybeReturnType(
     nearEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
@@ -336,8 +322,8 @@ class FunctionCompilerMiddleLayer(
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName, params2)
+//    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+    val banner = ast.FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
     banner
   }
 
@@ -389,49 +375,49 @@ class FunctionCompilerMiddleLayer(
     //    }
   }
 
-  // Preconditions:
-  // - already spawned local env
-  // - either no template args, or they were already added to the env.
-  // - either no closured vars, or they were already added to the env.
-  def getOrEvaluateGenericFunction(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
-    coutputs: CompilerOutputs,
-    callRange: RangeS,
-    function1: FunctionA):
-  (FunctionHeaderT) = {
-
-    // Check preconditions
-    function1.runeToType.keySet.foreach(templateParam => {
-      vassert(
-        runedEnv
-          .lookupNearestWithImpreciseName(
-            interner.intern(RuneNameS(templateParam)),
-            Set(TemplataLookupContext, ExpressionLookupContext))
-          .nonEmpty);
-    })
-
-    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
-    val needleSignature = SignatureT(functionFullName)
-    coutputs.lookupFunction(needleSignature) match {
-      case Some(FunctionT(header, _)) => {
-        (header)
-      }
-      case None => {
-        val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
-
-        val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-        val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-
-        //        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
-
-        val header =
-          core.evaluateFunctionForHeader(
-            namedEnv, coutputs, callRange, params2)
-        vassert(header.toSignature == needleSignature)
-        (header)
-      }
-    }
-    vimpl()
-  }
+//  // Preconditions:
+//  // - already spawned local env
+//  // - either no template args, or they were already added to the env.
+//  // - either no closured vars, or they were already added to the env.
+//  def getOrEvaluateGenericFunction(
+//    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+//    coutputs: CompilerOutputs,
+//    callRange: RangeS,
+//    function1: FunctionA):
+//  (FunctionHeaderT) = {
+//
+//    // Check preconditions
+//    function1.runeToType.keySet.foreach(templateParam => {
+//      vassert(
+//        runedEnv
+//          .lookupNearestWithImpreciseName(
+//            interner.intern(RuneNameS(templateParam)),
+//            Set(TemplataLookupContext, ExpressionLookupContext))
+//          .nonEmpty);
+//    })
+//
+//    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
+//    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
+//    val needleSignature = SignatureT(functionFullName)
+//    coutputs.lookupFunction(needleSignature) match {
+//      case Some(FunctionT(header, _)) => {
+//        (header)
+//      }
+//      case None => {
+//        val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+//
+//        val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
+////        val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+//
+//        //        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
+//
+//        val header =
+//          core.evaluateFunctionForHeader(
+//            runedEnv, coutputs, callRange, params2)
+////        vassert(header.toSignature == needleSignature)
+//        (header)
+//      }
+//    }
+//    vimpl()
+//  }
 }

@@ -24,7 +24,10 @@ case class CompileErrorExceptionT(err: ICompileErrorT) extends RuntimeException 
 }
 
 sealed trait ICompileErrorT { def range: RangeS }
-case class CouldntNarrowDownCandidates(range: RangeS, candidates: Vector[RangeS]) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CouldntNarrowDownCandidates(range: RangeS, candidates: Vector[RangeS]) extends ICompileErrorT {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
 case class NotEnoughGenericArgs(range: RangeS) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ImplSubCitizenNotFound(range: RangeS, name: IImpreciseNameS) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ImplSuperInterfaceNotFound(range: RangeS, name: IImpreciseNameS) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
@@ -64,7 +67,11 @@ case class CouldntConvertForReturnT(range: RangeS, expectedType: CoordT, actualT
 }
 case class CouldntConvertForMutateT(range: RangeS, expectedType: CoordT, actualType: CoordT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CantMoveOutOfMemberT(range: RangeS, name: IVarNameT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class CouldntFindFunctionToCallT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CouldntFindFunctionToCallT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+  vpass()
+}
 case class CouldntEvaluateFunction(range: RangeS, eff: IFindFunctionFailureReason) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntEvaluatImpl(range: RangeS, eff: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindOverrideT(range: RangeS, fff: FindFunctionFailure) extends ICompileErrorT {

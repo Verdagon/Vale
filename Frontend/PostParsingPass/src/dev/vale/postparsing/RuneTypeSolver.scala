@@ -320,7 +320,7 @@ class RuneTypeSolver(interner: Interner) {
             solveRule(state, env, ruleIndex, rule, stepState)
           }
         }) match {
-        case Ok((steps, conclusionsStream)) => (steps.toVector, conclusionsStream.toMap)
+        case Ok((steps, conclusionsStream)) => (steps, conclusionsStream.toMap)
         case Err(e) => return Err(RuneTypeSolveError(range, e))
       }
     val allRunes = solverState.getAllRunes().map(solverState.getUserRune) ++ additionalRunes

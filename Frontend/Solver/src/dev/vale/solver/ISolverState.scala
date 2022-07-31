@@ -23,7 +23,7 @@ trait ISolverState[Rule, Rune, Conclusion] {
   def userifyConclusions(): Stream[(Rune, Conclusion)]
   def getUnsolvedRules(): Vector[Rule]
   def getNextSolvable(): Option[Int]
-  def getSteps(): Vector[Step[Rule, Rune, Conclusion]]
+  def getSteps(): Stream[Step[Rule, Rune, Conclusion]]
 
   def addRule(rule: Rule): Int
   def addRune(rune: Rune): Int
