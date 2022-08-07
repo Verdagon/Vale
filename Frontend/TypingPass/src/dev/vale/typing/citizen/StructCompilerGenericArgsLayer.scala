@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceTemplateNameT, IStructTemplateNameT, NameTranslator, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, NameTranslator, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Accumulator, Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -16,7 +16,6 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.typing.citizen.StructCompilerMiddle
 import dev.vale.typing.env._
 
 import scala.collection.immutable.List
@@ -29,7 +28,7 @@ class StructCompilerGenericArgsLayer(
     templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler,
     delegate: IStructCompilerDelegate) {
-  val middle = new StructCompilerMiddle(opts, interner, keywords, nameTranslator, delegate)
+  val core = new StructCompilerCore(opts, interner, keywords, nameTranslator, delegate)
 
   def resolveStruct(
     coutputs: CompilerOutputs,
@@ -65,7 +64,8 @@ class StructCompilerGenericArgsLayer(
           callRange,
           initialKnowns,
           Vector(),
-          true)
+          true,
+          false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -121,6 +121,7 @@ class StructCompilerGenericArgsLayer(
           initialKnowns,
           Vector(),
           // False because we're just predicting, see STCMBDP.
+          false,
           false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
@@ -177,6 +178,7 @@ class StructCompilerGenericArgsLayer(
           initialKnowns,
           Vector(),
           // False because we're just predicting, see STCMBDP.
+          false,
           false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
@@ -225,7 +227,8 @@ class StructCompilerGenericArgsLayer(
           callRange,
           initialKnowns,
           Vector(),
-          true)
+          true,
+          false)
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -255,7 +258,7 @@ class StructCompilerGenericArgsLayer(
           structTemplateFullName,
           structTemplateFullName,
           TemplatasStore(structTemplateFullName, Map(), Map()))
-      coutputs.declareOuterEnvForTemplate(structTemplateFullName, outerEnv)
+      coutputs.declareTypeOuterEnv(structTemplateFullName, outerEnv)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
       val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
@@ -269,7 +272,7 @@ class StructCompilerGenericArgsLayer(
       val preliminaryInferences =
         inferCompiler.solve(
           InferEnv(outerEnv, outerEnv),
-          coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector(), true) match {
+          coutputs, definitionRules.toVector, allRuneToType, structA.range, Vector(), Vector(), true, true) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range, f))
           }
@@ -304,20 +307,37 @@ class StructCompilerGenericArgsLayer(
 //              InitialKnown(RuneUsage(rune.range, rune.rune), genericArg)
 //            }),
           Vector(),
+          true,
           true)
 
       structA.maybePredictedMutability match {
         case None => {
           val mutability =
             ITemplata.expectMutability(inferences(structA.mutabilityRune.rune))
-          coutputs.declareTemplateMutability(structTemplateFullName, mutability)
+          coutputs.declareTypeMutability(structTemplateFullName, mutability)
         }
         case Some(_) =>
       }
 
-      coutputs.declareInnerEnvForTemplate(structTemplateFullName, outerEnv)
+      val templateArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
 
-      middle.compileStruct(outerEnv, structTemplateFullName, coutputs, structA, inferences)
+      val fullName = assembleStructName(structTemplateFullName, templateArgs)
+
+      val innerEnv =
+        CitizenEnvironment(
+          outerEnv.globalEnv,
+          outerEnv,
+          structTemplateFullName,
+          fullName,
+          TemplatasStore(fullName, Map(), Map())
+            .addEntries(
+              interner,
+              inferences.toVector
+                .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+
+      coutputs.declareTypeInnerEnv(structTemplateFullName, innerEnv)
+
+      core.compileStruct(innerEnv, coutputs, structA)
     })
   }
 
@@ -330,7 +350,7 @@ class StructCompilerGenericArgsLayer(
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
 
-      val interfaceTemplateEnv =
+      val outerEnv =
         CitizenEnvironment(
           declaringEnv.globalEnv,
           declaringEnv,
@@ -344,7 +364,7 @@ class StructCompilerGenericArgsLayer(
                   val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
                   (functionName -> FunctionEnvEntry(internalMethod))
                 })))
-      coutputs.declareOuterEnvForTemplate(interfaceTemplateFullName, interfaceTemplateEnv)
+      coutputs.declareTypeOuterEnv(interfaceTemplateFullName, outerEnv)
 
       //      val fullName = env.fullName.addStep(interfaceLastName)
 
@@ -357,8 +377,8 @@ class StructCompilerGenericArgsLayer(
       // In the future we might need to outlaw specialization, unsure.
       val preliminaryInferences =
         inferCompiler.solve(
-          InferEnv(interfaceTemplateEnv, interfaceTemplateEnv),
-          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector(), true) match {
+          InferEnv(outerEnv, outerEnv),
+          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range, Vector(), Vector(), true, true) match {
           case f @ FailedSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range, f))
           }
@@ -379,7 +399,7 @@ class StructCompilerGenericArgsLayer(
                 }
                 case None => {
                   val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
-                  val templata = templataCompiler.createPlaceholder(coutputs, interfaceTemplateEnv, interfaceTemplateFullName, index, runeType)
+                  val templata = templataCompiler.createPlaceholder(coutputs, outerEnv, interfaceTemplateFullName, index, runeType)
                   Some(InitialKnown(genericParam.rune, templata))
                 }
               }
@@ -389,26 +409,43 @@ class StructCompilerGenericArgsLayer(
 
       val inferences =
         inferCompiler.solveExpectComplete(
-          InferEnv(interfaceTemplateEnv, interfaceTemplateEnv),
+          InferEnv(outerEnv, outerEnv),
           coutputs,
           definitionRules,
           interfaceA.runeToType,
           interfaceA.range,
           initialKnowns,
           Vector(),
+          true,
           true)
 
       interfaceA.maybePredictedMutability match {
         case None => {
           val mutability = ITemplata.expectMutability(inferences(interfaceA.mutabilityRune.rune))
-          coutputs.declareTemplateMutability(interfaceTemplateFullName, mutability)
+          coutputs.declareTypeMutability(interfaceTemplateFullName, mutability)
         }
         case Some(_) =>
       }
 
-      coutputs.declareInnerEnvForTemplate(interfaceTemplateFullName, interfaceTemplateEnv)
+      val templateArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
 
-      middle.compileInterface(interfaceTemplateEnv, coutputs, interfaceTemplateFullName, interfaceA, inferences)
+      val fullName = assembleInterfaceName(interfaceTemplateFullName, templateArgs)
+
+      val innerEnv =
+        CitizenEnvironment(
+          outerEnv.globalEnv,
+          outerEnv,
+          interfaceTemplateFullName,
+          fullName,
+          TemplatasStore(fullName, Map(), Map())
+            .addEntries(
+              interner,
+              inferences.toVector
+                .map({ case (rune, templata) => (interner.intern(RuneNameT(rune)), TemplataEnvEntry(templata)) })))
+
+      coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
+
+      core.compileInterface(innerEnv, coutputs, interfaceA)
     })
   }
 
@@ -420,6 +457,22 @@ class StructCompilerGenericArgsLayer(
     functionS: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
-    middle.makeClosureUnderstruct(containingFunctionEnv, coutputs, name, functionS, members)
+    core.makeClosureUnderstruct(containingFunctionEnv, coutputs, name, functionS, members)
+  }
+
+  def assembleStructName(
+    templateName: FullNameT[IStructTemplateNameT],
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  FullNameT[IStructNameT] = {
+    templateName.copy(
+      last = templateName.last.makeStructName(interner, templateArgs))
+  }
+
+  def assembleInterfaceName(
+    templateName: FullNameT[IInterfaceTemplateNameT],
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  FullNameT[IInterfaceNameT] = {
+    templateName.copy(
+      last = templateName.last.makeInterfaceName(interner, templateArgs))
   }
 }

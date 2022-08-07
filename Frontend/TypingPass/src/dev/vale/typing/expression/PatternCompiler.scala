@@ -131,6 +131,7 @@ class PatternCompiler(
                     RuneUsage(pattern.range, PatternInputRuneS(pattern.range.begin)),
                     receiverRune,
                     CoordTemplata(unconvertedInputExpr.result.reference))),
+                true,
                 true)
             nenv.addEntries(
               interner,

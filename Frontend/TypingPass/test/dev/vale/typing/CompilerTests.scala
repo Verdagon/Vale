@@ -437,12 +437,16 @@ class CompilerTests extends FunSuite with Matchers {
   test("Stamps an interface template via a function return") {
     val compile = CompilerTestCompilation.test(
       """
-        |sealed interface MyInterface<X> where X Ref { }
+        |import v.builtins.drop.*;
         |
-        |struct SomeStruct<X> where X Ref { x X; }
-        |impl<X> MyInterface<X> for SomeStruct<X>;
+        |sealed interface MyInterface<X Ref> where func drop(X)void { }
         |
-        |func doAThing<T>(t T) SomeStruct<T> {
+        |struct SomeStruct<X Ref> where func drop(X)void { x X; }
+        |impl<X> MyInterface<X> for SomeStruct<X>
+        |where func drop(X)void;
+        |
+        |func doAThing<T>(t T) SomeStruct<T>
+        |where func drop(T)void {
         |  return SomeStruct<T>(t);
         |}
         |
@@ -508,7 +512,10 @@ class CompilerTests extends FunSuite with Matchers {
     main shouldHave {
       case FunctionCallTE(
         PrototypeT(
-          FullNameT(_,Vector(StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector())),FunctionNameT(FunctionTemplateNameT(StrI("drop"), _),Vector(),Vector(CoordT(OwnT,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),CoordT(ShareT,VoidT())),
+          FullNameT(_,
+            Vector(StructTemplateNameT(StrI("MyStruct"))),
+            FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
+          CoordT(ShareT,VoidT())),
         _) =>
     }
   }
@@ -594,10 +601,11 @@ class CompilerTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.panic.*;
+        |import v.builtins.drop.*;
         |import panicutils.*;
-        |interface MyOption<T> where T Ref { }
-        |struct MySome<T> where T Ref { value T; }
-        |impl<T> MyOption<T> for MySome<T>;
+        |interface MyOption<T Ref> where func drop(T)void { }
+        |struct MySome<T Ref> where func drop(T)void { value T; }
+        |impl<T> MyOption<T> for MySome<T> where func drop(T)void;
         |func moo(a MySome<int>) { }
         |exported func main() { moo(__pretend<MySome<int>>()); }
         |""".stripMargin)
@@ -638,6 +646,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests calling a templated struct's constructor") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.drop.*;
         |struct MySome<T Ref> where func drop(T)void { value T; }
         |exported func main() int {
         |  return MySome<int>(4).value;
@@ -1045,8 +1054,9 @@ class CompilerTests extends FunSuite with Matchers {
   test("DO NOT SUBMIT") {
     vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
 
-
     vimpl() // OSDCE might be obsolete
+
+    vimpl() // add a test for a lambda that is used twice
   }
 
   test("Test imm array") {

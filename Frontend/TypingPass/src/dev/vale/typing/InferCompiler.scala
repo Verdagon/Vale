@@ -98,9 +98,10 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
-    verifyConclusions: Boolean):
+    verifyConclusions: Boolean,
+    isRootSolve: Boolean):
   Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _, _) => Err(i)
       case CompleteSolve(_, conclusions) => Ok(conclusions)
@@ -115,9 +116,10 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
-    verifyConclusions: Boolean):
+    verifyConclusions: Boolean,
+    isRootSolve: Boolean):
   Map[IRuneS, ITemplata[ITemplataType]] = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
@@ -137,7 +139,8 @@ class InferCompiler(
     invocationRange: RangeS,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
-    verifyConclusions: Boolean):
+    verifyConclusions: Boolean,
+    isRootSolve: Boolean):
   ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
       val runeToType =
@@ -176,13 +179,13 @@ class InferCompiler(
       if (verifyConclusions) {
         outcome match {
           case CompleteSolve(steps, conclusions) => {
-            checkTemplateInstantiations(envs, state, rules.toArray, conclusions) match {
+            checkTemplateInstantiations(envs, state, rules.toArray, conclusions, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, Vector(), e)
             }
           }
           case IncompleteSolve(steps, unsolvedRules, _, incompleteConclusions) => {
-            checkTemplateInstantiations(envs, state, rules.toArray, incompleteConclusions) match {
+            checkTemplateInstantiations(envs, state, rules.toArray, incompleteConclusions, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, unsolvedRules, e)
             }
@@ -198,7 +201,8 @@ class InferCompiler(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     rules: Array[IRulexSR],
-    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]],
+    isRootSolve: Boolean):
   Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // This is a temporary env which contains all of our conclusions.
     // This is important if we want to resolve some sort of existing type, like how
@@ -221,10 +225,10 @@ class InferCompiler(
 //      }
 //    val name = callingEnv.fullName.addStep(ResolvingEnvNameT())
 
-    val originalCallingEnvWithUnverifiedConclusions =
-      if (envs.originalCallingEnv.fullName == envs.selfEnv.fullName) {
-        // If this is the original calling env, in other words, if we're the original caller for
-        // this particular solve, then lets add all of our templatas to the environment.
+    if (isRootSolve) {
+      // If this is the original calling env, in other words, if we're the original caller for
+      // this particular solve, then lets add all of our templatas to the environment.
+      val originalCallingEnvWithUnverifiedConclusions =
         GeneralEnvironment.childOf(
           interner,
           envs.originalCallingEnv,
@@ -232,20 +236,27 @@ class InferCompiler(
           conclusions.map({ case (nameS, templata) =>
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
-      } else {
-        envs.originalCallingEnv
-      }
+      checkTemplateInstantiationsForEnv(
+        originalCallingEnvWithUnverifiedConclusions, state, rules, conclusions)
+    } else {
+      checkTemplateInstantiationsForEnv(
+        envs.originalCallingEnv, state, rules, conclusions)
+    }
 
+    Ok(())
+  }
+
+  private def checkTemplateInstantiationsForEnv(
+    env: IEnvironment, // See CSSNCE
+    state: CompilerOutputs,
+    rules: Array[IRulexSR],
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]
+  ) = {
     rules.foreach({
-      case r @ CallSR(_, _, _, _) => {
-        checkTemplateCall(originalCallingEnvWithUnverifiedConclusions, state, r, conclusions)
-      }
-      case r @ ResolveSR(_, _, _, _, _) => {
-        checkFunctionCall(originalCallingEnvWithUnverifiedConclusions, state, r, conclusions)
-      }
+      case r@CallSR(_, _, _, _) => checkTemplateCall(env, state, r, conclusions)
+      case r@ResolveSR(_, _, _, _, _) => checkFunctionCall(env, state, r, conclusions)
       case _ =>
     })
-    Ok(())
   }
 
   def checkFunctionCall(

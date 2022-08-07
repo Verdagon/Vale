@@ -106,11 +106,12 @@ case class Hinputs(
 
   def nameIsLambdaIn(name: FullNameT[IFunctionNameT], needleFunctionHumanName: String): Boolean = {
     val lastThree = name.steps.slice(name.steps.size - 3, name.steps.size)
+    println(lastThree)
     lastThree match {
       case Vector(
-        FunctionNameT(functionHumanName, _, _),
-        LambdaCitizenNameT(_),
-        FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)) if functionHumanName.humanName.str == needleFunctionHumanName => true
+        FunctionNameT(FunctionTemplateNameT(StrI(hayFunctionHumanName), _), _, _),
+        LambdaCitizenTemplateNameT(_),
+        FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)) if hayFunctionHumanName == needleFunctionHumanName => true
       case _ => false
     }
   }

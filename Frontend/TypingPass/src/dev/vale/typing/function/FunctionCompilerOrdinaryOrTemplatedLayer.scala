@@ -79,10 +79,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(nearEnv, nearEnv), coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true)
+        InferEnv(nearEnv, nearEnv),
+        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForBanner(runedEnv, coutputs, callRange, function)
   }
@@ -122,6 +123,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callRange,
         assembleKnownTemplatas(function, args, explicitTemplateArgs),
         initialSends,
+        false,
         false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
@@ -130,7 +132,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
@@ -178,7 +180,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callRange,
         assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs),
         initialSends,
-        true
+        true,
+        false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -188,7 +191,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       addRunedDataToNearEnv(
         declaringEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
-    coutputs.declareInnerEnvForTemplate(declaringEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(declaringEnv.fullName, runedEnv)
 
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(
@@ -216,10 +219,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(declaringEnv, declaringEnv),
-        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true)
+        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(declaringEnv, Vector.empty, inferences)
 
-    coutputs.declareInnerEnvForTemplate(declaringEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(declaringEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)
@@ -245,10 +248,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(originalCallingEnv, nearEnv),
-        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true)
+        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true, false)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
       runedEnv, coutputs, function.range, function)
@@ -288,14 +291,14 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true)
+        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true, true)
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv =
       addRunedDataToNearEnv(
         nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)
@@ -323,10 +326,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(originalCallingEnv, nearEnv),
-        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true)
+        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true, false)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
-
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
       runedEnv, coutputs, callRange, function)
@@ -368,7 +369,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callRange,
         initialKnowns,
         initialSends,
-        true) match {
+        true,
+        false) match {
       case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
       case Ok(inferredTemplatas) => inferredTemplatas
     }
@@ -376,7 +378,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(
@@ -477,15 +479,14 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callRange,
         assembleKnownTemplatas(function, args, explicitTemplateArgs),
         initialSends,
-        true
+        true,
+        false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
       }
 
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
-
-    coutputs.declareInnerEnvForTemplate(nearEnv.fullName, runedEnv)
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -522,7 +523,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val preliminaryInferences =
       inferCompiler.solve(
         InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true) match {
+        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range, f))
         }
@@ -547,10 +548,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true)
+        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
-    coutputs.declareInnerEnvForTemplate(runedEnv.fullName, runedEnv)
+    coutputs.declareFunctionInnerEnv(runedEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
       runedEnv, coutputs, function.range, function)

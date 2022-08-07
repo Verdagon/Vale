@@ -142,10 +142,21 @@ class Compiler(
               case n@FullNameT(_, _, PlaceholderNameT(_)) => n
             })
 
-          val originalCallingEnvName = env.originalCallingEnv.fullName
+          val originalCallingEnvTemplateName =
+            env.originalCallingEnv.fullName match {
+              case FullNameT(packageCoord, initSteps, x : IInstantiationNameT) => {
+                FullNameT(packageCoord, initSteps, x.template)
+              }
+              // This might be the case if we're doing some preliminary solving without placeholders.
+              case FullNameT(packageCoord, initSteps, x : ITemplateNameT) => {
+                // (also, if we're here there really shouldnt be any placeholders)
+                FullNameT(packageCoord, initSteps, x)
+              }
+              case other => vfail(other)
+            }
           placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
             val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
-            vassert(placeholderDeclaringEnvName == originalCallingEnvName)
+            vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
           })
         }
 
@@ -186,7 +197,7 @@ class Compiler(
         }
 
         def coerce(envs: InferEnv, state: CompilerOutputs, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
-          templataCompiler.coerce(state, range, templata, toType)
+          templataCompiler.coerce(state, envs.originalCallingEnv, range, templata, toType)
         }
 
         override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
@@ -213,7 +224,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
             structCompiler.predictInterface(
-              state, env.selfEnv, callRange, templata, templateArgs)
+              state, env.originalCallingEnv, callRange, templata, templateArgs)
         }
 
         override def predictStruct(
@@ -224,7 +235,7 @@ class Compiler(
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, env.selfEnv, callRange, templata, templateArgs)
+            state, env.originalCallingEnv, callRange, templata, templateArgs)
         }
 
         override def kindIsFromTemplate(
@@ -494,7 +505,7 @@ class Compiler(
         }
       })
 
-  val edgeCompiler = new EdgeCompiler(interner, overloadCompiler, implCompiler)
+  val edgeCompiler = new EdgeCompiler(interner, keywords, overloadCompiler, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator)
@@ -717,7 +728,7 @@ class Compiler(
 
             val templataByRune =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, env), coutputs, rules, runeToType, range, Vector(), Vector(), true)
+                InferEnv(env, env), coutputs, rules, runeToType, range, Vector(), Vector(), true, true)
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

@@ -64,7 +64,7 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
 
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -111,7 +111,7 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -231,7 +231,7 @@ class ArrayCompiler(
 
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true)
+        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
@@ -336,9 +336,9 @@ class ArrayCompiler(
         templateName,
         templateName,
         TemplatasStore(templateName, Map(), Map()))
-    coutputs.declareTemplate(templateName)
-    coutputs.declareOuterEnvForTemplate(templateName, arrayEnv)
-    coutputs.declareInnerEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareType(templateName)
+    coutputs.declareTypeOuterEnv(templateName, arrayEnv)
+    coutputs.declareTypeInnerEnv(templateName, arrayEnv)
   }
 
   def resolveStaticSizedArray(
@@ -366,9 +366,9 @@ class ArrayCompiler(
         templateName,
         templateName,
         TemplatasStore(templateName, Map(), Map()))
-    coutputs.declareTemplate(templateName)
-    coutputs.declareOuterEnvForTemplate(templateName, arrayEnv)
-    coutputs.declareInnerEnvForTemplate(templateName, arrayEnv)
+    coutputs.declareType(templateName)
+    coutputs.declareTypeOuterEnv(templateName, arrayEnv)
+    coutputs.declareTypeInnerEnv(templateName, arrayEnv)
   }
 
   def resolveRuntimeSizedArray(type2: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]):

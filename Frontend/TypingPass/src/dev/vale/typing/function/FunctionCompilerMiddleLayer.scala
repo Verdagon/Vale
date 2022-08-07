@@ -55,7 +55,8 @@ class FunctionCompilerMiddleLayer(
 
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-    val banner = FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
+    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+    val banner = FunctionBannerT(Some(function1), namedEnv.fullName)
     banner
   }
 
@@ -118,11 +119,11 @@ class FunctionCompilerMiddleLayer(
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-//    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
+    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName)//, params2)
 
     val header =
-      core.evaluateFunctionForHeader(runedEnv, coutputs, callRange, params2)
+      core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
     if (!header.toBanner.same(banner)) {
       val bannerFromHeader = header.toBanner
       vfail("wut\n" + bannerFromHeader + "\n" + banner)
@@ -130,7 +131,7 @@ class FunctionCompilerMiddleLayer(
 
 //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
 
-    PrototypeTemplata(function1.range, header.toPrototype(interner, keywords, runedEnv.templateArgs))
+    PrototypeTemplata(function1.range, header.toPrototype)
   }
 
   // Preconditions:
@@ -322,8 +323,8 @@ class FunctionCompilerMiddleLayer(
     val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-//    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), runedEnv.fullName)//, params2)
+    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName)//, params2)
     banner
   }
 
@@ -420,4 +421,24 @@ class FunctionCompilerMiddleLayer(
 //    }
 //    vimpl()
 //  }
+
+  def assembleName(
+      templateName: FullNameT[IFunctionTemplateNameT],
+      templateArgs: Vector[ITemplata[ITemplataType]],
+      paramTypes: Vector[CoordT]):
+  FullNameT[IFunctionNameT] = {
+    templateName.copy(
+      last = templateName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes))
+  }
+
+  def makeNamedEnv(
+    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+    paramTypes: Vector[CoordT],
+    maybeReturnType: Option[CoordT]):
+  FunctionEnvironment = {
+    val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
+      globalEnv, parentEnv, templateName, templateArgs, templatas, function, variables) = runedEnv
+    val fullName = assembleName(templateName, templateArgs, paramTypes)
+    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, variables)
+  }
 }

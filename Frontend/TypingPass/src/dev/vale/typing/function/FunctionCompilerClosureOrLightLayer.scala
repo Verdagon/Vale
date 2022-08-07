@@ -70,8 +70,8 @@ class FunctionCompilerClosureOrLightLayer(
 
     vcurious(function.isLambda())
     // We dont declare the template here, we declare it when the lambda is declared.
-//    coutputs.declareTemplate(newEnv.fullName)
-//    coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
+//    coutputs.declareFunction(newEnv.fullName)
+//    coutputs.declareFunctionOuterEnv(newEnv.fullName, outerEnv)
 
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForBanner(
       newEnv, coutputs, callRange, verifyConclusions)
@@ -91,8 +91,8 @@ class FunctionCompilerClosureOrLightLayer(
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = makeNameWithClosureds(declaringEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, declaringEnv)
+    coutputs.declareType(name)
+    coutputs.declareTypeOuterEnv(name, declaringEnv)
     val newEnv =
       BuildingFunctionEnvironmentWithClosureds(
         declaringEnv.globalEnv,
@@ -121,8 +121,8 @@ class FunctionCompilerClosureOrLightLayer(
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, outerEnv)
+    coutputs.declareFunction(name)
+    coutputs.declareFunctionOuterEnv(name, outerEnv)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
         outerEnv.globalEnv,
@@ -149,8 +149,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, ourEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, ourEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
       newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args, verifyConclusions)
   }
@@ -180,8 +180,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
       newEnv, coutputs, verifyConclusions)
   }
@@ -193,8 +193,8 @@ class FunctionCompilerClosureOrLightLayer(
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, newEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       newEnv, coutputs, verifyConclusions)
   }
@@ -208,8 +208,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
       newEnv, coutputs, verifyConclusions)
   }
@@ -251,8 +251,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, outerEnv)
+    coutputs.declareFunction(name)
+    coutputs.declareFunctionOuterEnv(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -267,7 +267,7 @@ class FunctionCompilerClosureOrLightLayer(
   }
 
   def evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-    outerEnv: IEnvironment,
+    containingEnv: IEnvironment,
     coutputs: CompilerOutputs,
     closureStructRef: StructTT,
     function: FunctionA,
@@ -278,9 +278,11 @@ class FunctionCompilerClosureOrLightLayer(
     // backed by structs.
     vassert(!function.isTemplate)
 
-    val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, outerEnv)
+    val name = makeNameWithClosureds(containingEnv, function.name)
+    val outerEnv = GeneralEnvironment.childOf(interner, containingEnv, name)
+
+    coutputs.declareFunction(name)
+    coutputs.declareFunctionOuterEnv(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -307,8 +309,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, outerEnv)
+    coutputs.declareFunction(name)
+    coutputs.declareFunctionOuterEnv(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -335,8 +337,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareTemplate(name)
-    coutputs.declareOuterEnvForTemplate(name, outerEnv)
+    coutputs.declareFunction(name)
+    coutputs.declareFunctionOuterEnv(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
@@ -366,8 +368,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, declaringEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
         newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
@@ -384,8 +386,8 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareTemplate(newEnv.fullName)
-    coutputs.declareOuterEnvForTemplate(newEnv.fullName, outerEnv)
+    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, paramFilters)
   }
@@ -405,10 +407,10 @@ class FunctionCompilerClosureOrLightLayer(
   }
 
   private def makeNameWithClosureds(
-    outerEnv: IEnvironment,
+    containingEnv: IEnvironment,
     functionName: IFunctionDeclarationNameS
   ): FullNameT[IFunctionTemplateNameT] = {
-    outerEnv.fullName.addStep(nameTranslator.translateFunctionNameToTemplateName(functionName))
+    containingEnv.fullName.addStep(nameTranslator.translateFunctionNameToTemplateName(functionName))
   }
 
   private def checkNotClosure(function: FunctionA) = {

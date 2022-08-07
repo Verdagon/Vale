@@ -54,8 +54,7 @@ class EdgeCompiler(
             val foundFunctions =
               interfaceEdgeBlueprint.superFamilyRootHeaders.map(abstractFunctionHeader => {
                 val abstractFunctionTemplateFullName =
-//                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
-                  abstractFunctionHeader.fullName
+                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
 //                val abstractFunctionSignature = abstractFunctionBanner.toSignature
                 val abstractFunctionParamTypes = abstractFunctionHeader.paramTypes
                 val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
@@ -63,9 +62,9 @@ class EdgeCompiler(
                 val abstractParamType = abstractFunctionParamTypes(abstractIndex)
                 val abstractParamCitizen = abstractParamType.kind.expectInterface()
                 val abstractFunctionOuterEnv =
-                  coutputs.getOuterEnvForTemplate(abstractFunctionTemplateFullName)
+                  coutputs.getOuterEnvForFunction(abstractFunctionTemplateFullName)
                 val abstractFunctionInnerEnv =
-                  coutputs.getInnerEnvForTemplate(abstractFunctionTemplateFullName)
+                  coutputs.getInnerEnvForFunction(abstractFunctionTemplateFullName)
 
                 // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
                 // according to itself, not placeholdered according to the interface that it overrode.
@@ -74,7 +73,7 @@ class EdgeCompiler(
                 // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
                 // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
                 val overridingParamKind =
-                    implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true) match {
+                    implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true, true) match {
                       case Ok(c) => c
                       case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(overridingImpl.templata.impl.range, e))
                     }
@@ -125,8 +124,8 @@ class EdgeCompiler(
       Array.empty,
       paramTypes,
       Vector(
-        coutputs.getOuterEnvForTemplate(interface),
-        coutputs.getOuterEnvForTemplate(overridingCitizen)),
+        coutputs.getOuterEnvForType(interface),
+        coutputs.getOuterEnvForType(overridingCitizen)),
       true,
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
