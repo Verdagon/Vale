@@ -179,8 +179,8 @@ class Compiler(
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, s, false)
-            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, i, false)
+            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.originalCallingEnv, s, false)
+            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.originalCallingEnv, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -251,24 +251,21 @@ class Compiler(
           }
         }
 
-        override def getAncestors(coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean): Set[KindT] = {
+        override def getAncestors(
+          envs: InferEnv,
+          coutputs: CompilerOutputs,
+          descendant: KindT,
+          includeSelf: Boolean):
+        Set[KindT] = {
             (if (includeSelf) {
               Set[KindT](descendant)
             } else {
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => implCompiler.getParents(coutputs, s, true)
+                case s : ICitizenTT => implCompiler.getParents(coutputs, envs.originalCallingEnv, s, true)
                 case _ => Array()
               })
-        }
-
-        override def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType = {
-            it.originInterface.tyype
-        }
-
-        override def getStructTemplataType()(st: StructTemplata): ITemplataType = {
-            st.originStruct.tyype
         }
 
         override def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean = {

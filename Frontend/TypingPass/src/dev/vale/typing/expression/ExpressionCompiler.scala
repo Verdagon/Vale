@@ -840,8 +840,8 @@ class ExpressionCompiler(
               case (_, NeverT(true)) => uncoercedThenBlock2.result.reference
               case (a, b) if a == b => uncoercedThenBlock2.result.reference
               case (a : ICitizenTT, b : ICitizenTT) => {
-                val aAncestors = ancestorHelper.getParents(coutputs, a, true).toSet
-                val bAncestors = ancestorHelper.getParents(coutputs, b, true).toSet
+                val aAncestors = ancestorHelper.getParents(coutputs, nenv.snapshot, a, true).toSet
+                val bAncestors = ancestorHelper.getParents(coutputs, nenv.snapshot, b, true).toSet
                 val commonAncestors = aAncestors.intersect(bAncestors)
 
                 if (uncoercedElseBlock2.result.reference.ownership != uncoercedElseBlock2.result.reference.ownership) {
