@@ -13,12 +13,14 @@ import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INa
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
 import dev.vale.typing.types.{CoordT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
-import scala.collection.immutable.Set
+import scala.collection.immutable.{List, Set}
 
 case class InferEnv(
   // This is the only one that matters when checking template instantiations.
   // This is also the one that the placeholders come from.
   originalCallingEnv: IEnvironment,
+
+  parentRanges: List[RangeS],
 
 //
 //  // We look in this for declared functions, see CSSNCE.
@@ -45,7 +47,7 @@ trait IInferCompilerDelegate {
   def resolveStruct(
     callingEnv: IEnvironment,
     state: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     templata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
@@ -54,7 +56,7 @@ trait IInferCompilerDelegate {
   def resolveInterface(
     callingEnv: IEnvironment,
     state: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     templata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
@@ -77,7 +79,7 @@ trait IInferCompilerDelegate {
   def resolveFunction(
     callingEnv: IEnvironment,
     state: CompilerOutputs,
-    range: RangeS,
+    range: List[RangeS],
     name: StrI,
     coords: Vector[CoordT],
     verifyConclusions: Boolean):
@@ -95,7 +97,7 @@ class InferCompiler(
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
-    invocationRange: RangeS,
+    invocationRange: List[RangeS],
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
@@ -113,7 +115,7 @@ class InferCompiler(
     coutputs: CompilerOutputs,
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
-    invocationRange: RangeS,
+    invocationRange: List[RangeS],
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
@@ -136,7 +138,7 @@ class InferCompiler(
     state: CompilerOutputs,
     initialRules: Vector[IRulexSR],
     initialRuneToType: Map[IRuneS, ITemplataType],
-    invocationRange: RangeS,
+    invocationRange: List[RangeS],
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
@@ -179,13 +181,13 @@ class InferCompiler(
       if (verifyConclusions) {
         outcome match {
           case CompleteSolve(steps, conclusions) => {
-            checkTemplateInstantiations(envs, state, rules.toArray, conclusions, isRootSolve) match {
+            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusions, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, Vector(), e)
             }
           }
           case IncompleteSolve(steps, unsolvedRules, _, incompleteConclusions) => {
-            checkTemplateInstantiations(envs, state, rules.toArray, incompleteConclusions, isRootSolve) match {
+            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, incompleteConclusions, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, unsolvedRules, e)
             }
@@ -200,6 +202,7 @@ class InferCompiler(
   def checkTemplateInstantiations(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
+    ranges: List[RangeS],
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
     isRootSolve: Boolean):
@@ -237,10 +240,10 @@ class InferCompiler(
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
       checkTemplateInstantiationsForEnv(
-        originalCallingEnvWithUnverifiedConclusions, state, rules, conclusions)
+        originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions)
     } else {
       checkTemplateInstantiationsForEnv(
-        envs.originalCallingEnv, state, rules, conclusions)
+        envs.originalCallingEnv, state, ranges, rules, conclusions)
     }
 
     Ok(())
@@ -249,12 +252,13 @@ class InferCompiler(
   private def checkTemplateInstantiationsForEnv(
     env: IEnvironment, // See CSSNCE
     state: CompilerOutputs,
+    ranges: List[RangeS],
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]
   ) = {
     rules.foreach({
-      case r@CallSR(_, _, _, _) => checkTemplateCall(env, state, r, conclusions)
-      case r@ResolveSR(_, _, _, _, _) => checkFunctionCall(env, state, r, conclusions)
+      case r@CallSR(_, _, _, _) => checkTemplateCall(env, state, ranges, r, conclusions)
+      case r@ResolveSR(_, _, _, _, _) => checkFunctionCall(env, state, ranges, r, conclusions)
       case _ =>
     })
   }
@@ -262,6 +266,7 @@ class InferCompiler(
   def checkFunctionCall(
     callingEnv: IEnvironment,
     state: CompilerOutputs,
+    ranges: List[RangeS],
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Unit = {
@@ -280,18 +285,24 @@ class InferCompiler(
       }
 
     val prototypeTemplata =
-      delegate.resolveFunction(callingEnv, state, range, name, paramCoords, true) match {
-        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
+      delegate.resolveFunction(callingEnv, state, range :: ranges, name, paramCoords, true) match {
+        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range :: ranges, e))
         case Ok(x) => x
       }
 
     if (prototypeTemplata.prototype.returnType != returnCoord) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Return type conflict"))
+      throw CompileErrorExceptionT(RangedInternalErrorT(range :: ranges, "Return type conflict"))
     }
     Ok(())
   }
 
-  def checkTemplateCall(callingEnv: IEnvironment, state: CompilerOutputs, c: CallSR, conclusions: Map[IRuneS, ITemplata[ITemplataType]]): Unit = {
+  def checkTemplateCall(
+    callingEnv: IEnvironment,
+    state: CompilerOutputs,
+    ranges: List[RangeS],
+    c: CallSR,
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Unit = {
     val CallSR(range, resultRune, templateRune, argRunes) = c
 
     // If it was an incomplete solve, then just skip.
@@ -315,10 +326,10 @@ class InferCompiler(
         delegate.resolveRuntimeSizedArrayKind(state, coord, mutability)
       }
       case it @ StructTemplata(_, _) => {
-        delegate.resolveStruct(callingEnv, state, range, it, args.toVector, true)
+        delegate.resolveStruct(callingEnv, state, range :: ranges, it, args.toVector, true)
       }
       case it @ InterfaceTemplata(_, _) => {
-        delegate.resolveInterface(callingEnv, state, range, it, args.toVector, true)
+        delegate.resolveInterface(callingEnv, state, range :: ranges, it, args.toVector, true)
       }
       case kt @ KindTemplata(_) => {
         Ok(kt)

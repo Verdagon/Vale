@@ -52,7 +52,7 @@ trait IFunctionGenerator {
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We might be able to move these all into the function environment... maybe....
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
@@ -90,7 +90,7 @@ class Compiler(
         override def resolveStruct(
           coutputs: CompilerOutputs,
           callingEnv: IEnvironment,
-          callRange: RangeS,
+          callRange: List[RangeS],
           structTemplata: StructTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
         StructTT = {
@@ -101,7 +101,7 @@ class Compiler(
         override def resolveInterface(
             coutputs: CompilerOutputs,
             callingEnv: IEnvironment, // See CSSNCE
-            callRange: RangeS,
+            callRange: List[RangeS],
             interfaceTemplata: InterfaceTemplata,
             uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
         InterfaceTT = {
@@ -163,7 +163,7 @@ class Compiler(
         override def lookupTemplata(
           envs: InferEnv,
           coutputs: CompilerOutputs,
-          range: RangeS,
+          range: List[RangeS],
           name: INameT):
         ITemplata[ITemplataType] = {
           templataCompiler.lookupTemplata(envs.selfEnv, coutputs, range, name)
@@ -196,11 +196,11 @@ class Compiler(
           }
         }
 
-        def coerce(envs: InferEnv, state: CompilerOutputs, range: RangeS, toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
+        def coerce(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
           templataCompiler.coerce(state, envs.originalCallingEnv, range, templata, toType)
         }
 
-        override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: RangeS, name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
+        override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
           templataCompiler.lookupTemplata(envs.selfEnv, state, range, name)
         }
 
@@ -219,7 +219,7 @@ class Compiler(
         override def predictInterface(
           env: InferEnv,
           state: CompilerOutputs,
-          callRange: RangeS,
+          callRange: List[RangeS],
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
@@ -230,7 +230,7 @@ class Compiler(
         override def predictStruct(
           env: InferEnv,
           state: CompilerOutputs,
-          callRange: RangeS,
+          callRange: List[RangeS],
           templata: StructTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
@@ -276,17 +276,17 @@ class Compiler(
         def predictFunction(
           envs: InferEnv,
           state: CompilerOutputs,
-          range: RangeS,
+          functionRange: RangeS,
           name: StrI,
           paramCoords: Vector[CoordT],
           returnCoord: CoordT):
         PrototypeTemplata = {
           PrototypeTemplata(
-            range,
+            functionRange,
             PrototypeT(
               envs.selfEnv.fullName.addStep(
                 FunctionNameT(
-                  FunctionTemplateNameT(name, range.begin),
+                  FunctionTemplateNameT(name, functionRange.begin),
                   Vector(),
                   paramCoords)),
               returnCoord))
@@ -312,7 +312,7 @@ class Compiler(
         override def resolveInterface(
           callingEnv: IEnvironment,
           state: CompilerOutputs,
-          callRange: RangeS,
+          callRange: List[RangeS],
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
@@ -324,7 +324,7 @@ class Compiler(
         override def resolveStruct(
           callingEnv: IEnvironment,
           state: CompilerOutputs,
-          callRange: RangeS,
+          callRange: List[RangeS],
           templata: StructTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
@@ -336,7 +336,7 @@ class Compiler(
         override def resolveFunction(
           callingEnv: IEnvironment,
           state: CompilerOutputs,
-          range: RangeS,
+          range: List[RangeS],
           name: StrI,
           coords: Vector[CoordT],
           verifyConclusions: Boolean):
@@ -380,16 +380,29 @@ class Compiler(
       templataCompiler,
       inferCompiler,
       new IStructCompilerDelegate {
-        override def evaluateOrdinaryFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata, verifyConclusions: Boolean): FunctionHeaderT = {
-          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(coutputs, functionTemplata, verifyConclusions)
+
+        override def evaluateOrdinaryFunctionFromNonCallForHeader(
+          coutputs: CompilerOutputs,
+          parentRanges: List[RangeS],
+          functionTemplata: FunctionTemplata,
+          verifyConclusions: Boolean):
+        FunctionHeaderT = {
+          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(
+            coutputs, parentRanges, functionTemplata, verifyConclusions)
         }
 
-        override def evaluateTemplatedFunctionFromNonCallForHeader(coutputs: CompilerOutputs, functionTemplata: FunctionTemplata, verifyConclusions: Boolean): FunctionHeaderT = {
-          functionCompiler.evaluateTemplatedFunctionFromNonCallForHeader(coutputs, functionTemplata, verifyConclusions)
+        override def evaluateTemplatedFunctionFromNonCallForHeader(
+          coutputs: CompilerOutputs,
+          parentRanges: List[RangeS],
+          functionTemplata: FunctionTemplata,
+          verifyConclusions: Boolean):
+        FunctionHeaderT = {
+          functionCompiler.evaluateTemplatedFunctionFromNonCallForHeader(
+            coutputs, parentRanges, functionTemplata, verifyConclusions)
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, coutputs: CompilerOutputs, callRange: RangeS, functionName: IImpreciseNameS,
+          env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
           args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
@@ -414,22 +427,24 @@ class Compiler(
         startingNenv: NodeEnvironment,
         nenv: NodeEnvironmentBox,
         life: LocationInFunctionEnvironment,
+      ranges: List[RangeS],
         exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
-      expressionCompiler.evaluateBlockStatements(coutputs, startingNenv, nenv, life, exprs)
+      expressionCompiler.evaluateBlockStatements(coutputs, startingNenv, nenv, life, ranges, exprs)
     }
 
     override def translatePatternList(
       coutputs: CompilerOutputs,
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
+      ranges: List[RangeS],
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
-      expressionCompiler.translatePatternList(coutputs, nenv, life, patterns1, patternInputExprs2)
+      expressionCompiler.translatePatternList(coutputs, nenv, life, ranges, patterns1, patternInputExprs2)
     }
 
-//    override def evaluateParent(env: IEnvironment, coutputs: CompilerOutputs, callRange: RangeS, sparkHeader: FunctionHeaderT): Unit = {
+//    override def evaluateParent(env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], sparkHeader: FunctionHeaderT): Unit = {
 //      virtualCompiler.evaluateParent(env, coutputs, callRange, sparkHeader)
 //    }
 
@@ -439,7 +454,7 @@ class Compiler(
       fullEnv: FunctionEnvironment,
       coutputs: CompilerOutputs,
       life: LocationInFunctionEnvironment,
-      callRange: RangeS,
+      callRange: List[RangeS],
       originFunction: Option[FunctionA],
       paramCoords: Vector[ParameterT],
       maybeRetCoord: Option[CoordT]):
@@ -483,7 +498,7 @@ class Compiler(
         override def evaluateTemplatedFunctionFromCallForPrototype(
             coutputs: CompilerOutputs,
             callingEnv: IEnvironment, // See CSSNCE
-            callRange: RangeS,
+            callRange: List[RangeS],
             functionTemplata: FunctionTemplata,
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
             args: Vector[CoordT]):
@@ -494,7 +509,7 @@ class Compiler(
         override def evaluateClosureStruct(
             coutputs: CompilerOutputs,
             containingNodeEnv: NodeEnvironment,
-            callRange: RangeS,
+            callRange: List[RangeS],
             name: IFunctionDeclarationNameS,
             function1: FunctionA):
         StructTT = {
@@ -679,11 +694,11 @@ class Compiler(
             entry match {
               case StructEnvEntry(structA) => {
                 val templata = StructTemplata(env, structA)
-                structCompiler.compileStruct(coutputs, templata)
+                structCompiler.compileStruct(coutputs, List(), templata)
               }
               case InterfaceEnvEntry(interfaceA) => {
                 val templata = InterfaceTemplata(env, interfaceA)
-                structCompiler.compileInterface(coutputs, templata)
+                structCompiler.compileInterface(coutputs, List(), templata)
               }
               case _ =>
             }
@@ -708,7 +723,7 @@ class Compiler(
             entry match {
               case FunctionEnvEntry(functionA) => {
                 functionCompiler.evaluateGenericFunctionFromNonCall(
-                  coutputs, FunctionTemplata(env, functionA), true)
+                  coutputs, List(), FunctionTemplata(env, functionA), true)
               }
               case _ =>
             }
@@ -725,7 +740,7 @@ class Compiler(
 
             val templataByRune =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, env), coutputs, rules, runeToType, range, Vector(), Vector(), true, true)
+                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true)
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {
@@ -926,7 +941,7 @@ class Compiler(
         MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop),
         MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
         MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
-    determineMacrosToCall(nameToStructDefinedMacro, defaultCalledMacros, structA.range, structA.attributes)
+    determineMacrosToCall(nameToStructDefinedMacro, defaultCalledMacros, List(structA.range), structA.attributes)
       .flatMap(_.getStructSiblingEntries(structNameT, structA))
   }
 
@@ -939,20 +954,20 @@ class Compiler(
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceDrop),
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree),
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveAnonymousSubstruct))
-    determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, interfaceA.range, interfaceA.attributes)
+    determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, List(interfaceA.range), interfaceA.attributes)
       .flatMap(_.getInterfaceSiblingEntries(interfaceNameT, interfaceA))
   }
 
   private def determineMacrosToCall[T](
-      nameToMacro: Map[StrI, T],
-      defaultCalledMacros: Vector[MacroCallS],
-      range: RangeS,
-      attributes: Vector[ICitizenAttributeS]):
+    nameToMacro: Map[StrI, T],
+    defaultCalledMacros: Vector[MacroCallS],
+    parentRanges: List[RangeS],
+    attributes: Vector[ICitizenAttributeS]):
   Vector[T] = {
     attributes.foldLeft(defaultCalledMacros)({
       case (macrosToCall, mc@MacroCallS(range, CallMacroP, macroName)) => {
         if (macrosToCall.exists(_.macroName == macroName)) {
-          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
+          throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Calling macro twice: " + macroName))
         }
         macrosToCall :+ mc
       }
@@ -961,7 +976,7 @@ class Compiler(
     }).map(macroCall => {
       nameToMacro.get(macroCall.macroName) match {
         case None => {
-          throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroCall.macroName))
+          throw CompileErrorExceptionT(RangedInternalErrorT(macroCall.range :: parentRanges, "Macro not found: " + macroCall.macroName))
         }
         case Some(m) => m
       }
@@ -983,7 +998,7 @@ class Compiler(
                 val exports = multiple.map(_._2)
                 throw CompileErrorExceptionT(
                   TypeExportedMultipleTimes(
-                    exports.head.range,
+                    List(exports.head.range),
                     exports.head.packageCoordinate,
                     exports))
               }
@@ -996,7 +1011,7 @@ class Compiler(
           if (!Compiler.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
             throw CompileErrorExceptionT(
               ExportedFunctionDependedOnNonExportedKind(
-                funcExport.range, funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
+                List(funcExport.range), funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
           }
         })
     })
@@ -1007,7 +1022,7 @@ class Compiler(
           if (!Compiler.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
             throw CompileErrorExceptionT(
               ExternFunctionDependedOnNonExportedKind(
-                functionExtern.range, functionExtern.packageCoordinate, functionExtern.prototype.toSignature, paramType.kind))
+                List(functionExtern.range), functionExtern.packageCoordinate, functionExtern.prototype.toSignature, paramType.kind))
           }
         })
     })
@@ -1021,7 +1036,7 @@ class Compiler(
               if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
                 throw CompileErrorExceptionT(
                   vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
-                    export.range, packageCoord, exportedKind, memberKind))
+                    List(export.range), packageCoord, exportedKind, memberKind))
               }
             })
           }
@@ -1029,14 +1044,14 @@ class Compiler(
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
-                  export.range, packageCoord, exportedKind, elementKind))
+                  List(export.range), packageCoord, exportedKind, elementKind))
             }
           }
           case RuntimeSizedArrayTT(mutability, CoordT(_, elementKind)) => {
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
-                  export.range, packageCoord, exportedKind, elementKind))
+                  List(export.range), packageCoord, exportedKind, elementKind))
             }
           }
           case InterfaceTT(_) =>

@@ -59,7 +59,7 @@ class FunctionCompilerClosureOrLightLayer(
   def evaluateOrdinaryLightFunctionFromNonCallForBanner(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (PrototypeTemplata) = {
@@ -81,7 +81,7 @@ class FunctionCompilerClosureOrLightLayer(
       declaringEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment,
-      callRange: RangeS,
+      callRange: List[RangeS],
       closureStructRef: StructTT,
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -110,7 +110,7 @@ class FunctionCompilerClosureOrLightLayer(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -139,7 +139,7 @@ class FunctionCompilerClosureOrLightLayer(
       ourEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
-      callRange: RangeS,
+      callRange: List[RangeS],
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[CoordT],
@@ -159,7 +159,7 @@ class FunctionCompilerClosureOrLightLayer(
     ourEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT]):
@@ -171,9 +171,11 @@ class FunctionCompilerClosureOrLightLayer(
       newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
 
+
   def evaluateOrdinaryLightFunctionFromNonCallForHeader(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
@@ -183,12 +185,13 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareFunction(newEnv.fullName)
     coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, coutputs, verifyConclusions)
+      newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
   def evaluateGenericLightFunctionFromNonCall(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
@@ -196,12 +199,13 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareFunction(newEnv.fullName)
     coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
-      newEnv, coutputs, verifyConclusions)
+      newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
   def evaluateTemplatedLightFunctionFromNonCallForHeader(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
@@ -211,7 +215,7 @@ class FunctionCompilerClosureOrLightLayer(
     coutputs.declareFunction(newEnv.fullName)
     coutputs.declareFunctionOuterEnv(newEnv.fullName, outerEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs, verifyConclusions)
+      newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -221,7 +225,7 @@ class FunctionCompilerClosureOrLightLayer(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA
   ): PrototypeTemplata = {
     checkNotClosure(function)
@@ -243,7 +247,7 @@ class FunctionCompilerClosureOrLightLayer(
   def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
@@ -269,6 +273,7 @@ class FunctionCompilerClosureOrLightLayer(
   def evaluateOrdinaryClosureFunctionFromNonCallForHeader(
     containingEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
@@ -293,12 +298,13 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromNonCallForHeader(
-      newEnv, coutputs, verifyConclusions)
+      newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
   def evaluateOrdinaryClosureFunctionFromCallForPrototype(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     callingEnv: IEnvironment, // See CSSNCE
     closureStructRef: StructTT,
     function: FunctionA):
@@ -321,12 +327,13 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromCallForPrototype(
-      newEnv, callingEnv, coutputs)
+      newEnv, callingEnv, coutputs, parentRanges)
   }
 
   def evaluateTemplatedClosureFunctionFromNonCallForHeader(
     outerEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
@@ -349,7 +356,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs, verifyConclusions)
+      newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
   // This is called while we're trying to figure out what function1s to call when there
@@ -359,7 +366,7 @@ class FunctionCompilerClosureOrLightLayer(
       declaringEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
-      callRange: RangeS,
+      callRange: List[RangeS],
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[CoordT]):
@@ -379,7 +386,7 @@ class FunctionCompilerClosureOrLightLayer(
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
       function: FunctionA,
-      callRange: RangeS,
+      callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       paramFilters: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {

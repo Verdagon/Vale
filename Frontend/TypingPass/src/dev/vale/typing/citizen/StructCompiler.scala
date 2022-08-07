@@ -30,12 +30,14 @@ case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: B
 trait IStructCompilerDelegate {
   def evaluateOrdinaryFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT
 
   def evaluateTemplatedFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT
@@ -43,7 +45,7 @@ trait IStructCompilerDelegate {
   def scoutExpectedFunctionForPrototype(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
@@ -69,7 +71,7 @@ class StructCompiler(
   def resolveStruct(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     structTemplata: StructTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
@@ -121,10 +123,11 @@ class StructCompiler(
 
   def compileStruct(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     structTemplata: StructTemplata):
   Unit = {
     Profiler.frame(() => {
-      templateArgsLayer.compileStruct(coutputs, structTemplata)
+      templateArgsLayer.compileStruct(coutputs, parentRanges, structTemplata)
     })
   }
 
@@ -132,7 +135,7 @@ class StructCompiler(
   def predictInterface(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
@@ -146,7 +149,7 @@ class StructCompiler(
   def predictStruct(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     structTemplata: StructTemplata,
@@ -159,7 +162,7 @@ class StructCompiler(
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
@@ -172,7 +175,7 @@ class StructCompiler(
   def resolveCitizen(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     citizenTemplata: CitizenTemplata,
@@ -186,12 +189,13 @@ class StructCompiler(
 
   def compileInterface(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata):
   Unit = {
     templateArgsLayer.compileInterface(
-      coutputs, interfaceTemplata)
+      coutputs, parentRanges, interfaceTemplata)
   }
 
   // Makes a struct to back a closure

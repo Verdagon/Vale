@@ -587,6 +587,7 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.tyype shouldEqual moo.placeholderedInterface
   }
 
+  // DO NOT SUBMIT fails: imm generics
   test("Report imm mut mismatch for generic type") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1299,6 +1300,7 @@ class CompilerTests extends FunSuite with Matchers {
     compile.expectCompilerOutputs()
   }
 
+  // DO NOT SUBMIT fails lambda inside template
   test("Lambda inside template") {
     // This originally didn't work because both helperFunc<int> and helperFunc<Str>
     // made a closure struct called helperFunc:lam1, which collided.

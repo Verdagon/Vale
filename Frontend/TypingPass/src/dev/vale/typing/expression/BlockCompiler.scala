@@ -31,7 +31,7 @@ trait IBlockCompilerDelegate {
     coutputs: CompilerOutputs,
     startingNenv: NodeEnvironment,
     nenv: NodeEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     life: LocationInFunctionEnvironment,
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
   ReferenceExpressionTE
@@ -56,6 +56,7 @@ class BlockCompiler(
     parentFate: FunctionEnvironmentBox,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
+    parentRanges: List[RangeS],
     block1: BlockSE):
   (BlockTE, Set[FullNameT[IVarNameT]], Set[CoordT]) = {
     val nenv = NodeEnvironmentBox(parentFate.makeChildNodeEnvironment(block1, life))
@@ -63,7 +64,7 @@ class BlockCompiler(
 
     val (expressionsWithResult, returnsFromExprs) =
       evaluateBlockStatements(
-        coutputs, startingNenv, nenv, life, block1)
+        coutputs, startingNenv, nenv, parentRanges, life, block1)
 
     val block2 = BlockTE(expressionsWithResult)
 
@@ -76,6 +77,7 @@ class BlockCompiler(
     coutputs: CompilerOutputs,
     startingNenv: NodeEnvironment,
     nenv: NodeEnvironmentBox,
+    parentRanges: List[RangeS],
     life: LocationInFunctionEnvironment,
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {
@@ -109,7 +111,7 @@ class BlockCompiler(
 
     val newExpr =
           delegate.dropSince(
-            coutputs, startingNenv, nenv, RangeS(blockSE.range.end, blockSE.range.end), life, unresultifiedUndestructedExpressions)
+            coutputs, startingNenv, nenv, RangeS(blockSE.range.end, blockSE.range.end) :: parentRanges, life, unresultifiedUndestructedExpressions)
 
     (newExpr, returnsFromExprs)
   }

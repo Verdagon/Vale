@@ -435,7 +435,7 @@ case class ArgLookupTE(
 }
 
 case class StaticSizedArrayLookupTE(
-  range: RangeS,
+  range: List[RangeS],
     arrayExpr: ReferenceExpressionTE,
     arrayType: StaticSizedArrayTT,
     indexExpr: ReferenceExpressionTE,
@@ -449,7 +449,7 @@ case class StaticSizedArrayLookupTE(
 }
 
 case class RuntimeSizedArrayLookupTE(
-  range: RangeS,
+  range: List[RangeS],
     arrayExpr: ReferenceExpressionTE,
     arrayType: RuntimeSizedArrayTT,
     indexExpr: ReferenceExpressionTE,

@@ -67,7 +67,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       // The environment the function was defined in.
       nearEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
-      callRange: RangeS,
+      callRange: List[RangeS],
       verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     val function = nearEnv.function
@@ -79,8 +79,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true)
+        InferEnv(nearEnv, callRange, nearEnv),
+        coutputs, definitionRules, function.runeToType, function.range :: callRange, Vector(), Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
     coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
@@ -99,7 +99,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT],
     verifyConclusions: Boolean):
@@ -113,10 +113,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, nearEnv),
+        InferEnv(originalCallingEnv, callRange, nearEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -157,7 +157,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       declaringEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
       originalCallingEnv: IEnvironment, // See CSSNCE
-      callRange: RangeS,
+      callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
@@ -170,10 +170,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, 0)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, declaringEnv),
+        InferEnv(originalCallingEnv, callRange, declaringEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -205,6 +205,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       // The environment the function was defined in.
       declaringEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
       verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val function = declaringEnv.function
@@ -218,23 +219,55 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(declaringEnv, declaringEnv),
-        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true)
+        InferEnv(declaringEnv, parentRanges, declaringEnv),
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, Vector(), Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(declaringEnv, Vector.empty, inferences)
 
     coutputs.declareFunctionInnerEnv(declaringEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
-      runedEnv, coutputs, function.range, function)
+      runedEnv, coutputs, function.range :: parentRanges, function)
   }
+//
+//  // Preconditions:
+//  // - either no closured vars, or they were already added to the env.
+//  def evaluateOrdinaryFunctionFromCallForPrototype(
+//    // The environment the function was defined in.
+//    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+//    originalCallingEnv: IEnvironment, // See CSSNCE
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS]):
+//  (PrototypeTemplata) = {
+//    val function = nearEnv.function
+//    // Check preconditions
+//    checkClosureConcernsHandled(nearEnv)
+//    vassert(!function.isTemplate)
+//
+//    val callSiteRules =
+//        TemplataCompiler.assembleCallSiteRules(
+//            function.rules, function.genericParameters, 0)
+//
+//    val inferences =
+//      inferCompiler.solveExpectComplete(
+//        InferEnv(originalCallingEnv, nearEnv),
+//        coutputs, callSiteRules, function.runeToType, function.range :: parentRanges, Vector(), Vector(), true, false)
+//    val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
+//
+//    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
+//
+//    middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
+//      runedEnv, coutputs, function.range :: parentRanges, function)
+//  }
 
-  // Preconditions:
-  // - either no closured vars, or they were already added to the env.
+  // We would want only the prototype instead of the entire header if, for example,
+  // we were calling the function. This is necessary for a recursive function like
+  // func main():Int{main()}
   def evaluateOrdinaryFunctionFromCallForPrototype(
     // The environment the function was defined in.
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     originalCallingEnv: IEnvironment, // See CSSNCE
-    coutputs: CompilerOutputs):
+    coutputs: CompilerOutputs,
+    callRange: List[RangeS]):
   (PrototypeTemplata) = {
     val function = nearEnv.function
     // Check preconditions
@@ -242,19 +275,17 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     vassert(!function.isTemplate)
 
     val callSiteRules =
-        TemplataCompiler.assembleCallSiteRules(
-            function.rules, function.genericParameters, 0)
+      TemplataCompiler.assembleCallSiteRules(
+        function.rules, function.genericParameters, 0)
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(originalCallingEnv, nearEnv),
-        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true, false)
+        InferEnv(originalCallingEnv, callRange, nearEnv),
+        coutputs, callSiteRules, function.runeToType, function.range :: callRange, Vector(), Vector(), true, false)
     val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
 
-    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
-
     middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
-      runedEnv, coutputs, function.range, function)
+      runedEnv, coutputs, callRange, function)
   }
 
   // Preconditions:
@@ -263,6 +294,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // The environment the function was defined in.
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val function = nearEnv.function
@@ -290,8 +322,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true, true)
+        InferEnv(nearEnv, parentRanges, nearEnv),
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true)
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv =
@@ -301,36 +333,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
-      runedEnv, coutputs, function.range, function)
-  }
-
-  // We would want only the prototype instead of the entire header if, for example,
-  // we were calling the function. This is necessary for a recursive function like
-  // func main():Int{main()}
-  def evaluateOrdinaryFunctionFromCallForPrototype(
-    // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
-    originalCallingEnv: IEnvironment, // See CSSNCE
-    coutputs: CompilerOutputs,
-    callRange: RangeS):
-  (PrototypeTemplata) = {
-    val function = nearEnv.function
-    // Check preconditions
-    checkClosureConcernsHandled(nearEnv)
-    vassert(!function.isTemplate)
-
-    val callSiteRules =
-        TemplataCompiler.assembleCallSiteRules(
-            function.rules, function.genericParameters, 0)
-
-    val inferences =
-      inferCompiler.solveExpectComplete(
-        InferEnv(originalCallingEnv, nearEnv),
-        coutputs, callSiteRules, function.runeToType, function.range, Vector(), Vector(), true, false)
-    val runedEnv = addRunedDataToNearEnv(nearEnv, Vector.empty, inferences)
-
-    middleLayer.getOrEvaluateOrdinaryFunctionForPrototype(
-      runedEnv, coutputs, callRange, function)
+      runedEnv, coutputs, function.range :: parentRanges, function)
   }
 
 
@@ -342,7 +345,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       nearEnv: BuildingFunctionEnvironmentWithClosureds,
       coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
@@ -358,11 +361,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       TemplataCompiler.assembleCallSiteRules(
         function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
     val inferences =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, nearEnv),
+        InferEnv(originalCallingEnv, callRange, nearEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -457,7 +460,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
@@ -469,10 +472,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val inferredTemplatas =
       inferCompiler.solveComplete(
-        InferEnv(callingEnv, nearEnv),
+        InferEnv(callingEnv, callRange, nearEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -501,6 +504,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // The environment the function was defined in.
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val function = nearEnv.function
@@ -522,10 +526,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // In the future we might need to outlaw specialization, unsure.
     val preliminaryInferences =
       inferCompiler.solve(
-        InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, Vector(), Vector(), true, true) match {
+        InferEnv(nearEnv, parentRanges, nearEnv),
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, Vector(), Vector(), true, true) match {
         case f @ FailedSolve(_, _, err) => {
-          throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range, f))
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
         }
         case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
         case CompleteSolve(_, conclusions) => conclusions
@@ -547,13 +551,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(nearEnv, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range, initialKnowns, Vector(), true, true)
+        InferEnv(nearEnv, parentRanges, nearEnv),
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
     coutputs.declareFunctionInnerEnv(runedEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(
-      runedEnv, coutputs, function.range, function)
+      runedEnv, coutputs, function.range :: parentRanges, function)
   }
 }

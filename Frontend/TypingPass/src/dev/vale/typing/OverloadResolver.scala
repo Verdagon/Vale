@@ -82,7 +82,7 @@ class OverloadResolver(
   def findFunction(
     callingEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
@@ -143,7 +143,7 @@ class OverloadResolver(
   private def getCandidateBanners(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
@@ -184,7 +184,7 @@ class OverloadResolver(
   private def attemptCandidateBanner(
     callingEnv: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
     paramFilters: Vector[CoordT],
@@ -264,7 +264,7 @@ class OverloadResolver(
 
                   // We only want to solve the template arg runes
                   inferCompiler.solveComplete(
-                    InferEnv(callingEnv, declaringEnv),
+                    InferEnv(callingEnv, callRange, declaringEnv),
                     coutputs,
                     rulesWithoutRuneParentEnvLookups,
                     explicitTemplateArgRuneToType ++ runeTypeConclusions,
@@ -424,7 +424,7 @@ class OverloadResolver(
   def findPotentialFunction(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Array[IRuneS],
@@ -512,7 +512,7 @@ class OverloadResolver(
 
   private def narrowDownCallableOverloads(
       coutputs: CompilerOutputs,
-      callRange: RangeS,
+      callRange: List[RangeS],
       unfilteredBanners: Iterable[IValidCalleeCandidate],
       argTypes: Vector[CoordT]):
   (
@@ -613,7 +613,7 @@ class OverloadResolver(
   def stampPotentialFunctionForBanner(
     callingEnv: IEnvironmentBox,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
     verifyConclusions: Boolean):
   (PrototypeTemplata) = {
@@ -638,7 +638,7 @@ class OverloadResolver(
   private def stampPotentialFunctionForPrototype(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
     args: Vector[CoordT],
     verifyConclusions: Boolean):
@@ -681,7 +681,7 @@ class OverloadResolver(
   def getArrayGeneratorPrototype(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
-    range: RangeS,
+    range: List[RangeS],
     callableTE: ReferenceExpressionTE,
     verifyConclusions: Boolean):
   PrototypeT = {
@@ -701,7 +701,7 @@ class OverloadResolver(
   def getArrayConsumerPrototype(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
     verifyConclusions: Boolean):

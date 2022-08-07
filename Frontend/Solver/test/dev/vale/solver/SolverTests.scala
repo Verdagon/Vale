@@ -1,6 +1,6 @@
 package dev.vale.solver
 
-import dev.vale.{Collector, Err, Interner, Ok, vassert, vfail}
+import dev.vale.{Collector, Err, Interner, Ok, RangeS, vassert, vfail}
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.Map
@@ -235,6 +235,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val solver = new Solver[IRule, Long, Unit, Unit, String, String](true, true, interner)
     val solverState =
       solver.makeInitialSolverState(
+        List(RangeS.testZero(interner)),
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
@@ -292,6 +293,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
       val solver = new Solver[IRule, Long, Unit, Unit, String, String](true, true, interner)
       val solverState =
         solver.makeInitialSolverState(
+          List(RangeS.testZero(interner)),
           rules,
           (rule: IRule) => rule.allRunes.toVector,
           puzzler,
@@ -339,6 +341,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val solver = new Solver[IRule, Long, Unit, Unit, String, String](true, true, interner)
     val solverState =
       solver.makeInitialSolverState(
+        List(RangeS.testZero(interner)),
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,
@@ -359,6 +362,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     val solver = new Solver[IRule, Long, Unit, Unit, String, String](true, true, interner)
     val solverState =
       solver.makeInitialSolverState(
+        List(RangeS.testZero(interner)),
         rules,
         (rule: IRule) => rule.allRunes.toVector,
         (rule: IRule) => rule.allPuzzles,

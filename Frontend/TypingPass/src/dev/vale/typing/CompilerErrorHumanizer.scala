@@ -183,7 +183,7 @@ object CompilerErrorHumanizer {
   def humanizeFindFunctionFailure(
     verbose: Boolean,
     codeMap: FileCoordinateMap[String],
-    invocationRange: RangeS,
+    invocationrange: List[RangeS],
     fff: OverloadResolver.FindFunctionFailure): String = {
 
     val FindFunctionFailure(name, args, rejectedCalleeToReason) = fff
@@ -263,7 +263,7 @@ object CompilerErrorHumanizer {
   private def humanizeRejectionReason(
       verbose: Boolean,
       codeMap: FileCoordinateMap[String],
-      invocationRange: RangeS,
+      invocationrange: List[RangeS],
       reason: IFindFunctionFailureReason): String = {
 
     (reason match {

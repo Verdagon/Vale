@@ -163,6 +163,7 @@ class StructCompilerCore(
     })
   }
 
+
   // Takes a IEnvironment because we might be inside a:
   // struct<T> Thing<T> {
   //   t: T;

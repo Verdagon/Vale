@@ -33,7 +33,7 @@ class DestructorCompiler(
   def getDropFunction(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     type2: CoordT):
   (PrototypeTemplata) = {
     val name = interner.intern(CodeNameS(keywords.drop))
@@ -48,7 +48,7 @@ class DestructorCompiler(
   def getFreeFunction(
     globalEnv: GlobalEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     type2: CoordT):
   (PrototypeT) = {
     val env =
@@ -68,7 +68,7 @@ class DestructorCompiler(
   def drop(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     undestructedExpr2: ReferenceExpressionTE):
   (ReferenceExpressionTE) = {
     val resultExpr2 =

@@ -145,7 +145,7 @@ class StructDropMacro(
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -195,7 +195,7 @@ class StructDropMacro(
                 destructorCompiler.drop(
                   bodyEnv,
                   coutputs,
-                  originFunction1.map(_.range).getOrElse(callRange),
+                  originFunction1.map(_.range).toList ++ callRange,
                   UnletTE(v))
               }))
         }

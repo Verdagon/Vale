@@ -123,7 +123,7 @@ case class OptimizedSolverState[Rule, Rune, Conclusion](
       OptimizedSolverState.this.getUnsolvedRules()
     }
 
-    override def concludeRune[ErrType](rangeS: RangeS, newlySolvedUserRune: Rune, conclusion: Conclusion): Unit = {
+    override def concludeRune[ErrType](rangeS: List[RangeS], newlySolvedUserRune: Rune, conclusion: Conclusion): Unit = {
       vassert(alive)
       //      val newlySolvedCanonicalRune = OptimizedSolverState.this.userRuneToCanonicalRune(newlySolvedUserRune)
       tentativeStep = tentativeStep.copy(conclusions = tentativeStep.conclusions + (newlySolvedUserRune -> conclusion))

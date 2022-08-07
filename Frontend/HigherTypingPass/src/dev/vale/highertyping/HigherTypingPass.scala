@@ -363,7 +363,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         globalOptions.sanityCheck,
         globalOptions.useOptimizedSolver,
         (n) => lookupType(astrouts, env, rangeS, n),
-        rangeS,
+        List(rangeS),
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
         case Err(e) => throw CompileErrorExceptionA(CouldntSolveRulesA(rangeS, e))
