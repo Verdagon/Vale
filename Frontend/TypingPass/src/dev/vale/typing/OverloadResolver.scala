@@ -160,17 +160,17 @@ class OverloadResolver(
           explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case KindTemplata(sr@StructTT(_)) => {
-        val structEnv = coutputs.getOuterEnvForTemplate(TemplataCompiler.getStructTemplate(sr.fullName))
+        val structEnv = coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName))
         getCandidateBanners(
           structEnv, coutputs, callRange, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case KindTemplata(sr@InterfaceTT(_)) => {
-        val interfaceEnv = coutputs.getOuterEnvForTemplate(TemplataCompiler.getInterfaceTemplate(sr.fullName))
+        val interfaceEnv = coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(sr.fullName))
         getCandidateBanners(
           interfaceEnv, coutputs, callRange, interner.intern(CodeNameS(keywords.underscoresCall)), explicitTemplateArgRulesS, explicitTemplateArgRunesS, paramFilters, Vector.empty, exact)
       }
       case ExternFunctionTemplata(header) => {
-        Vector(HeaderCalleeCandidate(header, Vector()))
+        Vector(HeaderCalleeCandidate(header))
       }
       case PrototypeTemplata(declarationRange, prototype) => {
         Vector(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
@@ -258,20 +258,21 @@ class OverloadResolver(
                       }
                     })
 
-                  val callEnv =
-                    GeneralEnvironment.childOf(
-                      interner, callingEnv, callingEnv.fullName.addStep(CallEnvNameT()))
+//                  val callEnv =
+//                    GeneralEnvironment.childOf(
+//                      interner, callingEnv, callingEnv.fullName.addStep(CallEnvNameT()))
 
                   // We only want to solve the template arg runes
                   inferCompiler.solveComplete(
-                    InferEnv(callEnv, declaringEnv),
+                    InferEnv(callingEnv, declaringEnv),
                     coutputs,
                     rulesWithoutRuneParentEnvLookups,
                     explicitTemplateArgRuneToType ++ runeTypeConclusions,
                     callRange,
                     initialKnowns,
                     Vector(),
-                    true) match {
+                    true,
+                    false) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
                     }
@@ -335,8 +336,8 @@ class OverloadResolver(
         } else {
           if (ft.function.isLambda()) {
             val banner =
-              functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
-                coutputs, callRange, ft, verifyConclusions)
+              functionCompiler.evaluateOrdinaryFunctionFromCallForPrototype(
+                coutputs, callingEnv, callRange, ft)
             paramsMatch(coutputs, paramFilters, banner.prototype.paramTypes, exact) match {
               case Ok(_) => {
                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
@@ -364,10 +365,10 @@ class OverloadResolver(
           }
         }
       }
-      case HeaderCalleeCandidate(header, templateArgs) => {
+      case HeaderCalleeCandidate(header) => {
         paramsMatch(coutputs, paramFilters, header.paramTypes, exact) match {
           case Ok(_) => {
-            Ok(ValidHeaderCalleeCandidate(header, templateArgs))
+            Ok(ValidHeaderCalleeCandidate(header))
           }
           case Err(fff) => Err(fff)
         }
@@ -392,8 +393,8 @@ class OverloadResolver(
   Vector[IEnvironment] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
-        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForTemplate(TemplataCompiler.getStructTemplate(sr.fullName)))
-        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForTemplate(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
+        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName)))
+        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
         case _ => Vector.empty
       })
     })
@@ -541,7 +542,7 @@ class OverloadResolver(
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, _, function) => !function.function.isTemplate
             case ValidPrototypeTemplataCalleeCandidate(prototype) => true
-            case ValidHeaderCalleeCandidate(_, _) => true
+            case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
           // No ordinary banners, so include all the templated ones
@@ -628,8 +629,8 @@ class OverloadResolver(
             coutputs, callRange, ft, verifyConclusions)
         }
       }
-      case ValidHeaderCalleeCandidate(header, templateArgs) => {
-        PrototypeTemplata(vassertSome(header.maybeOriginFunction).range, header.toPrototype(interner, keywords, templateArgs))
+      case ValidHeaderCalleeCandidate(header) => {
+        PrototypeTemplata(vassertSome(header.maybeOriginFunction).range, header.toPrototype)
       }
     }
   }
@@ -667,9 +668,9 @@ class OverloadResolver(
           }
         }
       }
-      case ValidHeaderCalleeCandidate(header, templateArgs) => {
+      case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunction).range
-        PrototypeTemplata(declarationRange, header.toPrototype(interner, keywords, templateArgs))
+        PrototypeTemplata(declarationRange, header.toPrototype)
       }
       case ValidPrototypeTemplataCalleeCandidate(prototype) => {
         prototype

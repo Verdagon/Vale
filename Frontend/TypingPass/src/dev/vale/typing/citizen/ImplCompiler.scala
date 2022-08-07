@@ -41,7 +41,8 @@ class ImplCompiler(
     callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplTemplata,
-    verifyConclusions: Boolean):
+    verifyConclusions: Boolean,
+    isRootSolve: Boolean):
   Result[
       Map[IRuneS, ITemplata[ITemplataType]],
       IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
@@ -76,8 +77,12 @@ class ImplCompiler(
 
     val result =
       inferCompiler.solveComplete(
-        InferEnv(outerEnv, outerEnv),
-        coutputs, definitionRules, runeToType, range, initialKnowns, Vector(), true)
+        InferEnv(
+          // This is callingEnv because we might be coming from an abstraction function that's trying
+          // to evaluate an override.
+          callingEnv,
+          outerEnv),
+        coutputs, definitionRules, runeToType, range, initialKnowns, Vector(), true, isRootSolve)
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -206,7 +211,7 @@ class ImplCompiler(
       })
 
     val inferences =
-      solveImpl(coutputs, implOuterEnv, implPlaceholders, implTemplata, true) match {
+      solveImpl(coutputs, implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(implA.range, e))
       }
@@ -237,8 +242,8 @@ class ImplCompiler(
           subCitizenTemplateFullName,
           //          parentInterfaceFromPlaceholderedSubCitizen,
           superInterfaceTemplateFullName))
-    coutputs.declareTemplate(implTemplateFullName)
-    coutputs.declareOuterEnvForTemplate(implTemplateFullName, implOuterEnv)
+    coutputs.declareType(implTemplateFullName)
+    coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
     //          subCitizenFromPlaceholderedParentInterface))
     // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
     coutputs.addImpl(implT)
@@ -409,13 +414,14 @@ class ImplCompiler(
     callingEnv: IEnvironment,
     implTemplata: ImplTemplata,
     parent: InterfaceTT,
-    verifyConclusions: Boolean):
+    verifyConclusions: Boolean,
+    isRootSolve: Boolean):
   Result[ICitizenTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
     val conclusions =
-      solveImpl(coutputs, callingEnv, initialKnowns, implTemplata, verifyConclusions) match {
+      solveImpl(coutputs, callingEnv, initialKnowns, implTemplata, verifyConclusions, isRootSolve) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
       }
@@ -436,10 +442,10 @@ class ImplCompiler(
       Vector(
         InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(child)))
     val childEnv =
-      coutputs.getOuterEnvForTemplate(
+      coutputs.getOuterEnvForType(
         TemplataCompiler.getCitizenTemplate(child.fullName))
     val conclusions =
-      solveImpl(coutputs, childEnv, initialKnowns, implTemplata, verifyConclusions) match {
+      solveImpl(coutputs, childEnv, initialKnowns, implTemplata, verifyConclusions, false) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
       }
@@ -466,7 +472,7 @@ class ImplCompiler(
       interner.intern(ImplSubCitizenImpreciseNameS(subCitizenImpreciseName))
 
     val subCitizenEnv =
-      coutputs.getOuterEnvForTemplate(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
+      coutputs.getOuterEnvForType(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
 
     val matching =
       subCitizenEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
@@ -506,9 +512,9 @@ class ImplCompiler(
       interner.intern(ImplImpreciseNameS(superInterfaceImpreciseName, subCitizenImpreciseName))
 
     val subCitizenEnv =
-      coutputs.getOuterEnvForTemplate(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
+      coutputs.getOuterEnvForType(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
     val superInterfaceEnv =
-      coutputs.getOuterEnvForTemplate(TemplataCompiler.getInterfaceTemplate(superInterfaceTT.fullName))
+      coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(superInterfaceTT.fullName))
 
     val matching =
       subCitizenEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
@@ -528,7 +534,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplata(subCitizenTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superInterfaceTT)))
-        solveImpl(coutputs, impl.env, initialKnowns, impl, verifyConclusions)
+        solveImpl(coutputs, superInterfaceEnv, initialKnowns, impl, verifyConclusions, false)
       })
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)

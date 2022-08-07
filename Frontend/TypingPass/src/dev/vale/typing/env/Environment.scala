@@ -133,7 +133,7 @@ object TemplatasStore {
   def entryMatchesFilter(entry: IEnvEntry, contexts: Set[ILookupContext]): Boolean = {
     entry match {
       case FunctionEnvEntry(_) => contexts.contains(ExpressionLookupContext)
-      case ImplEnvEntry(_) => contexts.contains(ExpressionLookupContext)
+      case ImplEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case StructEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case InterfaceEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case TemplataEnvEntry(templata) => {
@@ -324,9 +324,10 @@ case class TemplatasStore(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
   Iterable[ITemplata[ITemplataType]] = {
-    entriesByImpreciseNameS.getOrElse(name, Vector())
-      .filter(entryMatchesFilter(_, lookupFilter))
-      .map(entryToTemplata(definingEnv, _))
+    val a1 = entriesByImpreciseNameS.getOrElse(name, Vector())
+    val a2 = a1.filter(entryMatchesFilter(_, lookupFilter))
+    val a3 = a2.map(entryToTemplata(definingEnv, _))
+    a3
   }
 }
 
@@ -386,10 +387,10 @@ case class PackageEnvironment[+T <: INameT](
 }
 
 
-case class CitizenEnvironment[+T <: INameT](
+case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
-  templateName: FullNameT[ITemplateNameT],
+  templateName: FullNameT[Y],
   fullName: FullNameT[T],
   templatas: TemplatasStore
 ) extends IEnvironment {

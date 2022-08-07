@@ -87,12 +87,12 @@ class StructCompiler(
 
     val structTemplateFullName = templataCompiler.resolveStructTemplate(structTemplata)
 
-    coutputs.declareTemplate(structTemplateFullName)
+    coutputs.declareType(structTemplateFullName)
 
     structA.maybePredictedMutability match {
       case None =>
       case Some(predictedMutability) => {
-        coutputs.declareTemplateMutability(
+        coutputs.declareTypeMutability(
           structTemplateFullName,
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }
@@ -107,12 +107,12 @@ class StructCompiler(
 
     val interfaceTemplateFullName = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
 
-    coutputs.declareTemplate(interfaceTemplateFullName)
+    coutputs.declareType(interfaceTemplateFullName)
 
     interfaceA.maybePredictedMutability match {
       case None =>
       case Some(predictedMutability) => {
-        coutputs.declareTemplateMutability(
+        coutputs.declareTypeMutability(
           interfaceTemplateFullName,
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }

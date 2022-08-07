@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
@@ -117,7 +117,7 @@ case class FunctionT(
 }
 
 object getFunctionLastName {
-  def unapply(f: FunctionT): Option[IFunctionTemplateNameT] = Some(f.header.fullName.last)
+  def unapply(f: FunctionT): Option[IFunctionNameT] = Some(f.header.fullName.last)
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
@@ -154,7 +154,7 @@ sealed trait ICalleeCandidate
 case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class HeaderCalleeCandidate(header: FunctionHeaderT, templateArgs: Vector[ITemplata[ITemplataType]]) extends ICalleeCandidate {
+case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: PrototypeT) extends ICalleeCandidate {
@@ -166,8 +166,7 @@ sealed trait IValidCalleeCandidate {
   def paramTypes: Array[CoordT]
 }
 case class ValidHeaderCalleeCandidate(
-  header: FunctionHeaderT,
-  templateArgs: Vector[ITemplata[ITemplataType]]
+  header: FunctionHeaderT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -212,15 +211,14 @@ case class SignatureT(fullName: FullNameT[IFunctionNameT]) {
 
 case class FunctionBannerT(
   originFunction: Option[FunctionA],
-  templateName: FullNameT[IFunctionTemplateNameT])   {
+  name: FullNameT[IFunctionNameT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Use same instead, see EHCFBD for why we dont like equals.
   override def equals(obj: Any): Boolean = vcurious();
 
   def same(that: FunctionBannerT): Boolean = {
-    originFunction == that.originFunction &&
-      templateName == that.templateName
+    originFunction == that.originFunction && name == that.name
   }
 
 
@@ -231,8 +229,9 @@ case class FunctionBannerT(
 
   override def toString: String = {
     // # is to signal that we override this
-    "FunctionBanner2#(" + templateName + ")"
-    //    "FunctionBanner2#(" + templateName + ", " + params + ")"
+//    "FunctionBanner2#(" + templateName + ")"
+//        "FunctionBanner2#(" + templateName + ", " + params + ")"
+    "FunctionBanner2#(" + name + ")"
   }
 }
 
@@ -248,12 +247,78 @@ case object SealedT extends ICitizenAttributeT
 case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
 
 case class FunctionHeaderT(
-  fullName: FullNameT[IFunctionTemplateNameT],
+  // This one little name field can illuminate much of how the compiler works.
+  // - For ordinary functions, each ordinary FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
+  //   This IFunctionNameT's parameters have the types you'd expect
+  //   This IFunctionNameT will have no templateArgs.
+  // - For generic functions, each generic FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
+  //   This IFunctionNameT's parameters will have some PlaceholderTs or PlaceholderTemplatas in them.
+  //   The templateArgs will all PlaceholderTemplatas.
+  // - Lambdas are where it gets interesting.
+  //   One lambda can manifest multiple FunctionTs/FunctionHeaderTs. For example:
+  //     lam = x => println(x);
+  //     lam(3);
+  //     lam(true);
+  //   This will actually manifest *two* FunctionTs/FunctionHeaderTs:
+  //   - One for line 2, with one parameter (int) and one template arg (int).
+  //   - One for line 3, with one parameter (bool) and one template arg (bool).
+  // See UINIT for more.
+  fullName: FullNameT[IFunctionNameT],
   attributes: Vector[IFunctionAttributeT],
   params: Vector[ParameterT],
   returnType: CoordT,
-  maybeOriginFunction: Option[FunctionA])  {
+  maybeOriginFunction: Option[FunctionA]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+
+  vassert({
+    maybeOriginFunction match {
+      case None =>
+      case Some(originFunction) => {
+        val templateName = TemplataCompiler.getFunctionTemplate(fullName)
+        val placeholders =
+          Collector.all(fullName, {
+            case PlaceholderT(name) => name
+            case PlaceholderTemplata(name, _) => name
+          })
+        // Filter out any placeholders that came from the parent, in case this is a lambda function.
+        val placeholdersOfThisFunction =
+          placeholders.filter({ case FullNameT(packageCoord, initSteps, last) =>
+            val parentName = FullNameT(packageCoord, initSteps.init, initSteps.last)
+            // Not sure which one it is, this should catch both.
+            parentName == fullName || parentName == templateName
+          })
+
+        if (originFunction.isLambda()) {
+          // make sure there are no placeholders
+          vassert(placeholdersOfThisFunction.isEmpty)
+        } else {
+          if (originFunction.genericParameters.isEmpty) {
+            // make sure there are no placeholders
+            vassert(placeholdersOfThisFunction.isEmpty)
+          } else {
+            // make sure all the placeholders in the parameters exist as template args
+            placeholdersOfThisFunction.foreach({
+              case placeholderName @ FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) => {
+                fullName.last.templateArgs(index) match {
+                  case KindTemplata(PlaceholderT(placeholderNameAtIndex)) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case CoordTemplata(CoordT(_, PlaceholderT(placeholderNameAtIndex))) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case PlaceholderTemplata(placeholderNameAtIndex, _) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case _ => vfail()
+                }
+              }
+            })
+          }
+        }
+      }
+    }
+    true
+  })
 
   override def equals(obj: Any): Boolean = {
     obj match {
@@ -267,7 +332,7 @@ case class FunctionHeaderT(
   // Make sure there's no duplicate names
   vassert(params.map(_.name).toSet.size == params.size);
 
-//  vassert(fullName.last.parameters == paramTypes)
+  vassert(fullName.last.parameters == paramTypes)
 
   def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
   //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
@@ -310,20 +375,20 @@ case class FunctionHeaderT(
 //  })
 
   def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunction, fullName)
-  def toPrototype(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]]): PrototypeT = {
-    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
-    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
-    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
-    val newName = FullNameT(fullName.packageCoord, fullName.initSteps, newLastStep)
-    PrototypeT(newName, returnType)
+  def toPrototype: PrototypeT = {
+//    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
+//    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
+//    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
+//    val newName = FullNameT(fullName.packageCoord, fullName.initSteps, newLastStep)
+    PrototypeT(fullName, returnType)
   }
-  def toSignature(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]]): SignatureT = {
-    toPrototype(interner, keywords, templateArgs).toSignature
+  def toSignature: SignatureT = {
+    toPrototype.toSignature
   }
 
-  def paramTypes: Vector[CoordT] = params.map(_.tyype)
+  def paramTypes: Vector[CoordT] = fullName.last.parameters
 
-  def unapply(arg: FunctionHeaderT): Option[(FullNameT[IFunctionTemplateNameT], Vector[ParameterT], CoordT)] = {
+  def unapply(arg: FunctionHeaderT): Option[(FullNameT[IFunctionNameT], Vector[ParameterT], CoordT)] = {
     Some(fullName, params, returnType)
   }
 }

@@ -19,6 +19,25 @@ case class FullNameT[+T <: INameT](
   last: T
 )  {
 
+  // Placeholders are under the template name.
+  // There's really no other way; we make the placeholders before knowing the function's
+  // instantated name.
+  last match {
+    case PlaceholderNameT(_) => {
+      initSteps.last match {
+        case FunctionTemplateNameT(_, _) =>
+        case StructTemplateNameT(_) =>
+        case InterfaceTemplateNameT(_) =>
+        case ImplTemplateDeclareNameT(_) =>
+        case AnonymousSubstructTemplateNameT(_) =>
+        case AnonymousSubstructConstructorTemplateNameT(_) =>
+        case ForwarderFunctionTemplateNameT(_,_) =>
+        case other => vfail(other)
+      }
+    }
+    case _ =>
+  }
+
   override def equals(obj: Any): Boolean = {
     obj match {
       case FullNameT(thatPackageCoord, thatInitSteps, thatLast) => {

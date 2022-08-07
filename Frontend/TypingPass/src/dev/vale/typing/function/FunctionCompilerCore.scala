@@ -66,7 +66,8 @@ class FunctionCompilerCore(
   (FunctionHeaderT) = {
     opts.debugOut("Evaluating function " + fullEnv.fullName)
 
-    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
+//    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
+    val functionTemplateName = fullEnv.fullName
 
     val life = LocationInFunctionEnvironment(Vector())
 

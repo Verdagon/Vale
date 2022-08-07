@@ -3,7 +3,7 @@ package dev.vale.typing.env
 import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
-import dev.vale.typing.ast.LocationInFunctionEnvironment
+import dev.vale.typing.ast.{LocationInFunctionEnvironment, ParameterT}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IVarNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
@@ -282,7 +282,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
   def snapshot: NodeEnvironment = nodeEnvironment
-  def fullName: FullNameT[IFunctionTemplateNameT] = nodeEnvironment.parentFunctionEnv.fullName
+  def fullName: FullNameT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.fullName
   def node: IExpressionSE = nodeEnvironment.node
   def maybeReturnType: Option[CoordT] = nodeEnvironment.parentFunctionEnv.maybeReturnType
   def globalEnv: GlobalEnvironment = nodeEnvironment.globalEnv
@@ -366,7 +366,7 @@ case class FunctionEnvironment(
   globalEnv: GlobalEnvironment,
   // This points to the environment containing the function, not parent blocks, see WTHPFE.
   parentEnv: IEnvironment,
-  fullName: FullNameT[IFunctionTemplateNameT], // Includes the name of the function
+  fullName: FullNameT[IFunctionNameT], // Includes the name of the function
 
   templatas: TemplatasStore,
 
@@ -473,7 +473,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
   override def snapshot: FunctionEnvironment = functionEnvironment
-  def fullName: FullNameT[IFunctionTemplateNameT] = functionEnvironment.fullName
+  def fullName: FullNameT[IFunctionNameT] = functionEnvironment.fullName
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv

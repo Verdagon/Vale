@@ -437,7 +437,7 @@ class TemplataCompiler(
     val uncoercedTemplata =
       delegate.resolveInterface(coutputs, callingEnv, callRange, template, templateArgs)
     val templata =
-      coerce(coutputs, callRange, KindTemplata(uncoercedTemplata), expectedType)
+      coerce(coutputs, callingEnv, callRange, KindTemplata(uncoercedTemplata), expectedType)
     (templata)
   }
 
@@ -516,6 +516,7 @@ class TemplataCompiler(
 
   def coerce(
     coutputs: CompilerOutputs,
+    env: IEnvironment,
     range: RangeS,
     templata: ITemplata[ITemplataType],
     tyype: ITemplataType):
@@ -532,7 +533,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + structA.name + " to be a kind, is a template!")
           }
           val kind =
-            delegate.resolveStruct(coutputs, declaringEnv, range, st, Vector.empty)
+            delegate.resolveStruct(coutputs, env, range, st, Vector.empty)
           (KindTemplata(kind))
         }
         case (it@InterfaceTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
@@ -540,7 +541,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, declaringEnv, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, env, range, it, Vector.empty)
           (KindTemplata(kind))
         }
         case (st@StructTemplata(declaringEnv, structA), CoordTemplataType()) => {
@@ -548,7 +549,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveStruct(coutputs, declaringEnv, range, st, Vector.empty)
+            delegate.resolveStruct(coutputs, env, range, st, Vector.empty)
           val mutability = Compiler.getMutability(coutputs, kind)
 
           // Default ownership is own for mutables, share for imms
@@ -566,7 +567,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, declaringEnv, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, env, range, it, Vector.empty)
           val mutability = Compiler.getMutability(coutputs, kind)
           val coerced =
             CoordTemplata(
@@ -631,10 +632,10 @@ class TemplataCompiler(
     tyype match {
       case KindTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
-        coutputs.declareTemplate(placeholderTemplateFullName)
+        coutputs.declareType(placeholderTemplateFullName)
         val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
-        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
         KindTemplata(placeholderKindT)
       }
       // TODO: Not sure what to put here when we do regions. We might need to
@@ -645,10 +646,10 @@ class TemplataCompiler(
       // So, I guess we could just assume the function's default region here then.
       case CoordTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
-        coutputs.declareTemplate(placeholderTemplateFullName)
+        coutputs.declareType(placeholderTemplateFullName)
         val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-        coutputs.declareOuterEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
-        coutputs.declareInnerEnvForTemplate(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
+        coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
         CoordTemplata(CoordT(OwnT, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, tyype)
