@@ -405,8 +405,8 @@ class ImplCompiler(
   //  }
   //
 
-  def isDescendant(coutputs: CompilerOutputs, kind: KindT, verifyConclusions: Boolean): Boolean = {
-    getParents(coutputs, kind, verifyConclusions).nonEmpty
+  def isDescendant(coutputs: CompilerOutputs, callingEnv: IEnvironment, kind: KindT, verifyConclusions: Boolean): Boolean = {
+    getParents(coutputs, callingEnv, kind, verifyConclusions).nonEmpty
   }
 
   def getImplDescendantGivenParent(
@@ -434,6 +434,7 @@ class ImplCompiler(
 
   def getImplParentGivenSubCitizen(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     implTemplata: ImplTemplata,
     child: ICitizenTT,
     verifyConclusions: Boolean):
@@ -445,7 +446,7 @@ class ImplCompiler(
       coutputs.getOuterEnvForType(
         TemplataCompiler.getCitizenTemplate(child.fullName))
     val conclusions =
-      solveImpl(coutputs, childEnv, initialKnowns, implTemplata, verifyConclusions, false) match {
+      solveImpl(coutputs, callingEnv, initialKnowns, implTemplata, verifyConclusions, false) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
       }
@@ -456,7 +457,7 @@ class ImplCompiler(
     }
   }
 
-  def getParents(coutputs: CompilerOutputs, kind: KindT, verifyConclusions: Boolean): Array[InterfaceTT] = {
+  def getParents(coutputs: CompilerOutputs, callingEnv: IEnvironment, kind: KindT, verifyConclusions: Boolean): Array[InterfaceTT] = {
     val subCitizenTT =
       kind match {
         case c : ICitizenTT => c
@@ -486,7 +487,7 @@ class ImplCompiler(
       implsWithDuplicates.groupBy(_.impl.range).map(_._2.head)
 
     impls.flatMap(impl => {
-      getImplParentGivenSubCitizen(coutputs, impl, subCitizenTT, verifyConclusions) match {
+      getImplParentGivenSubCitizen(coutputs, callingEnv, impl, subCitizenTT, verifyConclusions) match {
         case Ok(x) => List(x)
         case Err(_) => List()
       }

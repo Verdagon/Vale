@@ -97,11 +97,8 @@ trait IInfererDelegate {
 
   def predictRuntimeSizedArrayKind(env: InferEnv, state: CompilerOutputs, type2: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
 
-  def getAncestors(coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean):
+  def getAncestors(env: InferEnv, coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean):
   (Set[KindT])
-
-  def getInterfaceTemplataType()(it: InterfaceTemplata): ITemplataType
-  def getStructTemplataType()(st: StructTemplata): ITemplataType
 
   def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean
 
@@ -331,7 +328,7 @@ class CompilerRuleSolver(
         // careful to not assume between any possibilities below.
         val allSendersKnown = senderConclusions.size == runesSendingToThisReceiver.size
         val allCallsKnown = callRules.size == callTemplates.size
-        solveReceives(state, senderConclusions, callTemplates, allSendersKnown, allCallsKnown) match {
+        solveReceives(env, state, senderConclusions, callTemplates, allSendersKnown, allCallsKnown) match {
           case Err(e) => return Err(RuleError(e))
           case Ok(None) => None
           case Ok(Some(receiverInstantiationKind)) => {
@@ -374,6 +371,7 @@ class CompilerRuleSolver(
   }
 
   private def solveReceives(
+    env: InferEnv,
     state: CompilerOutputs,
     senders: Vector[(IRuneS, CoordT)],
     callTemplates: Vector[ITemplata[ITemplataType]],
@@ -386,7 +384,7 @@ class CompilerRuleSolver(
     }
 
     // For example [Flamethrower, Rockets] becomes [[Flamethrower, IWeapon, ISystem], [Rockets, IWeapon, ISystem]]
-    val senderAncestorLists = senderKinds.map(delegate.getAncestors(state, _, true))
+    val senderAncestorLists = senderKinds.map(delegate.getAncestors(env, state, _, true))
     // Calculates the intersection of them all, eg [IWeapon, ISystem]
     val commonAncestors = senderAncestorLists.reduce(_.intersect(_))
     if (commonAncestors.size == 0) {
@@ -422,7 +420,7 @@ class CompilerRuleSolver(
           return Ok(None)
         }
         // If there are multiple, like [IWeapon, ISystem], get rid of any that are parents of others, now [IWeapon].
-        narrow(state, commonAncestorsCallConstrained) match {
+        narrow(env, state, commonAncestorsCallConstrained) match {
           case Ok(x) => x
           case Err(e) => return Err(e)
         }
@@ -431,6 +429,7 @@ class CompilerRuleSolver(
   }
 
   def narrow(
+    env: InferEnv,
     state: CompilerOutputs,
     kinds: Set[KindT]):
   Result[KindT, ITypingPassSolverError] = {
@@ -439,7 +438,7 @@ class CompilerRuleSolver(
     narrowedAncestors ++= kinds
     // Remove anything that's an ancestor of something else in the set
     kinds.foreach(kind => {
-      narrowedAncestors --= delegate.getAncestors(state, kind, false)
+      narrowedAncestors --= delegate.getAncestors(env, state, kind, false)
     })
     if (narrowedAncestors.size == 0) {
       vwat() // Shouldnt happen
@@ -627,7 +626,7 @@ class CompilerRuleSolver(
             case KindTemplata(i @ InterfaceTT(_)) => i
             case other => vwat(other)
           }
-        if (delegate.getAncestors(state, sub, true).contains(suuper)) {
+        if (delegate.getAncestors(env, state, sub, true).contains(suuper)) {
           Ok(())
         } else {
           Err(KindDoesntImplementInterface(sub, suuper))
@@ -659,7 +658,7 @@ class CompilerRuleSolver(
             }
           }
           case superInterface @ InterfaceTT(_) => {
-            if (delegate.getAncestors(state, subCitizen, true).contains(superCitizen)) {
+            if (delegate.getAncestors(env, state, subCitizen, true).contains(superCitizen)) {
               Ok(())
             } else {
               Err(KindDoesntImplementInterface(subCitizen, superInterface))

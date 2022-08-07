@@ -100,7 +100,6 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   test("Downcast with as") {
     val compile = CompilerTestCompilation.test(
       """
-        |
         |import v.builtins.as.*;
         |import v.builtins.drop.*;
         |

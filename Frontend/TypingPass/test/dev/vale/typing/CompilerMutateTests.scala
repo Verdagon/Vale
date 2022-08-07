@@ -70,12 +70,13 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Local-set upcasts") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.drop.*;
         |
-        |interface IXOption<T> where T Ref { }
-        |struct XSome<T> where T Ref { value T; }
-        |impl<T> IXOption<T> for XSome<T>;
-        |struct XNone<T> where T Ref { }
-        |impl<T> IXOption<T> for XNone<T>;
+        |interface IXOption<T Ref> where func drop(T)void { }
+        |struct XSome<T Ref> where func drop(T)void { value T; }
+        |impl<T Ref> IXOption<T> for XSome<T> where func drop(T)void;
+        |struct XNone<T Ref> where func drop(T)void { }
+        |impl<T Ref> IXOption<T> for XNone<T> where func drop(T)void;
         |
         |exported func main() {
         |  m IXOption<int> = XNone<int>();
