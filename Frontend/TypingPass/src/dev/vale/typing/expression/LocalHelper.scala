@@ -43,7 +43,7 @@ class LocalHelper(
   def makeTemporaryLocal(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     life: LocationInFunctionEnvironment,
     r: ReferenceExpressionTE,
     targetOwnership: OwnershipT):
@@ -74,7 +74,7 @@ class LocalHelper(
   def unletAndDropAll(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map({ case variable =>
@@ -88,7 +88,7 @@ class LocalHelper(
   def unletAllWithoutDropping(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map(variable => unletLocalWithoutDropping(nenv, variable))
@@ -102,7 +102,7 @@ class LocalHelper(
   def makeUserLocalVariable(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     localVariableA: LocalS,
     referenceType2: CoordT):
   ILocalVariableT = {
@@ -140,7 +140,7 @@ class LocalHelper(
 
   def softLoad(
       nenv: NodeEnvironmentBox,
-      loadRange: RangeS,
+      loadRange: List[RangeS],
       a: AddressExpressionTE,
       loadAsP: LoadAsP):
   ReferenceExpressionTE = {

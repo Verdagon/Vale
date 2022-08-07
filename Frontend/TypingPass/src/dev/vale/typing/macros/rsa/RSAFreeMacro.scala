@@ -31,7 +31,7 @@ class RSAFreeMacro(
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -59,8 +59,8 @@ class RSAFreeMacro(
     val callName = interner.intern(CodeNameS(keywords.underscoresCall))
     val callRules =
       Vector(
-        RuneParentEnvLookupSR(callRange, RuneUsage(callRange, FunctorParamRuneNameS(0))),
-        RuneParentEnvLookupSR(callRange, RuneUsage(callRange, FunctorReturnRuneNameS())))//,
+        RuneParentEnvLookupSR(callRange.head, RuneUsage(callRange.head, FunctorParamRuneNameS(0))),
+        RuneParentEnvLookupSR(callRange.head, RuneUsage(callRange.head, FunctorReturnRuneNameS())))//,
 //        RuneParentEnvLookupSR(callRange, RuneUsage(callRange, FunctorPrototypeRuneNameS())))
     val callRunes = Array[IRuneS](FunctorParamRuneNameS(0), FunctorReturnRuneNameS())//, FunctorPrototypeRuneNameS())
     val consumerPrototype =

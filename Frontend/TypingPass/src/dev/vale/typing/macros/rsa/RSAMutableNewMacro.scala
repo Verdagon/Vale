@@ -25,7 +25,7 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):

@@ -35,7 +35,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
-    range: RangeS,
+    range: List[RangeS],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
     sizeRuneA: IRuneS,
@@ -64,7 +64,7 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
 
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -86,7 +86,7 @@ class ArrayCompiler(
   def evaluateRuntimeSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: NodeEnvironment,
-    range: RangeS,
+    range: List[RangeS],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
@@ -111,7 +111,7 @@ class ArrayCompiler(
       }
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -156,9 +156,9 @@ class ArrayCompiler(
             range,
             interner.intern(CodeNameS(keywords.Array)),
             Vector(
-              RuneParentEnvLookupSR(range, RuneUsage(range, CodeRuneS(keywords.M)))) ++
+              RuneParentEnvLookupSR(range.head, RuneUsage(range.head, CodeRuneS(keywords.M)))) ++
             maybeElementTypeRune.map(e => {
-              RuneParentEnvLookupSR(range, RuneUsage(range, e))
+              RuneParentEnvLookupSR(range.head, RuneUsage(range.head, e))
             }),
             Array(CodeRuneS(keywords.M)) ++ maybeElementTypeRune,
             Vector(sizeTE.result.reference) ++
@@ -200,7 +200,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromValues(
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment,
-      range: RangeS,
+      range: List[RangeS],
       rulesA: Vector[IRulexSR],
       maybeElementTypeRuneA: Option[IRuneS],
       sizeRuneA: IRuneS,
@@ -231,7 +231,7 @@ class ArrayCompiler(
 
     val templatas =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true)
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
@@ -261,7 +261,7 @@ class ArrayCompiler(
   def evaluateDestroyStaticSizedArrayIntoCallable(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE):
   DestroyStaticSizedArrayIntoFunctionTE = {
@@ -287,7 +287,7 @@ class ArrayCompiler(
   def evaluateDestroyRuntimeSizedArrayIntoCallable(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBox,
-    range: RangeS,
+    range: List[RangeS],
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE):
   DestroyImmRuntimeSizedArrayTE = {
@@ -386,7 +386,7 @@ class ArrayCompiler(
   }
 
   def lookupInStaticSizedArray(
-      range: RangeS,
+      range: List[RangeS],
       containerExpr2: ReferenceExpressionTE,
       indexExpr2: ReferenceExpressionTE,
       at: StaticSizedArrayTT) = {
@@ -400,7 +400,7 @@ class ArrayCompiler(
   }
 
   def lookupInUnknownSizedArray(
-    range: RangeS,
+    range: List[RangeS],
     containerExpr2: ReferenceExpressionTE,
     indexExpr2: ReferenceExpressionTE,
     rsa: RuntimeSizedArrayTT

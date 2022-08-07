@@ -38,19 +38,21 @@ class FunctionCompilerCore(
       startingNenv: NodeEnvironment,
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
+      parentRanges: List[RangeS],
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
-      delegate.evaluateBlockStatements(coutputs, startingNenv, nenv, life, exprs)
+      delegate.evaluateBlockStatements(coutputs, startingNenv, nenv, life, parentRanges, exprs)
     }
 
     override def translatePatternList(
-        coutputs: CompilerOutputs,
+      coutputs: CompilerOutputs,
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
-        patterns1: Vector[AtomSP],
-        patternInputExprs2: Vector[ReferenceExpressionTE]
+      parentRanges: List[RangeS],
+      patterns1: Vector[AtomSP],
+      patternInputExprs2: Vector[ReferenceExpressionTE]
     ): ReferenceExpressionTE = {
-      delegate.translatePatternList(coutputs, nenv, life, patterns1, patternInputExprs2)
+      delegate.translatePatternList(coutputs, nenv, life, parentRanges, patterns1, patternInputExprs2)
     }
   })
 
@@ -61,7 +63,7 @@ class FunctionCompilerCore(
   def evaluateFunctionForHeader(
     fullEnv: FunctionEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     params2: Vector[ParameterT]):
   (FunctionHeaderT) = {
     opts.debugOut("Evaluating function " + fullEnv.fullName)
@@ -87,7 +89,7 @@ class FunctionCompilerCore(
       fullEnv.function.body match {
         case CodeBodyS(body) => {
           declareAndEvaluateFunctionBodyAndAdd(
-            fullEnv, coutputs, life, params2, isDestructor)
+            fullEnv, coutputs, life, callRange, params2, isDestructor)
         }
         case ExternBodyS => {
           val maybeRetCoord =
@@ -197,7 +199,7 @@ class FunctionCompilerCore(
   def getFunctionPrototypeForCall(
     fullEnv: FunctionEnvironment,
       coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
       params2: Vector[ParameterT]):
   (PrototypeT) = {
     getFunctionPrototypeInnerForCall(
@@ -208,6 +210,7 @@ class FunctionCompilerCore(
     fullEnv: FunctionEnvironment,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
+    parentRanges: List[RangeS],
     paramsT: Vector[ParameterT],
     isDestructor: Boolean):
   FunctionHeaderT = {
@@ -239,7 +242,7 @@ class FunctionCompilerCore(
 
     val (maybeInferredReturnCoord, body2) =
       bodyCompiler.declareAndEvaluateFunctionBody(
-        FunctionEnvironmentBox(fullEnv), coutputs, life, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
+        FunctionEnvironmentBox(fullEnv), coutputs, life, parentRanges, fullEnv.function, maybeExplicitReturnCoord, paramsT, isDestructor)
 
     val returnCoord =
       maybeExplicitReturnCoord match {
@@ -379,7 +382,7 @@ class FunctionCompilerCore(
         coutputs.addFunction(function2)
         (header)
       }
-      case _ => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Only human-named function can be extern!"))
+      case _ => throw CompileErrorExceptionT(RangedInternalErrorT(List(range), "Only human-named function can be extern!"))
     }
   }
 

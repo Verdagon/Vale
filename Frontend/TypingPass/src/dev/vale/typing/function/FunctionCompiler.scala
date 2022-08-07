@@ -35,6 +35,7 @@ trait IFunctionCompilerDelegate {
     startingNenv: NodeEnvironment,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
+    ranges: List[RangeS],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -42,12 +43,13 @@ trait IFunctionCompilerDelegate {
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
+    ranges: List[RangeS],
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
   ReferenceExpressionTE
 
 //  def evaluateParent(
-//    env: IEnvironment, coutputs: CompilerOutputs, callRange: RangeS, sparkHeader: FunctionHeaderT):
+//    env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], sparkHeader: FunctionHeaderT):
 //  Unit
 
   def generateFunction(
@@ -56,7 +58,7 @@ trait IFunctionCompilerDelegate {
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We might be able to move these all into the function environment... maybe....
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
@@ -127,7 +129,7 @@ class FunctionCompiler(
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
     containingNodeEnv: NodeEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     verifyConclusions: Boolean):
@@ -151,15 +153,17 @@ class FunctionCompiler(
     } else {
       val _ =
         evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-          functionTemplata.outerEnv, coutputs, structTT, functionA, verifyConclusions)
+          functionTemplata.outerEnv, coutputs, callRange, structTT, functionA, verifyConclusions)
     }
 
     (structTT)
   }
 
 
+
   def evaluateOrdinaryFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT = {
@@ -167,7 +171,7 @@ class FunctionCompiler(
         val FunctionTemplata(env, function) = functionTemplata
         if (function.isLight) {
           evaluateOrdinaryLightFunctionFromNonCallForHeader(
-            env, coutputs, function, verifyConclusions)
+            env, coutputs, parentRanges, function, verifyConclusions)
         } else {
           val List(KindTemplata(closureStructRef@StructTT(_))) =
             env.lookupNearestWithImpreciseName(
@@ -176,7 +180,7 @@ class FunctionCompiler(
               Set(TemplataLookupContext)).toList
           val header =
             evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-              env, coutputs, closureStructRef, function, verifyConclusions)
+              env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
           header
         }
       })
@@ -185,6 +189,7 @@ class FunctionCompiler(
 
   def evaluateTemplatedFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT = {
@@ -192,7 +197,7 @@ class FunctionCompiler(
       val FunctionTemplata(env, function) = functionTemplata
       if (function.isLight) {
         evaluateTemplatedLightFunctionFromNonCallForHeader(
-          env, coutputs, function, verifyConclusions)
+          env, coutputs, parentRanges, function, verifyConclusions)
       } else {
         val List(KindTemplata(closureStructRef@StructTT(_))) =
           env.lookupNearestWithImpreciseName(
@@ -201,7 +206,7 @@ class FunctionCompiler(
             Set(TemplataLookupContext)).toList
         val header =
           evaluateTemplatedClosureFunctionFromNonCallForHeader(
-            env, coutputs, closureStructRef, function, verifyConclusions)
+            env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
         header
       }
     })
@@ -213,6 +218,7 @@ class FunctionCompiler(
   // func main():Int{main()}
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
@@ -220,7 +226,7 @@ class FunctionCompiler(
       val FunctionTemplata(env, function) = functionTemplata
       if (function.isLight) {
         evaluateGenericLightFunctionFromNonCall(
-          env, coutputs, function, verifyConclusions)
+          env, coutputs, parentRanges, function, verifyConclusions)
       } else {
         vfail() // I think we need a call to evaluate a lambda?
 //        val lambdaCitizenName2 =
@@ -250,7 +256,7 @@ class FunctionCompiler(
   def evaluateOrdinaryFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionTemplata: FunctionTemplata):
   (PrototypeTemplata) = {
     Profiler.frame(() => {
@@ -271,7 +277,7 @@ class FunctionCompiler(
                 lambdaCitizenName2,
                 Set(TemplataLookupContext)))
           evaluateOrdinaryClosureFunctionFromCallForPrototype(
-            declaringEnv, coutputs, callingEnv, closureStructRef, function)
+            declaringEnv, coutputs, callRange, callingEnv, closureStructRef, function)
         }
       })
 
@@ -279,7 +285,7 @@ class FunctionCompiler(
 
   def evaluateOrdinaryFunctionFromNonCallForBanner(
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   (PrototypeTemplata) = {
@@ -311,7 +317,7 @@ class FunctionCompiler(
   private def evaluateOrdinaryLightFunctionFromNonCallForBanner(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (PrototypeTemplata) = {
@@ -322,7 +328,7 @@ class FunctionCompiler(
   def evaluateTemplatedFunctionFromCallForBanner(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     paramFilters: Vector[CoordT]):
@@ -357,7 +363,7 @@ class FunctionCompiler(
       declaringEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment,
-      callRange: RangeS,
+      callRange: List[RangeS],
       closureStructRef: StructTT,
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -371,7 +377,7 @@ class FunctionCompiler(
   def evaluateTemplatedLightFunctionFromCallForBanner(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     paramFilters: Vector[CoordT]):
@@ -390,40 +396,43 @@ class FunctionCompiler(
   private def evaluateOrdinaryClosureFunctionFromNonCallForHeader(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateOrdinaryClosureFunctionFromNonCallForHeader(
-      env, coutputs, closureStructRef, function, verifyConclusions)
+      env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
   }
 
   private def evaluateOrdinaryClosureFunctionFromCallForPrototype(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     callingEnv: IEnvironment, // See CSSNCE
     closureStructRef: StructTT,
     function: FunctionA):
   (PrototypeTemplata) = {
     closureOrLightLayer.evaluateOrdinaryClosureFunctionFromCallForPrototype(
-      env, coutputs, callingEnv, closureStructRef, function)
+      env, coutputs, parentRanges, callingEnv, closureStructRef, function)
   }
 
   private def evaluateTemplatedClosureFunctionFromNonCallForHeader(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateTemplatedClosureFunctionFromNonCallForHeader(
-      env, coutputs, closureStructRef, function, verifyConclusions)
+      env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
   }
 
   private def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     closureStructRef: StructTT,
     function: FunctionA,
     verifyConclusions: Boolean):
@@ -439,41 +448,45 @@ class FunctionCompiler(
       env: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
-      callRange: RangeS,
+      callRange: List[RangeS],
       function: FunctionA):
   (PrototypeTemplata) = {
     closureOrLightLayer.evaluateOrdinaryLightFunctionFromCallForPrototype(
       env, coutputs, callingEnv, callRange, function)
   }
 
+
   private def evaluateOrdinaryLightFunctionFromNonCallForHeader(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateOrdinaryLightFunctionFromNonCallForHeader(
-      env, coutputs, function, verifyConclusions)
+      env, coutputs, parentRanges, function, verifyConclusions)
   }
 
   private def evaluateGenericLightFunctionFromNonCall(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateGenericLightFunctionFromNonCall(
-      env, coutputs, function, verifyConclusions)
+      env, coutputs, parentRanges, function, verifyConclusions)
   }
 
   private def evaluateTemplatedLightFunctionFromNonCallForHeader(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     closureOrLightLayer.evaluateTemplatedLightFunctionFromNonCallForHeader(
-      env, coutputs, function, verifyConclusions)
+      env, coutputs, parentRanges, function, verifyConclusions)
   }
 
 //  def evaluateOrdinaryLightFunctionFromNonCallForCompilerOutputs(
@@ -491,7 +504,7 @@ class FunctionCompiler(
 
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     callingEnv: IEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -513,7 +526,7 @@ class FunctionCompiler(
 
   def evaluateGenericLightFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     callingEnv: IEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -530,7 +543,7 @@ class FunctionCompiler(
     env: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT],
@@ -544,7 +557,7 @@ class FunctionCompiler(
     env: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT],

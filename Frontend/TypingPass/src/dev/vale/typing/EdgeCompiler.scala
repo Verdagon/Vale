@@ -75,7 +75,7 @@ class EdgeCompiler(
                 val overridingParamKind =
                     implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true, true) match {
                       case Ok(c) => c
-                      case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(overridingImpl.templata.impl.range, e))
+                      case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(overridingImpl.templata.impl.range), e))
                     }
                 val overridingParamCoord = abstractParamType.copy(kind = overridingParamKind)
                 val overrideFunctionParamTypes =
@@ -93,7 +93,7 @@ class EdgeCompiler(
 
                 val foundFunction =
                   resolveOverride(
-                    coutputs, range, abstractFunctionInnerEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
+                    coutputs, List(range), abstractFunctionInnerEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
 
                 foundFunction
               })
@@ -106,7 +106,7 @@ class EdgeCompiler(
 
   private def resolveOverride(
       coutputs: CompilerOutputs,
-      range: RangeS,
+      range: List[RangeS],
       abstractFunctionEnv: IEnvironment,
       interface: FullNameT[IInterfaceTemplateNameT],
       overridingCitizen: FullNameT[ICitizenTemplateNameT],

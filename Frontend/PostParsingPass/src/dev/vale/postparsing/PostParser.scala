@@ -561,7 +561,7 @@ class PostParser(
         new RuneTypeSolver(interner).solve(
           globalOptions.sanityCheck,
           globalOptions.useOptimizedSolver,
-          (n) => vimpl(), rangeS, true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
+          (n) => vimpl(), List(rangeS), true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
           case Ok(t) => t
           // This likely cannot happen because we aren't even asking for a complete solve.
           case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
@@ -580,7 +580,7 @@ class PostParser(
       globalOptions.sanityCheck,
       globalOptions.useOptimizedSolver,
       interner,
-      rangeS, rulesS, identifyingRunesS) match {
+      List(rangeS), rulesS, identifyingRunesS) match {
       case Ok(_) =>
       case Err(e) => throw CompileErrorExceptionS(IdentifyingRunesIncompleteS(rangeS, e))
     }

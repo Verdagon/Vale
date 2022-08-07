@@ -109,7 +109,7 @@ class StructConstructorMacro(
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):

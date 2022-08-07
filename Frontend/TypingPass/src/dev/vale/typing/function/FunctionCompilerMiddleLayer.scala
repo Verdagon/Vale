@@ -41,6 +41,7 @@ class FunctionCompilerMiddleLayer(
   def predictOrdinaryFunctionBanner(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     function1: FunctionA):
   (FunctionBannerT) = {
 
@@ -53,7 +54,7 @@ class FunctionCompilerMiddleLayer(
       case _ =>
     }
 
-    val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+    val params2 = assembleFunctionParams(runedEnv, coutputs, parentRanges, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
     val banner = FunctionBannerT(Some(function1), namedEnv.fullName)
@@ -61,10 +62,11 @@ class FunctionCompilerMiddleLayer(
   }
 
   private def evaluateMaybeVirtuality(
-      env: IEnvironment,
-      coutputs: CompilerOutputs,
-      paramKind: KindT,
-      maybeVirtuality1: Option[AbstractSP]):
+    env: IEnvironment,
+    coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
+    paramKind: KindT,
+    maybeVirtuality1: Option[AbstractSP]):
   (Option[AbstractT]) = {
     maybeVirtuality1 match {
       case None => (None)
@@ -72,14 +74,14 @@ class FunctionCompilerMiddleLayer(
         val interfaceTT =
           paramKind match {
             case i @ InterfaceTT(_) => i
-            case _ => throw CompileErrorExceptionT(RangedInternalErrorT(rangeS, "Can only have virtual parameters for interfaces"))
+            case _ => throw CompileErrorExceptionT(RangedInternalErrorT(rangeS :: parentRanges, "Can only have virtual parameters for interfaces"))
           }
         // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
         // See https://github.com/ValeLang/Vale/issues/374
         if (!isInternalMethod) {
           val interfaceDef = coutputs.lookupInterface(interfaceTT)
           if (!interfaceDef.attributes.contains(SealedT)) {
-            throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS))
+            throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS :: parentRanges))
           }
         }
         (Some(AbstractT()))
@@ -107,7 +109,7 @@ class FunctionCompilerMiddleLayer(
   def getOrEvaluateFunctionForBanner(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function1: FunctionA):
   (PrototypeTemplata) = {
 
@@ -116,7 +118,7 @@ class FunctionCompilerMiddleLayer(
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
     })
 
-    val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+    val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
@@ -141,7 +143,7 @@ class FunctionCompilerMiddleLayer(
   def getOrEvaluateFunctionForHeader(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function1: FunctionA):
   (FunctionHeaderT) = {
 
@@ -163,7 +165,7 @@ class FunctionCompilerMiddleLayer(
         (header)
       }
       case None => {
-        val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+        val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
         val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
         val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
@@ -186,7 +188,7 @@ class FunctionCompilerMiddleLayer(
   def getOrEvaluateOrdinaryFunctionForPrototype(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function1: FunctionA):
   (PrototypeTemplata) = {
     // Check preconditions
@@ -216,7 +218,7 @@ class FunctionCompilerMiddleLayer(
 //  def getFunctionPrototype(
 //    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
 //    coutputs: CompilerOutputs,
-//    callRange: RangeS,
+//    callRange: List[RangeS],
 //    function1: FunctionA):
 //  (PrototypeT) = {
 //
@@ -262,6 +264,7 @@ class FunctionCompilerMiddleLayer(
   def assembleFunctionParams(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     params1: Vector[ParameterS]):
   (Vector[ParameterT]) = {
     params1.zipWithIndex.map({ case (param1, index) =>
@@ -272,7 +275,7 @@ class FunctionCompilerMiddleLayer(
 
                 interner.intern(RuneNameS(param1.pattern.coordRune.get.rune)),
                 Set(TemplataLookupContext)))
-        val maybeVirtuality = evaluateMaybeVirtuality(env, coutputs, coord.kind, param1.pattern.virtuality)
+        val maybeVirtuality = evaluateMaybeVirtuality(env, coutputs, parentRanges, coord.kind, param1.pattern.virtuality)
         val nameT =
           param1.pattern.name match {
             case None => interner.intern(TypingIgnoredParamNameT(index))
@@ -311,7 +314,7 @@ class FunctionCompilerMiddleLayer(
   def getGenericFunctionBannerFromCall(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function1: FunctionA):
   (FunctionBannerT) = {
 
@@ -320,7 +323,7 @@ class FunctionCompilerMiddleLayer(
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
     })
 
-    val params2 = assembleFunctionParams(runedEnv, coutputs, function1.params)
+    val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
@@ -331,7 +334,7 @@ class FunctionCompilerMiddleLayer(
   def getGenericFunctionPrototypeFromCall(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     function1: FunctionA):
   (PrototypeT) = {
 
@@ -351,7 +354,7 @@ class FunctionCompilerMiddleLayer(
     //    coutputs.getDeclaredSignatureOrigin(needleSignature) match {
     //      case None => {
     //        coutputs.declareFunctionSignature(function1.range, needleSignature, Some(namedEnv))
-    val params2 = assembleFunctionParams(namedEnv, coutputs, function1.params)
+    val params2 = assembleFunctionParams(namedEnv, coutputs, callRange, function1.params)
 
     val prototype =
       core.getFunctionPrototypeForCall(
@@ -383,7 +386,7 @@ class FunctionCompilerMiddleLayer(
 //  def getOrEvaluateGenericFunction(
 //    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
 //    coutputs: CompilerOutputs,
-//    callRange: RangeS,
+//    callRange: List[RangeS],
 //    function1: FunctionA):
 //  (FunctionHeaderT) = {
 //

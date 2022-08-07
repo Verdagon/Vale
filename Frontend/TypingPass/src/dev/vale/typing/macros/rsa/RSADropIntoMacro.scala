@@ -19,7 +19,7 @@ class RSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     coutputs: CompilerOutputs,
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
-    callRange: RangeS,
+    callRange: List[RangeS],
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):

@@ -10,7 +10,7 @@ trait IStepState[Rule, Rune, Conclusion] {
   def addRule(rule: Rule): Unit
 //  def addPuzzle(ruleIndex: Int, runes: Array[Rune])
   def getUnsolvedRules(): Vector[Rule]
-  def concludeRune[ErrType](rangeS: RangeS, newlySolvedRune: Rune, conclusion: Conclusion): Unit
+  def concludeRune[ErrType](rangeS: List[RangeS], newlySolvedRune: Rune, conclusion: Conclusion): Unit
 }
 
 trait ISolverState[Rule, Rune, Conclusion] {

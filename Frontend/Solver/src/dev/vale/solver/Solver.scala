@@ -167,6 +167,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
   }
 
   def makeInitialSolverState(
+    callRange: List[RangeS],
     initialRules: IndexedSeq[Rule],
     ruleToRunes: Rule => Iterable[Rune],
     ruleToPuzzles: Rule => Array[Array[Rune]],
@@ -189,7 +190,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
       val step =
         solverState.initialStep(ruleToPuzzles, (stepState: IStepState[Rule, Rune, Conclusion]) => {
           initiallyKnownRunes.foreach({ case (rune, conclusion) =>
-            stepState.concludeRune(RangeS.internal(interner, -6434324), rune, conclusion)
+            stepState.concludeRune(RangeS.internal(interner, -6434324) :: callRange, rune, conclusion)
           })
           Ok(())
         }).getOrDie()

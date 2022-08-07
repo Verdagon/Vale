@@ -30,7 +30,7 @@ trait ITemplataCompilerDelegate {
   def resolveStruct(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     structTemplata: StructTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   StructTT
@@ -38,7 +38,7 @@ trait ITemplataCompilerDelegate {
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceTemplata,
@@ -414,7 +414,7 @@ class TemplataCompiler(
 
 //  def evaluateStructTemplata(
 //    coutputs: CompilerOutputs,
-//    callRange: RangeS,
+//    callRange: List[RangeS],
 //    template: StructTemplata,
 //    templateArgs: Vector[ITemplata[ITemplataType]],
 //    expectedType: ITemplataType):
@@ -429,7 +429,7 @@ class TemplataCompiler(
   def evaluateInterfaceTemplata(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
-    callRange: RangeS,
+    callRange: List[RangeS],
     template: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
@@ -444,7 +444,7 @@ class TemplataCompiler(
 //  def evaluateBuiltinTemplateTemplata(
 //    env: IEnvironment,
 //    coutputs: CompilerOutputs,
-//    range: RangeS,
+//    range: List[RangeS],
 //    template: RuntimeSizedArrayTemplateTemplata,
 //    templateArgs: Vector[ITemplata[ITemplataType]],
 //    expectedType: ITemplataType):
@@ -460,7 +460,7 @@ class TemplataCompiler(
 //  def getStaticSizedArrayKind(
 //    env: IEnvironment,
 //    coutputs: CompilerOutputs,
-//    callRange: RangeS,
+//    callRange: List[RangeS],
 //    mutability: ITemplata[MutabilityTemplataType],
 //    variability: ITemplata[VariabilityTemplataType],
 //    size: ITemplata[IntegerTemplataType],
@@ -477,7 +477,7 @@ class TemplataCompiler(
   def lookupTemplata(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    range: RangeS,
+    range: List[RangeS],
     name: INameT):
   (ITemplata[ITemplataType]) = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
@@ -489,7 +489,7 @@ class TemplataCompiler(
   def lookupTemplata(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    range: RangeS,
+    range: List[RangeS],
     name: IImpreciseNameS):
   Option[ITemplata[ITemplataType]] = {
     // Changed this from AnythingLookupContext to TemplataLookupContext
@@ -517,7 +517,7 @@ class TemplataCompiler(
   def coerce(
     coutputs: CompilerOutputs,
     env: IEnvironment,
-    range: RangeS,
+    range: List[RangeS],
     templata: ITemplata[ITemplataType],
     tyype: ITemplataType):
   (ITemplata[ITemplataType]) = {

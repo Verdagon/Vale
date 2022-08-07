@@ -100,7 +100,7 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, overloadCompile
 //    coutputs: CompilerOutputs,
 //    generatorId: StrI,
 //    life: LocationInFunctionEnvironment,
-//    callRange: RangeS,
+//    callRange: List[RangeS],
 //    originFunction1: Option[FunctionA],
 //    params2: Vector[ParameterT],
 //    maybeRetCoord: Option[CoordT]):

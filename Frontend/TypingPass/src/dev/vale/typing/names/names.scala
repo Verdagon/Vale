@@ -32,6 +32,7 @@ case class FullNameT[+T <: INameT](
         case AnonymousSubstructTemplateNameT(_) =>
         case AnonymousSubstructConstructorTemplateNameT(_) =>
         case ForwarderFunctionTemplateNameT(_,_) =>
+        case FreeTemplateNameT(_) =>
         case other => vfail(other)
       }
     }
@@ -185,10 +186,10 @@ case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironmen
 case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ClosureParamNameT() extends IVarNameT
 case class ConstructingMemberNameT(name: StrI) extends IVarNameT
-case class WhileCondResultNameT(range: RangeS) extends IVarNameT
-case class IterableNameT(range: RangeS) extends IVarNameT {  }
-case class IteratorNameT(range: RangeS) extends IVarNameT {  }
-case class IterationOptionNameT(range: RangeS) extends IVarNameT {  }
+case class WhileCondResultNameT(range: List[RangeS]) extends IVarNameT
+case class IterableNameT(range: List[RangeS]) extends IVarNameT {  }
+case class IteratorNameT(range: List[RangeS]) extends IVarNameT {  }
+case class IterationOptionNameT(range: List[RangeS]) extends IVarNameT {  }
 case class MagicParamNameT(codeLocation2: CodeLocationS) extends IVarNameT
 case class CodeVarNameT(name: StrI) extends IVarNameT
 // We dont use CodeVarName2(0), CodeVarName2(1) etc because we dont want the user to address these members directly.

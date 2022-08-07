@@ -31,7 +31,7 @@ class ConvertHelper(
   def convertExprs(
       env: IEnvironment,
       coutputs: CompilerOutputs,
-      range: RangeS,
+      range: List[RangeS],
       sourceExprs: Vector[ReferenceExpressionTE],
       targetPointerTypes: Vector[CoordT]):
   (Vector[ReferenceExpressionTE]) = {
@@ -50,7 +50,7 @@ class ConvertHelper(
   def convert(
       env: IEnvironment,
       coutputs: CompilerOutputs,
-      range: RangeS,
+      range: List[RangeS],
       sourceExpr: ReferenceExpressionTE,
       targetPointerType: CoordT):
   (ReferenceExpressionTE) = {
@@ -110,7 +110,7 @@ class ConvertHelper(
   def convert(
     env: IEnvironment,
     coutputs: CompilerOutputs,
-    range: RangeS,
+    range: List[RangeS],
     sourceExpr: ReferenceExpressionTE,
     sourceStructRef: StructTT,
     targetInterfaceRef: InterfaceTT):

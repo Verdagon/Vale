@@ -1009,7 +1009,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
         VonMember("offset", VonInt(offset))))
   }
 
-  def vonifyRange(range: RangeS): IVonData = {
+  def vonifyRange(range: List[RangeS]): IVonData = {
     val RangeS(begin, end) = range
     VonObject(
       "Range",

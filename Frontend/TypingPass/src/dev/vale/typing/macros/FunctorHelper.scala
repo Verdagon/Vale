@@ -21,7 +21,7 @@ class FunctorHelper( interner: Interner, keywords: Keywords) {
   def getFunctorForPrototype(
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
-    callRange: RangeS,
+    callRange: List[RangeS],
     dropFunction: PrototypeTemplata):
   ReinterpretTE = {
     vfail()
