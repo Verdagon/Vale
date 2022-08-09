@@ -4,9 +4,9 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
-import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass}
+import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass}
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata}
 import dev.vale.typing.types.InterfaceTT
@@ -172,12 +172,12 @@ case class CompilerOutputs() {
   }
 
   def declareFunction(templateName: FullNameT[INameT]): Unit = {
-//    templateName.last match {
-//      case LambdaTemplateNameT(_) => {
-//        vpass()
-//      }
-//      case _ =>
-//    }
+    templateName.last match {
+      case FunctionTemplateNameT(StrI("Some"),CodeLocationS(_,116)) => {
+        vpass()
+      }
+      case _ =>
+    }
     vassert(!functionDeclaredNames.contains(templateName))
     functionDeclaredNames += templateName
   }

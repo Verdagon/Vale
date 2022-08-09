@@ -240,10 +240,16 @@ class InferCompiler(
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
       checkTemplateInstantiationsForEnv(
-        originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions)
+          originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions) match {
+        case Err(e) => return Err(e)
+        case Ok(()) =>
+      }
     } else {
       checkTemplateInstantiationsForEnv(
-        envs.originalCallingEnv, state, ranges, rules, conclusions)
+          envs.originalCallingEnv, state, ranges, rules, conclusions) match {
+        case Err(e) => return Err(e)
+        case Ok(()) =>
+      }
     }
 
     Ok(())
@@ -254,13 +260,19 @@ class InferCompiler(
     state: CompilerOutputs,
     ranges: List[RangeS],
     rules: Array[IRulexSR],
-    conclusions: Map[IRuneS, ITemplata[ITemplataType]]
-  ) = {
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     rules.foreach({
       case r@CallSR(_, _, _, _) => checkTemplateCall(env, state, ranges, r, conclusions)
-      case r@ResolveSR(_, _, _, _, _) => checkFunctionCall(env, state, ranges, r, conclusions)
+      case r@ResolveSR(_, _, _, _, _) => {
+        checkFunctionCall(env, state, ranges, r, conclusions) match {
+          case Ok(()) =>
+          case Err(e) => return Err(e)
+        }
+      }
       case _ =>
     })
+    Ok(())
   }
 
   def checkFunctionCall(
@@ -269,24 +281,24 @@ class InferCompiler(
     ranges: List[RangeS],
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Unit = {
+  Result[Unit, ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.
     val returnCoord =
       conclusions.get(returnRune.rune) match {
         case Some(CoordTemplata(t)) => t
-        case None => return
+        case None => return Ok(())
       }
     val paramCoords =
       conclusions.get(paramsListRune.rune) match {
-        case None => return
+        case None => return Ok(())
         case Some(CoordListTemplata(paramList)) => paramList
       }
 
     val prototypeTemplata =
       delegate.resolveFunction(callingEnv, state, range :: ranges, name, paramCoords, true) match {
-        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range :: ranges, e))
+        case Err(e) => return Err(RuleError(CouldntFindFunction(range :: ranges, e)))
         case Ok(x) => x
       }
 

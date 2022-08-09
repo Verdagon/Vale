@@ -518,6 +518,17 @@ class Compiler(
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args, true)
         }
 
+        override def evaluateGenericFunctionFromCallForPrototype(
+          coutputs: CompilerOutputs,
+          callingEnv: IEnvironment, // See CSSNCE
+          callRange: List[RangeS],
+          functionTemplata: FunctionTemplata,
+          explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+          args: Vector[CoordT]):
+        FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
+          functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
+        }
+
         override def evaluateClosureStruct(
             coutputs: CompilerOutputs,
             containingNodeEnv: NodeEnvironment,

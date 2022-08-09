@@ -561,6 +561,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
+    coutputs.declareFunction(runedEnv.fullName)
+    coutputs.declareFunctionOuterEnv(runedEnv.fullName, runedEnv)
     coutputs.declareFunctionInnerEnv(runedEnv.fullName, runedEnv)
 
     middleLayer.getOrEvaluateFunctionForHeader(

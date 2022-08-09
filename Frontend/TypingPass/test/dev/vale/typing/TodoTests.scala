@@ -271,4 +271,81 @@ class TodoTests extends FunSuite with Matchers {
       }
     })
   }
+
+  // Depends on anonymous interfaces
+  test("Lambda is incompatible anonymous interface") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface AFunction1<P> where P Ref {
+        |  func __call(virtual this &AFunction1<P>, a P) int;
+        |}
+        |exported func main() {
+        |  arr = AFunction1<int>((_) => { true });
+        |}
+        |""".stripMargin)
+
+    compile.getCompilerOutputs() match {
+      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
+      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
+      case Ok(wat) => vwat(wat)
+    }
+  }
+
+  test("Lock weak member") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.opt.*;
+        |import v.builtins.weak.*;
+        |import v.builtins.logic.*;
+        |import v.builtins.drop.*;
+        |import panicutils.*;
+        |import printutils.*;
+        |
+        |struct Base {
+        |  name str;
+        |}
+        |struct Spaceship {
+        |  name str;
+        |  origin &&Base;
+        |}
+        |func printShipBase(ship &Spaceship) {
+        |  maybeOrigin = lock(ship.origin); «14»«15»
+        |  if (not maybeOrigin.isEmpty()) { «16»
+        |    o = maybeOrigin.get();
+        |    println("Ship base: " + o.name);
+        |  } else {
+        |    println("Ship base unknown!");
+        |  }
+        |}
+        |exported func main() {
+        |  base = Base("Zion");
+        |  ship = Spaceship("Neb", &&base);
+        |  printShipBase(&ship);
+        |  (base).drop(); // Destroys base.
+        |  printShipBase(&ship);
+        |}
+        |""".stripMargin)
+
+    compile.expectCompilerOutputs()
+  }
+
+  test("Failure to resolve a Prot rule's function doesnt halt") {
+    // In the below example, it should disqualify the first foo() because T = bool
+    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
+    // compilation.
+
+    // Instead, we need to bubble up that failure to find the right function, so
+    // it disqualifies the candidate and goes with the other one.
+
+    CompilerTestCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |func moo(a str) { }
+        |func foo<T>(f T) void where func drop(T)void, func moo(str)void { }
+        |func foo<T>(f T) void where func drop(T)void, func moo(bool)void { }
+        |func main() { foo("hello"); }
+        |""".stripMargin).expectCompilerOutputs()
+  }
+
 }

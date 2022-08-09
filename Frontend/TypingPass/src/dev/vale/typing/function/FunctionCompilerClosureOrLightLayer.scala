@@ -189,8 +189,6 @@ class FunctionCompilerClosureOrLightLayer(
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareFunction(newEnv.fullName)
-    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       newEnv, coutputs, parentRanges, verifyConclusions)
   }

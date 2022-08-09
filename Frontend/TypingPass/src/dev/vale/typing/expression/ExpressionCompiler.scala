@@ -43,6 +43,15 @@ trait IExpressionCompilerDelegate {
     args: Vector[CoordT]):
   IEvaluateFunctionResult[PrototypeTemplata]
 
+  def evaluateGenericFunctionFromCallForPrototype(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: List[RangeS],
+    functionTemplata: FunctionTemplata,
+    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+    args: Vector[CoordT]):
+  IEvaluateFunctionResult[PrototypeTemplata]
+
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
     containingNodeEnv: NodeEnvironment,
@@ -1202,7 +1211,7 @@ class ExpressionCompiler(
         case _ => vwat();
       }
     val someConstructor =
-      delegate.evaluateTemplatedFunctionFromCallForPrototype(
+      delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(containedCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
@@ -1214,7 +1223,7 @@ class ExpressionCompiler(
         case _ => vwat();
       }
     val noneConstructor =
-      delegate.evaluateTemplatedFunctionFromCallForPrototype(
+      delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p

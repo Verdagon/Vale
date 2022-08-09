@@ -1442,4 +1442,27 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupImpl(struct.templateName, interface.templateName)
   }
 
+  test("Lambda inside different function with same name") {
+    // This originally didn't work because both helperFunc(:Int) and helperFunc(:Str)
+    // made a closure struct called helperFunc:lam1, which collided.
+    // We need to disambiguate by parameters, not just template args.
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |import printutils.*;
+        |
+        |func helperFunc(x int) {
+        |  { print(x); }();
+        |}
+        |func helperFunc(x str) {
+        |  { print(x); }();
+        |}
+        |exported func main() {
+        |  helperFunc(4);
+        |  helperFunc("bork");
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
 }
