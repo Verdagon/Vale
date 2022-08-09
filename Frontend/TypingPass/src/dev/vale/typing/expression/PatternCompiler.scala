@@ -344,7 +344,7 @@ class PatternCompiler(
               loadFromStruct(coutputs, headMaybeDestructureMemberPattern.range, containerAliasingExprTE, structTT, memberIndex)
             }
             case staticSizedArrayT@StaticSizedArrayTT(size, _, _, elementType) => {
-              loadFromStaticSizedArray(parentRanges, staticSizedArrayT, expectedContainerCoord, expectedContainerOwnership, containerAliasingExprTE, memberIndex)
+              loadFromStaticSizedArray(headMaybeDestructureMemberPattern.range, staticSizedArrayT, expectedContainerCoord, expectedContainerOwnership, containerAliasingExprTE, memberIndex)
             }
             case other => {
               throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Unknown type to destructure: " + other))
@@ -490,12 +490,13 @@ class PatternCompiler(
   }
 
   private def loadFromStaticSizedArray(
-      range: List[RangeS],
+      range: RangeS,
       staticSizedArrayT: StaticSizedArrayTT,
       localCoord: CoordT,
       structOwnership: OwnershipT,
       containerAlias: ReferenceExpressionTE,
       index: Int): StaticSizedArrayLookupTE = {
-    arrayCompiler.lookupInStaticSizedArray(range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32), staticSizedArrayT)
+    arrayCompiler.lookupInStaticSizedArray(
+      range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32), staticSizedArrayT)
   }
 }

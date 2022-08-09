@@ -28,13 +28,6 @@ import scala.collection.mutable
 case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: Boolean) extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 trait IStructCompilerDelegate {
-  def evaluateOrdinaryFunctionFromNonCallForHeader(
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    functionTemplata: FunctionTemplata,
-    verifyConclusions: Boolean):
-  FunctionHeaderT
-
   def evaluateTemplatedFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -202,12 +195,13 @@ class StructCompiler(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
 //    Profiler.reentrant("StructCompiler-makeClosureUnderstruct", name.codeLocation.toString, () => {
-      templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, name, functionS, members)
+      templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)
 //    })
   }
 

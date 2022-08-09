@@ -20,6 +20,7 @@ import dev.vale.postparsing._
 trait IConvertHelperDelegate {
   def isParent(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
   IsParentResult
@@ -115,7 +116,7 @@ class ConvertHelper(
     sourceStructRef: StructTT,
     targetInterfaceRef: InterfaceTT):
   (ReferenceExpressionTE) = {
-    delegate.isParent(coutputs, sourceStructRef, targetInterfaceRef) match {
+    delegate.isParent(coutputs, range, sourceStructRef, targetInterfaceRef) match {
       case IsParent(_) => {
         StructToInterfaceUpcastTE(sourceExpr, targetInterfaceRef)
       }

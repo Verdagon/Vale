@@ -72,7 +72,6 @@ trait IInfererDelegate {
   def predictStruct(
     env: InferEnv,
     state: CompilerOutputs,
-    callRange: List[RangeS],
     templata: StructTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
@@ -81,7 +80,6 @@ trait IInfererDelegate {
   def predictInterface(
     env: InferEnv,
     state: CompilerOutputs,
-    callRange: List[RangeS],
     templata: InterfaceTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
@@ -1019,14 +1017,14 @@ class CompilerRuleSolver(
               case it @ StructTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 // See SFWPRL for why we're calling predictStruct instead of resolveStruct
-                val kind = delegate.predictStruct(env, state, range :: env.parentRanges, it, args.toVector)
+                val kind = delegate.predictStruct(env, state, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
                 Ok(())
               }
               case it @ InterfaceTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 // See SFWPRL for why we're calling predictInterface instead of resolveInterface
-                val kind = delegate.predictInterface(env, state, range :: env.parentRanges, it, args.toVector)
+                val kind = delegate.predictInterface(env, state, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
                 Ok(())
               }

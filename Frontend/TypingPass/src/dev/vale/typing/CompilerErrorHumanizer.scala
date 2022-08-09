@@ -170,20 +170,23 @@ object CompilerErrorHumanizer {
           text
         }
         case HigherTypingInferError(range, err) => {
-          HigherTypingErrorHumanizer.humanize(codeMap, range, err)
+          HigherTypingErrorHumanizer.humanizeRuneTypeSolveError(codeMap, err)
         }
       }
 
-    val posStr = humanizePos(codeMap, err.range.begin)
-    val lineContents = lineContaining(codeMap, err.range.begin)
-    val errorId = "T"
-    f"${posStr} error ${errorId}\n${lineContents}\n${errorStrBody}\n"
+//    val errorId = "T"
+    err.range.reverse.map(range => {
+      val posStr = humanizePos(codeMap, range.begin)
+      val lineContents = lineContaining(codeMap, range.begin)
+      f"At ${posStr}:\n${lineContents}\n"
+    }).mkString("") +
+    errorStrBody + "\n"
   }
 
   def humanizeFindFunctionFailure(
     verbose: Boolean,
     codeMap: FileCoordinateMap[String],
-    invocationrange: List[RangeS],
+    invocationRange: List[RangeS],
     fff: OverloadResolver.FindFunctionFailure): String = {
 
     val FindFunctionFailure(name, args, rejectedCalleeToReason) = fff

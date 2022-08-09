@@ -20,9 +20,8 @@ object HigherTypingErrorHumanizer {
     f"${posStr} error ${errorId}: ${errorStrBody}\n${nextStuff}\n"
   }
 
-  def humanize(
+  def humanizeRuneTypeSolveError(
     filenamesAndSources: FileCoordinateMap[String],
-    range: RangeS,
     err: RuneTypeSolveError):
   String = {
     ": Couldn't solve generics types:\n" +

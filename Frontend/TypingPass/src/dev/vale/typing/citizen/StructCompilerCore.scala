@@ -36,6 +36,7 @@ class StructCompilerCore(
     // The environment that the struct was defined in.
     structRunesEnv: CitizenEnvironment[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     structA: StructA):
   Unit = {
     val templateArgs = structRunesEnv.fullName.last.templateArgs
@@ -72,7 +73,7 @@ class StructCompilerCore(
       structA.attributes.foldLeft(defaultCalledMacros)({
         case (macrosToCall, mc @ MacroCallS(range, CallMacroP, macroName)) => {
           if (macrosToCall.exists(_.macroName == macroName)) {
-            throw CompileErrorExceptionT(RangedInternalErrorT(range, "Calling macro twice: " + macroName))
+            throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Calling macro twice: " + macroName))
           }
           macrosToCall :+ mc
         }
@@ -85,7 +86,7 @@ class StructCompilerCore(
         val maacro =
           structRunesEnv.globalEnv.nameToStructDefinedMacro.get(macroName) match {
             case None => {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+              throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Macro not found: " + macroName))
             }
             case Some(m) => m
           }
@@ -116,7 +117,7 @@ class StructCompilerCore(
         if (member.variability == VaryingT) {
           throw CompileErrorExceptionT(
             ImmStructCantHaveVaryingMember(
-              structA.members(index).range,
+              structA.members(index).range :: parentRanges,
               structA.name,
               structA.members(index) match {
                 case NormalStructMemberS(range, name, variability, typeRune) => name.str
@@ -172,6 +173,7 @@ class StructCompilerCore(
   def compileInterface(
     interfaceRunesEnv: CitizenEnvironment[IInterfaceNameT, IInterfaceTemplateNameT],
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
     val templateArgs = interfaceRunesEnv.fullName.last.templateArgs
@@ -216,7 +218,7 @@ class StructCompilerCore(
         val maacro =
           interfaceRunesEnv.globalEnv.nameToInterfaceDefinedMacro.get(macroName) match {
             case None => {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Macro not found: " + macroName))
+              throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Macro not found: " + macroName))
             }
             case Some(m) => m
           }
@@ -248,21 +250,23 @@ class StructCompilerCore(
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
-        if (internalMethod.isTemplate) {
+//        if (internalMethod.isTemplate) {
           delegate.evaluateTemplatedFunctionFromNonCallForHeader(
             coutputs,
+            parentRanges,
             FunctionTemplata(
               interfaceInnerEnv,
               internalMethod),
             true)
-        } else {
-          delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
-            coutputs,
-            FunctionTemplata(
-              interfaceInnerEnv,
-              internalMethod),
-            true)
-        }
+//        } else {
+//          delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+//            coutputs,
+//            parentRanges,
+//            FunctionTemplata(
+//              interfaceInnerEnv,
+//              internalMethod),
+//            true)
+//        }
       })
 
     val interfaceDef2 =
@@ -331,6 +335,7 @@ class StructCompilerCore(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     members: Vector[StructMemberT]):
@@ -419,21 +424,23 @@ class StructCompilerCore(
       // Adds the free function to the coutputs
       // Free is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
-      delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+      delegate.evaluateTemplatedFunctionFromNonCallForHeader(
         coutputs,
+        parentRanges,
         structInnerEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
           case Some(ft@FunctionTemplata(_, _)) => ft
-          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure free function we just added!"))
+          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure free function we just added!"))
         },
         true)
       // Adds the drop function to the coutputs
       // Drop is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
-      delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
+      delegate.evaluateTemplatedFunctionFromNonCallForHeader(
         coutputs,
+        parentRanges,
         structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
           case Some(ft@FunctionTemplata(_, _)) => ft
-          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range, "Couldn't find closure drop function we just added!"))
+          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
         },
         true)
     }

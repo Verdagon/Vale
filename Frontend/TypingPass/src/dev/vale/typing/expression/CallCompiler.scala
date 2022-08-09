@@ -70,6 +70,7 @@ class CallCompiler(
 
         checkTypes(
           coutputs,
+          range,
           prototype.prototype.paramTypes,
           argsExprs2.map(a => a.result.reference),
           exact = true)
@@ -128,6 +129,7 @@ class CallCompiler(
 
     checkTypes(
       coutputs,
+      range,
       prototype.prototype.paramTypes,
       argsExprs2.map(a => a.result.reference),
       exact = true)
@@ -206,7 +208,7 @@ class CallCompiler(
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.prototype.paramTypes + " args: " + argTypes))
     }
 
-    checkTypes(coutputs, prototype2.prototype.paramTypes, argTypes, exact = true)
+    checkTypes(coutputs, range, prototype2.prototype.paramTypes, argTypes, exact = true)
 
     val resultingExpr2 = FunctionCallTE(prototype2.prototype, actualArgsExprs2);
 
@@ -216,6 +218,7 @@ class CallCompiler(
 
   def checkTypes(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     params: Vector[CoordT],
     args: Vector[CoordT],
     exact: Boolean):
@@ -226,7 +229,7 @@ class CallCompiler(
 
       } else {
         if (!exact) {
-          templataCompiler.isTypeConvertible(coutputs, argsHead, paramsHead) match {
+          templataCompiler.isTypeConvertible(coutputs, parentRanges, argsHead, paramsHead) match {
             case (true) => {
 
             }
