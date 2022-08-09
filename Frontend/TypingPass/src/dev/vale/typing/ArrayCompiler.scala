@@ -386,7 +386,7 @@ class ArrayCompiler(
   }
 
   def lookupInStaticSizedArray(
-      range: List[RangeS],
+      range: RangeS,
       containerExpr2: ReferenceExpressionTE,
       indexExpr2: ReferenceExpressionTE,
       at: StaticSizedArrayTT) = {
@@ -400,14 +400,15 @@ class ArrayCompiler(
   }
 
   def lookupInUnknownSizedArray(
-    range: List[RangeS],
+    parentRanges: List[RangeS],
+    range: RangeS,
     containerExpr2: ReferenceExpressionTE,
     indexExpr2: ReferenceExpressionTE,
     rsa: RuntimeSizedArrayTT
   ): RuntimeSizedArrayLookupTE = {
     val RuntimeSizedArrayTT(mutability, memberType) = rsa
     if (indexExpr2.result.reference != CoordT(ShareT, IntT(32))) {
-      throw CompileErrorExceptionT(IndexedArrayWithNonInteger(range, indexExpr2.result.reference))
+      throw CompileErrorExceptionT(IndexedArrayWithNonInteger(range :: parentRanges, indexExpr2.result.reference))
     }
     val variability =
       mutability match {

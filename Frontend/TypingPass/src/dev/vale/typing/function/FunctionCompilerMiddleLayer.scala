@@ -32,34 +32,34 @@ class FunctionCompilerMiddleLayer(
     delegate: IFunctionCompilerDelegate) {
   val core = new FunctionCompilerCore(opts, interner, keywords, nameTranslator, templataCompiler, convertHelper, delegate)
 
-  // This is for the early stages of Compiler when it's scanning banners to put in
-  // its env. We just want its banner, we don't want to evaluate it.
-  // Preconditions:
-  // - already spawned local env
-  // - either no template args, or they were already added to the env.
-  // - either no closured vars, or they were already added to the env.
-  def predictOrdinaryFunctionBanner(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    function1: FunctionA):
-  (FunctionBannerT) = {
-
-    // Check preconditions
-    function1.runeToType.keySet.foreach(templateParam => {
-      vassert(runedEnv.lookupNearestWithImpreciseName(vimpl(templateParam.toString), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty)
-    })
-    function1.body match {
-      case CodeBodyS(body1) => vassert(body1.closuredNames.isEmpty)
-      case _ =>
-    }
-
-    val params2 = assembleFunctionParams(runedEnv, coutputs, parentRanges, function1.params)
-    val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
-    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = FunctionBannerT(Some(function1), namedEnv.fullName)
-    banner
-  }
+//  // This is for the early stages of Compiler when it's scanning banners to put in
+//  // its env. We just want its banner, we don't want to evaluate it.
+//  // Preconditions:
+//  // - already spawned local env
+//  // - either no template args, or they were already added to the env.
+//  // - either no closured vars, or they were already added to the env.
+//  def predictOrdinaryFunctionBanner(
+//    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    function1: FunctionA):
+//  (FunctionBannerT) = {
+//
+//    // Check preconditions
+//    function1.runeToType.keySet.foreach(templateParam => {
+//      vassert(runedEnv.lookupNearestWithImpreciseName(vimpl(templateParam.toString), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty)
+//    })
+//    function1.body match {
+//      case CodeBodyS(body1) => vassert(body1.closuredNames.isEmpty)
+//      case _ =>
+//    }
+//
+//    val params2 = assembleFunctionParams(runedEnv, coutputs, parentRanges, function1.params)
+//    val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
+//    val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
+//    val banner = FunctionBannerT(Some(function1), namedEnv.fullName)
+//    banner
+//  }
 
   private def evaluateMaybeVirtuality(
     env: IEnvironment,
@@ -181,32 +181,32 @@ class FunctionCompilerMiddleLayer(
     }
   }
 
-  // Preconditions:
-  // - already spawned local env
-  // - either no template args, or they were already added to the env.
-  // - either no closured vars, or they were already added to the env.
-  def getOrEvaluateOrdinaryFunctionForPrototype(
-    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
-    coutputs: CompilerOutputs,
-    callRange: List[RangeS],
-    function1: FunctionA):
-  (PrototypeTemplata) = {
-    // Check preconditions
-    function1.runeToType.keySet.foreach(templateParam => {
-      vassert(
-        runedEnv
-          .lookupNearestWithImpreciseName(
-            interner.intern(RuneNameS(templateParam)),
-            Set(TemplataLookupContext, ExpressionLookupContext))
-          .nonEmpty);
-    })
-
-    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
-    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
-    val needleSignature = SignatureT(functionFullName)
-    val p = vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
-    PrototypeTemplata(function1.range, p)
-  }
+//  // Preconditions:
+//  // - already spawned local env
+//  // - either no template args, or they were already added to the env.
+//  // - either no closured vars, or they were already added to the env.
+//  def getOrEvaluateOrdinaryFunctionForPrototype(
+//    runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
+//    coutputs: CompilerOutputs,
+//    callRange: List[RangeS],
+//    function1: FunctionA):
+//  (PrototypeTemplata) = {
+//    // Check preconditions
+//    function1.runeToType.keySet.foreach(templateParam => {
+//      vassert(
+//        runedEnv
+//          .lookupNearestWithImpreciseName(
+//            interner.intern(RuneNameS(templateParam)),
+//            Set(TemplataLookupContext, ExpressionLookupContext))
+//          .nonEmpty);
+//    })
+//
+//    val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
+//    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
+//    val needleSignature = SignatureT(functionFullName)
+//    val p = vassertSome(coutputs.lookupFunction(needleSignature)).header.toPrototype
+//    PrototypeTemplata(function1.range, p)
+//  }
 
 //  // We would want only the prototype instead of the entire header if, for example,
 //  // we were calling the function. This is necessary for a recursive function like

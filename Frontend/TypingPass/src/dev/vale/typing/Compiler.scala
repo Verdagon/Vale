@@ -83,8 +83,13 @@ class Compiler(
       opts,
       nameTranslator,
       new ITemplataCompilerDelegate {
-        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
-          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef, true)
+        override def isParent(
+          coutputs: CompilerOutputs,
+          parentRanges: List[RangeS],
+          descendantCitizenRef: ICitizenTT,
+          ancestorInterfaceRef: InterfaceTT):
+        IsParentResult = {
+          implCompiler.isParent(coutputs, parentRanges, descendantCitizenRef, ancestorInterfaceRef, true)
         }
 
         override def resolveStruct(
@@ -142,22 +147,26 @@ class Compiler(
               case n@FullNameT(_, _, PlaceholderNameT(_)) => n
             })
 
-          val originalCallingEnvTemplateName =
-            env.originalCallingEnv.fullName match {
-              case FullNameT(packageCoord, initSteps, x : IInstantiationNameT) => {
-                FullNameT(packageCoord, initSteps, x.template)
+          if (placeholderFullNames.nonEmpty) {
+            val originalCallingEnvTemplateName =
+              env.originalCallingEnv.fullName match {
+                case FullNameT(packageCoord, initSteps, x: ITemplateNameT) => {
+                  FullNameT(packageCoord, initSteps, x)
+                }
+                // When we compile a generic function, we populate some placeholders for its template
+                // args. Then, we start compiling its body expressions. At that point, we're in an
+                // environment that has a FullName with placeholders in it.
+                // That's what we'll see in this case.
+                case FullNameT(packageCoord, initSteps, x: IInstantiationNameT) => {
+                  FullNameT(packageCoord, initSteps, x.template)
+                }
+                case other => vfail(other)
               }
-              // This might be the case if we're doing some preliminary solving without placeholders.
-              case FullNameT(packageCoord, initSteps, x : ITemplateNameT) => {
-                // (also, if we're here there really shouldnt be any placeholders)
-                FullNameT(packageCoord, initSteps, x)
-              }
-              case other => vfail(other)
-            }
-          placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
-            val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
-            vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
-          })
+            placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
+              val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
+              vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
+            })
+          }
         }
 
         override def lookupTemplata(
@@ -179,8 +188,8 @@ class Compiler(
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.originalCallingEnv, s, false)
-            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.originalCallingEnv, i, false)
+            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
+            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -219,23 +228,21 @@ class Compiler(
         override def predictInterface(
           env: InferEnv,
           state: CompilerOutputs,
-          callRange: List[RangeS],
           templata: InterfaceTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
             structCompiler.predictInterface(
-              state, env.originalCallingEnv, callRange, templata, templateArgs)
+              state, env.originalCallingEnv, env.parentRanges, templata, templateArgs)
         }
 
         override def predictStruct(
           env: InferEnv,
           state: CompilerOutputs,
-          callRange: List[RangeS],
           templata: StructTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, env.originalCallingEnv, callRange, templata, templateArgs)
+            state, env.originalCallingEnv, env.parentRanges, templata, templateArgs)
         }
 
         override def kindIsFromTemplate(
@@ -263,7 +270,7 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => implCompiler.getParents(coutputs, envs.originalCallingEnv, s, true)
+                case s : ICitizenTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.originalCallingEnv, s, true)
                 case _ => Array()
               })
         }
@@ -366,8 +373,13 @@ class Compiler(
     new ConvertHelper(
       opts,
       new IConvertHelperDelegate {
-        override def isParent(coutputs: CompilerOutputs, descendantCitizenRef: ICitizenTT, ancestorInterfaceRef: InterfaceTT): IsParentResult = {
-          implCompiler.isParent(coutputs, descendantCitizenRef, ancestorInterfaceRef, true)
+        override def isParent(
+          coutputs: CompilerOutputs,
+          parentRanges: List[RangeS],
+          descendantCitizenRef: ICitizenTT,
+          ancestorInterfaceRef: InterfaceTT):
+        IsParentResult = {
+          implCompiler.isParent(coutputs, parentRanges, descendantCitizenRef, ancestorInterfaceRef, true)
         }
       })
 
@@ -380,16 +392,16 @@ class Compiler(
       templataCompiler,
       inferCompiler,
       new IStructCompilerDelegate {
-
-        override def evaluateOrdinaryFunctionFromNonCallForHeader(
-          coutputs: CompilerOutputs,
-          parentRanges: List[RangeS],
-          functionTemplata: FunctionTemplata,
-          verifyConclusions: Boolean):
-        FunctionHeaderT = {
-          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(
-            coutputs, parentRanges, functionTemplata, verifyConclusions)
-        }
+//
+//        override def evaluateOrdinaryFunctionFromNonCallForHeader(
+//          coutputs: CompilerOutputs,
+//          parentRanges: List[RangeS],
+//          functionTemplata: FunctionTemplata,
+//          verifyConclusions: Boolean):
+//        FunctionHeaderT = {
+//          functionCompiler.evaluateOrdinaryFunctionFromNonCallForHeader(
+//            coutputs, parentRanges, functionTemplata, verifyConclusions)
+//        }
 
         override def evaluateTemplatedFunctionFromNonCallForHeader(
           coutputs: CompilerOutputs,

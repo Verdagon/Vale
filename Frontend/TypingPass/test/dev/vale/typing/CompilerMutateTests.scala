@@ -241,7 +241,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
 
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")
 
-    val tz = RangeS.testZero(interner)
+    val tz = List(RangeS.testZero(interner))
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindTypeT(tz, "Spaceship")).nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
@@ -302,9 +302,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       FunctionAlreadyExists(
-        tz,
-        tz,
-        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.begin)), Vector.empty, Vector.empty))))))
+        tz.head,
+        tz.head,
+        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector.empty, Vector.empty))))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(

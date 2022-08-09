@@ -4,7 +4,7 @@ import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, Variab
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.{Collector, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass}
 import dev.vale.typing.ast._
@@ -171,9 +171,13 @@ case class CompilerOutputs() {
 //    functionsByPrototype.put(function.header.toPrototype, function)
   }
 
-  // We can't declare the struct at the same time as we declare its mutability or environment,
-  // see MFDBRE.
   def declareFunction(templateName: FullNameT[INameT]): Unit = {
+//    templateName.last match {
+//      case LambdaTemplateNameT(_) => {
+//        vpass()
+//      }
+//      case _ =>
+//    }
     vassert(!functionDeclaredNames.contains(templateName))
     functionDeclaredNames += templateName
   }
@@ -195,7 +199,7 @@ case class CompilerOutputs() {
   }
 
   def declareFunctionOuterEnv(
-    nameT: FullNameT[INameT],
+    nameT: FullNameT[IFunctionTemplateNameT],
     env: IEnvironment,
   ): Unit = {
     vassert(functionDeclaredNames.contains(nameT))

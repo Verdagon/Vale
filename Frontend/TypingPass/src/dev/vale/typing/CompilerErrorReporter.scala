@@ -90,8 +90,8 @@ case class CantUseUnstackifiedLocal(range: List[RangeS], localId: IVarNameT) ext
   vpass()
 }
 case class CantUnstackifyOutsideLocalFromInsideWhile(range: List[RangeS], localId: IVarNameT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class FunctionAlreadyExists(oldFunctionrange: List[RangeS], newFunctionrange: List[RangeS], signature: SignatureT) extends ICompileErrorT {
-  override def range: List[RangeS] = newFunctionRange
+case class FunctionAlreadyExists(oldFunctionRange: RangeS, newFunctionRange: RangeS, signature: SignatureT) extends ICompileErrorT {
+  override def range: List[RangeS] = List(newFunctionRange)
   vpass()
 }
 case class CantMutateFinalMember(range: List[RangeS], struct: StructTT, memberName: FullNameT[IVarNameT]) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

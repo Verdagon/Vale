@@ -163,7 +163,7 @@ class BodyCompiler(
       maybeExpectedResultType match {
         case None => unconvertedBodyWithoutReturn
         case Some(expectedResultType) => {
-          if (templataCompiler.isTypeConvertible(coutputs, unconvertedBodyWithoutReturn.result.reference, expectedResultType)) {
+          if (templataCompiler.isTypeConvertible(coutputs, parentRanges, unconvertedBodyWithoutReturn.result.reference, expectedResultType)) {
             if (unconvertedBodyWithoutReturn.kind == NeverT(false)) {
               unconvertedBodyWithoutReturn
             } else {

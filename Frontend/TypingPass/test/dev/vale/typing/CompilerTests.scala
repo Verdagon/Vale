@@ -219,25 +219,6 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
   }
 
-  test("Reports error") {
-    // https://github.com/ValeLang/Vale/issues/548
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface A {
-        |	func foo(virtual a &A) int;
-        |}
-        |
-        |struct B imm { val int; }
-        |impl A for B;
-        |
-        |func foo(b &B) int { return b.val; }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    vimpl()
-  }
-
   test("Lambda with one magic arg") {
     val compile =
       CompilerTestCompilation.test(
@@ -587,44 +568,6 @@ class CompilerTests extends FunSuite with Matchers {
     `export`.tyype shouldEqual moo.placeholderedInterface
   }
 
-  // DO NOT SUBMIT fails: imm generics
-  test("Report imm mut mismatch for generic type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct MyImmContainer<T> imm where T Ref { value T; }
-        |struct MyMutStruct { }
-        |exported func main() { x = MyImmContainer<MyMutStruct>(); }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Tests stamping a struct and its implemented interface from a function param") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.panic.*;
-        |import v.builtins.drop.*;
-        |import panicutils.*;
-        |interface MyOption<T Ref> where func drop(T)void { }
-        |struct MySome<T Ref> where func drop(T)void { value T; }
-        |impl<T> MyOption<T> for MySome<T> where func drop(T)void;
-        |func moo(a MySome<int>) { }
-        |exported func main() { moo(__pretend<MySome<int>>()); }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val interner = compile.interner
-    val keywords = compile.keywords
-
-    val interface =
-      coutputs.lookupInterface(
-        interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
-
-    val struct =
-      coutputs.lookupStruct(
-        interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
-
-    coutputs.lookupImpl(struct.templateName, interface.templateName)
-  }
-
   test("Tests single expression and single statement functions' returns") {
     val compile = CompilerTestCompilation.test(
       """
@@ -749,39 +692,6 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   // See DSDCTD
-  test("Tests destructuring shared doesnt compile to destroy") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |struct Vec3i imm {
-        |  x int;
-        |  y int;
-        |  z int;
-        |}
-        |
-        |exported func main() int {
-        |	 Vec3i[x, y, z] = Vec3i(3, 4, 5);
-        |  return y;
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    Collector.all(coutputs.lookupFunction("main"), {
-      case DestroyTE(_, _, _) =>
-    }).size shouldEqual 0
-
-    // Make sure there's a destroy in its destructor though.
-    val destructor =
-      vassertOne(
-        coutputs.functions.collect({
-          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
-        }))
-
-    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
-    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
-  }
-
-  // See DSDCTD
   test("Tests destructuring borrow doesnt compile to destroy") {
     val compile = CompilerTestCompilation.test(
       """
@@ -888,16 +798,6 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  test("Tests calling an abstract function") {
-    val compile = CompilerTestCompilation.test(
-      Tests.loadExpected("programs/genericvirtuals/callingAbstract.vale"))
-    val coutputs = compile.expectCompilerOutputs()
-
-    coutputs.functions.collectFirst({
-      case FunctionT(header @ functionName("doThing"), _) if header.getAbstractInterface != None => true
-    }).get
-  }
-
   test("Tests a foreach for a linked list") {
     val compile = CompilerTestCompilation.test(
         Tests.loadExpected("programs/genericvirtuals/foreachlinkedlist.vale"))
@@ -908,6 +808,24 @@ class CompilerTests extends FunSuite with Matchers {
       case f @ FunctionCallTE(functionName("forEach"), _) => f
     })
 
+  }
+
+  test("Tests lambda and concept function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.print.*;
+        |import v.builtins.drop.*;
+        |import v.builtins.str.*;
+        |
+        |func moo<X, F>(x X, f F)
+        |where func(&F, &X)void, func drop(X)void, func drop(F)void {
+        |  f(&x);
+        |}
+        |exported func main() {
+        |  moo("hello", { print(_); });
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
   }
 
   test("Recursive struct") {
@@ -965,21 +883,6 @@ class CompilerTests extends FunSuite with Matchers {
     vpass()
   }
 
-  test("fdsfsdf") {
-    // This test is because we had a bug where & still produced a *!.
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Bork { }
-        |func myFunc<F>(consumer &F) void { }
-        |func main() {
-        |  bork = Bork();
-        |  myFunc(&{ bork });
-        |}
-        |
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Test struct default generic argument in call") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1002,79 +905,6 @@ class CompilerTests extends FunSuite with Matchers {
                 CoordTemplata(CoordT(ShareT,BoolT())),
                 IntegerTemplata(5)))))) =>
     }
-  }
-
-  test("Test struct default generic argument in type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct MyHashSet<K Ref, H Int = 5> { }
-        |struct MyStruct {
-        |  x MyHashSet<bool>();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val moo = coutputs.lookupStruct("MyStruct")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
-    tyype match {
-      case CoordT(
-        OwnT,
-        StructTT(
-          FullNameT(_,_,
-            StructNameT(
-              StructTemplateNameT(StrI("MyHashSet")),
-              Vector(
-                CoordTemplata(CoordT(ShareT,BoolT())),
-                IntegerTemplata(5)))))) =>
-    }
-  }
-
-  test("Test interface default generic argument in type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |sealed interface MyHashSet<K Ref, H Int = 5> { }
-        |struct MyInterface {
-        |  x MyHashSet<bool>();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val moo = coutputs.lookupInterface("MyInterface")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
-    tyype match {
-      case CoordT(
-        OwnT,
-        InterfaceTT(
-          FullNameT(_,_,
-            InterfaceNameT(
-              InterfaceTemplateNameT(StrI("MyHashSet")),
-              Vector(
-                CoordTemplata(CoordT(ShareT,BoolT())),
-                IntegerTemplata(5)))))) =>
-    }
-  }
-
-  test("DO NOT SUBMIT") {
-    vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
-
-    vimpl() // OSDCE might be obsolete
-
-    vimpl() // add a test for a lambda that is used twice
-  }
-
-  test("Test imm array") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.panic.*;
-        |import v.builtins.drop.*;
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export #[]int as ImmArrInt;
-        |exported func main(arr #[]int) {
-        |  __vbi_panic();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val main = coutputs.lookupFunction("main")
-    main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
   }
 
   test("Test Array of StructTemplata") {
@@ -1106,45 +936,6 @@ class CompilerTests extends FunSuite with Matchers {
         |  } else {
         |    panic("Error in CreateDir");
         |  }
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Test array push, pop, len, capacity, drop") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arith.*;
-        |import array.make.*;
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() void {
-        |  arr = Array<mut, int>(9);
-        |  arr.push(420);
-        |  arr.push(421);
-        |  arr.push(422);
-        |  arr.len();
-        |  arr.capacity();
-        |  // implicit drop with pops
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Test MakeArray") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arith.*;
-        |import array.make.*;
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() int {
-        |  a = MakeArray(11, {_});
-        |  return len(&a);
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -1182,55 +973,6 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, { case ConstantIntTE(IntegerTemplata(9), _) => })
   }
 
-  test("Test return from inside if destroys locals") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Marine { hp int; }
-        |exported func main() int {
-        |  m = Marine(5);
-        |  x =
-        |    if (true) {
-        |      return 7;
-        |    } else {
-        |      m.hp
-        |    };
-        |  return x;
-        |}
-        |""".stripMargin)// +
-//        Tests.loadExpected("castutils/castutils.vale") +
-//        Tests.loadExpected("printutils/printutils.vale"))
-    val coutputs = compile.expectCompilerOutputs()
-    val main = coutputs.lookupFunction("main")
-    val destructorCalls =
-      Collector.all(main, {
-        case fpc @ FunctionCallTE(PrototypeT(FullNameT(_,Vector(StructNameT(StructTemplateNameT(StrI("Marine")),Vector())),FunctionNameT(FunctionTemplateNameT(StrI("drop"), _),Vector(),Vector(CoordT(_,StructTT(simpleName("Marine")))))),_),_) => fpc
-      })
-    destructorCalls.size shouldEqual 2
-  }
-
-  test("Test complex interface") {
-    val compile = CompilerTestCompilation.test(
-        Tests.loadExpected("programs/genericvirtuals/templatedinterface.vale"))
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Lambda is incompatible anonymous interface") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface AFunction1<P> where P Ref {
-        |  func __call(virtual this &AFunction1<P>, a P) int;
-        |}
-        |exported func main() {
-        |  arr = AFunction1<int>((_) => { true });
-        |}
-        |""".stripMargin)
-
-    compile.getCompilerOutputs() match {
-      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
-      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
-      case Ok(wat) => vwat(wat)
-    }
-  }
   test("Zero method anonymous interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1240,109 +982,6 @@ class CompilerTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.expectCompilerOutputs()
-  }
-
-  test("Failure to resolve a Prot rule's function doesnt halt") {
-    // In the below example, it should disqualify the first foo() because T = bool
-    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
-    // compilation.
-
-    // Instead, we need to bubble up that failure to find the right function, so
-    // it disqualifies the candidate and goes with the other one.
-
-    CompilerTestCompilation.test(
-      """
-        |func moo(a str) { }
-        |func foo<T>(f T) void where func moo(str)void { }
-        |func foo<T>(f T) void where func moo(bool)void { }
-        |func main() { foo("hello"); }
-        |""".stripMargin).expectCompilerOutputs()
-  }
-
-
-
-
-  test("Lock weak member") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.opt.*;
-        |import v.builtins.weak.*;
-        |import v.builtins.logic.*;
-        |import v.builtins.drop.*;
-        |import panicutils.*;
-        |import printutils.*;
-        |
-        |struct Base {
-        |  name str;
-        |}
-        |struct Spaceship {
-        |  name str;
-        |  origin &&Base;
-        |}
-        |func printShipBase(ship &Spaceship) {
-        |  maybeOrigin = lock(ship.origin); «14»«15»
-        |  if (not maybeOrigin.isEmpty()) { «16»
-        |    o = maybeOrigin.get();
-        |    println("Ship base: " + o.name);
-        |  } else {
-        |    println("Ship base unknown!");
-        |  }
-        |}
-        |exported func main() {
-        |  base = Base("Zion");
-        |  ship = Spaceship("Neb", &&base);
-        |  printShipBase(&ship);
-        |  (base).drop(); // Destroys base.
-        |  printShipBase(&ship);
-        |}
-        |""".stripMargin)
-
-    compile.expectCompilerOutputs()
-  }
-
-  // DO NOT SUBMIT fails lambda inside template
-  test("Lambda inside template") {
-    // This originally didn't work because both helperFunc<int> and helperFunc<Str>
-    // made a closure struct called helperFunc:lam1, which collided.
-    // This is what spurred paackage support.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |
-        |func helperFunc<T>(x T) {
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-
-  test("Lambda inside different function with same name") {
-    // This originally didn't work because both helperFunc(:Int) and helperFunc(:Str)
-    // made a closure struct called helperFunc:lam1, which collided.
-    // We need to disambiguate by parameters, not just template args.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |
-        |func helperFunc(x int) {
-        |  { print(x); }();
-        |}
-        |func helperFunc(x str) {
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
   }
 
   test("Reports when exported function depends on non-exported param") {
@@ -1404,18 +1043,7 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Reports when exported RSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export []<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
+
 
   test("Checks that we stored a borrowed temporary in a local") {
     val compile = CompilerTestCompilation.test(
@@ -1433,19 +1061,6 @@ class CompilerTests extends FunSuite with Matchers {
       classOf[LetAndLendTE]) match {
         case LetAndLendTE(_, _, BorrowT) =>
       }
-  }
-
-  test("Reports when exported SSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export [#5]<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
   }
 
   test("Reports when reading nonexistant local") {
@@ -1555,17 +1170,6 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Reports when two functions with same signature") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func moo() int { return 1337; }
-        |exported func moo() int { return 1448; }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
-    }
-  }
-
   test("Reports when we give too many args") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1588,7 +1192,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Humanize errors") {
     val interner = new Interner()
     val keywords = new Keywords(interner)
-    val tz = RangeS.testZero(interner)
+    val tz = List(RangeS.testZero(interner))
 
     val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
     val fireflyCoord = CoordT(OwnT,fireflyKind)
@@ -1598,9 +1202,9 @@ class CompilerTests extends FunSuite with Matchers {
     val ispaceshipCoord = CoordT(OwnT,ispaceshipKind)
     val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
     val unrelatedCoord = CoordT(OwnT,unrelatedKind)
-    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), FunctionNameT(interner.intern(FunctionTemplateNameT(StrI("myFunc"), tz.begin)), Vector(), Vector(fireflyCoord))))
-    val fireflyExport = KindExportT(tz, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
-    val serenityExport = KindExportT(tz, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Serenity")));
+    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), FunctionNameT(interner.intern(FunctionTemplateNameT(StrI("myFunc"), tz.head.begin)), Vector(), Vector(fireflyCoord))))
+    val fireflyExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
+    val serenityExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Serenity")));
 
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")
 
@@ -1669,7 +1273,7 @@ class CompilerTests extends FunSuite with Matchers {
         CodeVarNameT(StrI("firefly"))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
-      FunctionAlreadyExists(tz, tz, fireflySignature))
+      FunctionAlreadyExists(tz.head, tz.head, fireflySignature))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(
@@ -1695,7 +1299,7 @@ class CompilerTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       ImmStructCantHaveVaryingMember(
-        tz, TopLevelStructDeclarationNameS(interner.intern(StrI("SpaceshipSnapshot")), tz), "fuel"))
+        tz, TopLevelStructDeclarationNameS(interner.intern(StrI("SpaceshipSnapshot")), tz.head), "fuel"))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantDowncastUnrelatedTypes(
@@ -1763,26 +1367,6 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Report when downcasting to interface") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISuper { }
-        |interface ISub { }
-        |impl ISuper for ISub;
-        |
-        |exported func main() {
-        |  ship = __pretend<ISuper>();
-        |  ship.as<ISub>();
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(CantDowncastToInterface(_, _)) =>
-    }
-  }
-
   test("Report when multiple types in array") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1798,23 +1382,6 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Report when num elements mismatch") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Spaceship imm {
-        |  name! str;
-        |  numWings int;
-        |}
-        |exported func main() bool {
-        |  arr = [#4][true, false, false];
-        |  return arr.0;
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(InitializedWrongNumberOfElements(_, 4, 3)) =>
-    }
-  }
-
   test("Report when abstract method defined outside open interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1827,29 +1394,6 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.getCompilerOutputs() match {
       case Err(AbstractMethodOutsideOpenInterface(_)) =>
-    }
-  }
-
-  test("Reports when ownership doesnt match") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |struct Firefly {}
-        |func getFuel(self &Firefly) int { return 7; }
-        |
-        |exported func main() int {
-        |  f = Firefly();
-        |  return (f).getFuel();
-        |}
-        |""".stripMargin
-    )
-    compile.getCompilerOutputs() match {
-      case Err(CouldntFindFunctionToCallT(range, fff)) => {
-        fff.name match { case CodeNameS(StrI("getFuel")) => }
-        fff.rejectedCalleeToReason.size shouldEqual 1
-        val reason = fff.rejectedCalleeToReason.head._2
-        reason match { case SpecificParamDoesntSend(0, _, _) => }
-      }
     }
   }
 
@@ -1870,4 +1414,32 @@ class CompilerTests extends FunSuite with Matchers {
       case Err(ImmStructCantHaveVaryingMember(_, _, _)) =>
     }
   }
+
+  test("Tests stamping a struct and its implemented interface from a function param") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.panic.*;
+        |import v.builtins.drop.*;
+        |import panicutils.*;
+        |interface MyOption<T Ref> where func drop(T)void { }
+        |struct MySome<T Ref> where func drop(T)void { value T; }
+        |impl<T> MyOption<T> for MySome<T> where func drop(T)void;
+        |func moo(a MySome<int>) { }
+        |exported func main() { moo(__pretend<MySome<int>>()); }
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val interner = compile.interner
+    val keywords = compile.keywords
+
+    val interface =
+      coutputs.lookupInterface(
+        interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
+
+    val struct =
+      coutputs.lookupStruct(
+        interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
+
+    coutputs.lookupImpl(struct.templateName, interface.templateName)
+  }
+
 }

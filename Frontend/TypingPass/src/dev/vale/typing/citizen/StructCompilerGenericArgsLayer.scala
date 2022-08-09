@@ -154,7 +154,7 @@ class StructCompilerGenericArgsLayer(
 
       val initialKnowns =
         structA.genericParameters.zip(templateArgs).map({ case (genericParam, templateArg) =>
-          InitialKnown(RuneUsage(callRange.head, genericParam.rune.rune), templateArg)
+          InitialKnown(RuneUsage(vassertSome(callRange.headOption), genericParam.rune.rune), templateArg)
         })
 
       val callSiteRules =
@@ -338,7 +338,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(structTemplateFullName, innerEnv)
 
-      core.compileStruct(innerEnv, coutputs, structA)
+      core.compileStruct(innerEnv, coutputs, parentRanges, structA)
     })
   }
 
@@ -447,7 +447,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
 
-      core.compileInterface(innerEnv, coutputs, interfaceA)
+      core.compileInterface(innerEnv, coutputs, parentRanges, interfaceA)
     })
   }
 
@@ -455,11 +455,12 @@ class StructCompilerGenericArgsLayer(
   def makeClosureUnderstruct(
     containingFunctionEnv: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[StructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
-    core.makeClosureUnderstruct(containingFunctionEnv, coutputs, name, functionS, members)
+    core.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)
   }
 
   def assembleStructName(

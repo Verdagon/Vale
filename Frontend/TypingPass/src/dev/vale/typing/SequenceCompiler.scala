@@ -22,24 +22,27 @@ class SequenceCompiler(
     templataCompiler: TemplataCompiler) {
   def makeEmptyTuple(
     env: IEnvironment,
-    coutputs: CompilerOutputs):
+    coutputs: CompilerOutputs,
+    parentRanges: List[RangeS]):
   (ReferenceExpressionTE) = {
-    evaluate(env, coutputs, Vector())
+    evaluate(env, coutputs, parentRanges, Vector())
   }
 
   def evaluate(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     exprs2: Vector[ReferenceExpressionTE]):
   (ReferenceExpressionTE) = {
     val types2 = exprs2.map(_.result.expectReference().reference)
-    val finalExpr = TupleTE(exprs2, makeTupleCoord(env, coutputs, types2))
+    val finalExpr = TupleTE(exprs2, makeTupleCoord(env, coutputs, parentRanges, types2))
     (finalExpr)
   }
 
   def makeTupleKind(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     types2: Vector[CoordT]):
   StructTT = {
     val tupleTemplate @ StructTemplata(_, _) =
@@ -49,7 +52,7 @@ class SequenceCompiler(
     structCompiler.resolveStruct(
       coutputs,
       env,
-      RangeS.internal(interner, -17653),
+      RangeS.internal(interner, -17653) :: parentRanges,
       tupleTemplate,
       Vector(CoordListTemplata(types2)))
   }
@@ -57,8 +60,9 @@ class SequenceCompiler(
   def makeTupleCoord(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     types2: Vector[CoordT]):
   CoordT = {
-    templataCompiler.coerceKindToCoord(coutputs, makeTupleKind(env, coutputs, types2))
+    templataCompiler.coerceKindToCoord(coutputs, makeTupleKind(env, coutputs, parentRanges, types2))
   }
 }

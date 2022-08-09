@@ -73,7 +73,7 @@ class EdgeCompiler(
                 // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
                 // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
                 val overridingParamKind =
-                    implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true, true) match {
+                    implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionHeader.maybeOriginFunction.map(_.range).toList, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true, true) match {
                       case Ok(c) => c
                       case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(overridingImpl.templata.impl.range), e))
                     }

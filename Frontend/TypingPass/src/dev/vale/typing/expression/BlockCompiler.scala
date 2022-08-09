@@ -24,6 +24,7 @@ trait IBlockCompilerDelegate {
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
+    parentRanges: List[RangeS],
     expr1: IExpressionSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -82,7 +83,7 @@ class BlockCompiler(
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedRootExpression, returnsFromExprs) =
-      delegate.evaluateAndCoerceToReferenceExpression(coutputs, nenv, life + 0, blockSE.expr);
+      delegate.evaluateAndCoerceToReferenceExpression(coutputs, nenv, life + 0, parentRanges, blockSE.expr);
 
     val unneveredUnresultifiedUndestructedExpressions =
       unneveredUnresultifiedUndestructedRootExpression

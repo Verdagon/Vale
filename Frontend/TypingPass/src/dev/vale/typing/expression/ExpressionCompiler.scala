@@ -239,6 +239,9 @@ class ExpressionCompiler(
         Some(lookup)
       }
       case Some(ReferenceClosureVariableT(varName, closuredVarsStructRef, variability, tyype)) => {
+        val closuredVarsStructFullName = closuredVarsStructRef.fullName
+        val closuredVarsStructTemplateFullName =
+          TemplataCompiler.getStructTemplate(closuredVarsStructFullName)
         val mutability = Compiler.getMutability(coutputs, closuredVarsStructRef)
         val ownership =
           mutability match {
@@ -248,7 +251,7 @@ class ExpressionCompiler(
           }
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
-        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.fullName.addStep(member.name) == varName))
+        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructTemplateFullName.addStep(member.name) == varName))
 
         val borrowExpr =
           localHelper.borrowSoftLoad(
@@ -561,7 +564,7 @@ class ExpressionCompiler(
 
           val isConvertible =
             templataCompiler.isTypeConvertible(
-              coutputs, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
+              coutputs, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
           if (!isConvertible) {
             throw CompileErrorExceptionT(
               CouldntConvertForMutateT(
@@ -590,17 +593,17 @@ class ExpressionCompiler(
                 }
               }
               case RuntimeSizedArrayLookupTE(range, arrayExpr, arrayType, _, _) => {
-                throw CompileErrorExceptionT(CantMutateFinalElement(range, arrayExpr.result.reference))
+                throw CompileErrorExceptionT(CantMutateFinalElement(range :: parentRanges, arrayExpr.result.reference))
               }
               case StaticSizedArrayLookupTE(range, arrayExpr, arrayType, _, _) => {
-                throw CompileErrorExceptionT(CantMutateFinalElement(range, arrayExpr.result.reference))
+                throw CompileErrorExceptionT(CantMutateFinalElement(range :: parentRanges, arrayExpr.result.reference))
               }
               case x => vimpl(x.toString)
             }
           }
 
           val isConvertible =
-            templataCompiler.isTypeConvertible(coutputs, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
+            templataCompiler.isTypeConvertible(coutputs, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
           if (!isConvertible) {
             throw CompileErrorExceptionT(CouldntConvertForMutateT(range :: parentRanges, destinationExpr2.result.reference, unconvertedSourceExpr2.result.reference))
           }
@@ -626,10 +629,10 @@ class ExpressionCompiler(
           val exprTemplata =
             containerExpr2.result.reference.kind match {
               case rsa @ RuntimeSizedArrayTT(_, _) => {
-                arrayCompiler.lookupInUnknownSizedArray(range :: parentRanges, containerExpr2, indexExpr2, rsa)
+                arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, indexExpr2, rsa)
               }
               case at@StaticSizedArrayTT(_, _, _, _) => {
-                arrayCompiler.lookupInStaticSizedArray(range :: parentRanges, containerExpr2, indexExpr2, at)
+                arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
 //              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(), CitizenNameT(CitizenTemplateNameT(ProgramT.tupleHumanName), _))) => {
 //                indexExpr2 match {
@@ -685,14 +688,14 @@ class ExpressionCompiler(
               }
               case as@StaticSizedArrayTT(_, _, _, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
-                  arrayCompiler.lookupInStaticSizedArray(range :: parentRanges, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), as)
+                  arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), as)
                 } else {
                   throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Sequence has no member named " + memberNameStr))
                 }
               }
               case at@RuntimeSizedArrayTT(_, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
-                  arrayCompiler.lookupInUnknownSizedArray(range :: parentRanges, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
+                  arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
                 } else {
                   throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Array has no member named " + memberNameStr))
                 }
@@ -713,7 +716,7 @@ class ExpressionCompiler(
             evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life + 0, parentRanges, elements1);
 
           // would we need a sequence templata? probably right?
-          val expr2 = sequenceCompiler.evaluate(nenv.snapshot, coutputs, exprs2)
+          val expr2 = sequenceCompiler.evaluate(nenv.snapshot, coutputs, parentRanges, exprs2)
           (expr2, returnsFromElements)
         }
         case StaticArrayFromValuesSE(range, rules, maybeElementTypeRuneA, mutabilityRune, variabilityRune, sizeRuneA, elements1) => {
@@ -846,8 +849,8 @@ class ExpressionCompiler(
               case (_, NeverT(true)) => uncoercedThenBlock2.result.reference
               case (a, b) if a == b => uncoercedThenBlock2.result.reference
               case (a : ICitizenTT, b : ICitizenTT) => {
-                val aAncestors = ancestorHelper.getParents(coutputs, nenv.snapshot, a, true).toSet
-                val bAncestors = ancestorHelper.getParents(coutputs, nenv.snapshot, b, true).toSet
+                val aAncestors = ancestorHelper.getParents(coutputs, parentRanges, nenv.snapshot, a, true).toSet
+                val bAncestors = ancestorHelper.getParents(coutputs, parentRanges, nenv.snapshot, b, true).toSet
                 val commonAncestors = aAncestors.intersect(bAncestors)
 
                 if (uncoercedElseBlock2.result.reference.ownership != uncoercedElseBlock2.result.reference.ownership) {
@@ -1097,7 +1100,7 @@ class ExpressionCompiler(
             nenv.maybeReturnType match {
               case None => (uncastedInnerExpr2)
               case Some(returnType) => {
-                templataCompiler.isTypeConvertible(coutputs, uncastedInnerExpr2.result.reference, returnType) match {
+                templataCompiler.isTypeConvertible(coutputs, range :: parentRanges, uncastedInnerExpr2.result.reference, returnType) match {
                   case (false) => {
                     throw CompileErrorExceptionT(
                       CouldntConvertForReturnT(range :: parentRanges, returnType, uncastedInnerExpr2.result.reference))

@@ -23,6 +23,7 @@ trait ITemplataCompilerDelegate {
 
   def isParent(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     descendantCitizenRef: ICitizenTT,
     ancestorInterfaceRef: InterfaceTT):
   IsParentResult
@@ -320,6 +321,7 @@ class TemplataCompiler(
 
   def isTypeConvertible(
     coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
     sourcePointerType: CoordT,
     targetPointerType: CoordT):
   Boolean = {
@@ -336,13 +338,13 @@ class TemplataCompiler(
       case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
       case (_, StructTT(_)) => return false
       case (a @ StructTT(_), b @ InterfaceTT(_)) => {
-        delegate.isParent(coutputs, a, b) match {
+        delegate.isParent(coutputs, parentRanges, a, b) match {
           case IsParent(conclusions) =>
           case IsntParent(_) => return false
         }
       }
       case (a @ InterfaceTT(_), b @ InterfaceTT(_)) => {
-        delegate.isParent(coutputs, a, b) match {
+        delegate.isParent(coutputs, parentRanges, a, b) match {
           case IsParent(conclusions) =>
           case IsntParent(_) => return false
         }
