@@ -21,79 +21,6 @@ class InProgressTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
-  test("Lock weak member") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.opt.*;
-        |import v.builtins.weak.*;
-        |import v.builtins.logic.*;
-        |import v.builtins.drop.*;
-        |import panicutils.*;
-        |import printutils.*;
-        |
-        |struct Base {
-        |  name str;
-        |}
-        |struct Spaceship {
-        |  name str;
-        |  origin &&Base;
-        |}
-        |func printShipBase(ship &Spaceship) {
-        |  maybeOrigin = lock(ship.origin); «14»«15»
-        |  if (not maybeOrigin.isEmpty()) { «16»
-        |    o = maybeOrigin.get();
-        |    println("Ship base: " + o.name);
-        |  } else {
-        |    println("Ship base unknown!");
-        |  }
-        |}
-        |exported func main() {
-        |  base = Base("Zion");
-        |  ship = Spaceship("Neb", &&base);
-        |  printShipBase(&ship);
-        |  (base).drop(); // Destroys base.
-        |  printShipBase(&ship);
-        |}
-        |""".stripMargin)
-
-    compile.expectCompilerOutputs()
-  }
-
-  test("Failure to resolve a Prot rule's function doesnt halt") {
-    // In the below example, it should disqualify the first foo() because T = bool
-    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
-    // compilation.
-
-    // Instead, we need to bubble up that failure to find the right function, so
-    // it disqualifies the candidate and goes with the other one.
-
-    CompilerTestCompilation.test(
-      """
-        |func moo(a str) { }
-        |func foo<T>(f T) void where func moo(str)void { }
-        |func foo<T>(f T) void where func moo(bool)void { }
-        |func main() { foo("hello"); }
-        |""".stripMargin).expectCompilerOutputs()
-  }
-
-  test("Lambda is incompatible anonymous interface") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface AFunction1<P> where P Ref {
-        |  func __call(virtual this &AFunction1<P>, a P) int;
-        |}
-        |exported func main() {
-        |  arr = AFunction1<int>((_) => { true });
-        |}
-        |""".stripMargin)
-
-    compile.getCompilerOutputs() match {
-      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
-      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
-      case Ok(wat) => vwat(wat)
-    }
-  }
-
   test("Test complex interface") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/templatedinterface.vale"))
@@ -238,21 +165,6 @@ class InProgressTests extends FunSuite with Matchers {
     }
   }
 
-  test("fdsfsdf") {
-    // This test is because we had a bug where & still produced a *!.
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct Bork { }
-        |func myFunc<F>(consumer &F) void { }
-        |func main() {
-        |  bork = Bork();
-        |  myFunc(&{ bork });
-        |}
-        |
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Tests calling an abstract function") {
     val compile = CompilerTestCompilation.test(
       Tests.loadExpected("programs/genericvirtuals/callingAbstract.vale"))
@@ -390,29 +302,6 @@ class InProgressTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
     }
-  }
-
-  test("Lambda inside different function with same name") {
-    // This originally didn't work because both helperFunc(:Int) and helperFunc(:Str)
-    // made a closure struct called helperFunc:lam1, which collided.
-    // We need to disambiguate by parameters, not just template args.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |
-        |func helperFunc(x int) {
-        |  { print(x); }();
-        |}
-        |func helperFunc(x str) {
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
   }
 
 }
