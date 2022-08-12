@@ -153,7 +153,7 @@ class AnonymousInterfaceMacro(
           case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
         }) ++ memberRunes.map(_ => CoordTemplataType()),
         KindTemplataType()),
-      interfaceA.genericParameters ++ memberRunes.map(GenericParameterS(_, None)),
+      interfaceA.genericParameters ++ memberRunes.map(mr => GenericParameterS(mr.range, mr, None)),
       interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType()),
       interfaceA.rules.toArray,
       Map(),

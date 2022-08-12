@@ -229,6 +229,7 @@ case class CodeBodyS(body: BodySE) extends IBodyS {
 // template params.
 
 case class GenericParameterS(
+  range: RangeS,
   rune: RuneUsage,
   default: Option[GenericParameterDefaultS])
 

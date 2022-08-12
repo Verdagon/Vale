@@ -34,6 +34,7 @@ case class ImplT(
   implOuterEnv: IEnvironment,
 
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
+  placeholderedSubCitizen: ICitizenTT,
   // Starting from a placeholdered sub citizen, this is the interface that would result.
   // We get this by solving the impl, given a placeholdered sub citizen.
   parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,

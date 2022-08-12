@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.{Interner, RangeS, vassert, vassertOne, vfail, vimpl, vwat}
-import dev.vale.postparsing.rules.IRulexSR
+import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
@@ -64,7 +64,10 @@ object TemplataCompiler {
     genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
       if (index >= numExplicitTemplateArgs) {
         genericParam.default match {
-          case Some(x) => x.rules
+          case Some(x) => {
+            x.rules :+
+              EqualsSR(genericParam.range, genericParam.rune, RuneUsage(genericParam.range, x.resultRune))
+          }
           case None => Vector()
         }
       } else {

@@ -5,13 +5,13 @@ package dev.vale.typing
 import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing.{GlobalFunctionFamilyNameS, IImpreciseNameS, RuneNameS}
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
-import dev.vale.typing.env.{IEnvironment, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
-import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{FunctionTemplata, KindTemplata}
 import dev.vale.typing.types._
 
@@ -54,93 +54,53 @@ class EdgeCompiler(
           overridingImpls.map(overridingImpl => {
             val overridingCitizen = overridingImpl.subCitizenTemplateName
             val superInterfaceWithSubCitizenPlaceholders = overridingImpl.parentInterfaceFromPlaceholderedSubCitizen
-//            val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, superInterfaceWithSubCitizenPlaceholders.fullName)
 
             // Given:
             //   impl<T> IObserver<T, int> for MyThing<T>
             // Start by compiling the impl, supplying any placeholders.
-            //   MyThing<$0> implements IObserver<$0, int>
+            //   impl<impl$T> IObserver<impl$T, int> for MyThing<impl$T>
             // Now, take the abstract function:
             //   abstract func myFunc<X, Y>(self IObserver<X, Y>, bork Y);
-            // and try to resolve an overload with the placeholdered struct and the rest of the param types.
-            // IOW, resolve: myFunc(MyThing<$0>, int)
-            // It should find the override func:
+            // and try to evaluate it given the impl's interface (IObserver<impl$T, int>)
+            // as the first parameter:
+            //   abstract func myFunc(self IObserver<impl$T, int>, bork int);
+            // This is so we fill the other params' types, like that bork int.
+            // Now, try to resolve an overload with the impl's struct there instead:
+            //   func myFunc(self MyThing<impl$T>, bork int)
+            // and sure enough, we find the override func:
             //   func myFunc<T>(self MyThing<T>, bork int)
-            // (and also conclude that its T = $0)
-            // We also know the parent interface (IObserver<$0, int>).
+            // (and also conclude that its T = impl$T).
             // Now we can add that to the impl's edge.
-
-
-            // We have interface:
-            //   interface IObserver<X, Y>
-            // And struct:
-            //   struct MyThing<T>
-            // and impl:
-            //   MyThing<impl$0> implements IObserver<impl$0, int>
-            // we have transformers now:
-            //   impl's call for sub citizen:
-            //     MyThing$0 -> impl$0
-            //   impl's call for super interface:
-            //     IObserver$0 -> impl$0
-            //     IObserver$1 -> int
             //
-            // We have function:
-            //   abstract func myFunc<X, Y>(self IObserver<X, Y>, bork Y);
-            // And its transformers:
-            //   its name:
-            //     myFunc<myFunc$0, myFunc$1>
-            //   myFunc's call for interface:
-            //     IObserver$0 -> myFunc$0
-            //     IObserver$1 -> myFunc$1
-            //
-            // We need:
-            //   myFunc(MyThing<???>, int>
-            //
-            // need to substitute myFunc$1 -> int
-            //
-            // we need myFunc$1 -> IObserver$1, then do IObserver$1 -> int
-            //
-            // could we run the function's solver again?
-            // perhaps not supply the other args, just this one?
-            // supposedly thats what the templar is doing anyway...
-            // no, children have overloaded funcs with same name.
+            // All this is done from the impl's perspective, the impl is the original calling
+            // env for all these solves and resolves.
 
             val foundFunctions =
               interfaceEdgeBlueprint.superFamilyRootHeaders.map(abstractFunctionHeader => {
-                val abstractFunctionTemplateFullName =
-                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
-//                val abstractFunctionSignature = abstractFunctionBanner.toSignature
-//                val abstractFunctionParamUnsubstitutedTypes = abstractFunctionHeader.paramTypes
-//                val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
-//                vassert(abstractIndex >= 0)
-//                val abstractParamUnsubstitutedType = abstractFunctionParamUnsubstitutedTypes(abstractIndex)
-//                val abstractParamUnsubstitutedCitizen = abstractParamUnsubstitutedType.kind.expectInterface()
-//                val otherSubstituter = TemplataCompiler.getPlaceholderSubstituter(interner, abstractParamCitizen.fullName)
-//                val abstractFunctionOuterEnv =
-//                  coutputs.getOuterEnvForFunction(abstractFunctionTemplateFullName)
-//                val abstractFunctionInnerEnv =
-//                  coutputs.getInnerEnvForFunction(abstractFunctionTemplateFullName)
-//                val subCitizenEnv = coutputs.getOuterEnvForType(overridingCitizen)
-
-//                val citizenDef = coutputs.lookupCitizen(overridingCitizen)
-//                val placeholderedCitizen = citizenDef.placeholderedCitizen
-
-//                val abstractParamType =
-//                  abstractParamUnsubstitutedType.copy(kind = superInterfaceWithSubCitizenPlaceholders)
-
-                // run the abstract function's rules with the placeholdered struct?
+                val abstractFunctionParamUnsubstitutedTypes = abstractFunctionHeader.paramTypes
+                val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
+                vassert(abstractIndex >= 0)
+                val abstractParamUnsubstitutedType = abstractFunctionParamUnsubstitutedTypes(abstractIndex)
+                val abstractParamType =
+                  abstractParamUnsubstitutedType.copy(kind = superInterfaceWithSubCitizenPlaceholders)
 
                 val range = abstractFunctionHeader.maybeOriginFunctionTemplata.map(_.function.range).getOrElse(RangeS.internal(interner, -2976395))
 
                 val originFunctionTemplata = vassertSome(abstractFunctionHeader.maybeOriginFunctionTemplata)
 
-                val (abstractFuncPrototype, abstractFuncEnv) =
+                // Evaluate the function as if we're defining it, even using the definition site rules.
+                // We'll even take the inferences and add em to an environment later.
+                // The only difference from real defining is that we're handing in an actual parameter,
+                // namely the impl's super interface.
+                val (abstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
-                    coutputs,
-                    List(range),
-                    overridingImpl.implOuterEnv,
-                    originFunctionTemplata,
-                    overridingImpl.templata) match {
+                      coutputs,
+                      List(range, overridingImpl.templata.impl.range),
+                      overridingImpl.implOuterEnv,
+                      originFunctionTemplata,
+                      abstractFunctionHeader.paramTypes.indices.map(_ => None)
+                        .updated(abstractIndex, Some(abstractParamType))
+                        .toVector) match {
                     case EvaluateFunctionFailure(x) => {
                       throw CompileErrorExceptionT(CouldntEvaluateFunction(List(range), x))
                     }
@@ -149,21 +109,8 @@ class EdgeCompiler(
 
                 val superFunctionParamTypes = abstractFuncPrototype.paramTypes
 
-                val abstractFunctionParamTypes = abstractFunctionHeader.paramTypes
-                val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
-                vassert(abstractIndex >= 0)
-                val abstractParamType = abstractFunctionParamTypes(abstractIndex)
-
-                val overridingParamKind =
-                  abstractFuncEnv.lookupNearestWithImpreciseName(
-                      interner.intern(RuneNameS(overridingImpl.templata.impl.subCitizenRune.rune)),
-                      Set(TemplataLookupContext)) match {
-                    case None => vwat()
-                    case Some(KindTemplata(kind)) => kind
-                    case Some(other) => vfail(other)
-                  }
-
-                val overridingParamCoord = abstractParamType.copy(kind = overridingParamKind)
+                val placeholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
+                val overridingParamCoord = abstractParamType.copy(kind = placeholderedOverridingCitizen)
                 val overrideFunctionParamTypes =
                   superFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
 
@@ -172,24 +119,26 @@ class EdgeCompiler(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionHeader.fullName.last))
 
+                val implEnvWithAbstractFuncConclusions =
+                  GeneralEnvironment.childOf(
+                    interner,
+                    overridingImpl.implOuterEnv,
+                    overridingImpl.implOuterEnv.fullName,
+                    abstractFuncInferences.map({ case (nameS, templata) =>
+                      interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+                    }).toVector)
 
-                // // We don't use overridingCitizenDefinition.placeholderedName because that's placeholdered
-                // // according to itself, not placeholdered according to the interface that it overrode.
-                // // For example, if Firefly<X, Y> impl IShip<Y, X>, we want StructT(Firefly, (IShip:$_1, IShip:$_0))
-                // // not StructT(Firefly, (Firefly:$_0, Firefly:$_1)).
-                // // val overridingCitizenDefinition = coutputs.lookupCitizen(overridingCitizen)
-                // // So instead, we use overridingImpl.subCitizenFromPlaceholderedParentInterface.
-                // val overridingParamKind =
-                //     implCompiler.getImplDescendantGivenParent(coutputs, abstractFunctionHeader.maybeOriginFunction.map(_.range).toList, abstractFunctionOuterEnv, overridingImpl.templata, abstractParamCitizen, true, false) match {
-                //       case Ok(c) => c
-                //       case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(overridingImpl.templata.impl.range), e))
-                //     }
-
-                // We need the abstract function's env because it contains knowledge of the existence
-                // of certain things like concept functions, see NFIEFRO.
+                // We need the abstract function's conclusions because it contains knowledge of the
+                // existence of certain things like concept functions, see NFIEFRO.
                 val foundFunction =
                   resolveOverride(
-                    coutputs, List(range), abstractFuncEnv, interfaceTemplateFullName, overridingCitizen, impreciseName, overrideFunctionParamTypes)
+                    coutputs,
+                    List(range, overridingImpl.templata.impl.range),
+                    implEnvWithAbstractFuncConclusions,
+                    interfaceTemplateFullName,
+                    overridingCitizen,
+                    impreciseName,
+                    overrideFunctionParamTypes)
 
                 foundFunction
               })

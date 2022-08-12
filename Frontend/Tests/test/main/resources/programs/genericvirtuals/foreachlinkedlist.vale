@@ -1,6 +1,7 @@
 
 
 import v.builtins.opt.*;
+import v.builtins.logic.*;
 import v.builtins.drop.*;
 import printutils.*;
 
@@ -9,18 +10,19 @@ struct MyList<T Ref> where func drop(T)void {
   next ^Opt<^MyList<T>>;
 }
 
-abstract func forEach<F, T>(virtual opt &Opt<MyList<T>>, func F) int
-where func drop(T)void, func(&F, &T)void, func drop(F)void;
-
-func forEach<F, T>(opt &None<MyList<T>>, func F) int
-where func drop(T)void, func(&F, &T)void, func drop(F)void
-{ return 0; }
-func forEach<F, T>(opt &Some<MyList<T>>, func F) int
-where func drop(T)void, func(&F, &T)void, func drop(F)void
-{
-   forEach<F, T>(opt.value, func);
-   return 0;
+func forEach<F, T>(
+  opt &Opt<MyList<T>>,
+  func F)
+int
+where func drop(T)void, func(&F, &T)void, func drop(F)void {
+  if not opt.isEmpty() {
+    forEach<F, T>(opt.get(), func);
+  } else {
+    (func);
+  }
+  return 0;
 }
+
 func forEach<F, T>(list &MyList<T>, func F) int
 where func drop(T)void, func(&F, &T)void, func drop(F)void
 {

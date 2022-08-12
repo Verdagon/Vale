@@ -170,13 +170,13 @@ class FunctionCompilerClosureOrLightLayer(
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
     function: FunctionA,
-    implTemplata: ImplTemplata):
-  IEvaluateFunctionResult[(PrototypeT, IEnvironment)] = {
+    args: Vector[Option[CoordT]]):
+  IEvaluateFunctionResult[(PrototypeT, Map[IRuneS, ITemplata[ITemplataType]])] = {
     checkNotClosure(function);
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionParentForPrototype(
-      newEnv, coutputs, callingEnv, callRange, implTemplata)
+      newEnv, coutputs, callingEnv, callRange, args)
   }
 
 
