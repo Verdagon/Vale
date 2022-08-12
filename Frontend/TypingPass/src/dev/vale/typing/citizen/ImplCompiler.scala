@@ -301,6 +301,7 @@ class ImplCompiler(
           implTemplata,
           implOuterEnv,
           subCitizenTemplateFullName,
+          subCitizen,
           superInterface,
           superInterfaceTemplateFullName))
     coutputs.declareType(implTemplateFullName)

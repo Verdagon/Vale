@@ -807,7 +807,32 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case f @ FunctionCallTE(functionName("forEach"), _) => f
     })
+  }
 
+  test("Test return from inside if destroys locals") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Marine { hp int; }
+        |exported func main() int {
+        |  m = Marine(5);
+        |  x =
+        |    if (true) {
+        |      return 7;
+        |    } else {
+        |      m.hp
+        |    };
+        |  return x;
+        |}
+        |""".stripMargin)// +
+    //        Tests.loadExpected("castutils/castutils.vale") +
+    //        Tests.loadExpected("printutils/printutils.vale"))
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+    val destructorCalls =
+      Collector.all(main, {
+        case fpc @ FunctionCallTE(PrototypeT(FullNameT(_,Vector(StructTemplateNameT(StrI("Marine"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))))),_),_) => fpc
+      })
+    destructorCalls.size shouldEqual 2
   }
 
   test("Tests lambda and concept function") {
@@ -1543,5 +1568,109 @@ class CompilerTests extends FunSuite with Matchers {
     }).get
   }
 
+  test("Test interface default generic argument in type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface MyInterface<K Ref, H Int = 5> { }
+        |struct MyStruct {
+        |  x MyInterface<bool>;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupStruct("MyStruct")
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
+    tyype match {
+      case CoordT(
+      OwnT,
+      InterfaceTT(
+      FullNameT(_,_,
+      InterfaceNameT(
+      InterfaceTemplateNameT(StrI("MyInterface")),
+      Vector(
+      CoordTemplata(CoordT(ShareT,BoolT())),
+      IntegerTemplata(5)))))) =>
+    }
+  }
+
+  test("Test struct default generic argument in type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyHashSet<K Ref, H Int = 5> { }
+        |struct MyStruct {
+        |  x MyHashSet<bool>();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupStruct("MyStruct")
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
+    tyype match {
+      case CoordT(
+      OwnT,
+      StructTT(
+      FullNameT(_,_,
+      StructNameT(
+      StructTemplateNameT(StrI("MyHashSet")),
+      Vector(
+      CoordTemplata(CoordT(ShareT,BoolT())),
+      IntegerTemplata(5)))))) =>
+    }
+  }
+
+  test("Lock weak member") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.opt.*;
+        |import v.builtins.weak.*;
+        |import v.builtins.logic.*;
+        |import v.builtins.drop.*;
+        |import panicutils.*;
+        |import printutils.*;
+        |
+        |struct Base {
+        |  name str;
+        |}
+        |struct Spaceship {
+        |  name str;
+        |  origin &&Base;
+        |}
+        |func printShipBase(ship &Spaceship) {
+        |  maybeOrigin = lock(ship.origin); «14»«15»
+        |  if (not maybeOrigin.isEmpty()) { «16»
+        |    o = maybeOrigin.get();
+        |    println("Ship base: " + o.name);
+        |  } else {
+        |    println("Ship base unknown!");
+        |  }
+        |}
+        |exported func main() {
+        |  base = Base("Zion");
+        |  ship = Spaceship("Neb", &&base);
+        |  printShipBase(&ship);
+        |  (base).drop(); // Destroys base.
+        |  printShipBase(&ship);
+        |}
+        |""".stripMargin)
+
+    compile.expectCompilerOutputs()
+  }
+
+  test("Failure to resolve a Prot rule's function doesnt halt") {
+    // In the below example, it should disqualify the first foo() because T = bool
+    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
+    // compilation.
+
+    // Instead, we need to bubble up that failure to find the right function, so
+    // it disqualifies the candidate and goes with the other one.
+
+    CompilerTestCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |func moo(a str) { }
+        |func foo<T>(f T) void where func drop(T)void, func moo(str)void { }
+        |func foo<T>(f T) void where func drop(T)void, func moo(bool)void { }
+        |func main() { foo("hello"); }
+        |""".stripMargin).expectCompilerOutputs()
+  }
 
 }

@@ -83,8 +83,12 @@ class StructFreeMacro(
           TemplateTemplataType(paramTypes, FunctionTemplataType())
         }
       },
-      structIdentifyingRunes
-        .map(r => GenericParameterS(RuneUsage(RangeS.internal(interner, -64002), r), None)),
+      structIdentifyingRunes.map(r => {
+        GenericParameterS(
+          RangeS.internal(interner, -64002),
+          RuneUsage(RangeS.internal(interner, -64002), r),
+          None)
+      }),
       structIdentifyingRuneToType ++
         (structType match {
           case KindTemplataType() => Map()

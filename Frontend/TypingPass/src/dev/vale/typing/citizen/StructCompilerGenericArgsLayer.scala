@@ -396,19 +396,12 @@ class StructCompilerGenericArgsLayer(
           preliminaryInferences.get(genericParam.rune.rune) match {
             case Some(x) => Some(InitialKnown(genericParam.rune, x))
             case None => {
-              genericParam.default match {
-                case Some(defaultGenericParam) => {
-                  // Don't populate a placeholder for this, see DAPGPD.
-                  None
-                }
-                case None => {
-                  val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
-                  val templata =
-                    templataCompiler.createPlaceholder(
-                      coutputs, outerEnv, interfaceTemplateFullName, index, runeType, true)
-                  Some(InitialKnown(genericParam.rune, templata))
-                }
-              }
+              // Make a placeholder for every argument even if it has a default, see DUDEWCD.
+              val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
+              val templata =
+                templataCompiler.createPlaceholder(
+                  coutputs, outerEnv, interfaceTemplateFullName, index, runeType, true)
+              Some(InitialKnown(genericParam.rune, templata))
             }
           }
         })

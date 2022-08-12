@@ -1,6 +1,7 @@
 
 
 import v.builtins.opt.*;
+import v.builtins.logic.*;
 import v.builtins.drop.*;
 import printutils.*;
 
@@ -20,10 +21,10 @@ func printValues(list &MyList<int>) void {
   printNextValue(list.next);
 }
 
-func printNextValue(virtual opt &Opt<MyList<int>>) void { }
-func printNextValue(opt &None<MyList<int>>) void { }
-func printNextValue(opt &Some<MyList<int>>) void {
-  printValues(opt.value);
+func printNextValue(opt &Opt<MyList<int>>) void {
+  if not opt.isEmpty() {
+    printValues(opt.get());
+  }
 }
 
 

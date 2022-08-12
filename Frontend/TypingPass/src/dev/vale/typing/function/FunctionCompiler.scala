@@ -530,12 +530,12 @@ class FunctionCompiler(
     callRange: List[RangeS],
     callingEnv: IEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
-    implTemplata: ImplTemplata):
-  IEvaluateFunctionResult[(PrototypeT, IEnvironment)] = {
+    args: Vector[Option[CoordT]]):
+  IEvaluateFunctionResult[(PrototypeT, Map[IRuneS, ITemplata[ITemplataType]])] = {
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionParentForPrototype2(
-        env, coutputs, callingEnv, callRange, function, implTemplata)
+        env, coutputs, callingEnv, callRange, function, args)
     })
   }
 

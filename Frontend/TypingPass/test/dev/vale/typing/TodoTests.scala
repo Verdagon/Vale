@@ -27,17 +27,6 @@ class TodoTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
-  test("Reports when two functions with same signature") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func moo() int { return 1337; }
-        |exported func moo() int { return 1448; }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
-    }
-  }
-
   // DO NOT SUBMIT fails: imm generics
   test("Report imm mut mismatch for generic type") {
     val compile = CompilerTestCompilation.test(
@@ -69,69 +58,6 @@ class TodoTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
-
-  // DO NOT SUBMIT fails free
-  test("Reports when exported SSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export [#5]<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
-
-  // DO NOT SUBMIT fails free
-  test("Reports when exported RSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export []<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
-
-  // DO NOT SUBMIT fails free
-  // See DSDCTD
-  test("Tests destructuring shared doesnt compile to destroy") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |struct Vec3i imm {
-        |  x int;
-        |  y int;
-        |  z int;
-        |}
-        |
-        |exported func main() int {
-        |	 Vec3i[x, y, z] = Vec3i(3, 4, 5);
-        |  return y;
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    Collector.all(coutputs.lookupFunction("main"), {
-      case DestroyTE(_, _, _) =>
-    }).size shouldEqual 0
-
-    // Make sure there's a destroy in its destructor though.
-    val destructor =
-      vassertOne(
-        coutputs.functions.collect({
-          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
-        }))
-
-    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
-    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
-  }
-
 
   test("Tests overload set and concept function") {
     val compile = CompilerTestCompilation.test(
@@ -255,26 +181,6 @@ class TodoTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.expectCompilerOutputs()
-  }
-
-  // DO NOT SUBMIT fails free
-  test("Test array push, pop, len, capacity, drop") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |
-        |exported func main() void {
-        |  arr = Array<mut, int>(9);
-        |  arr.push(420);
-        |  arr.push(421);
-        |  arr.push(422);
-        |  arr.len();
-        |  arr.capacity();
-        |  // implicit drop with pops
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
   }
 
   // DO NOT SUBMIT fails anonymous subclass
@@ -421,61 +327,25 @@ class TodoTests extends FunSuite with Matchers {
     }
   }
 
-  test("Lock weak member") {
+  // Interface bounds
+  test("Report when downcasting to interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.opt.*;
-        |import v.builtins.weak.*;
-        |import v.builtins.logic.*;
-        |import v.builtins.drop.*;
+        |import v.builtins.as.*;
         |import panicutils.*;
-        |import printutils.*;
         |
-        |struct Base {
-        |  name str;
-        |}
-        |struct Spaceship {
-        |  name str;
-        |  origin &&Base;
-        |}
-        |func printShipBase(ship &Spaceship) {
-        |  maybeOrigin = lock(ship.origin); «14»«15»
-        |  if (not maybeOrigin.isEmpty()) { «16»
-        |    o = maybeOrigin.get();
-        |    println("Ship base: " + o.name);
-        |  } else {
-        |    println("Ship base unknown!");
-        |  }
-        |}
+        |interface ISuper { }
+        |interface ISub { }
+        |impl ISuper for ISub;
+        |
         |exported func main() {
-        |  base = Base("Zion");
-        |  ship = Spaceship("Neb", &&base);
-        |  printShipBase(&ship);
-        |  (base).drop(); // Destroys base.
-        |  printShipBase(&ship);
+        |  ship = __pretend<ISuper>();
+        |  ship.as<ISub>();
         |}
         |""".stripMargin)
-
-    compile.expectCompilerOutputs()
-  }
-
-  test("Failure to resolve a Prot rule's function doesnt halt") {
-    // In the below example, it should disqualify the first foo() because T = bool
-    // and there exists no moo(bool). Instead, we saw the Prot rule throw and halt
-    // compilation.
-
-    // Instead, we need to bubble up that failure to find the right function, so
-    // it disqualifies the candidate and goes with the other one.
-
-    CompilerTestCompilation.test(
-      """
-        |import v.builtins.drop.*;
-        |
-        |func moo(a str) { }
-        |func foo<T>(f T) void where func drop(T)void, func moo(str)void { }
-        |func foo<T>(f T) void where func drop(T)void, func moo(bool)void { }
-        |func main() { foo("hello"); }
-        |""".stripMargin).expectCompilerOutputs()
+    compile.getCompilerOutputs() match {
+      case Err(CantDowncastToInterface(_, _)) =>
+    }
   }
 
 }

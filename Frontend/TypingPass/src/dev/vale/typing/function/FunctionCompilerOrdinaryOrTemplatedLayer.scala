@@ -512,29 +512,16 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    implTemplata: ImplTemplata):
-  IEvaluateFunctionResult[(PrototypeT, IEnvironment)] = {
+    args: Vector[Option[CoordT]]):
+  IEvaluateFunctionResult[(PrototypeT, Map[IRuneS, ITemplata[ITemplataType]])] = {
     val function = nearEnv.function
     // Check preconditions
     checkClosureConcernsHandled(nearEnv)
 
     val functionDefinitionRules =
       function.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
-    val implRules =
-      implTemplata.impl.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
-    val rules = functionDefinitionRules ++ implRules
 
-    val runeToType = function.runeToType ++ implTemplata.impl.runeToType
-
-    val placeholderInitialKnownsFromImpl =
-      implTemplata.impl.identifyingRunes.zipWithIndex.flatMap({ case (implIdentifyingRune, index) =>
-        // Make a placeholder for every argument even if it has a default, see DUDEWCD.
-        val runeType = vassertSome(implTemplata.impl.runeToType.get(implIdentifyingRune.rune))
-        val templata =
-          templataCompiler.createPlaceholder(
-            coutputs, nearEnv, nearEnv.fullName, index, runeType, false)
-        Some(InitialKnown(implIdentifyingRune, templata))
-      })
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
 
     // This is so that we can feed in the self interface to see what it indirectly determines.
     // It will turn a:
@@ -543,8 +530,15 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     //   func map<F>(self Opt<$0>, f F) { ... }
     val preliminaryInferences =
       inferCompiler.solve(
-        InferEnv(nearEnv, callRange, nearEnv),
-        coutputs, rules, runeToType, function.range :: callRange, placeholderInitialKnownsFromImpl, Vector(), true, true) match {
+          InferEnv(callingEnv, callRange, nearEnv),
+          coutputs,
+          functionDefinitionRules,
+          function.runeToType,
+          function.range :: callRange,
+          Vector(),
+          initialSends,
+          true,
+          true) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: callRange, f))
         }
@@ -561,15 +555,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         preliminaryInferences.get(genericParam.rune.rune) match {
           case Some(x) => Some(InitialKnown(genericParam.rune, x))
           case None => {
-            vimpl()
-            // The below doesnt seem like it would work. It might make some placeholders
-            // whose names collide with the ones made above from the impl identifying runes.
-
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, nearEnv.fullName, index, runeType, false)
+                coutputs, callingEnv, callingEnv.fullName, index, runeType, false)
             Some(InitialKnown(genericParam.rune, templata))
           }
         }
@@ -579,12 +569,12 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val inferences =
       inferCompiler.solveExpectComplete(
-        InferEnv(nearEnv, callRange, nearEnv),
+        InferEnv(callingEnv, callRange, nearEnv),
         coutputs,
-        rules,
-        runeToType,
+        functionDefinitionRules,
+        function.runeToType,
         function.range :: callRange,
-        placeholderInitialKnownsFromImpl ++ placeholderInitialKnownsFromFunction,
+        placeholderInitialKnownsFromFunction,
         Vector(),
         true,
         true)
@@ -594,7 +584,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess((prototype, runedEnv))
+    EvaluateFunctionSuccess((prototype, inferences))
   }
 
   // Preconditions:

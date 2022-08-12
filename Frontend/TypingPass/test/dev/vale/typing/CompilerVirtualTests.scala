@@ -4,7 +4,7 @@ import dev.vale.typing.ast.{AsSubtypeTE, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
-import dev.vale.{Collector, StrI, vassert}
+import dev.vale.{Collector, StrI, Tests, vassert}
 import dev.vale.typing.types.InterfaceTT
 import org.scalatest.{FunSuite, Matchers}
 
@@ -124,6 +124,18 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |  [x] = opt;
         |}
       """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Test complex interface") {
+    val compile = CompilerTestCompilation.test(
+      Tests.loadExpected("programs/genericvirtuals/templatedinterface.vale"))
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Test specializing interface") {
+    val compile = CompilerTestCompilation.test(
+      Tests.loadExpected("programs/genericvirtuals/specializeinterface.vale"))
     val coutputs = compile.expectCompilerOutputs()
   }
 

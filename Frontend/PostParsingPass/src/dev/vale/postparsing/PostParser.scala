@@ -238,7 +238,8 @@ object PostParser {
       genericParamP: GenericParameterP,
       paramRuneS: RuneUsage):
   GenericParameterS = {
-    val GenericParameterP(genericParamRange, _, maybeType, attributes, maybeDefault) = genericParamP
+    val GenericParameterP(genericParamRangeP, _, maybeType, attributes, maybeDefault) = genericParamP
+    val genericParamRangeS = PostParser.evalRange(env.file, genericParamRangeP)
     val runeS = paramRuneS
 
     maybeType match {
@@ -247,11 +248,12 @@ object PostParser {
     }
 
     GenericParameterS(
+      genericParamRangeS,
       runeS,
       maybeDefault.map(defaultPT => {
         val uncategorizedRules = ArrayBuffer[IRulexSR]()
         val resultRune = templexScout.translateTemplex(env, lidb, uncategorizedRules, defaultPT)
-        uncategorizedRules += EqualsSR(PostParser.evalRange(env.file, genericParamRange), runeS, resultRune)
+        uncategorizedRules += EqualsSR(genericParamRangeS, runeS, resultRune)
 
         val rulesToLeaveInDefaultArgument = new Accumulator[IRulexSR]()
         uncategorizedRules.foreach({

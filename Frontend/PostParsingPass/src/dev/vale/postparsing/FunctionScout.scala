@@ -381,7 +381,9 @@ class FunctionScout(
         }) ++
         // Lambdas identifying runes are determined by their magic params.
         // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
-        magicParams.map(param => GenericParameterS(vassertSome(param.pattern.coordRune), None))
+        magicParams.map(param => {
+          GenericParameterS(param.pattern.range, vassertSome(param.pattern.coordRune), None)
+        })
 
     // Lambdas identifying runes are determined by their magic params.
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
