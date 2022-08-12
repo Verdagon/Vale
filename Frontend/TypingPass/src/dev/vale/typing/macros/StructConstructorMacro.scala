@@ -147,7 +147,7 @@ class StructConstructorMacro(
           Vector.empty,
           constructorParams,
           constructorReturnType,
-          originFunction),
+          Some(env.templata)),
         BlockTE(
           ReturnTE(
             ConstructTE(

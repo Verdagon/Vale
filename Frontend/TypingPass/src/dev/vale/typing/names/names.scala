@@ -19,6 +19,12 @@ case class FullNameT[+T <: INameT](
   last: T
 )  {
 
+  // Placeholders should only be the last name, getPlaceholdersInKind assumes it
+  initSteps.foreach({
+    case PlaceholderNameT(_) => vfail()
+    case PlaceholderTemplateNameT(_) => vfail()
+    case _ =>
+  })
   // Placeholders are under the template name.
   // There's really no other way; we make the placeholders before knowing the function's
   // instantated name.

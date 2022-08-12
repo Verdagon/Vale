@@ -741,9 +741,7 @@ class CompilerRuleSolver(
         Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        // This rule does nothing. Not sure why we have it.
-        //        val result = delegate.lookupTemplataImprecise(env, state, range, RuneNameS(rune.rune))
-        //        stepState.concludeRune[ICompilerSolverError](rune.rune, result)
+        // This rule does nothing, it was actually preprocessed.
         Ok(())
       }
       case AugmentSR(range, resultRune, augmentOwnership, innerRune) => {

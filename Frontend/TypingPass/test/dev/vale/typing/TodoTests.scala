@@ -27,6 +27,17 @@ class TodoTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
+  test("Reports when two functions with same signature") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported func moo() int { return 1337; }
+        |exported func moo() int { return 1448; }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
+    }
+  }
+
   // DO NOT SUBMIT fails: imm generics
   test("Report imm mut mismatch for generic type") {
     val compile = CompilerTestCompilation.test(
@@ -57,6 +68,68 @@ class TodoTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // DO NOT SUBMIT fails free
+  test("Reports when exported SSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.functor1.*;
+        |export [#5]<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
+
+  // DO NOT SUBMIT fails free
+  test("Reports when exported RSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.functor1.*;
+        |export []<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
+
+  // DO NOT SUBMIT fails free
+  // See DSDCTD
+  test("Tests destructuring shared doesnt compile to destroy") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |struct Vec3i imm {
+        |  x int;
+        |  y int;
+        |  z int;
+        |}
+        |
+        |exported func main() int {
+        |	 Vec3i[x, y, z] = Vec3i(3, 4, 5);
+        |  return y;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    Collector.all(coutputs.lookupFunction("main"), {
+      case DestroyTE(_, _, _) =>
+    }).size shouldEqual 0
+
+    // Make sure there's a destroy in its destructor though.
+    val destructor =
+      vassertOne(
+        coutputs.functions.collect({
+          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
+        }))
+
+    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
+    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
 
@@ -163,6 +236,63 @@ class TodoTests extends FunSuite with Matchers {
     // Ensure it properly prints out that the original error is from isEmpty
     // Also prune it down a bit
     vimpl()
+  }
+
+  // Depends on free
+  test("Can mutate an element in a runtime-sized array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |exported func main() int {
+        |  arr = Array<mut, int>(3);
+        |  arr.push(0);
+        |  arr.push(1);
+        |  arr.push(2);
+        |  set arr[1] = 10;
+        |  return 73;
+        |}
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
+
+  // DO NOT SUBMIT fails free
+  test("Test array push, pop, len, capacity, drop") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |
+        |exported func main() void {
+        |  arr = Array<mut, int>(9);
+        |  arr.push(420);
+        |  arr.push(421);
+        |  arr.push(422);
+        |  arr.len();
+        |  arr.capacity();
+        |  // implicit drop with pops
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // DO NOT SUBMIT fails anonymous subclass
+  test("Test MakeArray") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arith.*;
+        |import array.make.*;
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |import ifunction.ifunction1.*;
+        |
+        |exported func main() int {
+        |  a = MakeArray(11, {_});
+        |  return len(&a);
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
   }
 
   // Depends on Basic interface anonymous subclass

@@ -216,6 +216,35 @@ When we compile the innards of that, we don't want to assume that N is 5, becaus
 So, we need to *not* execute that LiteralSR(N, 5) rule.
 
 
+# Using Instantiated Names in Templar (UINIT)
+
+
+This one little name field can illuminate much of how the compiler works.
+
+For ordinary functions, each ordinary FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
+
+ * This IFunctionNameT's parameters have the types you'd expect
+ * This IFunctionNameT will have no templateArgs.
+
+For generic functions, each generic FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
+
+ * This IFunctionNameT's parameters will have some PlaceholderTs or PlaceholderTemplatas in them.
+ * The templateArgs will all PlaceholderTemplatas.
+
+Lambdas are where it gets interesting. One lambda can manifest multiple FunctionTs/FunctionHeaderTs. For example:
+
+```
+lam = x => println(x);
+lam(3);
+lam(true);
+```
+
+  This will actually manifest *two* FunctionTs/FunctionHeaderTs:
+
+ * One for line 2, with one parameter (int) and one template arg (int).
+ * One for line 3, with one parameter (bool) and one template arg (bool).
+
+We also use this same scheme for the CompilerOutputs, to map names to environments.
 
 # Need Abstract Function's Environment When Resolving Overload (NAFEWRO)
 
@@ -695,5 +724,67 @@ However, when we do that, it failed the second `where func drop(T)void` there. T
 
 So, we need to recall the abstract function's inner environment when we do that resolve. To do that, we need to track the inner env in the CompilerOutputs.
 
+
+
+## Must Know Runes From Above
+
+(MKRFA)
+
+When we start evaluating a function or struct or something, we don\'t
+know the values of its runes.
+
+For example:
+
+```
+fn add<T>(list &List<T>, elem T) { ... }
+```
+
+we don't know the value of T, we're figuring it out now.
+
+One would think that whenever we see a CodeRuneS("T"), it's an
+unknown.
+
+**Case 1: Manually Specifying a Rune**
+
+If we have this function:
+
+```
+fn moo<T>(x T) Some<T> {
+  Some<T>(x)
+}
+```
+
+We need to look up that T from the environment.
+
+For that reason, Scout's IEnvironment will track which runes are
+currently known.
+
+**Case 2: Runes from Parent**
+
+If we have this `__call` function:
+
+```
+interface IFunction1<M, P1 Ref, R Ref> M {
+  fn __call(virtual this &IFunction1<M, P1, R>, param P1) R;
+}
+```
+
+If we want to evaluate it, we can actually infer the M, P1, and R from
+the first argument. So they can be regular runes.
+
+**Conclusion**
+
+The PostParser will keep track of what runes are defined in parent environments. When it encounters one, it'll know it's a rune, and add a RuneParentEnvLookupSR rule for it. For Case 1, we'll just leave it in. For Case 2, we'll immediately strip it out.
+
+When compiling an expression (like case 1) we'll preprocess the RuneParentEnvLookupSR rule out, to populate its value from the environment.
+
+
+# Can't Get All Descendants Of Interface (CGADOI)
+
+Let's say we have a `MyStruct` implementing interface `MyObserver<int>`:
+
+If we want to know all children for `MyObserver`, would we count this? It's hard to say.
+
+For now, we leave that question unanswered, and say that we can never know all children for a specific interface template.
 
 

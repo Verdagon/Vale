@@ -31,7 +31,7 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
   FunctionHeaderT = {
     val header =
       FunctionHeaderT(
-        env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, originFunction)
+        env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val CoordTemplata(elementType) =

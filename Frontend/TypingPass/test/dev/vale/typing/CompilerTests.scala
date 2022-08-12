@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.infer.KindIsNotConcrete
+import dev.vale.typing.infer.{KindIsNotConcrete, OwnershipDidntMatch}
 import dev.vale.{CodeLocationS, Collector, Err, FileCoordinateMap, Ok, PackageCoordinate, RangeS, Tests, vassert, vassertOne, vpass, vwat}
 import dev.vale.parsing.ParseErrorHumanizer
 import dev.vale.postparsing.PostParser
@@ -11,7 +11,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.highertyping.{FunctionA, HigherTypingCompilation}
 import dev.vale.solver.RuleError
-import OverloadResolver.{FindFunctionFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
+import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
@@ -1464,5 +1464,84 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Report when imm contains varying member") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Spaceship imm {
+        |  name! str;
+        |  numWings int;
+        |}
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ImmStructCantHaveVaryingMember(_,TopLevelStructDeclarationNameS(StrI("Spaceship"),_),"name")) =>
+    }
+  }
+
+  test("Report when num elements mismatch") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported func main() bool {
+        |  arr = [#4][true, false, false];
+        |  return arr.0;
+        |}
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(InitializedWrongNumberOfElements(_, 4, 3)) =>
+    }
+  }
+
+  test("Reports when ownership doesnt match") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |struct Firefly {}
+        |func getFuel(self &Firefly) int { return 7; }
+        |
+        |exported func main() int {
+        |  f = Firefly();
+        |  return (f).getFuel();
+        |}
+        |""".stripMargin
+    )
+    compile.getCompilerOutputs() match {
+      case Err(CouldntFindFunctionToCallT(range, fff)) => {
+        fff.name match { case CodeNameS(StrI("getFuel")) => }
+        fff.rejectedCalleeToReason.size shouldEqual 1
+        val reason = fff.rejectedCalleeToReason.head._2
+        reason match {
+          case InferFailure(FailedSolve(_,_,RuleError(OwnershipDidntMatch(CoordT(OwnT,_),BorrowT)))) =>
+          //          case SpecificParamDoesntSend(0, _, _) =>
+          case other => vfail(other)
+        }
+      }
+    }
+  }
+
+  test("Test imm array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.panic.*;
+        |import v.builtins.drop.*;
+        |export #[]int as ImmArrInt;
+        |exported func main(arr #[]int) {
+        |  __vbi_panic();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+    main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
+  }
+
+  test("Tests calling an abstract function") {
+    val compile = CompilerTestCompilation.test(
+      Tests.loadExpected("programs/genericvirtuals/callingAbstract.vale"))
+    val coutputs = compile.expectCompilerOutputs()
+
+    coutputs.functions.collectFirst({
+      case FunctionT(header @ functionName("doThing"), _) if header.getAbstractInterface != None => true
+    }).get
+  }
+
 
 }

@@ -135,6 +135,11 @@ case class InterfaceS(
   // See IMRFDI
   internalMethods: Vector[FunctionS]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+
+  internalMethods.foreach(internalMethod => {
+    vassert(genericParams == internalMethod.genericParams)
+  })
+
 }
 
 case class ImplS(

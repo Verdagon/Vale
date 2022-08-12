@@ -190,7 +190,7 @@ class StructFreeMacro(
     val structType = CoordT(structOwnership, structTT)
 
     val ret = CoordT(ShareT, VoidT())
-    val header = ast.FunctionHeaderT(env.fullName, Vector.empty, params2, ret, originFunction1)
+    val header = ast.FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 

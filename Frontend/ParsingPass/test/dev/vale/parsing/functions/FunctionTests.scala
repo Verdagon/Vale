@@ -192,7 +192,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         NameP(_, StrI("r")),
         Some(GenericParameterTypeP(_, RegionTypePR)),
         Vector(),
-        None) =>
+        Some(NameOrRunePT(NameP(_,StrI("pool"))))) =>
     }
   }
 
@@ -204,7 +204,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         NameP(_, StrI("r")),
         Some(GenericParameterTypeP(_, RegionTypePR)),
         Vector(ReadOnlyRuneAttributeP(_)),
-        None) =>
+        Some(NameOrRunePT(NameP(_,StrI("pool"))))) =>
     }
   }
 
@@ -216,7 +216,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         NameP(_, StrI("x")),
         Some(GenericParameterTypeP(_, RegionTypePR)),
         Vector(),
-        None) =>
+        Some(NameOrRunePT(NameP(_,StrI("arena"))))) =>
     }
   }
 
@@ -310,7 +310,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
 
   test("Func with rules") {
     compileDenizenExpect(
-      "func sum () where X int {3}") shouldHave {
+      "func sum () where X Int {3}") shouldHave {
       case FunctionP(_,
         FunctionHeaderP(_,
           Some(NameP(_, StrI("sum"))), Vector(), None, Some(_), Some(_), FunctionReturnP(_, None, None)),
