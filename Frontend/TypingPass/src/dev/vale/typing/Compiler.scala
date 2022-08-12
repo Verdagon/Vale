@@ -140,14 +140,68 @@ class Compiler(
       interner,
       nameTranslator,
       new IInfererDelegate {
-        override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit = {
-          val placeholderFullNames =
-            Collector.all(templata, {
-              case n@FullNameT(_, _, PlaceholderTemplateNameT(_)) => n
-              case n@FullNameT(_, _, PlaceholderNameT(_)) => n
-            })
+        def getPlaceholdersInFullName(accum: Accumulator[FullNameT[INameT]], fullName: FullNameT[INameT]): Unit = {
+          fullName.last match {
+            case PlaceholderNameT(_) => accum.add(fullName)
+            case PlaceholderTemplateNameT(_) => accum.add(fullName)
+            case _ =>
+          }
+        }
 
-          if (placeholderFullNames.nonEmpty) {
+        def getPlaceholdersInTemplata(accum: Accumulator[FullNameT[INameT]], templata: ITemplata[ITemplataType]): Unit = {
+          templata match {
+            case KindTemplata(kind) => getPlaceholdersInKind(accum, kind)
+            case CoordTemplata(CoordT(_, kind)) => getPlaceholdersInKind(accum, kind)
+            case CoordTemplata(CoordT(_, _)) =>
+            case PlaceholderTemplata(fullNameT, _) => accum.add(fullNameT)
+            case IntegerTemplata(_) =>
+            case BooleanTemplata(_) =>
+            case StringTemplata(_) =>
+            case VariabilityTemplata(_) =>
+            case OwnershipTemplata(_) =>
+            case MutabilityTemplata(_) =>
+            case InterfaceTemplata(_,_) =>
+            case StructTemplata(_,_) =>
+            case CoordListTemplata(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
+            case PrototypeTemplata(_, prototype) => {
+              getPlaceholdersInFullName(accum, prototype.fullName)
+              prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
+              getPlaceholdersInKind(accum, prototype.returnType.kind)
+            }
+            case other => vimpl(other)
+          }
+        }
+
+        def getPlaceholdersInKind(accum: Accumulator[FullNameT[INameT]], kind: KindT): Unit = {
+          kind match {
+            case IntT(_) =>
+            case BoolT() =>
+            case FloatT() =>
+            case VoidT() =>
+            case NeverT(_) =>
+            case StrT() =>
+            case RuntimeSizedArrayTT(mutability, elementType) => {
+              getPlaceholdersInTemplata(accum, mutability)
+              getPlaceholdersInKind(accum, elementType.kind)
+            }
+            case StaticSizedArrayTT(size, mutability, variability, elementType) => {
+              getPlaceholdersInTemplata(accum, size)
+              getPlaceholdersInTemplata(accum, mutability)
+              getPlaceholdersInTemplata(accum, variability)
+              getPlaceholdersInKind(accum, elementType.kind)
+            }
+            case StructTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
+            case InterfaceTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
+            case PlaceholderT(fullName) => accum.add(fullName)
+            case other => vimpl(other)
+          }
+        }
+
+        override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit = {
+          val accum = new Accumulator[FullNameT[INameT]]()
+          getPlaceholdersInTemplata(accum, templata)
+
+          if (accum.elementsReversed.nonEmpty) {
             val originalCallingEnvTemplateName =
               env.originalCallingEnv.fullName match {
                 case FullNameT(packageCoord, initSteps, x: ITemplateNameT) => {
@@ -162,7 +216,7 @@ class Compiler(
                 }
                 case other => vfail(other)
               }
-            placeholderFullNames.foreach({ case FullNameT(paackage, initSteps, _) =>
+            accum.elementsReversed.foreach({ case FullNameT(paackage, initSteps, _) =>
               val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
               vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
             })
@@ -403,13 +457,13 @@ class Compiler(
 //            coutputs, parentRanges, functionTemplata, verifyConclusions)
 //        }
 
-        override def evaluateTemplatedFunctionFromNonCallForHeader(
+        override def evaluateGenericFunctionFromNonCallForHeader(
           coutputs: CompilerOutputs,
           parentRanges: List[RangeS],
           functionTemplata: FunctionTemplata,
           verifyConclusions: Boolean):
         FunctionHeaderT = {
-          functionCompiler.evaluateTemplatedFunctionFromNonCallForHeader(
+          functionCompiler.evaluateGenericFunctionFromNonCall(
             coutputs, parentRanges, functionTemplata, verifyConclusions)
         }
 
@@ -515,7 +569,7 @@ class Compiler(
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
             args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
-          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args, true)
+          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)), true)
         }
 
         override def evaluateGenericFunctionFromCallForPrototype(
@@ -526,7 +580,8 @@ class Compiler(
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
-          functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
+          functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)))
         }
 
         override def evaluateClosureStruct(
@@ -540,7 +595,7 @@ class Compiler(
         }
       })
 
-  val edgeCompiler = new EdgeCompiler(interner, keywords, overloadCompiler, implCompiler)
+  val edgeCompiler = new EdgeCompiler(interner, keywords, functionCompiler, overloadCompiler, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator)

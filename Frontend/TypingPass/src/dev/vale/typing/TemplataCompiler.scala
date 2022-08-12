@@ -623,7 +623,8 @@ class TemplataCompiler(
       env: IEnvironment,
       namePrefix: FullNameT[INameT],
       index: Int,
-      tyype: ITemplataType):
+      tyype: ITemplataType,
+      registerWithCompilerOutputs: Boolean):
   ITemplata[ITemplataType] = {
     val placeholderFullName =
       namePrefix.addStep(
@@ -634,10 +635,12 @@ class TemplataCompiler(
     tyype match {
       case KindTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
-        coutputs.declareType(placeholderTemplateFullName)
-        val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-        coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
-        coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
+        if (registerWithCompilerOutputs) {
+          coutputs.declareType(placeholderTemplateFullName)
+          val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
+          coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
+          coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
+        }
         KindTemplata(placeholderKindT)
       }
       // TODO: Not sure what to put here when we do regions. We might need to
@@ -648,10 +651,12 @@ class TemplataCompiler(
       // So, I guess we could just assume the function's default region here then.
       case CoordTemplataType() => {
         val placeholderKindT = PlaceholderT(placeholderFullName)
-        coutputs.declareType(placeholderTemplateFullName)
-        val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-        coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
-        coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
+        if (registerWithCompilerOutputs) {
+          coutputs.declareType(placeholderTemplateFullName)
+          val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
+          coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
+          coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
+        }
         CoordTemplata(CoordT(OwnT, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, tyype)

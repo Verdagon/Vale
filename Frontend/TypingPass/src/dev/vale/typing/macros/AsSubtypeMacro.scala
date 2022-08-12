@@ -31,7 +31,7 @@ class AsSubtypeMacro(
     maybeRetCoord: Option[CoordT]):
   FunctionHeaderT = {
     val header =
-      FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, originFunction)
+      FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val sourceKind = vassertSome(paramCoords.headOption).tyype.kind

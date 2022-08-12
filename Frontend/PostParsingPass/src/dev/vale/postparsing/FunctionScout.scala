@@ -518,7 +518,7 @@ class FunctionScout(
 
   def scoutInterfaceMember(
     interfaceEnv: EnvironmentS,
-    interfaceIdentifyingRunes: Array[RuneUsage],
+    interfaceGenericParams: Array[GenericParameterS],
     interfaceRules: Array[IRulexSR],
     interfaceRuneToExplicitType: Map[IRuneS, ITemplataType],
     functionP: FunctionP): FunctionS = {
@@ -565,7 +565,6 @@ class FunctionScout(
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(interfaceEnv.file, range), CodeRuneS(identifyingRuneName)) })
 
     val userDeclaredRunes = (userSpecifiedIdentifyingRunes ++ userRunesFromRules).distinct
-    val identifyingRunes = userSpecifiedIdentifyingRunes ++ interfaceIdentifyingRunes
 
     val lidb = new LocationInDenizenBuilder(Vector())
 
@@ -581,12 +580,13 @@ class FunctionScout(
       postparsing.FunctionEnvironmentS(
         interfaceEnv.file, funcName, Some(interfaceEnv), userDeclaredRunes.map(_.rune).toSet, maybeParamsP.size, true)
 
-    val genericParametersS =
+    val functionUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
         })
+    val genericParametersS = functionUserSpecifiedGenericParametersS ++ interfaceGenericParams
 
     val myStackFrame = StackFrame(interfaceEnv.file, funcName, functionEnv, None, noDeclarations)
     val patternsS =
@@ -622,10 +622,19 @@ class FunctionScout(
       throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(interfaceEnv.file, range), "Dont need abstract here"))
     }
 
+    val unfilteredRulesArray = ruleBuilder.toArray
+    // Filter out any RuneParentEnvLookupSR rules, we don't want these methods to look up these runes
+    // from the environment. See MKRFA.
+    val rulesArray =
+      unfilteredRulesArray.filter({
+        case RuneParentEnvLookupSR(_, _) => false
+        case _ => true
+      })
+
     postParser.checkIdentifiability(
       rangeS,
-      identifyingRunes.map(_.rune),
-      ruleBuilder.toArray)
+      genericParametersS.map(_.rune.rune),
+      rulesArray)
 
     FunctionS(
       PostParser.evalRange(functionEnv.file, range),
@@ -639,7 +648,7 @@ class FunctionScout(
       paramsS,
       maybeReturnRune,
       //      isTemplate,
-      ruleBuilder.toArray,
+      rulesArray,
       AbstractBodyS)
   }
 }

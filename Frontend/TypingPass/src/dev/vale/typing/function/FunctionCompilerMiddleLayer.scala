@@ -112,7 +112,6 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     function1: FunctionA):
   (PrototypeTemplata) = {
-
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
@@ -122,7 +121,7 @@ class FunctionCompilerMiddleLayer(
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName)//, params2)
+    val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.fullName)//, params2)
 
     val header =
       core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
@@ -315,8 +314,9 @@ class FunctionCompilerMiddleLayer(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
-    function1: FunctionA):
+    functionTemplata: FunctionTemplata):
   (FunctionBannerT) = {
+    val function1 = functionTemplata.function
 
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
@@ -327,7 +327,7 @@ class FunctionCompilerMiddleLayer(
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(function1), namedEnv.fullName)//, params2)
+    val banner = ast.FunctionBannerT(Some(functionTemplata), namedEnv.fullName)//, params2)
     banner
   }
 

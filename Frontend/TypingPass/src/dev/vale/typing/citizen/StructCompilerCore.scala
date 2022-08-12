@@ -171,6 +171,7 @@ class StructCompilerCore(
   // }
   // which means we need some way to know what T is.
   def compileInterface(
+    containingEnv: IEnvironment,
     interfaceRunesEnv: CitizenEnvironment[IInterfaceNameT, IInterfaceTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
@@ -251,11 +252,11 @@ class StructCompilerCore(
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
 //        if (internalMethod.isTemplate) {
-          delegate.evaluateTemplatedFunctionFromNonCallForHeader(
+          delegate.evaluateGenericFunctionFromNonCallForHeader(
             coutputs,
             parentRanges,
             FunctionTemplata(
-              interfaceInnerEnv,
+              containingEnv,
               internalMethod),
             true)
 //        } else {
@@ -424,7 +425,7 @@ class StructCompilerCore(
       // Adds the free function to the coutputs
       // Free is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
-      delegate.evaluateTemplatedFunctionFromNonCallForHeader(
+      delegate.evaluateGenericFunctionFromNonCallForHeader(
         coutputs,
         parentRanges,
         structInnerEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
@@ -435,7 +436,7 @@ class StructCompilerCore(
       // Adds the drop function to the coutputs
       // Drop is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
-      delegate.evaluateTemplatedFunctionFromNonCallForHeader(
+      delegate.evaluateGenericFunctionFromNonCallForHeader(
         coutputs,
         parentRanges,
         structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {

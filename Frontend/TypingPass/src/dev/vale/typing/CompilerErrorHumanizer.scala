@@ -213,9 +213,9 @@ object CompilerErrorHumanizer {
     codeMap: FileCoordinateMap[String],
     banner: FunctionBannerT):
   String = {
-    banner.originFunction match {
+    banner.originFunctionTemplata match {
       case None => "(internal)"
-      case Some(x) => printableName(codeMap, x.name)
+      case Some(x) => printableName(codeMap, x.function.name)
     }
   }
 

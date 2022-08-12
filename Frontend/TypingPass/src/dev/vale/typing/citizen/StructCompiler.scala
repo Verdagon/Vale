@@ -28,7 +28,7 @@ import scala.collection.mutable
 case class WeakableImplingMismatch(structWeakable: Boolean, interfaceWeakable: Boolean) extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 trait IStructCompilerDelegate {
-  def evaluateTemplatedFunctionFromNonCallForHeader(
+  def evaluateGenericFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     functionTemplata: FunctionTemplata,

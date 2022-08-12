@@ -8,6 +8,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.{IRuneS, ITemplataType}
 import dev.vale.typing._
+import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -30,10 +31,12 @@ case class ImplT(
 
   templata: ImplTemplata,
 
+  implOuterEnv: IEnvironment,
+
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
-//  // Starting from a placeholdered sub citizen, this is the interface that would result.
-//  // We get this by solving the impl, given a placeholdered sub citizen.
-//  parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
+  // Starting from a placeholdered sub citizen, this is the interface that would result.
+  // We get this by solving the impl, given a placeholdered sub citizen.
+  parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
   superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
 //  // Starting from a placeholdered super interface, this is the interface that would result.
@@ -170,7 +173,7 @@ case class ValidHeaderCalleeCandidate(
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
-  override def range: Option[RangeS] = header.maybeOriginFunction.map(_.range)
+  override def range: Option[RangeS] = header.maybeOriginFunctionTemplata.map(_.function.range)
   override def paramTypes: Array[CoordT] = header.paramTypes.toArray
 }
 case class ValidPrototypeTemplataCalleeCandidate(
@@ -188,7 +191,7 @@ case class ValidCalleeCandidate(
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
-  override def range: Option[RangeS] = banner.maybeOriginFunction.map(_.range)
+  override def range: Option[RangeS] = banner.maybeOriginFunctionTemplata.map(_.function.range)
   override def paramTypes: Array[CoordT] = banner.paramTypes.toArray
 }
 
@@ -210,7 +213,7 @@ case class SignatureT(fullName: FullNameT[IFunctionNameT]) {
 }
 
 case class FunctionBannerT(
-  originFunction: Option[FunctionA],
+  originFunctionTemplata: Option[FunctionTemplata],
   name: FullNameT[IFunctionNameT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -218,7 +221,7 @@ case class FunctionBannerT(
   override def equals(obj: Any): Boolean = vcurious();
 
   def same(that: FunctionBannerT): Boolean = {
-    originFunction == that.originFunction && name == that.name
+    originFunctionTemplata.map(_.function) == that.originFunctionTemplata.map(_.function) && name == that.name
   }
 
 
@@ -267,13 +270,13 @@ case class FunctionHeaderT(
   attributes: Vector[IFunctionAttributeT],
   params: Vector[ParameterT],
   returnType: CoordT,
-  maybeOriginFunction: Option[FunctionA]) {
+  maybeOriginFunctionTemplata: Option[FunctionTemplata]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   vassert({
-    maybeOriginFunction match {
+    maybeOriginFunctionTemplata match {
       case None =>
-      case Some(originFunction) => {
+      case Some(originFunctionTemplata) => {
         val templateName = TemplataCompiler.getFunctionTemplate(fullName)
         val placeholders =
           Collector.all(fullName, {
@@ -288,11 +291,11 @@ case class FunctionHeaderT(
             parentName == fullName || parentName == templateName
           })
 
-        if (originFunction.isLambda()) {
+        if (originFunctionTemplata.function.isLambda()) {
           // make sure there are no placeholders
           vassert(placeholdersOfThisFunction.isEmpty)
         } else {
-          if (originFunction.genericParameters.isEmpty) {
+          if (originFunctionTemplata.function.genericParameters.isEmpty) {
             // make sure there are no placeholders
             vassert(placeholdersOfThisFunction.isEmpty)
           } else {
@@ -374,7 +377,7 @@ case class FunctionHeaderT(
 //    }
 //  })
 
-  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunction, fullName)
+  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunctionTemplata, fullName)
   def toPrototype: PrototypeT = {
 //    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
 //    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)

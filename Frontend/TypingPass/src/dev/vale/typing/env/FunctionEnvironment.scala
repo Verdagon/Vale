@@ -5,7 +5,7 @@ import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{LocationInFunctionEnvironment, ParameterT}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, IVarNameT}
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.templata.{FunctionTemplata, ITemplata}
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.IImpreciseNameS
@@ -387,6 +387,7 @@ case class FunctionEnvironment(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
+  def templata = FunctionTemplata(parentEnv, function)
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): FunctionEnvironment = {
     FunctionEnvironment(

@@ -101,7 +101,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[CoordT],
+    args: Vector[Option[CoordT]],
     verifyConclusions: Boolean):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = nearEnv.function
@@ -120,7 +120,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callSiteRules,
         function.runeToType,
         callRange,
-        assembleKnownTemplatas(function, args, explicitTemplateArgs),
+        assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         false,
         false
@@ -142,11 +142,14 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype))
   }
 
-  private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[CoordT]):
+  private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[Option[CoordT]]):
   Vector[InitialSend] = {
     function.params.map(_.pattern.coordRune.get).zip(args).zipWithIndex
-      .map({ case ((paramRune, argTemplata), argIndex) =>
-        InitialSend(RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune, CoordTemplata(argTemplata))
+      .flatMap({
+        case ((_, None), _) => None
+        case ((paramRune, Some(argTemplata)), argIndex) => {
+          Some(InitialSend(RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune, CoordTemplata(argTemplata)))
+        }
       })
   }
 
@@ -160,7 +163,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       originalCallingEnv: IEnvironment, // See CSSNCE
       callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[CoordT]):
+      args: Vector[Option[CoordT]]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = declaringEnv.function
     // Check preconditions
@@ -179,7 +182,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callSiteRules,
         function.runeToType,
         callRange,
-        assembleKnownTemplatas(function, args, alreadySpecifiedTemplateArgs),
+        assembleKnownTemplatas(function, alreadySpecifiedTemplateArgs),
         initialSends,
         true,
         false
@@ -353,7 +356,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[CoordT]):
+      args: Vector[Option[CoordT]]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = nearEnv.function
     // Check preconditions
@@ -368,7 +371,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         function.rules, function.genericParameters, explicitTemplateArgs.size)
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
-    val initialKnowns = assembleKnownTemplatas(function, args, explicitTemplateArgs)
+    val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
     val inferences =
       inferCompiler.solveComplete(
         InferEnv(originalCallingEnv, callRange, nearEnv),
@@ -398,7 +401,6 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
   private def assembleKnownTemplatas(
     function: FunctionA,
-    args: Vector[CoordT],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]]):
   Vector[InitialKnown] = {
     // Sometimes we look for an overload for a given override, assemble knowns from that here
@@ -468,7 +470,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[CoordT]):
+    args: Vector[Option[CoordT]]):
   (IEvaluateFunctionResult[PrototypeTemplata]) = {
     val function = nearEnv.function
     // Check preconditions
@@ -486,7 +488,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         callSiteRules,
         function.runeToType,
         callRange,
-        assembleKnownTemplatas(function, args, explicitTemplateArgs),
+        assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         true,
         false
@@ -502,6 +504,97 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         runedEnv, coutputs, callRange, function)
 
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype))
+  }
+
+  def evaluateGenericFunctionParentForPrototype(
+    // The environment the function was defined in.
+    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment, // See CSSNCE
+    callRange: List[RangeS],
+    implTemplata: ImplTemplata):
+  IEvaluateFunctionResult[(PrototypeT, IEnvironment)] = {
+    val function = nearEnv.function
+    // Check preconditions
+    checkClosureConcernsHandled(nearEnv)
+
+    val functionDefinitionRules =
+      function.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
+    val implRules =
+      implTemplata.impl.rules.filter(InferCompiler.includeRuleInDefinitionSolve)
+    val rules = functionDefinitionRules ++ implRules
+
+    val runeToType = function.runeToType ++ implTemplata.impl.runeToType
+
+    val placeholderInitialKnownsFromImpl =
+      implTemplata.impl.identifyingRunes.zipWithIndex.flatMap({ case (implIdentifyingRune, index) =>
+        // Make a placeholder for every argument even if it has a default, see DUDEWCD.
+        val runeType = vassertSome(implTemplata.impl.runeToType.get(implIdentifyingRune.rune))
+        val templata =
+          templataCompiler.createPlaceholder(
+            coutputs, nearEnv, nearEnv.fullName, index, runeType, false)
+        Some(InitialKnown(implIdentifyingRune, templata))
+      })
+
+    // This is so that we can feed in the self interface to see what it indirectly determines.
+    // It will turn a:
+    //   func map<T, F>(self Opt<T>, f F) { ... }
+    // into a:
+    //   func map<F>(self Opt<$0>, f F) { ... }
+    val preliminaryInferences =
+      inferCompiler.solve(
+        InferEnv(nearEnv, callRange, nearEnv),
+        coutputs, rules, runeToType, function.range :: callRange, placeholderInitialKnownsFromImpl, Vector(), true, true) match {
+        case f @ FailedSolve(_, _, err) => {
+          throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: callRange, f))
+        }
+        case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+        case CompleteSolve(_, conclusions) => conclusions
+      }
+    // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
+    // Our
+    //   func map<F>(self Opt<$0>, f F) { ... }
+    // will need one placeholder, for F.
+
+    val placeholderInitialKnownsFromFunction =
+      function.genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>
+        preliminaryInferences.get(genericParam.rune.rune) match {
+          case Some(x) => Some(InitialKnown(genericParam.rune, x))
+          case None => {
+            vimpl()
+            // The below doesnt seem like it would work. It might make some placeholders
+            // whose names collide with the ones made above from the impl identifying runes.
+
+            // Make a placeholder for every argument even if it has a default, see DUDEWCD.
+            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
+            val templata =
+              templataCompiler.createPlaceholder(
+                coutputs, nearEnv, nearEnv.fullName, index, runeType, false)
+            Some(InitialKnown(genericParam.rune, templata))
+          }
+        }
+      })
+
+    // Now that we have placeholders, let's do the rest of the solve, so we can get a full prototype out of it.
+
+    val inferences =
+      inferCompiler.solveExpectComplete(
+        InferEnv(nearEnv, callRange, nearEnv),
+        coutputs,
+        rules,
+        runeToType,
+        function.range :: callRange,
+        placeholderInitialKnownsFromImpl ++ placeholderInitialKnownsFromFunction,
+        Vector(),
+        true,
+        true)
+    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
+
+    val prototype =
+      middleLayer.getGenericFunctionPrototypeFromCall(
+        runedEnv, coutputs, callRange, function)
+
+    EvaluateFunctionSuccess((prototype, runedEnv))
   }
 
   // Preconditions:
@@ -549,7 +642,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           case None => {
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
-            val templata = templataCompiler.createPlaceholder(coutputs, nearEnv, functionTemplateFullName, index, runeType)
+            val templata =
+              templataCompiler.createPlaceholder(
+                coutputs, nearEnv, functionTemplateFullName, index, runeType, true)
             Some(InitialKnown(genericParam.rune, templata))
           }
         }

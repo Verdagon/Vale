@@ -107,7 +107,7 @@ class FunctionCompilerCore(
               translateFunctionAttributes(fullEnv.function.attributes),
               params2,
               retCoord,
-              Some(fullEnv.function))
+              Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)))
           (header)
         }
         case AbstractBodyS | GeneratedBodyS(_) => {
@@ -322,7 +322,7 @@ class FunctionCompilerCore(
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       returnCoord: CoordT) = {
-    val header = FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(fullEnv.function));
+    val header = FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));
     coutputs.declareFunctionReturnType(header.toSignature, returnCoord)
     header
   }
@@ -355,7 +355,7 @@ class FunctionCompilerCore(
       attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],
       returnType2: CoordT,
-      maybeOrigin: Option[FunctionA]):
+      maybeOrigin: Option[FunctionTemplata]):
   (FunctionHeaderT) = {
     fullName.last match {
       case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {

@@ -289,7 +289,9 @@ class StructCompilerGenericArgsLayer(
             case None => {
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val runeType = vassertSome(allRuneToType.get(genericParam.rune.rune))
-              val templata = templataCompiler.createPlaceholder(coutputs, outerEnv, structTemplateFullName, index, runeType)
+              val templata =
+                templataCompiler.createPlaceholder(
+                  coutputs, outerEnv, structTemplateFullName, index, runeType, true)
               Some(InitialKnown(genericParam.rune, templata))
             }
           }
@@ -401,7 +403,9 @@ class StructCompilerGenericArgsLayer(
                 }
                 case None => {
                   val runeType = vassertSome(interfaceA.runeToType.get(genericParam.rune.rune))
-                  val templata = templataCompiler.createPlaceholder(coutputs, outerEnv, interfaceTemplateFullName, index, runeType)
+                  val templata =
+                    templataCompiler.createPlaceholder(
+                      coutputs, outerEnv, interfaceTemplateFullName, index, runeType, true)
                   Some(InitialKnown(genericParam.rune, templata))
                 }
               }
@@ -447,7 +451,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
 
-      core.compileInterface(innerEnv, coutputs, parentRanges, interfaceA)
+      core.compileInterface(declaringEnv, innerEnv, coutputs, parentRanges, interfaceA)
     })
   }
 

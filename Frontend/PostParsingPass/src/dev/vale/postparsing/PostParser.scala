@@ -619,8 +619,8 @@ class PostParser(
     val runesFromRules =
       RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(rulesP)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
-    val userDeclaredRunes = userSpecifiedIdentifyingRunes ++ runesFromRules
-    val interfaceEnv = postparsing.EnvironmentS(file, None, interfaceFullName, userDeclaredRunes.map(_.rune).toSet)
+    val userDeclaredRunes = (userSpecifiedIdentifyingRunes.map(_.rune) ++ runesFromRules.map(_.rune)).distinct
+    val interfaceEnv = postparsing.EnvironmentS(file, None, interfaceFullName, userDeclaredRunes.toSet)
 
     val genericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
@@ -637,12 +637,12 @@ class PostParser(
 
     val rulesS = ruleBuilder.toArray
 
-    val runeToPredictedType = predictRuneTypes(interfaceRangeS, userDeclaredRunes.map(_.rune), Map(), rulesS)
+    val runeToPredictedType = predictRuneTypes(interfaceRangeS, userDeclaredRunes, Map(), rulesS)
 
     val predictedMutability = predictMutability(interfaceRangeS, mutabilityRuneS.rune, rulesS)
 
     val maybePredictedType =
-      determineDenizenType(KindTemplataType(), userDeclaredRunes.map(_.rune), runeToPredictedType) match {
+      determineDenizenType(KindTemplataType(), userDeclaredRunes, runeToPredictedType) match {
         case Ok(x) => Some(x)
         case Err(e) => {
           vassert(e.isInstanceOf[IRuneS])
@@ -653,7 +653,7 @@ class PostParser(
     val internalMethodsS =
       internalMethodsP.map(
         functionScout.scoutInterfaceMember(
-          interfaceEnv, userDeclaredRunes.toArray, rulesS, runeToExplicitType.toMap, _))
+          interfaceEnv, genericParametersS.toArray, rulesS, runeToExplicitType.toMap, _))
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))

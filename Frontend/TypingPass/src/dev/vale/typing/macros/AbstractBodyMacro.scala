@@ -8,6 +8,7 @@ import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast
 import dev.vale.typing.ast._
+import dev.vale.typing.templata.FunctionTemplata
 
 class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.abstractBody
@@ -32,7 +33,7 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
         Vector.empty,
         params2,
         returnReferenceType2,
-        originFunction)
+        originFunction.map(FunctionTemplata(env.parentEnv, _)))
     val function2 =
       FunctionT(
         header,
