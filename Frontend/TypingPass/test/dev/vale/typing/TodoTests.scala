@@ -27,38 +27,6 @@ class TodoTests extends FunSuite with Matchers {
     is.mkString("")
   }
 
-  // DO NOT SUBMIT fails: imm generics
-  test("Report imm mut mismatch for generic type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct MyImmContainer<T> imm where T Ref { value T; }
-        |struct MyMutStruct { }
-        |exported func main() { x = MyImmContainer<MyMutStruct>(); }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  // DO NOT SUBMIT fails lambda inside template
-  test("Lambda inside template") {
-    // This originally didn't work because both helperFunc<int> and helperFunc<Str>
-    // made a closure struct called helperFunc:lam1, which collided.
-    // This is what spurred paackage support.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |
-        |func helperFunc<T>(x T) {
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Tests overload set and concept function") {
     val compile = CompilerTestCompilation.test(
       """
@@ -327,6 +295,38 @@ class TodoTests extends FunSuite with Matchers {
     }
   }
 
+  // DO NOT SUBMIT fails lambda in template
+  test("Test array push, pop, len, capacity, drop") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |
+        |exported func main() void {
+        |  arr = Array<mut, int>(9);
+        |  arr.push(420);
+        |  arr.push(421);
+        |  arr.push(422);
+        |  arr.len();
+        |  arr.capacity();
+        |  // implicit drop with pops
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // right now there is no collision because they have different template names.
+  test("Reports when two functions with same signature") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported func moo() int { return 1337; }
+        |exported func moo() int { return 1448; }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
+    }
+  }
+
   // Interface bounds
   test("Report when downcasting to interface") {
     val compile = CompilerTestCompilation.test(
@@ -348,4 +348,31 @@ class TodoTests extends FunSuite with Matchers {
     }
   }
 
+  // DO NOT SUBMIT fails free
+  test("Reports when exported SSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.functor1.*;
+        |export [#5]<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
+
+  // DO NOT SUBMIT fails free
+  test("Reports when exported RSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.functor1.*;
+        |export []<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
 }

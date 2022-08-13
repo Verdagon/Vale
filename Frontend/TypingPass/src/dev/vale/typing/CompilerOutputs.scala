@@ -172,12 +172,6 @@ case class CompilerOutputs() {
   }
 
   def declareFunction(templateName: FullNameT[INameT]): Unit = {
-    templateName.last match {
-      case FunctionTemplateNameT(StrI("Some"),CodeLocationS(_,116)) => {
-        vpass()
-      }
-      case _ =>
-    }
     vassert(!functionDeclaredNames.contains(templateName))
     functionDeclaredNames += templateName
   }

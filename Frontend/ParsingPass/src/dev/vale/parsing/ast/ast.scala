@@ -35,7 +35,7 @@ case class TopLevelImportP(imporrt: ImportP) extends IDenizenP { override def eq
 
 case class ImplP(
   range: RangeL,
-  identifyingRunes: Option[GenericParametersP],
+  genericParams: Option[GenericParametersP],
   templateRules: Option[TemplateRulesP],
   // Option because we can say `impl MyInterface;` inside a struct.
   struct: Option[ITemplexPT],
@@ -110,10 +110,11 @@ case class PureAttributeP(range: RangeL) extends IAttributeP { override def equa
 //case class RuleAttributeP(rule: IRulexPR) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
 sealed trait IRuneAttributeP
-//case class TypeRuneAttributeP(range: RangeL, tyype: ITypePR) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class ReadOnlyRuneAttributeP(range: RangeL) extends IRuneAttributeP
-case class ReadWriteRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class ImmutableRuneAttributeP(range: RangeL) extends IRuneAttributeP
+//case class TypeRuneAttributeP(range: RangeL, tyype: ITypePR) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class ReadOnlyRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
+case class ReadWriteRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
+case class ImmutableRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP
 case class PoolRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ArenaRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class BumpRuneAttributeP(range: RangeL) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

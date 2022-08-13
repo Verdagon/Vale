@@ -556,10 +556,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           case Some(x) => Some(InitialKnown(genericParam.rune, x))
           case None => {
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
-            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
+//            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, callingEnv, callingEnv.fullName, index, runeType, false)
+                coutputs, callingEnv, callingEnv.fullName, genericParam, index, function.runeToType, false)
             Some(InitialKnown(genericParam.rune, templata))
           }
         }
@@ -631,10 +631,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           case Some(x) => Some(InitialKnown(genericParam.rune, x))
           case None => {
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
-            val runeType = vassertSome(function.runeToType.get(genericParam.rune.rune))
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, functionTemplateFullName, index, runeType, true)
+                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true)
             Some(InitialKnown(genericParam.rune, templata))
           }
         }

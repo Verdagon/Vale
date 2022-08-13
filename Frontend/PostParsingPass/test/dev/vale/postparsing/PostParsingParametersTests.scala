@@ -28,7 +28,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     vassert(main.runeToPredictedType.size == 1)
 
     main.genericParams match {
-      case Vector(GenericParameterS(RuneUsage(_, CodeRuneS(StrI("T"))), None)) =>
+      case Vector(GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), None)) =>
     }
   }
 

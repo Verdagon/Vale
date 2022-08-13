@@ -263,11 +263,10 @@ class ImplCompiler(
 
     val implPlaceholders =
       implA.identifyingRunes.zipWithIndex.map({ case (rune, index) =>
-        val tyype = implA.runeToType(rune.rune)
         val placeholder =
           templataCompiler.createPlaceholder(
-            coutputs, implOuterEnv, implTemplateFullName, index, tyype, true)
-        InitialKnown(rune, placeholder)
+            coutputs, implOuterEnv, implTemplateFullName, rune, index, implA.runeToType, true)
+        InitialKnown(rune.rune, placeholder)
       })
 
     val inferences =

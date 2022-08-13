@@ -1,11 +1,10 @@
 package dev.vale.postparsing
 
 import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vpass, vwat}
-import dev.vale.parsing.ast.{IMacroInclusionP, MutabilityP, VariabilityP}
+import dev.vale.parsing.ast.{IMacroInclusionP, IRuneAttributeP, MutabilityP, VariabilityP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.parsing._
-import dev.vale.parsing.ast.VariabilityP
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP}
 import dev.vale.postparsing.rules._
 
@@ -146,7 +145,7 @@ case class ImplS(
     range: RangeS,
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplDeclarationNameS,
-    userSpecifiedIdentifyingRunes: Vector[RuneUsage],
+    userSpecifiedIdentifyingRunes: Vector[GenericParameterS],
     rules: Array[IRulexSR],
     runeToExplicitType: Map[IRuneS, ITemplataType],
     structKindRune: RuneUsage,
@@ -226,12 +225,14 @@ case class CodeBodyS(body: BodySE) extends IBodyS {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 
-// template params.
-
 case class GenericParameterS(
   range: RangeS,
   rune: RuneUsage,
+  attributes: Vector[IRuneAttributeS],
   default: Option[GenericParameterDefaultS])
+
+sealed trait IRuneAttributeS
+case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS
 
 case class GenericParameterDefaultS(
   // One day, when we want more rules in here, we might need to have a runeToType map
