@@ -106,7 +106,7 @@ case class StructA(
 case class ImplA(
   range: RangeS,
   name: IImplDeclarationNameS,
-  identifyingRunes: Vector[RuneUsage],
+  identifyingRunes: Vector[GenericParameterS],
   rules: Vector[IRulexSR],
   runeToType: Map[IRuneS, ITemplataType],
   subCitizenRune: RuneUsage,

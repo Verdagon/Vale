@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{Interner, RangeS, vassert, vassertOne, vfail, vimpl, vwat}
+import dev.vale.{Interner, RangeS, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataLookupContext}
@@ -8,6 +8,7 @@ import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, 
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
+import dev.vale.parsing.ast.ImmutableRuneAttributeP
 import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
@@ -625,25 +626,29 @@ class TemplataCompiler(
       coutputs: CompilerOutputs,
       env: IEnvironment,
       namePrefix: FullNameT[INameT],
+      genericParam: GenericParameterS,
       index: Int,
-      tyype: ITemplataType,
+      runeToType: Map[IRuneS, ITemplataType],
       registerWithCompilerOutputs: Boolean):
   ITemplata[ITemplataType] = {
+    val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
     val placeholderFullName =
       namePrefix.addStep(
         interner.intern(PlaceholderNameT(
           interner.intern(PlaceholderTemplateNameT(index)))))
     val placeholderTemplateFullName =
       TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
-    tyype match {
+
+    val placeholderKindT = PlaceholderT(placeholderFullName)
+    if (registerWithCompilerOutputs) {
+      coutputs.declareType(placeholderTemplateFullName)
+      val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
+      coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
+      coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
+    }
+
+    runeType match {
       case KindTemplataType() => {
-        val placeholderKindT = PlaceholderT(placeholderFullName)
-        if (registerWithCompilerOutputs) {
-          coutputs.declareType(placeholderTemplateFullName)
-          val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-          coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
-          coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
-        }
         KindTemplata(placeholderKindT)
       }
       // TODO: Not sure what to put here when we do regions. We might need to
@@ -653,16 +658,18 @@ class TemplataCompiler(
       // For now, we can manually add them.
       // So, I guess we could just assume the function's default region here then.
       case CoordTemplataType() => {
-        val placeholderKindT = PlaceholderT(placeholderFullName)
-        if (registerWithCompilerOutputs) {
-          coutputs.declareType(placeholderTemplateFullName)
-          val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-          coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
-          coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
-        }
-        CoordTemplata(CoordT(OwnT, placeholderKindT))
+        val ownership =
+          if (genericParam.attributes.exists({
+            case ImmutableRuneAttributeS(_) => true
+            case _ => false
+          })) {
+            ShareT
+          } else {
+            OwnT
+          }
+        CoordTemplata(CoordT(ownership, placeholderKindT))
       }
-      case _ => PlaceholderTemplata(placeholderFullName, tyype)
+      case _ => PlaceholderTemplata(placeholderFullName, runeType)
     }
   }
 }

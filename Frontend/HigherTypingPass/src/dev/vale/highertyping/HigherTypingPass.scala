@@ -285,14 +285,14 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       calculateRuneTypes(
         astrouts,
         rangeS,
-        identifyingRunesS.map(_.rune),
+        identifyingRunesS.map(_.rune.rune),
         runeToExplicitType + (structKindRuneS.rune -> KindTemplataType(), interfaceKindRuneS.rune -> KindTemplataType()),
         Vector(),
         rulesS,
         env)
 
     // getOrDie because we should have gotten a complete solve
-    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune), runeSToType).getOrDie()
+    val tyype = PostParser.determineDenizenType(KindTemplataType(), identifyingRunesS.map(_.rune.rune), runeSToType).getOrDie()
     astrouts.codeLocationToMaybeType.put(rangeS.begin, Some(tyype))
 
     highertyping.ImplA(

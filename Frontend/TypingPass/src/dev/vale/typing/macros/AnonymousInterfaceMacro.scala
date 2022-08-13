@@ -120,7 +120,7 @@ class AnonymousInterfaceMacro(
         implNameS,
 //        // Just getting the template name (or the kind name if not template), see INSHN.
 //        implImpreciseNameS,
-        structA.genericParameters.map(_.rune),
+        structA.genericParameters,
         rules.toVector,
         runeToType,
         structKindRuneS,
@@ -153,7 +153,7 @@ class AnonymousInterfaceMacro(
           case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
         }) ++ memberRunes.map(_ => CoordTemplataType()),
         KindTemplataType()),
-      interfaceA.genericParameters ++ memberRunes.map(mr => GenericParameterS(mr.range, mr, None)),
+      interfaceA.genericParameters ++ memberRunes.map(mr => GenericParameterS(mr.range, mr, Vector(), None)),
       interfaceA.runeToType ++ memberRunes.map(_.rune -> CoordTemplataType()),
       interfaceA.rules.toArray,
       Map(),

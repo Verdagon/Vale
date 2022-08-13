@@ -32,37 +32,31 @@ class StructFreeMacro(
 
   val freeGeneratorId: StrI = keywords.freeGenerator
 
-  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
+  override def getStructChildEntries(
+    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
     Vector()
   }
 
-  override def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
+  override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    mutability match {
-      case MutabilityTemplata(ImmutableT) => {
-        val structNameS = structA.name
-        val structType = structA.tyype
-        val structIdentifyingRunes = structA.genericParameters
-        val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
-        val structIdentifyingRuneToType =
-          structIdentifyingRunes.map(_.rune.rune)
-            .zip(structIdentifyingRunes.map(_.rune.rune).map(allRuneToType)).toMap
+    val structNameS = structA.name
+    val structType = structA.tyype
+    val structIdentifyingRunes = structA.genericParameters
+    val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
+    val structIdentifyingRuneToType =
+      structIdentifyingRunes.map(_.rune.rune)
+        .zip(structIdentifyingRunes.map(_.rune.rune).map(allRuneToType)).toMap
 
-        val freeFunctionA =
-          makeFunction(
-            structNameS,
-            structA.range,
-            structType,
-            structIdentifyingRunes.map(_.rune.rune),
-            structIdentifyingRuneToType)
-        val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
-        Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
-      }
-      case MutabilityTemplata(MutableT) => Vector()
-      case PlaceholderTemplata(fullNameT, tyype) => vimpl()
-    }
+    val freeFunctionA =
+      makeFunction(
+        structNameS,
+        structA.range,
+        structType,
+        structIdentifyingRunes.map(_.rune.rune),
+        structIdentifyingRuneToType)
+    val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+    Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
   }
 
   def makeFunction(
@@ -87,6 +81,7 @@ class StructFreeMacro(
         GenericParameterS(
           RangeS.internal(interner, -64002),
           RuneUsage(RangeS.internal(interner, -64002), r),
+          Vector(ImmutableRuneAttributeS(RangeS.internal(interner, -64002))),
           None)
       }),
       structIdentifyingRuneToType ++
@@ -109,7 +104,7 @@ class StructFreeMacro(
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
               structNameS.getImpreciseName(interner)),
             CoerceToCoordSR(
-              RangeS.internal(interner, -167215),
+              RangeS.internal(interner, -1672151),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
         }
@@ -120,12 +115,12 @@ class StructFreeMacro(
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
               structNameS.getImpreciseName(interner)),
             CallSR(
-              RangeS.internal(interner, -167215),
+              RangeS.internal(interner, -1672152),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
               structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
             CoerceToCoordSR(
-              RangeS.internal(interner, -167215),
+              RangeS.internal(interner, -1672153),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
         }

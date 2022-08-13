@@ -1673,4 +1673,59 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin).expectCompilerOutputs()
   }
 
+  // See DSDCTD
+  test("Tests destructuring shared doesnt compile to destroy") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |struct Vec3i imm {
+        |  x int;
+        |  y int;
+        |  z int;
+        |}
+        |
+        |exported func main() int {
+        |	 Vec3i[x, y, z] = Vec3i(3, 4, 5);
+        |  return y;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    Collector.all(coutputs.lookupFunction("main"), {
+      case DestroyTE(_, _, _) =>
+    }).size shouldEqual 0
+
+    // Make sure there's a destroy in its destructor though.
+    val destructor =
+      vassertOne(
+        coutputs.functions.collect({
+          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
+        }))
+
+    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
+    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
+  }
+
+
+  test("Generates free function for imm struct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct Vec3i imm {
+        |  x int;
+        |  y int;
+        |  z int;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    // Make sure there's a destroy in its destructor though.
+    val freeFunc =
+      vassertOne(
+        coutputs.functions.collect({
+          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
+        }))
+
+    Collector.only(freeFunc, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
+    Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
+  }
 }

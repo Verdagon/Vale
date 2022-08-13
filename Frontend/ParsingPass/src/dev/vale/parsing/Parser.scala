@@ -33,13 +33,13 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
 
         val attributes =
             (iter.trySkipWord(keywords.ro) match {
-              case Some(range) => Vector(ReadOnlyRuneAttributeP(range))
+              case Some(range) => Vector(ReadOnlyRegionRuneAttributeP(range))
               case None => {
                 iter.trySkipWord(keywords.rw) match {
-                  case Some(range) => Vector(ReadWriteRuneAttributeP(range))
+                  case Some(range) => Vector(ReadWriteRegionRuneAttributeP(range))
                   case None => {
                     iter.trySkipWord(keywords.imm) match {
-                      case Some(range) => Vector(ImmutableRuneAttributeP(range))
+                      case Some(range) => Vector(ImmutableRegionRuneAttributeP(range))
                       case None => Vector()
                     }
                   }
@@ -68,7 +68,13 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
             case Ok(None) => None
           }
 
-        (name, maybeRuneType, Vector())
+        val maybeAttrs =
+          iter.trySkipWord(keywords.imm) match {
+            case Some(range) => Vector(ImmutableRuneAttributeP(range))
+            case None => Vector()
+          }
+
+        (name, maybeRuneType, maybeAttrs)
       }
 
     val maybeDefaultPT =

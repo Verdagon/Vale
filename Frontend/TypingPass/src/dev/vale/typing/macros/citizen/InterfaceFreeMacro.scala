@@ -12,6 +12,7 @@ import dev.vale.typing.macros.IOnInterfaceDefinedMacro
 import dev.vale.typing.names.{FreeTemplateNameT, FullNameT, INameT}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
+import dev.vale.parsing.ast.ImmutableRuneAttributeP
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AbstractSP
 import dev.vale.postparsing.rules.LookupSR
@@ -49,6 +50,7 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, overloadCompile
             GenericParameterS(
               RangeS.internal(interner, -64002),
               RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.T)),
+              Vector(ImmutableRuneAttributeS(RangeS.internal(interner, -64002))),
               None)),
           Map(CodeRuneS(keywords.T) -> CoordTemplataType(), CodeRuneS(keywords.V) -> CoordTemplataType()),
           Vector(

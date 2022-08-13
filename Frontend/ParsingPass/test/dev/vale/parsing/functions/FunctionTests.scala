@@ -172,7 +172,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
     val TopLevelFunctionP(func) =
       compileDenizen("func sum<'r ro>(){}").getOrDie()
     func.header.genericParameters.get.params.head match {
-      case GenericParameterP(_, NameP(_, StrI("r")), Some(GenericParameterTypeP(_, RegionTypePR)), Vector(ReadOnlyRuneAttributeP(_)), None) =>
+      case GenericParameterP(_, NameP(_, StrI("r")), Some(GenericParameterTypeP(_, RegionTypePR)), Vector(ReadOnlyRegionRuneAttributeP(_)), None) =>
     }
   }
 
@@ -203,7 +203,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
       case GenericParameterP(_,
         NameP(_, StrI("r")),
         Some(GenericParameterTypeP(_, RegionTypePR)),
-        Vector(ReadOnlyRuneAttributeP(_)),
+        Vector(ReadOnlyRegionRuneAttributeP(_)),
         Some(NameOrRunePT(NameP(_,StrI("pool"))))) =>
     }
   }

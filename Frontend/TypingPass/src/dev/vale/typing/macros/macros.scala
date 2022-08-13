@@ -36,7 +36,10 @@ trait IOnStructDefinedMacro {
   Vector[(FullNameT[INameT], IEnvEntry)]
 
   def getStructChildEntries(
-    macroName: StrI, structName: FullNameT[INameT], structA: StructA, mutability: ITemplata[MutabilityTemplataType]):
+    macroName: StrI,
+    structName: FullNameT[INameT],
+    structA: StructA,
+    mutability: ITemplata[MutabilityTemplataType]):
   Vector[(FullNameT[INameT], IEnvEntry)]
 }
 

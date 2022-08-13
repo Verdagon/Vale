@@ -238,7 +238,7 @@ object PostParser {
       genericParamP: GenericParameterP,
       paramRuneS: RuneUsage):
   GenericParameterS = {
-    val GenericParameterP(genericParamRangeP, _, maybeType, attributes, maybeDefault) = genericParamP
+    val GenericParameterP(genericParamRangeP, _, maybeType, attributesP, maybeDefault) = genericParamP
     val genericParamRangeS = PostParser.evalRange(env.file, genericParamRangeP)
     val runeS = paramRuneS
 
@@ -247,9 +247,16 @@ object PostParser {
       case Some(tyype) => runeToExplicitType.put(runeS.rune, RuleScout.translateType(tyype.tyype))
     }
 
+    val attributesS =
+      attributesP.flatMap({
+        case ImmutableRuneAttributeP(rangeP) => Some(ImmutableRuneAttributeS(evalRange(env.file, rangeP)))
+        case _ => None
+      })
+
     GenericParameterS(
       genericParamRangeS,
       runeS,
+      attributesS,
       maybeDefault.map(defaultPT => {
         val uncategorizedRules = ArrayBuffer[IRulexSR]()
         val resultRune = templexScout.translateTemplex(env, lidb, uncategorizedRules, defaultPT)
@@ -301,7 +308,7 @@ class PostParser(
   }
 
   private def scoutImpl(file: FileCoordinate, impl0: ImplP): ImplS = {
-    val ImplP(range, identifyingRuneNames, maybeTemplateRulesP, maybeStruct, interface, attributes) = impl0
+    val ImplP(range, maybeGenericParametersP, maybeTemplateRulesP, maybeStruct, interface, attributes) = impl0
 
     interface match {
       case InterpretedPT(range, _, _) => {
@@ -317,21 +324,20 @@ class PostParser(
       case _ =>
     }
 
-
     val templateRulesP = maybeTemplateRulesP.toVector.flatMap(_.rules)
 
     val codeLocation = PostParser.evalPos(file, range.begin)
     val implName = interner.intern(ImplDeclarationNameS(codeLocation))
 
-    val identifyingRunes =
-      identifyingRuneNames
+    val userSpecifiedIdentifyingRunes =
+      maybeGenericParametersP
         .toVector.flatMap(_.params)
         .map(_.name)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
     val runesFromRules =
       RulePUtils.getOrderedRuneDeclarationsFromRulexesWithDuplicates(templateRulesP)
         .map({ case NameP(range, identifyingRuneName) => rules.RuneUsage(PostParser.evalRange(file, range), CodeRuneS(identifyingRuneName)) })
-    val userDeclaredRunes = identifyingRunes ++ runesFromRules
+    val userDeclaredRunes = userSpecifiedIdentifyingRunes ++ runesFromRules
     val userDeclaredRunesSet = userDeclaredRunes.map(_.rune).toSet
 
     val implEnv = postparsing.EnvironmentS(file, None, implName, userDeclaredRunes.map(_.rune).toSet)
@@ -339,6 +345,23 @@ class PostParser(
     val lidb = new LocationInDenizenBuilder(Vector())
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
+
+    val genericParametersP =
+      maybeGenericParametersP
+        .toVector
+        .flatMap(_.params)
+        // Filter out any regions, we dont do those yet
+        .filter({
+          case GenericParameterP(_, _, Some(GenericParameterTypeP(_, RegionTypePR)), _, _) => false
+          case _ => true
+        })
+
+    val genericParametersS =
+      genericParametersP.zip(userSpecifiedIdentifyingRunes)
+        .map({ case (g, r) =>
+        PostParser.scoutGenericParameter(
+          templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+      })
 
     ruleScout.translateRulexes(implEnv, lidb.child(), ruleBuilder, runeToExplicitType, templateRulesP)
 
@@ -381,7 +404,7 @@ class PostParser(
     ImplS(
       PostParser.evalRange(file, range),
       implName,
-      identifyingRunes,
+      genericParametersS,
       ruleBuilder.toArray,
       runeToExplicitType.toMap,
       structRune,

@@ -2,7 +2,7 @@ package dev.vale.parsing
 
 import dev.vale.lexing.ImportL
 import dev.vale.options.GlobalOptions
-import dev.vale.{Collector, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, PackageCoordinate, StrI, vassertOne}
+import dev.vale.{Collector, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, PackageCoordinate, StrI, vassertOne, vassertSome}
 import dev.vale.parsing.ast.{BorrowP, CallPT, ExportAttributeP, FinalP, GenericParameterP, GenericParametersP, ImmutableP, IntTypePR, InterpretedPT, MutabilityPT, MutableP, NameOrRunePT, NameP, NormalStructMemberP, OwnP, RuntimeSizedArrayPT, ShareP, StaticSizedArrayPT, StructMembersP, StructP, TemplateRulesP, TopLevelStructP, TypedPR, VariabilityPT, VariadicStructMemberP, VaryingP, WeakP}
 import dev.vale.parsing.ast._
 import org.scalatest.{FunSuite, Matchers}
@@ -48,6 +48,26 @@ class StructTests extends FunSuite with Collector with TestParseUtils {
     denizen shouldHave {
       case NormalStructMemberP(_, NameP(_, StrI("a")), FinalP, InterpretedPT(_,ShareP,CallPT(_,NameOrRunePT(NameP(_, StrI("ListNode"))), Vector(NameOrRunePT(NameP(_, StrI("T"))))))) =>
 //      case NormalStructMemberP(_,NameP(_,StrI(a)),final,InterpretedPT(_,share,CallPT(_,NameOrRunePT(NameP(_,StrI(ListNode))),Vector())))
+    }
+  }
+  test("Imm generic param") {
+    val denizen =
+      compileDenizenExpect(
+          """
+            |struct MyImmContainer<T Ref imm> imm { value T; }
+            |""".stripMargin)
+
+    val struct =
+      denizen match {
+        case TopLevelStructP(s) => s
+      }
+
+    vassertOne(vassertSome(struct.identifyingRunes).params).attributes match {
+      case Vector(ImmutableRuneAttributeP(_)) =>
+    }
+
+    struct.members.contents match {
+      case Vector(NormalStructMemberP(_,NameP(_,StrI("value")),FinalP,NameOrRunePT(NameP(_,StrI("T"))))) =>
     }
   }
 
