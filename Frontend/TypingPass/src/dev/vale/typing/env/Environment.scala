@@ -28,6 +28,8 @@ trait IEnvironment {
 
   def globalEnv: GlobalEnvironment
 
+  def rootDenizenEnv: IEnvironment
+
   private[env] def lookupWithImpreciseNameInner(
 
     nameS: IImpreciseNameS,
@@ -351,6 +353,8 @@ case class PackageEnvironment[+T <: INameT](
 ) extends IEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
 
+  override def rootDenizenEnv: IEnvironment = vwat()
+
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IEnvironment]) {
       return false
@@ -402,6 +406,13 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
       return false
     }
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
+  }
+
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
+    }
   }
 
   private[env] override def lookupWithNameInner(
@@ -458,6 +469,13 @@ case class GeneralEnvironment[+T <: INameT](
   override def equals(obj: Any): Boolean = vcurious();
 
   override def hashCode(): Int = vcurious()
+
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
+    }
+  }
 
   override def lookupWithNameInner(
     name: INameT,

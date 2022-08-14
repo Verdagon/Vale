@@ -240,10 +240,10 @@ class ExpressionCompiler(
               ranges.head,
               ReferenceLocalVariableT(closureParamVarName2, FinalT, closuredVarsStructRefRef)))
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
-        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.fullName.addStep(member.name) == id))
 
-        val index = closuredVarsStructDef.members.indexWhere(_.name == id.last)
-        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype.reference.unsubstitutedCoord.ownership
+        vassert(closuredVarsStructRef.fullName.steps == id.steps.init)
+
+        vassert(closuredVarsStructDef.members.map(_.name).contains(id.last))
         val lookup = AddressMemberLookupTE(ranges.head, borrowExpr, id, tyype, variability)
         Some(lookup)
       }
@@ -260,7 +260,8 @@ class ExpressionCompiler(
           }
         val closuredVarsStructRefCoord = CoordT(ownership, closuredVarsStructRef)
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
-        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructTemplateFullName.addStep(member.name) == varName))
+
+        vassert(closuredVarsStructDef.members.map(_.name).contains(varName.last))
 
         val borrowExpr =
           localHelper.borrowSoftLoad(

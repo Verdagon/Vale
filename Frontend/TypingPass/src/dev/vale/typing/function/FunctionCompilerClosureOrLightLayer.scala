@@ -440,7 +440,7 @@ class FunctionCompilerClosureOrLightLayer(
       TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
     val variables =
       closureStructDef.members.map(member => {
-        val variableFullName = closureStructDef.templateName.addStep(member.name)
+        val variableFullName = closureStructDef.placeholderedCitizen.fullName.addStep(member.name)
         member.tyype match {
           case AddressMemberTypeT(reference) => {
             AddressibleClosureVariableT(

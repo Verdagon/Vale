@@ -189,37 +189,10 @@ class TodoTests extends FunSuite with Matchers {
     vimpl()
   }
 
-  test("Basic interface anonymous subclass") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface Bork {
-        |  func bork(virtual self &Bork) int;
-        |}
-        |
-        |exported func main() int {
-        |  f = Bork({ 7 });
-        |  return f.bork();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  // Depends on Basic interface anonymous subclass
-  test("Basic IFunction1 anonymous subclass") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() int {
-        |  f = IFunction1<mut, int, int>({_});
-        |  return (f)(7);
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
+  // Interface bounds, downcasting
   test("Downcast with as") {
+    vimpl() // can we solve this by putting an impl in the environment for that placeholder?
+
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.as.*;
@@ -276,25 +249,6 @@ class TodoTests extends FunSuite with Matchers {
     })
   }
 
-  // Depends on anonymous interfaces
-  test("Lambda is incompatible anonymous interface") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface AFunction1<P> where P Ref {
-        |  func __call(virtual this &AFunction1<P>, a P) int;
-        |}
-        |exported func main() {
-        |  arr = AFunction1<int>((_) => { true });
-        |}
-        |""".stripMargin)
-
-    compile.getCompilerOutputs() match {
-      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
-      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
-      case Ok(wat) => vwat(wat)
-    }
-  }
-
   // DO NOT SUBMIT fails lambda in template
   test("Test array push, pop, len, capacity, drop") {
     val compile = CompilerTestCompilation.test(
@@ -327,8 +281,10 @@ class TodoTests extends FunSuite with Matchers {
     }
   }
 
-  // Interface bounds
+  // Interface bounds, downcasting
   test("Report when downcasting to interface") {
+    vimpl() // can we solve this by putting an impl in the environment for that placeholder?
+
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.as.*;
@@ -345,34 +301,6 @@ class TodoTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.getCompilerOutputs() match {
       case Err(CantDowncastToInterface(_, _)) =>
-    }
-  }
-
-  // DO NOT SUBMIT fails free
-  test("Reports when exported SSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export [#5]<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
-
-  // DO NOT SUBMIT fails free
-  test("Reports when exported RSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |export []<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
     }
   }
 }

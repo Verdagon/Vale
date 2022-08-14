@@ -320,8 +320,12 @@ case class ConstructorTemplateNameT(
 
 case class FreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    val Vector(CoordT(ShareT, kind)) = params
-    interner.intern(FreeNameT(this, templateArgs, kind))
+    params match {
+      case Vector(CoordT(_, kind)) => {
+        interner.intern(FreeNameT(this, templateArgs, kind))
+      }
+      case other => vwat(other)
+    }
   }
 }
 case class FreeNameT(template: FreeTemplateNameT, templateArgs: Vector[ITemplata[ITemplataType]], kind: KindT) extends IFunctionNameT {
@@ -402,6 +406,7 @@ case class LambdaCitizenNameT(
   template: LambdaCitizenTemplateNameT
 ) extends IStructNameT {
   def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
+  vpass()
 }
 
 case class AnonymousSubstructLambdaTemplateNameT(
