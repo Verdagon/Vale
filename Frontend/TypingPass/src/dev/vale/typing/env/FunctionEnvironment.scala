@@ -32,6 +32,12 @@ case class BuildingFunctionEnvironmentWithClosureds(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
+    }
+  }
 
   private[env] override def lookupWithNameInner(
 
@@ -72,6 +78,12 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
+    }
+  }
 
   private[env] override def lookupWithNameInner(
 
@@ -117,6 +129,13 @@ case class NodeEnvironment(
       case that @ NodeEnvironment(_, _, _, _, _, _, _) => {
         fullName == that.fullName && life == that.life
       }
+    }
+  }
+
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
     }
   }
 
@@ -387,6 +406,13 @@ case class FunctionEnvironment(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
+  override def rootDenizenEnv: IEnvironment = {
+    parentEnv match {
+      case PackageEnvironment(_, _, _) => this
+      case _ => parentEnv.rootDenizenEnv
+    }
+  }
+
   def templata = FunctionTemplata(parentEnv, function)
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): FunctionEnvironment = {
@@ -479,6 +505,8 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
 
+  override def rootDenizenEnv: IEnvironment = functionEnvironment.rootDenizenEnv
+
   def setReturnType(returnType: Option[CoordT]): Unit = {
     functionEnvironment = functionEnvironment.copy(maybeReturnType = returnType)
   }
@@ -566,7 +594,7 @@ case class AddressibleClosureVariableT(
   variability: VariabilityT,
   reference: CoordT
 ) extends IVariableT {
-
+  vpass()
 }
 case class ReferenceClosureVariableT(
   id: FullNameT[IVarNameT],

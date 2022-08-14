@@ -18,36 +18,53 @@ import scala.io.Source
 class InProgressTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
-  // DO NOT SUBMIT fails lambda inside template
-  test("Lambda inside template") {
-    // This originally didn't work because both helperFunc<int> and helperFunc<Str>
-    // made a closure struct called helperFunc:lam1, which collided.
-    // This is what spurred paackage support.
-
+  test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
-        |import printutils.*;
+        |interface Bork {
+        |  func bork(virtual self &Bork) int;
+        |}
         |
-        |func helperFunc<T>(x T) {
-        |  { print(x); }();
+        |exported func main() int {
+        |  f = Bork({ 7 });
+        |  return f.bork();
         |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
+      """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
 
-  // DO NOT SUBMIT fails: imm generics
-  test("Report imm mut mismatch for generic type") {
+  // Depends on Basic interface anonymous subclass
+  test("Basic IFunction1 anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
-        |struct MyImmContainer<T Ref imm> imm { value T; }
-        |struct MyMutStruct { }
-        |exported func main() { x = MyImmContainer<MyMutStruct>(MyMutStruct()); }
-        |""".stripMargin)
+        |
+        |import ifunction.ifunction1.*;
+        |
+        |exported func main() int {
+        |  f = IFunction1<mut, int, int>({_});
+        |  return (f)(7);
+        |}
+      """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // Depends on anonymous interfaces
+  test("Lambda is incompatible anonymous interface") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface AFunction1<P> where P Ref {
+        |  func __call(virtual this &AFunction1<P>, a P) int;
+        |}
+        |exported func main() {
+        |  arr = AFunction1<int>((_) => { true });
+        |}
+        |""".stripMargin)
+
+    compile.getCompilerOutputs() match {
+      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
+      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
+      case Ok(wat) => vwat(wat)
+    }
   }
 
   test("DO NOT SUBMIT") {
@@ -56,5 +73,7 @@ class InProgressTests extends FunSuite with Matchers {
     vimpl() // OSDCE might be obsolete
 
     vimpl() // add a test for a lambda that is used twice
+
+    vimpl() // add test for callsite Cons<Cons<int>> rune collision
   }
 }

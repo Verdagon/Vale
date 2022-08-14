@@ -35,15 +35,6 @@ class StructDropMacro(
   override def getStructSiblingEntries(
     structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    val structNameS = structA.name
-    val structType = structA.tyype
-    val genericParams = structA.genericParameters
-    val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
-    val structIdentifyingRuneToType =
-      genericParams.map(_.rune.rune)
-        .zip(genericParams.map(_.rune.rune).map(allRuneToType)).toMap
-
-
     def range(n: Int) = RangeS.internal(interner, n)
     def use(n: Int, rune: IRuneS) = RuneUsage(range(n), rune)
 

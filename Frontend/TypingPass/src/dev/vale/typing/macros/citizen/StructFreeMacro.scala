@@ -2,8 +2,8 @@ package dev.vale.typing.macros.citizen
 
 import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, EqualsSR, LookupSR, RuneUsage}
-import dev.vale.{Interner, Keywords, RangeS, StrI, vimpl, vwat}
+import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, EqualsSR, IRulexSR, LookupSR, RuneUsage}
+import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, ast, env}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
@@ -20,6 +20,8 @@ import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
+
+import scala.collection.mutable
 
 class StructFreeMacro(
   interner: Interner,
@@ -40,94 +42,69 @@ class StructFreeMacro(
 
   override def getStructSiblingEntries(structName: FullNameT[INameT], structA: StructA):
   Vector[(FullNameT[INameT], FunctionEnvEntry)] = {
-    val structNameS = structA.name
-    val structType = structA.tyype
-    val structIdentifyingRunes = structA.genericParameters
-    val allRuneToType = structA.headerRuneToType ++ structA.membersRuneToType
-    val structIdentifyingRuneToType =
-      structIdentifyingRunes.map(_.rune.rune)
-        .zip(structIdentifyingRunes.map(_.rune.rune).map(allRuneToType)).toMap
+    def range(n: Int) = RangeS.internal(interner, n)
+    def use(n: Int, rune: IRuneS) = RuneUsage(range(n), rune)
 
-    val freeFunctionA =
-      makeFunction(
-        structNameS,
-        structA.range,
-        structType,
-        structIdentifyingRunes.map(_.rune.rune),
-        structIdentifyingRuneToType)
-    val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
-    Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
-  }
+    val structRange = structA.range
 
-  def makeFunction(
-    structNameS: ICitizenDeclarationNameS,
-    structRange: RangeS,
-    structType: ITemplataType,
-    structIdentifyingRunes: Vector[IRuneS],
-    structIdentifyingRuneToType: Map[IRuneS, ITemplataType]):
-  FunctionA = {
+    val rules = new Accumulator[IRulexSR]()
+    // Use the same rules as the original struct, see MDSFONARFO.
+    structA.headerRules.foreach(r => rules.add(r))
+    val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
+    // Use the same runes as the original struct, see MDSFONARFO.
+    structA.headerRuneToType.foreach(runeToType += _)
+
+    val vooid = MacroVoidRuneS()
+    runeToType.put(vooid, CoordTemplataType())
+    rules.add(LookupSR(range(-1672147),use(-64002, vooid),interner.intern(CodeNameS(keywords.void))))
+
+    val structNameRune = StructNameRuneS(structA.name)
+    runeToType += (structNameRune -> structA.tyype)
+
+
+    val self = MacroSelfRuneS()
+    runeToType += (self -> CoordTemplataType())
+    rules.add(
+      LookupSR(
+        structA.name.range,
+        RuneUsage(structA.name.range, structNameRune),
+        structA.name.getImpreciseName(interner)))
+    rules.add(
+      CallSR(
+        structA.name.range,
+        use(-64002, self),
+        RuneUsage(structA.name.range, structNameRune),
+        structA.genericParameters.map(_.rune).toArray))
+
+    val functionGenericParameters = structA.genericParameters
+
+    val functionTemplataType =
+      TemplateTemplataType(
+        functionGenericParameters.map(_.rune.rune).map(runeToType),
+        FunctionTemplataType())
+
     val nameS = interner.intern(FreeDeclarationNameS(structRange.begin))
+    val freeFunctionA =
     FunctionA(
       structRange,
       nameS,
       Vector(),
-      structType match {
-        case KindTemplataType() => FunctionTemplataType()
-        case TemplateTemplataType(paramTypes, KindTemplataType()) => {
-          TemplateTemplataType(paramTypes, FunctionTemplataType())
-        }
-      },
-      structIdentifyingRunes.map(r => {
-        GenericParameterS(
-          RangeS.internal(interner, -64002),
-          RuneUsage(RangeS.internal(interner, -64002), r),
-          Vector(ImmutableRuneAttributeS(RangeS.internal(interner, -64002))),
-          None)
-      }),
-      structIdentifyingRuneToType ++
-        (structType match {
-          case KindTemplataType() => Map()
-          case TemplateTemplataType(_, _) => Map(CodeRuneS(keywords.FreeStructTemplate) -> structType)
-        }) ++
-        Map(
-          CodeRuneS(keywords.FreeStruct) -> structType,
-          CodeRuneS(keywords.FreeP1) -> CoordTemplataType(),
-          CodeRuneS(keywords.FreeV) -> CoordTemplataType()),
+      functionTemplataType,
+      functionGenericParameters,
+      runeToType.toMap,
       Vector(
-        ParameterS(AtomSP(RangeS.internal(interner, -1342), Some(CaptureS(interner.intern(CodeVarNameS(keywords.x)))), None, Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1))), None))),
-      Some(RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV))),
-      (structType match {
-        case KindTemplataType() => {
-          Vector(
-            LookupSR(
-              RangeS.internal(interner, -1672163),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
-              structNameS.getImpreciseName(interner)),
-            CoerceToCoordSR(
-              RangeS.internal(interner, -1672151),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
-        }
-        case TemplateTemplataType(_, KindTemplataType()) => {
-          Vector(
-            LookupSR(
-              RangeS.internal(interner, -1672163),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
-              structNameS.getImpreciseName(interner)),
-            CallSR(
-              RangeS.internal(interner, -1672152),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStructTemplate)),
-              structIdentifyingRunes.map(r => RuneUsage(RangeS.internal(interner, -64002), r)).toArray),
-            CoerceToCoordSR(
-              RangeS.internal(interner, -1672153),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeP1)),
-              RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeStruct))))
-        }
-      }) ++
-      Vector(
-        LookupSR(RangeS.internal(interner, -1672164), RuneUsage(RangeS.internal(interner, -64002), CodeRuneS(keywords.FreeV)), interner.intern(CodeNameS(keywords.void)))),
+        ParameterS(
+          AtomSP(
+            range(-1340),
+            Some(CaptureS(interner.intern(CodeVarNameS(keywords.thiss)))),
+            None,
+            Some(use(-64002, self)), None))),
+      Some(use(-64002, vooid)),
+      rules.buildArray().toVector,
       GeneratedBodyS(freeGeneratorId))
+
+    val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+    Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
   }
 
   // Implicit drop is one made for closures, arrays, or anything else that's not explicitly
@@ -217,7 +194,12 @@ class StructFreeMacro(
                 destructorCompiler.drop(bodyEnv, coutputs, callRange, UnletTE(v))
               }))
         }
-        case MutabilityTemplata(MutableT) => vwat() // Shouldnt be a free for mutables
+        case MutabilityTemplata(MutableT) => {
+          // Right now we make a free for mutables, but only because we don't really know how to
+          // turn off the free macro for mutable structs.
+          // Just do nothing here.
+          VoidLiteralTE()
+        }
       }
 
     val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))

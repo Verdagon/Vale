@@ -935,6 +935,9 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test Array of StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.arrays.*;
+        |import v.builtins.functor1.*;
+        |
         |struct Vec2 imm {
         |  x float;
         |  y float;
@@ -1440,6 +1443,19 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+  test("Report imm mut mismatch for generic type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyImmContainer<T Ref> imm
+        |where func drop(T)void { value T; }
+        |struct MyMutStruct { }
+        |exported func main() { x = MyImmContainer<MyMutStruct>(MyMutStruct()); }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ImmStructCantHaveMutableMember(_, _, _)) =>
+    }
+  }
+
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1728,4 +1744,61 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(freeFunc, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
     Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
+
+  test("Reports when exported SSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |export [#5]<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
+
+  test("Reports when exported RSA depends on non-exported element") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |export []<imm>Raza as RazaArray;
+        |struct Raza imm { }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
+    }
+  }
+
+  test("Imm generic can contain imm thing") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyImmContainer<T Ref imm> imm
+        |where func drop(T)void { value T; }
+        |struct MyMutStruct { }
+        |exported func main() { x = MyImmContainer<MyMutStruct>(MyMutStruct()); }
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Lambda inside template") {
+    // This originally didn't work because both helperFunc<int> and helperFunc<Str>
+    // made a closure struct called helperFunc:lam1, which collided.
+    // This is what spurred paackage support.
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |import printutils.*;
+        |
+        |func helperFunc<T>(x T)
+        |where func print(&T)void, func drop(T)void
+        |{
+        |  { print(x); }();
+        |}
+        |exported func main() {
+        |  helperFunc(4);
+        |  helperFunc("bork");
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
 }

@@ -32,6 +32,7 @@ case class NotEnoughGenericArgs(range: List[RangeS]) extends ICompileErrorT { ov
 case class ImplSubCitizenNotFound(range: List[RangeS], name: IImpreciseNameS) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ImplSuperInterfaceNotFound(range: List[RangeS], name: IImpreciseNameS) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ImmStructCantHaveVaryingMember(range: List[RangeS], structName: INameS, memberName: String) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class ImmStructCantHaveMutableMember(range: List[RangeS], structName: INameS, memberName: String) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CantReconcileBranchesResults(range: List[RangeS], thenResult: CoordT, elseResult: CoordT) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()

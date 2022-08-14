@@ -4,7 +4,7 @@ package dev.vale.typing.function
 import dev.vale.postparsing._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS}
+import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS, vfail}
 import dev.vale.highertyping._
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules.OwnershipLiteralSL
@@ -80,7 +80,7 @@ class DestructorCompiler(
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(WeakT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(ShareT, _) => {
-          val destroySharedCitizen =
+          val destroySharedCitizenOrPlaceholder =
             (coutputs: CompilerOutputs, coord: CoordT) => {
               val destructorHeader =
                 getDropFunction(env, coutputs, callRange, coord)
@@ -124,9 +124,10 @@ class DestructorCompiler(
                     as)
                 destroySharedArray(coutputs, underarrayReference2)
               }
-              case StructTT(_) | InterfaceTT(_) => {
-                destroySharedCitizen(coutputs, undestructedExpr2.result.reference)
+              case StructTT(_) | InterfaceTT(_) | PlaceholderT(_) => {
+                destroySharedCitizenOrPlaceholder(coutputs, undestructedExpr2.result.reference)
               }
+              case other => vfail("Unknown type to drop: " + other)
             }
           unshareExpr2
         }

@@ -124,6 +124,17 @@ class StructCompilerCore(
                 case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
               }))
         }
+
+        if (member.tyype.reference.unsubstitutedCoord.ownership != ShareT) {
+          throw CompileErrorExceptionT(
+            ImmStructCantHaveMutableMember(
+              structA.members(index).range :: parentRanges,
+              structA.name,
+              structA.members(index) match {
+                case NormalStructMemberS(range, name, variability, typeRune) => name.str
+                case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
+              }))
+        }
       })
     }
 

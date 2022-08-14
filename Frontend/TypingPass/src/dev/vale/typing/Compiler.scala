@@ -202,8 +202,9 @@ class Compiler(
           getPlaceholdersInTemplata(accum, templata)
 
           if (accum.elementsReversed.nonEmpty) {
+            val rootDenizenEnv = env.originalCallingEnv.rootDenizenEnv
             val originalCallingEnvTemplateName =
-              env.originalCallingEnv.fullName match {
+              rootDenizenEnv.fullName match {
                 case FullNameT(packageCoord, initSteps, x: ITemplateNameT) => {
                   FullNameT(packageCoord, initSteps, x)
                 }
