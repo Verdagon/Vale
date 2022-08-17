@@ -117,7 +117,6 @@ object PostParserErrorHumanizer {
       case MagicParamRuneS(lid) => "_" + lid.path.mkString("")
       case CodeRuneS(name) => name.str
       case ArgumentRuneS(paramIndex) => "(arg " + paramIndex + ")"
-      case AnonymousSubstructMemberRuneS(index) => "(anon member " + index + ")"
       case SelfKindRuneS() => "(self kind)"
       case SelfOwnershipRuneS() => "(self ownership)"
       case SelfKindTemplateRuneS() => "(self kind template)"
@@ -138,6 +137,15 @@ object PostParserErrorHumanizer {
       case FunctorPrototypeRuneNameS() => "(functor prototype)"
       case MacroSelfRuneS() => "_MSelf"
       case MacroVoidRuneS() => "_MVoid"
+      case AnonymousSubstructMemberRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".functor"
+      case AnonymousSubstructFunctionBoundParamsListRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".params"
+      case AnonymousSubstructFunctionBoundPrototypeRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".proto"
+      case AnonymousSubstructDropBoundParamsListRuneS(interface, method) => "$" + humanizeName(interface) + ".anon.drop.params"
+      case AnonymousSubstructDropBoundPrototypeRuneS(interface, method) => "$" + humanizeName(interface) + ".anon.drop.proto"
+      case AnonymousSubstructMethodInheritedRuneS(interface, method, inner) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ":" + humanizeRune(inner)
+      case AnonymousSubstructMethodSelfOwnCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".ownself"
+      case AnonymousSubstructMethodSelfBorrowCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".borrowself"
+      case AnonymousSubstructVoidRuneS() => "anon.void"
       case other => vimpl(other)
     }
   }

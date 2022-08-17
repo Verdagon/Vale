@@ -1,6 +1,5 @@
 package dev.vale.typing
 
-import dev.vale.highertyping.ICompileErrorA
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.IIncompleteOrFailedSolve
