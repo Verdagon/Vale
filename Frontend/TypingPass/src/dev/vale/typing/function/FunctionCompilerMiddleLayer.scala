@@ -157,6 +157,7 @@ class FunctionCompilerMiddleLayer(
     })
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
+
     val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     coutputs.lookupFunction(needleSignature) match {
@@ -164,6 +165,10 @@ class FunctionCompilerMiddleLayer(
         (header)
       }
       case None => {
+        coutputs.declareFunction(runedEnv.fullName)
+        coutputs.declareFunctionOuterEnv(runedEnv.fullName, runedEnv)
+        coutputs.declareFunctionInnerEnv(runedEnv.fullName, runedEnv)
+
         val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
 
         val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
@@ -301,7 +306,7 @@ class FunctionCompilerMiddleLayer(
       val retCoordRune = (retCoordRuneA)
       nearEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(retCoordRune)), Set(TemplataLookupContext)) match {
         case Some(CoordTemplata(coord)) => coord
-        case _ => vwat(retCoordRune.toString)
+        case other => vwat(retCoordRune, other)
       }
     })
   }

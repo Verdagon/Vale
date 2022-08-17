@@ -166,7 +166,16 @@ case class AnonymousSubstructParentInterfaceTemplateRuneS() extends IRuneS {  }
 case class AnonymousSubstructParentInterfaceRuneS() extends IRuneS {  }
 case class AnonymousSubstructTemplateRuneS() extends IRuneS {  }
 case class AnonymousSubstructRuneS() extends IRuneS {  }
-case class AnonymousSubstructMemberRuneS(index: Int) extends IRuneS {  }
+case class AnonymousSubstructCoordRuneS() extends IRuneS {  }
+case class AnonymousSubstructVoidRuneS() extends IRuneS {  }
+case class AnonymousSubstructMemberRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS {  }
+case class AnonymousSubstructMethodSelfBorrowCoordRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructMethodSelfOwnCoordRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructDropBoundPrototypeRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructDropBoundParamsListRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructFunctionBoundPrototypeRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructFunctionBoundParamsListRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructMethodInheritedRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS, inner: IRuneS) extends IRuneS { }
 case class FunctorPrototypeRuneNameS() extends IRuneS
 case class FunctorParamRuneNameS(index: Int) extends IRuneS
 case class FunctorReturnRuneNameS() extends IRuneS

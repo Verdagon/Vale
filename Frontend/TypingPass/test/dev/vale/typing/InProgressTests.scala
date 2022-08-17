@@ -18,6 +18,33 @@ import scala.io.Source
 class InProgressTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
+  test("Basic interface forwarder") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface Bork {
+        |  func bork(virtual self &Bork) int;
+        |}
+        |
+        |struct BorkForwarder<Lam>
+        |where func drop(Lam)void, func __call(&Lam)int {
+        |  lam Lam;
+        |}
+        |
+        |impl<Lam> Bork for BorkForwarder<Lam>
+        |where func drop(Lam)void, func __call(&Lam)int;
+        |func bork<Lam>(self &BorkForwarder<Lam>) int
+        |where func drop(Lam)void, func __call(&Lam)int {
+        |  return (&self.lam)();
+        |}
+        |
+        |exported func main() int {
+        |  f = BorkForwarder({ 7 });
+        |  return f.bork();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """

@@ -112,8 +112,8 @@ object vwat {
   def apply(): Nothing = {
     vfail("wat")
   }
-  def apply(message: Object): Nothing = {
-    vfail("wat: " + message.toString)
+  def apply(message: Object*): Nothing = {
+    vfail("wat: " + message.toArray.mkString(", "))
   }
 }
 

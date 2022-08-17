@@ -347,10 +347,11 @@ class Compiler(
             functionRange,
             PrototypeT(
               envs.selfEnv.fullName.addStep(
-                FunctionNameT(
-                  FunctionTemplateNameT(name, functionRange.begin),
-                  Vector(),
-                  paramCoords)),
+                interner.intern(
+                  FunctionNameT(
+                    interner.intern(FunctionTemplateNameT(name, functionRange.begin)),
+                    Vector(),
+                    paramCoords))),
               returnCoord))
         }
 
