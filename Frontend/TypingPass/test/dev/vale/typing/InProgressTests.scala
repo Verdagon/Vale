@@ -18,6 +18,31 @@ import scala.io.Source
 class InProgressTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
+  test("Use bound from struct") {
+    strt here // see NBIFS
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct BorkForwarder<Lam>
+        |where func __call(&Lam)int {
+        |  lam Lam;
+        |}
+        |
+        |func bork<Lam>(self &BorkForwarder<Lam>) int {
+        |  return (&self.lam)();
+        |}
+        |
+        |exported func main() int {
+        |  b = BorkForwarder({ 7 });
+        |  z = b.bork();
+        |  [_] = b;
+        |  return z;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   test("Basic interface forwarder") {
     val compile = CompilerTestCompilation.test(
       """
