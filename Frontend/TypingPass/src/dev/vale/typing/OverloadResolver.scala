@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassertSome, vcurious, vfail, vimpl, vpass}
+import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR}
 import dev.vale.solver.IIncompleteOrFailedSolve
@@ -141,6 +141,10 @@ class OverloadResolver(
     Ok(())
   }
 
+  case class SearchedEnvironment(
+    needle: IImpreciseNameS,
+    environment: IEnvironment)
+
   private def getCandidateBanners(
     env: IEnvironment,
     coutputs: CompilerOutputs,
@@ -150,8 +154,10 @@ class OverloadResolver(
     explicitTemplateArgRunesS: Array[IRuneS],
     paramFilters: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
-    exact: Boolean):
+    exact: Boolean,
+    searchedEnvs: Accumulator[SearchedEnvironment]):
   Vector[ICalleeCandidate] = {
+    searchedEnvs.add(SearchedEnvironment(functionName, env))
     val candidates =
       findHayTemplatas(env, coutputs, functionName, paramFilters, extraEnvsToLookIn)
     candidates.flatMap({

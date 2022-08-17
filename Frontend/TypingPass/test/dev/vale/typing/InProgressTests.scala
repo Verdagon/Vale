@@ -19,8 +19,6 @@ class InProgressTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
   test("Use bound from struct") {
-    strt here // see NBIFS
-
     val compile = CompilerTestCompilation.test(
       """
         |#!DeriveStructDrop
