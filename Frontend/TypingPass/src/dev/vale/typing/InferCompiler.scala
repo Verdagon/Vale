@@ -239,6 +239,11 @@ class InferCompiler(
           conclusions.map({ case (nameS, templata) =>
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
+
+      strt here
+      // this is where we should look at all the citizens we solved for, grab the prototypes from them,
+      // and merge them in, see NBIFP and ONBIFS.
+
       checkTemplateInstantiationsForEnv(
           originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions) match {
         case Err(e) => return Err(e)

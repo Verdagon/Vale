@@ -19,23 +19,30 @@ class InProgressTests extends FunSuite with Matchers {
   // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
   test("Use bound from struct") {
+    // See NBIFP.
+    // Without it, when it tries to compile (1), at (2) it tries to resolve BorkForwarder
+    // and fails bound (3) because (1) has no such bound.
+    // NBIFP says we should first get that knowledge from (2).
     val compile = CompilerTestCompilation.test(
       """
         |#!DeriveStructDrop
         |struct BorkForwarder<Lam>
-        |where func __call(&Lam)int {
+        |where func __call(&Lam)int // 3
+        |{
         |  lam Lam;
         |}
         |
-        |func bork<Lam>(self &BorkForwarder<Lam>) int {
-        |  return (&self.lam)();
+        |
+        |func bork<Lam>( // 1
+        |  self &BorkForwarder<Lam> // 2
+        |) int {
+        |  return (self.lam)();
         |}
         |
-        |exported func main() int {
+        |exported func main() {
         |  b = BorkForwarder({ 7 });
-        |  z = b.bork();
+        |  b.bork();
         |  [_] = b;
-        |  return z;
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -55,9 +62,10 @@ class InProgressTests extends FunSuite with Matchers {
         |
         |impl<Lam> Bork for BorkForwarder<Lam>
         |where func drop(Lam)void, func __call(&Lam)int;
+        |
         |func bork<Lam>(self &BorkForwarder<Lam>) int
         |where func drop(Lam)void, func __call(&Lam)int {
-        |  return (&self.lam)();
+        |  return (self.lam)();
         |}
         |
         |exported func main() int {
