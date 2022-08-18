@@ -22,7 +22,7 @@ import scala.collection.immutable.{List, Map, Set}
 
 trait IEnvironment {
   override def toString: String = {
-    "#Environment"
+    "#Environment:" + fullName
   }
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash these, too big.
 
@@ -97,7 +97,7 @@ trait IEnvironment {
 trait IEnvironmentBox extends IEnvironment {
   def snapshot: IEnvironment
   override def toString: String = {
-    "#Environment"
+    "#Environment:" + fullName
   }
   def globalEnv: GlobalEnvironment
 

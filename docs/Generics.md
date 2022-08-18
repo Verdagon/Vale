@@ -788,3 +788,136 @@ If we want to know all children for `MyObserver`, would we count this? It's hard
 For now, we leave that question unanswered, and say that we can never know all children for a specific interface template.
 
 
+# Need Bound Information From Parameters (NBIFP)
+
+Let's say we have this code:
+
+```
+#!DeriveStructDrop
+struct BorkForwarder<LamT>
+where func __call(&LamT)int {
+  lam LamT;
+}
+
+func bork<LamT>(self &BorkForwarder<LamT>) int {
+  return (self.lam)();
+}
+
+exported func main() {
+  b = BorkForwarder({ 7 });
+  b.bork();
+  [_] = b;
+}
+```
+
+This fails on `(self.lam)()` because `bork` itself doesn't know that there exists a `__call(&Lam)int`.
+
+Two possible solutions:
+
+ 1. Require the user add bounds to `func bork` (and all other callers) too.
+ 2. Infer that there's a `__call(&Lam)int` from the existence of `BorkForwarder<Lam>` which requires it.
+
+We can't always do 1 because sometimes the caller is an abstract function (see ONBIFS).
+
+So, we'll need to do #2.
+
+A few places we'll need to do this:
+
+ * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
+ * When an abstract function is "calling" an override, we'll need to incorporate the bounds for the overriding struct. (See ONBIFS)
+ * (Possibly) In a match's case statement, when we mention a type, we could incorporate the bounds from that type.
+
+
+
+# Overrides Need Bound Information From Structs (ONBIFS)
+
+This is a special case of NBIFP, where an abstract function is trying to resolve an override which has some requirements.
+
+```
+sealed interface Bork {
+  func bork(virtual self &Bork) int;
+}
+
+struct BorkForwarder<Lam>
+where func drop(Lam)void, func __call(&Lam)int {
+  lam Lam;
+}
+
+impl<Lam> Bork for BorkForwarder<Lam>
+where func drop(Lam)void, func __call(&Lam)int;
+
+func bork<Lam>(self &BorkForwarder<Lam>) int
+where func drop(Lam)void, func __call(&Lam)int {
+  return (&self.lam)();
+}
+
+exported func main() int {
+  f = BorkForwarder({ 7 });
+  return f.bork();
+}
+```
+
+This failed while trying to assemble the itables.
+
+When we were figuring out the vtable for `BorkForwarder<Lam1>`, we were trying to find its override for `bork`.
+
+We looked for a `bork(BorkForwarder<Lam1>)`. (Aside: because of NAFEWRO we looked from the perspective of `bork(Bork)`, we used its environment.)
+
+However, `func bork(BorkForwarder<Lam1>)` has a requirement that there's a `func __call(&Lam)int`, but the call site (the abstract function `bork(Bork)`) had no knowledge of such a function, so it failed.
+
+This reinforces that we need to solve NBIFP by gathering information from elsewhere (parameters).
+
+
+
+
+
+Are these two separate problems?
+
+ - Here we want the call to be able to look into the environment of its parameters to get the bounds. Its the only callsite that doesnt really have them already. we kinda want to gather those protos before executing the callsitefuncSRs. kinda like definitionsiteSRs really.
+ - Above, we want the definition to look into the environment of its parameters to get the bounds. for convenience really.
+
+
+its kind of like we have some sort of switch case going on. the match statement is what figures out whether it's a certain type, which comes with some knowledge that certain bounds are met. so, we'll need to do this for match statements too, interesting. well maybe not; we'll check its a valid type in the match statement before dispatching.
+hmm.
+
+the case will check that its an actual valid combination.
+
+this is like having a bound on the outer func, then doing a match, and calling the inner func.
+but also calling the struct. hmm.
+
+
+
+Perhaps instead, it should know this just from looking at `BorkForwarder<Lam>`'s definition and seeing that there must exist one for it somewhere.
+
+(Interesting consequence: if the bound travels with the type, and not through all parent functions, then we can't customize it all the way down. The function needs to be associated with the type itself. At least... where interfaces are involved. There's nothing stopping us from making a custom substruct that does interesting things with the functions we give it. In fact, that's the entire basis of the anonymous substruct feature.)
+
+So, when we are looking for a function involving something, we should look in the environment for every parameter to see if there are any function bounds for that sort of thing.
+
+Don't we already do that?
+
+
+
+could we perhaps grab that information from the structs, but still require it from the functions?
+
+looks like thats what rust does too: https://github.com/rust-lang/rfcs/pull/2089
+
+so, when we get into a generic function, lets grab the bounds from the structs.
+
+when calling from an abstract, we... hmmm..........
+
+we know it meets those bounds because we have an existing ImplT with that StructRef, so it has to work. we just need to bring that knowledge into the "case" so to speak.
+
+
+
+for now, just say it must be associated with the type; must be in the type's module or rather, visible from the type's own environment (so can be in its dependency)
+
+this works well with overrides not needing the override/impl keyword.
+
+how does this work with interfaces? if the subclass has a bound, it must itself make sure its satisfied, cannot rely on the interface.
+
+if the subclass func has a bound, it must be satisfied by the abstract fn or the struct itself or the caller.
+
+if the base class has a bound, maybe we can use it from the subclass?
+
+
+
