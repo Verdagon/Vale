@@ -83,7 +83,7 @@ class ImplCompiler(
           callingEnv,
           range :: parentRanges,
           outerEnv),
-        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve)
+        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve, false)
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -141,7 +141,7 @@ class ImplCompiler(
           callingEnv,
           range :: parentRanges,
           outerEnv),
-        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve)
+        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve, false)
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))

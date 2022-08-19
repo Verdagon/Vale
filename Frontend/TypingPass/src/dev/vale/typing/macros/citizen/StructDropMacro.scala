@@ -165,7 +165,7 @@ class StructDropMacro(
     val memberLocalVariables =
       structDef.members.flatMap({
         case StructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
-          val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+          val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
           val reference = substituter.substituteForCoord(unsubstitutedReference)
           Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
         }

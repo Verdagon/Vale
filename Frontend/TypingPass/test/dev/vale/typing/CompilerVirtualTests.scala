@@ -139,4 +139,80 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Use bound from struct") {
+    // See NBIFP.
+    // Without it, when it tries to compile (1), at (2) it tries to resolve BorkForwarder
+    // and fails bound (3) because (1) has no such bound.
+    // NBIFP says we should first get that knowledge from (2).
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveStructDrop
+        |struct BorkForwarder<Lam>
+        |where func __call(&Lam)int // 3
+        |{
+        |  lam Lam;
+        |}
+        |
+        |
+        |func bork<Lam>( // 1
+        |  self &BorkForwarder<Lam> // 2
+        |) int {
+        |  return (self.lam)();
+        |}
+        |
+        |exported func main() {
+        |  b = BorkForwarder({ 7 });
+        |  b.bork();
+        |  [_] = b;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Basic interface forwarder") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |sealed interface Bork {
+        |  func bork(virtual self &Bork) int;
+        |}
+        |
+        |#!DeriveStructDrop
+        |struct BorkForwarder<Lam>
+        |where func drop(Lam)void, func __call(&Lam)int {
+        |  lam Lam;
+        |}
+        |
+        |impl<Lam> Bork for BorkForwarder<Lam>
+        |where func drop(Lam)void, func __call(&Lam)int;
+        |
+        |func bork<Lam>(self &BorkForwarder<Lam>) int {
+        |  return (self.lam)();
+        |}
+        |
+        |exported func main() int {
+        |  f = BorkForwarder({ 7 });
+        |  z = f.bork();
+        |  [_] = f;
+        |  return z;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Basic interface anonymous subclass") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface Bork {
+        |  func bork(virtual self &Bork) int;
+        |}
+        |
+        |exported func main() int {
+        |  f = Bork({ 7 });
+        |  return f.bork();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
 }

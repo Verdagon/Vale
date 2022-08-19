@@ -19,14 +19,6 @@ import scala.collection.immutable.List
 import scala.io.Source
 
 class TodoTests extends FunSuite with Matchers {
-  // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
-
-  def readCodeFromResource(resourceFilename: String): String = {
-    val is = Source.fromInputStream(getClass().getClassLoader().getResourceAsStream(resourceFilename))
-    vassert(is != null)
-    is.mkString("")
-  }
-
   test("Tests overload set and concept function") {
     val compile = CompilerTestCompilation.test(
       """
@@ -43,112 +35,6 @@ class TodoTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Prints bread crumb trail") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |import v.builtins.panic.*;
-        |
-        |#!DeriveInterfaceDrop
-        |sealed interface Opt<T> where T Ref { }
-        |#!DeriveStructDrop
-        |struct Some<T> where T Ref { value T; }
-        |#!DeriveImplDrop
-        |impl<T> Opt<T> for Some<T>;
-        |#!DeriveStructDrop
-        |struct None<T> where T Ref { }
-        |#!DeriveImplDrop
-        |impl<T> Opt<T> for None<T>;
-        |
-        |abstract func drop<T>(virtual opt Opt<T>)
-        |where func drop(T)void;
-        |
-        |func drop<T>(opt Some<T>)
-        |where func drop(T)void
-        |{
-        |  [x] = opt;
-        |}
-        |
-        |func drop<T>(opt None<T>) {
-        |  [ ] = opt;
-        |}
-        |
-        |abstract func isEmpty<T>(virtual opt &Opt<T>) bool;
-        |func isEmpty<T>(opt &None<T>) bool { return true; }
-        |func isEmpty<T>(opt &Some<T>) bool { return false; }
-        |
-        |abstract func isEmpty<T>(virtual opt Opt<T>) bool;
-        |func isEmpty<T>(opt None<T>) bool { return true; }
-        |func isEmpty<T>(opt Some<T>) bool
-        |where func drop(T)void
-        |{ return false; }
-        |
-        |abstract func get<T>(virtual opt Opt<T>) T;
-        |func get<T>(opt None<T>) T { panic("Called get() on a None!"); }
-        |func get<T>(opt Some<T>) T {
-        |  [value] = opt;
-        |  return value;
-        |}
-        |
-        |abstract func get<T>(virtual opt &Opt<T>) &T;
-        |func get<T>(opt &None<T>) &T { panic("Called get() on a None!"); }
-        |func get<T>(opt &Some<T>) &T { return &opt.value; }
-        |
-        |
-        |#!DeriveStructDrop
-        |struct MyList<T Ref> {
-        |  value T;
-        |  next Opt<MyList<T>>;
-        |}
-        |
-        |func drop<T>(this MyList<T>)
-        |where func drop(T)void {
-        |  [value, next] = this;
-        |}
-        |
-        |func printValues(list &MyList<int>) void {
-        |  print(list.value);
-        |  printNextValue(list.next);
-        |}
-        |
-        |func printNextValue(virtual opt &Opt<MyList<int>>) void { }
-        |func printNextValue(opt &None<MyList<int>>) void { }
-        |func printNextValue(opt &Some<MyList<int>>) void {
-        |  printValues(opt.value);
-        |}
-        |
-        |
-        |exported func main() int {
-        |  list = MyList<int>(10, Some<MyList<int>>(MyList<int>(20, Some<MyList<int>>(MyList<int>(30, None<MyList<int>>())))));
-        |  printValues(&list);
-        |  return 0;
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    // Ensure it properly prints out that the original error is from isEmpty
-    // Also prune it down a bit
-    vimpl()
-  }
-
-  // Depends on free
-  test("Can mutate an element in a runtime-sized array") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |exported func main() int {
-        |  arr = Array<mut, int>(3);
-        |  arr.push(0);
-        |  arr.push(1);
-        |  arr.push(2);
-        |  set arr[1] = 10;
-        |  return 73;
-        |}
-        |""".stripMargin)
-    compile.expectCompilerOutputs()
   }
 
   // DO NOT SUBMIT fails anonymous subclass
@@ -302,5 +188,54 @@ class TodoTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantDowncastToInterface(_, _)) =>
     }
+  }
+
+  test("Generic interface anonymous subclass") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface Bork<T Ref> {
+        |  func bork(virtual self &Bork<T>, x T) int;
+        |}
+        |
+        |exported func main() int {
+        |  f = Bork((x) => { 7 });
+        |  return f.bork();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // Depends on Generic interface anonymous subclass
+  test("Lambda is incompatible anonymous interface") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface AFunction1<P Ref> {
+        |  func __call(virtual this &AFunction1<P>, a P) int;
+        |}
+        |exported func main() {
+        |  arr = AFunction1<int>((_) => { true });
+        |}
+        |""".stripMargin)
+
+    compile.getCompilerOutputs() match {
+      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
+      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
+      case Ok(wat) => vwat(wat)
+    }
+  }
+
+  // Depends on IFunction1, and maybe Generic interface anonymous subclass
+  test("Basic IFunction1 anonymous subclass") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |import ifunction.ifunction1.*;
+        |
+        |exported func main() int {
+        |  f = IFunction1<mut, int, int>({_});
+        |  return (f)(7);
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
   }
 }

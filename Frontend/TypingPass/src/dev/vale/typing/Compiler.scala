@@ -138,6 +138,7 @@ class Compiler(
     new InferCompiler(
       opts,
       interner,
+      keywords,
       nameTranslator,
       new IInfererDelegate {
         def getPlaceholdersInFullName(accum: Accumulator[FullNameT[INameT]], fullName: FullNameT[INameT]): Unit = {
@@ -820,7 +821,7 @@ class Compiler(
 
             val templataByRune =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true)
+                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, false)
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

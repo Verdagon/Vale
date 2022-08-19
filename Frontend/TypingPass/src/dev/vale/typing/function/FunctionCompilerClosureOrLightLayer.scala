@@ -437,7 +437,7 @@ class FunctionCompilerClosureOrLightLayer(
   (Vector[IVariableT], Vector[(INameT, IEnvEntry)]) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
     val substituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, closureStructRef.fullName)
     val variables =
       closureStructDef.members.map(member => {
         val variableFullName = closureStructDef.placeholderedCitizen.fullName.addStep(member.name)

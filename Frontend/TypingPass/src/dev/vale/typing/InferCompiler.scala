@@ -1,17 +1,17 @@
 package dev.vale.typing
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
-import dev.vale.typing.types.{CoordT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
+import dev.vale.typing.types.{CoordT, ICitizenTT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -89,6 +89,7 @@ trait IInferCompilerDelegate {
 class InferCompiler(
     opts: TypingPassOptions,
     interner: Interner,
+    keywords: Keywords,
     nameTranslator: NameTranslator,
     infererDelegate: IInfererDelegate,
     delegate: IInferCompilerDelegate) {
@@ -101,9 +102,10 @@ class InferCompiler(
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
-    isRootSolve: Boolean):
+    isRootSolve: Boolean,
+    includeReachableBounds: Boolean):
   Result[Map[IRuneS, ITemplata[ITemplataType]], IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBounds) match {
       case f @ FailedSolve(_, _, _) => Err(f)
       case i @ IncompleteSolve(_, _, _, _) => Err(i)
       case CompleteSolve(_, conclusions) => Ok(conclusions)
@@ -119,9 +121,10 @@ class InferCompiler(
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
-    isRootSolve: Boolean):
+    isRootSolve: Boolean,
+    includeReachableBounds: Boolean):
   Map[IRuneS, ITemplata[ITemplataType]] = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBounds) match {
       case f @ FailedSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
@@ -142,19 +145,20 @@ class InferCompiler(
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
-    isRootSolve: Boolean):
+    isRootSolve: Boolean,
+    includeReachableBounds: Boolean):
   ISolverOutcome[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError] = {
     Profiler.frame(() => {
       val runeToType =
         initialRuneToType ++
-        initialSends.map({ case InitialSend(senderRune, _, _) =>
-          senderRune.rune -> CoordTemplataType()
-        })
+          initialSends.map({ case InitialSend(senderRune, _, _) =>
+            senderRune.rune -> CoordTemplataType()
+          })
       val rules =
         initialRules ++
-        initialSends.map({ case InitialSend(senderRune, receiverRune, _) =>
-          CoordSendSR(receiverRune.range, senderRune, receiverRune)
-        })
+          initialSends.map({ case InitialSend(senderRune, receiverRune, _) =>
+            CoordSendSR(receiverRune.range, senderRune, receiverRune)
+          })
       val alreadyKnown =
         initialKnowns.map({ case InitialKnown(rune, templata) =>
           if (opts.globalOptions.sanityCheck) {
@@ -162,40 +166,51 @@ class InferCompiler(
           }
           rune.rune -> templata
         }).toMap ++
-        initialSends.map({ case InitialSend(senderRune, _, senderTemplata) =>
-          if (opts.globalOptions.sanityCheck) {
-            infererDelegate.sanityCheckConclusion(envs, state, senderRune.rune, senderTemplata)
-          }
-          (senderRune.rune -> senderTemplata)
-        })
+          initialSends.map({ case InitialSend(senderRune, _, senderTemplata) =>
+            if (opts.globalOptions.sanityCheck) {
+              infererDelegate.sanityCheckConclusion(envs, state, senderRune.rune, senderTemplata)
+            }
+            (senderRune.rune -> senderTemplata)
+          })
 
-      val outcome =
-        new CompilerSolver(opts.globalOptions, interner, infererDelegate)
-          .solve(
-            invocationRange,
-            envs,
-            state,
-            rules,
-            runeToType,
-            alreadyKnown)
-      if (verifyConclusions) {
-        outcome match {
-          case CompleteSolve(steps, conclusions) => {
-            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusions, isRootSolve) match {
+      new CompilerSolver(opts.globalOptions, interner, infererDelegate)
+        .solve(
+          invocationRange,
+          envs,
+          state,
+          rules,
+          runeToType,
+          alreadyKnown) match {
+        case CompleteSolve(steps, conclusionsWithoutReachableBounds) => {
+          val conclusionsMaybeWithReachableBounds =
+            conclusionsWithoutReachableBounds ++
+              (if (includeReachableBounds) {
+                conclusionsWithoutReachableBounds
+                  .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc._2))
+                  .zipWithIndex
+                  .map({ case (templata, num) => ReachablePrototypeRuneS(num) -> templata })
+            } else {
+              Vector()
+            })
+          if (verifyConclusions) {
+            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusionsMaybeWithReachableBounds, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, Vector(), e)
             }
           }
-          case IncompleteSolve(steps, unsolvedRules, _, incompleteConclusions) => {
+          CompleteSolve(steps, conclusionsMaybeWithReachableBounds)
+        }
+        case outcome @ IncompleteSolve(steps, unsolvedRules, _, incompleteConclusions) => {
+          if (verifyConclusions) {
             checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, incompleteConclusions, isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedSolve(steps, unsolvedRules, e)
             }
           }
-          case FailedSolve(_, _, _) =>
+          outcome
         }
+        case outcome @ FailedSolve(_, _, _) => outcome
       }
-      outcome
     })
   }
 
@@ -236,13 +251,10 @@ class InferCompiler(
           interner,
           envs.originalCallingEnv,
           envs.originalCallingEnv.fullName,
-          conclusions.map({ case (nameS, templata) =>
-            interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-          }).toVector)
-
-      strt here
-      // this is where we should look at all the citizens we solved for, grab the prototypes from them,
-      // and merge them in, see NBIFP and ONBIFS.
+          conclusions
+            .map({ case (nameS, templata) =>
+              interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+            }).toVector)
 
       checkTemplateInstantiationsForEnv(
           originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions) match {

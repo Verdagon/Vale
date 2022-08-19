@@ -117,7 +117,7 @@ class StructConstructorMacro(
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
     val definition = coutputs.lookupStruct(structTT)
     val placeholderSubstituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
     val members =
       definition.members.map({
         case StructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
@@ -133,7 +133,7 @@ class StructConstructorMacro(
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, coord) })
     val constructorReturnOwnership =
-      StructCompiler.getMutability(interner, coutputs, structTT) match {
+      StructCompiler.getMutability(interner, keywords, coutputs, structTT) match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT

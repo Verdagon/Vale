@@ -16,7 +16,7 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate,
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FullNameT, FunctionTemplateNameT}
+import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
 //import dev.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import dev.vale.postparsing.rules.{EqualsSR, TemplexSR, TypedSR}
 import dev.vale.typing.types._
@@ -289,6 +289,7 @@ class OverloadResolver(
                     initialKnowns,
                     Vector(),
                     true,
+                    false,
                     false) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
@@ -391,7 +392,7 @@ class OverloadResolver(
         }
       }
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
-        val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, prototype.fullName)
+        val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, prototype.fullName)
         val params = prototype.fullName.last.parameters.map(paramType => {
           substituter.substituteForCoord(paramType)
         })
@@ -567,27 +568,41 @@ class OverloadResolver(
       paramIndexToSurvivingBannerIndices.foldLeft(bannerIndexToScore.indices.toVector)({
         case (a, b) => a.intersect(b)
       })
-    val survivingBannerIndex =
-      if (survivingBannerIndices.size == 0) {
+
+    // If all the candidates are bounds, then just pick one of them.
+      val grouped =
+        survivingBannerIndices
+          .groupBy(index => {
+            banners(index) match {
+              case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => Some((firstHumanName, firstParameters, firstReturnType))
+              case _ => None
+            }
+          })
+    val nonPrototypeCandidateIndices = grouped.getOrElse(None, Vector())
+    val prototypeCandidateIndices = (grouped - None).map(_._2.head)
+    val dedupedCandidateIndices = nonPrototypeCandidateIndices ++ prototypeCandidateIndices
+
+    val finalBannerIndex =
+      if (dedupedCandidateIndices.size == 0) {
         // This can happen if the parameters don't agree who the best
         // candidates are.
         vfail("No candidate is a clear winner!")
-      } else if (survivingBannerIndices.size == 1) {
-        survivingBannerIndices.head
+      } else if (dedupedCandidateIndices.size == 1) {
+        dedupedCandidateIndices.head
       } else {
         throw CompileErrorExceptionT(
           CouldntNarrowDownCandidates(
             callRange,
-            survivingBannerIndices.map(banners)
+            dedupedCandidateIndices.map(banners)
               .map(_.range.getOrElse(RangeS.internal(interner, -296729)))))
       }
 
     val rejectedBanners =
-      banners.zipWithIndex.filter(_._2 != survivingBannerIndex).map(_._1)
+      banners.zipWithIndex.filter(_._2 != finalBannerIndex).map(_._1)
     val rejectionReasonByBanner =
       rejectedBanners.map((_, Outscored())).toMap
 
-    (banners(survivingBannerIndex), rejectionReasonByBanner)
+    (banners(finalBannerIndex), rejectionReasonByBanner)
   }
 
   def stampPotentialFunctionForBanner(

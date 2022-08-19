@@ -83,6 +83,8 @@ case class ExportAsNameS(codeLocation: CodeLocationS) extends INameS {  }
 case class LetNameS(codeLocation: CodeLocationS) extends INameS {  }
 //case class UnnamedLocalNameS(codeLocation: CodeLocationS) extends IVarNameS {  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ClosureParamNameS() extends IVarNameS with IImpreciseNameS {  }
+// All prototypes can be looked up via this name.
+case class PrototypeNameS() extends IImpreciseNameS {  }
 case class MagicParamNameS(codeLocation: CodeLocationS) extends IVarNameS {  }
 case class AnonymousSubstructTemplateNameS(interfaceName: TopLevelInterfaceDeclarationNameS) extends IStructDeclarationNameS {
   vpass()
@@ -127,6 +129,7 @@ case class ImplDropVoidRuneS() extends IRuneS
 case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   vpass()
 }
+case class ReachablePrototypeRuneS(num: Int) extends IRuneS
 case class FreeOverrideStructTemplateRuneS() extends IRuneS
 case class FreeOverrideStructRuneS() extends IRuneS
 case class FreeOverrideInterfaceRuneS() extends IRuneS

@@ -209,6 +209,7 @@ object TemplatasStore {
       case FreeTemplateNameT(codeLocation) => Some(interner.intern(FreeImpreciseNameS()))
       case FreeNameT(_, templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
       case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
+      case ReachablePrototypeNameT(num) => None
       case FreeTemplateNameT(codeLoc) => Some(interner.intern(FreeImpreciseNameS()))
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
@@ -281,7 +282,8 @@ case class TemplatasStore(
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)
             // but also CodeNameS("moo").
             getImpreciseName(interner, key).toList.map(_ -> value) ++
-              getImpreciseName(interner, prototype.fullName.last).map(_ -> value)
+              getImpreciseName(interner, prototype.fullName.last).map(_ -> value) ++
+              List(interner.intern(PrototypeNameS()) -> value)
           }
           case (key, entry @ ImplEnvEntry(implA)) => {
             List(
