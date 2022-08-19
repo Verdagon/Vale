@@ -165,7 +165,7 @@ class FunctionCompilerMiddleLayer(
         (header)
       }
       case None => {
-        coutputs.declareFunction(runedEnv.fullName)
+        coutputs.declareFunction(callRange, runedEnv.fullName)
         coutputs.declareFunctionOuterEnv(runedEnv.fullName, runedEnv)
         coutputs.declareFunctionInnerEnv(runedEnv.fullName, runedEnv)
 

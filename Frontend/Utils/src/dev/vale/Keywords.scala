@@ -145,6 +145,7 @@ class Keywords(interner: Interner) {
   val FreeStruct = interner.intern(StrI("FreeStruct"))
   val FreeV = interner.intern(StrI("FreeV"))
   val x = interner.intern(StrI("x"))
+  val D = interner.intern(StrI("D"))
   val v = interner.intern(StrI("v"))
   val builtins = interner.intern(StrI("builtins"))
   val arrays = interner.intern(StrI("arrays"))

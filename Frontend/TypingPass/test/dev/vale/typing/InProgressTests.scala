@@ -17,23 +17,6 @@ import scala.io.Source
 
 class InProgressTests extends FunSuite with Matchers {
 
-  test("Can mutate an element in a runtime-sized array") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |exported func main() int {
-        |  arr = Array<mut, int>(3);
-        |  arr.push(0);
-        |  arr.push(1);
-        |  arr.push(2);
-        |  set arr[1] = 10;
-        |  return 73;
-        |}
-        |""".stripMargin)
-    compile.expectCompilerOutputs()
-  }
 
   test("DO NOT SUBMIT") {
     vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in

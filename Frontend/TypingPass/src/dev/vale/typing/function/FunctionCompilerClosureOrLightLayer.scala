@@ -347,7 +347,7 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(!function.isTemplate)
 
     val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareFunction(name)
+    coutputs.declareFunction(parentRanges, name)
     coutputs.declareFunctionOuterEnv(name, outerEnv)
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val newEnv =
@@ -378,7 +378,7 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
-    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunction(callRange, newEnv.fullName)
     coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
         newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes)
@@ -396,7 +396,7 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareFunction(newEnv.fullName)
+    coutputs.declareFunction(callRange, newEnv.fullName)
     coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
