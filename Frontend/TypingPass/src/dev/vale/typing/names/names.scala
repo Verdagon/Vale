@@ -163,6 +163,8 @@ case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
 
 case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT
 
+case class ReachablePrototypeNameT(num: Int) extends INameT
+
 case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
   override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
     vimpl()

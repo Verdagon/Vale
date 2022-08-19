@@ -2,10 +2,9 @@ package dev.vale.typing.expression
 
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing._
-import dev.vale.{Interner, Profiler, RangeS, vassert, vassertSome, vfail}
-import dev.vale.postparsing.patterns.AtomSP
+import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vfail}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
-import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, Compiler, TypingPassOptions, CompilerOutputs, WrongNumberOfDestructuresError}
+import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, TypingPassOptions, WrongNumberOfDestructuresError}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
 import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntry}
 import dev.vale.typing.function.DestructorCompiler
@@ -16,6 +15,7 @@ import dev.vale.highertyping._
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing._
+import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.env._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -29,7 +29,8 @@ class PatternCompiler(
     opts: TypingPassOptions,
 
     interner: Interner,
-    inferCompiler: InferCompiler,
+  keywords: Keywords,
+  inferCompiler: InferCompiler,
     arrayCompiler: ArrayCompiler,
     convertHelper: ConvertHelper,
     destructorCompiler: DestructorCompiler,
@@ -135,7 +136,8 @@ class PatternCompiler(
                     receiverRune,
                     CoordTemplata(unconvertedInputExpr.result.reference))),
                 true,
-                true)
+                true,
+                false)
             nenv.addEntries(
               interner,
               templatasByRune.toVector
@@ -393,7 +395,7 @@ class PatternCompiler(
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
-    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
 
     val memberLocals =
       structDefT.members
@@ -478,7 +480,7 @@ class PatternCompiler(
 
     val unsubstitutedMemberCoord = member.tyype.expectReferenceMember().reference
     val memberType =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
         .substituteForCoord(unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(

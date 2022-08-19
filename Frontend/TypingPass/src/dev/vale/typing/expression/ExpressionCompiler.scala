@@ -79,7 +79,7 @@ class ExpressionCompiler(
     delegate: IExpressionCompilerDelegate) {
   val localHelper = new LocalHelper(opts, interner, nameTranslator, destructorCompiler)
   val callCompiler = new CallCompiler(opts, interner, keywords, templataCompiler, convertHelper, localHelper, overloadCompiler)
-  val patternCompiler = new PatternCompiler(opts, interner, inferCompiler, arrayCompiler, convertHelper, destructorCompiler, localHelper)
+  val patternCompiler = new PatternCompiler(opts, interner, keywords, inferCompiler, arrayCompiler, convertHelper, destructorCompiler, localHelper)
   val blockCompiler = new BlockCompiler(opts, destructorCompiler, localHelper, new IBlockCompilerDelegate {
     override def evaluateAndCoerceToReferenceExpression(
       coutputs: CompilerOutputs,
@@ -286,7 +286,7 @@ class ExpressionCompiler(
   (ReferenceExpressionTE) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
     val substituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, closureStructRef.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, closureStructRef.fullName)
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
       closureStructDef.members.map({
@@ -689,7 +689,7 @@ class ExpressionCompiler(
                 val memberFullName = structDef.templateName.addStep(structDef.members(memberIndex).name)
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
-                  TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+                  TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
                     .substituteForCoord(unsubstitutedMemberType)
 
                 vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
@@ -1066,7 +1066,7 @@ class ExpressionCompiler(
             innerExpr2.kind match {
               case structTT@StructTT(_) => {
                 val structDef = coutputs.lookupStruct(structTT)
-                val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+                val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
                 DestroyTE(
                   innerExpr2,
                   structTT,

@@ -11,7 +11,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
-import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{FunctionTemplata, KindTemplata}
 import dev.vale.typing.types._
 
@@ -119,6 +119,11 @@ class EdgeCompiler(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionHeader.fullName.last))
 
+                // See ONBIFS and NBIFP for why we need these bounds in our below env.
+                val overridingKindReachableBounds =
+                  TemplataCompiler.getReachableBounds(
+                    interner, keywords, coutputs, KindTemplata(placeholderedOverridingCitizen))
+
                 val implEnvWithAbstractFuncConclusions =
                   GeneralEnvironment.childOf(
                     interner,
@@ -126,7 +131,10 @@ class EdgeCompiler(
                     overridingImpl.implOuterEnv.fullName,
                     abstractFuncInferences.map({ case (nameS, templata) =>
                       interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-                    }).toVector)
+                    }).toVector ++
+                      overridingKindReachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
+                        interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+                      }))
 
                 // We need the abstract function's conclusions because it contains knowledge of the
                 // existence of certain things like concept functions, see NFIEFRO.

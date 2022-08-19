@@ -160,6 +160,12 @@ case class RuntimeSizedArrayTT(
   }
 }
 
+object ICitizenTT {
+  def unapply(self: ICitizenTT): Option[FullNameT[ICitizenNameT]] = {
+    Some(self.fullName)
+  }
+}
+
 sealed trait ICitizenTT extends KindT with IInterning {
   def fullName: FullNameT[ICitizenNameT]
 }

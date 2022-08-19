@@ -123,6 +123,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         false,
+        false,
         false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
@@ -181,6 +182,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         assembleKnownTemplatas(function, alreadySpecifiedTemplateArgs),
         initialSends,
         true,
+        false,
         false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
@@ -326,7 +328,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(nearEnv, parentRanges, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true)
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true, true)
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv =
@@ -374,6 +376,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         initialKnowns,
         initialSends,
         true,
+        false,
         false) match {
       case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
       case Ok(inferredTemplatas) => inferredTemplatas
@@ -483,6 +486,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         true,
+        false,
         false
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
@@ -530,7 +534,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           Vector(),
           initialSends,
           true,
-          true) match {
+          true,
+        false) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: callRange, f))
         }
@@ -568,6 +573,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         function.range :: callRange,
         placeholderInitialKnownsFromFunction,
         Vector(),
+        true,
         true,
         true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
@@ -608,7 +614,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val preliminaryInferences =
       inferCompiler.solve(
         InferEnv(nearEnv, parentRanges, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, Vector(), Vector(), true, true) match {
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, Vector(), Vector(), true, true, true) match {
         case f @ FailedSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
         }
@@ -634,7 +640,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val inferences =
       inferCompiler.solveExpectComplete(
         InferEnv(nearEnv, parentRanges, nearEnv),
-        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true)
+        coutputs, definitionRules, function.runeToType, function.range :: parentRanges, initialKnowns, Vector(), true, true, true)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
     middleLayer.getOrEvaluateFunctionForHeader(

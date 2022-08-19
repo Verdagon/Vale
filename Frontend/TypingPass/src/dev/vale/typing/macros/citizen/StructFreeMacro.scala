@@ -171,7 +171,7 @@ class StructFreeMacro(
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val substituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
 
     val memberLocalVariables =
       structDef.members.flatMap({

@@ -16,113 +16,23 @@ import org.scalatest.{FunSuite, Matchers}
 import scala.io.Source
 
 class InProgressTests extends FunSuite with Matchers {
-  // TODO: pull all of the typingpass specific stuff out, the unit test-y stuff
 
-  test("Use bound from struct") {
-    // See NBIFP.
-    // Without it, when it tries to compile (1), at (2) it tries to resolve BorkForwarder
-    // and fails bound (3) because (1) has no such bound.
-    // NBIFP says we should first get that knowledge from (2).
+  test("Can mutate an element in a runtime-sized array") {
     val compile = CompilerTestCompilation.test(
       """
-        |#!DeriveStructDrop
-        |struct BorkForwarder<Lam>
-        |where func __call(&Lam)int // 3
-        |{
-        |  lam Lam;
-        |}
         |
-        |
-        |func bork<Lam>( // 1
-        |  self &BorkForwarder<Lam> // 2
-        |) int {
-        |  return (self.lam)();
-        |}
-        |
-        |exported func main() {
-        |  b = BorkForwarder({ 7 });
-        |  b.bork();
-        |  [_] = b;
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Basic interface forwarder") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |sealed interface Bork {
-        |  func bork(virtual self &Bork) int;
-        |}
-        |
-        |struct BorkForwarder<Lam>
-        |where func drop(Lam)void, func __call(&Lam)int {
-        |  lam Lam;
-        |}
-        |
-        |impl<Lam> Bork for BorkForwarder<Lam>
-        |where func drop(Lam)void, func __call(&Lam)int;
-        |
-        |func bork<Lam>(self &BorkForwarder<Lam>) int
-        |where func drop(Lam)void, func __call(&Lam)int {
-        |  return (self.lam)();
-        |}
-        |
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
         |exported func main() int {
-        |  f = BorkForwarder({ 7 });
-        |  return f.bork();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Basic interface anonymous subclass") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface Bork {
-        |  func bork(virtual self &Bork) int;
-        |}
-        |
-        |exported func main() int {
-        |  f = Bork({ 7 });
-        |  return f.bork();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  // Depends on Basic interface anonymous subclass
-  test("Basic IFunction1 anonymous subclass") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() int {
-        |  f = IFunction1<mut, int, int>({_});
-        |  return (f)(7);
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  // Depends on anonymous interfaces
-  test("Lambda is incompatible anonymous interface") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface AFunction1<P> where P Ref {
-        |  func __call(virtual this &AFunction1<P>, a P) int;
-        |}
-        |exported func main() {
-        |  arr = AFunction1<int>((_) => { true });
+        |  arr = Array<mut, int>(3);
+        |  arr.push(0);
+        |  arr.push(1);
+        |  arr.push(2);
+        |  set arr[1] = 10;
+        |  return 73;
         |}
         |""".stripMargin)
-
-    compile.getCompilerOutputs() match {
-      case Err(BodyResultDoesntMatch(_, _, _, _)) =>
-      case Err(other) => vwat(CompilerErrorHumanizer.humanize(true, compile.getCodeMap().getOrDie(), other))
-      case Ok(wat) => vwat(wat)
-    }
+    compile.expectCompilerOutputs()
   }
 
   test("DO NOT SUBMIT") {
