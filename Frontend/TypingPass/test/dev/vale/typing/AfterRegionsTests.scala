@@ -99,4 +99,59 @@ class AfterRegionsTests extends FunSuite with Matchers {
     vimpl()
   }
 
+  // Depends on Basic interface anonymous subclass
+  test("Reports error") {
+    // https://github.com/ValeLang/Vale/issues/548
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface A {
+        |	func foo(virtual a &A) int;
+        |}
+        |
+        |struct B imm { val int; }
+        |impl A for B;
+        |
+        |func foo(b &B) int { return b.val; }
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    vimpl()
+  }
+
+  // right now there is no collision because they have different template names.
+  test("Reports when two functions with same signature") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |exported func moo() int { return 1337; }
+        |exported func moo() int { return 1448; }
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
+    }
+  }
+
+  // Interface bounds, downcasting
+  test("Report when downcasting to interface") {
+    vimpl() // can we solve this by putting an impl in the environment for that placeholder?
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.as.*;
+        |import panicutils.*;
+        |
+        |interface ISuper { }
+        |interface ISub { }
+        |impl ISuper for ISub;
+        |
+        |exported func main() {
+        |  ship = __pretend<ISuper>();
+        |  ship.as<ISub>();
+        |}
+        |""".stripMargin)
+    compile.getCompilerOutputs() match {
+      case Err(CantDowncastToInterface(_, _)) =>
+    }
+  }
+
 }

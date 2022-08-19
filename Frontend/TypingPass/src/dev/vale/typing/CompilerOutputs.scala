@@ -171,8 +171,10 @@ case class CompilerOutputs() {
 //    functionsByPrototype.put(function.header.toPrototype, function)
   }
 
-  def declareFunction(templateName: FullNameT[INameT]): Unit = {
-    vassert(!functionDeclaredNames.contains(templateName))
+  def declareFunction(callRanges: List[RangeS], templateName: FullNameT[INameT]): Unit = {
+    if (functionDeclaredNames.contains(templateName)) {
+      throw CompileErrorExceptionT(RangedInternalErrorT(callRanges, "Internal error: Function already exists: " + templateName))
+    }
     functionDeclaredNames += templateName
   }
 

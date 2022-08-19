@@ -1801,4 +1801,39 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Test MakeArray") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arith.*;
+        |import array.make.*;
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |
+        |exported func main() int {
+        |  a = MakeArray<int>(11, {_});
+        |  return len(&a);
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Test array push, pop, len, capacity, drop") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |
+        |exported func main() void {
+        |  arr = Array<mut, int>(9);
+        |  arr.push(420);
+        |  arr.push(421);
+        |  arr.push(422);
+        |  arr.len();
+        |  arr.capacity();
+        |  // implicit drop with pops
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
 }
