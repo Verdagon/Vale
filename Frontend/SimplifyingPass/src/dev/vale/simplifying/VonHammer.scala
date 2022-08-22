@@ -951,7 +951,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
               "function",
               vonifyName(nameHammer.translateFullName(hinputs, hamuts, ft.getTemplateName())))))
       }
-      case st @ StructTemplata(env, struct) => {
+      case st @ StructDefinitionTemplata(env, struct) => {
         VonObject(
           "StructTemplata",
           None,
@@ -960,7 +960,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             vimpl()))
 //            VonMember("structName", translateName(hinputs, hamuts, nameTranslator.translateCitizenName(st.originStruct.name)))))
       }
-      case it @ InterfaceTemplata(env, interface) => {
+      case it @ InterfaceDefinitionTemplata(env, interface) => {
         VonObject(
           "InterfaceTemplata",
           None,
@@ -968,7 +968,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.fullName)),
             VonMember("interfaceName", translateName(hinputs, hamuts, it.getTemplateName()))))
       }
-      case it @ ImplTemplata(env, impl) => {
+      case it @ ImplDefinitionTemplata(env, impl) => {
         VonObject(
           "ExternFunctionTemplata",
           None,

@@ -22,8 +22,8 @@ class RuneTypeSolver(interner: Interner) {
         case LookupSR(range, rune, literal) => Array(rune)
         case RuneParentEnvLookupSR(range, rune) => Array(rune)
         case EqualsSR(range, left, right) => Array(left, right)
-        case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
-        case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
+        case DefinitionCoordIsaSR(range, result, sub, suuper) => Array(result, sub, suuper)
+        case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toArray ++ Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
@@ -84,7 +84,8 @@ class RuneTypeSolver(interner: Interner) {
         // Packs are always lists of coords
         Array(Array())
       }
-      case CoordIsaSR(range, subRune, superRune) => Array(Array())
+      case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => Array(Array())
+      case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => Array(Array())
       case KindComponentsSR(range, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array())
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(Array())
@@ -161,7 +162,17 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), returnRune.rune, CoordTemplataType())
         Ok(())
       }
-      case CoordIsaSR(range, subRune, superRune) => {
+      case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => {
+        stepState.concludeRune(List(range), resultRune.rune, ImplTemplataType())
+        stepState.concludeRune(List(range), subRune.rune, CoordTemplataType())
+        stepState.concludeRune(List(range), superRune.rune, CoordTemplataType())
+        Ok(())
+      }
+      case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => {
+        resultRune match {
+          case Some(resultRune) => stepState.concludeRune(List(range), resultRune.rune, ImplTemplataType())
+          case None =>
+        }
         stepState.concludeRune(List(range), subRune.rune, CoordTemplataType())
         stepState.concludeRune(List(range), superRune.rune, CoordTemplataType())
         Ok(())

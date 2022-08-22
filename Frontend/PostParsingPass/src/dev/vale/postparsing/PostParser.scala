@@ -510,7 +510,7 @@ class PostParser(
         }
         case VariadicStructMemberP(range, variability, memberType) => {
           val memberRune = templexScout.translateTemplex(structEnv, lidb.child(), memberRuleBuilder, memberType)
-          membersRuneToExplicitType.put(memberRune.rune, CoordTemplataType())
+          membersRuneToExplicitType.put(memberRune.rune, PackTemplataType(CoordTemplataType()))
           Vector(VariadicStructMemberS(PostParser.evalRange(structEnv.file, range), variability, memberRune))
         }
         case StructMethodP(_) => {

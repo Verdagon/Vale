@@ -4,7 +4,7 @@ import dev.vale.{Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, v
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -24,16 +24,17 @@ trait ITemplataCompilerDelegate {
 
   def isParent(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
-    descendantCitizenRef: ICitizenTT,
-    ancestorInterfaceRef: InterfaceTT):
+    subKindTT: ISubKindTT,
+    superKindTT: ISuperKindTT):
   IsParentResult
 
   def resolveStruct(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    structTemplata: StructTemplata,
+    structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   StructTT
 
@@ -43,7 +44,7 @@ trait ITemplataCompilerDelegate {
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceTemplata,
+    interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   InterfaceTT
 
@@ -106,6 +107,16 @@ object TemplataCompiler {
     FullNameT(packageCoord, initSteps, last.template)
   }
 
+  def getSubKindTemplate(fullName: FullNameT[ISubKindNameT]): FullNameT[ISubKindTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def getSuperKindTemplate(fullName: FullNameT[ISuperKindNameT]): FullNameT[ISuperKindTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
   def getStructTemplate(fullName: FullNameT[IStructNameT]): FullNameT[IStructTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
@@ -118,7 +129,7 @@ object TemplataCompiler {
 
   def getPlaceholderTemplate(fullName: FullNameT[PlaceholderNameT]): FullNameT[PlaceholderTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.templateName)
+    FullNameT(packageCoord, initSteps, last.template)
   }
 
   def substituteTemplatasInCoord(
@@ -374,6 +385,7 @@ class TemplataCompiler(
 
   def isTypeConvertible(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
     sourcePointerType: CoordT,
     targetPointerType: CoordT):
@@ -390,15 +402,9 @@ class TemplataCompiler(
       case (VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _), _) => return false
       case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
       case (_, StructTT(_)) => return false
-      case (a @ StructTT(_), b @ InterfaceTT(_)) => {
-        delegate.isParent(coutputs, parentRanges, a, b) match {
-          case IsParent(conclusions) =>
-          case IsntParent(_) => return false
-        }
-      }
-      case (a @ InterfaceTT(_), b @ InterfaceTT(_)) => {
-        delegate.isParent(coutputs, parentRanges, a, b) match {
-          case IsParent(conclusions) =>
+      case (a : ISubKindTT, b : ISuperKindTT) => {
+        delegate.isParent(coutputs, callingEnv, parentRanges, a, b) match {
+          case IsParent(conclusions, _) =>
           case IsntParent(_) => return false
         }
       }
@@ -485,7 +491,7 @@ class TemplataCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    template: InterfaceTemplata,
+    template: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     expectedType: ITemplataType):
   (ITemplata[ITemplataType]) = {
@@ -583,7 +589,7 @@ class TemplataCompiler(
         case (KindTemplata(kind), CoordTemplataType()) => {
           CoordTemplata(coerceKindToCoord(coutputs, kind))
         }
-        case (st@StructTemplata(declaringEnv, structA), KindTemplataType()) => {
+        case (st@StructDefinitionTemplata(declaringEnv, structA), KindTemplataType()) => {
           if (structA.isTemplate) {
             vfail("Can't coerce " + structA.name + " to be a kind, is a template!")
           }
@@ -591,7 +597,7 @@ class TemplataCompiler(
             delegate.resolveStruct(coutputs, env, range, st, Vector.empty)
           (KindTemplata(kind))
         }
-        case (it@InterfaceTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
+        case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
           }
@@ -599,7 +605,7 @@ class TemplataCompiler(
             delegate.resolveInterface(coutputs, env, range, it, Vector.empty)
           (KindTemplata(kind))
         }
-        case (st@StructTemplata(declaringEnv, structA), CoordTemplataType()) => {
+        case (st@StructDefinitionTemplata(declaringEnv, structA), CoordTemplataType()) => {
           if (structA.isTemplate) {
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
@@ -617,7 +623,7 @@ class TemplataCompiler(
           val coerced = CoordTemplata(CoordT(ownership, kind))
           (coerced)
         }
-        case (it@InterfaceTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
+        case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
@@ -642,28 +648,28 @@ class TemplataCompiler(
     }
   }
 
-  def resolveStructTemplate(structTemplata: StructTemplata): FullNameT[IStructTemplateNameT] = {
-    val StructTemplata(declaringEnv, structA) = structTemplata
+  def resolveStructTemplate(structTemplata: StructDefinitionTemplata): FullNameT[IStructTemplateNameT] = {
+    val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
     declaringEnv.fullName.addStep(nameTranslator.translateStructName(structA.name))
   }
 
-  def resolveInterfaceTemplate(interfaceTemplata: InterfaceTemplata): FullNameT[IInterfaceTemplateNameT] = {
-    val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+  def resolveInterfaceTemplate(interfaceTemplata: InterfaceDefinitionTemplata): FullNameT[IInterfaceTemplateNameT] = {
+    val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
     declaringEnv.fullName.addStep(nameTranslator.translateInterfaceName(interfaceA.name))
   }
 
-  def resolveCitizenTemplate(citizenTemplata: CitizenTemplata): FullNameT[ICitizenTemplateNameT] = {
+  def resolveCitizenTemplate(citizenTemplata: CitizenDefinitionTemplata): FullNameT[ICitizenTemplateNameT] = {
     citizenTemplata match {
-      case st @ StructTemplata(_, _) => resolveStructTemplate(st)
-      case it @ InterfaceTemplata(_, _) => resolveInterfaceTemplate(it)
+      case st @ StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
+      case it @ InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
     }
   }
 
   def citizenIsFromTemplate(actualCitizenRef: ICitizenTT, expectedCitizenTemplata: ITemplata[ITemplataType]): Boolean = {
     val citizenTemplateFullName =
       expectedCitizenTemplata match {
-        case st @ StructTemplata(_, _) => resolveStructTemplate(st)
-        case it @ InterfaceTemplata(_, _) => resolveInterfaceTemplate(it)
+        case st @ StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
+        case it @ InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
         case KindTemplata(c : ICitizenTT) => getCitizenTemplate(c.fullName)
         case CoordTemplata(CoordT(OwnT | ShareT, c : ICitizenTT)) => getCitizenTemplate(c.fullName)
         case _ => return false

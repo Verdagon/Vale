@@ -14,8 +14,8 @@ import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
-import dev.vale.typing.infer.{CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, KindDoesntImplementInterface, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.infer.{BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, LambdaTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
@@ -140,7 +140,7 @@ object CompilerErrorHumanizer {
           humanizeRejectionReason(verbose, codeMap, range, eff)
         }
         case FunctionAlreadyExists(oldFunctionRange, newFunctionRange, signature) => {
-          "Function " + humanizeSignature(codeMap, signature) + " already exists! Previous declaration at:\n" +
+          "Function " + humanizeName(codeMap, signature) + " already exists! Previous declaration at:\n" +
             humanizePos(codeMap, oldFunctionRange.begin)
         }
         case AbstractMethodOutsideOpenInterface(range) => {
@@ -311,7 +311,7 @@ object CompilerErrorHumanizer {
     error: ITypingPassSolverError
   ): String = {
     error match {
-      case KindDoesntImplementInterface(sub, suuper) => {
+      case IsaFailed(sub, suuper) => {
         "Kind " + humanizeTemplata(codeMap, KindTemplata(sub)) + " does not implement interface " + humanizeTemplata(codeMap, KindTemplata(suuper))
       }
       case CantGetComponentsOfPlaceholderPrototype(_) => {
@@ -319,6 +319,9 @@ object CompilerErrorHumanizer {
       }
       case CantShareMutable(kind) => {
         "Can't share a mutable kind: " + humanizeTemplata(codeMap, KindTemplata(kind))
+      }
+      case BadIsaSuperKind(kind) => {
+        "Bad super kind in isa: " + humanizeTemplata(codeMap, KindTemplata(kind))
       }
       case SendingNonIdenticalKinds(sendCoord, receiveCoord) => {
         "Sending non-identical kinds: " + humanizeTemplata(codeMap, CoordTemplata(sendCoord)) + " and " + humanizeTemplata(codeMap, CoordTemplata(receiveCoord))
@@ -409,8 +412,8 @@ object CompilerErrorHumanizer {
     templata match {
       case RuntimeSizedArrayTemplateTemplata() => "Array"
       case StaticSizedArrayTemplateTemplata() => "StaticArray"
-      case InterfaceTemplata(env, originInterface) => originInterface.name.name.str
-      case StructTemplata(env, originStruct) => PostParserErrorHumanizer.humanizeName(originStruct.name)
+      case InterfaceDefinitionTemplata(env, originInterface) => originInterface.name.name.str
+      case StructDefinitionTemplata(env, originStruct) => PostParserErrorHumanizer.humanizeName(originStruct.name)
       case VariabilityTemplata(variability) => {
         variability match {
           case FinalT => "final"
@@ -496,9 +499,8 @@ object CompilerErrorHumanizer {
     name: INameT):
   String = {
     name match {
-      case LambdaCitizenTemplateNameT(codeLocation) => {
-        "λ:" + humanizePos(codeMap, codeLocation)
-      }
+      case LambdaTemplateNameT(codeLocation) => "λF:" + humanizePos(codeMap, codeLocation)
+      case LambdaCitizenTemplateNameT(codeLocation) => "λC:" + humanizePos(codeMap, codeLocation)
       case PlaceholderNameT(template) => humanizeName(codeMap, template)
       case PlaceholderTemplateNameT(index) => "_" + index
       case CodeVarNameT(name) => name.str

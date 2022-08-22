@@ -113,6 +113,7 @@ class OverloadResolver(
 
   private def paramsMatch(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
     desiredParams: Vector[CoordT],
     candidateParams: Vector[CoordT],
@@ -131,7 +132,7 @@ class OverloadResolver(
             return Err(SpecificParamDoesntMatchExactly(paramIndex, desiredTemplata, candidateType))
           }
         } else {
-          if (!templataCompiler.isTypeConvertible(coutputs, parentRanges, desiredTemplata, candidateType)) {
+          if (!templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, desiredTemplata, candidateType)) {
             return Err(SpecificParamDoesntSend(paramIndex, desiredTemplata, candidateType))
           }
         }
@@ -304,7 +305,7 @@ class OverloadResolver(
                           coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(banner)) => {
-                            paramsMatch(coutputs, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                            paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
                                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
@@ -318,7 +319,7 @@ class OverloadResolver(
                           coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(banner)) => {
-                            paramsMatch(coutputs, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                            paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
                                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
@@ -341,7 +342,7 @@ class OverloadResolver(
                   Err(reason)
                 }
                 case (EvaluateFunctionSuccess(banner)) => {
-                  paramsMatch(coutputs, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                  paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                     case Err(reason) => Err(reason)
                     case Ok(_) => {
                       Ok(ValidPrototypeTemplataCalleeCandidate(banner))
@@ -359,7 +360,7 @@ class OverloadResolver(
                 Err(reason)
               }
               case (EvaluateFunctionSuccess(banner)) => {
-                paramsMatch(coutputs, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                   case Ok(_) => {
                     Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner))
                   }
@@ -374,7 +375,7 @@ class OverloadResolver(
                 Err(reason)
               }
               case (EvaluateFunctionSuccess(banner)) => {
-                paramsMatch(coutputs, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                   case Ok(_) => Ok(ValidPrototypeTemplataCalleeCandidate(banner))
                   case Err(reason) => Err(reason)
                 }
@@ -384,7 +385,7 @@ class OverloadResolver(
         }
       }
       case HeaderCalleeCandidate(header) => {
-        paramsMatch(coutputs, callRange, paramFilters, header.paramTypes, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, paramFilters, header.paramTypes, exact) match {
           case Ok(_) => {
             Ok(ValidHeaderCalleeCandidate(header))
           }
@@ -396,7 +397,7 @@ class OverloadResolver(
         val params = prototype.fullName.last.parameters.map(paramType => {
           substituter.substituteForCoord(paramType)
         })
-        paramsMatch(coutputs, callRange, paramFilters, params, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, paramFilters, params, exact) match {
           case Ok(_) => {
             Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, prototype)))
           }
@@ -459,7 +460,7 @@ class OverloadResolver(
       Ok(successes.head)
     } else {
       val (best, outscoreReasonByBanner) =
-        narrowDownCallableOverloads(coutputs, callRange, successes, args)
+        narrowDownCallableOverloads(coutputs, env, callRange, successes, args)
       Ok(best)
     }
   }
@@ -469,6 +470,7 @@ class OverloadResolver(
   // - Some(param to needs-conversion)
   private def getBannerParamScores(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
     candidate: IValidCalleeCandidate,
     argTypes: Vector[CoordT]):
@@ -481,7 +483,7 @@ class OverloadResolver(
           if (argType == paramType) {
             Some(previous :+ false)
           } else {
-            if (templataCompiler.isTypeConvertible(coutputs, parentRanges, argType, paramType)) {
+            if (templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, argType, paramType)) {
               Some(previous :+ true)
             } else {
               None
@@ -492,10 +494,11 @@ class OverloadResolver(
   }
 
   private def narrowDownCallableOverloads(
-      coutputs: CompilerOutputs,
-      callRange: List[RangeS],
-      unfilteredBanners: Iterable[IValidCalleeCandidate],
-      argTypes: Vector[CoordT]):
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
+    callRange: List[RangeS],
+    unfilteredBanners: Iterable[IValidCalleeCandidate],
+    argTypes: Vector[CoordT]):
   (
     IValidCalleeCandidate,
     // Rejection reason by banner
@@ -536,7 +539,7 @@ class OverloadResolver(
 
     val bannerIndexToScore =
       banners.map(banner => {
-        vassertSome(getBannerParamScores(coutputs, callRange, banner, argTypes))
+        vassertSome(getBannerParamScores(coutputs, callingEnv, callRange, banner, argTypes))
       })
 
     // For any given parameter:

@@ -34,7 +34,8 @@ case class LambdaDeclarationNameS(
   override def getImpreciseName(interner: Interner): LambdaImpreciseNameS = interner.intern(LambdaImpreciseNameS())
 }
 case class LambdaImpreciseNameS() extends IImpreciseNameS {
-
+}
+case class PlaceholderImpreciseNameS(index: Int) extends IImpreciseNameS {
 }
 case class FunctionNameS(name: StrI, codeLocation: CodeLocationS) extends IFunctionDeclarationNameS {
   override def packageCoordinate: PackageCoordinate = codeLocation.file.packageCoordinate
@@ -200,7 +201,7 @@ case class ImmInterfaceDestructorNameS(packageCoordinate: PackageCoordinate) ext
   override def getImpreciseName(interner: Interner): IImpreciseNameS = vimpl()
 }
 
-case class ImplImpreciseNameS(superInterfaceImpreciseName: IImpreciseNameS, subCitizenImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
+case class ImplImpreciseNameS(subCitizenImpreciseName: IImpreciseNameS, superInterfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 case class ImplSubCitizenImpreciseNameS(subCitizenImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 case class ImplSuperInterfaceImpreciseNameS(superInterfaceImpreciseName: IImpreciseNameS) extends IImpreciseNameS { }
 

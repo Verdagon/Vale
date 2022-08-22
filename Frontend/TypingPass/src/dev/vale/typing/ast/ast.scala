@@ -29,7 +29,7 @@ case class ImplT(
   // We do this because a struct might implement an interface in multiple ways, see SCIIMT.
   // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
-  templata: ImplTemplata,
+  templata: ImplDefinitionTemplata,
 
   implOuterEnv: IEnvironment,
 

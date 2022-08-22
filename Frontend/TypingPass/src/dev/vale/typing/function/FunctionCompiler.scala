@@ -1,6 +1,6 @@
 package dev.vale.typing.function
 
-import dev.vale.{Interner, Keywords, Profiler, RangeS, postparsing, vassertOne, vfail, vimpl, vwat}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, postparsing, vassert, vassertOne, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.highertyping.CouldntSolveRulesA
@@ -196,20 +196,21 @@ class FunctionCompiler(
   FunctionHeaderT = {
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
-      if (function.isLight) {
+//      if (function.isLight) {
+      vassert(function.isLight())
         evaluateTemplatedLightFunctionFromNonCallForHeader(
           env, coutputs, parentRanges, function, verifyConclusions)
-      } else {
-        val List(KindTemplata(closureStructRef@StructTT(_))) =
-          env.lookupNearestWithImpreciseName(
-
-            vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
-            Set(TemplataLookupContext)).toList
-        val header =
-          evaluateTemplatedClosureFunctionFromNonCallForHeader(
-            env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
-        header
-      }
+//      } else {
+//        val List(KindTemplata(closureStructRef@StructTT(_))) =
+//          env.lookupNearestWithImpreciseName(
+//
+//            vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
+//            Set(TemplataLookupContext)).toList
+//        val header =
+//          evaluateTemplatedClosureFunctionFromNonCallForHeader(
+//            env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
+//        header
+//      }
     })
 
   }
@@ -417,18 +418,18 @@ class FunctionCompiler(
 //    closureOrLightLayer.evaluateOrdinaryClosureFunctionFromCallForPrototype(
 //      env, coutputs, parentRanges, callingEnv, closureStructRef, function)
 //  }
-
-  private def evaluateTemplatedClosureFunctionFromNonCallForHeader(
-    env: IEnvironment,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    closureStructRef: StructTT,
-    function: FunctionA,
-    verifyConclusions: Boolean):
-  (FunctionHeaderT) = {
-    closureOrLightLayer.evaluateTemplatedClosureFunctionFromNonCallForHeader(
-      env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
-  }
+//
+//  private def evaluateTemplatedClosureFunctionFromNonCallForHeader(
+//    env: IEnvironment,
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    closureStructRef: StructTT,
+//    function: FunctionA,
+//    verifyConclusions: Boolean):
+//  (FunctionHeaderT) = {
+//    closureOrLightLayer.evaluateTemplatedClosureFunctionFromNonCallForHeader(
+//      env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
+//  }
 
 //  private def evaluateOrdinaryClosureFunctionFromNonCallForBanner(
 //    env: IEnvironment,

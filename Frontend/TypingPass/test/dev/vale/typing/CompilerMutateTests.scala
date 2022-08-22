@@ -8,7 +8,7 @@ import dev.vale.parsing._
 import dev.vale.postparsing.PostParser
 import OverloadResolver.{FindFunctionFailure, WrongNumberOfArguments}
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT, StructToInterfaceUpcastTE}
+import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -87,7 +87,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case MutateTE(_, StructToInterfaceUpcastTE(_, _)) =>
+      case MutateTE(_, UpcastTE(_, _)) =>
     })
   }
 
@@ -114,7 +114,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case MutateTE(_, StructToInterfaceUpcastTE(_, _)) =>
+      case MutateTE(_, UpcastTE(_, _)) =>
     })
   }
 
@@ -303,7 +303,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       FunctionAlreadyExists(
         tz.head,
         tz.head,
-        SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector.empty, Vector.empty))))))
+        FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector(), Vector())))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(

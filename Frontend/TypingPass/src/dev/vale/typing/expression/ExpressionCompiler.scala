@@ -574,7 +574,7 @@ class ExpressionCompiler(
 
           val isConvertible =
             templataCompiler.isTypeConvertible(
-              coutputs, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
+              coutputs, nenv.snapshot, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
           if (!isConvertible) {
             throw CompileErrorExceptionT(
               CouldntConvertForMutateT(
@@ -613,7 +613,7 @@ class ExpressionCompiler(
           }
 
           val isConvertible =
-            templataCompiler.isTypeConvertible(coutputs, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
+            templataCompiler.isTypeConvertible(coutputs, nenv.snapshot, range :: parentRanges, unconvertedSourceExpr2.result.reference, destinationExpr2.result.reference)
           if (!isConvertible) {
             throw CompileErrorExceptionT(CouldntConvertForMutateT(range :: parentRanges, destinationExpr2.result.reference, unconvertedSourceExpr2.result.reference))
           }
@@ -1110,7 +1110,7 @@ class ExpressionCompiler(
             nenv.maybeReturnType match {
               case None => (uncastedInnerExpr2)
               case Some(returnType) => {
-                templataCompiler.isTypeConvertible(coutputs, range :: parentRanges, uncastedInnerExpr2.result.reference, returnType) match {
+                templataCompiler.isTypeConvertible(coutputs, nenv.snapshot, range :: parentRanges, uncastedInnerExpr2.result.reference, returnType) match {
                   case (false) => {
                     throw CompileErrorExceptionT(
                       CouldntConvertForReturnT(range :: parentRanges, returnType, uncastedInnerExpr2.result.reference))
@@ -1198,7 +1198,7 @@ class ExpressionCompiler(
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Opt)), Set(TemplataLookupContext)).toList match {
-        case List(it@InterfaceTemplata(_, _)) => it
+        case List(it@InterfaceDefinitionTemplata(_, _)) => it
         case _ => vfail()
       }
     val optInterfaceRef =
@@ -1241,7 +1241,7 @@ class ExpressionCompiler(
   (CoordT, PrototypeT, PrototypeT) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Result)), Set(TemplataLookupContext)).toList match {
-        case List(it@InterfaceTemplata(_, _)) => it
+        case List(it@InterfaceDefinitionTemplata(_, _)) => it
         case _ => vfail()
       }
     val resultInterfaceRef =
@@ -1254,7 +1254,7 @@ class ExpressionCompiler(
         case _ => vwat();
       }
     val okConstructor =
-      delegate.evaluateTemplatedFunctionFromCallForPrototype(
+      delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedSuccessCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p
@@ -1266,7 +1266,7 @@ class ExpressionCompiler(
         case _ => vwat();
       }
     val errConstructor =
-      delegate.evaluateTemplatedFunctionFromCallForPrototype(
+      delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedFailCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p) => p

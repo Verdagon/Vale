@@ -40,7 +40,7 @@ case class CompilerOutputs() {
   // Things will appear here before they appear in structTemplateNameToDefinition/interfaceTemplateNameToDefinition
   // This is to prevent infinite recursion / stack overflow when typingpassing recursive types
   // This will be the instantiated name, not just the template name, see UINIT.
-  private val functionDeclaredNames: mutable.HashSet[FullNameT[INameT]] = mutable.HashSet()
+  private val functionDeclaredNames: mutable.HashMap[FullNameT[INameT], RangeS] = mutable.HashMap()
   // Outer env is the env that contains the template.
   // This will be the instantiated name, not just the template name, see UINIT.
   private val functionNameToOuterEnv: mutable.HashMap[FullNameT[INameT], IEnvironment] = mutable.HashMap()
@@ -171,11 +171,14 @@ case class CompilerOutputs() {
 //    functionsByPrototype.put(function.header.toPrototype, function)
   }
 
-  def declareFunction(callRanges: List[RangeS], templateName: FullNameT[INameT]): Unit = {
-    if (functionDeclaredNames.contains(templateName)) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(callRanges, "Internal error: Function already exists: " + templateName))
+  def declareFunction(callRanges: List[RangeS], name: FullNameT[IFunctionNameT]): Unit = {
+    functionDeclaredNames.get(name) match {
+      case Some(oldFunctionRange) => {
+        throw CompileErrorExceptionT(FunctionAlreadyExists(oldFunctionRange, callRanges.head, name))
+      }
+      case None =>
     }
-    functionDeclaredNames += templateName
+    functionDeclaredNames.put(name, callRanges.head)
   }
 
   // We can't declare the struct at the same time as we declare its mutability or environment,
@@ -194,23 +197,12 @@ case class CompilerOutputs() {
     typeNameToMutability += (templateName -> mutability)
   }
 
-  def declareFunctionOuterEnv(
-    nameT: FullNameT[IFunctionTemplateNameT],
-    env: IEnvironment,
-  ): Unit = {
-    vassert(functionDeclaredNames.contains(nameT))
-    vassert(!functionNameToOuterEnv.contains(nameT))
-    vassert(nameT == env.fullName)
-    functionNameToOuterEnv += (nameT -> env)
-  }
-
   def declareFunctionInnerEnv(
-    nameT: FullNameT[INameT],
+    nameT: FullNameT[IFunctionNameT],
     env: IEnvironment,
   ): Unit = {
     vassert(functionDeclaredNames.contains(nameT))
     // One should declare the outer env first
-    vassert(functionNameToOuterEnv.contains(nameT))
     vassert(!functionNameToInnerEnv.contains(nameT))
 //    vassert(nameT == env.fullName)
     functionNameToInnerEnv += (nameT -> env)
@@ -384,9 +376,6 @@ case class CompilerOutputs() {
   }
   def getInnerEnvForType(name: FullNameT[ITemplateNameT]): IEnvironment = {
     vassertSome(typeNameToInnerEnv.get(name))
-  }
-  def getOuterEnvForFunction(name: FullNameT[INameT]): IEnvironment = {
-    vassertSome(functionNameToOuterEnv.get(name))
   }
   def getInnerEnvForFunction(name: FullNameT[INameT]): IEnvironment = {
     vassertSome(functionNameToInnerEnv.get(name))

@@ -120,7 +120,9 @@ sealed trait IFunctionNameT extends IInstantiationNameT {
   def templateArgs: Vector[ITemplata[ITemplataType]]
   def parameters: Vector[CoordT]
 }
-sealed trait ICitizenTemplateNameT extends ITemplateNameT {
+sealed trait ISuperKindTemplateNameT extends ITemplateNameT
+sealed trait ISubKindTemplateNameT extends ITemplateNameT
+sealed trait ICitizenTemplateNameT extends ISubKindTemplateNameT {
   def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT
 }
 sealed trait IStructTemplateNameT extends ICitizenTemplateNameT {
@@ -130,18 +132,26 @@ sealed trait IStructTemplateNameT extends ICitizenTemplateNameT {
     makeStructName(interner, templateArgs)
   }
 }
-sealed trait IInterfaceTemplateNameT extends ICitizenTemplateNameT {
+sealed trait IInterfaceTemplateNameT extends ICitizenTemplateNameT with ISuperKindTemplateNameT {
   def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IInterfaceNameT
 }
-sealed trait ICitizenNameT extends IInstantiationNameT {
+sealed trait ISuperKindNameT extends IInstantiationNameT {
+  def template: ISuperKindTemplateNameT
+  def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+sealed trait ISubKindNameT extends IInstantiationNameT {
+  def template: ISubKindTemplateNameT
+  def templateArgs: Vector[ITemplata[ITemplataType]]
+}
+sealed trait ICitizenNameT extends ISubKindNameT {
   def template: ICitizenTemplateNameT
   def templateArgs: Vector[ITemplata[ITemplataType]]
 }
-sealed trait IStructNameT extends ICitizenNameT {
+sealed trait IStructNameT extends ICitizenNameT with ISubKindNameT {
   override def template: IStructTemplateNameT
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
-sealed trait IInterfaceNameT extends ICitizenNameT {
+sealed trait IInterfaceNameT extends ICitizenNameT with ISubKindNameT with ISuperKindNameT {
   override def template: InterfaceTemplateNameT
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
@@ -181,8 +191,10 @@ case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT
 // This exists because PlaceholderT is a kind, and all kinds need environments to assist
 // in call/overload resolution. Environments are associated with templates, so it makes
 // some sense to have a "placeholder template" notion.
-case class PlaceholderTemplateNameT(index: Int) extends ITemplateNameT
-case class PlaceholderNameT(templateName: PlaceholderTemplateNameT) extends INameT
+case class PlaceholderTemplateNameT(index: Int) extends ISubKindTemplateNameT with ISuperKindTemplateNameT
+case class PlaceholderNameT(template: PlaceholderTemplateNameT) extends ISubKindNameT with ISuperKindNameT {
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()
+}
 
 sealed trait IVarNameT extends INameT
 case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT

@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.ImplA
-import dev.vale.postparsing.{IRuneS, ITemplataType, ImplImpreciseNameS, ImplSubCitizenImpreciseNameS}
+import dev.vale.postparsing.{IRuneS, ITemplataType, ImplImpreciseNameS, ImplSubCitizenImpreciseNameS, ImplTemplataType}
 import dev.vale.postparsing.rules.{Equivalencies, IRulexSR, RuleScout}
 import dev.vale.solver.{IIncompleteOrFailedSolve, SolverErrorHumanizer}
 import dev.vale.typing.OverloadResolver.InferFailure
@@ -10,7 +10,7 @@ import dev.vale.typing._
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Interner, Ok, Profiler, RangeS, Result, U, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Accumulator, Err, Interner, Ok, Profiler, RangeS, Result, U, postparsing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing._
@@ -21,6 +21,7 @@ import dev.vale.typing.infer.ITypingPassSolverError
 
 sealed trait IsParentResult
 case class IsParent(
+  templata: ITemplata[ImplTemplataType],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]]
 ) extends IsParentResult
 case class IsntParent(
@@ -41,12 +42,12 @@ class ImplCompiler(
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
-    implTemplata: ImplTemplata,
+    implTemplata: ImplDefinitionTemplata,
     isRootSolve: Boolean):
   Result[
       Map[IRuneS, ITemplata[ITemplataType]],
       IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    val ImplTemplata(parentEnv, impl) = implTemplata
+    val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
       range,
       name,
@@ -98,13 +99,13 @@ class ImplCompiler(
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
-    implTemplata: ImplTemplata,
+    implTemplata: ImplDefinitionTemplata,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
   Result[
     Map[IRuneS, ITemplata[ITemplataType]],
     IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    val ImplTemplata(parentEnv, impl) = implTemplata
+    val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
     range,
     name,
@@ -247,8 +248,8 @@ class ImplCompiler(
 
   // This will just figure out the struct template and interface template,
   // so we can add it to the temputs.
-  def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplTemplata): Unit = {
-    val ImplTemplata(parentEnv, implA) = implTemplata
+  def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplDefinitionTemplata): Unit = {
+    val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
 
     val implTemplateFullName =
       parentEnv.fullName.addStep(interner.intern(ImplTemplateDeclareNameT(implA.range.begin)))
@@ -470,7 +471,7 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
-    kind: KindT,
+    kind: ISubKindTT,
     verifyConclusions: Boolean):
   Boolean = {
     getParents(coutputs, parentRanges, callingEnv, kind, verifyConclusions).nonEmpty
@@ -480,7 +481,7 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
-    implTemplata: ImplTemplata,
+    implTemplata: ImplDefinitionTemplata,
     parent: InterfaceTT,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
@@ -504,7 +505,7 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
-    implTemplata: ImplTemplata,
+    implTemplata: ImplDefinitionTemplata,
     child: ICitizenTT,
     verifyConclusions: Boolean):
   Result[InterfaceTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
@@ -530,93 +531,123 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
-    kind: KindT,
+    subKind: ISubKindTT,
     verifyConclusions: Boolean):
-  Array[InterfaceTT] = {
-    val subCitizenTT =
-      kind match {
-        case c : ICitizenTT => c
-        case _ => return Array()
-      }
-
-    val subCitizenImpreciseName =
-      TemplatasStore.getImpreciseName(interner, subCitizenTT.fullName.last) match {
+  Array[ISuperKindTT] = {
+    val subKindFullName = subKind.fullName
+    val subKindTemplateName = TemplataCompiler.getSubKindTemplate(subKindFullName)
+    val subKindEnv = coutputs.getOuterEnvForType(subKindTemplateName)
+    val subKindImpreciseName =
+      TemplatasStore.getImpreciseName(interner, subKindFullName.last) match {
         case None => return Array()
         case Some(n) => n
       }
     val implImpreciseNameS =
-      interner.intern(ImplSubCitizenImpreciseNameS(subCitizenImpreciseName))
-
-    val subCitizenEnv =
-      coutputs.getOuterEnvForType(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
+      interner.intern(ImplSubCitizenImpreciseNameS(subKindImpreciseName))
 
     val matching =
-      subCitizenEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
+      subKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
+      callingEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
 
-    val implsWithDuplicates =
-      matching.map({
-        case it@ImplTemplata(_, _) => it
-        case _ => vwat()
-      })
-    val impls =
-      implsWithDuplicates.groupBy(_.impl.range).map(_._2.head)
+    val implDefsWithDuplicates = new Accumulator[ImplDefinitionTemplata]()
+    val implTemplatasWithDuplicates = new Accumulator[IsaTemplata]()
 
-    impls.flatMap(impl => {
-      getImplParentGivenSubCitizen(coutputs, parentRanges, callingEnv, impl, subCitizenTT, verifyConclusions) match {
-        case Ok(x) => List(x)
-        case Err(_) => List()
-      }
-    }).toArray
+    matching.foreach({
+      case it@ImplDefinitionTemplata(_, _) => implDefsWithDuplicates.add(it)
+      case it@IsaTemplata(_, _, _) => implTemplatasWithDuplicates.add(it)
+      case _ => vwat()
+    })
+
+    val implDefs =
+      implDefsWithDuplicates.buildArray().groupBy(_.impl.range).map(_._2.head)
+    val parentsFromImplDefs =
+      implDefs.flatMap(impl => {
+        subKind match {
+          case subCitizen : ICitizenTT => {
+            getImplParentGivenSubCitizen(coutputs, parentRanges, callingEnv, impl, subCitizen, verifyConclusions) match {
+              case Ok(x) => List(x)
+              case Err(_) => {
+                opts.debugOut("Throwing away error! TODO: Use an index or something instead.")
+                List()
+              }
+            }
+          }
+          case _ => List()
+        }
+      }).toArray
+
+    val parentsFromImplTemplatas =
+      implTemplatasWithDuplicates
+        .buildArray()
+        .filter(_.subKind == subKind)
+        .map(_.superKind)
+        .collect({ case x : ISuperKindTT => x })
+        .distinct
+
+    parentsFromImplDefs ++ parentsFromImplTemplatas
   }
 
   def isParent(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
-    subCitizenTT: ICitizenTT,
-    superInterfaceTT: InterfaceTT, verifyConclusions: Boolean):
+    subKindTT: ISubKindTT,
+    superKindTT: ISuperKindTT):
   IsParentResult = {
-    val superInterfaceImpreciseName =
-      TemplatasStore.getImpreciseName(interner, superInterfaceTT.fullName.last) match {
+    val superKindImpreciseName =
+      TemplatasStore.getImpreciseName(interner, superKindTT.fullName.last) match {
         case None => return IsntParent(Vector())
         case Some(n) => n
       }
-    val subCitizenImpreciseName =
-      TemplatasStore.getImpreciseName(interner, subCitizenTT.fullName.last) match {
+    val subKindImpreciseName =
+      TemplatasStore.getImpreciseName(interner, subKindTT.fullName.last) match {
         case None => return IsntParent(Vector())
         case Some(n) => n
       }
     val implImpreciseNameS =
-      interner.intern(ImplImpreciseNameS(superInterfaceImpreciseName, subCitizenImpreciseName))
+      interner.intern(ImplImpreciseNameS(subKindImpreciseName, superKindImpreciseName))
 
-    val subCitizenEnv =
-      coutputs.getOuterEnvForType(TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName))
-    val superInterfaceEnv =
-      coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(superInterfaceTT.fullName))
+    val subKindEnv =
+      coutputs.getOuterEnvForType(TemplataCompiler.getSubKindTemplate(subKindTT.fullName))
+    val superKindEnv =
+      coutputs.getOuterEnvForType(TemplataCompiler.getSuperKindTemplate(superKindTT.fullName))
 
     val matching =
-      subCitizenEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
-        superInterfaceEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
+      callingEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
+      subKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
+      superKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
 
-    val implsWithDuplicates =
-      matching.map({
-        case it@ImplTemplata(_, _) => it
-        case _ => vwat()
-      })
+    val implsDefsWithDuplicates = new Accumulator[ImplDefinitionTemplata]()
+    val implTemplatasWithDuplicatesAcc = new Accumulator[IsaTemplata]()
+    matching.foreach({
+      case it@ImplDefinitionTemplata(_, _) => implsDefsWithDuplicates.add(it)
+      case it@IsaTemplata(_, _, _) => implTemplatasWithDuplicatesAcc.add(it)
+      case _ => vwat()
+    })
+    val implTemplatasWithDuplicates = implTemplatasWithDuplicatesAcc.buildArray()
+
+    implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
+      case Some(impl) => return IsParent(impl, Map())
+      case None =>
+    }
+
     val impls =
-      implsWithDuplicates.groupBy(_.impl.range).map(_._2.head)
-
+      implsDefsWithDuplicates.buildArray().groupBy(_.impl.range).map(_._2.head)
     val results =
       impls.map(impl => {
         val initialKnowns =
           Vector(
-            InitialKnown(impl.impl.subCitizenRune, KindTemplata(subCitizenTT)),
-            InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superInterfaceTT)))
-        solveImplForCall(coutputs, parentRanges, superInterfaceEnv, initialKnowns, impl, false)
+            InitialKnown(impl.impl.subCitizenRune, KindTemplata(subKindTT)),
+            InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superKindTT)))
+        solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, impl, false) match {
+          case Ok(x) => Ok((impl, x))
+          case Err(x) => Err(x)
+        }
       })
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some(ok) => IsParent(ok)
+      case Some((implTemplata, conclusions)) => IsParent(implTemplata, conclusions)
       case None => IsntParent(errs.toVector)
     }
   }

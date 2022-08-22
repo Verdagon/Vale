@@ -1,6 +1,9 @@
 package dev.vale.typing
 
+import dev.vale.solver.{FailedSolve, RuleError}
+import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing.ast.{SignatureT, _}
+import dev.vale.typing.infer.SendingNonCitizen
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -12,146 +15,232 @@ import scala.io.Source
 
 class AfterRegionsTests extends FunSuite with Matchers {
 
-  test("Prints bread crumb trail") {
+  test("Method call on generic data") {
     val compile = CompilerTestCompilation.test(
       """
-        |import printutils.*;
-        |import v.builtins.panic.*;
+        |import v.builtins.drop.*;
         |
-        |#!DeriveInterfaceDrop
-        |sealed interface Opt<T> where T Ref { }
-        |#!DeriveStructDrop
-        |struct Some<T> where T Ref { value T; }
-        |#!DeriveImplDrop
-        |impl<T> Opt<T> for Some<T>;
-        |#!DeriveStructDrop
-        |struct None<T> where T Ref { }
-        |#!DeriveImplDrop
-        |impl<T> Opt<T> for None<T>;
-        |
-        |abstract func drop<T>(virtual opt Opt<T>)
-        |where func drop(T)void;
-        |
-        |func drop<T>(opt Some<T>)
-        |where func drop(T)void
-        |{
-        |  [x] = opt;
+        |sealed interface IShip {
+        |  func launch(virtual self &IShip);
         |}
         |
-        |func drop<T>(opt None<T>) {
-        |  [ ] = opt;
+        |struct Raza { fuel int; }
+        |
+        |impl IShip for Raza;
+        |func launch(self &Raza) { }
+        |
+        |func launchGeneric<T>(x &T)
+        |where implements(T, IShip) {
+        |  x.launch();
         |}
-        |
-        |abstract func isEmpty<T>(virtual opt &Opt<T>) bool;
-        |func isEmpty<T>(opt &None<T>) bool { return true; }
-        |func isEmpty<T>(opt &Some<T>) bool { return false; }
-        |
-        |abstract func isEmpty<T>(virtual opt Opt<T>) bool;
-        |func isEmpty<T>(opt None<T>) bool { return true; }
-        |func isEmpty<T>(opt Some<T>) bool
-        |where func drop(T)void
-        |{ return false; }
-        |
-        |abstract func get<T>(virtual opt Opt<T>) T;
-        |func get<T>(opt None<T>) T { panic("Called get() on a None!"); }
-        |func get<T>(opt Some<T>) T {
-        |  [value] = opt;
-        |  return value;
-        |}
-        |
-        |abstract func get<T>(virtual opt &Opt<T>) &T;
-        |func get<T>(opt &None<T>) &T { panic("Called get() on a None!"); }
-        |func get<T>(opt &Some<T>) &T { return &opt.value; }
-        |
-        |
-        |#!DeriveStructDrop
-        |struct MyList<T Ref> {
-        |  value T;
-        |  next Opt<MyList<T>>;
-        |}
-        |
-        |func drop<T>(this MyList<T>)
-        |where func drop(T)void {
-        |  [value, next] = this;
-        |}
-        |
-        |func printValues(list &MyList<int>) void {
-        |  print(list.value);
-        |  printNextValue(list.next);
-        |}
-        |
-        |func printNextValue(virtual opt &Opt<MyList<int>>) void { }
-        |func printNextValue(opt &None<MyList<int>>) void { }
-        |func printNextValue(opt &Some<MyList<int>>) void {
-        |  printValues(opt.value);
-        |}
-        |
-        |
-        |exported func main() int {
-        |  list = MyList<int>(10, Some<MyList<int>>(MyList<int>(20, Some<MyList<int>>(MyList<int>(30, None<MyList<int>>())))));
-        |  printValues(&list);
-        |  return 0;
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    // Ensure it properly prints out that the original error is from isEmpty
-    // Also prune it down a bit
-    vimpl()
-  }
-
-  // Depends on Basic interface anonymous subclass
-  test("Reports error") {
-    // https://github.com/ValeLang/Vale/issues/548
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |interface A {
-        |	func foo(virtual a &A) int;
-        |}
-        |
-        |struct B imm { val int; }
-        |impl A for B;
-        |
-        |func foo(b &B) int { return b.val; }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    vimpl()
-  }
-
-  // right now there is no collision because they have different template names.
-  test("Reports when two functions with same signature") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func moo() int { return 1337; }
-        |exported func moo() int { return 1448; }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(FunctionAlreadyExists(_, _, SignatureT(FullNameT(_, Vector(), FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), Vector(), Vector()))))) =>
-    }
-  }
-
-  // Interface bounds, downcasting
-  test("Report when downcasting to interface") {
-    vimpl() // can we solve this by putting an impl in the environment for that placeholder?
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISuper { }
-        |interface ISub { }
-        |impl ISuper for ISub;
         |
         |exported func main() {
-        |  ship = __pretend<ISuper>();
-        |  ship.as<ISub>();
+        |  launchGeneric(Raza(42));
         |}
         |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(CantDowncastToInterface(_, _)) =>
+    val coutputs = compile.expectCompilerOutputs()
+
+    val launchGeneric = coutputs.lookupFunction("launchGeneric")
+
+    val main = coutputs.lookupFunction("main")
+    Collector.all(main, { case UpcastTE(_, _) => }).size shouldEqual 0
+    vimpl()
+    //    Collector.all(main, {
+    //      case FuncCallTE =>
+    //    })
+  }
+
+  test("Tests overload set and concept function") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.print.*;
+        |import v.builtins.drop.*;
+        |import v.builtins.str.*;
+        |
+        |func moo<X, F>(x X, f F)
+        |where func(&F, &X)void, func drop(X)void, func drop(F)void {
+        |  f(&x);
+        |}
+        |exported func main() {
+        |  moo("hello", print);
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Generic interface anonymous subclass") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |interface Bork<T Ref> {
+        |  func bork(virtual self &Bork<T>, x T) int;
+        |}
+        |
+        |exported func main() int {
+        |  f = Bork((x) => { 7 });
+        |  return f.bork();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  // Depends on IFunction1, and maybe Generic interface anonymous subclass
+  test("Basic IFunction1 anonymous subclass") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import ifunction.ifunction1.*;
+        |
+        |exported func main() int {
+        |  f = IFunction1<mut, int, int>({_});
+        |  return (f)(7);
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Prototype rule to get return type") {
+    // i dont think we support this anymore, now that we have generics?
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |import v.builtins.panic.*;
+        |
+        |func moo(i int, b bool) str { return "hello"; }
+        |
+        |exported func main() R
+        |where mooFunc Prot = Prot["moo", Refs(int, bool), R Ref] {
+        |  __vbi_panic();
+        |}
+        |
+        |""".stripMargin
+    )
+    val coutputs = compile.expectCompilerOutputs()
+    coutputs.lookupFunction("main").header.returnType match {
+      case CoordT(_,StrT()) =>
     }
   }
 
+  test("Can destructure and assemble tuple") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.tup.*;
+        |
+        |func swap<T, Y>(x (T, Y)) (Y, T) {
+        |  [a, b] = x;
+        |  return (b, a);
+        |}
+        |
+        |exported func main() bool {
+        |  return swap((5, true)).0;
+        |}
+        |""".stripMargin
+    )
+    val coutputs = compile.expectCompilerOutputs()
+    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(ShareT, BoolT())) =>
+    }
+  }
+
+  test("Can turn a borrow coord into an owning coord") {
+    vimpl()
+    // not sure this test ever really tested what it was supposed to.
+    // perhaps we wanted a &SomeStruct() instead?
+
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |
+        |struct SomeStruct { }
+        |
+        |func bork<T>(x T) ^T {
+        |  return SomeStruct();
+        |}
+        |
+        |exported func main() {
+        |  bork(SomeStruct());
+        |}
+        |""".stripMargin
+    )
+    val coutputs = compile.expectCompilerOutputs()
+    coutputs.lookupFunction("bork").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(OwnT, _)) =>
+    }
+  }
+
+  // Depends on Method call on generic data
+  test("Impl rule") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |
+        |
+        |interface IShip {
+        |  func getFuel(virtual self &IShip) int;
+        |}
+        |struct Firefly {}
+        |func getFuel(self &Firefly) int { return 7; }
+        |impl IShip for Firefly;
+        |
+        |func genericGetFuel<T>(x T) int
+        |where implements(T, IShip) {
+        |  return x.getFuel();
+        |}
+        |
+        |exported func main() int {
+        |  return genericGetFuel(Firefly());
+        |}
+        |""".stripMargin
+    )
+    val coutputs = compile.expectCompilerOutputs()
+    coutputs.lookupFunction("genericGetFuel").header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(_,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
+    }
+  }
+
+  // so we can be sure we arent mixing up any rune names in the call
+  test("Test recursive generic function") {
+    vimpl()
+  }
+
+  test("Test two instantiations of anonymous-param lambda") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arith.*;
+        |import v.builtins.logic.*;
+        |
+        |func doThing<T, F>(func F, a T, b T) bool
+        |where func __call(&F, T, T)bool, func drop(F)void {
+        |  func(a, b)
+        |}
+        |
+        |exported func main() {
+        |  lam = (a, b) => { a == b };
+        |  doThing(lam, 7, 8);
+        |  doThing(lam, true, false);
+        |}
+        |
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    val lambdaFuncs =
+      coutputs.functions.filter(func => {
+        func.header.fullName.last.template match {
+          case FunctionTemplateNameT(StrI("__call"), _) => true
+          case _ => false
+        }
+      })
+    lambdaFuncs.size shouldEqual 2
+
+    // The above test seems to work, but we still have to decide whether we want lambda function
+    // instantiations to have different identifying runes, or if we just want to disambiguate
+    // by parameters alone.
+    // See also "Test one-anonymous-param lambda identifying runes"
+    vimpl()
+
+    //    val lamFunc = coutputs.lookupFunction("__call")
+    //    lamFunc.header.fullName.last.templateArgs.size shouldEqual 1
+    //
+    //    val main = coutputs.lookupFunction("main")
+    //    val call =
+    //      Collector.only(main, { case call @ FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)), _), _) => call })
+  }
 }

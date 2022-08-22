@@ -1,15 +1,15 @@
 import v.builtins.panic.*;
 
 #!DeriveInterfaceDrop
-sealed interface Result<OkType, ErrType> where OkType Ref, ErrType Ref { }
+sealed interface Result<OkType Ref, ErrType Ref> { }
 
 #!DeriveStructDrop
-struct Ok<OkType, ErrType> where OkType Ref, ErrType Ref { value OkType; }
+struct Ok<OkType Ref, ErrType Ref> { value OkType; }
 #!DeriveImplDrop
 impl<OkType, ErrType> Result<OkType, ErrType> for Ok<OkType, ErrType>;
 
 #!DeriveStructDrop
-struct Err<OkType, ErrType> where OkType Ref, ErrType Ref { value ErrType; }
+struct Err<OkType Ref, ErrType Ref> { value ErrType; }
 #!DeriveImplDrop
 impl<OkType, ErrType> Result<OkType, ErrType> for Err<OkType, ErrType>;
 

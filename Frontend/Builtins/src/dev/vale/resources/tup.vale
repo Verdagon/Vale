@@ -1,5 +1,8 @@
 
-struct Tup<T RefList> M
-where T RefList, M Mutability, M = refListCompoundMutability(T) {
+struct ImmTup<T RefList imm> imm {
+  _ ..T;
+}
+
+struct Tup<T RefList> {
   _ ..T;
 }
