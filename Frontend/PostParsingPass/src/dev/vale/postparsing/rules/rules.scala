@@ -28,19 +28,37 @@ case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IR
 }
 
 // See SAIRFU and SRCAMP for what's going on with these rules.
-case class CoordSendSR(range: RangeS, senderRune: RuneUsage, receiverRune: RuneUsage) extends IRulexSR {
+case class CoordSendSR(
+  range: RangeS,
+  senderRune: RuneUsage,
+  receiverRune: RuneUsage
+) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
 }
 
-case class CoordIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
+case class DefinitionCoordIsaSR(range: RangeS, resultRune: RuneUsage, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(subRune, superRune)
+  override def runeUsages: Array[RuneUsage] = Array(resultRune, subRune, superRune)
 }
 
-case class KindIsaSR(range: RangeS, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
+case class CallSiteCoordIsaSR(
+  range: RangeS,
+  // This is here because when we add this CallSiteCoordIsaSR and its companion DefinitionCoordIsaSR,
+  // the DefinitionCoordIsaSR has a resultRune that it usually populates with an ImplTemplata.
+  // That rune is in the rules somewhere, but when we filter out the DefinitionCoordIsaSR for call site
+  // solves, that rune is still there, and all runes must be solved, so we need something to solve it.
+  // So, we make CallSiteCoordIsaSR solve it, and populate it with an ImplTemplata or ImplDefinitionTemplata.
+  // It's also similar to how Definition/CallSiteFuncSR work.
+  // It also means the call site has access to the impls, which might be nice for ONBIFS and NBIFP.
+  // It's an Option because CoordSendSR sometimes produces one of these, and it doesn't care about
+  // the result.
+  resultRune: Option[RuneUsage],
+  subRune: RuneUsage,
+  superRune: RuneUsage
+) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(subRune, superRune)
+  override def runeUsages: Array[RuneUsage] = resultRune.toArray ++ Array(subRune, superRune)
 }
 
 case class KindComponentsSR(

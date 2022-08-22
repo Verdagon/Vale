@@ -21,14 +21,14 @@ object IdentifiabilitySolver {
         case LookupSR(range, rune, literal) => Array(rune)
         case RuneParentEnvLookupSR(range, rune) => Array(rune)
         case EqualsSR(range, left, right) => Array(left, right)
-        case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
-        case KindIsaSR(range, sub, suuper) => Array(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
         case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
         case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
         case CallSiteFuncSR(range, prototypeRune, name, paramsListRune, returnRune) => Array(prototypeRune, paramsListRune, returnRune)
         case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
+        case CallSiteCoordIsaSR(range, resultRune, sub, suuper) => resultRune.toArray ++ Array(sub, suuper)
+        case DefinitionCoordIsaSR(range, resultRune, sub, suuper) => Array(resultRune, sub, suuper)
         case OneOfSR(range, rune, literals) => Array(rune)
         case IsConcreteSR(range, rune) => Array(rune)
         case IsInterfaceSR(range, rune) => Array(rune)
@@ -69,7 +69,8 @@ object IdentifiabilitySolver {
         // Packs are always lists of coords
         Array(Array(resultRune.rune), members.map(_.rune))
       }
-      case CoordIsaSR(range, subRune, superRune) => Array(Array())
+      case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => Array(Array())
+      case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => Array(Array())
       case KindComponentsSR(range, resultRune, mutabilityRune) => Array(Array())
       case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array())
       case PrototypeComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array())
@@ -144,9 +145,19 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, returnRune.rune, true)
         Ok(())
       }
-      case CoordIsaSR(range, subRune, superRune) => {
+      case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => {
+        stepState.concludeRune(range :: callRange, resultRune.rune, true)
         stepState.concludeRune(range :: callRange, subRune.rune, true)
         stepState.concludeRune(range :: callRange, superRune.rune, true)
+        Ok(())
+      }
+      case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => {
+        stepState.concludeRune(range :: callRange, subRune.rune, true)
+        stepState.concludeRune(range :: callRange, superRune.rune, true)
+        resultRune match {
+          case Some(resultRune) => stepState.concludeRune(range :: callRange, resultRune.rune, true)
+          case None =>
+        }
         Ok(())
       }
       case OneOfSR(range, resultRune, literals) => {

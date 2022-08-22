@@ -12,7 +12,7 @@ import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntS
 import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
-import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT, StructToInterfaceUpcastTE}
+import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{ITypingPassSolverError, KindIsNotConcrete, SendingNonCitizen}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
@@ -82,11 +82,6 @@ class CompilerSolverTests extends FunSuite with Matchers {
           CoordT(ShareT,VoidT())),
         _) =>
     }
-  }
-
-  // so we can be sure we arent mixing up any rune names in the call
-  test("Test recursive generic function") {
-    vimpl()
   }
 
   test("Test calling a generic function with a concept function") {
@@ -441,7 +436,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       }
     }
     Collector.all(main, {
-      case StructToInterfaceUpcastTE(_, _) =>
+      case UpcastTE(_, _) =>
     }).size shouldEqual 2
   }
 
@@ -468,7 +463,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       case FunctionCallTE(
         PrototypeT(FullNameT(_,_, FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), _, _)), _),
         Vector(
-          StructToInterfaceUpcastTE(
+          UpcastTE(
             _,
             InterfaceTT(FullNameT(_,_,InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector(CoordTemplata(CoordT(ShareT,IntT(32)))))))))) =>
     }
@@ -495,13 +490,15 @@ class CompilerSolverTests extends FunSuite with Matchers {
   test("Stamps an interface template via a function return") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.drop.*;
         |
-        |interface MyInterface<X> where X Ref { }
+        |interface MyInterface<X Ref> { }
         |
-        |struct SomeStruct<X> where X Ref { x X; }
-        |impl<X> MyInterface<X> for SomeStruct<X>;
+        |struct SomeStruct<X Ref> where func drop(X)void { x X; }
+        |impl<X> MyInterface<X> for SomeStruct<X> where func drop(X)void;
         |
-        |func doAThing<T>(t T) SomeStruct<T> {
+        |func doAThing<T>(t T) SomeStruct<T>
+        |where func drop(T)void {
         |  return SomeStruct<T>(t);
         |}
         |
@@ -554,8 +551,9 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |
-        |
-        |struct SomeStruct<T> { x T; }
+        |#!DeriveStructDrop
+        |struct SomeStruct<T>
+        |{ x T; }
         |
         |func bork<X, Z>() Z
         |where X Kind = SomeStruct<int>, X = SomeStruct<Z> {
@@ -571,56 +569,14 @@ class CompilerSolverTests extends FunSuite with Matchers {
     coutputs.lookupFunction("bork").header.fullName.last.templateArgs.last shouldEqual CoordTemplata(CoordT(ShareT, IntT(32)))
   }
 
-  test("Can turn a borrow coord into an owning coord") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |
-        |struct SomeStruct { }
-        |
-        |func bork<T>(x T) ^T {
-        |  return SomeStruct();
-        |}
-        |
-        |exported func main() {
-        |  bork(SomeStruct());
-        |}
-        |""".stripMargin
-    )
-    val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("bork").header.fullName.last.templateArgs.last match {
-      case CoordTemplata(CoordT(OwnT, _)) =>
-    }
-  }
-
-  test("Can destructure and assemble tuple") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |
-        |func swap<T, Y>(x (T, Y)) (Y, T) {
-        |  [a, b] = x;
-        |  return (b, a);
-        |}
-        |
-        |exported func main() bool {
-        |  return swap((5, true)).0;
-        |}
-        |""".stripMargin
-    )
-    val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
-      case CoordTemplata(CoordT(ShareT, BoolT())) =>
-    }
-  }
-
   test("Can destructure and assemble static sized array") {
     val compile = CompilerTestCompilation.test(
       """
         |
         |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
         |
-        |func swap<N, T>(x [#N]T) [#N]T {
+        |func swap<T>(x [#2]T) [#2]T {
         |  [a, b] = x;
         |  return [#][b, a];
         |}
@@ -631,84 +587,19 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
+
+    val swap = coutputs.lookupFunction("swap")
+    swap.header.fullName.last.templateArgs.last match {
+      case CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
+    }
+
+    val main = coutputs.lookupFunction("main")
+    val call =
+      Collector.only(main, {
+        case call @ FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("swap"), _), _, _)), _) , _) => call
+      })
+    call.callable.fullName.last.templateArgs.last match {
       case CoordTemplata(CoordT(ShareT, IntT(32))) =>
-    }
-  }
-
-  test("Impl rule") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |
-        |interface IShip {
-        |  func getFuel(virtual self &IShip) int;
-        |}
-        |struct Firefly {}
-        |func getFuel(self &Firefly) int { return 7; }
-        |impl IShip for Firefly;
-        |
-        |func genericGetFuel<T>(x T) int
-        |where implements(T, IShip) {
-        |  return x.getFuel();
-        |}
-        |
-        |exported func main() int {
-        |  return genericGetFuel(Firefly());
-        |}
-        |""".stripMargin
-    )
-    val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("genericGetFuel").header.fullName.last.templateArgs.last match {
-      case CoordTemplata(CoordT(_,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
-    }
-  }
-
-  test("Prototype rule to get return type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |import v.builtins.panic.*;
-        |
-        |func moo(i int, b bool) str { return "hello"; }
-        |
-        |exported func main() R
-        |where mooFunc Prot = Prot["moo", Refs(int, bool), R Ref] {
-        |  __vbi_panic();
-        |}
-        |
-        |""".stripMargin
-    )
-    val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("main").header.returnType match {
-      case CoordT(_,StrT()) =>
-    }
-  }
-
-  test("Detects sending non-citizen to citizen") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |
-        |interface MyInterface {}
-        |func moo<T>(a T)
-        |where implements(T, MyInterface)
-        |{ }
-        |exported func main() {
-        |  moo(7);
-        |}
-        |""".stripMargin
-    )
-    compile.getCompilerOutputs() match {
-      case Err(CouldntFindFunctionToCallT(range, fff)) => {
-        fff.rejectedCalleeToReason.map(_._2).head match {
-          case InferFailure(reason) => {
-            reason match {
-              case FailedSolve(_, _, RuleError(SendingNonCitizen(IntT(32)))) =>
-              case other => vfail(other)
-            }
-          }
-        }
-      }
     }
   }
 }

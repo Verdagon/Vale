@@ -4,6 +4,7 @@ import dev.vale.vcurious
 
 sealed trait ITemplataType
 case class CoordTemplataType() extends ITemplataType
+case class ImplTemplataType() extends ITemplataType
 case class KindTemplataType() extends ITemplataType
 case class FunctionTemplataType() extends ITemplataType
 case class IntegerTemplataType() extends ITemplataType

@@ -9,7 +9,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, IS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
-import dev.vale.typing.templata.{Conversions, PlaceholderTemplata, _}
+import dev.vale.typing.templata.{Conversions, CoordTemplata, PlaceholderTemplata, _}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
@@ -30,7 +30,15 @@ case class CouldntFindFunction(range: List[RangeS], fff: FindFunctionFailure) ex
 }
 case class CantShareMutable(kind: KindT) extends ITypingPassSolverError
 case class CantSharePlaceholder(kind: KindT) extends ITypingPassSolverError
-case class SendingNonCitizen(kind: KindT) extends ITypingPassSolverError
+case class BadIsaSubKind(kind: KindT) extends ITypingPassSolverError {
+  vpass()
+}
+case class BadIsaSuperKind(kind: KindT) extends ITypingPassSolverError {
+  vpass()
+}
+case class SendingNonCitizen(kind: KindT) extends ITypingPassSolverError {
+  vpass()
+}
 case class CantCheckPlaceholder(range: List[RangeS]) extends ITypingPassSolverError
 case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITypingPassSolverError
@@ -41,7 +49,7 @@ case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITypingPassSolv
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITypingPassSolverError
 case class CallResultWasntExpectedType(expected: ITemplata[ITemplataType], actual: ITemplata[ITemplataType]) extends ITypingPassSolverError
 case class OneOfFailed(rule: OneOfSR) extends ITypingPassSolverError
-case class KindDoesntImplementInterface(sub: ICitizenTT, suuper: InterfaceTT) extends ITypingPassSolverError
+case class IsaFailed(sub: KindT, suuper: KindT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: List[RangeS], name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: List[RangeS]) extends ITypingPassSolverError
@@ -72,7 +80,7 @@ trait IInfererDelegate {
   def predictStruct(
     env: InferEnv,
     state: CompilerOutputs,
-    templata: StructTemplata,
+    templata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
@@ -80,7 +88,7 @@ trait IInfererDelegate {
   def predictInterface(
     env: InferEnv,
     state: CompilerOutputs,
-    templata: InterfaceTemplata,
+    templata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (KindT)
 
@@ -97,6 +105,15 @@ trait IInfererDelegate {
 
   def getAncestors(env: InferEnv, coutputs: CompilerOutputs, descendant: KindT, includeSelf: Boolean):
   (Set[KindT])
+
+  def isParent(
+    env: InferEnv,
+    coutputs: CompilerOutputs,
+    parentRanges: List[RangeS],
+    subKindTT: ISubKindTT,
+    superKindTT: ISuperKindTT,
+    includeSelf: Boolean):
+  Option[ITemplata[ImplTemplataType]]
 
   def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean
 
@@ -117,12 +134,18 @@ trait IInfererDelegate {
 
   def assemblePrototype(
     env: InferEnv,
-    state: CompilerOutputs,
     range: RangeS,
     name: StrI,
     coords: Vector[CoordT],
     returnType: CoordT):
   PrototypeT
+
+  def assembleImpl(
+    env: InferEnv,
+    range: RangeS,
+    subKind: ISubKindTT,
+    superKind: ISuperKindTT):
+  IsaTemplata
 }
 
 class CompilerSolver(
@@ -141,7 +164,8 @@ class CompilerSolver(
           case LookupSR(range, rune, literal) => Array(rune)
           case RuneParentEnvLookupSR(range, rune) => Array(rune)
           case EqualsSR(range, left, right) => Array(left, right)
-          case CoordIsaSR(range, sub, suuper) => Array(sub, suuper)
+          case DefinitionCoordIsaSR(range, result, sub, suuper) => Array(result, sub, suuper)
+          case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toArray ++ Array(sub, suuper)
           case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
           case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
           case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
@@ -201,7 +225,8 @@ class CompilerSolver(
       case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, elementRune.rune))
       // See SAIRFU, this will replace itself with other rules.
       case CoordSendSR(range, senderRune, receiverRune) => Array(Array(senderRune.rune), Array(receiverRune.rune))
-      case CoordIsaSR(range, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
+      case DefinitionCoordIsaSR(range, resultRune, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
+      case CallSiteCoordIsaSR(range, resultRune, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(Array(coordListRune.rune))
     }
   }
@@ -223,6 +248,10 @@ class CompilerSolver(
     vassert(
       rules.collect({ case CallSiteFuncSR(range, _, _, _, _) => }).isEmpty ||
       rules.collect({ case DefinitionFuncSR(range, _, _, _, _) => }).isEmpty)
+    // These two shouldn't both be in the rules, see SROACSD.
+    vassert(
+      rules.collect({ case CallSiteCoordIsaSR(range, _, _, _) => }).isEmpty ||
+        rules.collect({ case DefinitionCoordIsaSR(range, _, _, _) => }).isEmpty)
 
     initiallyKnownRuneToTemplata.foreach({ case (rune, templata) =>
       if (globalOptions.sanityCheck) {
@@ -294,7 +323,8 @@ class CompilerRuleSolver(
     val (unsolvedReceiverRunes, ranges) =
       unsolvedRules.collect({
         case CoordSendSR(range, _, receiverRune) => (receiverRune.rune, range)
-        case CoordIsaSR(range, _, receiverRune) => (receiverRune.rune, range)
+        case DefinitionCoordIsaSR(range, _, _, receiverRune) => (receiverRune.rune, range)
+        case CallSiteCoordIsaSR(range, _, _, receiverRune) => (receiverRune.rune, range)
       }).unzip
     val receiverRunes =
       equivalencies.getKindEquivalentRunes(unsolvedReceiverRunes)
@@ -305,7 +335,8 @@ class CompilerRuleSolver(
           equivalencies.getKindEquivalentRunes(
             unsolvedRules.collect({
               case CoordSendSR(range, s, r) if r.rune == receiver => s.rune
-              case CoordIsaSR(range, s, r) if r.rune == receiver => s.rune
+              case DefinitionCoordIsaSR(range, _, s, r) if r.rune == receiver => s.rune
+              case CallSiteCoordIsaSR(range, _, s, r) if r.rune == receiver => s.rune
             }))
         val callRules =
           unsolvedRules.collect({ case z @ CallSR(range, r, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
@@ -558,10 +589,70 @@ class CompilerRuleSolver(
         // Now introduce a prototype that lets us call it with this new name, that we
         // can call it by.
         val newPrototype =
-          delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
+          delegate.assemblePrototype(env, range, name, paramCoords, returnType)
 
         stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges,
           resultRune.rune, PrototypeTemplata(range, newPrototype))
+        Ok(())
+      }
+      case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => {
+        val CoordTemplata(subCoord) =
+          vassertSome(stepState.getConclusion(subRune.rune))
+        val CoordTemplata(superCoord) =
+          vassertSome(stepState.getConclusion(superRune.rune))
+
+        val resultingIsaTemplata =
+          if (subCoord == superCoord) {
+            IsaTemplata(range, subCoord.kind, superCoord.kind)
+          } else {
+            val subKind =
+              subCoord.kind match {
+                case x : ISubKindTT => x
+                case other => return Err(BadIsaSubKind(other))
+              }
+            val superKind =
+              superCoord.kind match {
+                case x : ISuperKindTT => x
+                case other => return Err(BadIsaSuperKind(other))
+              }
+            delegate.isParent(env, state, env.parentRanges, subKind, superKind, true) match {
+              case None => return Err(IsaFailed(subKind, superKind))
+              case Some(implTemplata) => implTemplata
+            }
+          }
+
+        resultRune match {
+          case Some(resultRune) => {
+            stepState.concludeRune[ITypingPassSolverError](
+              range :: env.parentRanges, resultRune.rune, resultingIsaTemplata)
+          }
+          case None =>
+        }
+        Ok(())
+      }
+      case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => {
+        // If we're here, then we're solving in the definition, not the callsite.
+        // Skip checking that they match, just assume they do.
+
+        val CoordTemplata(CoordT(_, subKindUnchecked)) = vassertSome(stepState.getConclusion(subRune.rune))
+        val CoordTemplata(CoordT(_, superKindUnchecked)) = vassertSome(stepState.getConclusion(superRune.rune))
+
+        val subKind =
+          subKindUnchecked match {
+            case z : ISubKindTT => z
+            case _ => return Err(BadIsaSubKind(subKindUnchecked))
+          }
+        val superKind =
+          superKindUnchecked match {
+            case z : ISuperKindTT => z
+            case _ => return Err(BadIsaSuperKind(superKindUnchecked))
+          }
+
+        // Now introduce an impl so that we can later know sub implements super.
+        val newImpl = delegate.assembleImpl(env, range, subKind, superKind)
+
+        stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges,
+          resultRune.rune, newImpl)
         Ok(())
       }
       case EqualsSR(range, leftRune, rightRune) => {
@@ -580,21 +671,17 @@ class CompilerRuleSolver(
         // See IRFU and SRCAMP for what's going on here.
         stepState.getConclusion(receiverRune.rune) match {
           case None => {
-            stepState.getConclusion(senderRune.rune) match {
-              case None => vwat()
-              case Some(CoordTemplata(coord)) => {
-                if (delegate.isDescendant(env, state, coord.kind)) {
-                  // We know that the sender can be upcast, so we can't shortcut.
-                  // We need to wait for the receiver rune to know what to do.
-                  stepState.addRule(CoordIsaSR(range, senderRune, receiverRune))
-                  Ok(())
-                } else {
-                  // We're sending something that can't be upcast, so both sides are definitely the same type.
-                  // We can shortcut things here, even knowing only the sender's type.
-                  stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, receiverRune.rune, CoordTemplata(coord))
-                  Ok(())
-                }
-              }
+            val CoordTemplata(coord) = vassertSome(stepState.getConclusion(senderRune.rune))
+            if (delegate.isDescendant(env, state, coord.kind)) {
+              // We know that the sender can be upcast, so we can't shortcut.
+              // We need to wait for the receiver rune to know what to do.
+              stepState.addRule(CallSiteCoordIsaSR(range, None, senderRune, receiverRune))
+              Ok(())
+            } else {
+              // We're sending something that can't be upcast, so both sides are definitely the same type.
+              // We can shortcut things here, even knowing only the sender's type.
+              stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, receiverRune.rune, CoordTemplata(coord))
+              Ok(())
             }
           }
           case Some(CoordTemplata(coord)) => {
@@ -602,7 +689,7 @@ class CompilerRuleSolver(
               // We know that the receiver is an interface, so we can't shortcut.
               // We need to wait for the sender rune to be able to confirm the sender
               // implements the receiver.
-              stepState.addRule(CoordIsaSR(range, senderRune, receiverRune))
+              stepState.addRule(CallSiteCoordIsaSR(range, None, senderRune, receiverRune))
               Ok(())
             } else {
               // We're receiving a concrete type, so both sides are definitely the same type.
@@ -612,57 +699,6 @@ class CompilerRuleSolver(
             }
           }
           case other => vwat(other)
-        }
-      }
-      case KindIsaSR(range, subRune, superRune) => {
-        val sub =
-          vassertSome(stepState.getConclusion(subRune.rune)) match {
-            case KindTemplata(kind : ICitizenTT) => kind
-            case other => vwat(other)
-          }
-        val suuper =
-          vassertSome(stepState.getConclusion(superRune.rune)) match {
-            case KindTemplata(i @ InterfaceTT(_)) => i
-            case other => vwat(other)
-          }
-        if (delegate.getAncestors(env, state, sub, true).contains(suuper)) {
-          Ok(())
-        } else {
-          Err(KindDoesntImplementInterface(sub, suuper))
-        }
-      }
-      case CoordIsaSR(range, subRune, superRune) => {
-        val CoordTemplata(subCoord) =
-          vassertSome(stepState.getConclusion(subRune.rune))
-        val subCitizen =
-          subCoord.kind match {
-            case cit : ICitizenTT => cit
-            case other => return Err(SendingNonCitizen(other))
-          }
-
-        val CoordTemplata(superCoord) =
-          vassertSome(stepState.getConclusion(superRune.rune))
-        val superCitizen =
-          superCoord.kind match {
-            case cit : ICitizenTT => cit
-            case other => return Err(SendingNonCitizen(other))
-          }
-
-        superCitizen match {
-          case StructTT(_) => {
-            if (subCoord == superCoord) {
-              Ok(())
-            } else {
-              Err(SendingNonIdenticalKinds(subCoord, superCoord))
-            }
-          }
-          case superInterface @ InterfaceTT(_) => {
-            if (delegate.getAncestors(env, state, subCitizen, true).contains(superCitizen)) {
-              Ok(())
-            } else {
-              Err(KindDoesntImplementInterface(subCitizen, superInterface))
-            }
-          }
         }
       }
       case rule @ OneOfSR(range, resultRune, literals) => {
@@ -904,7 +940,7 @@ class CompilerRuleSolver(
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case it@InterfaceTemplata(_, _) => {
+              case it@InterfaceDefinitionTemplata(_, _) => {
                 result match {
                   case KindTemplata(interface@InterfaceTT(_)) => {
                     if (!delegate.kindIsFromTemplate(state, interface, it)) {
@@ -952,7 +988,7 @@ class CompilerRuleSolver(
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case st@StructTemplata(_, _) => {
+              case st@StructDefinitionTemplata(_, _) => {
                 result match {
                   case KindTemplata(struct@StructTT(_)) => {
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
@@ -1012,14 +1048,14 @@ class CompilerRuleSolver(
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
                 Ok(())
               }
-              case it @ StructTemplata(_, _) => {
+              case it @ StructDefinitionTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 // See SFWPRL for why we're calling predictStruct instead of resolveStruct
                 val kind = delegate.predictStruct(env, state, it, args.toVector)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(kind))
                 Ok(())
               }
-              case it @ InterfaceTemplata(_, _) => {
+              case it @ InterfaceDefinitionTemplata(_, _) => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
                 // See SFWPRL for why we're calling predictInterface instead of resolveInterface
                 val kind = delegate.predictInterface(env, state, it, args.toVector)

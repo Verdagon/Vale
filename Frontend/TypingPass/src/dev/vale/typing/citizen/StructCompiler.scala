@@ -65,7 +65,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    structTemplata: StructTemplata,
+    structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
@@ -76,9 +76,9 @@ class StructCompiler(
 
   def precompileStruct(
     coutputs: CompilerOutputs,
-    structTemplata: StructTemplata):
+    structTemplata: StructDefinitionTemplata):
   Unit = {
-    val StructTemplata(declaringEnv, structA) = structTemplata
+    val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
 
     val structTemplateFullName = templataCompiler.resolveStructTemplate(structTemplata)
 
@@ -96,9 +96,9 @@ class StructCompiler(
 
   def precompileInterface(
     coutputs: CompilerOutputs,
-    interfaceTemplata: InterfaceTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplata):
   Unit = {
-    val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+    val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
 
     val interfaceTemplateFullName = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
 
@@ -117,7 +117,7 @@ class StructCompiler(
   def compileStruct(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    structTemplata: StructTemplata):
+    structTemplata: StructDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
       templateArgsLayer.compileStruct(coutputs, parentRanges, structTemplata)
@@ -131,7 +131,7 @@ class StructCompiler(
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceTemplata,
+    interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     templateArgsLayer.predictInterface(
@@ -145,7 +145,7 @@ class StructCompiler(
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    structTemplata: StructTemplata,
+    structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     templateArgsLayer.predictStruct(
@@ -158,7 +158,7 @@ class StructCompiler(
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceTemplata,
+    interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     templateArgsLayer.resolveInterface(
@@ -171,12 +171,12 @@ class StructCompiler(
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    citizenTemplata: CitizenTemplata,
+    citizenTemplata: CitizenDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   (ICitizenTT) = {
     citizenTemplata match {
-      case st @ StructTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs)
-      case it @ InterfaceTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs)
+      case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs)
+      case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs)
     }
   }
 
@@ -185,7 +185,7 @@ class StructCompiler(
     parentRanges: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplata):
   Unit = {
     templateArgsLayer.compileInterface(
       coutputs, parentRanges, interfaceTemplata)

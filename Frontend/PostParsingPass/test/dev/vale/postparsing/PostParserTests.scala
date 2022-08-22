@@ -459,18 +459,6 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
   }
 
-  test("Reports when non-kind interface in impl") {
-    val err = compileForError(
-      """
-        |struct Moo {}
-        |interface IMoo {}
-        |impl &IMoo for Moo;
-        |""".stripMargin)
-    err match {
-      case CantOwnershipInterfaceInImpl(_) =>
-    }
-  }
-
   test("Reports when extern function has body") {
     val err = compileForError(
       """
@@ -480,18 +468,6 @@ class PostParserTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
     err match {
       case ExternHasBody(_) =>
-    }
-  }
-
-  test("Reports when non-kind struct in impl") {
-    val err = compileForError(
-      """
-        |struct Moo {}
-        |interface IMoo {}
-        |impl IMoo for &Moo;
-        |""".stripMargin)
-    err match {
-      case CantOwnershipStructInImpl(_) =>
     }
   }
 

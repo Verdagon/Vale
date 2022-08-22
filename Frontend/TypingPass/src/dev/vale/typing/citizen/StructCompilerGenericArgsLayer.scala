@@ -34,11 +34,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    structTemplata: StructTemplata,
+    structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
-      val StructTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
 
       // We no longer assume this:
@@ -85,11 +85,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    interfaceTemplata: InterfaceTemplata,
+    interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     Profiler.frame(() => {
-      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -143,11 +143,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    structTemplata: StructTemplata,
+    structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (StructTT) = {
     Profiler.frame(() => {
-      val StructTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
 
       // We no longer assume this:
@@ -200,11 +200,11 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
-    interfaceTemplata: InterfaceTemplata,
+    interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
   (InterfaceTT) = {
     Profiler.frame(() => {
-      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -249,10 +249,10 @@ class StructCompilerGenericArgsLayer(
   def compileStruct(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    structTemplata: StructTemplata):
+    structTemplata: StructDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
-      val StructTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.fullName.addStep(structTemplateName)
 
@@ -351,10 +351,10 @@ class StructCompilerGenericArgsLayer(
   def compileInterface(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    interfaceTemplata: InterfaceTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
-      val InterfaceTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.fullName.addStep(interfaceTemplateName)
 

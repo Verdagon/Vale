@@ -11,9 +11,8 @@ import dev.vale.postparsing.RuneTypeSolveError
 import dev.vale.solver.FailedSolve
 import OverloadResolver.{EvaluateFunctionFailure, FindFunctionFailure, IFindFunctionFailureReason}
 import dev.vale.typing.ast.{KindExportT, SignatureT}
-import dev.vale.typing.names.{FullNameT, IVarNameT}
+import dev.vale.typing.names.{FullNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, IVarNameT}
 import dev.vale.typing.ast._
-import dev.vale.typing.names.IVarNameT
 import dev.vale.typing.types.InterfaceTT
 import dev.vale.RangeS
 
@@ -93,7 +92,7 @@ case class CantUseUnstackifiedLocal(range: List[RangeS], localId: IVarNameT) ext
   vpass()
 }
 case class CantUnstackifyOutsideLocalFromInsideWhile(range: List[RangeS], localId: IVarNameT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class FunctionAlreadyExists(oldFunctionRange: RangeS, newFunctionRange: RangeS, signature: SignatureT) extends ICompileErrorT {
+case class FunctionAlreadyExists(oldFunctionRange: RangeS, newFunctionRange: RangeS, signature: FullNameT[IFunctionNameT]) extends ICompileErrorT {
   override def range: List[RangeS] = List(newFunctionRange)
   vpass()
 }

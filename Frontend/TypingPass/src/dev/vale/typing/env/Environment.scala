@@ -1,6 +1,6 @@
 package dev.vale.typing.env
 
-import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, vassert, vcurious, vfail, vimpl, vwat}
+import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.macros.citizen.{InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
@@ -16,6 +16,7 @@ import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.IOnImplDefinedMacro
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
+import dev.vale.typing.types.{InterfaceTT, PlaceholderT, StructTT}
 
 import scala.collection.immutable.{List, Map, Set}
 
@@ -141,17 +142,18 @@ object TemplatasStore {
       case TemplataEnvEntry(templata) => {
         templata match {
           case PlaceholderTemplata(_, _) => contexts.contains(TemplataLookupContext)
+          case IsaTemplata(_, _, _) => contexts.contains(TemplataLookupContext)
 //          case PrototypeTemplata(_, _, _) => true
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
           case PrototypeTemplata(_, _) => true
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
-          case StructTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case InterfaceTemplata(_, _) => contexts.contains(TemplataLookupContext)
+          case StructDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
+          case InterfaceDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case RuntimeSizedArrayTemplateTemplata() => contexts.contains(TemplataLookupContext)
           case BooleanTemplata(_) => true
           case FunctionTemplata(_, _) => contexts.contains(ExpressionLookupContext)
-          case ImplTemplata(_, _) => contexts.contains(ExpressionLookupContext)
+          case ImplDefinitionTemplata(_, _) => contexts.contains(ExpressionLookupContext)
           case IntegerTemplata(_) => true
           case StringTemplata(_) => true
           case LocationTemplata(_) => contexts.contains(TemplataLookupContext)
@@ -169,9 +171,9 @@ object TemplatasStore {
     //    vassert(env.fullName != FullName2(PackageCoordinate.BUILTIN, Vector.empty, PackageTopLevelName2()))
     entry match {
       case FunctionEnvEntry(func) => templata.FunctionTemplata(definingEnv, func)
-      case StructEnvEntry(struct) => templata.StructTemplata(definingEnv, struct)
-      case InterfaceEnvEntry(interface) => templata.InterfaceTemplata(definingEnv, interface)
-      case ImplEnvEntry(impl) => templata.ImplTemplata(definingEnv, impl)
+      case StructEnvEntry(struct) => templata.StructDefinitionTemplata(definingEnv, struct)
+      case InterfaceEnvEntry(interface) => templata.InterfaceDefinitionTemplata(definingEnv, interface)
+      case ImplEnvEntry(impl) => templata.ImplDefinitionTemplata(definingEnv, impl)
       case TemplataEnvEntry(templata) => templata
     }
   }
@@ -209,6 +211,7 @@ object TemplatasStore {
       case FreeTemplateNameT(codeLocation) => Some(interner.intern(FreeImpreciseNameS()))
       case FreeNameT(_, templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
       case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
+      case PlaceholderNameT(PlaceholderTemplateNameT(index)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
       case ReachablePrototypeNameT(num) => None
       case FreeTemplateNameT(codeLoc) => Some(interner.intern(FreeImpreciseNameS()))
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
@@ -287,9 +290,29 @@ case class TemplatasStore(
           }
           case (key, entry @ ImplEnvEntry(implA)) => {
             List(
-              interner.intern(ImplImpreciseNameS(implA.superInterfaceImpreciseName, implA.subCitizenImpreciseName)) -> entry,
+              interner.intern(ImplImpreciseNameS(implA.subCitizenImpreciseName, implA.superInterfaceImpreciseName)) -> entry,
               interner.intern(ImplSubCitizenImpreciseNameS(implA.subCitizenImpreciseName)) -> entry,
               interner.intern(ImplSuperInterfaceImpreciseNameS(implA.superInterfaceImpreciseName)) -> entry)
+          }
+          case (key, entry @ TemplataEnvEntry(IsaTemplata(_, subKind, superKind))) => {
+            val subImpreciseName =
+              subKind match {
+                case StructTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case _ => vwat()
+              }
+            val superImpreciseName =
+              superKind match {
+                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case _ => vwat()
+              }
+            getImpreciseName(interner, key).toList.map(_ -> entry) ++
+            List(
+              interner.intern(ImplImpreciseNameS(subImpreciseName, superImpreciseName)) -> entry,
+              interner.intern(ImplSubCitizenImpreciseNameS(subImpreciseName)) -> entry,
+              interner.intern(ImplSuperInterfaceImpreciseNameS(superImpreciseName)) -> entry)
           }
           case (key, value) => {
             getImpreciseName(interner, key).toList.map(_ -> value)

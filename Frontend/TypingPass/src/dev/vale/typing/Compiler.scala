@@ -85,18 +85,19 @@ class Compiler(
       new ITemplataCompilerDelegate {
         override def isParent(
           coutputs: CompilerOutputs,
+          callingEnv: IEnvironment,
           parentRanges: List[RangeS],
-          descendantCitizenRef: ICitizenTT,
-          ancestorInterfaceRef: InterfaceTT):
+          subKindTT: ISubKindTT,
+          superKindTT: ISuperKindTT):
         IsParentResult = {
-          implCompiler.isParent(coutputs, parentRanges, descendantCitizenRef, ancestorInterfaceRef, true)
+          implCompiler.isParent(coutputs, callingEnv, parentRanges, subKindTT, superKindTT)
         }
 
         override def resolveStruct(
           coutputs: CompilerOutputs,
           callingEnv: IEnvironment,
           callRange: List[RangeS],
-          structTemplata: StructTemplata,
+          structTemplata: StructDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
         StructTT = {
           structCompiler.resolveStruct(
@@ -107,7 +108,7 @@ class Compiler(
             coutputs: CompilerOutputs,
             callingEnv: IEnvironment, // See CSSNCE
             callRange: List[RangeS],
-            interfaceTemplata: InterfaceTemplata,
+            interfaceTemplata: InterfaceDefinitionTemplata,
             uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
         InterfaceTT = {
           structCompiler.resolveInterface(
@@ -161,13 +162,18 @@ class Compiler(
             case VariabilityTemplata(_) =>
             case OwnershipTemplata(_) =>
             case MutabilityTemplata(_) =>
-            case InterfaceTemplata(_,_) =>
-            case StructTemplata(_,_) =>
+            case InterfaceDefinitionTemplata(_,_) =>
+            case StructDefinitionTemplata(_,_) =>
+            case ImplDefinitionTemplata(_,_) =>
             case CoordListTemplata(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
             case PrototypeTemplata(_, prototype) => {
               getPlaceholdersInFullName(accum, prototype.fullName)
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
+            }
+            case IsaTemplata(_, subKind, superKind) => {
+              getPlaceholdersInKind(accum, subKind)
+              getPlaceholdersInKind(accum, superKind)
             }
             case other => vimpl(other)
           }
@@ -220,6 +226,10 @@ class Compiler(
               }
             accum.elementsReversed.foreach({ case FullNameT(paackage, initSteps, _) =>
               val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
+              // There should only ever be placeholders from the original calling environment, we should
+              // *never* mix placeholders from two environments.
+              // If this assert trips, that means we're not correctly phrasing everything in terms of
+              // placeholders from this top level denizen.
               vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
             })
           }
@@ -240,7 +250,7 @@ class Compiler(
           kind: KindT):
         Boolean = {
           kind match {
-            case PlaceholderT(_) => false // at least until we have type bounds
+            case p @ PlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, p, false)
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
             case StaticSizedArrayTT(_, _, _, _) => false
@@ -258,6 +268,20 @@ class Compiler(
           kind match {
             case InterfaceTT(_) => true
             case _ => false
+          }
+        }
+
+        override def isParent(
+          env: InferEnv,
+          coutputs: CompilerOutputs,
+          parentRanges: List[RangeS],
+          subKindTT: ISubKindTT,
+          superKindTT: ISuperKindTT,
+          includeSelf: Boolean):
+        Option[ITemplata[ImplTemplataType]] = {
+          implCompiler.isParent(coutputs, env.originalCallingEnv, parentRanges, subKindTT, superKindTT) match {
+            case IsParent(implTemplata, conclusions) => Some(implTemplata)
+            case IsntParent(candidates) => None
           }
         }
 
@@ -284,7 +308,7 @@ class Compiler(
         override def predictInterface(
           env: InferEnv,
           state: CompilerOutputs,
-          templata: InterfaceTemplata,
+          templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
             structCompiler.predictInterface(
@@ -294,7 +318,7 @@ class Compiler(
         override def predictStruct(
           env: InferEnv,
           state: CompilerOutputs,
-          templata: StructTemplata,
+          templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]]):
         (KindT) = {
           structCompiler.predictStruct(
@@ -326,8 +350,8 @@ class Compiler(
               Set[KindT]()
             }) ++
               (descendant match {
-                case s : ICitizenTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.originalCallingEnv, s, true)
-                case _ => Array()
+                case s : ISubKindTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.originalCallingEnv, s, true)
+                case _ => Array[KindT]()
               })
         }
 
@@ -358,7 +382,6 @@ class Compiler(
 
         override def assemblePrototype(
             envs: InferEnv,
-            state: CompilerOutputs,
             range: RangeS,
             name: StrI,
             coords: Vector[CoordT],
@@ -371,13 +394,22 @@ class Compiler(
                   interner.intern(FunctionTemplateNameT(name, range.begin)), Vector(), coords))),
             returnType)
         }
+
+        override def assembleImpl(
+          envs: InferEnv,
+          range: RangeS,
+          subKind: ISubKindTT,
+          superKind: ISuperKindTT):
+        IsaTemplata = {
+          IsaTemplata(range, subKind, superKind)
+        }
       },
       new IInferCompilerDelegate {
         override def resolveInterface(
           callingEnv: IEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
-          templata: InterfaceTemplata,
+          templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
         InterfaceTT = {
@@ -389,7 +421,7 @@ class Compiler(
           callingEnv: IEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
-          templata: StructTemplata,
+          templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
         StructTT = {
@@ -432,11 +464,13 @@ class Compiler(
       new IConvertHelperDelegate {
         override def isParent(
           coutputs: CompilerOutputs,
+          callingEnv: IEnvironment,
           parentRanges: List[RangeS],
-          descendantCitizenRef: ICitizenTT,
-          ancestorInterfaceRef: InterfaceTT):
+          descendantCitizenRef: ISubKindTT,
+          ancestorInterfaceRef: ISuperKindTT):
         IsParentResult = {
-          implCompiler.isParent(coutputs, parentRanges, descendantCitizenRef, ancestorInterfaceRef, true)
+          implCompiler.isParent(
+            coutputs, callingEnv, parentRanges, descendantCitizenRef, ancestorInterfaceRef)
         }
       })
 
@@ -755,11 +789,11 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
-                val templata = StructTemplata(env, structA)
+                val templata = StructDefinitionTemplata(env, structA)
                 structCompiler.precompileStruct(coutputs, templata)
               }
               case InterfaceEnvEntry(interfaceA) => {
-                val templata = InterfaceTemplata(env, interfaceA)
+                val templata = InterfaceDefinitionTemplata(env, interfaceA)
                 structCompiler.precompileInterface(coutputs, templata)
               }
               case _ =>
@@ -774,11 +808,11 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
-                val templata = StructTemplata(env, structA)
+                val templata = StructDefinitionTemplata(env, structA)
                 structCompiler.compileStruct(coutputs, List(), templata)
               }
               case InterfaceEnvEntry(interfaceA) => {
-                val templata = InterfaceTemplata(env, interfaceA)
+                val templata = InterfaceDefinitionTemplata(env, interfaceA)
                 structCompiler.compileInterface(coutputs, List(), templata)
               }
               case _ =>
@@ -791,7 +825,7 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case ImplEnvEntry(impl) => {
-                implCompiler.compileImpl(coutputs, ImplTemplata(env, impl))
+                implCompiler.compileImpl(coutputs, ImplDefinitionTemplata(env, impl))
               }
               case _ =>
             }

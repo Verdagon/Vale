@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -166,7 +166,16 @@ object ICitizenTT {
   }
 }
 
-sealed trait ICitizenTT extends KindT with IInterning {
+// Structs, interfaces, and placeholders
+sealed trait ISubKindTT extends KindT {
+  def fullName: FullNameT[ISubKindNameT]
+}
+// Interfaces and placeholders
+sealed trait ISuperKindTT extends KindT {
+  def fullName: FullNameT[ISuperKindNameT]
+}
+
+sealed trait ICitizenTT extends ISubKindTT with IInterning {
   def fullName: FullNameT[ICitizenNameT]
 }
 
@@ -178,7 +187,7 @@ case class StructTT(fullName: FullNameT[IStructNameT]) extends ICitizenTT {
   }
 }
 
-case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT {
+case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT with ISuperKindTT {
   (fullName.initSteps.lastOption, fullName.last) match {
     case (Some(InterfaceTemplateNameT(_)), InterfaceNameT(_, _)) => vfail()
     case _ =>
@@ -197,4 +206,4 @@ case class OverloadSetT(
 
 }
 
-case class PlaceholderT(fullName: FullNameT[PlaceholderNameT]) extends KindT
+case class PlaceholderT(fullName: FullNameT[PlaceholderNameT]) extends ISubKindTT with ISuperKindTT

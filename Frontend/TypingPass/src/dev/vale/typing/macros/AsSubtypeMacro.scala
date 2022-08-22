@@ -34,29 +34,7 @@ class AsSubtypeMacro(
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
-    val sourceKind = vassertSome(paramCoords.headOption).tyype.kind
     val KindTemplata(targetKind) = vassertSome(env.fullName.last.templateArgs.headOption)
-
-    val sourceCitizen =
-      sourceKind match {
-        case c : ICitizenTT => c
-        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
-      }
-
-    val targetCitizen =
-      targetKind match {
-        case c : ICitizenTT => c
-        case _ => throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
-      }
-
-    // We dont support downcasting to interfaces yet
-    val targetStruct =
-      targetCitizen match {
-        case sr @ StructTT(_) => sr
-        case ir @ InterfaceTT(_) => throw CompileErrorExceptionT(CantDowncastToInterface(callRange, ir))
-        case _ => vfail()
-      }
-
 
     val incomingCoord = paramCoords(0).tyype
     val incomingSubkind = incomingCoord.kind
@@ -71,33 +49,13 @@ class AsSubtypeMacro(
       throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Bad result coord:\n" + resultCoord + "\nand\n" + vassertSome(maybeRetCoord)))
     }
 
-    val asSubtypeExpr: ReferenceExpressionTE =
-      sourceCitizen match {
-        case sourceInterface @ InterfaceTT(_) => {
-          ancestorHelper.isParent(coutputs, callRange, targetStruct, sourceInterface, true) match {
-            case IsParent(conclusions) => {
-              AsSubtypeTE(
-                ArgLookupTE(0, incomingCoord),
-                targetKind,
-                resultCoord,
-                okConstructor,
-                errConstructor)
-            }
-            case IsntParent(candidates) => {
-              throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, candidates))
-            }
-          }
-        }
-        case sourceStruct @ StructTT(_) => {
-          if (sourceStruct == targetStruct) {
-            FunctionCallTE(
-              okConstructor,
-              Vector(ArgLookupTE(0, incomingCoord)))
-          } else {
-            throw CompileErrorExceptionT(CantDowncastUnrelatedTypes(callRange, sourceKind, targetKind, Vector()))
-          }
-        }
-      }
+    val asSubtypeExpr =
+      AsSubtypeTE(
+        ArgLookupTE(0, incomingCoord),
+        targetKind,
+        resultCoord,
+        okConstructor,
+        errConstructor)
 
     coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
 

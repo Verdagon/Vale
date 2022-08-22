@@ -7,9 +7,8 @@ import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
-import dev.vale.typing.env.{NodeEnvironment, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, IEnvironment, NodeEnvironment, NodeEnvironmentBox}
 import dev.vale.typing.types._
-import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
@@ -70,6 +69,7 @@ class CallCompiler(
 
         checkTypes(
           coutputs,
+          nenv.snapshot,
           range,
           prototype.prototype.paramTypes,
           argsExprs2.map(a => a.result.reference),
@@ -129,6 +129,7 @@ class CallCompiler(
 
     checkTypes(
       coutputs,
+      nenv,
       range,
       prototype.prototype.paramTypes,
       argsExprs2.map(a => a.result.reference),
@@ -208,7 +209,7 @@ class CallCompiler(
       throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.prototype.paramTypes + " args: " + argTypes))
     }
 
-    checkTypes(coutputs, range, prototype2.prototype.paramTypes, argTypes, exact = true)
+    checkTypes(coutputs, env, range, prototype2.prototype.paramTypes, argTypes, exact = true)
 
     val resultingExpr2 = FunctionCallTE(prototype2.prototype, actualArgsExprs2);
 
@@ -218,6 +219,7 @@ class CallCompiler(
 
   def checkTypes(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
     params: Vector[CoordT],
     args: Vector[CoordT],
@@ -229,7 +231,7 @@ class CallCompiler(
 
       } else {
         if (!exact) {
-          templataCompiler.isTypeConvertible(coutputs, parentRanges, argsHead, paramsHead) match {
+          templataCompiler.isTypeConvertible(coutputs, callingEnv, parentRanges, argsHead, paramsHead) match {
             case (true) => {
 
             }

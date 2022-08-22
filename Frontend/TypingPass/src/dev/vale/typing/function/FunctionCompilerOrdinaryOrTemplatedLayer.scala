@@ -193,8 +193,6 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       addRunedDataToNearEnv(
         declaringEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
-    coutputs.declareFunctionInnerEnv(declaringEnv.fullName, runedEnv)
-
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(
         runedEnv, coutputs, callRange, function)
@@ -384,8 +382,6 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
-
-    coutputs.declareFunctionInnerEnv(nearEnv.fullName, runedEnv)
 
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(

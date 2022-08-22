@@ -16,7 +16,7 @@ import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
-import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, StructToInterfaceUpcastTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
+import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -645,7 +645,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(FullNameT(_,_,CodeVarNameT(StrI("x"))),FinalT,CoordT(OwnT,InterfaceTT(simpleName("MyInterface")))), _) => })
 
-    val upcast = Collector.onlyOf(main, classOf[StructToInterfaceUpcastTE])
+    val upcast = Collector.onlyOf(main, classOf[UpcastTE])
     upcast.result.reference match { case CoordT(OwnT,InterfaceTT(FullNameT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("MyInterface")), Vector())))) => vassert(x.isTest) }
     upcast.innerExpr.result.reference match { case CoordT(OwnT,StructTT(FullNameT(x, Vector(), StructNameT(StructTemplateNameT(StrI("MyStruct")), Vector())))) => vassert(x.isTest) }
   }
@@ -656,7 +656,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case up @ StructToInterfaceUpcastTE(innerExpr, InterfaceTT(simpleName("Car"))) => {
+      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car"))) => {
         Collector.only(innerExpr.result, {
           case StructTT(simpleName("Toyota")) =>
         })
@@ -770,7 +770,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case StructToInterfaceUpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
+      case UpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
     })
   }
 
@@ -788,7 +788,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case StructToInterfaceUpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
+      case UpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
     })
   }
 
@@ -1230,7 +1230,8 @@ class CompilerTests extends FunSuite with Matchers {
     val ispaceshipCoord = CoordT(OwnT,ispaceshipKind)
     val unrelatedKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
     val unrelatedCoord = CoordT(OwnT,unrelatedKind)
-    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(StrI("myFunc"), tz.head.begin)), Vector(), Vector(fireflyCoord)))))
+    val fireflyTemplateName = FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)))
+    val fireflySignature = ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector(), Vector(fireflyCoord)))))
     val fireflyExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
     val serenityExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Serenity")));
 
@@ -1301,7 +1302,7 @@ class CompilerTests extends FunSuite with Matchers {
         CodeVarNameT(StrI("firefly"))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
-      FunctionAlreadyExists(tz.head, tz.head, fireflySignature))
+      FunctionAlreadyExists(tz.head, tz.head, fireflySignature.fullName))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(
@@ -1374,25 +1375,6 @@ class CompilerTests extends FunSuite with Matchers {
           Vector(),
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
-  }
-
-  test("Report when downcasting between unrelated types") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.as.*;
-        |import panicutils.*;
-        |
-        |interface ISpaceship { }
-        |struct Spoon { }
-        |
-        |exported func main() {
-        |  ship = __pretend<ISpaceship>();
-        |  ship.as<Spoon>();
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(CantDowncastUnrelatedTypes(_, _, _, _)) =>
-    }
   }
 
   test("Report when multiple types in array") {
@@ -1834,6 +1816,146 @@ class CompilerTests extends FunSuite with Matchers {
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Upcast generic") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |interface IShip {}
+        |
+        |struct Raza { fuel int; }
+        |impl IShip for Raza;
+        |
+        |func doUpcast<T>(x T) IShip
+        |where implements(T, IShip) {
+        |  i IShip = x;
+        |  return i;
+        |}
+        |
+        |exported func main() {
+        |  ship IShip = Raza(42);
+        |  doUpcast(ship);
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    Collector.only(coutputs.lookupFunction("doUpcast"), {
+      case UpcastTE(sourceExpr, targetSuperKind) => {
+        sourceExpr.result.reference.kind match {
+          case PlaceholderT(_) =>
+        }
+        targetSuperKind match {
+          case InterfaceTT(FullNameT(_, Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector()))) =>
+        }
+      }
+    })
+  }
+
+  test("Downcast with as") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.as.*;
+        |import v.builtins.logic.*;
+        |import v.builtins.drop.*;
+        |
+        |interface IShip {}
+        |
+        |struct Raza { fuel int; }
+        |impl IShip for Raza;
+        |
+        |exported func main() {
+        |  ship IShip = Raza(42);
+        |  ship.as<Raza>();
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    {
+      val mainFunc = coutputs.lookupFunction("main")
+      val (asPrototype, asArg) =
+        Collector.only(mainFunc, {
+          case FunctionCallTE(
+          prototype @ PrototypeT(FullNameT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("as"),_),_,_)), _),
+          Vector(arg)) => {
+            (prototype, arg)
+          }
+        })
+      val (asPrototypeTemplateArgs, asPrototypeParams, asPrototypeReturn) =
+        asPrototype match {
+          case PrototypeT(FullNameT(_,Vector(),FunctionNameT(_, templateArgs, params)), retuurn) => {
+            (templateArgs, params, retuurn)
+          }
+        }
+
+      asPrototypeTemplateArgs match {
+        case Vector(KindTemplata(StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector())))), CoordTemplata(CoordT(borrow,InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))) =>
+      }
+
+      asPrototypeParams match {
+        case Vector(CoordT(BorrowT,InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector()))))) =>
+      }
+
+      asPrototypeReturn match {
+        case CoordT(
+        OwnT,
+        InterfaceTT(
+        FullNameT(
+        _,
+        Vector(),
+        InterfaceNameT(
+        InterfaceTemplateNameT(StrI("Result")),
+        Vector(
+        CoordTemplata(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))),
+        CoordTemplata(CoordT(BorrowT,InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))))))) =>
+      }
+
+      asArg.result.reference match {
+        case CoordT(BorrowT,InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))) =>
+      }
+    }
+
+    {
+      val asFunc = coutputs.lookupFunction("as")
+      val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _) => as })
+      val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor) = as
+      sourceExpr.result.reference match {
+        case CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
+        //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
+      }
+      targetSubtype match {
+        case PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))) =>
+        case StructTT(FullNameT(_, Vector(), StructNameT(StructTemplateNameT(StrI("Raza")), Vector()))) =>
+      }
+      val (firstGenericArg, secondGenericArg) =
+        resultOptType match {
+          case CoordT(
+          OwnT,
+          InterfaceTT(
+          FullNameT(
+          _, Vector(),
+          InterfaceNameT(
+          InterfaceTemplateNameT(StrI("Result")),
+          Vector(firstGenericArg, secondGenericArg))))) => (firstGenericArg, secondGenericArg)
+        }
+      // They should both be pointers, since we dont really do borrows in structs yet
+      firstGenericArg match {
+        case CoordTemplata(
+        CoordT(
+        OwnT,
+        PlaceholderT(
+        FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
+      }
+      secondGenericArg match {
+        case CoordTemplata(
+        CoordT(
+        OwnT,
+        PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1)))))) =>
+      }
+      vassert(okConstructor.paramTypes.head.kind == targetSubtype)
+      vassert(errConstructor.paramTypes.head.kind == sourceExpr.result.reference.kind)
+    }
   }
 
 }

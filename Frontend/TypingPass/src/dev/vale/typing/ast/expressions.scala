@@ -697,13 +697,18 @@ case class InterfaceToInterfaceUpcastTE(
   }
 }
 
-case class StructToInterfaceUpcastTE(innerExpr: ReferenceExpressionTE, targetInterfaceRef: InterfaceTT) extends ReferenceExpressionTE {
+// This used to be StructToInterfaceUpcastTE, and then we added generics.
+// Now, it could be that we're upcasting a placeholder to an interface, or a
+// placeholder to another placeholder. For all we know, this'll eventually be
+// upcasting an int to an int.
+// So, the target kind can be anything, not just an interface.
+case class UpcastTE(innerExpr: ReferenceExpressionTE, targetSuperKind: ISuperKindTT) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   def result: ReferenceResultT = {
     ReferenceResultT(
       CoordT(
         innerExpr.result.reference.ownership,
-        targetInterfaceRef))
+        targetSuperKind))
   }
 }
 

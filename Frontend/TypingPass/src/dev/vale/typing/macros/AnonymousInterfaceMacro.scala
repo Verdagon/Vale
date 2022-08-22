@@ -5,7 +5,7 @@ import dev.vale.{Accumulator, CodeLocationS, Interner, Keywords, PackageCoordina
 import dev.vale.parsing.ast.{BorrowP, FinalP, OwnP, UseP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
 import dev.vale.postparsing.{SealedS, _}
-import dev.vale.postparsing.rules.{AugmentSR, CallSR, CallSiteFuncSR, CoerceToCoordSR, CoordComponentsSR, CoordIsaSR, DefinitionFuncSR, EqualsSR, Equivalencies, IRulexSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, KindIsaSR, LiteralSR, LookupSR, OneOfSR, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, ResolveSR, RuleScout, RuneParentEnvLookupSR, RuneUsage, RuntimeSizedArraySR, StaticSizedArraySR}
+import dev.vale.postparsing.rules.{AugmentSR, CallSR, CallSiteCoordIsaSR, CallSiteFuncSR, CoerceToCoordSR, CoordComponentsSR, DefinitionCoordIsaSR, DefinitionFuncSR, EqualsSR, Equivalencies, IRulexSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, OneOfSR, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, ResolveSR, RuleScout, RuneParentEnvLookupSR, RuneUsage, RuntimeSizedArraySR, StaticSizedArraySR}
 import dev.vale.typing.{OverloadResolver, TypingPassOptions}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, IEnvEntry, ImplEnvEntry, StructEnvEntry}
@@ -142,8 +142,14 @@ class AnonymousInterfaceMacro(
       case LookupSR(range, RuneUsage(a, rune), name) => LookupSR(range, RuneUsage(a, func(rune)), name)
       case RuneParentEnvLookupSR(range, RuneUsage(a, rune)) => RuneParentEnvLookupSR(range, RuneUsage(a, func(rune)))
       case EqualsSR(range, RuneUsage(a, left), RuneUsage(b, right)) => EqualsSR(range, RuneUsage(a, func(left)), RuneUsage(b, func(right)))
-      case CoordIsaSR(range, RuneUsage(a, sub), RuneUsage(b, suuper)) => CoordIsaSR(range, RuneUsage(a, func(sub)), RuneUsage(b, func(suuper)))
-      case KindIsaSR(range, RuneUsage(a, sub), RuneUsage(b, suuper)) => KindIsaSR(range, RuneUsage(a, func(sub)), RuneUsage(b, func(suuper)))
+      case DefinitionCoordIsaSR(range, RuneUsage(z, result), RuneUsage(a, sub), RuneUsage(b, suuper)) => DefinitionCoordIsaSR(range, RuneUsage(z, func(result)), RuneUsage(a, func(sub)), RuneUsage(b, func(suuper)))
+      case CallSiteCoordIsaSR(range, maybeResult, RuneUsage(a, sub), RuneUsage(b, suuper)) => {
+        CallSiteCoordIsaSR(
+          range,
+          maybeResult.map({ case RuneUsage(z, result) => RuneUsage(z, func(result)) }),
+          RuneUsage(a, func(sub)),
+          RuneUsage(b, func(suuper)))
+      }
       case KindComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, mutabilityRune)) => KindComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(mutabilityRune)))
       case CoordComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, ownershipRune), RuneUsage(c, kindRune)) => CoordComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(ownershipRune)), RuneUsage(c, func(kindRune)))
       case PrototypeComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, paramsRune), RuneUsage(c, returnRune)) => PrototypeComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(paramsRune)), RuneUsage(c, func(returnRune)))

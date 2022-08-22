@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.typing.ast.{ReferenceExpressionTE, StructToInterfaceUpcastTE}
+import dev.vale.typing.ast.{ReferenceExpressionTE}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.{RangeS, vcurious, vfail}
 import dev.vale.typing.types._
@@ -20,9 +20,10 @@ import dev.vale.postparsing._
 trait IConvertHelperDelegate {
   def isParent(
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     parentRanges: List[RangeS],
-    descendantCitizenRef: ICitizenTT,
-    ancestorInterfaceRef: InterfaceTT):
+    descendantCitizenRef: ISubKindTT,
+    ancestorInterfaceRef: ISuperKindTT):
   IsParentResult
 }
 
@@ -98,7 +99,7 @@ class ConvertHelper(
         sourceExpr
       } else {
         (sourceType, targetType) match {
-          case (s @ StructTT(_), i : InterfaceTT) => {
+          case (s : ISubKindTT, i : ISuperKindTT) => {
             convert(env, coutputs, range, sourceExpr, s, i)
           }
           case _ => vfail()
@@ -109,19 +110,19 @@ class ConvertHelper(
   }
 
   def convert(
-    env: IEnvironment,
+    callingEnv: IEnvironment,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     sourceExpr: ReferenceExpressionTE,
-    sourceStructRef: StructTT,
-    targetInterfaceRef: InterfaceTT):
+    sourceSubKind: ISubKindTT,
+    targetSuperKind: ISuperKindTT):
   (ReferenceExpressionTE) = {
-    delegate.isParent(coutputs, range, sourceStructRef, targetInterfaceRef) match {
-      case IsParent(_) => {
-        StructToInterfaceUpcastTE(sourceExpr, targetInterfaceRef)
+    delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
+      case IsParent(_, _) => {
+        UpcastTE(sourceExpr, targetSuperKind)
       }
       case IsntParent(candidates) => {
-        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceStructRef + " to a " + targetInterfaceRef + ": " + candidates))
+        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceSubKind + " to a " + targetSuperKind + ": " + candidates))
       }
     }
   }

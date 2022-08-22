@@ -141,7 +141,13 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
           val interfaceRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, interfaceRule)
           runeToExplicitType.put(interfaceRune.rune, CoordTemplataType())
 
-          builder += rules.CoordIsaSR(evalRange(range), structRune, interfaceRune)
+          val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+          runeToExplicitType.put(resultRuneS.rune, ImplTemplataType())
+
+          // Only appears in definition; filtered out when solving call site
+          builder += rules.DefinitionCoordIsaSR(evalRange(range), resultRuneS, structRune, interfaceRune)
+          // Only appears in call site; filtered out when solving definition
+          builder += rules.CallSiteCoordIsaSR(evalRange(range), Some(resultRuneS), structRune, interfaceRune)
 
           rules.RuneUsage(evalRange(range), structRune.rune)
         } else if (name.str == keywords.REF_LIST_COMPOUND_MUTABILITY) {
@@ -236,7 +242,8 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case KindComponentsSR(_, resultRune, _) =>
     case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
     case CallSR(range, resultRune, templateRune, args) =>
-    case CoordIsaSR(range, subRune, superRune) =>
+    case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) =>
+    case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) =>
     case CoordSendSR(range, senderRune, receiverRune) =>
     case AugmentSR(range, resultRune, ownership, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
     case LiteralSR(range, rune, literal) =>
@@ -250,6 +257,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case ResolveSR(range, resultRune, name, paramsListRune, returnRune) =>
     case PackSR(range, resultRune, members) =>
     case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) =>
+    case RefListCompoundMutabilitySR(range, resultRune, coordListRune) =>
     case other => vimpl(other)
   })
 

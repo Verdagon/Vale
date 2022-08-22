@@ -10,7 +10,7 @@ import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
-import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructTemplata}
+import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceDefinitionTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructDefinitionTemplata}
 import dev.vale.typing.types.{CoordT, ICitizenTT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
 import scala.collection.immutable.{List, Set}
@@ -48,7 +48,7 @@ trait IInferCompilerDelegate {
     callingEnv: IEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
-    templata: StructTemplata,
+    templata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
   StructTT
@@ -57,7 +57,7 @@ trait IInferCompilerDelegate {
     callingEnv: IEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
-    templata: InterfaceTemplata,
+    templata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
   InterfaceTT
@@ -354,10 +354,10 @@ class InferCompiler(
         val mutability = ITemplata.expectMutability(m)
         delegate.resolveRuntimeSizedArrayKind(state, coord, mutability)
       }
-      case it @ StructTemplata(_, _) => {
+      case it @ StructDefinitionTemplata(_, _) => {
         delegate.resolveStruct(callingEnv, state, range :: ranges, it, args.toVector, true)
       }
-      case it @ InterfaceTemplata(_, _) => {
+      case it @ InterfaceDefinitionTemplata(_, _) => {
         delegate.resolveInterface(callingEnv, state, range :: ranges, it, args.toVector, true)
       }
       case kt @ KindTemplata(_) => {
@@ -373,6 +373,7 @@ object InferCompiler {
   def includeRuleInCallSiteSolve(rule: IRulexSR): Boolean = {
     rule match {
       case DefinitionFuncSR(_, _, _, _, _) => false
+      case DefinitionCoordIsaSR(_, _, _, _) => false
       case _ => true
     }
   }
@@ -380,6 +381,7 @@ object InferCompiler {
   // Some rules should be excluded from the call site, see SROACSD.
   def includeRuleInDefinitionSolve(rule: IRulexSR): Boolean = {
     rule match {
+      case CallSiteCoordIsaSR(_, _, _, _) => false
       case CallSiteFuncSR(_, _, _, _, _) => false
       case ResolveSR(_, _, _, _, _) => false
       case _ => true

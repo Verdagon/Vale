@@ -135,7 +135,7 @@ case class FunctionTemplata(
   def debugString: String = outerEnv.fullName + ":" + function.name
 }
 
-case class StructTemplata(
+case class StructDefinitionTemplata(
   // The paackage this interface was declared in.
   // has the name of the surrounding environment, does NOT include struct's name.
   // See TMRE for more on these environments.
@@ -144,7 +144,7 @@ case class StructTemplata(
   // This is the env entry that the struct came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   originStruct: StructA,
-) extends CitizenTemplata {
+) extends CitizenDefinitionTemplata {
   override def originCitizen: CitizenA = originStruct
 
   vassert(declaringEnv.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
@@ -180,20 +180,20 @@ case class ContainerStruct(struct: StructA) extends IContainer { val hash = runt
 case class ContainerFunction(function: FunctionA) extends IContainer { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 case class ContainerImpl(impl: ImplA) extends IContainer { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; }
 
-sealed trait CitizenTemplata extends ITemplata[TemplateTemplataType] {
+sealed trait CitizenDefinitionTemplata extends ITemplata[TemplateTemplataType] {
   def declaringEnv: IEnvironment
   def originCitizen: CitizenA
 }
-object CitizenTemplata {
-  def unapply(c: CitizenTemplata): Option[(IEnvironment, CitizenA)] = {
+object CitizenDefinitionTemplata {
+  def unapply(c: CitizenDefinitionTemplata): Option[(IEnvironment, CitizenA)] = {
     c match {
-      case StructTemplata(env, origin) => Some((env, origin))
-      case InterfaceTemplata(env, origin) => Some((env, origin))
+      case StructDefinitionTemplata(env, origin) => Some((env, origin))
+      case InterfaceDefinitionTemplata(env, origin) => Some((env, origin))
     }
   }
 }
 
-case class InterfaceTemplata(
+case class InterfaceDefinitionTemplata(
   // The paackage this interface was declared in.
   // Has the name of the surrounding environment, does NOT include interface's name.
   // See TMRE for more on these environments.
@@ -202,7 +202,7 @@ case class InterfaceTemplata(
   // This is the env entry that the interface came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   originInterface: InterfaceA
-) extends CitizenTemplata {
+) extends CitizenDefinitionTemplata {
   override def originCitizen: CitizenA = originInterface
 
   vassert(declaringEnv.fullName.packageCoord == originInterface.name.range.file.packageCoordinate)
@@ -236,7 +236,7 @@ case class InterfaceTemplata(
   def debugString: String = declaringEnv.fullName + ":" + originInterface.name
 }
 
-case class ImplTemplata(
+case class ImplDefinitionTemplata(
   // The paackage this interface was declared in.
   // See TMRE for more on these environments.
   env: IEnvironment,
@@ -250,9 +250,9 @@ case class ImplTemplata(
   // This is the impl that the interface came from originally. It has all the parent
   // structs and interfaces. See NTKPRR for more.
   impl: ImplA
-) extends ITemplata[ITemplataType] {
+) extends ITemplata[ImplTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def tyype: ITemplataType = vfail()
+  override def tyype: ImplTemplataType = ImplTemplataType()
 }
 
 case class OwnershipTemplata(ownership: OwnershipT) extends ITemplata[OwnershipTemplataType] {
@@ -287,6 +287,10 @@ case class StringTemplata(value: String) extends ITemplata[StringTemplataType] {
 case class PrototypeTemplata(declarationRange: RangeS, prototype: PrototypeT) extends ITemplata[PrototypeTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
+}
+case class IsaTemplata(declarationRange: RangeS, subKind: KindT, superKind: KindT) extends ITemplata[ImplTemplataType] {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def tyype: ImplTemplataType = ImplTemplataType()
 }
 case class CoordListTemplata(coords: Vector[CoordT]) extends ITemplata[PackTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;

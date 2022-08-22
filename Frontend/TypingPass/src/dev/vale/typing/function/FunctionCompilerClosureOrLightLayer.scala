@@ -332,35 +332,34 @@ class FunctionCompilerClosureOrLightLayer(
 //    ordinaryOrTemplatedLayer.evaluateOrdinaryFunctionFromCallForPrototype(
 //      newEnv, callingEnv, coutputs, parentRanges)
 //  }
-
-  def evaluateTemplatedClosureFunctionFromNonCallForHeader(
-    outerEnv: IEnvironment,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    closureStructRef: StructTT,
-    function: FunctionA,
-    verifyConclusions: Boolean):
-  (FunctionHeaderT) = {
-    // We dont here because it knows from how many variables
-    // it closures... but even lambdas without closured vars are still closures and are still
-    // backed by structs.
-    vassert(!function.isTemplate)
-
-    val name = makeNameWithClosureds(outerEnv, function.name)
-    coutputs.declareFunction(parentRanges, name)
-    coutputs.declareFunctionOuterEnv(name, outerEnv)
-    val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
-    val newEnv =
-      env.BuildingFunctionEnvironmentWithClosureds(
-        outerEnv.globalEnv,
-        outerEnv,
-        name,
-        TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
-        function,
-        variables)
-    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs, parentRanges, verifyConclusions)
-  }
+//
+//  def evaluateTemplatedClosureFunctionFromNonCallForHeader(
+//    outerEnv: IEnvironment,
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    closureStructRef: StructTT,
+//    function: FunctionA,
+//    verifyConclusions: Boolean):
+//  (FunctionHeaderT) = {
+//    // We dont here because it knows from how many variables
+//    // it closures... but even lambdas without closured vars are still closures and are still
+//    // backed by structs.
+//    vassert(!function.isTemplate)
+//
+//    val name = makeNameWithClosureds(outerEnv, function.name)
+//    coutputs.declareFunction(parentRanges, name)
+//    val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
+//    val newEnv =
+//      env.BuildingFunctionEnvironmentWithClosureds(
+//        outerEnv.globalEnv,
+//        outerEnv,
+//        name,
+//        TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
+//        function,
+//        variables)
+//    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
+//      newEnv, coutputs, parentRanges, verifyConclusions)
+//  }
 
   // This is called while we're trying to figure out what function1s to call when there
   // are a lot of overloads available.
@@ -378,8 +377,6 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
-    coutputs.declareFunction(callRange, newEnv.fullName)
-    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
         newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes)
   }
@@ -396,8 +393,6 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    coutputs.declareFunction(callRange, newEnv.fullName)
-    coutputs.declareFunctionOuterEnv(newEnv.fullName, newEnv)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
   }

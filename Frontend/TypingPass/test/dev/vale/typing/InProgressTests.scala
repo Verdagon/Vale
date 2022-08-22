@@ -3,13 +3,13 @@ package dev.vale.typing
 import dev.vale.postparsing.{CodeNameS, TopLevelStructDeclarationNameS}
 import dev.vale.solver.{FailedSolve, RuleError}
 import dev.vale.typing.OverloadResolver.{InferFailure, SpecificParamDoesntSend}
-import dev.vale.typing.ast.{DestroyTE, DiscardTE, FunctionCallTE, FunctionT, PrototypeT, ReferenceMemberTypeT, SignatureT, UnletTE, referenceExprResultKind, referenceExprResultStructName}
+import dev.vale.typing.ast.{AsSubtypeTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionT, LocalLookupTE, PrototypeT, ReferenceMemberTypeT, SignatureT, SoftLoadTE, UnletTE, UpcastTE, referenceExprResultKind, referenceExprResultStructName}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.infer.OwnershipDidntMatch
-import dev.vale.typing.names.{FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
-import dev.vale.typing.templata.{CoordTemplata, IntegerTemplata, MutabilityTemplata, functionName, simpleName}
-import dev.vale.typing.types.{BoolT, BorrowT, CoordT, ImmutableT, IntT, InterfaceTT, OwnT, RuntimeSizedArrayTT, ShareT, StructTT, VoidT}
-import dev.vale.{Collector, Err, Ok, StrI, Tests, vassert, vassertOne, vfail, vimpl, vwat}
+import dev.vale.typing.names.{FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.templata.{CoordTemplata, IntegerTemplata, KindTemplata, MutabilityTemplata, functionName, simpleName}
+import dev.vale.typing.types.{BoolT, BorrowT, CoordT, ImmutableT, IntT, InterfaceTT, OwnT, PlaceholderT, RuntimeSizedArrayTT, ShareT, StructTT, VoidT}
+import dev.vale.{Collector, Err, Ok, PackageCoordinate, StrI, Tests, vassert, vassertOne, vfail, vimpl, vwat}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
 import org.scalatest.{FunSuite, Matchers}
 
@@ -17,14 +17,21 @@ import scala.io.Source
 
 class InProgressTests extends FunSuite with Matchers {
 
-
   test("DO NOT SUBMIT") {
     vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
 
     vimpl() // OSDCE might be obsolete
 
-    vimpl() // add a test for a lambda that is used twice
-
     vimpl() // add test for callsite Cons<Cons<int>> rune collision
+
+    // is something like this possible?
+    // and would it mean that we have to detect reentrant evaluation of that lambda template function?
+    """
+      |lam = (f, z) => {
+      |  f(f, z)
+      |}
+      |lam(lam);
+      |""".stripMargin
   }
+
 }
