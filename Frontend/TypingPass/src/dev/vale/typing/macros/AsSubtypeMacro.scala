@@ -29,10 +29,9 @@ class AsSubtypeMacro(
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val KindTemplata(targetKind) = vassertSome(env.fullName.last.templateArgs.headOption)
 
@@ -57,8 +56,6 @@ class AsSubtypeMacro(
         okConstructor,
         errConstructor)
 
-    coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(asSubtypeExpr))))
-
-    header
+    (header, BlockTE(ReturnTE(asSubtypeExpr)))
   }
 }

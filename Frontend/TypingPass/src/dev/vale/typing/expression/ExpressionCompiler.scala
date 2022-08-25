@@ -41,7 +41,7 @@ trait IExpressionCompilerDelegate {
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT]):
-  IEvaluateFunctionResult[PrototypeTemplata]
+  IEvaluateFunctionResult
 
   def evaluateGenericFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
@@ -50,7 +50,7 @@ trait IExpressionCompilerDelegate {
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT]):
-  IEvaluateFunctionResult[PrototypeTemplata]
+  IEvaluateFunctionResult
 
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
@@ -1203,7 +1203,7 @@ class ExpressionCompiler(
       }
     val optInterfaceRef =
       structCompiler.resolveInterface(
-        coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedCoord)))
+        coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedCoord))).kind
     val ownOptCoord = CoordT(OwnT, optInterfaceRef)
 
     val someConstructorTemplata =
@@ -1215,7 +1215,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(containedCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p) => p
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val noneConstructorTemplata =
@@ -1227,9 +1227,9 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p) => p
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
-    (ownOptCoord, someConstructor.prototype, noneConstructor.prototype)
+    (ownOptCoord, someConstructor, noneConstructor)
   }
 
   def getResult(
@@ -1245,7 +1245,7 @@ class ExpressionCompiler(
         case _ => vfail()
       }
     val resultInterfaceRef =
-      structCompiler.resolveInterface(coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)))
+      structCompiler.resolveInterface(coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord))).kind
     val ownResultCoord = CoordT(OwnT, resultInterfaceRef)
 
     val okConstructorTemplata =
@@ -1257,7 +1257,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedSuccessCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p) => p
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val errConstructorTemplata =
@@ -1269,10 +1269,10 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedFailCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p) => p
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
-    (ownResultCoord, okConstructor.prototype, errConstructor.prototype)
+    (ownResultCoord, okConstructor, errConstructor)
   }
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {

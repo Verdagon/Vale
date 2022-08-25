@@ -3,14 +3,13 @@ package dev.vale.typing
 import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
-import dev.vale.solver.{IIncompleteOrFailedSolve, SolverErrorHumanizer}
+import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
 import dev.vale.typing.types._
 import dev.vale.SourceCodeUtils.{humanizePos, lineBegin, lineContaining, lineRangeContaining}
 import dev.vale.highertyping.FunctionA
 import PostParserErrorHumanizer._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.PostParserErrorHumanizer
-import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
@@ -80,7 +79,16 @@ object CompilerErrorHumanizer {
         }
         case CouldntEvaluatImpl(range, eff) => {
           "Couldn't evaluate impl statement:\n" +
-            humanizeCandidateAndFailedSolve(codeMap, eff)
+            humanizeCandidateAndFailedSolve(codeMap, eff match {
+              case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
+                IncompleteSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+                  steps, unsolvedRules, unknownRunes, incompleteConclusions)
+              }
+              case FailedCompilerSolve(steps, unsolvedRules, error) => {
+                FailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+                  steps, unsolvedRules, error)
+              }
+            })
       }
         case BodyResultDoesntMatch(range, functionName, expectedReturnType, resultType) => {
           "Function " + printableName(codeMap, functionName) + " return type " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType)) + " doesn't match body's result: " + humanizeTemplata(codeMap, CoordTemplata(resultType))
@@ -166,7 +174,16 @@ object CompilerErrorHumanizer {
               (rule: IRulexSR) => rule.runeUsages.map(usage => (usage.rune, usage.range)),
               (rule: IRulexSR) => rule.runeUsages.map(_.rune),
               PostParserErrorHumanizer.humanizeRule,
-              failedSolve)
+              failedSolve match {
+                case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
+                  IncompleteSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+                    steps, unsolvedRules, unknownRunes, incompleteConclusions)
+                }
+                case FailedCompilerSolve(steps, unsolvedRules, error) => {
+                  FailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+                    steps, unsolvedRules, error)
+                }
+              })
           text
         }
         case HigherTypingInferError(range, err) => {
@@ -301,7 +318,16 @@ object CompilerErrorHumanizer {
       }
 //      case Outscored() => "Outscored!"
       case InferFailure(reason) => {
-        humanizeCandidateAndFailedSolve(codeMap, reason)
+        humanizeCandidateAndFailedSolve(codeMap, reason match {
+          case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
+            IncompleteSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+              steps, unsolvedRules, unknownRunes, incompleteConclusions)
+          }
+          case FailedCompilerSolve(steps, unsolvedRules, error) => {
+            FailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+              steps, unsolvedRules, error)
+          }
+        })
       }
     })
   }

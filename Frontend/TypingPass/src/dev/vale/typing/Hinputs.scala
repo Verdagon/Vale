@@ -4,7 +4,7 @@ import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionT, 
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
 import dev.vale.typing.templata.simpleName
 import dev.vale.typing.types._
-import dev.vale.{StrI, vassertSome, vcurious, vfail, vimpl}
+import dev.vale.{StrI, vassertOne, vassertSome, vcurious, vfail, vimpl}
 import dev.vale.typing.ast._
 import dev.vale.typing.names._
 import dev.vale.typing.types._
@@ -15,7 +15,9 @@ case class Hinputs(
 //  emptyPackStructRef: StructTT,
   functions: Vector[FunctionT],
 //  immKindToDestructor: Map[KindT, PrototypeT],
-  edgeBlueprintsByInterface: Map[FullNameT[IInterfaceTemplateNameT], InterfaceEdgeBlueprint],
+
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  interfaceToEdgeBlueprints: Map[FullNameT[IInterfaceNameT], InterfaceEdgeBlueprint],
   edges: Vector[EdgeT],
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -23,11 +25,27 @@ case class Hinputs(
   functionExterns: Vector[FunctionExternT]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
-  def lookupStruct(structTemplateName: StructTemplateNameT): StructDefinitionT = {
-    vassertSome(structs.find(_.templateName.last == structTemplateName))
+  def lookupStruct(structFullName: FullNameT[IStructNameT]): StructDefinitionT = {
+    vassertSome(structs.find(_.instantiatedCitizen.fullName == structFullName))
   }
 
-  def lookupInterface(interfaceTemplateName: InterfaceTemplateNameT): InterfaceDefinitionT = {
+  def lookupInterface(interfaceFullName: FullNameT[IInterfaceNameT]): InterfaceDefinitionT = {
+    vassertSome(interfaces.find(_.instantiatedCitizen.fullName == interfaceFullName))
+  }
+
+  def lookupStructByTemplateFullName(structTemplateFullName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {
+    vassertSome(structs.find(_.templateName == structTemplateFullName))
+  }
+
+  def lookupInterfaceByTemplateFullName(interfaceTemplateFullName: FullNameT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
+    vassertSome(interfaces.find(_.templateName == interfaceTemplateFullName))
+  }
+
+  def lookupStructByTemplateName(structTemplateName: StructTemplateNameT): StructDefinitionT = {
+    vassertOne(structs.filter(_.templateName.last == structTemplateName))
+  }
+
+  def lookupInterfaceByTemplateName(interfaceTemplateName: InterfaceTemplateNameT): InterfaceDefinitionT = {
     vassertSome(interfaces.find(_.templateName.last == interfaceTemplateName))
   }
 

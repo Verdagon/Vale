@@ -27,10 +27,9 @@ class LockWeakMacro(
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val borrowCoord = paramCoords.head.tyype.copy(ownership = BorrowT)
     val (optCoord, someConstructor, noneConstructor) =
@@ -42,8 +41,8 @@ class LockWeakMacro(
         someConstructor,
         noneConstructor)
 
-    coutputs.addFunction(FunctionT(header, BlockTE(ReturnTE(lockExpr))))
+    val body = BlockTE(ReturnTE(lockExpr))
 
-    header
+    (header, body)
   }
 }

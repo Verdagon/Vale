@@ -22,10 +22,8 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
     originFunction: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
-
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val returnReferenceType2 = vassertSome(maybeRetCoord)
-
     vassert(params2.exists(_.virtuality == Some(AbstractT())))
     val header =
       FunctionHeaderT(
@@ -34,20 +32,14 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
         params2,
         returnReferenceType2,
         originFunction.map(FunctionTemplata(env.parentEnv, _)))
-    val function2 =
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            InterfaceFunctionCallTE(
-              header,
-              header.returnType,
-              header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })))))
+    val body =
+      BlockTE(
+        ReturnTE(
+          InterfaceFunctionCallTE(
+            header,
+            header.returnType,
+            header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) }))))
 
-    coutputs
-      .declareFunctionReturnType(header.toSignature, returnReferenceType2)
-    coutputs.addFunction(function2)
-//    vassert(coutputs.getDeclaredSignatureOrigin(env.fullName).nonEmpty)
-    header
+    (header, body)
   }
 }

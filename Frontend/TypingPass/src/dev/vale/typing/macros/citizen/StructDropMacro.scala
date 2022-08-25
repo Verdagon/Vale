@@ -140,7 +140,7 @@ class StructDropMacro(
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val bodyEnv = FunctionEnvironmentBox(env)
 
     val structTT =
@@ -192,8 +192,7 @@ class StructDropMacro(
         }
       }
 
-    val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
-    coutputs.addFunction(function2)
-    function2.header
+    val body = BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE()))))
+    (header, body)
   }
 }

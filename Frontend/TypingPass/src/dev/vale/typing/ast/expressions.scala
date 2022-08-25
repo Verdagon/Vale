@@ -6,10 +6,10 @@ import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunction
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType}
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {
@@ -523,8 +523,14 @@ case class ExternFunctionCallTE(
 }
 
 case class FunctionCallTE(
-    callable: PrototypeT,
-    args: Vector[ReferenceExpressionTE]) extends ReferenceExpressionTE {
+  callable: PrototypeT,
+  // The callee might have some concept functions that they'd like filled, this is
+  // how we supply them.
+  // This is mainly to save work for the latter stages, since we already have that info
+  // handy at call time.
+  runeToFunctionBound: Map[IRuneS, PrototypeTemplata],
+  args: Vector[ReferenceExpressionTE]
+) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(callable.paramTypes.size == args.size)

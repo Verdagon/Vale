@@ -23,17 +23,14 @@ class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            ArrayLengthTE(
-              ArgLookupTE(0, paramCoords(0).tyype))))))
-    header
+    val body =
+      BlockTE(
+        ReturnTE(
+          ArrayLengthTE(
+            ArgLookupTE(0, paramCoords(0).tyype))))
+    (header, body)
   }
 }

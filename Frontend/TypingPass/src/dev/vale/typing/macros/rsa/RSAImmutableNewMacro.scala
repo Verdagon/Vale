@@ -28,7 +28,7 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResol
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
         env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
@@ -81,16 +81,14 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResol
         case Ok(x) => x
       }
 
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            NewImmRuntimeSizedArrayTE(
-              arrayTT,
-              ArgLookupTE(0, paramCoords(0).tyype),
-              ArgLookupTE(1, paramCoords(1).tyype),
-              generatorPrototype.prototype)))))
-    header
+    val body =
+      BlockTE(
+        ReturnTE(
+          NewImmRuntimeSizedArrayTE(
+            arrayTT,
+            ArgLookupTE(0, paramCoords(0).tyype),
+            ArgLookupTE(1, paramCoords(1).tyype),
+            generatorPrototype.function.prototype)))
+    (header, body)
   }
 }

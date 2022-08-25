@@ -67,9 +67,16 @@ trait IFunctionCompilerDelegate {
 }
 
 object FunctionCompiler {
-  trait IEvaluateFunctionResult[T]
-  case class EvaluateFunctionSuccess[T](function: T) extends IEvaluateFunctionResult[T]
-  case class EvaluateFunctionFailure[T](reason: IFindFunctionFailureReason) extends IEvaluateFunctionResult[T]
+  trait IEvaluateFunctionResult
+
+  case class EvaluateFunctionSuccess(
+    function: PrototypeTemplata,
+    runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
+  ) extends IEvaluateFunctionResult
+
+  case class EvaluateFunctionFailure(
+    reason: IFindFunctionFailureReason
+  ) extends IEvaluateFunctionResult
 }
 
 // When typingpassing a function, these things need to happen:
@@ -334,7 +341,7 @@ class FunctionCompiler(
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
         val FunctionTemplata(declaringEnv, function) = functionTemplata
         if (function.isLight()) {
@@ -370,7 +377,7 @@ class FunctionCompiler(
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes2: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForBanner(
       declaringEnv, coutputs, callingEnv, callRange, closureStructRef, function,
       alreadySpecifiedTemplateArgs, argTypes2)
@@ -383,7 +390,7 @@ class FunctionCompiler(
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
         val FunctionTemplata(declaringEnv, function) = functionTemplata
         closureOrLightLayer.evaluateTemplatedLightBannerFromCall(
@@ -512,7 +519,7 @@ class FunctionCompiler(
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]],
     verifyConclusions: Boolean):
-  IEvaluateFunctionResult[PrototypeTemplata] = {
+  IEvaluateFunctionResult = {
     Profiler.frame(() => {
         val FunctionTemplata(env, function) = functionTemplata
         if (function.isLight()) {
@@ -532,7 +539,7 @@ class FunctionCompiler(
     callingEnv: IEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult[(PrototypeT, Map[IRuneS, ITemplata[ITemplataType]])] = {
+  IEvaluateFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionParentForPrototype2(
@@ -547,7 +554,7 @@ class FunctionCompiler(
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult[PrototypeTemplata] = {
+  IEvaluateFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
@@ -564,7 +571,7 @@ class FunctionCompiler(
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]],
     verifyConclusions: Boolean):
-  IEvaluateFunctionResult[PrototypeTemplata] = {
+  IEvaluateFunctionResult = {
     closureOrLightLayer.evaluateTemplatedLightFunctionFromCallForPrototype2(
         env, coutputs, callingEnv, callRange, function, explicitTemplateArgs, argTypes, verifyConclusions)
   }
@@ -578,7 +585,7 @@ class FunctionCompiler(
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]],
     verifyConclusions: Boolean):
-  IEvaluateFunctionResult[PrototypeTemplata] = {
+  IEvaluateFunctionResult = {
     val lambdaCitizenName2 =
       function.name match {
         case LambdaDeclarationNameS(codeLocation) => interner.intern(LambdaCitizenNameT(interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(codeLocation)))))

@@ -318,7 +318,8 @@ class LetHammer(
     val (sourceExprHE, sourceExprDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
 
-    val structDefT = hinputs.lookupStruct(structTT)
+//    val structDefT = hinputs.lookupStruct(TemplataCompiler.getStructTemplate(structTT.fullName))
+    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
 
     // Destructure2 will immediately destroy any addressible references inside it
     // (see Destructure2 comments).
@@ -339,7 +340,7 @@ class LetHammer(
               val destinationReferenceLocalVariable = remainingDestinationReferenceLocalVariables.head
 
               val (memberRefTypeH) =
-                typeHammer.translateReference(hinputs, hamuts, memberRefType2)
+                typeHammer.translateReference(hinputs, hamuts, memberRefType2.unsubstitutedCoord)
               val varIdNameH = nameHammer.translateFullName(hinputs, hamuts, destinationReferenceLocalVariable.id)
               val localIndex =
                 locals.addTypingPassLocal(
@@ -355,11 +356,11 @@ class LetHammer(
             // unborrow it.
             case AddressMemberTypeT(memberRefType2) => {
               val (memberRefTypeH) =
-                typeHammer.translateReference(hinputs, hamuts, memberRefType2);
+                typeHammer.translateReference(hinputs, hamuts, memberRefType2.unsubstitutedCoord);
               // In the case of an addressible struct member, its variability refers to the
               // variability of the pointee variable, see structMember2
               val (boxStructRefH) =
-                structHammer.makeBox(hinputs, hamuts, member2.variability, memberRefType2, memberRefTypeH)
+                structHammer.makeBox(hinputs, hamuts, member2.variability, memberRefType2.unsubstitutedCoord, memberRefTypeH)
               // Structs only ever borrow boxes, boxes are only ever owned by the stack.
               val localBoxType = ReferenceH(BorrowH, YonderH, boxStructRefH)
               val localIndex = locals.addHammerLocal(localBoxType, Final)

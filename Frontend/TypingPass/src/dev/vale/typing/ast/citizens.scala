@@ -10,12 +10,13 @@ import dev.vale.{StrI, vcurious, vfail, vpass}
 trait CitizenDefinitionT {
   def templateName: FullNameT[ICitizenTemplateNameT]
   def genericParamTypes: Vector[ITemplataType]
-  def placeholderedCitizen: ICitizenTT
+  def instantiatedCitizen: ICitizenTT
 }
 
 case class StructDefinitionT(
   templateName: FullNameT[IStructTemplateNameT],
-  placeholderedCitizen: StructTT,
+  // In typing pass, this will have placeholders. Monomorphizing will give it a real name.
+  instantiatedCitizen: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
@@ -23,7 +24,7 @@ case class StructDefinitionT(
   isClosure: Boolean
 ) extends CitizenDefinitionT {
   override def genericParamTypes: Vector[ITemplataType] = {
-    placeholderedCitizen.fullName.last.templateArgs.map(_.tyype)
+    instantiatedCitizen.fullName.last.templateArgs.map(_.tyype)
   }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -82,7 +83,7 @@ case class ReferenceMemberTypeT(reference: UnsubstitutedCoordT) extends IMemberT
 
 case class InterfaceDefinitionT(
   templateName: FullNameT[IInterfaceTemplateNameT],
-  placeholderedInterface: InterfaceTT,
+  instantiatedInterface: InterfaceTT,
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
@@ -92,10 +93,10 @@ case class InterfaceDefinitionT(
   internalMethods: Vector[FunctionHeaderT]
 ) extends CitizenDefinitionT  {
   override def genericParamTypes: Vector[ITemplataType] = {
-    placeholderedCitizen.fullName.last.templateArgs.map(_.tyype)
+    instantiatedCitizen.fullName.last.templateArgs.map(_.tyype)
   }
 
-  override def placeholderedCitizen: ICitizenTT = placeholderedInterface
+  override def instantiatedCitizen: ICitizenTT = instantiatedInterface
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 //  override def getRef = ref
 }

@@ -1,10 +1,9 @@
 package dev.vale
 
 import dev.vale.typing.ast.ParameterT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata.simpleName
 import dev.vale.typing.types.StructTT
 import dev.vale.von.VonInt
@@ -27,7 +26,7 @@ class InferTemplateTests extends FunSuite with Matchers {
       case Vector(ParameterT(CodeVarNameT(StrI("m")), _, CoordT(BorrowT,_))) =>
     }
     moo.header.fullName.last.templateArgs match {
-      case Vector(CoordTemplata(CoordT(OwnT, StructTT(FullNameT(x, Vector(), CitizenNameT(CitizenTemplateNameT(StrI("Muta")), Vector())))))) => vassert(x.isTest)
+      case Vector(CoordTemplata(CoordT(OwnT, StructTT(FullNameT(x, Vector(), StructNameT(StructTemplateNameT(StrI("Muta")), Vector())))))) => vassert(x.isTest)
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }

@@ -7,8 +7,8 @@ import dev.vale.finalast.{FullNameH, IntH, OwnH, ProgramH, PrototypeH, YonderH}
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{SignatureT, StructToInterfaceUpcastTE}
-import dev.vale.typing.names.{FullNameT, FunctionNameT}
+import dev.vale.typing.ast._
+import dev.vale.typing.names.{FullNameT, FunctionNameT, FunctionTemplateNameT}
 import dev.vale.typing.{Hinputs, ICompileErrorT, ast}
 import dev.vale.typing.types._
 import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, PrimitiveKindV, ReferenceV, StructInstanceV, Vivem}
@@ -24,7 +24,6 @@ import dev.vale.finalast.FullNameH
 import dev.vale.lexing.{FailedParse, RangeL}
 import dev.vale.postparsing.ICompileErrorS
 import dev.vale.typing.ast._
-import dev.vale.typing.names.FunctionNameT
 import dev.vale.typing.types.StrT
 import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
 
@@ -200,7 +199,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
   test("Test templates") {
     val compile = RunCompilation.test(
       """
-        |func bork<T>(a T, b T) T { return a; }
+        |func bork<T>(a T, b T) T where func drop(T)void { return a; }
         |exported func main() int {true bork false; 2 bork 2; return 3 bork 3;}
       """.stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -545,7 +544,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val doIt = coutputs.lookupFunction("doIt")
     Collector.only(doIt, {
-      case StructToInterfaceUpcastTE(_, _) =>
+      case UpcastTE(_, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -599,7 +598,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val doIt = coutputs.lookupFunction("doIt")
     Collector.only(doIt, {
-      case StructToInterfaceUpcastTE(_, _) =>
+      case UpcastTE(_, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -629,11 +628,14 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val interner = compile.interner
     val keywords = compile.keywords
 
-    vassertSome(hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("helperFunc")), Vector.empty, Vector(CoordT(ShareT, IntT.i32))))))))
-
-    vassert(None == hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("bork")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
-
-    vassert(None == hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("helperFunc")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
+    vimpl()
+//    vassert(compile.getMonouts().functions.filter(_.header.fullName.last match { case FunctionNameT(FunctionTemplateNameT(StrI("helperFunc"), _), _, _) => true case _ => false }))
+//
+//    vassertSome(hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("helperFunc")), vimpl())), Vector.empty, Vector(CoordT(ShareT, IntT.i32))))))))
+//
+//    vassert(None == hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("bork")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
+//
+//    vassert(None == hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("helperFunc")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
   }
 
   test("Test overloading between borrow and weak") {

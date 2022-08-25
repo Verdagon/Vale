@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
@@ -85,12 +85,15 @@ case class FunctionExternT(
 }
 
 case class InterfaceEdgeBlueprint(
-  interface: FullNameT[IInterfaceTemplateNameT],
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  interface: FullNameT[IInterfaceNameT],
   superFamilyRootHeaders: Vector[FunctionHeaderT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(
-    struct: FullNameT[ICitizenTemplateNameT],
-    interface: FullNameT[IInterfaceTemplateNameT],
+    // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+    struct: FullNameT[ICitizenNameT],
+    // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+    interface: FullNameT[IInterfaceNameT],
     methods: Vector[PrototypeT]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -113,6 +116,7 @@ object ProgramT {
 
 case class FunctionT(
   header: FunctionHeaderT,
+  functionBoundToRune: Map[PrototypeT, IRuneS],
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
@@ -178,7 +182,8 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Array[CoordT] = header.paramTypes.toArray
 }
 case class ValidPrototypeTemplataCalleeCandidate(
-  prototype: PrototypeTemplata
+  prototype: PrototypeTemplata,
+  conclusions: Map[IRuneS, PrototypeTemplata]
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -399,7 +404,7 @@ case class FunctionHeaderT(
 
 case class PrototypeT(
     fullName: FullNameT[IFunctionNameT],
-    returnType: CoordT)  {
+    returnType: CoordT) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   def paramTypes: Vector[CoordT] = fullName.last.parameters
   def toSignature: SignatureT = SignatureT(fullName)

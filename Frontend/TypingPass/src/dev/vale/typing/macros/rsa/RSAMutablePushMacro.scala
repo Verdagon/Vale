@@ -28,27 +28,23 @@ class RSAMutablePushMacro(interner: Interner, keywords: Keywords) extends IFunct
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
         env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
-    val CoordTemplata(elementType) =
-      vassertSome(
-        env.lookupNearestWithImpreciseName(
-          interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
+//    val CoordTemplata(elementType) =
+//      vassertSome(
+//        env.lookupNearestWithImpreciseName(
+//          interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
+//    val arrayTT = interner.intern(RuntimeSizedArrayTT(MutabilityTemplata(MutableT), elementType))
 
-    val arrayTT = interner.intern(RuntimeSizedArrayTT(MutabilityTemplata(MutableT), elementType))
-
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            PushRuntimeSizedArrayTE(
-              ArgLookupTE(0, paramCoords(0).tyype),
-              ArgLookupTE(1, paramCoords(1).tyype))))))
-    header
+    val body =
+      BlockTE(
+        ReturnTE(
+          PushRuntimeSizedArrayTE(
+            ArgLookupTE(0, paramCoords(0).tyype),
+            ArgLookupTE(1, paramCoords(1).tyype))))
+    (header, body)
   }
 }

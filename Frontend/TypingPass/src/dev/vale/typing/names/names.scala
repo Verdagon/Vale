@@ -157,6 +157,9 @@ sealed trait IInterfaceNameT extends ICitizenNameT with ISubKindNameT with ISupe
 }
 trait IImplTemplateNameT extends ITemplateNameT
 
+
+case class ExportNameT(codeLoc: CodeLocationS) extends ITemplateNameT
+
 case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT
 
 // The name of an impl that is subclassing some interface. To find all impls subclassing an interface,
@@ -256,8 +259,7 @@ case class FunctionNameT(
 
 case class ForwarderFunctionNameT(
   template: ForwarderFunctionTemplateNameT,
-  inner: IFunctionNameT,
-  index: Int
+  inner: IFunctionNameT
 ) extends IFunctionNameT {
   override def templateArgs: Vector[ITemplata[ITemplataType]] = inner.templateArgs
   override def parameters: Vector[CoordT] = inner.parameters
@@ -284,7 +286,7 @@ case class ForwarderFunctionTemplateNameT(
   index: Int
 ) extends INameT with IFunctionTemplateNameT {
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    interner.intern(ForwarderFunctionNameT(this, inner.makeFunctionName(interner, keywords, templateArgs, params), index))
+    interner.intern(ForwarderFunctionNameT(this, inner.makeFunctionName(interner, keywords, templateArgs, params)))//, index))
   }
 }
 
@@ -390,19 +392,16 @@ object CitizenNameT {
 }
 
 case class StructNameT(
-  templatee: IStructTemplateNameT,
-  templateArgss: Vector[ITemplata[ITemplataType]]
+  template: IStructTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IStructNameT with CitizenNameT {
-  override def template = templatee
-  override def templateArgs = templateArgss
   vpass()
 }
 
 case class InterfaceNameT(
-  templatee: InterfaceTemplateNameT,
+  template: InterfaceTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IInterfaceNameT with CitizenNameT {
-  override def template: InterfaceTemplateNameT = templatee
   vpass()
 }
 

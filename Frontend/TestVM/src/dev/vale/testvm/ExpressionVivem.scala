@@ -976,12 +976,12 @@ object ExpressionVivem {
     arrayReference: ReferenceV,
     consumerReference: ReferenceV,
     consumerPrototype: PrototypeH,
-    size: Int,
-    receiver: (Int, ReferenceV) => Unit):
+    size: Long,
+    receiver: (Long, ReferenceV) => Unit):
   Unit = {
     val consumerFunction = programH.lookupFunction(consumerPrototype)
 
-    (0 until size).reverse.foreach(i => {
+    (0L until size).reverse.foreach(i => {
       heap.vivemDout.println()
       heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (consumer)")
 
@@ -1025,12 +1025,12 @@ object ExpressionVivem {
     callId: CallId,
     generatorReference: ReferenceV,
     generatorPrototype: PrototypeH,
-    size: Int,
-    receiver: (Int, ReferenceV) => Unit):
+    size: Long,
+    receiver: (Long, ReferenceV) => Unit):
   Unit = {
     val generatorFunction = programH.lookupFunction(generatorPrototype)
 
-    (0 until size).foreach(i => {
+    (0L until size).foreach(i => {
       heap.vivemDout.println()
       heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (generator)")
 

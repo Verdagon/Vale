@@ -23,22 +23,19 @@ class RSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
     val fate = FunctionEnvironmentBox(env)
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            arrayCompiler.evaluateDestroyRuntimeSizedArrayIntoCallable(
-              coutputs,
-              fate,
-              callRange,
-              ArgLookupTE(0, paramCoords(0).tyype),
-              ArgLookupTE(1, paramCoords(1).tyype))))))
-    header
+    val body =
+      BlockTE(
+        ReturnTE(
+          arrayCompiler.evaluateDestroyRuntimeSizedArrayIntoCallable(
+            coutputs,
+            fate,
+            callRange,
+            ArgLookupTE(0, paramCoords(0).tyype),
+            ArgLookupTE(1, paramCoords(1).tyype))))
+    (header, body)
   }
 }

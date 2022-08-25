@@ -24,7 +24,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
@@ -33,15 +33,13 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
         case Vector(CoordT(_, StaticSizedArrayTT(size, _, _, _))) => size
         case _ => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "SSALenMacro received non-SSA param: " + header.paramTypes))
       }
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ConsecutorTE(
-            Vector(
-              DiscardTE(ArgLookupTE(0, paramCoords(0).tyype)),
-              ReturnTE(
-                ConstantIntTE(len, 32)))))))
-    header
+    val body =
+      BlockTE(
+        ConsecutorTE(
+          Vector(
+            DiscardTE(ArgLookupTE(0, paramCoords(0).tyype)),
+            ReturnTE(
+              ConstantIntTE(len, 32)))))
+    (header, body)
   }
 }

@@ -4,7 +4,7 @@ package dev.vale.typing.function
 import dev.vale.postparsing._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS, vfail}
+import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS, vfail, vimpl}
 import dev.vale.highertyping._
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules.OwnershipLiteralSL
@@ -20,6 +20,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.names.PackageTopLevelNameT
 
 import scala.collection.immutable.List
@@ -35,7 +36,7 @@ class DestructorCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     type2: CoordT):
-  (PrototypeTemplata) = {
+  EvaluateFunctionSuccess = {
     val name = interner.intern(CodeNameS(keywords.drop))
     val args = Vector(type2)
     overloadCompiler.findFunction(
@@ -50,7 +51,7 @@ class DestructorCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     type2: CoordT):
-  (PrototypeT) = {
+  EvaluateFunctionSuccess = {
     val env =
       PackageEnvironment(
         globalEnv,
@@ -61,7 +62,7 @@ class DestructorCompiler(
     overloadCompiler.findFunction(
       env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true, true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
-      case Ok(x) => x.prototype
+      case Ok(x) => x
     }
   }
 
@@ -75,7 +76,10 @@ class DestructorCompiler(
       undestructedExpr2.result.reference match {
         case r@CoordT(OwnT, _) => {
           val destructorPrototype = getDropFunction(env, coutputs, callRange, r)
-          FunctionCallTE(destructorPrototype.prototype, Vector(undestructedExpr2))
+          FunctionCallTE(
+            destructorPrototype.function.prototype,
+            destructorPrototype.runeToSuppliedFunction,
+            Vector(undestructedExpr2))
         }
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(WeakT, _) => (DiscardTE(undestructedExpr2))

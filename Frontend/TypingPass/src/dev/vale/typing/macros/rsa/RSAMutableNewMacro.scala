@@ -29,7 +29,7 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
         env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
@@ -48,14 +48,12 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
 
     val arrayTT = interner.intern(RuntimeSizedArrayTT(mutability, elementType))
 
-    coutputs.addFunction(
-      FunctionT(
-        header,
-        BlockTE(
-          ReturnTE(
-            NewMutRuntimeSizedArrayTE(
-              arrayTT,
-              ArgLookupTE(0, paramCoords(0).tyype))))))
-    header
+    val body =
+      BlockTE(
+        ReturnTE(
+          NewMutRuntimeSizedArrayTE(
+            arrayTT,
+            ArgLookupTE(0, paramCoords(0).tyype))))
+    (header, body)
   }
 }

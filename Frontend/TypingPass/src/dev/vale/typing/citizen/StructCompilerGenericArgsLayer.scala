@@ -36,7 +36,7 @@ class StructCompilerGenericArgsLayer(
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructTT) = {
+  ResolveSuccess[StructTT] = {
     Profiler.frame(() => {
       val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
@@ -55,7 +55,7 @@ class StructCompilerGenericArgsLayer(
           structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
       // Check if its a valid use of this template
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -76,7 +76,12 @@ class StructCompilerGenericArgsLayer(
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(structName)
       val structTT = interner.intern(StructTT(fullName))
-      structTT
+
+      val runeToSuppliedFunction =
+        inferences.collect({
+          case (rune, pt @ PrototypeTemplata(_, _)) => (rune -> pt)
+        })
+      ResolveSuccess(structTT)//, runeToSuppliedFunction)
     })
   }
 
@@ -112,7 +117,7 @@ class StructCompilerGenericArgsLayer(
 
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -170,7 +175,7 @@ class StructCompilerGenericArgsLayer(
 
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -202,7 +207,7 @@ class StructCompilerGenericArgsLayer(
     callRange: List[RangeS],
     interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
+  ResolveSuccess[InterfaceTT] = {
     Profiler.frame(() => {
       val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
@@ -221,7 +226,7 @@ class StructCompilerGenericArgsLayer(
           interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
 
       // This checks to make sure it's a valid use of this template.
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -242,7 +247,12 @@ class StructCompilerGenericArgsLayer(
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(interfaceName)
       val interfaceTT = interner.intern(InterfaceTT(fullName))
-      interfaceTT
+
+      val runeToSuppliedFunction =
+        inferences.collect({
+          case (rune, pt @ PrototypeTemplata(_, _)) => (rune -> pt)
+        })
+      ResolveSuccess(interfaceTT)//, runeToSuppliedFunction)
     })
   }
 
@@ -278,11 +288,11 @@ class StructCompilerGenericArgsLayer(
         inferCompiler.solve(
           InferEnv(outerEnv, List(structA.range), outerEnv),
           coutputs, definitionRules.toVector, allRuneToType, structA.range :: parentRanges, Vector(), Vector(), true, true, false) match {
-          case f @ FailedSolve(_, _, err) => {
+          case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f))
           }
-          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteSolve(_, conclusions) => conclusions
+          case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+          case CompleteCompilerSolve(_, conclusions, _) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -301,7 +311,7 @@ class StructCompilerGenericArgsLayer(
         })
 
 
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(outerEnv, List(structA.range), outerEnv),
           coutputs,
@@ -387,11 +397,11 @@ class StructCompilerGenericArgsLayer(
         inferCompiler.solve(
           InferEnv(outerEnv, List(interfaceA.range), outerEnv),
           coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector(), true, true, false) match {
-          case f @ FailedSolve(_, _, err) => {
+          case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f))
           }
-          case IncompleteSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteSolve(_, conclusions) => conclusions
+          case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => incompleteConclusions
+          case CompleteCompilerSolve(_, conclusions, _) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -409,7 +419,7 @@ class StructCompilerGenericArgsLayer(
           }
         })
 
-      val inferences =
+      val CompleteCompilerSolve(_, inferences, _) =
         inferCompiler.solveExpectComplete(
           InferEnv(outerEnv, interfaceA.range :: parentRanges, outerEnv),
           coutputs,

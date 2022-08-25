@@ -35,13 +35,11 @@ class RSAFreeMacro(
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val Vector(rsaCoord @ CoordT(ShareT, arrayTT @ RuntimeSizedArrayTT(_, _))) = params2.map(_.tyype)
 
     val ret = CoordT(ShareT, VoidT())
     val header = FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))
-
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
 //    val dropFunction = destructorCompiler.getDropFunction(env, coutputs, callRange, elementCoord)
 //    val args = Vector(CoordT(ShareT, VoidT())) ++ dropFunction.prototype.paramTypes
@@ -74,8 +72,7 @@ class RSAFreeMacro(
       DestroyImmRuntimeSizedArrayTE(
         ArgLookupTE(0, rsaCoord), arrayTT, VoidLiteralTE(), dropPrototype)
 
-    val function2 = FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
-    coutputs.addFunction(function2)
-    function2.header
+    val body = BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE()))))
+    (header, body)
   }
 }

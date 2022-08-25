@@ -2,11 +2,10 @@ package dev.vale
 
 import dev.vale.typing.{ast, types}
 import dev.vale.typing.ast.{AbstractT, SignatureT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.testvm.IntV
 import dev.vale.typing.ast._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types._
 import dev.vale.von.{VonInt, VonStr}
 import org.scalatest.{FunSuite, Matchers}
@@ -38,14 +37,16 @@ class VirtualTests extends FunSuite with Matchers {
                 Vector.empty,
                 interner.intern(
                   FunctionNameT(
-                    interner.intern(StrI("doThing")),
+                    interner.intern(FunctionTemplateNameT(
+                      interner.intern(StrI("doThing")),
+                      vimpl())),
                     Vector.empty,
                     Vector(
                       CoordT(
                         OwnT,
                         interner.intern(
                           InterfaceTT(
-                            FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(CitizenNameT(interner.intern(CitizenTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
+                            FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
       vassert(doThing.header.params(0).virtuality.get == AbstractT())
     }
 
@@ -75,14 +76,17 @@ class VirtualTests extends FunSuite with Matchers {
               Vector.empty,
               interner.intern(
                 FunctionNameT(
-                  interner.intern(StrI("doThing")),
+                  interner.intern(
+                    FunctionTemplateNameT(
+                      interner.intern(StrI("doThing")),
+                      vimpl())),
                   Vector.empty,
                   Vector(
                     CoordT(
                       OwnT,
                       interner.intern(
                         types.InterfaceTT(
-                          FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(CitizenNameT(interner.intern(CitizenTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
+                          FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
     vassert(doThing.header.params(0).virtuality.get == AbstractT())
   }
 

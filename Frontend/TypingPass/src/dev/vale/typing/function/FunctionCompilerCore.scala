@@ -8,7 +8,7 @@ import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, 
 import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionHeaderT, FunctionT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, NameTranslator}
+import dev.vale.typing.names.{ExternFunctionNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, NameTranslator, RuneNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -150,10 +150,15 @@ class FunctionCompilerCore(
             }
             case None => {
               val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
-              val header =
+              val (header, body) =
                 generator.generateFunctionBody(
                   fullEnv, coutputs, generatorId, life, callRange,
                   Some(fullEnv.function), params2, maybeRetCoord)
+
+              coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
+              val runeToFunctionBound = assembleRuneToFunctionBound(fullEnv)
+              coutputs.addFunction(FunctionT(header, runeToFunctionBound, body))
+
               if (header.toSignature != signature2) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
                   "Expected:  " + signature2 + "\n" +
@@ -268,7 +273,8 @@ class FunctionCompilerCore(
 
     coutputs.lookupFunction(header.toSignature) match {
       case None => {
-        val function2 = FunctionT(header, body2);
+        val runeToFunctionBound = assembleRuneToFunctionBound(fullEnv)
+        val function2 = FunctionT(header, runeToFunctionBound, body2);
         coutputs.addFunction(function2)
         (function2.header)
       }
@@ -299,6 +305,15 @@ class FunctionCompilerCore(
 //        header
 //      }
 //    }
+  }
+
+  private def assembleRuneToFunctionBound(fullEnv: FunctionEnvironment): Map[PrototypeT, IRuneS] = {
+    fullEnv.templatas.entriesByNameT.toIterable.flatMap({
+      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
+        List(prototype -> rune)
+      }
+      case _ => List()
+    }).toMap
   }
 
   def getFunctionPrototypeInnerForCall(
@@ -376,6 +391,7 @@ class FunctionCompilerCore(
         val function2 =
           FunctionT(
             header,
+            Map(),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 
         coutputs.declareFunctionReturnType(header.toSignature, header.returnType)

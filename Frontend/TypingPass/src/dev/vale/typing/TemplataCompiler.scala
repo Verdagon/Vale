@@ -13,7 +13,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, UnsubstitutedCoordT}
-import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsParentResult, IsntParent}
+import dev.vale.typing.citizen.{ResolveSuccess, ImplCompiler, IsParent, IsParentResult, IsntParent}
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -36,7 +36,7 @@ trait ITemplataCompilerDelegate {
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  StructTT
+  ResolveSuccess[StructTT]
 
   def resolveInterface(
     coutputs: CompilerOutputs,
@@ -46,7 +46,7 @@ trait ITemplataCompilerDelegate {
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  InterfaceTT
+  ResolveSuccess[InterfaceTT]
 
   def resolveStaticSizedArrayKind(
     env: IEnvironment,
@@ -179,17 +179,17 @@ object TemplataCompiler {
       case NeverT(_) => KindTemplata(kind)
       case RuntimeSizedArrayTT(mutability, elementType) => {
         KindTemplata(
-          RuntimeSizedArrayTT(
+          interner.intern(RuntimeSizedArrayTT(
             expectMutability(substituteTemplatasInTemplata(interner, keywords, mutability, substitutions)),
-            substituteTemplatasInCoord(interner, keywords, elementType, substitutions)))
+            substituteTemplatasInCoord(interner, keywords, elementType, substitutions))))
       }
       case StaticSizedArrayTT(size, mutability, variability, elementType) => {
         KindTemplata(
-          StaticSizedArrayTT(
+          interner.intern(StaticSizedArrayTT(
             expectInteger(substituteTemplatasInTemplata(interner, keywords, mutability, substitutions)),
             expectMutability(substituteTemplatasInTemplata(interner, keywords, mutability, substitutions)),
             expectVariability(substituteTemplatasInTemplata(interner, keywords, variability, substitutions)),
-            substituteTemplatasInCoord(interner, keywords, elementType, substitutions)))
+            substituteTemplatasInCoord(interner, keywords, elementType, substitutions))))
       }
       case PlaceholderT(hayName @ FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))))
           if index < substitutions.length && hayName == substitutions(index)._1 => {
@@ -496,7 +496,7 @@ class TemplataCompiler(
     expectedType: ITemplataType):
   (ITemplata[ITemplataType]) = {
     val uncoercedTemplata =
-      delegate.resolveInterface(coutputs, callingEnv, callRange, template, templateArgs)
+      delegate.resolveInterface(coutputs, callingEnv, callRange, template, templateArgs).kind
     val templata =
       coerce(coutputs, callingEnv, callRange, KindTemplata(uncoercedTemplata), expectedType)
     (templata)
@@ -594,7 +594,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + structA.name + " to be a kind, is a template!")
           }
           val kind =
-            delegate.resolveStruct(coutputs, env, range, st, Vector.empty)
+            delegate.resolveStruct(coutputs, env, range, st, Vector.empty).kind
           (KindTemplata(kind))
         }
         case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
@@ -602,7 +602,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, env, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, env, range, it, Vector.empty).kind
           (KindTemplata(kind))
         }
         case (st@StructDefinitionTemplata(declaringEnv, structA), CoordTemplataType()) => {
@@ -610,7 +610,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveStruct(coutputs, env, range, st, Vector.empty)
+            delegate.resolveStruct(coutputs, env, range, st, Vector.empty).kind
           val mutability = Compiler.getMutability(coutputs, kind)
 
           // Default ownership is own for mutables, share for imms
@@ -628,7 +628,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, env, range, it, Vector.empty)
+            delegate.resolveInterface(coutputs, env, range, it, Vector.empty).kind
           val mutability = Compiler.getMutability(coutputs, kind)
           val coerced =
             CoordTemplata(

@@ -169,8 +169,8 @@ class LoadHammer(
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
+    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 = structDefT.members(memberIndex)
 
@@ -179,10 +179,10 @@ class LoadHammer(
     val boxedType2 = member2.tyype.expectAddressMember().reference
 
     val (boxedTypeH) =
-      typeHammer.translateReference(hinputs, hamuts, boxedType2);
+      typeHammer.translateReference(hinputs, hamuts, boxedType2.unsubstitutedCoord);
 
     val (boxStructRefH) =
-      structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
+      structHammer.makeBox(hinputs, hamuts, variability, boxedType2.unsubstitutedCoord, boxedTypeH)
 
     val boxInStructCoord = ReferenceH(BorrowH, YonderH, boxStructRefH)
 
@@ -238,8 +238,8 @@ class LoadHammer(
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
+    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
 
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
@@ -372,8 +372,8 @@ class LoadHammer(
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
+    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 = structDefT.members(memberIndex)
 
@@ -383,10 +383,10 @@ class LoadHammer(
     val boxedType2 = member2.tyype.expectAddressMember().reference
 
     val (boxedTypeH) =
-      typeHammer.translateReference(hinputs, hamuts, boxedType2);
+      typeHammer.translateReference(hinputs, hamuts, boxedType2.unsubstitutedCoord);
 
     val (boxStructRefH) =
-      structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
+      structHammer.makeBox(hinputs, hamuts, variability, boxedType2.unsubstitutedCoord, boxedTypeH)
 
     // We expect a borrow because structs never own boxes, they only borrow them
     val expectedStructBoxMemberType = ReferenceH(finalast.BorrowH, YonderH, boxStructRefH)

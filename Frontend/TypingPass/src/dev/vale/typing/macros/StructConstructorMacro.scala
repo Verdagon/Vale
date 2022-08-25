@@ -113,7 +113,7 @@ class StructConstructorMacro(
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
     val definition = coutputs.lookupStruct(structTT)
     val placeholderSubstituter =
@@ -140,25 +140,20 @@ class StructConstructorMacro(
       }
     val constructorReturnType = CoordT(constructorReturnOwnership, structTT)
     // not virtual because how could a constructor be virtual
-    val constructor2 =
-      FunctionT(
-        ast.FunctionHeaderT(
-          constructorFullName,
-          Vector.empty,
-          constructorParams,
-          constructorReturnType,
-          Some(env.templata)),
-        BlockTE(
-          ReturnTE(
-            ConstructTE(
-              structTT,
-              constructorReturnType,
-              constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) })))))
-
-    // we cant make the destructor here because they might have a user defined one somewhere
-    coutputs.declareFunctionReturnType(constructor2.header.toSignature, constructor2.header.returnType)
-    coutputs.addFunction(constructor2);
-
-    (constructor2.header)
+    val header =
+      ast.FunctionHeaderT(
+        constructorFullName,
+        Vector.empty,
+        constructorParams,
+        constructorReturnType,
+        Some(env.templata))
+    val body =
+      BlockTE(
+        ReturnTE(
+          ConstructTE(
+            structTT,
+            constructorReturnType,
+            constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) }))))
+    (header, body)
   }
 }

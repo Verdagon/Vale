@@ -122,7 +122,7 @@ class PatternCompiler(
             unconvertedInputExpr
           }
           case Some(receiverRune) => {
-            val templatasByRune =
+            val CompleteCompilerSolve(_, templatasByRune, _) =
               inferCompiler.solveExpectComplete(
                 InferEnv(nenv.snapshot, parentRanges, nenv.snapshot),
                 coutputs,

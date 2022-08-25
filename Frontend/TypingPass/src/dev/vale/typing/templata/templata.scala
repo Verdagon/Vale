@@ -40,10 +40,24 @@ object ITemplata {
     }
   }
 
+  def expectIntegerTemplata(templata: ITemplata[ITemplataType]): ITemplata[IntegerTemplataType] = {
+    templata match {
+      case t @ IntegerTemplata(_) => t
+      case _ => vfail()
+    }
+  }
+
   def expectKind(templata: ITemplata[ITemplataType]): ITemplata[KindTemplataType] = {
     templata match {
       case t @ KindTemplata(_) => t
       case PlaceholderTemplata(fullNameT, KindTemplataType()) => PlaceholderTemplata(fullNameT, KindTemplataType())
+      case _ => vfail()
+    }
+  }
+
+  def expectKindTemplata(templata: ITemplata[ITemplataType]): KindTemplata = {
+    templata match {
+      case t @ KindTemplata(_) => t
       case _ => vfail()
     }
   }
