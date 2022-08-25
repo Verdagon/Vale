@@ -1,15 +1,17 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{ArgumentH, ArrayCapacityH, ArrayLengthH, AsSubtypeH, BoolH, BorrowToWeakH, BreakH, CallH, ConsecutorH, ConstantBoolH, ConstantF64H, ConstantIntH, ConstantStrH, ConstantVoidH, DestroyImmRuntimeSizedArrayH, DestroyMutRuntimeSizedArrayH, DestroyStaticSizedArrayIntoFunctionH, DiscardH, ExpressionH, ExternCallH, Final, IfH, InlineH, InterfaceCallH, InterfaceRefH, InterfaceToInterfaceUpcastH, IsSameInstanceH, KindH, LockWeakH, NeverH, NewArrayFromValuesH, NewImmRuntimeSizedArrayH, NewMutRuntimeSizedArrayH, NewStructH, PopRuntimeSizedArrayH, PushRuntimeSizedArrayH, ReferenceH, ReturnH, ShareH, StackifyH, StaticArrayFromCallableH, StructRefH, StructToInterfaceUpcastH, UnstackifyH, VariableIdH, VoidH, WhileH}
+import dev.vale.finalast._
 import dev.vale.typing.Hinputs
-import dev.vale.typing.ast.{AddressMemberLookupTE, ArgLookupTE, ArrayLengthTE, AsSubtypeTE, BlockTE, BorrowToWeakTE, BreakTE, ConsecutorTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DeferTE, DestroyImmRuntimeSizedArrayTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, DiscardTE, ExpressionT, ExternFunctionCallTE, FunctionCallTE, FunctionHeaderT, IfTE, InterfaceFunctionCallTE, InterfaceToInterfaceUpcastTE, IsSameInstanceTE, LetAndLendTE, LetNormalTE, LocalLookupTE, LockWeakTE, MutateTE, NewImmRuntimeSizedArrayTE, NewMutRuntimeSizedArrayTE, PopRuntimeSizedArrayTE, PrototypeT, PushRuntimeSizedArrayTE, ReferenceExpressionTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayCapacityTE, SoftLoadTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StructToInterfaceUpcastTE, TupleTE, UnletTE, VoidLiteralTE, WhileTE}
+import dev.vale.typing.ast._
 import dev.vale.typing.env.AddressibleLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.{Keywords, vassert, vcurious, vfail, finalast => m}
+import dev.vale.{Keywords, vassert, vcurious, vfail, vimpl, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.types._
+
+import scala.collection.immutable.Map
 
 class ExpressionHammer(
     keywords: Keywords,
@@ -36,8 +38,9 @@ class ExpressionHammer(
       expr2: ExpressionT
   ): (ExpressionH[KindH], Vector[ExpressionT]) = {
     expr2 match {
-      case ConstantIntTE(value, bits) => {
-        (ConstantIntH(value, bits), Vector.empty)
+      case ConstantIntTE(numTemplata, bits) => {
+        val num = Conversions.evaluateIntegerTemplata(numTemplata)
+        (ConstantIntH(num, bits), Vector.empty)
       }
       case VoidLiteralTE() => {
         val constructH = ConstantVoidH()
@@ -96,7 +99,8 @@ class ExpressionHammer(
           blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)
         (blockH, Vector.empty)
       }
-      case call2 @ FunctionCallTE(callableExpr, args) => {
+      case call2 @ FunctionCallTE(callableExpr, conclusions, args) => {
+        vassert(conclusions.isEmpty) // should be taken out by monomorphizer
         val access =
           translateFunctionPointerCall(
             hinputs, hamuts, currentFunctionHeader, locals, callableExpr, args, call2.result.reference)
@@ -428,7 +432,7 @@ class ExpressionHammer(
         (upcastNode, innerDeferreds)
       }
 
-      case up @ StructToInterfaceUpcastTE(innerExpr, targetInterfaceRef2) => {
+      case up @ UpcastTE(innerExpr, targetInterfaceRef2) => {
         val targetPointerType2 = up.result.reference;
         val sourcePointerType2 = innerExpr.result.reference
 
@@ -1076,22 +1080,23 @@ class ExpressionHammer(
       superFunctionHeader.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)
-    val edge = hinputs.edgeBlueprintsByInterface(interfaceTT)
-    vassert(edge.interface == interfaceTT)
-    val indexInEdge = edge.superFamilyRootBanners.indexWhere(x => superFunctionHeader.toBanner.same(x))
-    vassert(indexInEdge >= 0)
-
-    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionHeader.toPrototype)
-
-    val callNode =
-      InterfaceCallH(
-        argsHE,
-        virtualParamIndex,
-        interfaceRefH,
-        indexInEdge,
-        prototypeH)
-
-    translateDeferreds(
-      hinputs, hamuts, currentFunctionHeader, locals, callNode, argsDeferreds)
+    vimpl()
+//    val edge = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName)
+//    vassert(edge.interface == interfaceTT)
+//    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionHeader.toBanner.same(x))
+//    vassert(indexInEdge >= 0)
+//
+//    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionHeader.toPrototype)
+//
+//    val callNode =
+//      InterfaceCallH(
+//        argsHE,
+//        virtualParamIndex,
+//        interfaceRefH,
+//        indexInEdge,
+//        prototypeH)
+//
+//    translateDeferreds(
+//      hinputs, hamuts, currentFunctionHeader, locals, callNode, argsDeferreds)
   }
 }

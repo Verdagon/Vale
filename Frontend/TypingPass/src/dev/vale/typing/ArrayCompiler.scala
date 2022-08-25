@@ -16,6 +16,7 @@ import dev.vale.typing.names.{FullNameT, RawArrayNameT, RuneNameT, RuntimeSizedA
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -62,7 +63,7 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val templatas =
+    val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
 
@@ -109,7 +110,7 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val templatas =
+    val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -142,7 +143,7 @@ class ArrayCompiler(
         NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplata(MutableT) => {
-        val prototype =
+        val EvaluateFunctionSuccess(prototype, conclusions) =
           overloadResolver.findFunction(
             callingEnv
               .addEntries(
@@ -190,7 +191,7 @@ class ArrayCompiler(
           }
         })
         val callTE =
-          FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE)
+          FunctionCallTE(prototype.prototype, vimpl(conclusions), Vector(sizeTE) ++ maybeCallableTE)
         callTE
         //        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't construct a mutable runtime array from a callable!"))
       }
@@ -229,7 +230,7 @@ class ArrayCompiler(
     }
     val memberType = memberTypes.head
 
-    val templatas =
+    val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {

@@ -36,27 +36,21 @@ class SSAFreeMacro(
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT = {
+  (FunctionHeaderT, ReferenceExpressionTE) = {
     val Vector(ssaCoord @ CoordT(ShareT, arrayTT @ StaticSizedArrayTT(_, _, _, elementCoord))) = params2.map(_.tyype)
 
     val ret = CoordT(ShareT, VoidT())
     val header = FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))
-
-    coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val PrototypeTemplata(_, dropPrototype) =
       vassertSome(
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.D))),
           Set(TemplataLookupContext)))
-
     val expr =
       DestroyStaticSizedArrayIntoFunctionTE(
         ArgLookupTE(0, ssaCoord), arrayTT, VoidLiteralTE(), dropPrototype)
-
-    val function2 =
-      FunctionT(header, BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE())))))
-    coutputs.addFunction(function2)
-    function2.header
+    val body = BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE()))))
+    (header, body)
   }
 }

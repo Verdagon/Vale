@@ -20,6 +20,7 @@ import dev.vale.typing._
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.templata.ITemplata.expectMutability
 
 import scala.collection.immutable.List
@@ -46,8 +47,13 @@ trait IStructCompilerDelegate {
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean,
     verifyConclusions: Boolean):
-  PrototypeT
+  EvaluateFunctionSuccess
 }
+
+case class ResolveSuccess[+T <: KindT](
+  kind: T,
+  //runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
+)
 
 class StructCompiler(
     opts: TypingPassOptions,
@@ -67,7 +73,7 @@ class StructCompiler(
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (StructTT) = {
+  ResolveSuccess[StructTT] = {
     Profiler.frame(() => {
       templateArgsLayer.resolveStruct(
         coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
@@ -160,7 +166,7 @@ class StructCompiler(
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (InterfaceTT) = {
+  ResolveSuccess[InterfaceTT] = {
     templateArgsLayer.resolveInterface(
       coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
   }
@@ -173,7 +179,7 @@ class StructCompiler(
     // their rules as needed
     citizenTemplata: CitizenDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  (ICitizenTT) = {
+  ResolveSuccess[ICitizenTT] = {
     citizenTemplata match {
       case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs)
       case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs)

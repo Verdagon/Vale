@@ -31,6 +31,7 @@ import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.function.FunctionCompiler
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
@@ -99,7 +100,7 @@ class Compiler(
           callRange: List[RangeS],
           structTemplata: StructDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-        StructTT = {
+        ResolveSuccess[StructTT] = {
           structCompiler.resolveStruct(
             coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
         }
@@ -110,7 +111,7 @@ class Compiler(
             callRange: List[RangeS],
             interfaceTemplata: InterfaceDefinitionTemplata,
             uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-        InterfaceTT = {
+        ResolveSuccess[InterfaceTT] = {
           structCompiler.resolveInterface(
             coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
@@ -412,7 +413,7 @@ class Compiler(
           templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
-        InterfaceTT = {
+        ResolveSuccess[InterfaceTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs)
         }
@@ -424,7 +425,7 @@ class Compiler(
           templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
-        StructTT = {
+        ResolveSuccess[StructTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs)
         }
@@ -436,7 +437,7 @@ class Compiler(
           name: StrI,
           coords: Vector[CoordT],
           verifyConclusions: Boolean):
-        Result[PrototypeTemplata, FindFunctionFailure] = {
+        Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
           overloadCompiler.findFunction(
             callingEnv,
             state,
@@ -509,12 +510,12 @@ class Compiler(
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Array[IRuneS],
           args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
-        PrototypeT = {
+        EvaluateFunctionSuccess = {
           overloadCompiler.findFunction(env, coutputs, callRange, functionName,
             explicitTemplateArgRulesS,
             explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact, verifyConclusions) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
-            case Ok(x) => x.prototype
+            case Ok(x) => x
           }
         }
       })
@@ -605,7 +606,7 @@ class Compiler(
             functionTemplata: FunctionTemplata,
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
             args: Vector[CoordT]):
-        FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
+        FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)), true)
         }
 
@@ -616,7 +617,7 @@ class Compiler(
           functionTemplata: FunctionTemplata,
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
           args: Vector[CoordT]):
-        FunctionCompiler.IEvaluateFunctionResult[PrototypeTemplata] = {
+        FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)))
         }
@@ -853,7 +854,7 @@ class Compiler(
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
-            val templataByRune =
+            val CompleteCompilerSolve(_, templataByRune, _) =
               inferCompiler.solveExpectComplete(
                 InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, false)
             val kind =
@@ -935,15 +936,18 @@ class Compiler(
         val edges =
           interfaceToStructToMethods.flatMap({ case (interface, structToMethods) =>
             structToMethods.map({ case (struct, methods) =>
-              EdgeT(struct, interface, methods)
+              EdgeT(
+                coutputs.lookupCitizen(struct).instantiatedCitizen.fullName,
+                coutputs.lookupInterface(interface).instantiatedInterface.fullName,
+                methods)
             })
           })
 
 //        // NEVER ZIP TWO SETS TOGETHER
 //        val edgeBlueprintsAsList = edgeBlueprints.toVector
-//        val edgeBlueprintsByInterface = edgeBlueprintsAsList.map(_.interface).zip(edgeBlueprintsAsList).toMap;
+//        val interfaceToEdgeBlueprints = edgeBlueprintsAsList.map(_.interface).zip(edgeBlueprintsAsList).toMap;
 //
-//        edgeBlueprintsByInterface.foreach({ case (interfaceTT, edgeBlueprint) =>
+//        interfaceToEdgeBlueprints.foreach({ case (interfaceTT, edgeBlueprint) =>
 //          vassert(edgeBlueprint.interface == interfaceTT)
 //        })
 
@@ -955,8 +959,7 @@ class Compiler(
 //          reachableSSAs,
 //          reachableRSAs,
           reachableFunctions) =
-        if (opts.treeShakingEnabled) {
-          vimpl()
+//        if (opts.treeShakingEnabled) {
 //          Profiler.frame(() => {
 //            val reachables = Reachability.findReachables(coutputs, interfaceEdgeBlueprints, interfaceToStructToMethods)
 //
@@ -1001,14 +1004,14 @@ class Compiler(
 //
 //            (reachableInterfaces, reachableStructs, reachableSSAs, reachableRSAs, reachableFunctions)
 //          })
-        } else {
+//        } else {
           (
             coutputs.getAllInterfaces(),
             coutputs.getAllStructs(),
 //            coutputs.getAllStaticSizedArrays(),
 //            coutputs.getAllRuntimeSizedArrays(),
             coutputs.getAllFunctions())
-        }
+//        }
 
 //      val allKinds =
 //        reachableStructs.map(_.place) ++ reachableInterfaces.map(_.getRef) ++ reachableSSAs ++ reachableRSAs

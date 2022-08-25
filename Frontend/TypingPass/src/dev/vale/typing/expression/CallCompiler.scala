@@ -65,17 +65,17 @@ class CallCompiler(
           }
         val argsExprs2 =
           convertHelper.convertExprs(
-            nenv.snapshot, coutputs, range, givenArgsExprs2, prototype.prototype.paramTypes)
+            nenv.snapshot, coutputs, range, givenArgsExprs2, prototype.function.prototype.paramTypes)
 
         checkTypes(
           coutputs,
           nenv.snapshot,
           range,
-          prototype.prototype.paramTypes,
+          prototype.function.prototype.paramTypes,
           argsExprs2.map(a => a.result.reference),
           exact = true)
 
-        (ast.FunctionCallTE(prototype.prototype, argsExprs2))
+        (ast.FunctionCallTE(prototype.function.prototype, prototype.runeToSuppliedFunction, argsExprs2))
       }
       case other => {
         evaluateCustomCall(
@@ -106,7 +106,7 @@ class CallCompiler(
 
     // We want to get the prototype here, not the entire header, because
     // we might be in the middle of a recursive call like:
-    // func main():Int(main())
+    // func main()int(main())
 
     val prototype =
       overloadCompiler.findFunction(
@@ -125,17 +125,17 @@ class CallCompiler(
       }
     val argsExprs2 =
       convertHelper.convertExprs(
-        nenv, coutputs, range, givenArgsExprs2, prototype.prototype.paramTypes)
+        nenv, coutputs, range, givenArgsExprs2, prototype.function.prototype.paramTypes)
 
     checkTypes(
       coutputs,
       nenv,
       range,
-      prototype.prototype.paramTypes,
+      prototype.function.prototype.paramTypes,
       argsExprs2.map(a => a.result.reference),
       exact = true)
 
-    (ast.FunctionCallTE(prototype.prototype, argsExprs2))
+    (ast.FunctionCallTE(prototype.function.prototype, vimpl(prototype.runeToSuppliedFunction), argsExprs2))
   }
 
 
@@ -205,13 +205,15 @@ class CallCompiler(
     val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
     val argTypes = actualArgsExprs2.map(_.result.reference)
-    if (argTypes != prototype2.prototype.paramTypes) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.prototype.paramTypes + " args: " + argTypes))
+    if (argTypes != prototype2.function.prototype.paramTypes) {
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.function.prototype.paramTypes + " args: " + argTypes))
     }
 
-    checkTypes(coutputs, env, range, prototype2.prototype.paramTypes, argTypes, exact = true)
+    checkTypes(coutputs, env, range, prototype2.function.prototype.paramTypes, argTypes, exact = true)
 
-    val resultingExpr2 = FunctionCallTE(prototype2.prototype, actualArgsExprs2);
+    val resultingExpr2 =
+      FunctionCallTE(
+        prototype2.function.prototype, prototype2.runeToSuppliedFunction, actualArgsExprs2);
 
     (resultingExpr2)
   }

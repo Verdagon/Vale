@@ -54,7 +54,7 @@ class SequenceCompiler(
       env,
       RangeS.internal(interner, -17653) :: parentRanges,
       tupleTemplate,
-      Vector(CoordListTemplata(types2)))
+      Vector(CoordListTemplata(types2))).kind
   }
 
   def makeTupleCoord(

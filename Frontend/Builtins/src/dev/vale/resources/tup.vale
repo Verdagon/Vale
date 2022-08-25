@@ -1,8 +1,8 @@
 
-struct ImmTup<T RefList imm> imm {
-  _ ..T;
-}
-
-struct Tup<T RefList> {
-  _ ..T;
-}
+// struct ImmTup<T RefList imm> imm {
+//   _ ..T;
+// }
+//
+// struct Tup<T RefList> {
+//   _ ..T;
+// }

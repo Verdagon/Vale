@@ -7,6 +7,7 @@ import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.finalast._
 import dev.vale.postparsing.rules._
+import dev.vale.typing.templata.{ITemplata, IntegerTemplata, MutabilityTemplata, VariabilityTemplata}
 import dev.vale.typing.types._
 import dev.vale.typing.{types => t}
 import dev.vale.{finalast => m, postparsing => s}
@@ -21,6 +22,26 @@ object Conversions {
     mutability match {
       case MutableT => Mutable
       case ImmutableT => Immutable
+    }
+  }
+
+  def evaluateMutabilityTemplata(mutability: ITemplata[MutabilityTemplataType]): Mutability = {
+    mutability match {
+      case MutabilityTemplata(MutableT) => Mutable
+      case MutabilityTemplata(ImmutableT) => Immutable
+    }
+  }
+
+  def evaluateVariabilityTemplata(mutability: ITemplata[VariabilityTemplataType]): Variability = {
+    mutability match {
+      case VariabilityTemplata(VaryingT) => Varying
+      case VariabilityTemplata(FinalT) => Final
+    }
+  }
+
+  def evaluateIntegerTemplata(templata: ITemplata[IntegerTemplataType]): Long = {
+    templata match {
+      case IntegerTemplata(n) => n
     }
   }
 

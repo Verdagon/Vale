@@ -134,8 +134,8 @@ class MutateHammer(
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
+    val structDefT = hinputs.lookupStruct(structTT.fullName)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 = structDefT.members(memberIndex)
 
@@ -144,10 +144,10 @@ class MutateHammer(
     val boxedType2 = member2.tyype.expectAddressMember().reference
 
     val (boxedTypeH) =
-      typeHammer.translateReference(hinputs, hamuts, boxedType2);
+      typeHammer.translateReference(hinputs, hamuts, boxedType2.unsubstitutedCoord);
 
     val (boxStructRefH) =
-      structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
+      structHammer.makeBox(hinputs, hamuts, variability, boxedType2.unsubstitutedCoord, boxedTypeH)
 
     // Remember, structs can never own boxes, they only borrow them
     val expectedStructBoxMemberType = ReferenceH(BorrowH, YonderH, boxStructRefH)
@@ -193,10 +193,10 @@ class MutateHammer(
       structExpr2.result.reference.kind match {
         case sr @ StructTT(_) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT)
+    val structDefT = hinputs.lookupStruct(structTT.fullName)
     val memberIndex =
       structDefT.members
-        .indexWhere(member => structDefT.fullName.addStep(member.name) == memberName)
+        .indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
 
     val structDefH = hamuts.structDefsByRefT(structTT)

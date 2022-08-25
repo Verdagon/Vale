@@ -3,7 +3,7 @@ package dev.vale.simplifying
 import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, finalast, vwat}
 import dev.vale.finalast.FullNameH
 import dev.vale.typing.Hinputs
-import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, AnonymousSubstructImplNameT, AnonymousSubstructMemberNameT, AnonymousSubstructNameT, BuildingFunctionNameWithClosuredsAndTemplateArgsT, BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, ConstructingMemberNameT, ConstructorNameT, ConstructorTemplateNameT, ExternFunctionNameT, ForwarderFunctionNameT, ForwarderFunctionTemplateNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, INameT, ImplDeclareNameT, IterableNameT, IterationOptionNameT, IteratorNameT, LambdaCitizenNameT, LambdaTemplateNameT, LetNameT, MagicParamNameT, PackageTopLevelNameT, PrimitiveNameT, RawArrayNameT, RuntimeSizedArrayNameT, SelfNameT, StaticSizedArrayNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT, TypingPassPatternDestructureeNameT, TypingPassPatternMemberNameT, TypingPassTemporaryVarNameT, UnnamedLocalNameT}
+import dev.vale.typing.names._
 import dev.vale.finalast._
 import dev.vale.postparsing.AnonymousSubstructParentInterfaceTemplateRuneS
 import dev.vale.typing._
@@ -25,24 +25,23 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
 //      case OverrideVirtualFreeNameT(_, _) => "(override vfree)"
 //      case AbstractVirtualDropFunctionNameT(_, _, _) => "vdrop"
 //      case OverrideVirtualDropFunctionNameT(_, _, _) => "vdrop"
-      case FreeNameT(templateArgs, parameters) => "Free"
+      case FreeNameT(FreeTemplateNameT(codeLoc), templateArgs, kind) => "Free"
       case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
-      case AnonymousSubstructConstructorNameT(templateArgs, params) => "anonSubstructConstructor"
+      case AnonymousSubstructConstructorNameT(AnonymousSubstructConstructorTemplateNameT(substruct), templateArgs, params) => "anonSubstructConstructor"
       case AnonymousSubstructNameT(_, _) => "AnonSubstruct"
       case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
-      case BuildingFunctionNameWithClosuredsAndTemplateArgsT(_, _) => vwat() // Shouldnt see this in hammer
       case CitizenNameT(templateName, templateArgs) => getReadableName(templateName)
-      case CitizenTemplateNameT(humanName) => humanName.str
+//      case CitizenTemplateNameT(humanName) => humanName.str
       case ClosureParamNameT() => "closure"
       case CodeVarNameT(name) => name.str
       case ConstructingMemberNameT(name) => name.str
-      case ConstructorNameT(params) => "constructor"
+//      case ConstructorNameT(params) => "constructor"
       case ConstructorTemplateNameT(codeLoc) => "constructorTemplate"
       case ExternFunctionNameT(humanName, params) => humanName.str
-      case FunctionNameT(humanName, templateArgs, params) => humanName.str
+      case FunctionNameT(FunctionTemplateNameT(humanName, codeLocation), templateArgs, params) => humanName.str
       case FunctionTemplateNameT(humanName, codeLoc) => humanName.str
       case PackageTopLevelNameT() => vwat() // Does this ever make it to hammer?
-      case ImplDeclareNameT(codeLoc) => "impl" + codeLoc
+//      case ImplDeclareNameT(codeLoc) => "impl" + codeLoc
       case StaticSizedArrayNameT(size, arr) => "ssa" + size
       case LambdaCitizenNameT(codeLoc) => "lam"
       case LambdaTemplateNameT(codeLoc) => "lamTemplate"
@@ -61,7 +60,7 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
       case RuntimeSizedArrayNameT(arr) => "rsa"
       case UnnamedLocalNameT(codeLoc) => "unnamedLocal"
       case ForwarderFunctionTemplateNameT(inner, index) => "fwdt_" + index + "_" + getReadableName(inner)
-      case ForwarderFunctionNameT(inner, index) => "fwd_" + index + "_" + getReadableName(inner)
+      case ForwarderFunctionNameT(ForwarderFunctionTemplateNameT(innerFuncName, index), inner) => "fwd_" + index + "_" + getReadableName(inner)
     }
   }
 

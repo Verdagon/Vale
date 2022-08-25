@@ -86,7 +86,7 @@ class FunctionCompilerClosureOrLightLayer(
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
@@ -116,7 +116,7 @@ class FunctionCompilerClosureOrLightLayer(
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[Option[CoordT]],
     verifyConclusions: Boolean):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = makeNameWithClosureds(outerEnv, function.name)
     val newEnv =
@@ -140,7 +140,7 @@ class FunctionCompilerClosureOrLightLayer(
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes: Vector[Option[CoordT]],
       verifyConclusions: Boolean):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
@@ -156,7 +156,7 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
@@ -171,7 +171,7 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: List[RangeS],
     function: FunctionA,
     args: Vector[Option[CoordT]]):
-  IEvaluateFunctionResult[(PrototypeT, Map[IRuneS, ITemplata[ITemplataType]])] = {
+  IEvaluateFunctionResult = {
     checkNotClosure(function);
 
     val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
@@ -372,7 +372,7 @@ class FunctionCompilerClosureOrLightLayer(
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     checkNotClosure(function)
     vassert(function.isTemplate)
 
@@ -389,7 +389,7 @@ class FunctionCompilerClosureOrLightLayer(
       callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
       argTypes: Vector[Option[CoordT]]):
-  (IEvaluateFunctionResult[PrototypeTemplata]) = {
+  (IEvaluateFunctionResult) = {
     vassert(function.isTemplate)
 
     val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
@@ -435,7 +435,7 @@ class FunctionCompilerClosureOrLightLayer(
       TemplataCompiler.getPlaceholderSubstituter(interner, keywords, closureStructRef.fullName)
     val variables =
       closureStructDef.members.map(member => {
-        val variableFullName = closureStructDef.placeholderedCitizen.fullName.addStep(member.name)
+        val variableFullName = closureStructDef.instantiatedCitizen.fullName.addStep(member.name)
         member.tyype match {
           case AddressMemberTypeT(reference) => {
             AddressibleClosureVariableT(

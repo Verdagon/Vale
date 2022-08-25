@@ -46,7 +46,8 @@ class EdgeCompiler(
 
     val itables =
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
-        val interfaceTemplateFullName = interfaceEdgeBlueprint.interface
+        val interfacePlaceholderedFullName = interfaceEdgeBlueprint.interface
+        val interfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(interfacePlaceholderedFullName)
         val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
 //        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
         val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
@@ -92,7 +93,7 @@ class EdgeCompiler(
                 // We'll even take the inferences and add em to an environment later.
                 // The only difference from real defining is that we're handing in an actual parameter,
                 // namely the impl's super interface.
-                val (abstractFuncPrototype, abstractFuncInferences) =
+                val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
                       coutputs,
                       List(range, overridingImpl.templata.impl.range),
@@ -104,10 +105,10 @@ class EdgeCompiler(
                     case EvaluateFunctionFailure(x) => {
                       throw CompileErrorExceptionT(CouldntEvaluateFunction(List(range), x))
                     }
-                    case EvaluateFunctionSuccess(x) => x
+                    case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
 
-                val superFunctionParamTypes = abstractFuncPrototype.paramTypes
+                val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes
 
                 val placeholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
                 val overridingParamCoord = abstractParamType.copy(kind = placeholderedOverridingCitizen)
@@ -148,7 +149,7 @@ class EdgeCompiler(
                     impreciseName,
                     overrideFunctionParamTypes)
 
-                foundFunction
+                foundFunction.function.prototype
               })
             overridingCitizen -> foundFunctions
           }).toMap
@@ -165,7 +166,7 @@ class EdgeCompiler(
       overridingCitizen: FullNameT[ICitizenTemplateNameT],
       impreciseName: IImpreciseNameS,
       paramTypes: Vector[CoordT]):
-  PrototypeT = {
+  EvaluateFunctionSuccess = {
     overloadCompiler.findFunction(
       // It's like the abstract function is the one calling the override.
       // This is important so the override can see existing concept functions, see NAFEWRO.
@@ -182,7 +183,7 @@ class EdgeCompiler(
       true,
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
-      case Ok(x) => x.prototype
+      case Ok(x) => x
     }
   }
 
@@ -229,7 +230,7 @@ class EdgeCompiler(
       abstractFunctionHeadersByInterfaceTemplateFullName
         .map({ case (interfaceTemplateFullName, functionHeaders2) =>
           InterfaceEdgeBlueprint(
-            interfaceTemplateFullName,
+            coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.fullName,
             // This is where they're given order and get an implied index
             functionHeaders2.toVector)
         })

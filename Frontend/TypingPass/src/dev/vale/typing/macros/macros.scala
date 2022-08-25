@@ -27,7 +27,7 @@ trait IFunctionBodyMacro {
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
-  FunctionHeaderT
+  (FunctionHeaderT, ReferenceExpressionTE)
 }
 
 trait IOnStructDefinedMacro {

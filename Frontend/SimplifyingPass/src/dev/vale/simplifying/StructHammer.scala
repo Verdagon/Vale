@@ -1,16 +1,15 @@
 package dev.vale.simplifying
 
-import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, finalast => m}
+import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vimpl, finalast => m}
 import dev.vale.finalast.{BorrowH, EdgeH, InterfaceDefinitionH, InterfaceMethodH, InterfaceRefH, KindH, Mutable, PrototypeH, ReferenceH, StructDefinitionH, StructMemberH, StructRefH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{EdgeT, PrototypeT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FullNameT, INameT}
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FullNameT, INameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata}
 import dev.vale.typing.types._
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.types._
 
 import scala.collection.immutable.ListMap
@@ -23,7 +22,7 @@ class StructHammer(
     translatePrototype: (Hinputs, HamutsBox, PrototypeT) => PrototypeH,
     translateReference: (Hinputs, HamutsBox, CoordT) => ReferenceH[KindH]) {
   def translateInterfaces(hinputs: Hinputs, hamuts: HamutsBox): Unit = {
-    hinputs.interfaces.foreach(interface => translateInterfaceRef(hinputs, hamuts, interface.getRef))
+    hinputs.interfaces.foreach(interface => translateInterfaceRef(hinputs, hamuts, interface.instantiatedInterface))
   }
 
   private def translateInterfaceRefs(
@@ -39,10 +38,10 @@ class StructHammer(
       hamuts: HamutsBox,
       interfaceTT: InterfaceTT) = {
 
-    val edgeBlueprint = hinputs.edgeBlueprintsByInterface(interfaceTT);
+    val edgeBlueprint = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName);
 
     val methodsH =
-      edgeBlueprint.superFamilyRootBanners.map(superFamilyRootBanner => {
+      edgeBlueprint.superFamilyRootHeaders.map(superFamilyRootBanner => {
         val header = hinputs.lookupFunction(superFamilyRootBanner.toSignature).get.header
         val prototypeH = translatePrototype(hinputs, hamuts, header.toPrototype)
         val virtualParamIndex = header.params.indexWhere(_.virtuality.nonEmpty)
@@ -64,7 +63,7 @@ class StructHammer(
         // This is the only place besides InterfaceDefinitionH that can make a InterfaceRefH
         val temporaryInterfaceRefH = InterfaceRefH(fullNameH);
         hamuts.forwardDeclareInterface(interfaceTT, temporaryInterfaceRefH)
-        val interfaceDefT = hinputs.lookupInterface(interfaceTT);
+        val interfaceDefT = hinputs.lookupInterface(interfaceTT.fullName);
 
 
         val methodsH = translateInterfaceMethods(hinputs, hamuts, interfaceTT)
@@ -86,7 +85,7 @@ class StructHammer(
             vassert(
               hinputs.functions.exists(function => {
                 function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, k)) if k == interfaceDefT.getRef => true
+                  case FullNameT(_, _, FreeNameT(_, _, k)) if k == interfaceDefT.instantiatedInterface => true
                   case _ => false
                 }
               }))
@@ -99,7 +98,7 @@ class StructHammer(
   }
 
   def translateStructs(hinputs: Hinputs, hamuts: HamutsBox): Unit = {
-    hinputs.structs.foreach(structDefT => translateStructRef(hinputs, hamuts, structDefT.getRef))
+    hinputs.structs.foreach(structDefT => translateStructRef(hinputs, hamuts, structDefT.instantiatedCitizen))
   }
 
   def translateStructRef(
@@ -114,9 +113,9 @@ class StructHammer(
         // This is the only place besides StructDefinitionH that can make a StructRefH
         val temporaryStructRefH = StructRefH(fullNameH);
         hamuts.forwardDeclareStruct(structTT, temporaryStructRefH)
-        val structDefT = hinputs.lookupStruct(structTT);
+        val structDefT = hinputs.lookupStruct(structTT.fullName);
         val (membersH) =
-          translateMembers(hinputs, hamuts, structDefT.fullName, structDefT.members)
+          translateMembers(hinputs, hamuts, structDefT.instantiatedCitizen.fullName, structDefT.members)
 
         val (edgesH) = translateEdgesForStruct(hinputs, hamuts, temporaryStructRefH, structTT)
 
@@ -124,7 +123,7 @@ class StructHammer(
           StructDefinitionH(
             fullNameH,
             structDefT.weakable,
-            Conversions.evaluateMutability(structDefT.mutability),
+            Conversions.evaluateMutabilityTemplata(structDefT.mutability),
             edgesH,
             membersH);
         hamuts.addStructOriginatingFromTypingPass(structTT, structDefH)
@@ -132,12 +131,12 @@ class StructHammer(
 
         // Make sure there's a destructor for this shared struct.
         structDefT.mutability match {
-          case MutableT => None
-          case ImmutableT => {
+          case MutabilityTemplata(MutableT) => None
+          case MutabilityTemplata(ImmutableT) => {
             vassert(
               hinputs.functions.exists(function => {
                 function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, k)) if k == structDefT.getRef => true
+                  case FullNameT(_, _, FreeNameT(_, _, k)) if k == structDefT.instantiatedCitizen => true
                   case _ => false
                 }
               }))
@@ -160,13 +159,13 @@ class StructHammer(
     val (memberH) =
       member2.tyype match {
         case ReferenceMemberTypeT(coord) => {
-          translateReference(hinputs, hamuts, coord)
+          translateReference(hinputs, hamuts, coord.unsubstitutedCoord)
         }
         case AddressMemberTypeT(coord) => {
           val (referenceH) =
-            translateReference(hinputs, hamuts, coord)
+            translateReference(hinputs, hamuts, coord.unsubstitutedCoord)
           val (boxStructRefH) =
-            makeBox(hinputs, hamuts, member2.variability, coord, referenceH)
+            makeBox(hinputs, hamuts, member2.variability, coord.unsubstitutedCoord, referenceH)
           // The stack owns the box, closure structs just borrow it.
           (ReferenceH(BorrowH, YonderH, boxStructRefH))
         }
@@ -184,7 +183,13 @@ class StructHammer(
     type2: CoordT,
     typeH: ReferenceH[KindH]):
   (StructRefH) = {
-    val boxFullName2 = FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector.empty, interner.intern(CitizenNameT(interner.intern(CitizenTemplateNameT(keywords.BOX_HUMAN_NAME)), Vector(CoordTemplata(type2)))))
+    val boxFullName2 =
+      FullNameT(
+        PackageCoordinate.BUILTIN(interner, keywords),
+        Vector.empty,
+        interner.intern(StructNameT(
+          interner.intern(StructTemplateNameT(keywords.BOX_HUMAN_NAME)),
+          Vector(CoordTemplata(type2)))))
     val boxFullNameH = nameHammer.translateFullName(hinputs, hamuts, boxFullName2)
     hamuts.structDefs.find(_.fullName == boxFullNameH) match {
       case Some(structDefH) => (structDefH.getRef)
@@ -229,7 +234,7 @@ class StructHammer(
       structRefH: StructRefH,
       edges2: Vector[EdgeT]):
   (Vector[EdgeH]) = {
-    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, e.interface, e))
+    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, InterfaceTT(e.interface), e))
   }
 
 
@@ -242,5 +247,23 @@ class StructHammer(
       edge2.methods.map(translatePrototype(hinputs, hamuts, _))
     val structPrototypesByInterfacePrototype = ListMap[InterfaceMethodH, PrototypeH](interfacePrototypesH.zip(prototypesH) : _*)
     (EdgeH(structRefH, interfaceRefH, structPrototypesByInterfacePrototype))
+  }
+
+  def lookupStruct(hinputs: Hinputs, hamuts: HamutsBox, structTT: StructTT): StructDefinitionT = {
+    vimpl()
+    // lookup struct template
+    // do placeholder replacements
+    // add it to hamuts
+    // also translate it to hammer too?
+    // return it
+  }
+
+  def lookupInterface(hinputs: Hinputs, hamuts: HamutsBox, interfaceTT: InterfaceTT): InterfaceDefinitionT = {
+    vimpl()
+    // lookup interface template
+    // do placeholder replacements
+    // add it to hamuts
+    // also translate it to hammer too?
+    // return it
   }
 }

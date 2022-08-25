@@ -75,7 +75,7 @@ case class CouldntFindFunctionToCallT(range: List[RangeS], fff: FindFunctionFail
   vpass()
 }
 case class CouldntEvaluateFunction(range: List[RangeS], eff: IFindFunctionFailureReason) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class CouldntEvaluatImpl(range: List[RangeS], eff: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]) extends ICompileErrorT {
+case class CouldntEvaluatImpl(range: List[RangeS], eff: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
@@ -106,7 +106,7 @@ case class CantMoveFromGlobal(range: List[RangeS], name: String) extends ICompil
 case class HigherTypingInferError(range: List[RangeS], err: RuneTypeSolveError) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class AbstractMethodOutsideOpenInterface(range: List[RangeS]) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 //case class NotEnoughToSolveError(range: List[RangeS], conclusions: Map[IRuneS, ITemplata[ITemplataType]], unknownRunes: Iterable[IRuneS]) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class TypingPassSolverError(range: List[RangeS], failedSolve: IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]) extends ICompileErrorT {
+case class TypingPassSolverError(range: List[RangeS], failedSolve: IIncompleteOrFailedCompilerSolve) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }

@@ -25,7 +25,7 @@ case class IsParent(
   conclusions: Map[IRuneS, ITemplata[ITemplataType]]
 ) extends IsParentResult
 case class IsntParent(
-  candidates: Vector[IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]]
+  candidates: Vector[IIncompleteOrFailedCompilerSolve]
 ) extends IsParentResult
 
 class ImplCompiler(
@@ -45,8 +45,8 @@ class ImplCompiler(
     implTemplata: ImplDefinitionTemplata,
     isRootSolve: Boolean):
   Result[
-      Map[IRuneS, ITemplata[ITemplataType]],
-      IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+      CompleteCompilerSolve,
+      IIncompleteOrFailedCompilerSolve] = {
     val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
       range,
@@ -102,9 +102,7 @@ class ImplCompiler(
     implTemplata: ImplDefinitionTemplata,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
-  Result[
-    Map[IRuneS, ITemplata[ITemplataType]],
-    IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
     val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
     range,
@@ -270,7 +268,7 @@ class ImplCompiler(
         InitialKnown(rune.rune, placeholder)
       })
 
-    val inferences =
+    val CompleteCompilerSolve(_, inferences, _) =
       solveImplForDefine(coutputs, List(implA.range), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
@@ -485,11 +483,11 @@ class ImplCompiler(
     parent: InterfaceTT,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
-  Result[ICitizenTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[ICitizenTT, IIncompleteOrFailedCompilerSolve] = {
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
-    val conclusions =
+    val CompleteCompilerSolve(_, conclusions, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, isRootSolve) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
@@ -508,14 +506,14 @@ class ImplCompiler(
     implTemplata: ImplDefinitionTemplata,
     child: ICitizenTT,
     verifyConclusions: Boolean):
-  Result[InterfaceTT, IIncompleteOrFailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[InterfaceTT, IIncompleteOrFailedCompilerSolve] = {
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(child)))
     val childEnv =
       coutputs.getOuterEnvForType(
         TemplataCompiler.getCitizenTemplate(child.fullName))
-    val conclusions =
+    val CompleteCompilerSolve(_, conclusions, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false) match {
         case Ok(c) => c
         case Err(e) => return Err(e)
@@ -647,7 +645,7 @@ class ImplCompiler(
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, conclusions)) => IsParent(implTemplata, conclusions)
+      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, _))) => IsParent(implTemplata, conclusions)
       case None => IsntParent(errs.toVector)
     }
   }

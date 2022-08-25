@@ -1,11 +1,10 @@
 package dev.vale.testvm
 
 import dev.vale.finalast.{InlineH, ProgramH, ShareH}
-import dev.vale.{vassert, vcurious, vfail, vpass}
+import dev.vale.{Result, vassert, vassertSome, vcurious, vfail, vpass}
 
 import java.io.PrintStream
 import dev.vale.finalast.ProgramH
-import dev.vale.Result
 import dev.vale.von.IVonData
 
 import scala.collection.immutable.List
@@ -79,9 +78,10 @@ object Vivem {
       stdout: String => Unit): IVonData = {
     val main =
       programH.packages.flatMap({ case (packageCoord, paackage) =>
-        paackage.exportNameToFunction.find(_._1.str == "main").map({ case (name, prototype) =>
-          paackage.functions.find(_.prototype == prototype).get
-        }).toVector
+        paackage.exportNameToFunction.find(_._1.str == "main")
+          .map({ case (name, prototype) =>
+            vassertSome(paackage.functions.find(_.prototype == prototype))
+          }).toVector
       }).flatten.toVector match {
         case Vector() => vfail()
         case Vector(m) => m
