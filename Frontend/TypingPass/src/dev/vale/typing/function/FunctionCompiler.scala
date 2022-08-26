@@ -71,6 +71,7 @@ object FunctionCompiler {
 
   case class EvaluateFunctionSuccess(
     function: PrototypeTemplata,
+    inferences: Map[IRuneS, ITemplata[ITemplataType]],
     runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
   ) extends IEvaluateFunctionResult
 

@@ -137,7 +137,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), runeToFunctionBound)
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), inferredTemplatas, runeToFunctionBound)
   }
 
   private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[Option[CoordT]]):
@@ -198,7 +198,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForBanner(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(banner, runeToFunctionBound)
+    EvaluateFunctionSuccess(banner, inferredTemplatas, runeToFunctionBound)
   }
 
 //  // Preconditions:
@@ -389,7 +389,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForBanner(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(banner, runeToFunctionBound)
+    EvaluateFunctionSuccess(banner, inferences, runeToFunctionBound)
   }
 
   private def assembleKnownTemplatas(
@@ -497,7 +497,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), runeToFunctionBound)
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferredTemplatas, runeToFunctionBound)
   }
 
   def evaluateGenericFunctionParentForPrototype(
@@ -580,7 +580,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), runeToFunctionBound)
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferences, runeToFunctionBound)
   }
 
   // Preconditions:

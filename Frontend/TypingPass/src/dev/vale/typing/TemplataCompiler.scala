@@ -186,7 +186,7 @@ object TemplataCompiler {
       case StaticSizedArrayTT(size, mutability, variability, elementType) => {
         KindTemplata(
           interner.intern(StaticSizedArrayTT(
-            expectInteger(substituteTemplatasInTemplata(interner, keywords, mutability, substitutions)),
+            expectInteger(substituteTemplatasInTemplata(interner, keywords, size, substitutions)),
             expectMutability(substituteTemplatasInTemplata(interner, keywords, mutability, substitutions)),
             expectVariability(substituteTemplatasInTemplata(interner, keywords, variability, substitutions)),
             substituteTemplatasInCoord(interner, keywords, elementType, substitutions))))

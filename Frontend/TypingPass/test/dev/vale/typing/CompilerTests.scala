@@ -368,7 +368,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests defining an empty interface and an implementing struct") {
     val compile = CompilerTestCompilation.test(
       """
-        |interface MyInterface { }
+        |sealed interface MyInterface { }
         |struct MyStruct { }
         |impl MyInterface for MyStruct;
         |func main(a MyStruct) {}
@@ -386,7 +386,7 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
+      impl.struct == structDef.instantiatedCitizen.fullName && impl.interface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -413,7 +413,7 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.templateName && impl.interface == interfaceDef.templateName
+      impl.struct == structDef.instantiatedCitizen.fullName && impl.interface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -1447,7 +1447,7 @@ class CompilerTests extends FunSuite with Matchers {
         |import v.builtins.panic.*;
         |import v.builtins.drop.*;
         |import panicutils.*;
-        |interface MyOption<T Ref> where func drop(T)void { }
+        |sealed interface MyOption<T Ref> where func drop(T)void { }
         |struct MySome<T Ref> where func drop(T)void { value T; }
         |impl<T> MyOption<T> for MySome<T> where func drop(T)void;
         |func moo(a MySome<int>) { }

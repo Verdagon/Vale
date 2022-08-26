@@ -36,13 +36,27 @@ object ITemplata {
     templata match {
       case t @ IntegerTemplata(_) => t
       case PlaceholderTemplata(fullNameT, IntegerTemplataType()) => PlaceholderTemplata(fullNameT, IntegerTemplataType())
-      case _ => vfail()
+      case other => vfail(other)
     }
   }
 
   def expectIntegerTemplata(templata: ITemplata[ITemplataType]): ITemplata[IntegerTemplataType] = {
     templata match {
       case t @ IntegerTemplata(_) => t
+      case _ => vfail()
+    }
+  }
+
+  def expectMutabilityTemplata(templata: ITemplata[ITemplataType]): ITemplata[MutabilityTemplataType] = {
+    templata match {
+      case t @ MutabilityTemplata(_) => t
+      case _ => vfail()
+    }
+  }
+
+  def expectVariabilityTemplata(templata: ITemplata[ITemplataType]): ITemplata[VariabilityTemplataType] = {
+    templata match {
+      case t @ VariabilityTemplata(_) => t
       case _ => vfail()
     }
   }

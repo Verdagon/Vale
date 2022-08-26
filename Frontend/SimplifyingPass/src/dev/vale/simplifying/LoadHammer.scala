@@ -239,7 +239,7 @@ class LoadHammer(
 //        case PackTT(_, sr) => sr
       }
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.templateName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
 
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)

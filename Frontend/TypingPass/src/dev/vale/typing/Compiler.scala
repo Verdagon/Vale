@@ -160,6 +160,8 @@ class Compiler(
             case IntegerTemplata(_) =>
             case BooleanTemplata(_) =>
             case StringTemplata(_) =>
+            case RuntimeSizedArrayTemplateTemplata() =>
+            case StaticSizedArrayTemplateTemplata() =>
             case VariabilityTemplata(_) =>
             case OwnershipTemplata(_) =>
             case MutabilityTemplata(_) =>
@@ -254,6 +256,7 @@ class Compiler(
             case p @ PlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, p, false)
             case RuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
+            case NeverT(fromBreak) => vimpl()
             case StaticSizedArrayTT(_, _, _, _) => false
             case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
             case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)

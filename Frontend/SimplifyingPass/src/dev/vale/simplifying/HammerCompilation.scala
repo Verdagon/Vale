@@ -35,8 +35,8 @@ class HammerCompilation(
       packagesToBuild,
       packageToContentsResolver,
       MonomorphizedCompilationOptions(
-        options.debugOut,
-        options.globalOptions))
+        options.globalOptions,
+        options.debugOut))
   var hamutsCache: Option[ProgramH] = None
   var vonHammerCache: Option[VonHammer] = None
 
