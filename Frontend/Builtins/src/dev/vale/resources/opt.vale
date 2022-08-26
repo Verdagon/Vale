@@ -33,6 +33,7 @@ where func drop(T)void;
 func isEmpty<T>(opt None<T>) bool
 where func drop(T)void
 { return true; }
+
 func isEmpty<T>(opt Some<T>) bool
 where func drop(T)void
 { return false; }

@@ -250,20 +250,10 @@ class StructHammer(
   }
 
   def lookupStruct(hinputs: Hinputs, hamuts: HamutsBox, structTT: StructTT): StructDefinitionT = {
-    vimpl()
-    // lookup struct template
-    // do placeholder replacements
-    // add it to hamuts
-    // also translate it to hammer too?
-    // return it
+    hinputs.lookupStruct(structTT.fullName)
   }
 
   def lookupInterface(hinputs: Hinputs, hamuts: HamutsBox, interfaceTT: InterfaceTT): InterfaceDefinitionT = {
-    vimpl()
-    // lookup interface template
-    // do placeholder replacements
-    // add it to hamuts
-    // also translate it to hammer too?
-    // return it
+    hinputs.lookupInterface(interfaceTT.fullName)
   }
 }

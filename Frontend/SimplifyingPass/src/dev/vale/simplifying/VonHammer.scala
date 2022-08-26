@@ -1174,6 +1174,13 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
               "params",
               VonArray(None, templateArgs.map(vonifyTemplata(hinputs, hamuts, _))))))
       }
+      case StructTemplateNameT(humanName) => {
+        VonObject(
+          "StructTemplateName",
+          None,
+          Vector(
+            VonMember("struct", VonStr(humanName.str))))
+      }
       case InterfaceTemplateNameT(humanName) => {
         VonObject(
           "InterfaceTemplateName",

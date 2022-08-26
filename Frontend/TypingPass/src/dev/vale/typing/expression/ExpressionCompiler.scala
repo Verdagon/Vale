@@ -1215,7 +1215,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(containedCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
       }
 
     val noneConstructorTemplata =
@@ -1227,7 +1227,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
       }
     (ownOptCoord, someConstructor, noneConstructor)
   }
@@ -1257,7 +1257,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedSuccessCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
       }
 
     val errConstructorTemplata =
@@ -1269,7 +1269,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedFailCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
       }
 
     (ownResultCoord, okConstructor, errConstructor)

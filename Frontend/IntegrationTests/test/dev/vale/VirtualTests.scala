@@ -20,7 +20,7 @@ class VirtualTests extends FunSuite with Matchers {
           |func main(i I) int {
           |  return doThing(i);
           |}
-        """.stripMargin)
+        """.stripMargin, false)
       val coutputs = compile.expectCompilerOutputs()
       val interner = compile.interner
       val keywords = compile.keywords
@@ -39,7 +39,9 @@ class VirtualTests extends FunSuite with Matchers {
                   FunctionNameT(
                     interner.intern(FunctionTemplateNameT(
                       interner.intern(StrI("doThing")),
-                      vimpl())),
+                      CodeLocationS(
+                        interner.intern(FileCoordinate(
+                          interner.intern(PackageCoordinate(interner.intern(StrI("test")),Vector())),"0.vale")), 24))),
                     Vector.empty,
                     Vector(
                       CoordT(
@@ -58,7 +60,7 @@ class VirtualTests extends FunSuite with Matchers {
         |func main(i I) int {
         |  return doThing(i);
         |}
-      """.stripMargin)
+      """.stripMargin, false)
     val coutputs = compile.expectCompilerOutputs()
     val interner = compile.interner
     val keywords = compile.keywords
@@ -79,7 +81,9 @@ class VirtualTests extends FunSuite with Matchers {
                   interner.intern(
                     FunctionTemplateNameT(
                       interner.intern(StrI("doThing")),
-                      vimpl())),
+                      CodeLocationS(
+                        interner.intern(FileCoordinate(
+                          interner.intern(PackageCoordinate(interner.intern(StrI("test")),Vector())),"0.vale")), 24))),
                   Vector.empty,
                   Vector(
                     CoordT(
@@ -105,7 +109,7 @@ class VirtualTests extends FunSuite with Matchers {
         |func main(i I) int {
         |  return doThing(i);
         |}
-      """.stripMargin)
+      """.stripMargin, false)
     val coutputs = compile.expectCompilerOutputs()
     val interner = compile.interner
 

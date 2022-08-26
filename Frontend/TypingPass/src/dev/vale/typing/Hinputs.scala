@@ -91,7 +91,11 @@ case class Hinputs(
     structTT: FullNameT[IStructTemplateNameT],
     interfaceTT: FullNameT[IInterfaceTemplateNameT]):
   EdgeT = {
-    edges.find(impl => impl.struct == structTT && impl.interface == interfaceTT).get
+    vassertSome(
+      edges.find(impl => {
+      TemplataCompiler.getCitizenTemplate(impl.struct) == structTT &&
+        TemplataCompiler.getInterfaceTemplate(impl.interface) == interfaceTT
+    }))
   }
 
   def lookupInterface(humanName: String): InterfaceDefinitionT = {

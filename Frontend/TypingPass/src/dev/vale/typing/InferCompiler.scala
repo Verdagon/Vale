@@ -238,9 +238,9 @@ class InferCompiler(
                 case Err(e) => return FailedCompilerSolve(steps, Vector(), e)
               }
             } else {
-              vcurious()
+              Map[IRuneS, PrototypeTemplata]()
             }
-          CompleteCompilerSolve(steps, conclusionsWithoutReachableBounds, runeToFunctionBound)
+          CompleteCompilerSolve(steps, conclusionsMaybeWithReachableBounds, runeToFunctionBound)
         }
         case IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
           if (verifyConclusions) {

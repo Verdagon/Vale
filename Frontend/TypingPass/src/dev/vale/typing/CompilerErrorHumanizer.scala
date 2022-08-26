@@ -219,7 +219,7 @@ object CompilerErrorHumanizer {
       } else {
         "Rejected candidates:\n\n" +
         rejectedCalleeToReason.zipWithIndex.map({ case ((candidate, reason), index) =>
-          "Candidate " + (index + 1) + ": " +
+          "Candidate " + (index + 1) + " (of " + rejectedCalleeToReason.size + "): " +
             humanizeCandidate(codeMap, candidate) +
             humanizeRejectionReason(verbose, codeMap, invocationRange, reason) + "\n\n"
         }).mkString("")

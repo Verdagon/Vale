@@ -308,11 +308,11 @@ class OverloadResolver(
                         functionCompiler.evaluateTemplatedFunctionFromCallForBanner(
                           coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
-                          case (EvaluateFunctionSuccess(prototype, conclusions)) => {
+                          case (EvaluateFunctionSuccess(prototype, conclusions, runeToFunctionBound)) => {
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
-                                Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype, conclusions))
+                                Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype, runeToFunctionBound))
                               }
                             }
                           }
@@ -322,11 +322,11 @@ class OverloadResolver(
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
                           coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
-                          case (EvaluateFunctionSuccess(prototype, conclusions)) => {
+                          case (EvaluateFunctionSuccess(prototype, conclusions, runeToFunctionBound)) => {
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
-                                Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype, conclusions))
+                                Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype, runeToFunctionBound))
                               }
                             }
                           }
@@ -345,11 +345,11 @@ class OverloadResolver(
                 case (EvaluateFunctionFailure(reason)) => {
                   Err(reason)
                 }
-                case (EvaluateFunctionSuccess(banner, conclusions)) => {
+                case (EvaluateFunctionSuccess(banner, conclusions, runeToFunctionBound)) => {
                   paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                     case Err(reason) => Err(reason)
                     case Ok(_) => {
-                      Ok(ValidPrototypeTemplataCalleeCandidate(banner, conclusions))
+                      Ok(ValidPrototypeTemplataCalleeCandidate(banner, runeToFunctionBound))
                     }
                   }
                 }
@@ -363,10 +363,10 @@ class OverloadResolver(
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
-              case (EvaluateFunctionSuccess(banner, conclusions)) => {
+              case (EvaluateFunctionSuccess(banner, conclusions, runeToFunctionBound)) => {
                 paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                   case Ok(_) => {
-                    Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner, conclusions))
+                    Ok(ast.ValidPrototypeTemplataCalleeCandidate(banner, runeToFunctionBound))
                   }
                   case Err(reason) => Err(reason)
                 }
@@ -378,9 +378,9 @@ class OverloadResolver(
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
-              case (EvaluateFunctionSuccess(banner, conclusions)) => {
+              case (EvaluateFunctionSuccess(banner, conclusions, runeToFunctionBound)) => {
                 paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
-                  case Ok(_) => Ok(ValidPrototypeTemplataCalleeCandidate(banner, conclusions))
+                  case Ok(_) => Ok(ValidPrototypeTemplataCalleeCandidate(banner, runeToFunctionBound))
                   case Err(reason) => Err(reason)
                 }
               }
@@ -633,7 +633,7 @@ class OverloadResolver(
     potentialBanner match {
       case ValidCalleeCandidate(banner, _, ft @ FunctionTemplata(_, _)) => {
 //        if (ft.function.isTemplate) {
-          val (EvaluateFunctionSuccess(successBanner, conclusions)) =
+          val (EvaluateFunctionSuccess(successBanner, conclusions, runeToFunctionBound)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForBanner(
               coutputs, callingEnv, callRange, ft, Vector.empty, banner.paramTypes.map(x => Some(x)));
           successBanner
@@ -662,7 +662,7 @@ class OverloadResolver(
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
                 coutputs,callRange, callingEnv, ft, templateArgs, args.map(x => Some(x)), verifyConclusions) match {
-              case efs @ EvaluateFunctionSuccess(_, _) => efs
+              case efs @ EvaluateFunctionSuccess(_, _, _) => efs
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
 //          } else {
@@ -674,7 +674,7 @@ class OverloadResolver(
         } else {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, callingEnv, ft, templateArgs, args.map(x => Some(x))) match {
-            case efs @ EvaluateFunctionSuccess(_, _) => efs
+            case efs @ EvaluateFunctionSuccess(_, _, _) => efs
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
             }
@@ -683,10 +683,10 @@ class OverloadResolver(
       }
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
-        EvaluateFunctionSuccess(PrototypeTemplata(declarationRange, header.toPrototype), Map())
+        EvaluateFunctionSuccess(PrototypeTemplata(declarationRange, header.toPrototype), Map(), Map())
       }
-      case ValidPrototypeTemplataCalleeCandidate(prototype, conclusions) => {
-        EvaluateFunctionSuccess(prototype, conclusions)
+      case ValidPrototypeTemplataCalleeCandidate(prototype, runeToFunctionBound) => {
+        EvaluateFunctionSuccess(prototype, Map(), runeToFunctionBound)
       }
     }
   }

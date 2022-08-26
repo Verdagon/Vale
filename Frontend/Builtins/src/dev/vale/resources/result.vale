@@ -1,4 +1,5 @@
 import v.builtins.panic.*;
+import v.builtins.logic.*;
 
 #!DeriveInterfaceDrop
 sealed interface Result<OkType Ref, ErrType Ref> { }
