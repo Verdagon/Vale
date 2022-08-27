@@ -1,12 +1,13 @@
 package dev.vale.typing
 
-import dev.vale.typing.ast.{ReferenceExpressionTE}
-import dev.vale.typing.env.IEnvironment
+import dev.vale.typing.ast.ReferenceExpressionTE
+import dev.vale.typing.env.{GlobalEnvironment, IEnvironment}
 import dev.vale.{RangeS, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.{IsParent, IsParentResult, IsntParent}
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 //import dev.vale.astronomer.IRulexSR
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env.IEnvironmentBox
@@ -25,6 +26,13 @@ trait IConvertHelperDelegate {
     descendantCitizenRef: ISubKindTT,
     ancestorInterfaceRef: ISuperKindTT):
   IsParentResult
+
+  def getFreeFunction(
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
+    callRange: List[RangeS],
+    type2: CoordT):
+  EvaluateFunctionSuccess
 }
 
 class ConvertHelper(
@@ -118,8 +126,21 @@ class ConvertHelper(
     targetSuperKind: ISuperKindTT):
   (ReferenceExpressionTE) = {
     delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
-      case IsParent(_, _) => {
-        UpcastTE(sourceExpr, targetSuperKind)
+      case IsParent(_, _, implFullName, runeToSuppliedFunction) => {
+        val ownership =
+          sourceExpr.result.reference.ownership match {
+            case BorrowT => OwnT
+            case OwnT => OwnT
+            case WeakT => OwnT
+            case ShareT => ShareT
+          }
+        // Thisll still exist for mutable things, itll just contain a no-op.
+        val freeInterfacePrototype =
+          delegate.getFreeFunction(
+            coutputs, callingEnv, range, CoordT(ownership, targetSuperKind))
+
+        UpcastTE(
+          sourceExpr, targetSuperKind, implFullName, runeToSuppliedFunction, freeInterfacePrototype.function.prototype)
       }
       case IsntParent(candidates) => {
         throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceSubKind + " to a " + targetSuperKind + ": " + candidates))

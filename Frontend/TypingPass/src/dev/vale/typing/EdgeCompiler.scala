@@ -11,7 +11,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
-import dev.vale.typing.names.{FullNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{FunctionTemplata, KindTemplata}
 import dev.vale.typing.types._
 
@@ -37,10 +37,10 @@ class EdgeCompiler(
   (
     Vector[InterfaceEdgeBlueprint],
     Map[
-      FullNameT[IInterfaceTemplateNameT],
+      FullNameT[IInterfaceNameT],
       Map[
-        FullNameT[ICitizenTemplateNameT],
-        Vector[PrototypeT]]]) = {
+        FullNameT[ICitizenNameT],
+        EdgeT]]) = {
     val interfaceEdgeBlueprints =
       makeInterfaceEdgeBlueprints(coutputs)
 
@@ -48,12 +48,14 @@ class EdgeCompiler(
       interfaceEdgeBlueprints.map(interfaceEdgeBlueprint => {
         val interfacePlaceholderedFullName = interfaceEdgeBlueprint.interface
         val interfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(interfacePlaceholderedFullName)
+        val interfaceFullName =
+          coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.fullName
         val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
 //        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
         val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
         val overridingCitizenToFoundFunction =
           overridingImpls.map(overridingImpl => {
-            val overridingCitizen = overridingImpl.subCitizenTemplateName
+            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateName
             val superInterfaceWithSubCitizenPlaceholders = overridingImpl.parentInterfaceFromPlaceholderedSubCitizen
 
             // Given:
@@ -145,15 +147,24 @@ class EdgeCompiler(
                     List(range, overridingImpl.templata.impl.range),
                     implEnvWithAbstractFuncConclusions,
                     interfaceTemplateFullName,
-                    overridingCitizen,
+                    overridingCitizenTemplateFullName,
                     impreciseName,
                     overrideFunctionParamTypes)
 
                 foundFunction.function.prototype
               })
-            overridingCitizen -> foundFunctions
+            val overridingCitizenFullName =
+              coutputs.lookupCitizen(overridingCitizenTemplateFullName).instantiatedCitizen.fullName
+            val edge =
+              EdgeT(
+                overridingImpl.instantiatedFullName,
+                overridingCitizenFullName,
+                interfaceFullName,
+                overridingImpl.functionBoundToRune,
+                foundFunctions)
+            overridingCitizenFullName -> edge
           }).toMap
-        interfaceTemplateFullName -> overridingCitizenToFoundFunction
+        interfaceFullName -> overridingCitizenToFoundFunction
       }).toMap
     (interfaceEdgeBlueprints, itables)
   }

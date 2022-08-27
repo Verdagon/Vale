@@ -192,7 +192,7 @@ object TemplatasStore {
       case ClosureParamNameT() => Some(interner.intern(ClosureParamNameS()))
       case SelfNameT() => Some(interner.intern(SelfNameS()))
       case ArbitraryNameT() => Some(interner.intern(ArbitraryNameS()))
-      case AnonymousSubstructImplNameT() => None
+      case AnonymousSubstructImplNameT(template, templateArgs) => None
       case AnonymousSubstructConstructorTemplateNameT(StructTemplateNameT(humanName)) => {
         Some(interner.intern(CodeNameS(humanName)))
       }

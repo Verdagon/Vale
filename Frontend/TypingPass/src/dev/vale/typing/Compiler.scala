@@ -31,7 +31,7 @@ import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
@@ -284,7 +284,7 @@ class Compiler(
           includeSelf: Boolean):
         Option[ITemplata[ImplTemplataType]] = {
           implCompiler.isParent(coutputs, env.originalCallingEnv, parentRanges, subKindTT, superKindTT) match {
-            case IsParent(implTemplata, conclusions) => Some(implTemplata)
+            case IsParent(implTemplata, _, _, _) => Some(implTemplata)
             case IsntParent(candidates) => None
           }
         }
@@ -476,6 +476,20 @@ class Compiler(
           implCompiler.isParent(
             coutputs, callingEnv, parentRanges, descendantCitizenRef, ancestorInterfaceRef)
         }
+
+        override def getFreeFunction(
+          coutputs: CompilerOutputs,
+          callingEnv: IEnvironment,
+          callRange: List[RangeS],
+          type2: CoordT):
+        EvaluateFunctionSuccess = {
+          type2.ownership match {
+            case OwnT =>
+            case ShareT =>
+            case _ => vwat()
+          }
+          destructorCompiler.getFreeFunction(coutputs, callingEnv, callRange, type2)
+        }
       })
 
   val structCompiler: StructCompiler =
@@ -507,6 +521,18 @@ class Compiler(
           functionCompiler.evaluateGenericFunctionFromNonCall(
             coutputs, parentRanges, functionTemplata, verifyConclusions)
         }
+
+//        override def evaluateGenericLightFunctionFromCallForPrototype(
+//          coutputs: CompilerOutputs,
+//          callRange: List[RangeS],
+//          callingEnv: IEnvironment, // See CSSNCE
+//          functionTemplata: FunctionTemplata,
+//          explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+//          args: Vector[Option[CoordT]]):
+//        IEvaluateFunctionResult = {
+//          functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+//            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
+//        }
 
         override def scoutExpectedFunctionForPrototype(
           env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
@@ -639,10 +665,10 @@ class Compiler(
   val edgeCompiler = new EdgeCompiler(interner, keywords, functionCompiler, overloadCompiler, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
-  val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator)
+  val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator, destructorCompiler)
   val structDropMacro = new StructDropMacro(interner, keywords, nameTranslator, destructorCompiler)
   val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
-  val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, overloadCompiler)
+  val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
   val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords)
@@ -730,16 +756,14 @@ class Compiler(
 
         val namespaceNameToTemplatas =
           fullNameAndEnvEntry
-            .map({
-              case (name, envEntry) => {
-                (name.copy(last = interner.intern(PackageTopLevelNameT())), name.last, envEntry)
-              }
+            .map({ case (name, envEntry) =>
+              (name.copy(last = interner.intern(PackageTopLevelNameT())), name.last, envEntry)
             })
             .groupBy(_._1)
-            .map({ case (namespaceFullName, envEntries) =>
-              namespaceFullName ->
-              TemplatasStore(namespaceFullName, Map(), Map())
-                .addEntries(interner, envEntries.map({ case (_, b, c) => (b, c) }))
+            .map({ case (packageFullName, envEntries) =>
+              packageFullName ->
+                TemplatasStore(packageFullName, Map(), Map())
+                  .addEntries(interner, envEntries.map({ case (_, b, c) => (b, c) }))
              }).toMap
 
         val globalEnv =
@@ -935,16 +959,7 @@ class Compiler(
 //          }
 //        }
 
-        val (interfaceEdgeBlueprints, interfaceToStructToMethods) = edgeCompiler.compileITables(coutputs)
-        val edges =
-          interfaceToStructToMethods.flatMap({ case (interface, structToMethods) =>
-            structToMethods.map({ case (struct, methods) =>
-              EdgeT(
-                coutputs.lookupCitizen(struct).instantiatedCitizen.fullName,
-                coutputs.lookupInterface(interface).instantiatedInterface.fullName,
-                methods)
-            })
-          })
+        val (interfaceEdgeBlueprints, interfaceToSubCitizenToEdge) = edgeCompiler.compileITables(coutputs)
 
 //        // NEVER ZIP TWO SETS TOGETHER
 //        val edgeBlueprintsAsList = edgeBlueprints.toVector
@@ -1035,9 +1050,9 @@ class Compiler(
             reachableInterfaces.toVector,
             reachableStructs.toVector,
             reachableFunctions.toVector,
-            //reachableImmKindToDestructor,
+            Map(), // Will be populated by monomorphizer
             interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
-            edges.toVector,
+            interfaceToSubCitizenToEdge,
             coutputs.getKindExports,
             coutputs.getFunctionExports,
             coutputs.getKindExterns,
@@ -1069,14 +1084,20 @@ class Compiler(
   private def preprocessInterface(
     nameToInterfaceDefinedMacro: Map[StrI, IOnInterfaceDefinedMacro],
     interfaceNameT: FullNameT[INameT],
-    interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {
+    interfaceA: InterfaceA):
+  Vector[(FullNameT[INameT], IEnvEntry)] = {
     val defaultCalledMacros =
       Vector(
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceDrop),
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree),
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveAnonymousSubstruct))
-    determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, List(interfaceA.range), interfaceA.attributes)
-      .flatMap(_.getInterfaceSiblingEntries(interfaceNameT, interfaceA))
+    val macrosToCall =
+      determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, List(interfaceA.range), interfaceA.attributes)
+    vpass()
+    val results =
+      macrosToCall.flatMap(_.getInterfaceSiblingEntries(interfaceNameT, interfaceA))
+    vpass()
+    results
   }
 
   private def determineMacrosToCall[T](

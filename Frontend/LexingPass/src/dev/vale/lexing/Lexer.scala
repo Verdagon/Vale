@@ -39,6 +39,22 @@ class Lexer(interner: Interner, keywords: Keywords) {
             RangeL(attributeBegin, end),
             DontCallMacroL,
             WordLE(RangeL(attributeBegin, end), keywords.DeriveStructDrop))))
+    } else if (iter.trySkipCompleteWord("#DeriveAnonymousSubstruct")) {
+        val end = iter.getPos()
+        Ok(
+          Some(
+            MacroCallL(
+              RangeL(attributeBegin, end),
+              CallMacroL,
+              WordLE(RangeL(attributeBegin, end), keywords.DeriveAnonymousSubstruct))))
+    } else if (iter.trySkipCompleteWord("#!DeriveAnonymousSubstruct")) {
+      val end = iter.getPos()
+      Ok(
+        Some(
+          MacroCallL(
+            RangeL(attributeBegin, end),
+            DontCallMacroL,
+            WordLE(RangeL(attributeBegin, end), keywords.DeriveAnonymousSubstruct))))
     } else if (iter.trySkipCompleteWord("#DeriveInterfaceDrop")) {
       val end = iter.getPos()
       Ok(

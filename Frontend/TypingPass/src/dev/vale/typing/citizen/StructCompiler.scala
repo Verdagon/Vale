@@ -20,7 +20,7 @@ import dev.vale.typing._
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.templata.ITemplata.expectMutability
 
 import scala.collection.immutable.List
@@ -35,6 +35,15 @@ trait IStructCompilerDelegate {
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT
+//
+//  def evaluateGenericLightFunctionFromCallForPrototype(
+//    coutputs: CompilerOutputs,
+//    callRange: List[RangeS],
+//    callingEnv: IEnvironment, // See CSSNCE
+//    functionTemplata: FunctionTemplata,
+//    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+//    args: Vector[Option[CoordT]]):
+//  IEvaluateFunctionResult
 
   def scoutExpectedFunctionForPrototype(
     env: IEnvironment,
@@ -167,8 +176,11 @@ class StructCompiler(
     interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
   ResolveSuccess[InterfaceTT] = {
-    templateArgsLayer.resolveInterface(
-      coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
+    val success =
+      templateArgsLayer.resolveInterface(
+        coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
+
+    success
   }
 
   def resolveCitizen(

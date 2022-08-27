@@ -81,7 +81,13 @@ class FunctionCompilerMiddleLayer(
         if (!isInternalMethod) {
           val interfaceDef = coutputs.lookupInterface(interfaceTT)
           if (!interfaceDef.attributes.contains(SealedT)) {
-            throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS :: parentRanges))
+            // Macros can put e.g. functions inside an interface by prefixing the function name
+            // with the interface.
+            // For example, InterfaceFreeMacro will look at mymod.MyInterface and conjure a
+            // mymod.MyInterface.free function.
+            if (env.fullName.steps.init != TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName).steps) {
+              throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS :: parentRanges))
+            }
           }
         }
         (Some(AbstractT()))
@@ -281,7 +287,9 @@ class FunctionCompilerMiddleLayer(
 
                 interner.intern(RuneNameS(param1.pattern.coordRune.get.rune)),
                 Set(TemplataLookupContext)))
-        val maybeVirtuality = evaluateMaybeVirtuality(env, coutputs, parentRanges, coord.kind, param1.pattern.virtuality)
+        val maybeVirtuality =
+          evaluateMaybeVirtuality(
+            env, coutputs, parentRanges, coord.kind, param1.pattern.virtuality)
         val nameT =
           param1.pattern.name match {
             case None => interner.intern(TypingIgnoredParamNameT(index))

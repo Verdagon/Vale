@@ -17,6 +17,7 @@ import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing.rules.RuneParentEnvLookupSR
 import dev.vale.postparsing.RuneTypeSolver
+import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
@@ -325,8 +326,13 @@ class ExpressionCompiler(
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
       }
     val resultPointerType = CoordT(ownership, closureStructRef)
+
+    // Thisll still exist for mutable things, itll just contain a no-op.
+    val freePrototype =
+      destructorCompiler.getFreeFunction(coutputs, nenv.snapshot, range, resultPointerType)
+
     val constructExpr2 =
-      ConstructTE(closureStructRef, resultPointerType, lookupExpressions2)
+      ConstructTE(closureStructRef, resultPointerType, lookupExpressions2, freePrototype.function.prototype)
     (constructExpr2)
   }
 

@@ -157,17 +157,18 @@ class StructTests extends FunSuite with Matchers {
   test("Panic function") {
     val compile = RunCompilation.test(
       """
-        |interface XOpt<T> where T Ref {
+        |sealed interface XOpt<T Ref>
+        |where func drop(T)void {
         |  func get(virtual opt &XOpt<T>) &T;
         |}
-        |struct XSome<T> where T Ref { value T; }
-        |impl<T> XOpt<T> for XSome<T>;
-        |struct XNone<T> where T Ref { }
-        |impl<T> XOpt<T> for XNone<T>;
         |
+        |struct XNone<T Ref> where func drop(T)void  { }
+        |impl<T> XOpt<T> for XNone<T> where func drop(T)void ;
         |
-        |func get<T>(opt &XNone<T>) &T { __vbi_panic(); }
-        |func get<T>(opt &XSome<T>) &T { return opt.value; }
+        |func get<T>(opt &XNone<T>) &T
+        |where func drop(T)void {
+        |  __vbi_panic();
+        |}
         |
         |exported func main() int {
         |  m XOpt<int> = XNone<int>();

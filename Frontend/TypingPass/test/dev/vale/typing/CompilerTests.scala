@@ -385,8 +385,9 @@ class CompilerTests extends FunSuite with Matchers {
         case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
-    vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.instantiatedCitizen.fullName && impl.interface == interfaceDef.instantiatedCitizen.fullName
+    vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
+      impl.struct == structDef.instantiatedCitizen.fullName &&
+        impl.interface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -412,8 +413,9 @@ class CompilerTests extends FunSuite with Matchers {
         case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false) => sd
       }))
 
-    vassert(coutputs.edges.exists(impl => {
-      impl.struct == structDef.instantiatedCitizen.fullName && impl.interface == interfaceDef.instantiatedCitizen.fullName
+    vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
+      impl.struct == structDef.instantiatedCitizen.fullName &&
+        impl.interface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -496,18 +498,19 @@ class CompilerTests extends FunSuite with Matchers {
       case FunctionCallTE(
         PrototypeT(
           FullNameT(_,
-            Vector(StructTemplateNameT(StrI("MyStruct"))),
-            FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
-          CoordT(ShareT,VoidT())),
-        _,
-        _) =>
+            Vector(),
+            FunctionNameT(
+              FunctionTemplateNameT(StrI("drop"),_),
+              Vector(),
+              Vector(CoordT(OwnT,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
+          CoordT(ShareT,VoidT())), _, _) =>
     }
   }
 
   test("Tests stamping an interface template from a function param") {
     val compile = CompilerTestCompilation.test(
       """
-        |interface MyOption<T> where T Ref { }
+        |interface MyOption<T Ref> { }
         |func main(a &MyOption<int>) { }
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
@@ -659,7 +662,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car"))) => {
+      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car")), null, null, null) => {
         Collector.only(innerExpr.result, {
           case StructTT(simpleName("Toyota")) =>
         })
@@ -773,7 +776,12 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case UpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
+      case UpcastTE(
+        _,
+        InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
+        null,
+        null,
+        null) =>
     })
   }
 
@@ -791,7 +799,12 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case UpcastTE(_, InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _)))) =>
+      case UpcastTE(
+        _,
+        InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
+        null,
+        null,
+        null) =>
     })
   }
 
@@ -1465,7 +1478,8 @@ class CompilerTests extends FunSuite with Matchers {
       coutputs.lookupStructByTemplateName(
         interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
 
-    coutputs.lookupImpl(struct.templateName, interface.templateName)
+    vimpl()
+    //coutputs.lookupImpl(struct.templateName, interface.templateName)
   }
 
   test("Lambda inside different function with same name") {
@@ -1845,7 +1859,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     Collector.only(coutputs.lookupFunction("doUpcast"), {
-      case UpcastTE(sourceExpr, targetSuperKind) => {
+      case UpcastTE(sourceExpr, targetSuperKind, null, null, null) => {
         sourceExpr.result.reference.kind match {
           case PlaceholderT(_) =>
         }

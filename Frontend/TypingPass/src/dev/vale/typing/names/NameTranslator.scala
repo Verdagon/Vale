@@ -91,7 +91,8 @@ class NameTranslator(interner: Interner) {
       case ClosureParamNameS() => interner.intern(ClosureParamNameT())
       case MagicParamNameS(codeLocation) => interner.intern(MagicParamNameT(translateCodeLocation(codeLocation)))
       case CodeVarNameS(name) => interner.intern(CodeVarNameT(name))
-      case t@TopLevelCitizenDeclarationNameS(_, _) => translateCitizenName(t)
+      case s @ TopLevelStructDeclarationNameS(_, _) => translateStructName(s)
+      case s @ TopLevelInterfaceDeclarationNameS(_, _) => translateInterfaceName(s)
       case LambdaDeclarationNameS(codeLocation) => {
         interner.intern(LambdaTemplateNameT(translateCodeLocation(codeLocation)))
       }
@@ -148,7 +149,7 @@ class NameTranslator(interner: Interner) {
         interner.intern(ImplTemplateDeclareNameT(translateCodeLocation(l)))
       }
       case AnonymousSubstructImplDeclarationNameS(interfaceName) => {
-        interner.intern(AnonymousSubstructImplDeclarationNameT(translateInterfaceName(interfaceName)))
+        interner.intern(AnonymousSubstructImplTemplateNameT(translateInterfaceName(interfaceName)))
       }
     }
   }

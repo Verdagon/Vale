@@ -9,20 +9,36 @@ import dev.vale.typing.ast._
 import dev.vale.typing.names._
 import dev.vale.typing.types._
 
+import scala.collection.mutable
+
 case class Hinputs(
   interfaces: Vector[InterfaceDefinitionT],
   structs: Vector[StructDefinitionT],
 //  emptyPackStructRef: StructTT,
   functions: Vector[FunctionT],
-//  immKindToDestructor: Map[KindT, PrototypeT],
+  immKindToDestructor: Map[KindT, PrototypeT],
 
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToEdgeBlueprints: Map[FullNameT[IInterfaceNameT], InterfaceEdgeBlueprint],
-  edges: Vector[EdgeT],
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  interfaceToSubCitizenToEdge: Map[FullNameT[IInterfaceNameT], Map[FullNameT[ICitizenNameT], EdgeT]],
+
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
   kindExterns: Vector[KindExternT],
   functionExterns: Vector[FunctionExternT]) {
+
+  private val subCitizenToInterfaceToEdgeMutable = mutable.HashMap[FullNameT[ICitizenNameT], mutable.HashMap[FullNameT[IInterfaceNameT], EdgeT]]()
+  interfaceToSubCitizenToEdge.foreach({ case (interface, subCitizenToEdge) =>
+    subCitizenToEdge.foreach({ case (subCitizen, edge) =>
+      subCitizenToInterfaceToEdgeMutable
+        .getOrElseUpdate(subCitizen, mutable.HashMap[FullNameT[IInterfaceNameT], EdgeT]())
+        .put(interface, edge)
+    })
+  })
+  val subCitizenToInterfaceToEdge: Map[FullNameT[ICitizenNameT], Map[FullNameT[IInterfaceNameT], EdgeT]] =
+    subCitizenToInterfaceToEdgeMutable.mapValues(_.toMap).toMap
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
   def lookupStruct(structFullName: FullNameT[IStructNameT]): StructDefinitionT = {
@@ -88,14 +104,12 @@ case class Hinputs(
   }
 
   def lookupImpl(
-    structTT: FullNameT[IStructTemplateNameT],
-    interfaceTT: FullNameT[IInterfaceTemplateNameT]):
+    subCitizenTT: FullNameT[ICitizenNameT],
+    interfaceTT: FullNameT[IInterfaceNameT]):
   EdgeT = {
     vassertSome(
-      edges.find(impl => {
-      TemplataCompiler.getCitizenTemplate(impl.struct) == structTT &&
-        TemplataCompiler.getInterfaceTemplate(impl.interface) == interfaceTT
-    }))
+      vassertSome(interfaceToSubCitizenToEdge.get(interfaceTT))
+        .get(subCitizenTT))
   }
 
   def lookupInterface(humanName: String): InterfaceDefinitionT = {

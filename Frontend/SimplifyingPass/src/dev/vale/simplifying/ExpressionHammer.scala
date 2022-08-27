@@ -249,7 +249,7 @@ class ExpressionHammer(
         (newStructAndDeferredsExprH, Vector.empty)
       }
 
-      case ConstructTE(structTT, resultType2, memberExprs) => {
+      case ConstructTE(structTT, resultType2, memberExprs, _) => {
         val (membersHE, deferreds) =
           translateExpressionsUntilNever(hinputs, hamuts, currentFunctionHeader, locals, memberExprs);
         // Don't evaluate anything that can't ever be run, see BRCOBS
@@ -432,7 +432,7 @@ class ExpressionHammer(
         (upcastNode, innerDeferreds)
       }
 
-      case up @ UpcastTE(innerExpr, targetInterfaceRef2) => {
+      case up @ UpcastTE(innerExpr, targetInterfaceRef2, _, _, _) => {
         val targetPointerType2 = up.result.reference;
         val sourcePointerType2 = innerExpr.result.reference
 
@@ -1080,23 +1080,22 @@ class ExpressionHammer(
       superFunctionHeader.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)
-    vimpl()
-//    val edge = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName)
-//    vassert(edge.interface == interfaceTT)
-//    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionHeader.toBanner.same(x))
-//    vassert(indexInEdge >= 0)
-//
-//    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionHeader.toPrototype)
-//
-//    val callNode =
-//      InterfaceCallH(
-//        argsHE,
-//        virtualParamIndex,
-//        interfaceRefH,
-//        indexInEdge,
-//        prototypeH)
-//
-//    translateDeferreds(
-//      hinputs, hamuts, currentFunctionHeader, locals, callNode, argsDeferreds)
+    val edge = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName)
+    vassert(edge.interface == interfaceTT.fullName)
+    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionHeader.toBanner.same(x.toBanner))
+    vassert(indexInEdge >= 0)
+
+    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionHeader.toPrototype)
+
+    val callNode =
+      InterfaceCallH(
+        argsHE,
+        virtualParamIndex,
+        interfaceRefH,
+        indexInEdge,
+        prototypeH)
+
+    translateDeferreds(
+      hinputs, hamuts, currentFunctionHeader, locals, callNode, argsDeferreds)
   }
 }
