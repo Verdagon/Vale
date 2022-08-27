@@ -87,7 +87,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case MutateTE(_, UpcastTE(_, _)) =>
+      case MutateTE(_, UpcastTE(_, _, _, _, _)) =>
     })
   }
 
@@ -114,7 +114,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case MutateTE(_, UpcastTE(_, _)) =>
+      case MutateTE(_, UpcastTE(_, _, _, _, _)) =>
     })
   }
 

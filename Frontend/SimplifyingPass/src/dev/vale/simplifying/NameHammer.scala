@@ -20,7 +20,7 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
   def getReadableName(namePart: INameT): String = {
     namePart match {
       case SelfNameT() => "self"
-      case AnonymousSubstructImplNameT() => "AnonSubstructImpl"
+      case AnonymousSubstructImplNameT(template, templateArgs) => "AnonSubstructImpl"
 //      case AbstractVirtualFreeNameT(_, _) => "(abstract vfree)"
 //      case OverrideVirtualFreeNameT(_, _) => "(override vfree)"
 //      case AbstractVirtualDropFunctionNameT(_, _, _) => "vdrop"

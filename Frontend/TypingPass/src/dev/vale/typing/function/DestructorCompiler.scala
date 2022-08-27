@@ -47,20 +47,15 @@ class DestructorCompiler(
   }
 
   def getFreeFunction(
-    globalEnv: GlobalEnvironment,
     coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
     callRange: List[RangeS],
     type2: CoordT):
   EvaluateFunctionSuccess = {
-    val env =
-      PackageEnvironment(
-        globalEnv,
-        FullNameT(PackageCoordinate.BUILTIN(interner, keywords), Vector(), interner.intern(PackageTopLevelNameT())),
-        globalEnv.nameToTopLevelEnvironment.values.toVector)
     val name = interner.intern(FreeImpreciseNameS())
     val args = Vector(type2)
     overloadCompiler.findFunction(
-      env, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true, true) match {
+      callingEnv, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true, true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
       case Ok(x) => x
     }

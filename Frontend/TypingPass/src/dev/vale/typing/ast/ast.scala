@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
+import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, ImplDeclareNameT, ImplTemplateDeclareNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
@@ -33,6 +33,9 @@ case class ImplT(
 
   implOuterEnv: IEnvironment,
 
+  instantiatedFullName: FullNameT[IImplNameT],
+  templateFullName: FullNameT[ImplTemplateDeclareNameT],
+
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
   placeholderedSubCitizen: ICitizenTT,
   // Starting from a placeholdered sub citizen, this is the interface that would result.
@@ -40,6 +43,10 @@ case class ImplT(
   parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
   superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
+
+  // This is similar to FunctionT.functionBoundToRune
+  functionBoundToRune: Map[PrototypeT, IRuneS],
+
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
 //  subCitizenFromPlaceholderedParentInterface: ICitizenTT,
@@ -90,17 +97,26 @@ case class InterfaceEdgeBlueprint(
   superFamilyRootHeaders: Vector[FunctionHeaderT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(
-    // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-    struct: FullNameT[ICitizenNameT],
-    // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-    interface: FullNameT[IInterfaceNameT],
-    methods: Vector[PrototypeT]) {
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  edgeFullName: FullNameT[IImplNameT],
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  struct: FullNameT[ICitizenNameT],
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  interface: FullNameT[IInterfaceNameT],
+  // This is similar to FunctionT.functionBoundToRune
+  functionBoundToRune: Map[PrototypeT, IRuneS],
+  methods: Vector[PrototypeT]
+) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeT(thatStruct, thatInterface, _) => {
-        struct == thatStruct && interface == thatInterface
+      case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _) => {
+        val isSame = struct == thatStruct && interface == thatInterface
+        if (isSame) {
+          vassert(edgeFullName == thatEdgeFullName)
+        }
+        isSame
       }
     }
   }

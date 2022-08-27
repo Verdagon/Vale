@@ -45,6 +45,11 @@ case class FullNameT[+T <: INameT](
     case _ =>
   }
 
+  // PackageTopLevelName2 is just here because names have to have a last step.
+  vassert(initSteps.collectFirst({ case PackageTopLevelNameT() => }).isEmpty)
+
+  vcurious(initSteps.distinct == initSteps)
+
   override def equals(obj: Any): Boolean = {
     obj match {
       case FullNameT(thatPackageCoord, thatInitSteps, thatLast) => {
@@ -53,10 +58,18 @@ case class FullNameT[+T <: INameT](
       case _ => false
     }
   }
-  // PackageTopLevelName2 is just here because names have to have a last step.
-  vassert(initSteps.collectFirst({ case PackageTopLevelNameT() => }).isEmpty)
 
-  vcurious(initSteps.distinct == initSteps)
+  def packageFullName(interner: Interner): FullNameT[PackageTopLevelNameT] = {
+    FullNameT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
+  }
+
+  def initFullName(interner: Interner): FullNameT[INameT] = {
+    if (initSteps.isEmpty) {
+      FullNameT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
+    } else {
+      FullNameT(packageCoord, initSteps.init, initSteps.last)
+    }
+  }
 
   def steps: Vector[INameT] = {
     last match {
@@ -155,21 +168,34 @@ sealed trait IInterfaceNameT extends ICitizenNameT with ISubKindNameT with ISupe
   override def template: InterfaceTemplateNameT
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
-trait IImplTemplateNameT extends ITemplateNameT
+sealed trait IImplTemplateNameT extends ITemplateNameT {
+  def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IImplNameT
+}
+sealed trait IImplNameT extends IInstantiationNameT {
+  def template: IImplTemplateNameT
+}
 
 
 case class ExportNameT(codeLoc: CodeLocationS) extends ITemplateNameT
 
-case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT
+case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplDeclareNameT = {
+    interner.intern(ImplDeclareNameT(this, templateArgs))
+  }
+}
+case class ImplDeclareNameT(
+  template: ImplTemplateDeclareNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
+) extends IImplNameT {
 
-// The name of an impl that is subclassing some interface. To find all impls subclassing an interface,
-// look for this name.
-case class ImplImplementingSuperInterfaceNameT(superInterface: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
-// The name of an impl that is augmenting some sub citizen. To find all impls subclassing an interface,
-// look for this name.
-case class ImplAugmentingSubCitizenNameT(subCitizen: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
+}
 
-case class AnonymousSubstructImplDeclarationNameT(interfaceTemplateName: IInterfaceTemplateNameT) extends IImplTemplateNameT
+//// The name of an impl that is subclassing some interface. To find all impls subclassing an interface,
+//// look for this name.
+//case class ImplImplementingSuperInterfaceNameT(superInterface: FullNameT[IInterfaceTemplateNameT]) extends IImplTemplateNameT
+//// The name of an impl that is augmenting some sub citizen. To find all impls subclassing an interface,
+//// look for this name.
+//case class ImplAugmentingSubCitizenNameT(subCitizen: FullNameT[ICitizenTemplateNameT]) extends IImplTemplateNameT
 
 case class LetNameT(codeLocation: CodeLocationS) extends INameT
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
@@ -335,17 +361,22 @@ case class ConstructorTemplateNameT(
 }
 
 case class FreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
+  vpass()
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
     params match {
-      case Vector(CoordT(_, kind)) => {
-        interner.intern(FreeNameT(this, templateArgs, kind))
+      case Vector(coord) => {
+        interner.intern(FreeNameT(this, templateArgs, coord))
       }
       case other => vwat(other)
     }
   }
 }
-case class FreeNameT(template: FreeTemplateNameT, templateArgs: Vector[ITemplata[ITemplataType]], kind: KindT) extends IFunctionNameT {
-  override def parameters: Vector[CoordT] = Vector(CoordT(ShareT, kind))
+case class FreeNameT(
+  template: FreeTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  coordT: CoordT
+) extends IFunctionNameT {
+  override def parameters: Vector[CoordT] = Vector(coordT)
 }
 
 //// See NSIDN for why we have these virtual names
@@ -462,6 +493,8 @@ case class StructTemplateNameT(
   //   (note from later: not sure this is true anymore, since StructNameT contains a StructTemplateNameT)
   //codeLocation: CodeLocationS
 ) extends IStructTemplateNameT with CitizenTemplateNameT {
+  vpass()
+
   override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {
     interner.intern(StructNameT(this, templateArgs))
   }
@@ -486,7 +519,16 @@ case class InterfaceTemplateNameT(
 
 case class AnonymousSubstructImplTemplateNameT(
   interface: IInterfaceTemplateNameT
-) extends IImplTemplateNameT
+) extends IImplTemplateNameT {
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IImplNameT = {
+    interner.intern(AnonymousSubstructImplNameT(this, templateArgs))
+  }
+}
+case class AnonymousSubstructImplNameT(
+  template: AnonymousSubstructImplTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
+) extends IImplNameT
+
 
 case class AnonymousSubstructTemplateNameT(
   // This happens to be the same thing that appears before this AnonymousSubstructNameT in a FullNameT.
@@ -519,9 +561,9 @@ case class AnonymousSubstructNameT(
 ) extends IStructNameT {
 
 }
-case class AnonymousSubstructImplNameT() extends INameT {
-
-}
+//case class AnonymousSubstructImplNameT() extends INameT {
+//
+//}
 
 case class ResolvingEnvNameT() extends INameT {
   vpass()

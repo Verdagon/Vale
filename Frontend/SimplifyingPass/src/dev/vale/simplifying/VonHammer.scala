@@ -1229,7 +1229,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("humanName", VonStr(humanName.str))))
       }
-      case FreeNameT(template, templateArgs, kind) => {
+      case FreeNameT(template, templateArgs, coord) => {
         VonObject(
           "StructFreeName",
           None,
@@ -1243,8 +1243,8 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                   .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
                   .toVector)),
             VonMember(
-              "kind",
-              vonifyKind(typeHammer.translateKind(hinputs, hamuts, kind)))))
+              "coord",
+              vonifyCoord(typeHammer.translateReference(hinputs, hamuts, coord)))))
       }
 //      case AbstractVirtualFreeNameT(templateArgs, param) => {
 //        VonObject(
@@ -1432,11 +1432,21 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                   .map(coord => vonifyTemplata(hinputs, hamuts, coord))
                   .toVector))))
       }
-      case AnonymousSubstructImplNameT() => {
+      case AnonymousSubstructImplNameT(template, templateArgs) => {
         VonObject(
           "AnonymousSubstructImplName",
           None,
-          Vector())
+          Vector(
+            VonMember(
+              "template",
+              translateName(hinputs, hamuts, template)),
+            VonMember(
+              "callables",
+              VonArray(
+                None,
+                templateArgs
+                  .map(coord => vonifyTemplata(hinputs, hamuts, coord))
+                  .toVector))))
       }
     }
   }

@@ -3,8 +3,8 @@ package dev.vale.typing
 import dev.vale.{Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
-import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataLookupContext}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT}
+import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -13,7 +13,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, UnsubstitutedCoordT}
-import dev.vale.typing.citizen.{ResolveSuccess, ImplCompiler, IsParent, IsParentResult, IsntParent}
+import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -127,9 +127,23 @@ object TemplataCompiler {
     FullNameT(packageCoord, initSteps, last.template)
   }
 
+  def getImplTemplate(fullName: FullNameT[IImplNameT]): FullNameT[IImplTemplateNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(packageCoord, initSteps, last.template)
+  }
+
   def getPlaceholderTemplate(fullName: FullNameT[PlaceholderNameT]): FullNameT[PlaceholderTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
     FullNameT(packageCoord, initSteps, last.template)
+  }
+
+  def assembleFunctionBoundToRune(templatas: TemplatasStore): Map[PrototypeT, IRuneS] = {
+    templatas.entriesByNameT.toIterable.flatMap({
+      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
+        List(prototype -> rune)
+      }
+      case _ => List()
+    }).toMap
   }
 
   def substituteTemplatasInCoord(
@@ -232,7 +246,11 @@ object TemplataCompiler {
           packageCoord,
           initSteps,
           last match {
-            case InterfaceNameT(template, templateArgs) => interner.intern(InterfaceNameT(template, templateArgs.map(substituteTemplatasInTemplata(interner, keywords, _, substitutions))))
+            case InterfaceNameT(template, templateArgs) => {
+              interner.intern(InterfaceNameT(
+                template,
+                templateArgs.map(substituteTemplatasInTemplata(interner, keywords, _, substitutions))))
+            }
           })))
   }
 
@@ -404,7 +422,7 @@ class TemplataCompiler(
       case (_, StructTT(_)) => return false
       case (a : ISubKindTT, b : ISuperKindTT) => {
         delegate.isParent(coutputs, callingEnv, parentRanges, a, b) match {
-          case IsParent(conclusions, _) =>
+          case IsParent(_, _, _, _) =>
           case IsntParent(_) => return false
         }
       }

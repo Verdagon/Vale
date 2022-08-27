@@ -68,7 +68,7 @@ class AnonymousInterfaceMacro(
     val structA = makeStruct(interfaceA, memberRunes, members, structNameS)
 
     val moreEntries =
-        interfaceFreeMacro.getInterfaceSiblingEntries(structNameT, interfaceA) ++
+//        interfaceFreeMacro.getInterfaceSiblingEntries(interfaceName, interfaceA) ++
         structConstructorMacro.getStructSiblingEntries(structNameT, structA) ++
         structDropMacro.getStructSiblingEntries(structNameT, structA) ++
         structFreeMacro.getStructSiblingEntries(structNameT, structA)

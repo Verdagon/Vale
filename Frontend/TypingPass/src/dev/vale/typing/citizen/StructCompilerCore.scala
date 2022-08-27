@@ -262,24 +262,10 @@ class StructCompilerCore(
 
     val internalMethods2 =
       interfaceA.internalMethods.map(internalMethod => {
-//        if (internalMethod.isTemplate) {
-          delegate.evaluateGenericFunctionFromNonCallForHeader(
-            coutputs,
-            parentRanges,
-            FunctionTemplata(
-              containingEnv,
-              internalMethod),
-            true)
-//        } else {
-//          delegate.evaluateOrdinaryFunctionFromNonCallForHeader(
-//            coutputs,
-//            parentRanges,
-//            FunctionTemplata(
-//              interfaceInnerEnv,
-//              internalMethod),
-//            true)
-//        }
+        delegate.evaluateGenericFunctionFromNonCallForHeader(
+          coutputs, parentRanges, FunctionTemplata(containingEnv, internalMethod), true)
       })
+
 
     val interfaceDef2 =
       InterfaceDefinitionT(

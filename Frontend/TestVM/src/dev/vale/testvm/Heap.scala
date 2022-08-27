@@ -691,7 +691,7 @@ class Heap(in_vivemDout: PrintStream) {
         val structImplementsInterface =
           structDefH.edges.exists(_.interface == irH)
         if (!structImplementsInterface) {
-          vfail("Struct " + structDefH.getRef + " doesnt implement interface " + irH);
+          vfail("Struct " + structDefH.getRef + " doesnt implement interface " + irH)
         }
       }
       case (a, b) => {

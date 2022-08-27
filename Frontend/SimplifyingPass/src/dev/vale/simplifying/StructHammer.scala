@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vimpl, finalast => m}
+import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vassertSome, vimpl, finalast => m}
 import dev.vale.finalast.{BorrowH, EdgeH, InterfaceDefinitionH, InterfaceMethodH, InterfaceRefH, KindH, Mutable, PrototypeH, ReferenceH, StructDefinitionH, StructMemberH, StructRefH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{EdgeT, PrototypeT}
@@ -38,11 +38,11 @@ class StructHammer(
       hamuts: HamutsBox,
       interfaceTT: InterfaceTT) = {
 
-    val edgeBlueprint = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName);
+    val edgeBlueprint = vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.fullName))
 
     val methodsH =
       edgeBlueprint.superFamilyRootHeaders.map(superFamilyRootBanner => {
-        val header = hinputs.lookupFunction(superFamilyRootBanner.toSignature).get.header
+        val header = vassertSome(hinputs.lookupFunction(superFamilyRootBanner.toSignature)).header
         val prototypeH = translatePrototype(hinputs, hamuts, header.toPrototype)
         val virtualParamIndex = header.params.indexWhere(_.virtuality.nonEmpty)
         InterfaceMethodH(prototypeH, virtualParamIndex)
@@ -85,7 +85,7 @@ class StructHammer(
             vassert(
               hinputs.functions.exists(function => {
                 function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, _, k)) if k == interfaceDefT.instantiatedInterface => true
+                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == interfaceDefT.instantiatedInterface => true
                   case _ => false
                 }
               }))
@@ -136,7 +136,7 @@ class StructHammer(
             vassert(
               hinputs.functions.exists(function => {
                 function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, _, k)) if k == structDefT.instantiatedCitizen => true
+                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == structDefT.instantiatedCitizen => true
                   case _ => false
                 }
               }))
@@ -225,7 +225,7 @@ class StructHammer(
       structRefH: StructRefH,
       structTT: StructTT):
   (Vector[EdgeH]) = {
-    val edges2 = hinputs.edges.filter(_.struct == structTT)
+    val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.struct == structTT.fullName)
     translateEdgesForStruct(hinputs, hamuts, structRefH, edges2.toVector)
   }
 
@@ -234,7 +234,7 @@ class StructHammer(
       structRefH: StructRefH,
       edges2: Vector[EdgeT]):
   (Vector[EdgeH]) = {
-    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, InterfaceTT(e.interface), e))
+    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, interner.intern(InterfaceTT(e.interface)), e))
   }
 
 

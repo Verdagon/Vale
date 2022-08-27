@@ -1,7 +1,7 @@
 package dev.vale.typing
 
-import dev.vale.typing.ast.{AsSubtypeTE, SignatureT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.ast.{AsSubtypeTE, FunctionHeaderT, SignatureT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, Tests, vassert}
@@ -29,6 +29,36 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         case f @ FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)) => f
       })
     dropFuncNames.size shouldEqual 2
+
+    val interface = coutputs.lookupInterface("Opt")
+    interface.internalMethods
+  }
+
+  test("Regular open interface and struct, no anonymous interface") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveAnonymousSubstruct
+        |interface Opt { }
+        |
+        |struct Some { x int; }
+        |impl Opt for Some;
+      """.stripMargin)
+    val interner = compile.interner
+    val coutputs = compile.expectCompilerOutputs()
+
+    // Make sure there's two drop functions
+    val dropFuncNames =
+      coutputs.functions.map(_.header.fullName).collect({
+        case f @ FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, _)) => f
+      })
+    dropFuncNames.size shouldEqual 2
+
+    val interface = coutputs.lookupInterface("Opt")
+    interface.internalMethods.collect({
+      case FunctionHeaderT(FullNameT(_, _, FreeNameT(FreeTemplateNameT(_), _, coord)), _, _, _, _) => {
+        vassert(coord.kind == interface.ref)
+      }
+    }).size shouldEqual 1
   }
 
   test("Implementing two interfaces causes no vdrop conflict") {

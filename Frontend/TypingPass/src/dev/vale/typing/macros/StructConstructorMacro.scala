@@ -4,20 +4,24 @@ import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, IRulexSR, LookupSR, RuneUsage}
 import dev.vale.postparsing._
-import dev.vale.typing.{ArrayCompiler, CompilerOutputs, TemplataCompiler, TypingPassOptions, ast}
+import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, NameTranslator, PlaceholderNameT}
-import dev.vale.{Interner, Keywords, PackageCoordinate, Profiler, RangeS, StrI, vassert, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vcurious, vimpl}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.ConstructorNameS
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules.CallSR
+import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast._
 import dev.vale.typing.env.PackageEnvironment
-import dev.vale.typing.function.FunctionCompilerCore
+import dev.vale.typing.expression.CallCompiler
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.{DestructorCompiler, FunctionCompilerCore}
+import dev.vale.typing.infer.CouldntFindFunction
 import dev.vale.typing.templata.ITemplata.expectMutability
 import dev.vale.typing.templata.{CoordTemplata, ITemplata, KindTemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types.InterfaceTT
@@ -28,7 +32,8 @@ class StructConstructorMacro(
   opts: TypingPassOptions,
   interner: Interner,
   keywords: Keywords,
-  nameTranslator: NameTranslator
+  nameTranslator: NameTranslator,
+  destructorCompiler: DestructorCompiler,
 ) extends IOnStructDefinedMacro with IFunctionBodyMacro {
 
   val generatorId: StrI = keywords.structConstructorGenerator
@@ -132,13 +137,19 @@ class StructConstructorMacro(
     vassert(constructorFullName.last.parameters.size == members.size)
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, coord) })
+    val mutability = StructCompiler.getMutability(interner, keywords, coutputs, structTT)
     val constructorReturnOwnership =
-      StructCompiler.getMutability(interner, keywords, coutputs, structTT) match {
+      mutability match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
       }
     val constructorReturnType = CoordT(constructorReturnOwnership, structTT)
+
+    // Thisll still exist for mutable things, itll just contain a no-op.
+    val freePrototype =
+      destructorCompiler.getFreeFunction(coutputs, env, callRange, constructorReturnType)
+
     // not virtual because how could a constructor be virtual
     val header =
       ast.FunctionHeaderT(
@@ -153,7 +164,8 @@ class StructConstructorMacro(
           ConstructTE(
             structTT,
             constructorReturnType,
-            constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) }))))
+            constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) }),
+            freePrototype.function.prototype)))
     (header, body)
   }
 }

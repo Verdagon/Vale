@@ -196,7 +196,7 @@ class MutateHammer(
     val structDefT = hinputs.lookupStruct(structTT.fullName)
     val memberIndex =
       structDefT.members
-        .indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
+        .indexWhere(member => structDefT.templateName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
 
     val structDefH = hamuts.structDefsByRefT(structTT)

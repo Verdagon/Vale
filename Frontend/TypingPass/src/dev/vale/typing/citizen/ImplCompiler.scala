@@ -22,7 +22,9 @@ import dev.vale.typing.infer.ITypingPassSolverError
 sealed trait IsParentResult
 case class IsParent(
   templata: ITemplata[ImplTemplataType],
-  conclusions: Map[IRuneS, ITemplata[ITemplataType]]
+  conclusions: Map[IRuneS, ITemplata[ITemplataType]],
+  implFullName: FullNameT[IImplNameT],
+  runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
 ) extends IsParentResult
 case class IsntParent(
   candidates: Vector[IIncompleteOrFailedCompilerSolve]
@@ -268,7 +270,7 @@ class ImplCompiler(
         InitialKnown(rune.rune, placeholder)
       })
 
-    val CompleteCompilerSolve(_, inferences, _) =
+    val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
       solveImplForDefine(coutputs, List(implA.range), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
@@ -293,21 +295,46 @@ class ImplCompiler(
       TemplataCompiler.getInterfaceTemplate(superInterface.fullName)
 
 
+    val templateArgs = implA.identifyingRunes.map(_.rune.rune).map(inferences)
+    val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
+
+    val implInnerEnv =
+      GeneralEnvironment.childOf(
+        interner,
+        implOuterEnv,
+        instantiatedFullName,
+        inferences.map({ case (nameS, templata) =>
+          interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+        }).toVector)
+    val functionBoundToRune = TemplataCompiler.assembleFunctionBoundToRune(implInnerEnv.templatas)
+
     val implT =
       interner.intern(
         ImplT(
           implTemplata,
           implOuterEnv,
+          instantiatedFullName,
+          implTemplateFullName,
           subCitizenTemplateFullName,
           subCitizen,
           superInterface,
-          superInterfaceTemplateFullName))
+          superInterfaceTemplateFullName,
+          functionBoundToRune))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
     //          subCitizenFromPlaceholderedParentInterface))
     // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
     coutputs.addImpl(implT)
   }
+
+  def assembleImplName(
+    templateName: FullNameT[IImplTemplateNameT],
+    templateArgs: Vector[ITemplata[ITemplataType]]):
+  FullNameT[IImplNameT] = {
+    templateName.copy(
+      last = templateName.last.makeImplName(interner, templateArgs))
+  }
+
   //    // First, figure out what citizen is implementing.
   //    val subCitizenImpreciseName = RuleScout.getRuneKindTemplate(implA.rules, implA.structKindRune.rune)
   //    val subCitizenTemplata =
@@ -625,7 +652,7 @@ class ImplCompiler(
     val implTemplatasWithDuplicates = implTemplatasWithDuplicatesAcc.buildArray()
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
-      case Some(impl) => return IsParent(impl, Map())
+      case Some(impl) => return IsParent(impl, Map(), vimpl(), vimpl())
       case None =>
     }
 
@@ -645,7 +672,15 @@ class ImplCompiler(
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, _))) => IsParent(implTemplata, conclusions)
+      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, runeToSuppliedFunction))) => {
+        val templateArgs =
+          implTemplata.impl.identifyingRunes.map(_.rune.rune).map(conclusions)
+        val implTemplateFullName =
+          implTemplata.env.fullName.addStep(
+            interner.intern(ImplTemplateDeclareNameT(implTemplata.impl.range.begin)))
+        val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
+        IsParent(implTemplata, conclusions, instantiatedFullName, runeToSuppliedFunction)
+      }
       case None => IsntParent(errs.toVector)
     }
   }

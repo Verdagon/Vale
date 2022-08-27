@@ -2,7 +2,7 @@ package dev.vale.typing.ast
 
 //import dev.vale.astronomer.IVarNameA
 import dev.vale.typing.env.{ILocalVariableT, ReferenceLocalVariableT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, FullNameT, IVarNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, FullNameT, IImplNameT, IVarNameT, StructNameT, StructTemplateNameT}
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
@@ -572,7 +572,10 @@ case class ReinterpretTE(
 case class ConstructTE(
     structTT: StructTT,
     resultReference: CoordT,
-    args: Vector[ExpressionT]) extends ReferenceExpressionTE {
+    args: Vector[ExpressionT],
+    // This is here so that there's always a call to a free function for any struct we actually make.
+    // This'll help when monomorphizing so we can be sure it makes it to later stages.
+    freePrototype: PrototypeT) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 
@@ -708,7 +711,15 @@ case class InterfaceToInterfaceUpcastTE(
 // placeholder to another placeholder. For all we know, this'll eventually be
 // upcasting an int to an int.
 // So, the target kind can be anything, not just an interface.
-case class UpcastTE(innerExpr: ReferenceExpressionTE, targetSuperKind: ISuperKindTT) extends ReferenceExpressionTE {
+case class UpcastTE(
+  innerExpr: ReferenceExpressionTE,
+  targetSuperKind: ISuperKindTT,
+  // This is the impl we use to allow/permit the upcast. It'll be useful for monomorphization
+  // and later on for locating the itable ptr to put in fat pointers.
+  implName: FullNameT[IImplNameT],
+  runeToFunctionBound: Map[IRuneS, PrototypeTemplata],
+  interfaceFreePrototype: PrototypeT,
+) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   def result: ReferenceResultT = {
     ReferenceResultT(

@@ -156,7 +156,7 @@ class FunctionCompilerCore(
                   Some(fullEnv.function), params2, maybeRetCoord)
 
               coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
-              val runeToFunctionBound = assembleRuneToFunctionBound(fullEnv)
+              val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(fullEnv.templatas)
               coutputs.addFunction(FunctionT(header, runeToFunctionBound, body))
 
               if (header.toSignature != signature2) {
@@ -273,8 +273,8 @@ class FunctionCompilerCore(
 
     coutputs.lookupFunction(header.toSignature) match {
       case None => {
-        val runeToFunctionBound = assembleRuneToFunctionBound(fullEnv)
-        val function2 = FunctionT(header, runeToFunctionBound, body2);
+        val functionBoundToRune = TemplataCompiler.assembleFunctionBoundToRune(fullEnv.templatas)
+        val function2 = FunctionT(header, functionBoundToRune, body2);
         coutputs.addFunction(function2)
         (function2.header)
       }
@@ -305,15 +305,6 @@ class FunctionCompilerCore(
 //        header
 //      }
 //    }
-  }
-
-  private def assembleRuneToFunctionBound(fullEnv: FunctionEnvironment): Map[PrototypeT, IRuneS] = {
-    fullEnv.templatas.entriesByNameT.toIterable.flatMap({
-      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
-        List(prototype -> rune)
-      }
-      case _ => List()
-    }).toMap
   }
 
   def getFunctionPrototypeInnerForCall(
