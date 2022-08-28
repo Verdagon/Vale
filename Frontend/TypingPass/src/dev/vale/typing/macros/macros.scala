@@ -47,10 +47,6 @@ trait IOnInterfaceDefinedMacro {
   def getInterfaceSiblingEntries(
     interfaceName: FullNameT[INameT], interfaceA: InterfaceA):
   Vector[(FullNameT[INameT], IEnvEntry)]
-
-  def getInterfaceChildEntries(
-    interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT):
-  Vector[(FullNameT[INameT], IEnvEntry)]
 }
 
 trait IOnImplDefinedMacro {

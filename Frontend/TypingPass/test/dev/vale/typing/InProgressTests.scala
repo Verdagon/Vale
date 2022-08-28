@@ -18,6 +18,8 @@ import scala.io.Source
 class InProgressTests extends FunSuite with Matchers {
 
   test("DO NOT SUBMIT") {
+    vimpl() // search for all DO NOT SUBMITs in the codebase and add them here, there are some
+
     vimpl() // this is a reminder to put a DO NOT SUBMIT presubmit check in
 
     vimpl() // OSDCE might be obsolete

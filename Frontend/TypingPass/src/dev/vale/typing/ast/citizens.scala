@@ -87,7 +87,7 @@ case class InterfaceDefinitionT(
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
-  mutability: MutabilityT,
+  mutability: ITemplata[MutabilityTemplataType],
   // This does not include abstract functions declared outside the interface.
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[FunctionHeaderT]

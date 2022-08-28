@@ -137,7 +137,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), inferredTemplatas, runeToFunctionBound)
+    coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), inferredTemplatas)
   }
 
   private def assembleInitialSendsFromArgs(callRange: RangeS, function: FunctionA, args: Vector[Option[CoordT]]):
@@ -198,7 +199,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForBanner(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(banner, inferredTemplatas, runeToFunctionBound)
+    vassert(coutputs.getInstantiationBounds(banner.prototype.fullName).nonEmpty)
+    EvaluateFunctionSuccess(banner, inferredTemplatas)
   }
 
 //  // Preconditions:
@@ -385,11 +387,12 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // See FunctionCompiler doc for what outer/runes/inner envs are.
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences)
 
-    val banner =
+    val prototypeTemplata =
       middleLayer.getOrEvaluateFunctionForBanner(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(banner, inferences, runeToFunctionBound)
+    vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.fullName).nonEmpty)
+    EvaluateFunctionSuccess(prototypeTemplata, inferences)
   }
 
   private def assembleKnownTemplatas(
@@ -430,7 +433,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]]
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
-    val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables) = nearEnv
+    val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables, isRootCompilingDenizen) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
 //    val newName =
@@ -447,7 +450,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      globalEnv, parentEnv, fullName, identifyingTemplatas, newEntries, function, variables)
+      globalEnv, parentEnv, fullName, identifyingTemplatas, newEntries, function, variables, isRootCompilingDenizen)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -497,7 +500,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferredTemplatas, runeToFunctionBound)
+    coutputs.addInstantiationBounds(prototype.fullName, runeToFunctionBound)
+
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferredTemplatas)
   }
 
   def evaluateGenericFunctionParentForPrototype(
@@ -580,7 +585,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferences, runeToFunctionBound)
+    // Usually when we call a function, we add instantiation bounds. However, we're
+    // not calling a function here, we're defining it.
+    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferences)
   }
 
   // Preconditions:

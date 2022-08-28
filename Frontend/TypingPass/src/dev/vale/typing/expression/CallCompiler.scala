@@ -75,7 +75,8 @@ class CallCompiler(
           argsExprs2.map(a => a.result.reference),
           exact = true)
 
-        (ast.FunctionCallTE(prototype.function.prototype, prototype.runeToSuppliedFunction, argsExprs2))
+        vassert(coutputs.getInstantiationBounds(prototype.function.prototype.fullName).nonEmpty)
+        (ast.FunctionCallTE(prototype.function.prototype, argsExprs2))
       }
       case other => {
         evaluateCustomCall(
@@ -91,53 +92,6 @@ class CallCompiler(
       }
     }
   }
-
-  private def evaluateNamedCall(
-    coutputs: CompilerOutputs,
-    nenv: env.IEnvironment,
-    range: List[RangeS],
-    functionName: IImpreciseNameS,
-    explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
-    givenArgsExprs2: Vector[ReferenceExpressionTE]):
-  (FunctionCallTE) = {
-    val unconvertedArgsPointerTypes2 =
-      givenArgsExprs2.map(_.result.expectReference().reference)
-
-    // We want to get the prototype here, not the entire header, because
-    // we might be in the middle of a recursive call like:
-    // func main()int(main())
-
-    val prototype =
-      overloadCompiler.findFunction(
-        nenv,
-        coutputs,
-        range,
-        functionName,
-        explicitTemplateArgRulesS,
-        explicitTemplateArgRunesS,
-        unconvertedArgsPointerTypes2,
-        Vector.empty,
-        false,
-        true) match {
-        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
-        case Ok(x) => x
-      }
-    val argsExprs2 =
-      convertHelper.convertExprs(
-        nenv, coutputs, range, givenArgsExprs2, prototype.function.prototype.paramTypes)
-
-    checkTypes(
-      coutputs,
-      nenv,
-      range,
-      prototype.function.prototype.paramTypes,
-      argsExprs2.map(a => a.result.reference),
-      exact = true)
-
-    (ast.FunctionCallTE(prototype.function.prototype, vimpl(prototype.runeToSuppliedFunction), argsExprs2))
-  }
-
 
   // given args means, the args that the user gave, like in
   // a = 6;
@@ -176,14 +130,14 @@ class CallCompiler(
     val env = nenv.snapshot
 //    val env = coutputs.getEnvForKind(kind)
 //      citizenRef match {
-//        case sr @ StructTT(_) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
-//        case ir @ InterfaceTT(_) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
+//        case sr @ StructTT(_, _) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
+//        case ir @ InterfaceTT(_, _) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
 //      }
 
     val argsTypes2 = givenArgsExprs2.map(_.result.reference)
     val closureParamType = CoordT(givenCallableBorrowExpr2.result.reference.ownership, kind)
     val paramFilters = Vector(closureParamType) ++ argsTypes2
-    val prototype2 =
+    val resolved =
       overloadCompiler.findFunction(
         env, coutputs, range,
         interner.intern(CodeNameS(keywords.underscoresCall)),
@@ -205,15 +159,14 @@ class CallCompiler(
     val actualArgsExprs2 = Vector(actualCallableExpr2) ++ givenArgsExprs2
 
     val argTypes = actualArgsExprs2.map(_.result.reference)
-    if (argTypes != prototype2.function.prototype.paramTypes) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + prototype2.function.prototype.paramTypes + " args: " + argTypes))
+    if (argTypes != resolved.function.prototype.paramTypes) {
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "arg param type mismatch. params: " + resolved.function.prototype.paramTypes + " args: " + argTypes))
     }
 
-    checkTypes(coutputs, env, range, prototype2.function.prototype.paramTypes, argTypes, exact = true)
+    checkTypes(coutputs, env, range, resolved.function.prototype.paramTypes, argTypes, exact = true)
 
-    val resultingExpr2 =
-      FunctionCallTE(
-        prototype2.function.prototype, prototype2.runeToSuppliedFunction, actualArgsExprs2);
+    vassert(coutputs.getInstantiationBounds(resolved.function.prototype.fullName).nonEmpty)
+    val resultingExpr2 = FunctionCallTE(resolved.function.prototype, actualArgsExprs2);
 
     (resultingExpr2)
   }
@@ -278,17 +231,5 @@ class CallCompiler(
       evaluateCall(
         coutputs, nenv, life, range, callableReferenceExpr2, explicitTemplateArgRulesS, explicitTemplateArgRunesS, argsExprs2)
     (callExpr)
-  }
-
-  def evaluateNamedPrefixCall(
-    coutputs: CompilerOutputs,
-    nenv: env.IEnvironment,
-    rangeS: List[RangeS],
-    functionName: IImpreciseNameS,
-    rules: Vector[IRulexSR],
-    templateArgs: Vector[IRuneS],
-    argsExprs2: Vector[ReferenceExpressionTE]):
-  (FunctionCallTE) = {
-    evaluateNamedCall(coutputs, nenv, rangeS, functionName, rules, templateArgs.toArray, argsExprs2)
   }
 }

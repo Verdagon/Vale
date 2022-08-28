@@ -95,7 +95,7 @@ class EdgeCompiler(
                 // We'll even take the inferences and add em to an environment later.
                 // The only difference from real defining is that we're handing in an actual parameter,
                 // namely the impl's super interface.
-                val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences, abstractFuncRuneToFuncBound) =
+                val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
                       coutputs,
                       List(range, overridingImpl.templata.impl.range),
@@ -107,7 +107,7 @@ class EdgeCompiler(
                     case EvaluateFunctionFailure(x) => {
                       throw CompileErrorExceptionT(CouldntEvaluateFunction(List(range), x))
                     }
-                    case efs @ EvaluateFunctionSuccess(_, _, _) => efs
+                    case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
 
                 val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes

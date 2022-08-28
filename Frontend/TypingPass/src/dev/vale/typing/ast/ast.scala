@@ -198,8 +198,7 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Array[CoordT] = header.paramTypes.toArray
 }
 case class ValidPrototypeTemplataCalleeCandidate(
-  prototype: PrototypeTemplata,
-  conclusions: Map[IRuneS, PrototypeTemplata]
+  prototype: PrototypeTemplata
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -378,7 +377,7 @@ case class FunctionHeaderT(
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterT(_, Some(AbstractT()), CoordT(_, ir @ InterfaceTT(_))) => ir
+        case ParameterT(_, Some(AbstractT()), CoordT(_, ir @ InterfaceTT(_, _))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption

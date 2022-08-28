@@ -4,7 +4,7 @@ package dev.vale.typing.function
 import dev.vale.postparsing._
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS, vfail, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, RangeS, vassert, vfail, vimpl}
 import dev.vale.highertyping._
 import dev.vale.postparsing.patterns._
 import dev.vale.postparsing.rules.OwnershipLiteralSL
@@ -71,10 +71,8 @@ class DestructorCompiler(
       undestructedExpr2.result.reference match {
         case r@CoordT(OwnT, _) => {
           val destructorPrototype = getDropFunction(env, coutputs, callRange, r)
-          FunctionCallTE(
-            destructorPrototype.function.prototype,
-            destructorPrototype.runeToSuppliedFunction,
-            Vector(undestructedExpr2))
+          vassert(coutputs.getInstantiationBounds(destructorPrototype.function.prototype.fullName).nonEmpty)
+          FunctionCallTE(destructorPrototype.function.prototype, Vector(undestructedExpr2))
         }
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(WeakT, _) => (DiscardTE(undestructedExpr2))
@@ -123,7 +121,7 @@ class DestructorCompiler(
                     as)
                 destroySharedArray(coutputs, underarrayReference2)
               }
-              case StructTT(_) | InterfaceTT(_) | PlaceholderT(_) => {
+              case StructTT(_, _) | InterfaceTT(_, _) | PlaceholderT(_) => {
                 destroySharedCitizenOrPlaceholder(coutputs, undestructedExpr2.result.reference)
               }
               case other => vfail("Unknown type to drop: " + other)

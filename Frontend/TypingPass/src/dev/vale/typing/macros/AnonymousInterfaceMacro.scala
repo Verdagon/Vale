@@ -45,9 +45,9 @@ class AnonymousInterfaceMacro(
 
 //  val generatorId: String = "interfaceConstructorGenerator"
 
-  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
-    vimpl()
-  }
+//  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
+//    vimpl()
+//  }
 
   override def getInterfaceSiblingEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA): Vector[(FullNameT[INameT], IEnvEntry)] = {
     if (interfaceA.attributes.contains(SealedS)) {

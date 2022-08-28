@@ -100,7 +100,8 @@ class FunctionCompilerClosureOrLightLayer(
         name,
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
-        variables)
+        variables,
+        false)
 
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
       newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
@@ -126,7 +127,8 @@ class FunctionCompilerClosureOrLightLayer(
         name,
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
-        variables)
+        variables,
+        false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
       newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes, verifyConclusions)
   }
@@ -143,7 +145,7 @@ class FunctionCompilerClosureOrLightLayer(
   (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
       newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes, verifyConclusions)
   }
@@ -159,7 +161,7 @@ class FunctionCompilerClosureOrLightLayer(
   (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, false)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromCallForPrototype(
       newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
@@ -174,7 +176,7 @@ class FunctionCompilerClosureOrLightLayer(
   IEvaluateFunctionResult = {
     checkNotClosure(function);
 
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, true)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionParentForPrototype(
       newEnv, coutputs, callingEnv, callRange, args)
   }
@@ -203,24 +205,24 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function, true)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
       newEnv, coutputs, parentRanges, verifyConclusions)
   }
 
-  def evaluateTemplatedLightFunctionFromNonCallForHeader(
-    outerEnv: IEnvironment,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    function: FunctionA,
-    verifyConclusions: Boolean):
-  (FunctionHeaderT) = {
-//    vassert(function.isTemplate)
-
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
-    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
-      newEnv, coutputs, parentRanges, verifyConclusions)
-  }
+//  def evaluateTemplatedLightFunctionFromNonCallForHeader(
+//    outerEnv: IEnvironment,
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    function: FunctionA,
+//    verifyConclusions: Boolean):
+//  (FunctionHeaderT) = {
+////    vassert(function.isTemplate)
+//
+//    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+//    ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromNonCallForHeader(
+//      newEnv, coutputs, parentRanges, verifyConclusions)
+//  }
 
 //  // We would want only the prototype instead of the entire header if, for example,
 //  // we were calling the function. This is necessary for a recursive function like
@@ -376,7 +378,7 @@ class FunctionCompilerClosureOrLightLayer(
     checkNotClosure(function)
     vassert(function.isTemplate)
 
-    val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
         newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes)
   }
@@ -392,14 +394,15 @@ class FunctionCompilerClosureOrLightLayer(
   (IEvaluateFunctionResult) = {
     vassert(function.isTemplate)
 
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function)
+    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
   }
 
   private def makeEnvWithoutClosureStuff(
     outerEnv: IEnvironment,
-    function: FunctionA
+    function: FunctionA,
+    isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
     val name = makeNameWithClosureds(outerEnv, function.name)
     env.BuildingFunctionEnvironmentWithClosureds(
@@ -408,7 +411,8 @@ class FunctionCompilerClosureOrLightLayer(
       name,
       TemplatasStore(name, Map(), Map()),
       function,
-      Vector.empty)
+      Vector.empty,
+      isRootCompilingDenizen)
   }
 
   private def makeNameWithClosureds(

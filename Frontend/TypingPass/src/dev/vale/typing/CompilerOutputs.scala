@@ -1,22 +1,26 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.{IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass}
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata}
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PrototypeTemplata}
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.immutable.{List, Map}
 import scala.collection.mutable
 
 
-case class DeferredEvaluatingFunction(
+case class DeferredEvaluatingFunctionBody(
   prototypeT: PrototypeT,
+  call: (CompilerOutputs) => Unit)
+
+case class DeferredEvaluatingFunction(
+  name: FullNameT[INameT],
   call: (CompilerOutputs) => Unit)
 
 
@@ -59,6 +63,8 @@ case class CompilerOutputs() {
   private val typeNameToInnerEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
   // One must fill this in when putting things into declaredNames.
   private val typeNameToMutability: mutable.HashMap[FullNameT[ITemplateNameT], ITemplata[MutabilityTemplataType]] = mutable.HashMap()
+  // One must fill this in when putting things into declaredNames.
+  private val interfaceNameToSealed: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Boolean] = mutable.HashMap()
 
 
   private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
@@ -74,6 +80,16 @@ case class CompilerOutputs() {
   private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
   private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
+  // When we call a function, for example this one:
+  //   abstract func drop<T>(virtual opt Opt<T>) where func drop(T)void;
+  // and we instantiate it, drop<int>(Opt<int>), we need to figure out the bounds, ensure that
+  // drop(int) exists. Then we have to remember it for the monomorphizer.
+  // This map is how we remember it.
+  // Here, we'd remember: [drop<int>(Opt<int>), [Rune1337, drop(int)]].
+  // We also do this for structs and interfaces too.
+  private val instantiationNameToFunctionBoundToRune: mutable.HashMap[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]] =
+    mutable.HashMap[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]]()
+
 //  // Only ArrayCompiler can make an RawArrayT2.
 //  private val staticSizedArrayTypes:
 //    mutable.HashMap[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT), StaticSizedArrayTT] =
@@ -81,10 +97,13 @@ case class CompilerOutputs() {
 //  // Only ArrayCompiler can make an RawArrayT2.
 //  private val runtimeSizedArrayTypes: mutable.HashMap[(ITemplata[MutabilityTemplataType], CoordT), RuntimeSizedArrayTT] = mutable.HashMap()
 
-//  // A queue of functions that our code uses, but we don't need to compile them right away.
-//  // We can compile them later. Perhaps in parallel, someday!
-//  private val deferredEvaluatingFunctions: mutable.LinkedHashMap[PrototypeT, DeferredEvaluatingFunction] = mutable.LinkedHashMap()
-//  private var evaluatedDeferredFunctions: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
+  // A queue of functions that our code uses, but we don't need to compile them right away.
+  // We can compile them later. Perhaps in parallel, someday!
+  private val deferredFunctionBodyCompiles: mutable.LinkedHashMap[PrototypeT, DeferredEvaluatingFunctionBody] = mutable.LinkedHashMap()
+  private val finishedDeferredFunctionBodyCompiles: mutable.LinkedHashSet[PrototypeT] = mutable.LinkedHashSet()
+
+  private val deferredFunctionCompiles: mutable.LinkedHashMap[FullNameT[INameT], DeferredEvaluatingFunction] = mutable.LinkedHashMap()
+  private val finishedDeferredFunctionCompiles: mutable.LinkedHashSet[FullNameT[INameT]] = mutable.LinkedHashSet()
 
   def countDenizens(): Int = {
 //    staticSizedArrayTypes.size +
@@ -94,17 +113,48 @@ case class CompilerOutputs() {
       interfaceTemplateNameToDefinition.size
   }
 
-//  def peekNextDeferredEvaluatingFunction(): Option[DeferredEvaluatingFunction] = {
-//    deferredEvaluatingFunctions.headOption.map(_._2)
-//  }
-//  def markDeferredFunctionEvaluated(prototypeT: PrototypeT): Unit = {
-//    vassert(prototypeT == vassertSome(deferredEvaluatingFunctions.headOption)._1)
-//    evaluatedDeferredFunctions += prototypeT
-//    deferredEvaluatingFunctions -= prototypeT
-//  }
+  def peekNextDeferredFunctionBodyCompile(): Option[DeferredEvaluatingFunctionBody] = {
+    deferredFunctionBodyCompiles.headOption.map(_._2)
+  }
+  def markDeferredFunctionBodyCompiled(prototypeT: PrototypeT): Unit = {
+    vassert(prototypeT == vassertSome(deferredFunctionBodyCompiles.headOption)._1)
+    finishedDeferredFunctionBodyCompiles += prototypeT
+    deferredFunctionBodyCompiles -= prototypeT
+  }
+
+  def peekNextDeferredFunctionCompile(): Option[DeferredEvaluatingFunction] = {
+    deferredFunctionCompiles.headOption.map(_._2)
+  }
+  def markDeferredFunctionCompiled(name: FullNameT[INameT]): Unit = {
+    vassert(name == vassertSome(deferredFunctionCompiles.headOption)._1)
+    finishedDeferredFunctionCompiles += name
+    deferredFunctionCompiles -= name
+  }
 
   def lookupFunction(signature: SignatureT): Option[FunctionT] = {
     signatureToFunction.get(signature)
+  }
+
+  def getInstantiationBounds(
+    instantiationFullName: FullNameT[IInstantiationNameT]):
+  Option[Map[IRuneS, PrototypeTemplata]] = {
+    instantiationNameToFunctionBoundToRune.get(instantiationFullName)
+  }
+
+  def addInstantiationBounds(
+    instantiationFullName: FullNameT[IInstantiationNameT],
+    functionBoundToRune: Map[IRuneS, PrototypeTemplata]):
+  Unit = {
+    // We'll do this when we can cache instantiations from StructTemplar etc. DO NOT SUBMIT
+    // // We should only add instantiation bounds in exactly one place: the place that makes the
+    // // PrototypeT/StructTT/InterfaceTT.
+    // vassert(!instantiationNameToFunctionBoundToRune.contains(instantiationFullName))
+    instantiationNameToFunctionBoundToRune.get(instantiationFullName) match {
+      case Some(existing) => vassert(existing == functionBoundToRune)
+      case None =>
+    }
+
+    instantiationNameToFunctionBoundToRune.put(instantiationFullName, functionBoundToRune)
   }
 
   def findImmDestructor(kind: KindT): FunctionHeaderT = {
@@ -197,6 +247,15 @@ case class CompilerOutputs() {
     typeNameToMutability += (templateName -> mutability)
   }
 
+  def declareTypeSealed(
+    templateName: FullNameT[IInterfaceTemplateNameT],
+    seealed: Boolean
+  ): Unit = {
+    vassert(typeDeclaredNames.contains(templateName))
+    vassert(!interfaceNameToSealed.contains(templateName))
+    interfaceNameToSealed += (templateName -> seealed)
+  }
+
   def declareFunctionInnerEnv(
     nameT: FullNameT[IFunctionNameT],
     env: IEnvironment,
@@ -230,17 +289,20 @@ case class CompilerOutputs() {
     typeNameToInnerEnv += (nameT -> env)
   }
 
-  def add(structDef: StructDefinitionT): Unit = {
+  def addStruct(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == MutabilityTemplata(ImmutableT)) {
       if (structDef.members.exists(_.tyype.reference.unsubstitutedCoord.ownership != ShareT)) {
         vfail("ImmutableP contains a non-immutable!")
       }
     }
+    vassert(typeNameToMutability.contains(structDef.templateName))
     vassert(!structTemplateNameToDefinition.contains(structDef.templateName))
     structTemplateNameToDefinition += (structDef.templateName -> structDef)
   }
 
-  def add(interfaceDef: InterfaceDefinitionT): Unit = {
+  def addInterface(interfaceDef: InterfaceDefinitionT): Unit = {
+    vassert(typeNameToMutability.contains(interfaceDef.templateName))
+    vassert(interfaceNameToSealed.contains(interfaceDef.templateName))
     vassert(!interfaceTemplateNameToDefinition.contains(interfaceDef.templateName))
     interfaceTemplateNameToDefinition += (interfaceDef.templateName -> interfaceDef)
   }
@@ -288,9 +350,13 @@ case class CompilerOutputs() {
     functionExterns += FunctionExternT(range, function, packageCoord, exportedName)
   }
 
-//  def deferEvaluatingFunction(devf: DeferredEvaluatingFunction): Unit = {
-//    deferredEvaluatingFunctions.put(devf.prototypeT, devf)
-//  }
+  def deferEvaluatingFunctionBody(devf: DeferredEvaluatingFunctionBody): Unit = {
+    deferredFunctionBodyCompiles.put(devf.prototypeT, devf)
+  }
+
+  def deferEvaluatingFunction(devf: DeferredEvaluatingFunction): Unit = {
+    deferredFunctionCompiles.put(devf.name, devf)
+  }
 
   def structDeclared(templateName: FullNameT[IStructTemplateNameT]): Boolean = {
     // This is the only place besides StructDefinition2 and declareStruct thats allowed to make one of these
@@ -318,10 +384,18 @@ case class CompilerOutputs() {
     }
   }
 
+  def lookupSealed(templateName: FullNameT[IInterfaceTemplateNameT]): Boolean = {
+    // If it has a structTT, then we've at least started to evaluate this citizen
+    interfaceNameToSealed.get(templateName) match {
+      case None => vfail("Still figuring out sealed for struct: " + templateName) // See MFDBRE
+      case Some(m) => m
+    }
+  }
+
 //  def lookupCitizen(citizenRef: CitizenRefT): CitizenDefinitionT = {
 //    citizenRef match {
-//      case s @ StructTT(_) => lookupStruct(s)
-//      case i @ InterfaceTT(_) => lookupInterface(i)
+//      case s @ StructTT(_, _) => lookupStruct(s)
+//      case i @ InterfaceTT(_, _) => lookupInterface(i)
 //    }
 //  }
 
@@ -352,8 +426,8 @@ case class CompilerOutputs() {
   }
   def lookupCitizen(citizenTT: ICitizenTT): CitizenDefinitionT = {
     citizenTT match {
-      case s @ StructTT(_) => lookupStruct(s)
-      case s @ InterfaceTT(_) => lookupInterface(s)
+      case s @ StructTT(_, _) => lookupStruct(s)
+      case s @ InterfaceTT(_, _) => lookupInterface(s)
     }
   }
 

@@ -8,7 +8,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT}
 import dev.vale.typing.templata.{Conversions, CoordTemplata, PlaceholderTemplata, _}
 import dev.vale.typing.types._
 import dev.vale._
@@ -134,6 +134,7 @@ trait IInfererDelegate {
 
   def assemblePrototype(
     env: InferEnv,
+    state: CompilerOutputs,
     range: RangeS,
     name: StrI,
     coords: Vector[CoordT],
@@ -143,8 +144,8 @@ trait IInfererDelegate {
   def assembleImpl(
     env: InferEnv,
     range: RangeS,
-    subKind: ISubKindTT,
-    superKind: ISuperKindTT):
+    subKind: KindT,
+    superKind: KindT):
   IsaTemplata
 }
 
@@ -589,7 +590,7 @@ class CompilerRuleSolver(
         // Now introduce a prototype that lets us call it with this new name, that we
         // can call it by.
         val newPrototype =
-          delegate.assemblePrototype(env, range, name, paramCoords, returnType)
+          delegate.assemblePrototype(env, state, range, name, paramCoords, returnType)
 
         stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges,
           resultRune.rune, PrototypeTemplata(range, newPrototype))
@@ -603,7 +604,7 @@ class CompilerRuleSolver(
 
         val resultingIsaTemplata =
           if (subCoord == superCoord) {
-            IsaTemplata(range, subCoord.kind, superCoord.kind)
+            delegate.assembleImpl(env, range, subCoord.kind, superCoord.kind)
           } else {
             val subKind =
               subCoord.kind match {
@@ -715,7 +716,7 @@ class CompilerRuleSolver(
         templata match {
           case KindTemplata(kind) => {
             kind match {
-              case InterfaceTT(_) => {
+              case InterfaceTT(_, _) => {
                 Err(KindIsNotConcrete(kind))
               }
               case _ => Ok(())
@@ -729,7 +730,7 @@ class CompilerRuleSolver(
         templata match {
           case KindTemplata(kind) => {
             kind match {
-              case InterfaceTT(_) => Ok(())
+              case InterfaceTT(_, _) => Ok(())
               case _ => Err(KindIsNotInterface(kind))
             }
           }
@@ -741,7 +742,7 @@ class CompilerRuleSolver(
         templata match {
           case KindTemplata(kind) => {
             kind match {
-              case StructTT(_) => Ok(())
+              case StructTT(_, _) => Ok(())
               case _ => Err(KindIsNotStruct(kind))
             }
           }
@@ -942,7 +943,7 @@ class CompilerRuleSolver(
               }
               case it@InterfaceDefinitionTemplata(_, _) => {
                 result match {
-                  case KindTemplata(interface@InterfaceTT(_)) => {
+                  case KindTemplata(interface@InterfaceTT(_, _)) => {
                     if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -952,7 +953,7 @@ class CompilerRuleSolver(
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, interface@InterfaceTT(_))) => {
+                  case CoordTemplata(CoordT(OwnT | ShareT, interface@InterfaceTT(_, _))) => {
                     if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -965,9 +966,9 @@ class CompilerRuleSolver(
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case it@KindTemplata(templateInterface@InterfaceTT(_)) => {
+              case it@KindTemplata(templateInterface@InterfaceTT(_, _)) => {
                 result match {
-                  case KindTemplata(instantiationInterface@InterfaceTT(_)) => {
+                  case KindTemplata(instantiationInterface@InterfaceTT(_, _)) => {
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -976,7 +977,7 @@ class CompilerRuleSolver(
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface@InterfaceTT(_))) => {
+                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationInterface@InterfaceTT(_, _))) => {
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -990,7 +991,7 @@ class CompilerRuleSolver(
               }
               case st@StructDefinitionTemplata(_, _) => {
                 result match {
-                  case KindTemplata(struct@StructTT(_)) => {
+                  case KindTemplata(struct@StructTT(_, _)) => {
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
@@ -1000,7 +1001,7 @@ class CompilerRuleSolver(
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, struct@StructTT(_))) => {
+                  case CoordTemplata(CoordT(OwnT | ShareT, struct@StructTT(_, _))) => {
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
@@ -1013,9 +1014,9 @@ class CompilerRuleSolver(
                   case _ => return Err(CallResultWasntExpectedType(template, result))
                 }
               }
-              case it@KindTemplata(structTT@StructTT(_)) => {
+              case it@KindTemplata(structTT@StructTT(_, _)) => {
                 result match {
-                  case KindTemplata(instantiationStruct@StructTT(_)) => {
+                  case KindTemplata(instantiationStruct@StructTT(_, _)) => {
                     if (structTT != instantiationStruct) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
@@ -1024,7 +1025,7 @@ class CompilerRuleSolver(
                     })
                     Ok(())
                   }
-                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationStruct@StructTT(_))) => {
+                  case CoordTemplata(CoordT(OwnT | ShareT, instantiationStruct@StructTT(_, _))) => {
                     if (structTT != instantiationStruct) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }

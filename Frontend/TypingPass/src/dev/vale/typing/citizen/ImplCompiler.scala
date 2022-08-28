@@ -167,7 +167,7 @@ class ImplCompiler(
   //        implTemplata)
   //    val parentInterfaceFromPlaceholderedSubCitizen =
   //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
+  //        case KindTemplata(interfaceTT @ InterfaceTT(_, _)) => interfaceTT
   //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
   //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
   //      }
@@ -230,7 +230,7 @@ class ImplCompiler(
   //        implTemplata)
   //    val parentInterfaceFromPlaceholderedSubCitizen =
   //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
+  //        case KindTemplata(interfaceTT @ InterfaceTT(_, _)) => interfaceTT
   //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
   //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
   //      }
@@ -288,7 +288,7 @@ class ImplCompiler(
     val superInterface =
       inferences.get(implA.interfaceKindRune.rune) match {
         case None => vwat()
-        case Some(KindTemplata(i@InterfaceTT(_))) => i
+        case Some(KindTemplata(i@InterfaceTT(_, _))) => i
         case Some(other) => throw CompileErrorExceptionT(CantImplNonInterface(List(implA.range), other))
       }
     val superInterfaceTemplateFullName =
@@ -547,7 +547,7 @@ class ImplCompiler(
       }
     val parentTT = conclusions.get(implTemplata.impl.interfaceKindRune.rune)
     vassertSome(parentTT) match {
-      case KindTemplata(i @ InterfaceTT(_)) => Ok(i)
+      case KindTemplata(i @ InterfaceTT(_, _)) => Ok(i)
       case _ => vwat()
     }
   }
@@ -579,7 +579,7 @@ class ImplCompiler(
 
     matching.foreach({
       case it@ImplDefinitionTemplata(_, _) => implDefsWithDuplicates.add(it)
-      case it@IsaTemplata(_, _, _) => implTemplatasWithDuplicates.add(it)
+      case it@IsaTemplata(_, _, _, _) => implTemplatasWithDuplicates.add(it)
       case _ => vwat()
     })
 
@@ -646,13 +646,13 @@ class ImplCompiler(
     val implTemplatasWithDuplicatesAcc = new Accumulator[IsaTemplata]()
     matching.foreach({
       case it@ImplDefinitionTemplata(_, _) => implsDefsWithDuplicates.add(it)
-      case it@IsaTemplata(_, _, _) => implTemplatasWithDuplicatesAcc.add(it)
+      case it@IsaTemplata(_, _, _, _) => implTemplatasWithDuplicatesAcc.add(it)
       case _ => vwat()
     })
     val implTemplatasWithDuplicates = implTemplatasWithDuplicatesAcc.buildArray()
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
-      case Some(impl) => return IsParent(impl, Map(), vimpl(), vimpl())
+      case Some(impl) => return IsParent(impl, Map(), impl.implName, Map())
       case None =>
     }
 

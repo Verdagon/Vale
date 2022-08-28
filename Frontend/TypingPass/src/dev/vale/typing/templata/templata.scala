@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, INameT, InterfaceTemplateNameT, PlaceholderNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, InterfaceTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
 import dev.vale.highertyping._
@@ -316,7 +316,7 @@ case class PrototypeTemplata(declarationRange: RangeS, prototype: PrototypeT) ex
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: PrototypeTemplataType = PrototypeTemplataType()
 }
-case class IsaTemplata(declarationRange: RangeS, subKind: KindT, superKind: KindT) extends ITemplata[ImplTemplataType] {
+case class IsaTemplata(declarationRange: RangeS, implName: FullNameT[IImplNameT], subKind: KindT, superKind: KindT) extends ITemplata[ImplTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: ImplTemplataType = ImplTemplataType()
 }

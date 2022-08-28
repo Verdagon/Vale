@@ -73,14 +73,13 @@ class FunctionCompilerMiddleLayer(
       case Some(AbstractSP(rangeS, isInternalMethod)) => {
         val interfaceTT =
           paramKind match {
-            case i @ InterfaceTT(_) => i
+            case i @ InterfaceTT(_, _) => i
             case _ => throw CompileErrorExceptionT(RangedInternalErrorT(rangeS :: parentRanges, "Can only have virtual parameters for interfaces"))
           }
         // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
         // See https://github.com/ValeLang/Vale/issues/374
         if (!isInternalMethod) {
-          val interfaceDef = coutputs.lookupInterface(interfaceTT)
-          if (!interfaceDef.attributes.contains(SealedT)) {
+          if (!coutputs.lookupSealed(TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName))) {
             // Macros can put e.g. functions inside an interface by prefixing the function name
             // with the interface.
             // For example, InterfaceFreeMacro will look at mymod.MyInterface and conjure a
@@ -96,7 +95,7 @@ class FunctionCompilerMiddleLayer(
 //        val interface =
 //          env.lookupNearestWithImpreciseName(interner.intern(RuneNameS(interfaceRuneA.rune)), Set(TemplataLookupContext)) match {
 //            case None => vcurious()
-//            case Some(KindTemplata(ir @ InterfaceTT(_))) => ir
+//            case Some(KindTemplata(ir @ InterfaceTT(_, _))) => ir
 //            case Some(it @ InterfaceTemplata(_, _)) => structCompiler.getInterfaceRef(coutputs, range, it, Vector.empty)
 //            case Some(KindTemplata(kind)) => {
 //              throw CompileErrorExceptionT(CantImplNonInterface(range, kind))
@@ -455,8 +454,8 @@ class FunctionCompilerMiddleLayer(
     maybeReturnType: Option[CoordT]):
   FunctionEnvironment = {
     val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      globalEnv, parentEnv, templateName, templateArgs, templatas, function, variables) = runedEnv
+      globalEnv, parentEnv, templateName, templateArgs, templatas, function, variables, isRootCompilingDenizen) = runedEnv
     val fullName = assembleName(templateName, templateArgs, paramTypes)
-    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, variables)
+    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, variables, isRootCompilingDenizen)
   }
 }

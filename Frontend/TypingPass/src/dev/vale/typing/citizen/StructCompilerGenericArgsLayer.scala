@@ -1,12 +1,12 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType}
+import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, SealedS}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, NameTranslator, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{Accumulator, Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
@@ -55,7 +55,7 @@ class StructCompilerGenericArgsLayer(
           structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
       // Check if its a valid use of this template
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -75,13 +75,11 @@ class StructCompilerGenericArgsLayer(
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(structName)
-      val structTT = interner.intern(StructTT(fullName))
 
-      val runeToSuppliedFunction =
-        inferences.collect({
-          case (rune, pt @ PrototypeTemplata(_, _)) => (rune -> pt)
-        })
-      ResolveSuccess(structTT)//, runeToSuppliedFunction)
+      coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
+      val structTT = interner.intern(StructTT(fullName, 0))
+
+      ResolveSuccess(structTT)
     })
   }
 
@@ -138,7 +136,12 @@ class StructCompilerGenericArgsLayer(
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(interfaceName)
-      val interfaceTT = interner.intern(InterfaceTT(fullName))
+
+      // Usually when we make an InterfaceTT we put the instantiation bounds into the coutputs,
+      // but we unfortunately can't here because we're just predicting an interface; we'll
+      // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
+      // escape into the wild.
+      val interfaceTT = interner.intern(InterfaceTT(fullName, 0))
       interfaceTT
     })
   }
@@ -196,7 +199,12 @@ class StructCompilerGenericArgsLayer(
       val finalGenericArgs = structA.genericParameters.map(_.rune.rune).map(inferences)
       val structName = structTemplateName.makeStructName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(structName)
-      val structTT = interner.intern(StructTT(fullName))
+
+      // Usually when we make an InterfaceTT we put the instantiation bounds into the coutputs,
+      // but we unfortunately can't here because we're just predicting an interface; we'll
+      // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
+      // escape into the wild.
+      val structTT = interner.intern(StructTT(fullName, 0))
       structTT
     })
   }
@@ -226,7 +234,7 @@ class StructCompilerGenericArgsLayer(
           interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
 
       // This checks to make sure it's a valid use of this template.
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -246,13 +254,11 @@ class StructCompilerGenericArgsLayer(
       val finalGenericArgs = interfaceA.genericParameters.map(_.rune.rune).map(inferences)
       val interfaceName = interfaceTemplateName.makeInterfaceName(interner, finalGenericArgs)
       val fullName = declaringEnv.fullName.addStep(interfaceName)
-      val interfaceTT = interner.intern(InterfaceTT(fullName))
 
-      val runeToSuppliedFunction =
-        inferences.collect({
-          case (rune, pt @ PrototypeTemplata(_, _)) => (rune -> pt)
-        })
-      ResolveSuccess(interfaceTT)//, runeToSuppliedFunction)
+      coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
+      val interfaceTT = interner.intern(InterfaceTT(fullName, 0))
+
+      ResolveSuccess(interfaceTT)
     })
   }
 
@@ -266,13 +272,23 @@ class StructCompilerGenericArgsLayer(
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.fullName.addStep(structTemplateName)
 
+
       val outerEnv =
         CitizenEnvironment(
           declaringEnv.globalEnv,
           declaringEnv,
           structTemplateFullName,
           structTemplateFullName,
-          TemplatasStore(structTemplateFullName, Map(), Map()))
+          TemplatasStore(structTemplateFullName, Map(), Map())
+            .addEntries(
+              interner,
+              // Merge in any things from the global environment that say they're part of this
+              // structs's namespace (see IMRFDI and CODME).
+              // StructFreeMacro will put a free function here.
+              declaringEnv.globalEnv.nameToTopLevelEnvironment
+                .get(structTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+                .toVector
+                .flatMap(_.entriesByNameT)))
       coutputs.declareTypeOuterEnv(structTemplateFullName, outerEnv)
 
       val allRulesS = structA.headerRules ++ structA.memberRules
@@ -354,7 +370,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(structTemplateFullName, innerEnv)
 
-      core.compileStruct(innerEnv, coutputs, parentRanges, structA)
+      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, structA)
     })
   }
 
@@ -377,11 +393,19 @@ class StructCompilerGenericArgsLayer(
           TemplatasStore(interfaceTemplateFullName, Map(), Map())
             .addEntries(
               interner,
+              // TODO: Take those internal methods that were defined inside the interface, and move them to
+              // just be name-prefixed like Free is, see IMRFDI.
               interfaceA.internalMethods
                 .map(internalMethod => {
                   val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
                   (functionName -> FunctionEnvEntry(internalMethod))
-                })))
+                }) ++
+                // Merge in any things from the global environment that say they're part of this
+                // interface's namespace (see IMRFDI and CODME).
+                declaringEnv.globalEnv.nameToTopLevelEnvironment
+                  .get(interfaceTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+                  .toVector
+                  .flatMap(_.entriesByNameT)))
       coutputs.declareTypeOuterEnv(interfaceTemplateFullName, outerEnv)
 
       //      val fullName = env.fullName.addStep(interfaceLastName)
@@ -458,7 +482,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
 
-      core.compileInterface(declaringEnv, innerEnv, coutputs, parentRanges, interfaceA)
+      core.compileInterface(declaringEnv, outerEnv, innerEnv, coutputs, parentRanges, interfaceA)
     })
   }
 

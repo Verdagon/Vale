@@ -282,7 +282,6 @@ case class FunctionNameT(
   parameters: Vector[CoordT]
 ) extends IFunctionNameT
 
-
 case class ForwarderFunctionNameT(
   template: ForwarderFunctionTemplateNameT,
   inner: IFunctionNameT
@@ -290,6 +289,28 @@ case class ForwarderFunctionNameT(
   override def templateArgs: Vector[ITemplata[ITemplataType]] = inner.templateArgs
   override def parameters: Vector[CoordT] = inner.parameters
 }
+
+case class FunctionBoundTemplateNameT(
+  humanName: StrI,
+  codeLocation: CodeLocationS
+) extends INameT with IFunctionTemplateNameT {
+  this match {
+    case FunctionBoundTemplateNameT(StrI("drop"),CodeLocationS(FileCoordinate(_,"opt.vale"), 67)) => {
+      vpass()
+    }
+    case _ =>
+  }
+  vpass()
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
+    interner.intern(FunctionBoundNameT(this, templateArgs, params))
+  }
+}
+
+case class FunctionBoundNameT(
+  template: FunctionBoundTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  parameters: Vector[CoordT]
+) extends IFunctionNameT
 
 case class FunctionTemplateNameT(
     humanName: StrI,

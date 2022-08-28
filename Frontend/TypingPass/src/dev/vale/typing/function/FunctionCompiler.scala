@@ -71,8 +71,7 @@ object FunctionCompiler {
 
   case class EvaluateFunctionSuccess(
     function: PrototypeTemplata,
-    inferences: Map[IRuneS, ITemplata[ITemplataType]],
-    runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
+    inferences: Map[IRuneS, ITemplata[ITemplataType]]
   ) extends IEvaluateFunctionResult
 
   case class EvaluateFunctionFailure(
@@ -182,7 +181,7 @@ class FunctionCompiler(
 //          evaluateOrdinaryLightFunctionFromNonCallForHeader(
 //            env, coutputs, parentRanges, function, verifyConclusions)
 //        } else {
-//          val List(KindTemplata(closureStructRef@StructTT(_))) =
+//          val List(KindTemplata(closureStructRef@StructTT(_, _))) =
 //            env.lookupNearestWithImpreciseName(
 //
 //              vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
@@ -196,32 +195,32 @@ class FunctionCompiler(
 //
 //  }
 
-  def evaluateTemplatedFunctionFromNonCallForHeader(
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    functionTemplata: FunctionTemplata,
-    verifyConclusions: Boolean):
-  FunctionHeaderT = {
-    Profiler.frame(() => {
-      val FunctionTemplata(env, function) = functionTemplata
-//      if (function.isLight) {
-      vassert(function.isLight())
-        evaluateTemplatedLightFunctionFromNonCallForHeader(
-          env, coutputs, parentRanges, function, verifyConclusions)
-//      } else {
-//        val List(KindTemplata(closureStructRef@StructTT(_))) =
-//          env.lookupNearestWithImpreciseName(
+//  def evaluateTemplatedFunctionFromNonCallForHeader(
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    functionTemplata: FunctionTemplata,
+//    verifyConclusions: Boolean):
+//  FunctionHeaderT = {
+//    Profiler.frame(() => {
+//      val FunctionTemplata(env, function) = functionTemplata
+////      if (function.isLight) {
+//      vassert(function.isLight())
+//        evaluateTemplatedLightFunctionFromNonCallForHeader(
+//          env, coutputs, parentRanges, function, verifyConclusions)
+////      } else {
+////        val List(KindTemplata(closureStructRef@StructTT(_, _))) =
+////          env.lookupNearestWithImpreciseName(
+////
+////            vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
+////            Set(TemplataLookupContext)).toList
+////        val header =
+////          evaluateTemplatedClosureFunctionFromNonCallForHeader(
+////            env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
+////        header
+////      }
+//    })
 //
-//            vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
-//            Set(TemplataLookupContext)).toList
-//        val header =
-//          evaluateTemplatedClosureFunctionFromNonCallForHeader(
-//            env, coutputs, parentRanges, closureStructRef, function, verifyConclusions)
-//        header
-//      }
-    })
-
-  }
+//  }
 
   // We would want only the prototype instead of the entire header if, for example,
   // we were calling the function. This is necessary for a recursive function like
@@ -245,7 +244,7 @@ class FunctionCompiler(
 //            case _ => vwat()
 //          }
 //
-//        val KindTemplata(closureStructRef@StructTT(_)) =
+//        val KindTemplata(closureStructRef@StructTT(_, _)) =
 //          vassertOne(
 //            env.lookupNearestWithName(
 //
@@ -281,7 +280,7 @@ class FunctionCompiler(
 //              case _ => vwat()
 //            }
 //
-//          val KindTemplata(closureStructRef@StructTT(_)) =
+//          val KindTemplata(closureStructRef@StructTT(_, _)) =
 //            vassertOne(
 //              declaringEnv.lookupNearestWithName(
 //                lambdaCitizenName2,
@@ -311,7 +310,7 @@ class FunctionCompiler(
 //              case _ => vwat()
 //            }
 //
-//          val KindTemplata(closureStructRef@StructTT(_)) =
+//          val KindTemplata(closureStructRef@StructTT(_, _)) =
 //            vassertOne(
 //              env.lookupNearestWithName(
 //
@@ -355,7 +354,7 @@ class FunctionCompiler(
               case _ => vwat()
             }
 
-          val KindTemplata(closureStructRef@StructTT(_)) =
+          val KindTemplata(closureStructRef@StructTT(_, _)) =
             vassertOne(
               declaringEnv.lookupNearestWithName(
                 lambdaCitizenName2,
@@ -488,16 +487,16 @@ class FunctionCompiler(
       env, coutputs, parentRanges, function, verifyConclusions)
   }
 
-  private def evaluateTemplatedLightFunctionFromNonCallForHeader(
-    env: IEnvironment,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS],
-    function: FunctionA,
-    verifyConclusions: Boolean):
-  (FunctionHeaderT) = {
-    closureOrLightLayer.evaluateTemplatedLightFunctionFromNonCallForHeader(
-      env, coutputs, parentRanges, function, verifyConclusions)
-  }
+//  private def evaluateTemplatedLightFunctionFromNonCallForHeader(
+//    env: IEnvironment,
+//    coutputs: CompilerOutputs,
+//    parentRanges: List[RangeS],
+//    function: FunctionA,
+//    verifyConclusions: Boolean):
+//  (FunctionHeaderT) = {
+//    closureOrLightLayer.evaluateTemplatedLightFunctionFromNonCallForHeader(
+//      env, coutputs, parentRanges, function, verifyConclusions)
+//  }
 
 //  def evaluateOrdinaryLightFunctionFromNonCallForCompilerOutputs(
 //      coutputs: CompilerOutputs,
@@ -592,7 +591,7 @@ class FunctionCompiler(
         case LambdaDeclarationNameS(codeLocation) => interner.intern(LambdaCitizenNameT(interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(codeLocation)))))
         case _ => vwat()
       }
-    val KindTemplata(closureStructRef @ StructTT(_)) =
+    val KindTemplata(closureStructRef @ StructTT(_, _)) =
       vassertOne(
         env.lookupNearestWithName(
 
