@@ -99,8 +99,7 @@ class ExpressionHammer(
           blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)
         (blockH, Vector.empty)
       }
-      case call2 @ FunctionCallTE(callableExpr, conclusions, args) => {
-        vassert(conclusions.isEmpty) // should be taken out by monomorphizer
+      case call2 @ FunctionCallTE(callableExpr, args) => {
         val access =
           translateFunctionPointerCall(
             hinputs, hamuts, currentFunctionHeader, locals, callableExpr, args, call2.result.reference)
@@ -199,7 +198,7 @@ class ExpressionHammer(
           case _ =>
         }
 
-        val resultStructT = resultType.kind match { case s @ StructTT(_) => s }
+        val resultStructT = resultType.kind match { case s @ StructTT(_, _) => s }
         val (underlyingStructRefH) =
           structHammer.translateStructRef(hinputs, hamuts, resultStructT);
         val (resultReference) =
@@ -1076,7 +1075,7 @@ class ExpressionHammer(
     }
 
     val virtualParamIndex = superFunctionHeader.getVirtualIndex.get
-    val CoordT(_, interfaceTT @ InterfaceTT(_)) =
+    val CoordT(_, interfaceTT @ InterfaceTT(_, _)) =
       superFunctionHeader.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)

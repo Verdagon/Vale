@@ -1,8 +1,10 @@
 
 #!DeriveInterfaceDrop
-sealed interface XOpt<T> where T Ref { }
+sealed interface XOpt<T Ref> { }
+
 #!DeriveStructDrop
-struct XSome<T> where T Ref { value T; }
+struct XSome<T Ref> { value T; }
+
 #!DeriveImplDrop
 impl<T> XOpt<T> for XSome<T>;
 

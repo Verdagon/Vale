@@ -1,8 +1,9 @@
 package dev.vale.typing
 
+import dev.vale.postparsing.IRuneS
 import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionT, InterfaceEdgeBlueprint, KindExportT, KindExternT, PrototypeT, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
-import dev.vale.typing.templata.simpleName
+import dev.vale.typing.templata.{PrototypeTemplata, simpleName}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vassertOne, vassertSome, vcurious, vfail, vimpl}
 import dev.vale.typing.ast._
@@ -26,7 +27,8 @@ case class Hinputs(
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
   kindExterns: Vector[KindExternT],
-  functionExterns: Vector[FunctionExternT]) {
+  functionExterns: Vector[FunctionExternT],
+) {
 
   private val subCitizenToInterfaceToEdgeMutable = mutable.HashMap[FullNameT[ICitizenNameT], mutable.HashMap[FullNameT[IInterfaceNameT], EdgeT]]()
   interfaceToSubCitizenToEdge.foreach({ case (interface, subCitizenToEdge) =>
@@ -47,6 +49,10 @@ case class Hinputs(
 
   def lookupInterface(interfaceFullName: FullNameT[IInterfaceNameT]): InterfaceDefinitionT = {
     vassertSome(interfaces.find(_.instantiatedCitizen.fullName == interfaceFullName))
+  }
+
+  def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeTemplata] = {
+    vimpl()
   }
 
   def lookupStructByTemplateFullName(structTemplateFullName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {

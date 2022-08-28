@@ -130,7 +130,7 @@ class MutateHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_) => sr
+        case sr @ StructTT(_, _) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
@@ -191,7 +191,7 @@ class MutateHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_) => sr
+        case sr @ StructTT(_, _) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT.fullName)
     val memberIndex =

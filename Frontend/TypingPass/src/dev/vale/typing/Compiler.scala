@@ -174,7 +174,7 @@ class Compiler(
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
             }
-            case IsaTemplata(_, subKind, superKind) => {
+            case IsaTemplata(_, _, subKind, superKind) => {
               getPlaceholdersInKind(accum, subKind)
               getPlaceholdersInKind(accum, superKind)
             }
@@ -200,8 +200,8 @@ class Compiler(
               getPlaceholdersInTemplata(accum, variability)
               getPlaceholdersInKind(accum, elementType.kind)
             }
-            case StructTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
-            case InterfaceTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
+            case StructTT(FullNameT(_,_,name), _) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
+            case InterfaceTT(FullNameT(_,_,name), _) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
             case PlaceholderT(fullName) => accum.add(fullName)
             case other => vimpl(other)
           }
@@ -212,7 +212,7 @@ class Compiler(
           getPlaceholdersInTemplata(accum, templata)
 
           if (accum.elementsReversed.nonEmpty) {
-            val rootDenizenEnv = env.originalCallingEnv.rootDenizenEnv
+            val rootDenizenEnv = env.originalCallingEnv.rootCompilingDenizenEnv
             val originalCallingEnvTemplateName =
               rootDenizenEnv.fullName match {
                 case FullNameT(packageCoord, initSteps, x: ITemplateNameT) => {
@@ -258,8 +258,8 @@ class Compiler(
             case OverloadSetT(_, _) => false
             case NeverT(fromBreak) => vimpl()
             case StaticSizedArrayTT(_, _, _, _) => false
-            case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
-            case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
+            case s @ StructTT(_, _) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
+            case i @ InterfaceTT(_, _) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
           }
         }
@@ -270,7 +270,7 @@ class Compiler(
           kind: KindT):
         Boolean = {
           kind match {
-            case InterfaceTT(_) => true
+            case InterfaceTT(_, _) => true
             case _ => false
           }
         }
@@ -386,26 +386,35 @@ class Compiler(
 
         override def assemblePrototype(
             envs: InferEnv,
+          state: CompilerOutputs,
             range: RangeS,
             name: StrI,
             coords: Vector[CoordT],
             returnType: CoordT):
         PrototypeT = {
-          PrototypeT(
-            envs.selfEnv.fullName.addStep(
-              interner.intern(
-                FunctionNameT(
-                  interner.intern(FunctionTemplateNameT(name, range.begin)), Vector(), coords))),
-            returnType)
+          val result =
+            PrototypeT(
+              envs.selfEnv.fullName.addStep(
+                interner.intern(FunctionBoundNameT(
+                  interner.intern(FunctionBoundTemplateNameT(name, range.begin)), Vector(), coords))),
+              returnType)
+
+          // This is a function bound, and there's no such thing as a function bound with function bounds.
+          state.addInstantiationBounds(result.fullName, Map())
+
+          result
         }
 
-        override def assembleImpl(
-          envs: InferEnv,
-          range: RangeS,
-          subKind: ISubKindTT,
-          superKind: ISuperKindTT):
-        IsaTemplata = {
-          IsaTemplata(range, subKind, superKind)
+        override def assembleImpl(env: InferEnv, range: RangeS, subKind: KindT, superKind: KindT): IsaTemplata = {
+          IsaTemplata(
+            range,
+            env.selfEnv.fullName.addStep(
+              interner.intern(
+                ImplDeclareNameT(
+                  interner.intern(ImplTemplateDeclareNameT(range.begin)),
+                  Vector()))),
+            subKind,
+            superKind)
         }
       },
       new IInferCompilerDelegate {
@@ -739,7 +748,6 @@ class Compiler(
             }) ++
             programA.interfaces.map(interfaceA => {
               val interfaceNameT = packageName.addStep(nameTranslator.translateNameStep(interfaceA.name))
-
               Vector((interfaceNameT, InterfaceEnvEntry(interfaceA))) ++
                 preprocessInterface(nameToInterfaceDefinedMacro, interfaceNameT, interfaceA)
             }) ++
@@ -860,17 +868,22 @@ class Compiler(
           })
         })
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
-          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
-          templatas.entriesByNameT.map({ case (name, entry) =>
-            entry match {
-              case FunctionEnvEntry(functionA) => {
-                functionCompiler.evaluateGenericFunctionFromNonCall(
-                  coutputs, List(), FunctionTemplata(env, functionA), true)
+        globalEnv.nameToTopLevelEnvironment.foreach({
+          // Anything in global scope should be compiled
+          case (namespaceCoord @ FullNameT(_, Vector(), PackageTopLevelNameT()), templatas) => {
+            val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+            templatas.entriesByNameT.map({ case (name, entry) =>
+              entry match {
+                case FunctionEnvEntry(functionA) => {
+                  functionCompiler.evaluateGenericFunctionFromNonCall(
+                    coutputs, List(), FunctionTemplata(env, functionA), true)
+                }
+                case _ =>
               }
-              case _ =>
-            }
-          })
+            })
+          }
+          // Anything underneath something else should be skipped, we'll evaluate those later on.
+          case (FullNameT(_, anythingElse, PackageTopLevelNameT()), _) =>
         })
 
         packageToProgramA.flatMap({ case (packageCoord, programA) =>
@@ -943,14 +956,23 @@ class Compiler(
           edgeCompiler.compileITables(coutputs)
         })
 
-//            var deferredFunctionsEvaluated = 0
-//            while (coutputs.peekNextDeferredEvaluatingFunction().nonEmpty) {
-//              val nextDeferredEvaluatingFunction = coutputs.peekNextDeferredEvaluatingFunction().get
-//              deferredFunctionsEvaluated += 1
-//              // No, IntelliJ, I assure you this has side effects
-//              (nextDeferredEvaluatingFunction.call) (coutputs)
-//              coutputs.markDeferredFunctionEvaluated(nextDeferredEvaluatingFunction.prototypeT)
-//            }
+        while (coutputs.peekNextDeferredFunctionBodyCompile().nonEmpty || coutputs.peekNextDeferredFunctionCompile().nonEmpty) {
+          while (coutputs.peekNextDeferredFunctionCompile().nonEmpty) {
+            val nextDeferredEvaluatingFunction = coutputs.peekNextDeferredFunctionCompile().get
+            // No, IntelliJ, I assure you this has side effects
+            (nextDeferredEvaluatingFunction.call) (coutputs)
+            coutputs.markDeferredFunctionCompiled(nextDeferredEvaluatingFunction.name)
+          }
+
+          // No particular reason for this if/while mismatch, it just feels a bit better to get started on more before
+          // we finish any.
+          if (coutputs.peekNextDeferredFunctionBodyCompile().nonEmpty) {
+            val nextDeferredEvaluatingFunctionBody = coutputs.peekNextDeferredFunctionBodyCompile().get
+            // No, IntelliJ, I assure you this has side effects
+            (nextDeferredEvaluatingFunctionBody.call) (coutputs)
+            coutputs.markDeferredFunctionBodyCompiled(nextDeferredEvaluatingFunctionBody.prototypeT)
+          }
+        }
 
 
 //            val denizensAtEnd = coutputs.countDenizens()
@@ -1036,8 +1058,8 @@ class Compiler(
 //      val reachableImmKinds: Vector[KindT] =
 //        allKinds
 //          .filter({
-//            case s@StructTT(_) => coutputs.lookupMutability(s) == ImmutableT
-//            case i@InterfaceTT(_) => coutputs.lookupMutability(i) == ImmutableT
+//            case s@StructTT(_, _) => coutputs.lookupMutability(s) == ImmutableT
+//            case i@InterfaceTT(_, _) => coutputs.lookupMutability(i) == ImmutableT
 //            case StaticSizedArrayTT(_, m, _, _) => m == ImmutableT
 //            case RuntimeSizedArrayTT(m, _) => m == ImmutableT
 //            case _ => true
@@ -1171,7 +1193,7 @@ class Compiler(
     packageToKindToExport.foreach({ case (packageCoord, exportedKindToExport) =>
       exportedKindToExport.foreach({ case (exportedKind, (kind, export)) =>
         exportedKind match {
-          case sr@StructTT(_) => {
+          case sr@StructTT(_, _) => {
             val structDef = coutputs.lookupStruct(sr)
             structDef.members.foreach({ case StructMemberT(_, _, member) =>
               val UnsubstitutedCoordT(CoordT(_, memberKind)) = member.reference
@@ -1196,7 +1218,7 @@ class Compiler(
                   List(export.range), packageCoord, exportedKind, elementKind))
             }
           }
-          case InterfaceTT(_) =>
+          case InterfaceTT(_, _) =>
         }
       })
     })
@@ -1258,8 +1280,8 @@ object Compiler {
     kind match {
       case VoidT() | IntT(_) | BoolT() | StrT() | NeverT(_) | FloatT() => true
 //      case TupleTT(_, understruct) => isPrimitive(understruct)
-      case StructTT(_) => false
-      case InterfaceTT(_) => false
+      case StructTT(_, _) => false
+      case InterfaceTT(_, _) => false
       case StaticSizedArrayTT(_, _, _, _) => false
       case RuntimeSizedArrayTT(_, _) => false
     }
@@ -1282,8 +1304,8 @@ object Compiler {
       case VoidT() => MutabilityTemplata(ImmutableT)
       case RuntimeSizedArrayTT(mutability, _) => mutability
       case StaticSizedArrayTT(_, mutability, _, _) => mutability
-      case sr @ StructTT(name) => coutputs.lookupMutability(TemplataCompiler.getStructTemplate(name))
-      case ir @ InterfaceTT(name) => coutputs.lookupMutability(TemplataCompiler.getInterfaceTemplate(name))
+      case sr @ StructTT(name, _) => coutputs.lookupMutability(TemplataCompiler.getStructTemplate(name))
+      case ir @ InterfaceTT(name, _) => coutputs.lookupMutability(TemplataCompiler.getInterfaceTemplate(name))
 //      case PackTT(_, sr) => coutputs.lookupMutability(sr)
 //      case TupleTT(_, sr) => coutputs.lookupMutability(sr)
       case OverloadSetT(_, _) => {

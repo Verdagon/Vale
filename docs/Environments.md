@@ -64,15 +64,11 @@ concept Printer {
 }
 ```
 
-Another note from later: We might need these internal methods anyway.
-When we're conforming a closure to an interface (or if we want to feed
-multiple closures into an anonymous subclass) we need a defined ordering
-to the methods of the thing we're creating. For that, we need internal
-methods.
+Another note from later: We might need these internal methods anyway. When we're conforming a closure to an interface (or if we want to feed multiple closures into an anonymous subclass) we need a defined ordering to the methods of the thing we're creating. For that, we need internal methods.
 
-Also, we cant just put FunctionA's in there, we need to somehow see
-them from the global environment too to enable UFCS.
+Also, we cant just put FunctionA's in there, we need to somehow see them from the global environment too to enable UFCS.
 
+There are also macros that want to add interface methods (InterfaceFreeMacro adds a virtual free function). We collect those to be part of the internal methods during compileInterface. It knows how to find them because their FullNames are prefixed by the interface, which fits well. (See CODME also)
 
 
 # Compilation Order of Denizens, Macros, Environments (CODME)
@@ -100,11 +96,22 @@ For that, let's have a way to lazily dispatch newcomers and any children to the 
 
 When we get to an environment, let's:
 
- * Call all contained denizens' macros, they'll generate more denizens, call all their denizens' macros, and so on until we're done.
+ 1. Call all contained denizens' macros, they'll generate more denizens, call all their denizens' macros, and so on until we're done.
     * We want to delay compilation of any contained interface until all the macros have a chance to add any virtual methods for it.
- * After all macros are done generating, compile each denizen.
+    * We also want to delay compilation of any siblings until then too, because they might want to other things in the same environment.
+ 2. After all macros are done generating, assemble the IEnvironment. **This is the "outer env".**
+ 3. Compile each denizen, giving it the outer env.
     * Someday, if we want to generate more entries, thats fine, but other denizens probably won't be able to see them. That's kind of what happens with closures too.
- * When we're compiling an interface, look for any virtual functions in the environment. Include them in the internal methods.
- * Someday, if any macros generated any sub-environments, recurse and do all of these steps on that sub-environment.
+ 3. When we're compiling an interface, look for any virtual functions in the environment. Include them in the internal methods.
+ 4. Someday, if any macros generated any sub-environments, recurse and do all of these steps on that sub-environment.
+
+We'll want to call the macros on all public global-scoped denizens before compiling anything, because when we compile things, they'll want to access them. In other words, do step 1 on *all* global scope environments first.
 
 With this system, something generally won't be able to see the children of siblings. That's not terrible, that's how it generally works in other languages.
+
+There's still one flaw here: we'll be compiling some functions before some structs. For example, MyList contains a MyOption. MyList's child function drop(MyList) function wants to call drop(MyOption). If we compile MyList (and all children, including drop(MyList)) before MyOption, then it won't be able to see it. This is the original reason we compiled all structs and interfaces before all functions.
+
+But that seems to conflict with a requirement of interfaces, which is to have headers for all methods before it's finished compiling.
+
+We can resolve by delaying compilation of any function *bodies.* Interfaces only need the headers, not the bodies.
+

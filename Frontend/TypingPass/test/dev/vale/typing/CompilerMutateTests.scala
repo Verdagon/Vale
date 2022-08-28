@@ -62,7 +62,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val resultCoord = lookup.result.reference
     // See RMLRMO, it should result in the same type as the member.
     resultCoord match {
-      case CoordT(OwnT, StructTT(_)) =>
+      case CoordT(OwnT, StructTT(_, _)) =>
       case x => vfail(x.toString)
     }
   }
@@ -131,7 +131,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalMember(_, structTT, memberName)) => {
         structTT match {
-          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector()))) =>
+          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector())), _) =>
         }
         memberName.last match {
           case CodeVarNameT(StrI("x")) =>
@@ -153,7 +153,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalMember(_, structTT, memberName)) => {
         structTT match {
-          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector()))) =>
+          case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Vec3")), Vector())), _) =>
         }
         memberName.last match {
           case CodeVarNameT(StrI("x")) =>
@@ -233,9 +233,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Humanize errors") {
     val interner = new Interner()
     val keywords = new Keywords(interner)
-    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))))
+    val fireflyKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))), 0)
     val fireflyCoord = CoordT(OwnT,fireflyKind)
-    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))))
+    val serenityKind = StructTT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))), 0)
     val serenityCoord = CoordT(OwnT,serenityKind)
 
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")

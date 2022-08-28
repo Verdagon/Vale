@@ -7,7 +7,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
-import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator}
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator, PackageTopLevelNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -127,6 +127,11 @@ class StructCompiler(
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }
     }
+
+    // We do this here because we might compile a virtual function somewhere before we compile the interface.
+    // The virtual function will need to know if the type is sealed to know whether it's allowed to be
+    // virtual on this interface.
+    coutputs.declareTypeSealed(interfaceTemplateFullName, interfaceA.attributes.contains(SealedS))
   }
 
   def compileStruct(

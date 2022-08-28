@@ -524,11 +524,6 @@ case class ExternFunctionCallTE(
 
 case class FunctionCallTE(
   callable: PrototypeT,
-  // The callee might have some concept functions that they'd like filled, this is
-  // how we supply them.
-  // This is mainly to save work for the latter stages, since we already have that info
-  // handy at call time.
-  runeToFunctionBound: Map[IRuneS, PrototypeTemplata],
   args: Vector[ReferenceExpressionTE]
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -635,7 +630,7 @@ case class DestroyStaticSizedArrayIntoFunctionTE(
 
   // See https://github.com/ValeLang/Vale/issues/375
   consumerMethod.returnType.kind match {
-    case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _))) => {
+    case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _)), f) => {
       vassert(name.str == "Tup")
     }
     case VoidT() =>
@@ -822,7 +817,7 @@ case class NewImmRuntimeSizedArrayTE(
 object referenceExprResultStructName {
   def unapply(expr: ReferenceExpressionTE): Option[StrI] = {
     expr.result.reference.kind match {
-      case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _))) => Some(name)
+      case StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(name), _)), _) => Some(name)
       case _ => None
     }
   }

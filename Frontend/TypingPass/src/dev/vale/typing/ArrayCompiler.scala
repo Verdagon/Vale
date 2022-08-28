@@ -143,7 +143,7 @@ class ArrayCompiler(
         NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplata(MutableT) => {
-        val EvaluateFunctionSuccess(prototype, conclusions, runeToSuppliedFunction) =
+        val EvaluateFunctionSuccess(prototype, conclusions) =
           overloadResolver.findFunction(
             callingEnv
               .addEntries(
@@ -190,8 +190,9 @@ class ArrayCompiler(
               UnexpectedArrayElementType(range, expectedElementType, prototype.prototype.returnType))
           }
         })
+        vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
         val callTE =
-          FunctionCallTE(prototype.prototype, vimpl(conclusions), Vector(sizeTE) ++ maybeCallableTE)
+          FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE)
         callTE
         //        throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't construct a mutable runtime array from a callable!"))
       }

@@ -21,7 +21,8 @@ case class BuildingFunctionEnvironmentWithClosureds(
   fullName: FullNameT[IFunctionTemplateNameT],
   templatas: TemplatasStore,
   function: FunctionA,
-  variables: Vector[IVariableT]
+  variables: Vector[IVariableT],
+  isRootCompilingDenizen: Boolean
 ) extends IEnvironment {
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
@@ -32,10 +33,14 @@ case class BuildingFunctionEnvironmentWithClosureds(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
-  override def rootDenizenEnv: IEnvironment = {
-    parentEnv match {
-      case PackageEnvironment(_, _, _) => this
-      case _ => parentEnv.rootDenizenEnv
+  override def rootCompilingDenizenEnv: IEnvironment = {
+    if (isRootCompilingDenizen) {
+      this
+    } else {
+      parentEnv match {
+        case PackageEnvironment(_, _, _) => vwat()
+        case _ => parentEnv.rootCompilingDenizenEnv
+      }
     }
   }
 
@@ -67,7 +72,8 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   templateArgs: Vector[ITemplata[ITemplataType]],
   templatas: TemplatasStore,
   function: FunctionA,
-  variables: Vector[IVariableT]
+  variables: Vector[IVariableT],
+  isRootCompilingDenizen: Boolean
 ) extends IEnvironment {
 
   val hash = runtime.ScalaRunTime._hashCode(fullName); override def hashCode(): Int = hash;
@@ -78,10 +84,14 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
-  override def rootDenizenEnv: IEnvironment = {
-    parentEnv match {
-      case PackageEnvironment(_, _, _) => this
-      case _ => parentEnv.rootDenizenEnv
+  override def rootCompilingDenizenEnv: IEnvironment = {
+    if (isRootCompilingDenizen) {
+      this
+    } else {
+      parentEnv match {
+        case PackageEnvironment(_, _, _) => vwat()
+        case _ => parentEnv.rootCompilingDenizenEnv
+      }
     }
   }
 
@@ -132,10 +142,10 @@ case class NodeEnvironment(
     }
   }
 
-  override def rootDenizenEnv: IEnvironment = {
+  override def rootCompilingDenizenEnv: IEnvironment = {
     parentEnv match {
       case PackageEnvironment(_, _, _) => this
-      case _ => parentEnv.rootDenizenEnv
+      case _ => parentEnv.rootCompilingDenizenEnv
     }
   }
 
@@ -394,6 +404,8 @@ case class FunctionEnvironment(
 
   closuredLocals: Vector[IVariableT],
 
+  isRootCompilingDenizen: Boolean
+
   // Eventually we might have a list of imported environments here, pointing at the
   // environments in the global environment.
 ) extends IEnvironment {
@@ -406,10 +418,14 @@ case class FunctionEnvironment(
     return fullName.equals(obj.asInstanceOf[IEnvironment].fullName)
   }
 
-  override def rootDenizenEnv: IEnvironment = {
-    parentEnv match {
-      case PackageEnvironment(_, _, _) => this
-      case _ => parentEnv.rootDenizenEnv
+  override def rootCompilingDenizenEnv: IEnvironment = {
+    if (isRootCompilingDenizen) {
+      this
+    } else {
+      parentEnv match {
+        case PackageEnvironment(_, _, _) => vwat()
+        case _ => parentEnv.rootCompilingDenizenEnv
+      }
     }
   }
 
@@ -423,7 +439,8 @@ case class FunctionEnvironment(
       templatas.addEntry(interner, name, entry),
       function,
       maybeReturnType,
-      closuredLocals)
+      closuredLocals,
+      isRootCompilingDenizen)
   }
   def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): FunctionEnvironment = {
     FunctionEnvironment(
@@ -433,7 +450,8 @@ case class FunctionEnvironment(
       templatas.addEntries(interner, newEntries),
       function,
       maybeReturnType,
-      closuredLocals)
+      closuredLocals,
+      isRootCompilingDenizen)
   }
 
   private[env] override def lookupWithNameInner(
@@ -480,7 +498,7 @@ case class FunctionEnvironment(
   def getClosuredDeclaredLocals(): Vector[IVariableT] = {
     parentEnv match {
       case n @ NodeEnvironment(_, _, _, _, _, _, _) => n.declaredLocals
-      case f @ FunctionEnvironment(_, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
+      case f @ FunctionEnvironment(_, _, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
       case _ => Vector()
     }
   }
@@ -504,8 +522,8 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
-
-  override def rootDenizenEnv: IEnvironment = functionEnvironment.rootDenizenEnv
+  override def templatas: TemplatasStore = functionEnvironment.templatas
+  override def rootCompilingDenizenEnv: IEnvironment = functionEnvironment.rootCompilingDenizenEnv
 
   def setReturnType(returnType: Option[CoordT]): Unit = {
     functionEnvironment = functionEnvironment.copy(maybeReturnType = returnType)

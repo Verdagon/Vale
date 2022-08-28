@@ -51,4 +51,5 @@ class FullCompilation(
   def getCompilerOutputs(): Result[Hinputs, ICompileErrorT] = hammerCompilation.getCompilerOutputs()
   def expectCompilerOutputs(): Hinputs = hammerCompilation.expectCompilerOutputs()
   def getHamuts(): ProgramH = hammerCompilation.getHamuts()
+  def getMonouts(): Hinputs = hammerCompilation.getMonouts()
 }

@@ -95,7 +95,7 @@ class InterfaceDropMacro(
         FunctionEnvEntry(dropFunctionA))
   }
 
-  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
-    Vector()
-  }
+//  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
+//    Vector()
+//  }
 }

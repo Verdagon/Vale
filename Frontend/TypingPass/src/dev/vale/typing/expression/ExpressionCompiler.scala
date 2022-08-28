@@ -331,6 +331,7 @@ class ExpressionCompiler(
     val freePrototype =
       destructorCompiler.getFreeFunction(coutputs, nenv.snapshot, range, resultPointerType)
 
+    vassert(coutputs.getInstantiationBounds(freePrototype.function.prototype.fullName).nonEmpty)
     val constructExpr2 =
       ConstructTE(closureStructRef, resultPointerType, lookupExpressions2, freePrototype.function.prototype)
     (constructExpr2)
@@ -434,22 +435,6 @@ class ExpressionCompiler(
               rules.toVector,
               templateArgTemplexesS.toArray.flatMap(_.map(_.rune)),
               argsExprs2)
-          (callExpr2, returnsFromArgs)
-        }
-        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsExprs1) => {
-          vassert(callableTargetOwnership == LoadAsBorrowP)
-          val (argsExprs2, returnsFromArgs) =
-            evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life, parentRanges, argsExprs1)
-          val callExpr2 =
-            callCompiler.evaluateNamedPrefixCall(coutputs, nenv.snapshot, range :: parentRanges, name, rules.toVector, templateArgs.toVector.flatten.map(_.rune), argsExprs2)
-          (callExpr2, returnsFromArgs)
-        }
-        case FunctionCallSE(range, OutsideLoadSE(_, rules, name, templateArgs, callableTargetOwnership), argsPackExpr1) => {
-//          vassert(callableTargetOwnership == PointConstraintP(Some(ReadonlyP)))
-          val (argsExprs2, returnsFromArgs) =
-            evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life, parentRanges, argsPackExpr1)
-          val callExpr2 =
-            callCompiler.evaluateNamedPrefixCall(coutputs, nenv.snapshot, range :: parentRanges, name, rules.toVector, Vector(), argsExprs2)
           (callExpr2, returnsFromArgs)
         }
         case FunctionCallSE(range, callableExpr1, argsExprs1) => {
@@ -602,7 +587,7 @@ class ExpressionCompiler(
             destinationExpr2 match {
               case ReferenceMemberLookupTE(range, structExpr, memberName, _, _) => {
                 structExpr.kind match {
-                  case s @ StructTT(_) => {
+                  case s @ StructTT(_, _) => {
                     throw CompileErrorExceptionT(CantMutateFinalMember(range :: parentRanges, s, memberName))
                   }
                   case _ => vimpl(structExpr.kind.toString)
@@ -685,7 +670,7 @@ class ExpressionCompiler(
 
           val expr2 =
             containerExpr2.result.reference.kind match {
-              case structTT@StructTT(_) => {
+              case structTT@StructTT(_, _) => {
                 val structDef = coutputs.lookupStruct(structTT)
                 val (structMember, memberIndex) =
                   structDef.getMemberAndIndex(memberName) match {
@@ -1070,7 +1055,7 @@ class ExpressionCompiler(
 
           val destroy2 =
             innerExpr2.kind match {
-              case structTT@StructTT(_) => {
+              case structTT@StructTT(_, _) => {
                 val structDef = coutputs.lookupStruct(structTT)
                 val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
                 DestroyTE(
@@ -1086,7 +1071,7 @@ class ExpressionCompiler(
                     }
                   }))
               }
-              case interfaceTT @ InterfaceTT(_) => {
+              case interfaceTT @ InterfaceTT(_, _) => {
                 destructorCompiler.drop(nenv.snapshot, coutputs, range :: parentRanges, innerExpr2)
               }
               case _ => vfail("Can't destruct type: " + innerExpr2.kind)
@@ -1221,7 +1206,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, someConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector(containedCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val noneConstructorTemplata =
@@ -1233,7 +1218,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, noneConstructorTemplata, Vector(CoordTemplata(containedCoord)), Vector()) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
     (ownOptCoord, someConstructor, noneConstructor)
   }
@@ -1263,7 +1248,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, okConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedSuccessCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
     val errConstructorTemplata =
@@ -1275,7 +1260,7 @@ class ExpressionCompiler(
       delegate.evaluateGenericFunctionFromCallForPrototype(
         coutputs, nenv, range, errConstructorTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord)), Vector(containedFailCoord)) match {
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
-        case EvaluateFunctionSuccess(p, conclusions, runeToSuppliedFunction) => p.prototype
+        case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
 
     (ownResultCoord, okConstructor, errConstructor)
@@ -1283,11 +1268,11 @@ class ExpressionCompiler(
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {
     expr.kind match {
-      case sr @ StructTT(_) => {
+      case sr @ StructTT(_, _) => {
         val structDef = coutputs.lookupStruct(sr)
         vcheck(structDef.weakable, TookWeakRefOfNonWeakableError)
       }
-      case ir @ InterfaceTT(_) => {
+      case ir @ InterfaceTT(_, _) => {
         val interfaceDef = coutputs.lookupInterface(ir)
         vcheck(interfaceDef.weakable, TookWeakRefOfNonWeakableError)
       }

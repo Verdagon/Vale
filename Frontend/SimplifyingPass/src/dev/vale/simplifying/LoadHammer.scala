@@ -165,7 +165,7 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_) => sr
+        case sr @ StructTT(_, _) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
@@ -234,12 +234,12 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_) => sr
+        case sr @ StructTT(_, _) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.templateName.addStep(member.name) == memberName)
+    val memberIndex = structDefT.members.indexWhere(_.name == memberName.last)
     vassert(memberIndex >= 0)
 
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
@@ -368,7 +368,7 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_) => sr
+        case sr @ StructTT(_, _) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }

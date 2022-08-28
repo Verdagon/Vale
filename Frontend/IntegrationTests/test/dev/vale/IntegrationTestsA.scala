@@ -70,6 +70,7 @@ class RunCompilation(
   def getAstrouts(): Result[PackageCoordinateMap[ProgramA], ICompileErrorA] = fullCompilation.getAstrouts()
   def getCompilerOutputs(): Result[Hinputs, ICompileErrorT] = fullCompilation.getCompilerOutputs()
   def expectCompilerOutputs(): Hinputs = fullCompilation.expectCompilerOutputs()
+  def getMonouts(): Hinputs = fullCompilation.getMonouts()
   def getHamuts(): ProgramH = {
     val hamuts = fullCompilation.getHamuts()
     fullCompilation.getVonHammer().vonifyProgram(hamuts)
@@ -301,7 +302,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
   test("Test taking a callable param") {
     val compile = RunCompilation.test(
       """
-        |func do<T>(callable T) where func(T)int { return callable(); }
+        |func do<T>(callable T) int where func(&T)int { return callable(); }
         |exported func main() int { return do({ 3 }); }
       """.stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -310,10 +311,10 @@ class IntegrationTestsA extends FunSuite with Matchers {
   test("Stamps an interface template via a function parameter") {
     val compile = RunCompilation.test(
       """
-        |interface MyInterface<T> where T Ref { }
+        |interface MyInterface<T Ref> { }
         |func doAThing<T>(i MyInterface<T>) { }
         |
-        |struct SomeStruct<T> where T Ref { }
+        |struct SomeStruct<T Ref> { }
         |func doAThing<T>(s SomeStruct<T>) { }
         |impl<T> MyInterface<T> for SomeStruct<T>;
         |
@@ -505,7 +506,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
-  test("Tests from file") {
+  test("Tests double closure") {
     val compile = RunCompilation.test(Tests.loadExpected("programs/lambdas/doubleclosure.vale"))
     compile.run(Vector())
   }
@@ -708,18 +709,21 @@ class IntegrationTestsA extends FunSuite with Matchers {
         |  helperFunc(4);
         |}
         |""".stripMargin)
-    val hinputs = compile.expectCompilerOutputs()
+    val hinputs = compile.getMonouts()
     val interner = compile.interner
     val keywords = compile.keywords
 
-    vimpl()
-//    vassert(compile.getMonouts().functions.filter(_.header.fullName.last match { case FunctionNameT(FunctionTemplateNameT(StrI("helperFunc"), _), _, _) => true case _ => false }))
-//
-//    vassertSome(hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("helperFunc")), vimpl())), Vector.empty, Vector(CoordT(ShareT, IntT.i32))))))))
-//
-//    vassert(None == hinputs.lookupFunction(SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("bork")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
-//
-//    vassert(None == hinputs.lookupFunction(ast.SignatureT(FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(FunctionNameT(interner.intern(StrI("helperFunc")), Vector.empty, Vector(CoordT(ShareT, StrT()))))))))
+    vassert(
+      hinputs.functions.filter(func => func.header.fullName.last match {
+        case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), _, _) => true
+        case _ => false
+      }).isEmpty)
+
+    vassert(
+      hinputs.functions.find(func => func.header.fullName.last match {
+        case FunctionNameT(FunctionTemplateNameT(StrI("helperFunc"), _), _, _) => true
+        case _ => false
+      }).size == 1)
   }
 
   test("Test overloading between borrow and weak") {

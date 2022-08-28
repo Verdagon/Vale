@@ -165,10 +165,10 @@ class CompilerOwnershipTests extends FunSuite with Matchers {
         |import v.builtins.drop.*;
         |
         |#!DeriveInterfaceDrop
-        |sealed interface Opt<T> where T Ref { }
+        |sealed interface Opt<T Ref> { }
         |
         |#!DeriveStructDrop
-        |struct Some<T> where T Ref { value T; }
+        |struct Some<T Ref> { value T; }
         |#!DeriveImplDrop
         |impl<T> Opt<T> for Some<T>;
         |

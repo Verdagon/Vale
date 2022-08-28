@@ -48,7 +48,7 @@ class VirtualTests extends FunSuite with Matchers {
                         OwnT,
                         interner.intern(
                           InterfaceTT(
-                            FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
+                            FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty))), 0))))))))))
       vassert(doThing.header.params(0).virtuality.get == AbstractT())
     }
 
@@ -90,8 +90,19 @@ class VirtualTests extends FunSuite with Matchers {
                       OwnT,
                       interner.intern(
                         InterfaceTT(
-                          FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty)))))))))))))
+                          FullNameT(PackageCoordinate.TEST_TLD(interner, keywords), Vector.empty, interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("I")))), Vector.empty))), 0))))))))))
     vassert(doThing.header.params(0).virtuality.get == AbstractT())
+  }
+
+  test("Owning interface") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  x Opt<int> = Some(7);
+        |  return 7;
+        |}
+        |""".stripMargin)
+    compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 
   test("Imm interface") {

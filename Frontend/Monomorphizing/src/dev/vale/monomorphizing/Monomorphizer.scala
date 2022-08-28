@@ -105,6 +105,8 @@ class DenizenMonomorphizer(
   callerRuneToSuppliedFunction: Map[IRuneS, PrototypeTemplata],
   selfFunctionBoundToRuneUnsubstituted: Map[PrototypeT, IRuneS]) {
 
+
+
   val selfFunctionBoundToRune =
     selfFunctionBoundToRuneUnsubstituted.map({ case (PrototypeT(fullName, returnType), rune) =>
       PrototypeT(translateFullFunctionName(fullName), translateCoord(returnType)) -> rune
@@ -170,48 +172,45 @@ class DenizenMonomorphizer(
         translateFullFunctionName(fullName),
         translateCoord(returnType))
 
-    if (desiredPrototype.fullName.steps.init == denizenTemplateName.steps) {
-      // We're calling one of our function bounds.
-      // First, figure out the rune in our own env corresponding to this prototype.
-      val rune = vassertSome(selfFunctionBoundToRune.get(desiredPrototype))
+    desiredPrototype.fullName.last match {
+      case FunctionBoundNameT(_, _, _) => {
+        // We're calling one of our function bounds.
+        // First, figure out the rune in our own env corresponding to this prototype.
+        val rune = vassertSome(selfFunctionBoundToRune.get(desiredPrototype))
 
-      // Now we want to call the function bound referred to by this rune.
-      // This is something supplied by our own caller.
-      val funcToCall = vassertSome(callerRuneToSuppliedFunction.get(rune))
-      funcToCall.prototype
-    } else {
-      desiredPrototype.fullName.last match {
-        case ExternFunctionNameT(_, _) => {
-
-        }
-        case _ => {
-          val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototype.fullName)
-          val funcT =
-            vassertOne(
-              hinputs.functions.filter(func => {
-                TemplataCompiler.getFunctionTemplate(func.header.fullName) == funcTemplateNameT
-              }))
-
-          val monomorphizer =
-            new DenizenMonomorphizer(
-              opts,
-              interner,
-              hinputs,
-              monouts,
-              TemplataCompiler.getFunctionTemplate(funcT.header.fullName),
-              desiredPrototype.fullName,
-              desiredPrototype.fullName.last.templateArgs.toArray,
-              selfRuneToSuppliedFunction,
-              funcT.functionBoundToRune)
-
-          val monomorphizedFuncT =
-            monomorphizer
-              .translateFunction(funcT)
-          vassert(monomorphizedFuncT.header.fullName == desiredPrototype.fullName)
-        }
+        // Now we want to call the function bound referred to by this rune.
+        // This is something supplied by our own caller.
+        val funcToCall = vassertSome(callerRuneToSuppliedFunction.get(rune))
+        funcToCall.prototype
       }
+      case ExternFunctionNameT(_, _) => {
+        desiredPrototype
+      }
+      case _ => {
+        val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototype.fullName)
+        val funcT =
+          vassertOne(
+            hinputs.functions.filter(func => {
+              TemplataCompiler.getFunctionTemplate(func.header.fullName) == funcTemplateNameT
+            }))
 
-      desiredPrototype
+        val monomorphizer =
+          new DenizenMonomorphizer(
+            opts,
+            interner,
+            hinputs,
+            monouts,
+            TemplataCompiler.getFunctionTemplate(funcT.header.fullName),
+            desiredPrototype.fullName,
+            desiredPrototype.fullName.last.templateArgs.toArray,
+            selfRuneToSuppliedFunction,
+            funcT.functionBoundToRune)
+
+        val monomorphizedFuncT = monomorphizer.translateFunction(funcT)
+        vassert(monomorphizedFuncT.header.fullName == desiredPrototype.fullName)
+
+        desiredPrototype
+      }
     }
   }
 
@@ -230,7 +229,7 @@ class DenizenMonomorphizer(
     val result =
       StructDefinitionT(
         templateName,
-        interner.intern(StructTT(newFullName)),
+        interner.intern(StructTT(newFullName, 0)),
         attributes,
         weakable,
         mutability,
@@ -278,7 +277,7 @@ class DenizenMonomorphizer(
       case None =>
     }
 
-    val newInterfaceTT = interner.intern(InterfaceTT(newFullName))
+    val newInterfaceTT = interner.intern(InterfaceTT(newFullName, 0))
 
     val result =
       InterfaceDefinitionT(
@@ -296,7 +295,7 @@ class DenizenMonomorphizer(
     val edgeBlueprint =
       vassertSome(hinputs.interfaceToEdgeBlueprints.get(instantiatedCitizen.fullName))
     monouts.interfaceToEdgeBlueprints.put(
-      instantiatedCitizen.fullName,
+      translateInterfaceFullName(instantiatedCitizen.fullName),
       InterfaceEdgeBlueprint(
         newFullName,
         edgeBlueprint.superFamilyRootHeaders.map(header => {
@@ -329,6 +328,7 @@ class DenizenMonomorphizer(
     if (opts.sanityCheck) {
       vassert(fbtr == selfFunctionBoundToRuneUnsubstituted)
     }
+    vassert(fbtr.values.toSet == callerRuneToSuppliedFunction.keySet)
 
     val FunctionHeaderT(fullName, attributes, params, returnType, maybeOriginFunctionTemplata) = headerT
 
@@ -431,7 +431,8 @@ class DenizenMonomorphizer(
       case UnletTE(variable) => UnletTE(translateLocalVariable(variable))
       case DiscardTE(expr) => DiscardTE(translateRefExpr(expr))
       case VoidLiteralTE() => VoidLiteralTE()
-      case FunctionCallTE(callable, runeToFunctionBoundUnsubstituted, args) => {
+      case FunctionCallTE(callable, args) => {
+        val runeToFunctionBoundUnsubstituted = hinputs.getInstantiationBounds(callable.fullName)
         val runeToFunctionBound =
           runeToFunctionBoundUnsubstituted.map({ case (rune, PrototypeTemplata(declarationRange, prototype)) =>
             // We're resolving some function bounds, and function bounds have no function bounds
@@ -441,7 +442,6 @@ class DenizenMonomorphizer(
 
         FunctionCallTE(
           translatePrototype(callable, runeToFunctionBound),
-          Map(),
           args.map(translateRefExpr))
       }
       case ArgLookupTE(paramIndex, reference) => ArgLookupTE(paramIndex, translateCoord(reference))
@@ -642,7 +642,7 @@ class DenizenMonomorphizer(
           case CoordTemplata(CoordT(innerOwnership, kind)) => {
             val combinedOwnership =
               (ownership, innerOwnership) match {
-                case (OwnT, OwnT) => BorrowT
+                case (OwnT, OwnT) => OwnT
                 case (OwnT, BorrowT) => BorrowT
                 case (BorrowT, OwnT) => BorrowT
                 case (BorrowT, BorrowT) => BorrowT
@@ -661,9 +661,9 @@ class DenizenMonomorphizer(
   }
 
   def translateStruct(struct: StructTT): StructTT = {
-    val StructTT(fullName) = struct
+    val StructTT(fullName, f) = struct
 
-    val desiredStruct = interner.intern(StructTT(translateStructFullName(fullName)))
+    val desiredStruct = interner.intern(StructTT(translateStructFullName(fullName), f))
     val desiredStructTemplate = TemplataCompiler.getStructTemplate(desiredStruct.fullName)
 
     if (monouts.declaredStructs.contains(desiredStruct.fullName)) {
@@ -696,9 +696,9 @@ class DenizenMonomorphizer(
   }
 
   def translateInterface(interface: InterfaceTT): InterfaceTT = {
-    val InterfaceTT(fullName) = interface
+    val InterfaceTT(fullName, f) = interface
 
-    val desiredInterface = interner.intern(InterfaceTT(translateInterfaceFullName(fullName)))
+    val desiredInterface = interner.intern(InterfaceTT(translateInterfaceFullName(fullName), f))
     val desiredInterfaceTemplate = TemplataCompiler.getInterfaceTemplate(desiredInterface.fullName)
 
     if (monouts.declaredInterfaces.contains(desiredInterface.fullName)) {
@@ -732,7 +732,7 @@ class DenizenMonomorphizer(
 
   def translateSuperKind(kind: ISuperKindTT): ISuperKindTT = {
     kind match {
-      case i @ InterfaceTT(_) => translateInterface(i)
+      case i @ InterfaceTT(_, _) => translateInterface(i)
       case p @ PlaceholderT(_) => {
         translatePlaceholder(p) match {
           case s : ISuperKindTT => s
@@ -759,6 +759,13 @@ class DenizenMonomorphizer(
       translateCoord(elementType)))
   }
 
+  def translateRuntimeSizedArray(ssaTT: RuntimeSizedArrayTT): RuntimeSizedArrayTT = {
+    val RuntimeSizedArrayTT(mutability, elementType) = ssaTT
+    interner.intern(RuntimeSizedArrayTT(
+      expectMutabilityTemplata(translateTemplata(mutability)),
+      translateCoord(elementType)))
+  }
+
   def translateKind(kind: KindT): KindT = {
     kind match {
       case IntT(bits) => IntT(bits)
@@ -768,9 +775,10 @@ class DenizenMonomorphizer(
       case StrT() => StrT()
       case NeverT(fromBreak) => NeverT(fromBreak)
       case p @ PlaceholderT(_) => translatePlaceholder(p)
-      case s @ StructTT(_) => translateStruct(s)
-      case s @ InterfaceTT(_) => translateInterface(s)
+      case s @ StructTT(_, _) => translateStruct(s)
+      case s @ InterfaceTT(_, _) => translateInterface(s)
       case a @ StaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(a)
+      case a @ RuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(a)
       case other => vimpl(other)
     }
   }
@@ -818,6 +826,7 @@ class DenizenMonomorphizer(
       case IterableNameT(range) => name
       case IteratorNameT(range) => name
       case IterationOptionNameT(range) => name
+      case MagicParamNameT(codeLocation2) => name
       case other => vimpl(other)
     }
   }
@@ -840,6 +849,12 @@ class DenizenMonomorphizer(
           interner.intern(FreeTemplateNameT(codeLoc)),
           templateArgs.map(translateTemplata),
           translateCoord(coord)))
+      }
+      case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLocation), templateArgs, params) => {
+        interner.intern(FunctionBoundNameT(
+          interner.intern(FunctionBoundTemplateNameT(humanName, codeLocation)),
+          templateArgs.map(translateTemplata),
+          params.map(translateCoord)))
       }
       case other => vimpl(other)
     }
@@ -924,7 +939,7 @@ class DenizenMonomorphizer(
         interner.intern(AnonymousSubstructTemplateNameT(
           translateInterfaceTemplateName(interface)))
       }
-      case LambdaCitizenNameT(LambdaCitizenTemplateNameT(codeLocation)) => LambdaCitizenNameT(LambdaCitizenTemplateNameT(codeLocation))
+      case LambdaCitizenNameT(LambdaCitizenTemplateNameT(codeLocation)) => name
       case InterfaceTemplateNameT(humanNamee) => name
       case f : IFunctionNameT => translateFunctionName(f)
       case other => vimpl(other)

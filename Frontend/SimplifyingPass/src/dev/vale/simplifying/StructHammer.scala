@@ -72,7 +72,7 @@ class StructHammer(
           InterfaceDefinitionH(
             fullNameH,
             interfaceDefT.weakable,
-            Conversions.evaluateMutability(interfaceDefT.mutability),
+            Conversions.evaluateMutabilityTemplata(interfaceDefT.mutability),
             Vector.empty /* super interfaces */,
             methodsH)
         hamuts.addInterface(interfaceTT, interfaceDefH)
@@ -80,8 +80,8 @@ class StructHammer(
 
         // Make sure there's a destructor for this shared interface.
         interfaceDefT.mutability match {
-          case MutableT => None
-          case ImmutableT => {
+          case MutabilityTemplata(MutableT) => None
+          case MutabilityTemplata(ImmutableT) => {
             vassert(
               hinputs.functions.exists(function => {
                 function.header.fullName match {
@@ -234,7 +234,7 @@ class StructHammer(
       structRefH: StructRefH,
       edges2: Vector[EdgeT]):
   (Vector[EdgeH]) = {
-    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, interner.intern(InterfaceTT(e.interface)), e))
+    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, interner.intern(InterfaceTT(e.interface, 0)), e))
   }
 
 
