@@ -18,7 +18,7 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
 
-import scala.collection.immutable.List
+import scala.collection.immutable.{List, Set}
 
 class StructCompilerGenericArgsLayer(
     opts: TypingPassOptions,
@@ -66,7 +66,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          false)
+          Set())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -127,7 +127,7 @@ class StructCompilerGenericArgsLayer(
           // False because we're just predicting, see STCMBDP.
           false,
           false,
-          false)
+          Set())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -190,7 +190,7 @@ class StructCompilerGenericArgsLayer(
           // False because we're just predicting, see STCMBDP.
           false,
           false,
-          false)
+          Set())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -245,7 +245,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          false)
+          Set())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -303,7 +303,7 @@ class StructCompilerGenericArgsLayer(
       val preliminaryInferences =
         inferCompiler.solve(
           InferEnv(outerEnv, List(structA.range), outerEnv),
-          coutputs, definitionRules.toVector, allRuneToType, structA.range :: parentRanges, Vector(), Vector(), true, true, false) match {
+          coutputs, definitionRules.toVector, allRuneToType, structA.range :: parentRanges, Vector(), Vector(), true, true, Set()) match {
           case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f))
           }
@@ -341,7 +341,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           true,
-          false)
+          Set())
 
       structA.maybePredictedMutability match {
         case None => {
@@ -420,7 +420,7 @@ class StructCompilerGenericArgsLayer(
       val preliminaryInferences =
         inferCompiler.solve(
           InferEnv(outerEnv, List(interfaceA.range), outerEnv),
-          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector(), true, true, false) match {
+          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector(), true, true, Set()) match {
           case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f))
           }
@@ -454,7 +454,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           true,
-          false)
+          Set())
 
       interfaceA.maybePredictedMutability match {
         case None => {

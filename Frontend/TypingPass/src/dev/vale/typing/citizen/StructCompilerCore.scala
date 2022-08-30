@@ -159,6 +159,8 @@ class StructCompilerCore(
       case _ => vcurious()
     })
 
+    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(structRunesEnv.templatas)
+
     val structDefT =
       StructDefinitionT(
         templateFullNameT,
@@ -167,7 +169,8 @@ class StructCompilerCore(
         structA.weakable,
         mutability,
         members,
-        false)
+        false,
+        runeToFunctionBound)
 
     coutputs.addStruct(structDefT);
 
@@ -291,6 +294,8 @@ class StructCompilerCore(
         }
       }).toVector
 
+    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(interfaceRunesEnv.templatas)
+
     val interfaceDef2 =
       InterfaceDefinitionT(
         templateFullNameT,
@@ -299,6 +304,7 @@ class StructCompilerCore(
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
+        runeToFunctionBound,
         internalMethods)
     coutputs.addInterface(interfaceDef2)
 
@@ -386,7 +392,8 @@ class StructCompilerCore(
       understructTemplateNameT.makeStructName(interner, Vector())
     val understructInstantiatedFullNameT = containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
-    vassert(coutputs.getInstantiationBounds(understructInstantiatedFullNameT).nonEmpty)
+    // Lambdas have no bounds, so we just supply Map()
+    coutputs.addInstantiationBounds(understructInstantiatedFullNameT, Map())
     val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT, 0))
 
     val freeFuncNameT =
@@ -439,7 +446,13 @@ class StructCompilerCore(
       StructDefinitionT(
         understructTemplatedFullNameT,
         understructStructTT,
-        Vector.empty, false, MutabilityTemplata(mutability), members, true);
+        Vector.empty,
+        false,
+        MutabilityTemplata(mutability),
+        members,
+        true,
+        // Closures have no function bounds
+        Map());
     coutputs.addStruct(closureStructDefinition)
 
     val closuredVarsStructRef = understructStructTT;

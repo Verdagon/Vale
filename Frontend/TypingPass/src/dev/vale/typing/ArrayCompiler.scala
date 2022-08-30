@@ -65,7 +65,16 @@ class ArrayCompiler(
       }
     val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
+        InferEnv(callingEnv, range, callingEnv),
+        coutputs,
+        rulesA,
+        runeToType,
+        range,
+        Vector(),
+        Vector(),
+        true,
+        true,
+        Set())
 
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -112,7 +121,7 @@ class ArrayCompiler(
       }
     val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Set())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -233,7 +242,7 @@ class ArrayCompiler(
 
     val CompleteCompilerSolve(_, templatas, _) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, false)
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Set())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {

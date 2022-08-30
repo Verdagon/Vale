@@ -126,7 +126,7 @@ class ConvertHelper(
     targetSuperKind: ISuperKindTT):
   (ReferenceExpressionTE) = {
     delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
-      case IsParent(_, _, implFullName, runeToSuppliedFunction) => {
+      case IsParent(_, _, implFullName) => {
         val ownership =
           sourceExpr.result.reference.ownership match {
             case BorrowT => OwnT
@@ -139,8 +139,9 @@ class ConvertHelper(
           delegate.getFreeFunction(
             coutputs, callingEnv, range, CoordT(ownership, targetSuperKind))
 
+        vassert(coutputs.getInstantiationBounds(implFullName).nonEmpty)
         UpcastTE(
-          sourceExpr, targetSuperKind, implFullName, runeToSuppliedFunction, freeInterfacePrototype.function.prototype)
+          sourceExpr, targetSuperKind, implFullName, freeInterfacePrototype.function.prototype)
       }
       case IsntParent(candidates) => {
         throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceSubKind + " to a " + targetSuperKind + ": " + candidates))

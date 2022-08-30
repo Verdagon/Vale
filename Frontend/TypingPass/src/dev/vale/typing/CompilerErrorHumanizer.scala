@@ -258,7 +258,7 @@ object CompilerErrorHumanizer {
       case BoolT() => "bool"
       case FloatT() => "float"
       case StrT() => "str"
-      case StructTT(f) => printableFullName(f)
+      case StructTT(f, _) => printableFullName(f)
     }
   }
   private def printableFullName(fullName2: FullNameT[INameT]): String = {
@@ -483,8 +483,8 @@ object CompilerErrorHumanizer {
           case VoidT() => "void"
           case FloatT() => "float"
           case OverloadSetT(_, name) => "(overloads: " + PostParserErrorHumanizer.humanizeImpreciseName(name) + ")"
-          case InterfaceTT(name) => humanizeName(codeMap, name)
-          case StructTT(name) => humanizeName(codeMap, name)
+          case InterfaceTT(name, _) => humanizeName(codeMap, name)
+          case StructTT(name, _) => humanizeName(codeMap, name)
           case RuntimeSizedArrayTT(mutability, elementType) => {
             "Array<" +
               humanizeTemplata(codeMap, mutability) + ", " +

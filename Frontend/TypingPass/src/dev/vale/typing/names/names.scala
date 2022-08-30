@@ -175,8 +175,10 @@ sealed trait IImplNameT extends IInstantiationNameT {
   def template: IImplTemplateNameT
 }
 
-
-case class ExportNameT(codeLoc: CodeLocationS) extends ITemplateNameT
+case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
+case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationNameT {
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()
+}
 
 case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
   override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplDeclareNameT = {

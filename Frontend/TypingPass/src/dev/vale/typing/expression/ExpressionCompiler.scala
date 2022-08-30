@@ -299,7 +299,7 @@ class ExpressionCompiler(
             }
           tyype match {
             case ReferenceMemberTypeT(unsubstitutedCoord) => {
-              val coord = substituter.substituteForCoord(unsubstitutedCoord)
+              val coord = substituter.substituteForCoord(coutputs, unsubstitutedCoord)
               // We might have to softload an own into a borrow, but the kinds
               // should at least be the same right here.
               vassert(coord.kind == lookup.result.reference.kind)
@@ -311,7 +311,7 @@ class ExpressionCompiler(
               localHelper.borrowSoftLoad(coutputs, lookup)
             }
             case AddressMemberTypeT(unsubstitutedCoord) => {
-              val coord = substituter.substituteForCoord(unsubstitutedCoord)
+              val coord = substituter.substituteForCoord(coutputs, unsubstitutedCoord)
               vassert(coord == lookup.result.reference)
               (lookup)
             }
@@ -681,7 +681,7 @@ class ExpressionCompiler(
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
-                    .substituteForCoord(unsubstitutedMemberType)
+                    .substituteForCoord(coutputs, unsubstitutedMemberType)
 
                 vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
 
@@ -1064,7 +1064,7 @@ class ExpressionCompiler(
                   structDef.members.map(_.tyype).zipWithIndex.map({ case (memberType, index) =>
                     memberType match {
                       case ReferenceMemberTypeT(unsubstitutedCoord) => {
-                        val reference = substituter.substituteForCoord(unsubstitutedCoord)
+                        val reference = substituter.substituteForCoord(coutputs, unsubstitutedCoord)
                         localHelper.makeTemporaryLocal(nenv, life + 1 + index, reference)
                       }
                       case _ => vfail()

@@ -122,7 +122,7 @@ class EdgeCompiler(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionHeader.fullName.last))
 
-                // See ONBIFS and NBIFP for why we need these bounds in our below env.
+                // See ONBIFS and NBIFPR for why we need these bounds in our below env.
                 val overridingKindReachableBounds =
                   TemplataCompiler.getReachableBounds(
                     interner, keywords, coutputs, KindTemplata(placeholderedOverridingCitizen))

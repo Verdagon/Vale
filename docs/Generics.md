@@ -788,7 +788,9 @@ If we want to know all children for `MyObserver`, would we count this? It's hard
 For now, we leave that question unanswered, and say that we can never know all children for a specific interface template.
 
 
-# Need Bound Information From Parameters (NBIFP)
+# Need Bound Information From Parameters and Returns (NBIFPR)
+
+(previously NBIFP)
 
 Let's say we have this code:
 
@@ -823,7 +825,7 @@ So, we'll need to do #2.
 
 A few places we'll need to do this:
 
- * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
+ * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters and returns (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
  * When an abstract function is "calling" an override, we'll need to incorporate the bounds for the overriding struct. (See ONBIFS)
  * (Possibly) In a match's case statement, when we mention a type, we could incorporate the bounds from that type.
 
@@ -831,7 +833,7 @@ A few places we'll need to do this:
 
 # Overrides Need Bound Information From Structs (ONBIFS)
 
-This is a special case of NBIFP, where an abstract function is trying to resolve an override which has some requirements.
+This is a special case of NBIFPR, where an abstract function is trying to resolve an override which has some requirements.
 
 ```
 sealed interface Bork {
@@ -865,7 +867,30 @@ We looked for a `bork(BorkForwarder<Lam1>)`. (Aside: because of NAFEWRO we looke
 
 However, `func bork(BorkForwarder<Lam1>)` has a requirement that there's a `func __call(&Lam)int`, but the call site (the abstract function `bork(Bork)`) had no knowledge of such a function, so it failed.
 
-This reinforces that we need to solve NBIFP by gathering information from elsewhere (parameters).
+This reinforces that we need to solve NBIFPR by gathering information from elsewhere (parameters).
+
+
+# Functions Must Be Associated With Type to be Used in Function Bounds (FMBAWTUFB)
+
+We can't just pass any old function in for a function bound. It must be associated with the type somehow. Otherwise, if we have a struct and function like this:
+
+```
+struct Bork<T>
+where func zork(T)void {
+  ...
+}
+
+func moo(bork Bork<T>)
+where func zork(T)void {
+  ...
+}
+```
+
+and then we store that `Bork<T>` into a global (or some other object somewhere), and then later retrieve it, we'll have no idea what its `zork` is.
+
+
+
+
 
 
 
@@ -919,5 +944,19 @@ if the subclass func has a bound, it must be satisfied by the abstract fn or the
 
 if the base class has a bound, maybe we can use it from the subclass?
 
+
+
+
+right now, when we translate an InterfaceTT, we try to instantiate the InterfaceDefinitionT. then we try to monomorphize the function. it doesnt know the function bounds.
+
+when we call an interface function, or even call an interface template, we need to instantiate it. same as how functions work.
+
+to do that, it would be good to pre-resolve any function bounds that the interface needs, such as func drop(T)void.
+
+it might be good idea to put these somewhere else on the side, perhaps cached. seems like a lot of repeated work otherwise.
+
+can do the same thing for function calls with certain arguments, thatd be nice.
+
+when we call a sealed interface function (isEmpty) that has bounds (drop(T)), do we need to monomorphize the functions? yes, probably. or do the edges do that? like upcasting?
 
 

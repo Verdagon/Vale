@@ -443,11 +443,11 @@ class FunctionCompilerClosureOrLightLayer(
         member.tyype match {
           case AddressMemberTypeT(reference) => {
             AddressibleClosureVariableT(
-              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(reference))
+              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(coutputs, reference))
           }
           case ReferenceMemberTypeT(reference) => {
             ReferenceClosureVariableT(
-              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(reference))
+              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(coutputs, reference))
           }
         }
       })

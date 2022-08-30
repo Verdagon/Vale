@@ -142,9 +142,9 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBounds: Boolean):
+    includeReachableBoundsForRunes: Set[IRuneS]):
   Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBounds) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, _) => Err(f)
       case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
       case c @ CompleteCompilerSolve(_, _, _) => Ok(c)
@@ -161,9 +161,9 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBounds: Boolean):
+    includeReachableBoundsForRunes: Set[IRuneS]):
   CompleteCompilerSolve = {
-    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBounds) match {
+    solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, err) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, f))
       }
@@ -185,7 +185,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBounds: Boolean):
+    includeReachableBoundsForRunes: Set[IRuneS]):
   ICompilerSolverOutcome = {
     Profiler.frame(() => {
       val runeToType =
@@ -223,14 +223,11 @@ class InferCompiler(
         case CompleteSolve(steps, conclusionsWithoutReachableBounds) => {
           val conclusionsMaybeWithReachableBounds =
             conclusionsWithoutReachableBounds ++
-              (if (includeReachableBounds) {
-                conclusionsWithoutReachableBounds
-                  .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc._2))
-                  .zipWithIndex
-                  .map({ case (templata, num) => ReachablePrototypeRuneS(num) -> templata })
-            } else {
-              Vector()
-            })
+              includeReachableBoundsForRunes
+                .map(conclusionsWithoutReachableBounds)
+                .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
+                .zipWithIndex
+                .map({ case (templata, num) => ReachablePrototypeRuneS(num) -> templata })
           val runeToFunctionBound =
             if (verifyConclusions) {
               checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusionsMaybeWithReachableBounds, isRootSolve) match {

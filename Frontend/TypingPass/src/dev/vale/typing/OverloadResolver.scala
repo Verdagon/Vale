@@ -16,9 +16,9 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate,
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT}
+import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT}
 
-import scala.collection.immutable.Map
+import scala.collection.immutable.{Map, Set}
 //import dev.vale.astronomer.ruletyper.{IRuleTyperEvaluatorDelegate, RuleTyperEvaluator, RuleTyperSolveFailure, RuleTyperSolveSuccess}
 //import dev.vale.postparsing.rules.{EqualsSR, TemplexSR, TypedSR}
 import dev.vale.typing.types._
@@ -196,6 +196,7 @@ class OverloadResolver(
         results.add(HeaderCalleeCandidate(header))
       }
       case PrototypeTemplata(declarationRange, prototype) => {
+        vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
         results.add(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
       }
       case ft@FunctionTemplata(_, _) => {
@@ -295,7 +296,7 @@ class OverloadResolver(
                     Vector(),
                     true,
                     false,
-                    false) match {
+                    Set()) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
                     }
@@ -406,7 +407,7 @@ class OverloadResolver(
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
         val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, prototype.fullName)
         val params = prototype.fullName.last.parameters.map(paramType => {
-          substituter.substituteForCoord(paramType)
+          substituter.substituteForCoord(coutputs, paramType)
         })
         paramsMatch(coutputs, callingEnv, callRange, paramFilters, params, exact) match {
           case Ok(_) => {
@@ -598,7 +599,7 @@ class OverloadResolver(
         survivingBannerIndices
           .groupBy(index => {
             banners(index) match {
-              case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+              case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(FullNameT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
                 Some((firstHumanName, firstParameters, firstReturnType))
               }
               case _ => None
@@ -651,6 +652,7 @@ class OverloadResolver(
 //        }
       }
       case ValidHeaderCalleeCandidate(header) => {
+        vassert(coutputs.getInstantiationBounds(header.toPrototype.fullName).nonEmpty)
         PrototypeTemplata(vassertSome(header.maybeOriginFunctionTemplata).function.range, header.toPrototype)
       }
     }
