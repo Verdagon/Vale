@@ -712,7 +712,7 @@ case class UpcastTE(
   // This is the impl we use to allow/permit the upcast. It'll be useful for monomorphization
   // and later on for locating the itable ptr to put in fat pointers.
   implName: FullNameT[IImplNameT],
-  runeToFunctionBound: Map[IRuneS, PrototypeTemplata],
+  // runeToFunctionBound: Map[IRuneS, PrototypeTemplata],
   interfaceFreePrototype: PrototypeT,
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

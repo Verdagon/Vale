@@ -254,7 +254,7 @@ object StructCompiler {
     val definition = coutputs.lookupStruct(structTT)
     val transformer =
       TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
-    val result = transformer.substituteForTemplata(definition.mutability)
+    val result = transformer.substituteForTemplata(coutputs, definition.mutability)
     ITemplata.expectMutability(result)
   }
 }

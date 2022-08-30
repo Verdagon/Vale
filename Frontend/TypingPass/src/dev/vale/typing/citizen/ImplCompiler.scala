@@ -19,12 +19,13 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionFailure
 import dev.vale.typing.infer.ITypingPassSolverError
 
+import scala.collection.immutable.Set
+
 sealed trait IsParentResult
 case class IsParent(
   templata: ITemplata[ImplTemplataType],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-  implFullName: FullNameT[IImplNameT],
-  runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
+  implFullName: FullNameT[IImplNameT]
 ) extends IsParentResult
 case class IsntParent(
   candidates: Vector[IIncompleteOrFailedCompilerSolve]
@@ -86,7 +87,17 @@ class ImplCompiler(
           callingEnv,
           range :: parentRanges,
           outerEnv),
-        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve, false)
+        coutputs,
+        definitionRules,
+        runeToType,
+        range :: parentRanges,
+        initialKnowns,
+        Vector(),
+        true,
+        isRootSolve,
+        // We include the reachable bounds for the struct rune. Those are bounds that this impl will
+        // have to satisfy when it calls the interface.
+        Set(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -142,7 +153,16 @@ class ImplCompiler(
           callingEnv,
           range :: parentRanges,
           outerEnv),
-        coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector(), true, isRootSolve, false)
+        coutputs,
+        definitionRules,
+        runeToType,
+        range :: parentRanges,
+        initialKnowns,
+        Vector(),
+        true,
+        isRootSolve,
+        // We include reachable bounds for the struct so we don't have to re-specify all its bounds in the impl.
+        Set(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -652,7 +672,10 @@ class ImplCompiler(
     val implTemplatasWithDuplicates = implTemplatasWithDuplicatesAcc.buildArray()
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
-      case Some(impl) => return IsParent(impl, Map(), impl.implName, Map())
+      case Some(impl) => {
+        coutputs.addInstantiationBounds(impl.implName, Map())
+        return IsParent(impl, Map(), impl.implName)
+      }
       case None =>
     }
 
@@ -679,7 +702,8 @@ class ImplCompiler(
           implTemplata.env.fullName.addStep(
             interner.intern(ImplTemplateDeclareNameT(implTemplata.impl.range.begin)))
         val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
-        IsParent(implTemplata, conclusions, instantiatedFullName, runeToSuppliedFunction)
+        coutputs.addInstantiationBounds(instantiatedFullName, runeToSuppliedFunction)
+        IsParent(implTemplata, conclusions, instantiatedFullName)
       }
       case None => IsntParent(errs.toVector)
     }

@@ -126,7 +126,7 @@ class StructConstructorMacro(
     val members =
       definition.members.map({
         case StructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
-          (name, placeholderSubstituter.substituteForCoord(tyype))
+          (name, placeholderSubstituter.substituteForCoord(coutputs, tyype))
         }
         case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
           vcurious()

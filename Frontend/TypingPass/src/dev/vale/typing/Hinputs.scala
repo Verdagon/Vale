@@ -24,6 +24,8 @@ case class Hinputs(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[FullNameT[IInterfaceNameT], Map[FullNameT[ICitizenNameT], EdgeT]],
 
+  instantiationNameToFunctionBoundToRune: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]],
+
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
   kindExterns: Vector[KindExternT],
@@ -52,7 +54,7 @@ case class Hinputs(
   }
 
   def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeTemplata] = {
-    vimpl()
+    vassertSome(instantiationNameToFunctionBoundToRune.get(instantiationName))
   }
 
   def lookupStructByTemplateFullName(structTemplateFullName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {

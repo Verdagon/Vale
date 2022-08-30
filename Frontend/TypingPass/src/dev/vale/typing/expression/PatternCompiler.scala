@@ -23,7 +23,7 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.{Interner, Profiler, RangeS, vassert, vassertSome, vfail}
 
-import scala.collection.immutable.List
+import scala.collection.immutable.{List, Set}
 
 class PatternCompiler(
     opts: TypingPassOptions,
@@ -137,7 +137,7 @@ class PatternCompiler(
                     CoordTemplata(unconvertedInputExpr.result.reference))),
                 true,
                 true,
-                false)
+                Set())
             nenv.addEntries(
               interner,
               templatasByRune.toVector
@@ -400,7 +400,7 @@ class PatternCompiler(
     val memberLocals =
       structDefT.members
         .map(_.tyype.expectReferenceMember().reference)
-        .map(unsubstitutedMemberCoord => substituter.substituteForCoord(unsubstitutedMemberCoord))
+        .map(unsubstitutedMemberCoord => substituter.substituteForCoord(coutputs, unsubstitutedMemberCoord))
         .zipWithIndex
         .map({ case (memberType, i) => localHelper.makeTemporaryLocal(nenv, life + 1 + i, memberType) }).toVector
     val destroyTE = DestroyTE(inputStructExpr, structTT, memberLocals)
@@ -481,7 +481,7 @@ class PatternCompiler(
     val unsubstitutedMemberCoord = member.tyype.expectReferenceMember().reference
     val memberType =
       TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
-        .substituteForCoord(unsubstitutedMemberCoord)
+        .substituteForCoord(coutputs, unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(
       loadRange,

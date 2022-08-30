@@ -896,7 +896,7 @@ class Compiler(
 
             val CompleteCompilerSolve(_, templataByRune, _) =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, false)
+                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Set())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {
@@ -1075,6 +1075,7 @@ class Compiler(
             Map(), // Will be populated by monomorphizer
             interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
             interfaceToSubCitizenToEdge,
+            coutputs.getInstantiationNameToFunctionBoundToRune(),
             coutputs.getKindExports,
             coutputs.getFunctionExports,
             coutputs.getKindExterns,

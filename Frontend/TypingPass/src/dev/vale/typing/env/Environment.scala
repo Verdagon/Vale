@@ -298,14 +298,14 @@ case class TemplatasStore(
           case (key, entry @ TemplataEnvEntry(IsaTemplata(_, _, subKind, superKind))) => {
             val subImpreciseName =
               subKind match {
-                case StructTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
-                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case StructTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
+                case InterfaceTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
                 case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case _ => vwat()
               }
             val superImpreciseName =
               superKind match {
-                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case InterfaceTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
                 case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case _ => vwat()
               }
