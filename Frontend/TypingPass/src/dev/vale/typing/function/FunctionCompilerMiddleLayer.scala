@@ -73,7 +73,7 @@ class FunctionCompilerMiddleLayer(
       case Some(AbstractSP(rangeS, isInternalMethod)) => {
         val interfaceTT =
           paramKind match {
-            case i @ InterfaceTT(_, _) => i
+            case i @ InterfaceTT(_) => i
             case _ => throw CompileErrorExceptionT(RangedInternalErrorT(rangeS :: parentRanges, "Can only have virtual parameters for interfaces"))
           }
         // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
@@ -95,7 +95,7 @@ class FunctionCompilerMiddleLayer(
 //        val interface =
 //          env.lookupNearestWithImpreciseName(interner.intern(RuneNameS(interfaceRuneA.rune)), Set(TemplataLookupContext)) match {
 //            case None => vcurious()
-//            case Some(KindTemplata(ir @ InterfaceTT(_, _))) => ir
+//            case Some(KindTemplata(ir @ InterfaceTT(_))) => ir
 //            case Some(it @ InterfaceTemplata(_, _)) => structCompiler.getInterfaceRef(coutputs, range, it, Vector.empty)
 //            case Some(KindTemplata(kind)) => {
 //              throw CompileErrorExceptionT(CantImplNonInterface(range, kind))

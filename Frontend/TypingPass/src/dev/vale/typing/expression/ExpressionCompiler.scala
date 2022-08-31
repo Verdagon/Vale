@@ -587,7 +587,7 @@ class ExpressionCompiler(
             destinationExpr2 match {
               case ReferenceMemberLookupTE(range, structExpr, memberName, _, _) => {
                 structExpr.kind match {
-                  case s @ StructTT(_, _) => {
+                  case s @ StructTT(_) => {
                     throw CompileErrorExceptionT(CantMutateFinalMember(range :: parentRanges, s, memberName))
                   }
                   case _ => vimpl(structExpr.kind.toString)
@@ -670,7 +670,7 @@ class ExpressionCompiler(
 
           val expr2 =
             containerExpr2.result.reference.kind match {
-              case structTT@StructTT(_, _) => {
+              case structTT@StructTT(_) => {
                 val structDef = coutputs.lookupStruct(structTT)
                 val (structMember, memberIndex) =
                   structDef.getMemberAndIndex(memberName) match {
@@ -1055,7 +1055,7 @@ class ExpressionCompiler(
 
           val destroy2 =
             innerExpr2.kind match {
-              case structTT@StructTT(_, _) => {
+              case structTT@StructTT(_) => {
                 val structDef = coutputs.lookupStruct(structTT)
                 val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
                 DestroyTE(
@@ -1071,7 +1071,7 @@ class ExpressionCompiler(
                     }
                   }))
               }
-              case interfaceTT @ InterfaceTT(_, _) => {
+              case interfaceTT @ InterfaceTT(_) => {
                 destructorCompiler.drop(nenv.snapshot, coutputs, range :: parentRanges, innerExpr2)
               }
               case _ => vfail("Can't destruct type: " + innerExpr2.kind)
@@ -1268,11 +1268,11 @@ class ExpressionCompiler(
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {
     expr.kind match {
-      case sr @ StructTT(_, _) => {
+      case sr @ StructTT(_) => {
         val structDef = coutputs.lookupStruct(sr)
         vcheck(structDef.weakable, TookWeakRefOfNonWeakableError)
       }
-      case ir @ InterfaceTT(_, _) => {
+      case ir @ InterfaceTT(_) => {
         val interfaceDef = coutputs.lookupInterface(ir)
         vcheck(interfaceDef.weakable, TookWeakRefOfNonWeakableError)
       }

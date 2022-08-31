@@ -153,7 +153,7 @@ class StructFreeMacro(
 
     val structTT =
       params2.head.tyype.kind match {
-        case structTT @ StructTT(_, _) => structTT
+        case structTT @ StructTT(_) => structTT
         case other => vwat(other)
       }
     val structDef = coutputs.lookupStruct(structTT)

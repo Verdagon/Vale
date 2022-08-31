@@ -228,7 +228,7 @@ class LocalHelper(
           case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
         }
       }
-      case sr2 @ StructTT(_, _) => {
+      case sr2 @ StructTT(_) => {
         val mutability = Compiler.getMutability(coutputs, sr2)
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
@@ -236,7 +236,7 @@ class LocalHelper(
           case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
         }
       }
-      case ir2 @ InterfaceTT(_, _) => {
+      case ir2 @ InterfaceTT(_) => {
         val mutability = Compiler.getMutability(coutputs, ir2)
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT

@@ -181,7 +181,7 @@ class FunctionCompiler(
 //          evaluateOrdinaryLightFunctionFromNonCallForHeader(
 //            env, coutputs, parentRanges, function, verifyConclusions)
 //        } else {
-//          val List(KindTemplata(closureStructRef@StructTT(_, _))) =
+//          val List(KindTemplata(closureStructRef@StructTT(_))) =
 //            env.lookupNearestWithImpreciseName(
 //
 //              vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
@@ -208,7 +208,7 @@ class FunctionCompiler(
 //        evaluateTemplatedLightFunctionFromNonCallForHeader(
 //          env, coutputs, parentRanges, function, verifyConclusions)
 ////      } else {
-////        val List(KindTemplata(closureStructRef@StructTT(_, _))) =
+////        val List(KindTemplata(closureStructRef@StructTT(_))) =
 ////          env.lookupNearestWithImpreciseName(
 ////
 ////            vimpl(), //FunctionScout.CLOSURE_STRUCT_ENV_ENTRY_NAME,
@@ -244,7 +244,7 @@ class FunctionCompiler(
 //            case _ => vwat()
 //          }
 //
-//        val KindTemplata(closureStructRef@StructTT(_, _)) =
+//        val KindTemplata(closureStructRef@StructTT(_)) =
 //          vassertOne(
 //            env.lookupNearestWithName(
 //
@@ -280,7 +280,7 @@ class FunctionCompiler(
 //              case _ => vwat()
 //            }
 //
-//          val KindTemplata(closureStructRef@StructTT(_, _)) =
+//          val KindTemplata(closureStructRef@StructTT(_)) =
 //            vassertOne(
 //              declaringEnv.lookupNearestWithName(
 //                lambdaCitizenName2,
@@ -310,7 +310,7 @@ class FunctionCompiler(
 //              case _ => vwat()
 //            }
 //
-//          val KindTemplata(closureStructRef@StructTT(_, _)) =
+//          val KindTemplata(closureStructRef@StructTT(_)) =
 //            vassertOne(
 //              env.lookupNearestWithName(
 //
@@ -354,7 +354,7 @@ class FunctionCompiler(
               case _ => vwat()
             }
 
-          val KindTemplata(closureStructRef@StructTT(_, _)) =
+          val KindTemplata(closureStructRef@StructTT(_)) =
             vassertOne(
               declaringEnv.lookupNearestWithName(
                 lambdaCitizenName2,
@@ -591,7 +591,7 @@ class FunctionCompiler(
         case LambdaDeclarationNameS(codeLocation) => interner.intern(LambdaCitizenNameT(interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(codeLocation)))))
         case _ => vwat()
       }
-    val KindTemplata(closureStructRef @ StructTT(_, _)) =
+    val KindTemplata(closureStructRef @ StructTT(_)) =
       vassertOne(
         env.lookupNearestWithName(
 

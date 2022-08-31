@@ -25,9 +25,9 @@ class TypeHammer(
       case FloatT() => FloatH()
       case StrT() => StrH()
       case VoidT() => VoidH()
-      case s @ StructTT(_, _) => structHammer.translateStructRef(hinputs, hamuts, s)
+      case s @ StructTT(_) => structHammer.translateStructRef(hinputs, hamuts, s)
 
-      case i @ InterfaceTT(_, _) => structHammer.translateInterfaceRef(hinputs, hamuts, i)
+      case i @ InterfaceTT(_) => structHammer.translateInterfaceRef(hinputs, hamuts, i)
 
       case OverloadSetT(_, _) => VoidH()
 

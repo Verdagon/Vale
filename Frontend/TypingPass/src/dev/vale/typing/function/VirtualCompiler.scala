@@ -23,7 +23,7 @@ class VirtualCompiler(opts: TypingPassOptions, interner: Interner, overloadCompi
 //    vassert(sparkHeader.params.count(_.virtuality.nonEmpty) <= 1)
 //    val maybeSuperInterfaceAndIndex =
 //      sparkHeader.params.zipWithIndex.collectFirst({
-//        case (ParameterT(_, Some(OverrideT(ir)), CoordT(_, _, StructTT(_, _))), index) => (ir, index)
+//        case (ParameterT(_, Some(OverrideT(ir)), CoordT(_, _, StructTT(_))), index) => (ir, index)
 //      })
 //
 //    maybeSuperInterfaceAndIndex match {

@@ -112,8 +112,8 @@ class EdgeCompiler(
 
                 val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes
 
-                val placeholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
-                val overridingParamCoord = abstractParamType.copy(kind = placeholderedOverridingCitizen)
+                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
+                val overridingParamCoord = abstractParamType.copy(kind = implPlaceholderedOverridingCitizen)
                 val overrideFunctionParamTypes =
                   superFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
 
@@ -125,7 +125,7 @@ class EdgeCompiler(
                 // See ONBIFS and NBIFPR for why we need these bounds in our below env.
                 val overridingKindReachableBounds =
                   TemplataCompiler.getReachableBounds(
-                    interner, keywords, coutputs, KindTemplata(placeholderedOverridingCitizen))
+                    interner, keywords, coutputs, KindTemplata(implPlaceholderedOverridingCitizen))
 
                 val implEnvWithAbstractFuncConclusions =
                   GeneralEnvironment.childOf(
@@ -151,17 +151,21 @@ class EdgeCompiler(
                     impreciseName,
                     overrideFunctionParamTypes)
 
-                foundFunction.function.prototype
+                val abstractFuncTemplateFullName =
+                  TemplataCompiler.getFunctionTemplate(abstractFuncPrototype.prototype.fullName)
+                abstractFuncTemplateFullName -> foundFunction.function.prototype
               })
-            val overridingCitizenFullName =
-              coutputs.lookupCitizen(overridingCitizenTemplateFullName).instantiatedCitizen.fullName
+            val overridingCitizenFullName = overridingImpl.placeholderedSubCitizen.fullName
+            vassert(coutputs.getInstantiationBounds(overridingCitizenFullName).nonEmpty)
+            val superInterfaceFullName = overridingImpl.parentInterfaceFromPlaceholderedSubCitizen.fullName
+            vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
             val edge =
               EdgeT(
                 overridingImpl.instantiatedFullName,
                 overridingCitizenFullName,
-                interfaceFullName,
+                overridingImpl.parentInterfaceFromPlaceholderedSubCitizen.fullName,
                 overridingImpl.functionBoundToRune,
-                foundFunctions)
+                foundFunctions.toMap)
             overridingCitizenFullName -> edge
           }).toMap
         interfaceFullName -> overridingCitizenToFoundFunction

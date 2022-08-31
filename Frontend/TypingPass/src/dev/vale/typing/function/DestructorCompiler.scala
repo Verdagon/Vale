@@ -121,7 +121,7 @@ class DestructorCompiler(
                     as)
                 destroySharedArray(coutputs, underarrayReference2)
               }
-              case StructTT(_, _) | InterfaceTT(_, _) | PlaceholderT(_) => {
+              case StructTT(_) | InterfaceTT(_) | PlaceholderT(_) => {
                 destroySharedCitizenOrPlaceholder(coutputs, undestructedExpr2.result.reference)
               }
               case other => vfail("Unknown type to drop: " + other)

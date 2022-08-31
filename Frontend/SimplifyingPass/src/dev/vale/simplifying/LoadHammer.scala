@@ -165,7 +165,7 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_, _) => sr
+        case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
@@ -234,7 +234,7 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_, _) => sr
+        case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
@@ -368,7 +368,7 @@ class LoadHammer(
 
     val structTT =
       structExpr2.result.reference.kind match {
-        case sr @ StructTT(_, _) => sr
+        case sr @ StructTT(_) => sr
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }

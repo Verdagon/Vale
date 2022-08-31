@@ -2,11 +2,10 @@ package dev.vale.typing.macros
 
 import dev.vale.{Keywords, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.CompilerOutputs
+import dev.vale.typing.{CompilerOutputs, TemplataCompiler, ast}
 import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, InterfaceFunctionCallTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.types.CoordT
-import dev.vale.typing.ast
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.FunctionTemplata
 
@@ -32,6 +31,16 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
         params2,
         returnReferenceType2,
         originFunction.map(FunctionTemplata(env.parentEnv, _)))
+
+
+//    val thisFuncBounds = vassertSome(coutputs.getInstantiationBounds(env.fullName))
+//    coutputs.addInstantiationBounds(header.toPrototype.fullName, thisFuncBounds)
+//
+//    header.toPrototype.fullName
+
+//    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(env.templatas)
+//    coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+
     val body =
       BlockTE(
         ReturnTE(

@@ -241,7 +241,7 @@ class PatternCompiler(
 
     val CoordT(OwnT, expectedContainerKind) = inputExpr.result.reference
     expectedContainerKind match {
-      case StructTT(_, _) => {
+      case StructTT(_) => {
         // Example:
         //   struct Marine { bork: Bork; }
         //   Marine(b) = m;
@@ -334,7 +334,7 @@ class PatternCompiler(
       case headMaybeDestructureMemberPattern :: tailDestructureMemberPatternMaybes => {
         val memberAddrExprTE =
           expectedContainerKind match {
-            case structTT@StructTT(_, _) => {
+            case structTT@StructTT(_) => {
               // Example:
               //   struct Marine { bork: Bork; }
               //   Marine(b) = m;
@@ -391,7 +391,7 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(_, structTT @ StructTT(_, _)) = inputStructExpr.result.reference
+    val CoordT(_, structTT @ StructTT(_)) = inputStructExpr.result.reference
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
