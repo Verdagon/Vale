@@ -403,8 +403,8 @@ case class CompilerOutputs() {
 
 //  def lookupCitizen(citizenRef: CitizenRefT): CitizenDefinitionT = {
 //    citizenRef match {
-//      case s @ StructTT(_, _) => lookupStruct(s)
-//      case i @ InterfaceTT(_, _) => lookupInterface(i)
+//      case s @ StructTT(_) => lookupStruct(s)
+//      case i @ InterfaceTT(_) => lookupInterface(i)
 //    }
 //  }
 
@@ -435,8 +435,8 @@ case class CompilerOutputs() {
   }
   def lookupCitizen(citizenTT: ICitizenTT): CitizenDefinitionT = {
     citizenTT match {
-      case s @ StructTT(_, _) => lookupStruct(s)
-      case s @ InterfaceTT(_, _) => lookupInterface(s)
+      case s @ StructTT(_) => lookupStruct(s)
+      case s @ InterfaceTT(_) => lookupInterface(s)
     }
   }
 

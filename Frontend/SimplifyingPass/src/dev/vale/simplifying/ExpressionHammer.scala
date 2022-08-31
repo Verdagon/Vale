@@ -198,7 +198,7 @@ class ExpressionHammer(
           case _ =>
         }
 
-        val resultStructT = resultType.kind match { case s @ StructTT(_, _) => s }
+        val resultStructT = resultType.kind match { case s @ StructTT(_) => s }
         val (underlyingStructRefH) =
           structHammer.translateStructRef(hinputs, hamuts, resultStructT);
         val (resultReference) =
@@ -431,7 +431,7 @@ class ExpressionHammer(
         (upcastNode, innerDeferreds)
       }
 
-      case up @ UpcastTE(innerExpr, targetInterfaceRef2, _, _, _) => {
+      case up @ UpcastTE(innerExpr, targetInterfaceRef2, _, _) => {
         val targetPointerType2 = up.result.reference;
         val sourcePointerType2 = innerExpr.result.reference
 
@@ -1075,7 +1075,7 @@ class ExpressionHammer(
     }
 
     val virtualParamIndex = superFunctionHeader.getVirtualIndex.get
-    val CoordT(_, interfaceTT @ InterfaceTT(_, _)) =
+    val CoordT(_, interfaceTT @ InterfaceTT(_)) =
       superFunctionHeader.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)

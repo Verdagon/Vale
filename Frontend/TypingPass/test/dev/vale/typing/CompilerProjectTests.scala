@@ -44,7 +44,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val lambdaCitizenName = interner.intern(LambdaCitizenNameT(lambdaCitizenTemplateName))
     val lambdaFuncTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("__call")),lambdaLoc))
     val lambdaCitizenFullName = FullNameT(packageCoord, Vector(mainName), lambdaCitizenName)
-    val lambdaStruct = interner.intern(StructTT(lambdaCitizenFullName, 0))
+    val lambdaStruct = interner.intern(StructTT(lambdaCitizenFullName))
     val lambdaShareCoord = CoordT(ShareT, lambdaStruct)
     val lambdaFuncName = interner.intern(FunctionNameT(lambdaFuncTemplateName, Vector(), Vector(lambdaShareCoord)))
     val lambdaFuncFullName = FullNameT(packageCoord, Vector(mainName, lambdaCitizenTemplateName), lambdaFuncName)

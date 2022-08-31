@@ -476,22 +476,6 @@ case class LambdaCitizenNameT(
   vpass()
 }
 
-case class AnonymousSubstructLambdaTemplateNameT(
-  codeLocation: CodeLocationS
-) extends ICitizenTemplateNameT {
-  def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
-    vassert(templateArgs.isEmpty)
-    interner.intern(AnonymousSubstructLambdaNameT(this))
-  }
-}
-
-case class AnonymousSubstructLambdaNameT(
-  template: AnonymousSubstructLambdaTemplateNameT
-) extends ICitizenNameT {
-  def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
-}
-
 sealed trait CitizenTemplateNameT extends ICitizenTemplateNameT {
   def humanName: StrI
   // We don't include a CodeLocation here because:

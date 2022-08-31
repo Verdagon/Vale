@@ -1,5 +1,68 @@
 
-## File System
+# Collections
+
+## ArrayList
+
+## LinkedList
+
+## SegmentedList
+
+A linked array list, where every slab has a certain number of elements.
+
+## PageList
+
+A linked array list, where every slab has a specified number of bytes.
+
+## ExponentialSegmentedList
+
+A linked array list, where the first slab has 64 bytes, next slab has 128, and so on.
+
+If theyre immutables or unis, then maybe this can lower to just be a vector.
+
+## PinningHashMap
+
+I'd like some sort of hash map that doesn't move its values. Perhaps we'd have a separate array
+
+## PrefetchingIterator
+
+This is an iterator that will prefetch a certain number (L) of elements ahead.
+
+We should have some optimization that finds loops that use these, and reduce them to:
+
+// For SegmentedList / PageList
+
+for (int p = 0; p < numPages; p++) {
+  thisPage = ...
+  // Non-prefetching loop:
+  for (int i = 0; i < numPerPage - L; i++) {
+    // run body on thisPage[i]
+  }
+  nextPage = ...
+  // Prefetching loop:
+  for (int i = 0; i < L; i++) {
+    // prefetch nextPage[i]
+    // run body on thisPage[numPerPage - L + i]
+  }
+}
+
+and something similar for ExponentialSegmentedList.
+
+Perhaps the inner loops can be unrolled a bit too, LLVM might take care of that.
+
+If we dont want to do the optimization yet, we could have a `foreach` method that just looks like that. Heck, we might want one of those anyway because itll be a good step towards HGM's passthrough tethers inside iterator structs.
+
+## Optional List
+
+Perhaps we can have variants of all the above that do this.
+
+The idea is that we use a bit in the generation to represent "is this slot filled".
+
+Then we can build a free-list into it, or something. Itd be a good basis for a generational_arena kind of thing, and also a good foundation for swiss tables.
+
+If there's no generations, such as for immutables, we can have a side array of bits.
+
+
+# File System
 
 Possible way forward:
 
@@ -94,3 +157,4 @@ int main(void) {
 ```
 
 Use `-lFSVale -L target\debug`
+

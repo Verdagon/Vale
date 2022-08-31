@@ -182,12 +182,12 @@ class OverloadResolver(
         getCandidateBannersInner(
           overloadsEnv, coutputs, nameInOverloadsEnv, searchedEnvs, results)
       }
-      case KindTemplata(sr@StructTT(_, _)) => {
+      case KindTemplata(sr@StructTT(_)) => {
         val structEnv = coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName))
         getCandidateBannersInner(
           structEnv, coutputs, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
-      case KindTemplata(sr@InterfaceTT(_, _)) => {
+      case KindTemplata(sr@InterfaceTT(_)) => {
         val interfaceEnv = coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(sr.fullName))
         getCandidateBannersInner(
           interfaceEnv, coutputs, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
@@ -434,8 +434,8 @@ class OverloadResolver(
   Vector[IEnvironment] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
-        case sr @ StructTT(_, _) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName)))
-        case ir @ InterfaceTT(_, _) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
+        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName)))
+        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
         case PlaceholderT(fullName) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getPlaceholderTemplate(fullName)))
         case _ => Vector.empty
       })

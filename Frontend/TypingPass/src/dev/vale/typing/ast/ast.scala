@@ -38,8 +38,8 @@ case class ImplT(
 
   subCitizenTemplateName: FullNameT[ICitizenTemplateNameT],
   placeholderedSubCitizen: ICitizenTT,
-  // Starting from a placeholdered sub citizen, this is the interface that would result.
-  // We get this by solving the impl, given a placeholdered sub citizen.
+  // Starting from a placeholdered impl, this is the interface that would result.
+  // We get this by solving the impl, given some placeholders.
   parentInterfaceFromPlaceholderedSubCitizen: InterfaceTT,
 
   superInterfaceTemplateName: FullNameT[IInterfaceTemplateNameT],
@@ -105,7 +105,7 @@ case class EdgeT(
   interface: FullNameT[IInterfaceNameT],
   // This is similar to FunctionT.functionBoundToRune
   functionBoundToRune: Map[PrototypeT, IRuneS],
-  methods: Vector[PrototypeT]
+  abstractFuncTemplateToOverrideFunc: Map[FullNameT[IFunctionTemplateNameT], PrototypeT]
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -377,7 +377,7 @@ case class FunctionHeaderT(
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterT(_, Some(AbstractT()), CoordT(_, ir @ InterfaceTT(_, _))) => ir
+        case ParameterT(_, Some(AbstractT()), CoordT(_, ir @ InterfaceTT(_))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption

@@ -77,7 +77,7 @@ class StructCompilerGenericArgsLayer(
       val fullName = declaringEnv.fullName.addStep(structName)
 
       coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
-      val structTT = interner.intern(StructTT(fullName, 0))
+      val structTT = interner.intern(StructTT(fullName))
 
       ResolveSuccess(structTT)
     })
@@ -141,7 +141,7 @@ class StructCompilerGenericArgsLayer(
       // but we unfortunately can't here because we're just predicting an interface; we'll
       // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
       // escape into the wild.
-      val interfaceTT = interner.intern(InterfaceTT(fullName, 0))
+      val interfaceTT = interner.intern(InterfaceTT(fullName))
       interfaceTT
     })
   }
@@ -204,7 +204,7 @@ class StructCompilerGenericArgsLayer(
       // but we unfortunately can't here because we're just predicting an interface; we'll
       // try to resolve it later and then put the bounds in. Hopefully this InterfaceTT doesn't
       // escape into the wild.
-      val structTT = interner.intern(StructTT(fullName, 0))
+      val structTT = interner.intern(StructTT(fullName))
       structTT
     })
   }
@@ -256,7 +256,7 @@ class StructCompilerGenericArgsLayer(
       val fullName = declaringEnv.fullName.addStep(interfaceName)
 
       coutputs.addInstantiationBounds(fullName, runeToFunctionBound)
-      val interfaceTT = interner.intern(InterfaceTT(fullName, 0))
+      val interfaceTT = interner.intern(InterfaceTT(fullName))
 
       ResolveSuccess(interfaceTT)
     })

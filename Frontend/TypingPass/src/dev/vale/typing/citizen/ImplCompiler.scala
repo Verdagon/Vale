@@ -187,7 +187,7 @@ class ImplCompiler(
   //        implTemplata)
   //    val parentInterfaceFromPlaceholderedSubCitizen =
   //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_, _)) => interfaceTT
+  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
   //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
   //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
   //      }
@@ -250,7 +250,7 @@ class ImplCompiler(
   //        implTemplata)
   //    val parentInterfaceFromPlaceholderedSubCitizen =
   //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_, _)) => interfaceTT
+  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
   //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
   //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
   //      }
@@ -308,7 +308,7 @@ class ImplCompiler(
     val superInterface =
       inferences.get(implA.interfaceKindRune.rune) match {
         case None => vwat()
-        case Some(KindTemplata(i@InterfaceTT(_, _))) => i
+        case Some(KindTemplata(i@InterfaceTT(_))) => i
         case Some(other) => throw CompileErrorExceptionT(CantImplNonInterface(List(implA.range), other))
       }
     val superInterfaceTemplateFullName =
@@ -567,7 +567,7 @@ class ImplCompiler(
       }
     val parentTT = conclusions.get(implTemplata.impl.interfaceKindRune.rune)
     vassertSome(parentTT) match {
-      case KindTemplata(i @ InterfaceTT(_, _)) => Ok(i)
+      case KindTemplata(i @ InterfaceTT(_)) => Ok(i)
       case _ => vwat()
     }
   }

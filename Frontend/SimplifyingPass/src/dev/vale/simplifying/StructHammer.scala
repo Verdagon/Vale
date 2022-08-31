@@ -234,7 +234,7 @@ class StructHammer(
       structRefH: StructRefH,
       edges2: Vector[EdgeT]):
   (Vector[EdgeH]) = {
-    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, interner.intern(InterfaceTT(e.interface, 0)), e))
+    edges2.map(e => translateEdge(hinputs, hamuts, structRefH, interner.intern(InterfaceTT(e.interface)), e))
   }
 
 
@@ -243,8 +243,7 @@ class StructHammer(
     // Purposefully not trying to translate the entire struct here, because we might hit a circular dependency
     val interfaceRefH = translateInterfaceRef(hinputs, hamuts, interfaceTT)
     val interfacePrototypesH = translateInterfaceMethods(hinputs, hamuts, interfaceTT)
-    val (prototypesH) =
-      edge2.methods.map(translatePrototype(hinputs, hamuts, _))
+    val (prototypesH) = vimpl() //edge2.methods.map(translatePrototype(hinputs, hamuts, _))
     val structPrototypesByInterfacePrototype = ListMap[InterfaceMethodH, PrototypeH](interfacePrototypesH.zip(prototypesH) : _*)
     (EdgeH(structRefH, interfaceRefH, structPrototypesByInterfacePrototype))
   }

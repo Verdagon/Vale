@@ -217,8 +217,8 @@ object TemplataCompiler {
         substitutions(index)._2
       }
       case PlaceholderT(_) => KindTemplata(kind)
-      case s @ StructTT(_, _) => KindTemplata(substituteTemplatasInStruct(coutputs, interner, keywords, s, substitutions))
-      case s @ InterfaceTT(_, _) => KindTemplata(substituteTemplatasInInterface(coutputs, interner, keywords, s, substitutions))
+      case s @ StructTT(_) => KindTemplata(substituteTemplatasInStruct(coutputs, interner, keywords, s, substitutions))
+      case s @ InterfaceTT(_) => KindTemplata(substituteTemplatasInInterface(coutputs, interner, keywords, s, substitutions))
     }
   }
 
@@ -229,7 +229,7 @@ object TemplataCompiler {
     structTT: StructTT,
     substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])]):
   StructTT = {
-    val StructTT(FullNameT(packageCoord, initSteps, last), f) = structTT
+    val StructTT(FullNameT(packageCoord, initSteps, last)) = structTT
     interner.intern(
       StructTT(
         FullNameT(
@@ -238,8 +238,7 @@ object TemplataCompiler {
           last match {
             case StructNameT(template, templateArgs) => interner.intern(StructNameT(template, templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
             case LambdaCitizenNameT(template) => interner.intern(LambdaCitizenNameT(template))
-          }),
-        f))
+          })))
   }
 
   def substituteTemplatasInInterface(
@@ -249,7 +248,7 @@ object TemplataCompiler {
     interfaceTT: InterfaceTT,
     substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])]):
   InterfaceTT = {
-    val InterfaceTT(FullNameT(packageCoord, initSteps, last), f) = interfaceTT
+    val InterfaceTT(FullNameT(packageCoord, initSteps, last)) = interfaceTT
     interner.intern(
       InterfaceTT(
         FullNameT(
@@ -261,7 +260,7 @@ object TemplataCompiler {
                 template,
                 templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
             }
-          }), f))
+          })))
   }
 
   def substituteTemplatasInTemplata(
@@ -443,10 +442,10 @@ class TemplataCompiler(
       case (a, b) if a == b =>
       case (VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _), _) => return false
       case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
-      case (_, StructTT(_, _)) => return false
+      case (_, StructTT(_)) => return false
       case (a : ISubKindTT, b : ISuperKindTT) => {
         delegate.isParent(coutputs, callingEnv, parentRanges, a, b) match {
-          case IsParent(_, _, _, _) =>
+          case IsParent(_, _, _) =>
           case IsntParent(_) => return false
         }
       }
@@ -491,10 +490,10 @@ class TemplataCompiler(
       case a @ StaticSizedArrayTT(_, _, _, _) => {
         CoordT(ownership, a)
       }
-      case s @ StructTT(_, _) => {
+      case s @ StructTT(_) => {
         CoordT(ownership, s)
       }
-      case i @ InterfaceTT(_, _) => {
+      case i @ InterfaceTT(_) => {
         CoordT(ownership, i)
       }
       case VoidT() => {

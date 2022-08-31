@@ -24,7 +24,7 @@ case class Hinputs(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[FullNameT[IInterfaceNameT], Map[FullNameT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToFunctionBoundToRune: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]],
+  instantiationNameToRuneToFunctionBound: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -54,7 +54,7 @@ case class Hinputs(
   }
 
   def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeTemplata] = {
-    vassertSome(instantiationNameToFunctionBoundToRune.get(instantiationName))
+    vassertSome(instantiationNameToRuneToFunctionBound.get(instantiationName))
   }
 
   def lookupStructByTemplateFullName(structTemplateFullName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {
@@ -63,6 +63,17 @@ case class Hinputs(
 
   def lookupInterfaceByTemplateFullName(interfaceTemplateFullName: FullNameT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
     vassertSome(interfaces.find(_.templateName == interfaceTemplateFullName))
+  }
+
+  def lookupCitizenByTemplateFullName(interfaceTemplateFullName: FullNameT[ICitizenTemplateNameT]): CitizenDefinitionT = {
+    interfaceTemplateFullName match {
+      case FullNameT(packageCoord, initSteps, t: IStructTemplateNameT) => {
+        lookupStructByTemplateFullName(FullNameT(packageCoord, initSteps, t))
+      }
+      case FullNameT(packageCoord, initSteps, t: IInterfaceTemplateNameT) => {
+        lookupInterfaceByTemplateFullName(FullNameT(packageCoord, initSteps, t))
+      }
+    }
   }
 
   def lookupStructByTemplateName(structTemplateName: StructTemplateNameT): StructDefinitionT = {

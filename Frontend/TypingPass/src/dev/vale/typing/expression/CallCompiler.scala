@@ -130,8 +130,8 @@ class CallCompiler(
     val env = nenv.snapshot
 //    val env = coutputs.getEnvForKind(kind)
 //      citizenRef match {
-//        case sr @ StructTT(_, _) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
-//        case ir @ InterfaceTT(_, _) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
+//        case sr @ StructTT(_) => coutputs.getEnvForKind(sr) // coutputs.envByStructRef(sr)
+//        case ir @ InterfaceTT(_) => coutputs.getEnvForKind(ir) // coutputs.envByInterfaceRef(ir)
 //      }
 
     val argsTypes2 = givenArgsExprs2.map(_.result.reference)

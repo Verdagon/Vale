@@ -86,7 +86,7 @@ sealed trait KindT {
 
   def expectInterface(): InterfaceTT = {
     this match {
-      case c @ InterfaceTT(_, _) => c
+      case c @ InterfaceTT(_) => c
       case _ => vfail()
     }
   }
@@ -180,14 +180,14 @@ sealed trait ICitizenTT extends ISubKindTT with IInterning {
 }
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
-case class StructTT(fullName: FullNameT[IStructNameT], f: Float) extends ICitizenTT {
+case class StructTT(fullName: FullNameT[IStructNameT]) extends ICitizenTT {
   (fullName.initSteps.lastOption, fullName.last) match {
     case (Some(StructTemplateNameT(_)), StructNameT(_, _)) => vfail()
     case _ =>
   }
 }
 
-case class InterfaceTT(fullName: FullNameT[IInterfaceNameT], f: Float) extends ICitizenTT with ISuperKindTT {
+case class InterfaceTT(fullName: FullNameT[IInterfaceNameT]) extends ICitizenTT with ISuperKindTT {
   (fullName.initSteps.lastOption, fullName.last) match {
     case (Some(InterfaceTemplateNameT(_)), InterfaceNameT(_, _)) => vfail()
     case _ =>

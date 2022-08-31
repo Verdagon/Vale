@@ -48,7 +48,7 @@ class StructCompilerCore(
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
-    val placeholderedStructTT = interner.intern(StructTT(placeholderedFullNameT, 0))
+    val placeholderedStructTT = interner.intern(StructTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =
       structA.attributes.filter({
@@ -221,7 +221,7 @@ class StructCompilerCore(
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
-    val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT, 0))
+    val placeholderedInterfaceTT = interner.intern(InterfaceTT(placeholderedFullNameT))
 
     val attributesWithoutExportOrMacros =
       interfaceA.attributes.filter({
@@ -394,7 +394,7 @@ class StructCompilerCore(
 
     // Lambdas have no bounds, so we just supply Map()
     coutputs.addInstantiationBounds(understructInstantiatedFullNameT, Map())
-    val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT, 0))
+    val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT))
 
     val freeFuncNameT =
       interner.intern(FreeTemplateNameT(functionA.range.begin))

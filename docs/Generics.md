@@ -960,3 +960,12 @@ can do the same thing for function calls with certain arguments, thatd be nice.
 when we call a sealed interface function (isEmpty) that has bounds (drop(T)), do we need to monomorphize the functions? yes, probably. or do the edges do that? like upcasting?
 
 
+
+did you know that `Opt<Ship>` and `Opt<Boat>` might have different vtables? one has clone and the other doesnt!
+
+
+
+
+https://doc.rust-lang.org/rust-by-example/generics/where.html
+`where Option<T>: Debug` wow
+
