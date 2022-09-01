@@ -11,8 +11,9 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
-import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, InterfaceTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
-import dev.vale.typing.templata.{FunctionTemplata, KindTemplata}
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IImplTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.templata.ITemplata.expectKindTemplata
+import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, KindTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 
 sealed trait IMethod
@@ -55,72 +56,256 @@ class EdgeCompiler(
         val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
         val overridingCitizenToFoundFunction =
           overridingImpls.map(overridingImpl => {
-            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateName
-            val superInterfaceWithSubCitizenPlaceholders = overridingImpl.parentInterfaceFromPlaceholderedSubCitizen
+            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateFullName
+            val superInterfaceWithSubCitizenPlaceholders = overridingImpl.superInterface
 
-            // Given:
-            //   impl<T> IObserver<T, int> for MyThing<T>
-            // Start by compiling the impl, supplying any placeholders.
-            //   impl<impl$T> IObserver<impl$T, int> for MyThing<impl$T>
-            // Now, take the abstract function:
-            //   abstract func myFunc<X, Y>(self IObserver<X, Y>, bork Y);
-            // and try to evaluate it given the impl's interface (IObserver<impl$T, int>)
-            // as the first parameter:
-            //   abstract func myFunc(self IObserver<impl$T, int>, bork int);
-            // This is so we fill the other params' types, like that bork int.
-            // Now, try to resolve an overload with the impl's struct there instead:
-            //   func myFunc(self MyThing<impl$T>, bork int)
-            // and sure enough, we find the override func:
-            //   func myFunc<T>(self MyThing<T>, bork int)
-            // (and also conclude that its T = impl$T).
-            // Now we can add that to the impl's edge.
+            // Our goal now is to figure out the override functions.
+            // Imagine we have these interfaces and impls:
             //
-            // All this is done from the impl's perspective, the impl is the original calling
-            // env for all these solves and resolves.
+            //   interface ISpaceship<D, E, F> { ... }
+            //
+            //   struct Serenity<A, B, C> { ... }
+            //   impl<H, I, J> ISpaceship<H, I, J> for Serenity<H, I, J>;
+            //
+            //   struct Firefly<A, B, C> { ... }
+            //   impl<H, I, J> ISpaceship<J, I, H> for Firefly<H, I, J>;
+            //   // Note the weird order here ^
+            //
+            //   struct Raza<A, B, C> { ... }
+            //   impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+            //   // Note this int here ^
+            //
+            //   struct Enterprise<A> { ... }
+            //   impl<H> ISpaceship<H, H, H> for Enterprise<H>;
+            //   // Note they're all the same type
+            //
+            // If we have an abstract function:
+            //
+            //   abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+            //
+            // and these overrides:
+            //
+            //   func moo<X, Y, Z>(self &Serenity<X, Y, Z>, bork X) where exists drop(Y)void { ... }
+            //   func moo<X, Y, Z>(self &Firefly<X, Y, Z>, bork X) where exists drop(Y)void { ... }
+            //   func moo<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
+            //   func moo<X>(self &Enterprise<X>, bork X) where exists drop(X)void { ... }
+            //
+            // We need to find those overrides.
+            //
+            // To do it, we need to *conceptually* lower these abstract functions to match-dispatching
+            // functions. We're not actually doing this, just thinking this way. One might be:
+            //
+            //   func moo<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+            //   where exists drop(Y)void {
+            //     self match {
+            //       serenity &Serenity<X, Y, Z> => moo(serenity, bork)
+            //       firefly &Firefly<Z, Y, X> => moo(firefly, bork)
+            //       // Read on for why the other cases aren't here
+            //     }
+            //   }
+            //
+            // Raza and Enterprise have some assumptions about their generic args, so we'll need different
+            // conceptual functions for them.
+            //
+            //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+            //   where exists drop(Y)void {
+            //     self match {
+            //       raza &Raza<Y, Z> => moo(raza, bork)
+            //       // other cases unimportant for our purposes
+            //     }
+            //   }
+            //
+            //   func moo<X>(virtual self &ISpaceship<X, X, X>, bork X)
+            //   where exists drop(Y)void {
+            //     self match {
+            //       enterprise &Enterprise<X> => moo(enterprise, bork)
+            //       // other cases unimportant for our purposes
+            //     }
+            //   }
+            //
+            // The reason we do all this is so we can do those resolves:
+            //
+            //    * moo(serenity) is resolving moo(&Serenity<X, Y, Z>, X)
+            //    * moo(firefly) is resolving moo(&Firefly<Z, Y, X>, X)
+            //    * moo(raza) is resolving moo(&Raza<Y, Z>, int)
+            //    * moo(enterprise) is resolving moo(&Enterprise<H>, X)
+            //
+            // So, the below code does the important parts of the above conceptual functions.
 
             val foundFunctions =
               interfaceEdgeBlueprint.superFamilyRootHeaders.map(abstractFunctionHeader => {
+                val abstractFuncTemplateFullName =
+                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
                 val abstractFunctionParamUnsubstitutedTypes = abstractFunctionHeader.paramTypes
                 val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
                 vassert(abstractIndex >= 0)
                 val abstractParamUnsubstitutedType = abstractFunctionParamUnsubstitutedTypes(abstractIndex)
-                val abstractParamType =
-                  abstractParamUnsubstitutedType.copy(kind = superInterfaceWithSubCitizenPlaceholders)
 
                 val range = abstractFunctionHeader.maybeOriginFunctionTemplata.map(_.function.range).getOrElse(RangeS.internal(interner, -2976395))
 
                 val originFunctionTemplata = vassertSome(abstractFunctionHeader.maybeOriginFunctionTemplata)
 
-                // Evaluate the function as if we're defining it, even using the definition site rules.
-                // We'll even take the inferences and add em to an environment later.
-                // The only difference from real defining is that we're handing in an actual parameter,
-                // namely the impl's super interface.
+
+                // Recall:
+                //
+                //   interface ISpaceship<D, E, F> { ... }
+                //   abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+                //
+                //   struct Raza<A, B, C> { ... }
+                //   impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+                //
+                //   func moo<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
+                //
+                // Right now we have ISpaceship, moo, and the impl ("ri").
+                //
+                // We want to locate that moo/Raza override, similarly to the above conceptual
+                // match-dispatching function:
+                //
+                //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+                //   where exists drop(Y)void {
+                //     self match {
+                //       raza &Raza<Y, Z> => moo(raza, bork)
+                //     }
+                //   }
+                //
+                // The first step is figuring out this function's inner environment, so we can
+                // later use it to resolve our moo override.
+                //
+                // Start by compiling the impl, supplying any placeholders for it.
+                //
+                //   impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+                //
+                // becomes:
+                //
+                //   impl<ri$0, ri$1> ISpaceship<int, ri$0, ri$1> for Raza<ri$0, ri$1>
+                //
+                // Now, take the original abstract function:
+                //
+                //   abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+                //
+                // and try to compile it given the impl's interface (ISpaceship<int, ri$0, ri$1>)
+                // as the first parameter. However, rephrase the placeholders to be in terms of the abstract
+                // function itself (so instead of ri$0, think of it as moo$0) because we're conceptually
+                // compiling this function, not resolving it.
+                //
+                //   abstract func moo(self ISpaceship<int, moo$0, moo$1>, bork int) where exists drop(ri$0)void;
+                //
+                // In a way, we compiled it as if X = int, Y = moo$0, Z = moo$1.
+                //
+                // And now we have our inner environment from which we can resolve some overloads.
+
+                // This is an array of substitutions, for example:
+                // - Replace ri$0 with moo$0
+                // - Replace ri$1 with moo$1
+                // So that instead of ISpaceship<int, ri$0, ri$1> we'll have ISpaceship<int, moo$0, moo$1>.
+                val substitutions =
+                  // DO NOT SUBMIT factor out into function
+                  overridingImpl.instantiatedFullName.last.templateArgs map {
+                    case PlaceholderTemplata(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))), tyype) => {
+                      // Sanity check we're in an impl template, we're about to replace it with a function template
+                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+                      val abstractFuncPlaceholderName =
+                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
+                      val abstractFuncPlaceholder = PlaceholderTemplata(abstractFuncPlaceholderName, tyype)
+                      implPlaceholderFullName -> abstractFuncPlaceholder
+                    }
+                    case KindTemplata(PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))))) => {
+                      // Sanity check we're in an impl template, we're about to replace it with a function template
+                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+                      val abstractFuncPlaceholderName =
+                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
+                      val abstractFuncPlaceholder = KindTemplata(PlaceholderT(abstractFuncPlaceholderName))
+                      implPlaceholderFullName -> abstractFuncPlaceholder
+                    }
+                    case CoordTemplata(CoordT(ownership, PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index)))))) => {
+                      // Sanity check we're in an impl template, we're about to replace it with a function template
+                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+                      val abstractFuncPlaceholderName =
+                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
+                      val abstractFuncPlaceholder = CoordTemplata(CoordT(ownership, PlaceholderT(abstractFuncPlaceholderName)))
+                      implPlaceholderFullName -> abstractFuncPlaceholder
+                    }
+                    case other => vwat(other)
+                  }
+                val abstractFuncPlaceholderedInterface =
+                  expectKindTemplata(
+                    TemplataCompiler.substituteTemplatasInTemplata(
+                      coutputs,
+                      interner,
+                      keywords,
+                      KindTemplata(overridingImpl.superInterface),
+                      substitutions.toArray)).kind.expectInterface()
+                val abstractParamType =
+                  abstractParamUnsubstitutedType.copy(kind = abstractFuncPlaceholderedInterface)
+                // Now we have a ISpaceship<int, moo$0, moo$1> that we can use to compile the abstract
+                // function header.
+
+                val abstractFuncOuterEnv =
+                  coutputs.getOuterEnvForFunction(abstractFuncTemplateFullName)
                 val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
-                      coutputs,
-                      List(range, overridingImpl.templata.impl.range),
-                      overridingImpl.implOuterEnv,
-                      originFunctionTemplata,
-                      abstractFunctionHeader.paramTypes.indices.map(_ => None)
-                        .updated(abstractIndex, Some(abstractParamType))
-                        .toVector) match {
+                    coutputs,
+                    List(range, overridingImpl.templata.impl.range),
+                    abstractFuncOuterEnv,
+                    originFunctionTemplata,
+                    abstractFunctionHeader.paramTypes.indices.map(_ => None)
+                      .updated(abstractIndex, Some(abstractParamType))
+                      .toVector) match {
                     case EvaluateFunctionFailure(x) => {
                       throw CompileErrorExceptionT(CouldntEvaluateFunction(List(range), x))
                     }
                     case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
+                val abstractFuncInnerEnv =
+                  coutputs.getInnerEnvForFunction(abstractFunctionHeader.fullName)
+                // Recall the match-dispatching function:
+                //
+                //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+                //   where exists drop(Y)void {
+                //     self match {
+                //       raza &Raza<Y, Z> => moo(raza, bork)
+                //       // other cases unimportant for our purposes
+                //     }
+                //   }
+                //
+                // Now we have it's inner environment! We can below use this to resolve some overrides.
 
-                // If we have a:
-                //   impl<T, Z> MyShipOrBike<int, T, Z> for MyShip<T, Z>;
-                // This will be the MyShipOrBike<int, T, Z>.
-                // We'll use it below to make an abstract function.
-                val interfaceTypeForThisImpl =
-                  abstractFuncPrototype.prototype.paramTypes(
-                    vassertSome(abstractFunctionHeader.getVirtualIndex)).kind.expectInterface()
-                strt here
-                // this is phrased in terms of the impl. makes sense, because we fed in abstractFunctionType
-                // which was phrased in terms of the original impl.
-                // now we need to combine this with the abstract function as if it's taking one of these in...
+
+
+
+
+
+                // This is so we fill the other params' types, like that bork int.
+                //
+                // Now, try to resolve an overload with the impl's struct there instead, look for:
+                //   moo(Raza<ri$0, ri$1>, int)
+                // and sure enough, we find the override func:
+                //   func moo<P, Q>(self Raza<P, Q>, bork int) where exists drop(P)void;
+                //
+                // Instantiating it is the next challenge, we'll do that below.
+                //
+                // All this is done from the impl's perspective, the impl is the original calling
+                // env for all these solves and resolves, and all these placeholders are phrased in
+                // terms of impl placeholders (eg ri$0).
+
+                // Evaluate the function as if we're defining it, even using the definition site rules.
+                // We'll even take the inferences and add em to an environment later.
+                // The only difference from real defining is that we're handing in an actual parameter,
+                // namely the impl's super interface.
+                //
+
+
+//                // If we have a:
+//                //   impl<A, B> ISpaceship<int, A, B> for Serenity<A, B>;
+//                // This will be the ISpaceship<int, A, B>.
+//                // We'll use it below to make an abstract function.
+//                val interfaceTypeForThisImpl =
+//                  abstractFuncPrototype.prototype.paramTypes(
+//                    vassertSome(abstractFunctionHeader.getVirtualIndex)).kind.expectInterface()
+//                strt here
+//                // this is phrased in terms of the impl. makes sense, because we fed in abstractFunctionType
+//                // which was phrased in terms of the original impl.
+//                // now we need to combine this with the abstract function as if it's taking one of these in...
 
 //
 //                val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes
@@ -140,33 +325,33 @@ class EdgeCompiler(
 //                  TemplataCompiler.getReachableBounds(
 //                    interner, keywords, coutputs, KindTemplata(implPlaceholderedOverridingCitizen))
 
-                val abstractFuncInnerEnv =
-                  coutputs.getInnerEnvForFunction(abstractFunctionHeader.fullName)
+//                val abstractFuncInnerEnv =
+//                  coutputs.getInnerEnvForFunction(abstractFunctionHeader.fullName)
 
                 // We'll solve the impl given the placeholdered super interface.
                 // So if we have an abstract function:
-                //   func moo<int, T>(virtual a MyShipOrBike<int, T>);
+                //   func moo<T>(virtual a ISpaceship<int, T>);
                 // Imagine this body:
-                //   func moo<int, T, Z>(virtual self &MyShipOrBike<int, T, Z>) {
+                //   func moo<T, Z>(virtual self &ISpaceship<int, T, Z>) {
                 //     self match {
-                //       myShip MyShip<int, T, Z> => moo(myShip)
-                //       myBike MyBike<int, Z, T> => moo(myBike)
+                //       myShip Serenity<int, T, Z> => moo(myShip)
+                //       myBike Raza<int, Z, T> => moo(myBike)
                 //     }
                 //   }
                 // Imagine we're actually compiling it, which means we have placeholders:
-                //   func moo<$0, $1>(virtual self &MyShipOrBike<$0, $1>) {
+                //   func moo<$0, $1>(virtual self &ISpaceship<int, $0, $1>) {
                 //     self match {
-                //       myShip &MyShip<$0, $1> => moo(myShip)
-                //       myBike &MyBike<$1, $0> => moo(myBike)
+                //       myShip &Serenity<int, $0, $1> => moo(myShip)
+                //       myBike &Raza<int, $1, $0> => moo(myBike)
                 //     }
                 //   }
                 // Right here, we're trying to resolve an override function, eg `moo(myBike)`.
-                // First, we need to figure out `MyBike<$1, $0>`. That's what this impl solve is
-                // doing. It's feeding the MyShipOrBike<$0, $1> into the impl:
-                //   impl<T, Z> MyShipOrBike<T, Z> for MyBike<Z, T>;
+                // First, we need to figure out `Raza<$1, $0>`. That's what this impl solve is
+                // doing. It's feeding the ISpaceship<$0, $1> into the impl:
+                //   impl<T, Z> ISpaceship<T, Z> for Raza<Z, T>;
                 // roughly solving to:
-                //   impl<moo$0, moo$1> MyShipOrBike<moo$0, moo$1> for MyBike<moo$1, moo$0>;
-                // to get the `MyBike<moo$1, moo$0>`.
+                //   impl<moo$0, moo$1> ISpaceship<moo$0, moo$1> for Raza<moo$1, moo$0>;
+                // to get the `Raza<moo$1, moo$0>`.
                 //strt here
                 // At test:test.vale:7:3:
                 //   func go(virtual this &MyIFunction1<P1, R>, param P1) R;
@@ -182,13 +367,13 @@ class EdgeCompiler(
                 // Forgot about these dang specializing impls.
                 // Perhaps we should first solve the impl given its own placeholders, and then
                 // somehow enter into the abstract function with that as the interface.
-                val subCitizenFromAbstractFuncPerspective =
+                val abstractFuncPlaceholderedSubCitizen =
                   implCompiler.getImplDescendantGivenParent(
                     coutputs,
                     List(range),
                     abstractFuncInnerEnv,
                     overridingImpl.templata,
-                    interfaceTypeForThisImpl,
+                    abstractFuncPlaceholderedInterface,
                     true,
                     false) match {
                     case Ok(x) => x
@@ -196,8 +381,8 @@ class EdgeCompiler(
                       throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), x))
                     }
                   }
-                // Now we have the `MyBike<moo$1, moo$0>`, so we can try to resolve that `moo(myBike)`,
-                // in other words look for a `moo(&MyBike<moo$1, moo$0>)`.
+                // Now we have the `Raza<moo$1, moo$0>`, so we can try to resolve that `moo(myBike)`,
+                // in other words look for a `moo(&Raza<moo$1, moo$0>)`.
                 // This is also important for getting the instantiation bounds for that particular invocation,
                 // so that the monomorphizer can later know how to properly convey the abstract function's
                 // bounds (such as a drop(T)void) down to the override's bounds.
@@ -215,7 +400,7 @@ class EdgeCompiler(
 //                      }))
 
 //                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
-                val overridingParamCoord = abstractParamType.copy(kind = subCitizenFromAbstractFuncPerspective)
+                val overridingParamCoord = abstractParamType.copy(kind = abstractFuncPlaceholderedSubCitizen)
                 val overrideFunctionParamTypes =
                   abstractFuncPrototype.prototype.paramTypes
                     .updated(abstractIndex, overridingParamCoord)
@@ -233,19 +418,17 @@ class EdgeCompiler(
                     overrideFunctionParamTypes)
                 vassert(coutputs.getInstantiationBounds(foundFunction.function.prototype.fullName).nonEmpty)
 
-                val abstractFuncTemplateFullName =
-                  TemplataCompiler.getFunctionTemplate(abstractFuncPrototype.prototype.fullName)
                 abstractFuncTemplateFullName -> foundFunction.function.prototype
               })
-            val overridingCitizenFullName = overridingImpl.placeholderedSubCitizen.fullName
+            val overridingCitizenFullName = overridingImpl.subCitizen.fullName
             vassert(coutputs.getInstantiationBounds(overridingCitizenFullName).nonEmpty)
-            val superInterfaceFullName = overridingImpl.parentInterfaceFromPlaceholderedSubCitizen.fullName
+            val superInterfaceFullName = overridingImpl.superInterface.fullName
             vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
             val edge =
               EdgeT(
                 overridingImpl.instantiatedFullName,
                 overridingCitizenFullName,
-                overridingImpl.parentInterfaceFromPlaceholderedSubCitizen.fullName,
+                overridingImpl.superInterface.fullName,
                 overridingImpl.runeToFuncBound,
                 foundFunctions.toMap)
             overridingCitizenFullName -> edge

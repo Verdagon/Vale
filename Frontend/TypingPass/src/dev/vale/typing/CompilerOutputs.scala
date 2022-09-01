@@ -47,7 +47,7 @@ case class CompilerOutputs() {
   private val functionDeclaredNames: mutable.HashMap[FullNameT[INameT], RangeS] = mutable.HashMap()
   // Outer env is the env that contains the template.
   // This will be the instantiated name, not just the template name, see UINIT.
-  private val functionNameToOuterEnv: mutable.HashMap[FullNameT[INameT], IEnvironment] = mutable.HashMap()
+  private val functionNameToOuterEnv: mutable.HashMap[FullNameT[IFunctionTemplateNameT], IEnvironment] = mutable.HashMap()
   // Inner env is the env that contains the solved rules for the declaration, given placeholders.
   // This will be the instantiated name, not just the template name, see UINIT.
   private val functionNameToInnerEnv: mutable.HashMap[FullNameT[INameT], IEnvironment] = mutable.HashMap()
@@ -276,6 +276,15 @@ case class CompilerOutputs() {
     functionNameToInnerEnv += (nameT -> env)
   }
 
+  def declareFunctionOuterEnv(
+    nameT: FullNameT[IFunctionTemplateNameT],
+    env: IEnvironment,
+  ): Unit = {
+    vassert(!functionNameToOuterEnv.contains(nameT))
+    //    vassert(nameT == env.fullName)
+    functionNameToOuterEnv += (nameT -> env)
+  }
+
   def declareTypeOuterEnv(
     nameT: FullNameT[ITemplateNameT],
     env: IEnvironment,
@@ -329,8 +338,8 @@ case class CompilerOutputs() {
   def addImpl(impl: ImplT): Unit = {
     allImpls += impl
     subCitizenTemplateToImpls.put(
-      impl.subCitizenTemplateName,
-      subCitizenTemplateToImpls.getOrElse(impl.subCitizenTemplateName, Vector()) :+ impl)
+      impl.subCitizenTemplateFullName,
+      subCitizenTemplateToImpls.getOrElse(impl.subCitizenTemplateFullName, Vector()) :+ impl)
     superInterfaceTemplateToImpls.put(
       impl.superInterfaceTemplateName,
       superInterfaceTemplateToImpls.getOrElse(impl.superInterfaceTemplateName, Vector()) :+ impl)
@@ -463,6 +472,9 @@ case class CompilerOutputs() {
   }
   def getInnerEnvForFunction(name: FullNameT[INameT]): IEnvironment = {
     vassertSome(functionNameToInnerEnv.get(name))
+  }
+  def getOuterEnvForFunction(name: FullNameT[IFunctionTemplateNameT]): IEnvironment = {
+    vassertSome(functionNameToOuterEnv.get(name))
   }
   def getReturnTypeForSignature(sig: SignatureT): Option[CoordT] = {
     returnTypesBySignature.get(sig)

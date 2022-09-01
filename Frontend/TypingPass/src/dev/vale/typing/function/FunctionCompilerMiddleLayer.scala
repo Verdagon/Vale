@@ -112,6 +112,7 @@ class FunctionCompilerMiddleLayer(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getOrEvaluateFunctionForBanner(
+    outerEnv: BuildingFunctionEnvironmentWithClosureds,
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
@@ -129,6 +130,7 @@ class FunctionCompilerMiddleLayer(
     val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.fullName)//, params2)
 
     coutputs.declareFunction(callRange, namedEnv.fullName)
+    coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
     coutputs.declareFunctionInnerEnv(namedEnv.fullName, runedEnv)
 
     val header =
@@ -148,6 +150,7 @@ class FunctionCompilerMiddleLayer(
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
   def getOrEvaluateFunctionForHeader(
+    outerEnv: BuildingFunctionEnvironmentWithClosureds,
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
@@ -174,6 +177,7 @@ class FunctionCompilerMiddleLayer(
       }
       case None => {
         coutputs.declareFunction(callRange, functionFullName)
+        coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
         coutputs.declareFunctionInnerEnv(functionFullName, runedEnv)
 
         val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
