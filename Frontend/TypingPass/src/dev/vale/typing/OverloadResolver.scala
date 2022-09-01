@@ -594,20 +594,27 @@ class OverloadResolver(
         case (a, b) => a.intersect(b)
       })
 
-    // If all the candidates are bounds, then just pick one of them.
-      val grouped =
-        survivingBannerIndices
-          .groupBy(index => {
-            banners(index) match {
-              case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(FullNameT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
-                Some((firstHumanName, firstParameters, firstReturnType))
-              }
-              case _ => None
+    // Dedupe all bounds by prototype
+    val grouped =
+      survivingBannerIndices
+        .groupBy(index => {
+          banners(index) match {
+            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(FullNameT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+              Some((firstHumanName, firstParameters, firstReturnType))
             }
-          })
+            case _ => None
+          }
+        })
+    // If there's a non-bound candidate, then go with it
     val nonPrototypeCandidateIndices = grouped.getOrElse(None, Vector())
-    val prototypeCandidateIndices = (grouped - None).map(_._2.head)
-    val dedupedCandidateIndices = nonPrototypeCandidateIndices ++ prototypeCandidateIndices
+    val dedupedCandidateIndices =
+      if (nonPrototypeCandidateIndices.nonEmpty) {
+        nonPrototypeCandidateIndices
+      } else {
+        // If all the candidates are bounds, then just pick one of them.
+        val prototypeCandidateIndices = (grouped - None).map(_._2.head)
+        prototypeCandidateIndices.toVector
+      }
 
     val finalBannerIndex =
       if (dedupedCandidateIndices.size == 0) {

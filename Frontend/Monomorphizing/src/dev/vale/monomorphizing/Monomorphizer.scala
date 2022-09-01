@@ -21,12 +21,13 @@ class MonomorphizedOutputs() {
     mutable.HashMap[FullNameT[IStructNameT], StructDefinitionT]()
   val interfacesWithoutMethods: mutable.HashMap[FullNameT[IInterfaceNameT], InterfaceDefinitionT] =
     mutable.HashMap[FullNameT[IInterfaceNameT], InterfaceDefinitionT]()
-//  val edges: mutable.HashMap[FullNameT[IImplNameT], EdgeT] =
-//    mutable.HashMap[FullNameT[IImplNameT], EdgeT]()
-//  val interfaceToEdgeBlueprints: mutable.HashMap[FullNameT[IInterfaceNameT], InterfaceEdgeBlueprint] =
-//    mutable.HashMap[FullNameT[IInterfaceNameT], InterfaceEdgeBlueprint]()
-//  val interfaceToSubCitizenToEdge: mutable.HashMap[FullNameT[IInterfaceNameT], mutable.HashMap[FullNameT[ICitizenNameT], EdgeT]] =
-//    mutable.HashMap[FullNameT[IInterfaceNameT], mutable.HashMap[FullNameT[ICitizenNameT], EdgeT]]()
+
+  // We can get some recursion if we have a self-referential struct like:
+  //   struct Node<T> { value T; next Opt<Node<T>>; }
+  // So we need these to short-circuit that nonsense.
+  val startedStructs: mutable.HashSet[FullNameT[IStructNameT]] = mutable.HashSet()
+  val startedInterfaces: mutable.HashSet[FullNameT[IInterfaceNameT]] = mutable.HashSet()
+
   val immKindToDestructor: mutable.HashMap[KindT, PrototypeT] =
     mutable.HashMap[KindT, PrototypeT]()
 
@@ -283,10 +284,7 @@ object DenizenMonomorphizer {
         assembleCalleeDenizenBounds(
           structDefT.runeToFunctionBound, runeToSuppliedFunction))
 
-    val newStructDef =
-      monomorphizer.translateStructDefinition(structFullName, structDefT)
-
-    vassert(newStructDef.instantiatedCitizen.fullName == structFullName)
+    monomorphizer.translateStructDefinition(structFullName, structDefT)
   }
 
   def translateAbstractFunc(
@@ -580,17 +578,17 @@ class DenizenMonomorphizer(
   def translateStructDefinition(
     newFullName: FullNameT[IStructNameT],
     structDefT: StructDefinitionT):
-  StructDefinitionT = {
+  Unit = {
     val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutability, members, isClosure, _) = structDefT
 
     if (opts.sanityCheck) {
       vassert(Collector.all(newFullName, { case PlaceholderNameT(_) => }).isEmpty)
     }
 
-    monouts.structs.get(newFullName) match {
-      case Some(struct) => return struct
-      case None =>
+    if (monouts.startedStructs.contains(newFullName)) {
+      return
     }
+    monouts.startedStructs.add(newFullName)
 
     val result =
       StructDefinitionT(
@@ -603,7 +601,10 @@ class DenizenMonomorphizer(
         isClosure,
         Map())
 
+    vassert(result.instantiatedCitizen.fullName == newFullName)
+
     monouts.structs.put(result.instantiatedCitizen.fullName, result)
+
     if (opts.sanityCheck) {
       vassert(Collector.all(result, { case PlaceholderNameT(_) => }).isEmpty)
     }
@@ -616,10 +617,10 @@ class DenizenMonomorphizer(
   Unit = {
     val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutability, _, internalMethods) = interfaceDefT
 
-    monouts.interfacesWithoutMethods.get(newFullName) match {
-      case Some(interface) => return interface
-      case None =>
+    if (monouts.startedInterfaces.contains(newFullName)) {
+      return
     }
+    monouts.startedInterfaces.add(newFullName)
 
     val newInterfaceTT = interner.intern(InterfaceTT(newFullName))
 

@@ -353,6 +353,7 @@ class FunctionCompilerCore(
         val externFullName = FullNameT(fullName.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFullName, header.returnType)
         coutputs.addFunctionExtern(range, externPrototype, fullName.packageCoord, humanName)
+        coutputs.addInstantiationBounds(externPrototype.fullName, Map())
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })

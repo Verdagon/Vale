@@ -26,6 +26,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // add test for callsite Cons<Cons<int>> rune collision
 
+    vimpl() // make sure that we dont satisfy a function bound from the caller's environment unless using another function bound
+
     // is something like this possible?
     // and would it mean that we have to detect reentrant evaluation of that lambda template function?
     """
