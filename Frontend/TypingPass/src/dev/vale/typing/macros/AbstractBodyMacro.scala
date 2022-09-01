@@ -1,15 +1,17 @@
 package dev.vale.typing.macros
 
-import dev.vale.{Keywords, RangeS, StrI, vassert, vassertSome, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.{CompilerOutputs, TemplataCompiler, ast}
+import dev.vale.typing.OverloadResolver.FindFunctionFailure
+import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, ast}
 import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, InterfaceFunctionCallTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
-import dev.vale.typing.env.FunctionEnvironment
+import dev.vale.typing.env.{FunctionEnvironment, TemplatasStore}
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.FunctionTemplata
+import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.templata.{FunctionTemplata, PrototypeTemplata}
 
-class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
+class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver: OverloadResolver) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.abstractBody
 
   override def generateFunctionBody(
@@ -32,22 +34,33 @@ class AbstractBodyMacro(keywords: Keywords) extends IFunctionBodyMacro {
         returnReferenceType2,
         originFunction.map(FunctionTemplata(env.parentEnv, _)))
 
-
-//    val thisFuncBounds = vassertSome(coutputs.getInstantiationBounds(env.fullName))
-//    coutputs.addInstantiationBounds(header.toPrototype.fullName, thisFuncBounds)
-//
-//    header.toPrototype.fullName
-
-//    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(env.templatas)
-//    coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+    // Find self, but instead of calling it like a regular function call, call it like an interface.
+    // We do this instead of grabbing the prototype out of the environment because we want to get its
+    // instantiation bounds too (well, we want them to be added to the coutputs).
+    val prototype =
+      overloadResolver.findFunction(
+        env,
+        coutputs,
+        callRange,
+        vassertSome(TemplatasStore.getImpreciseName(interner, env.fullName.last)),
+        Vector(),
+        Array(),
+        params2.map(_.tyype),
+        Vector(),
+        true,
+        true) match {
+        case Ok(EvaluateFunctionSuccess(PrototypeTemplata(_, prototype), _)) => prototype
+        case Err(fff @ FindFunctionFailure(_, _, _)) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, fff))
+      }
 
     val body =
       BlockTE(
         ReturnTE(
           InterfaceFunctionCallTE(
-            header,
-            header.returnType,
-            header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) }))))
+            prototype,
+            vassertSome(header.getVirtualIndex),
+            prototype.returnType,
+            prototype.paramTypes.zipWithIndex.map({ case (paramType, index) => ArgLookupTE(index, paramType) }))))
 
     (header, body)
   }

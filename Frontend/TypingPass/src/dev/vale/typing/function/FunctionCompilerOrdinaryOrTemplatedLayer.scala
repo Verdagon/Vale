@@ -676,7 +676,10 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         runedEnv, coutputs, parentRanges, function)
 
-    coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+    // We don't add these here because we aren't instantiating anything here, we're compiling a function
+    // not calling it.
+    // coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+
     header
   }
 }

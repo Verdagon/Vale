@@ -2,7 +2,7 @@ package dev.vale.typing.ast
 
 import dev.vale.postparsing.{IRuneS, ITemplataType, MutabilityTemplataType}
 import dev.vale.typing.TemplataCompiler
-import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
+import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
@@ -25,7 +25,7 @@ case class StructDefinitionT(
   mutability: ITemplata[MutabilityTemplataType],
   members: Vector[StructMemberT],
   isClosure: Boolean,
-  functionBoundToRune: Map[PrototypeT, IRuneS],
+  runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
 ) extends CitizenDefinitionT {
   override def genericParamTypes: Vector[ITemplataType] = {
     instantiatedCitizen.fullName.last.templateArgs.map(_.tyype)
@@ -92,7 +92,7 @@ case class InterfaceDefinitionT(
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
-  functionBoundToRune: Map[PrototypeT, IRuneS],
+  runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   // This does not include abstract functions declared outside the interface.
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[FunctionHeaderT]

@@ -110,34 +110,115 @@ class EdgeCompiler(
                     case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
 
-                val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes
+                // If we have a:
+                //   impl<T, Z> MyShipOrBike<int, T, Z> for MyShip<T, Z>;
+                // This will be the MyShipOrBike<int, T, Z>.
+                // We'll use it below to make an abstract function.
+                val interfaceTypeForThisImpl =
+                  abstractFuncPrototype.prototype.paramTypes(
+                    vassertSome(abstractFunctionHeader.getVirtualIndex)).kind.expectInterface()
+                strt here
+                // this is phrased in terms of the impl. makes sense, because we fed in abstractFunctionType
+                // which was phrased in terms of the original impl.
+                // now we need to combine this with the abstract function as if it's taking one of these in...
 
-                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
-                val overridingParamCoord = abstractParamType.copy(kind = implPlaceholderedOverridingCitizen)
-                val overrideFunctionParamTypes =
-                  superFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
-
+//
+//                val superFunctionParamTypes = abstractFuncPrototype.prototype.paramTypes
+//
+//                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
+//                val overridingParamCoord = abstractParamType.copy(kind = implPlaceholderedOverridingCitizen)
+//                val overrideFunctionParamTypes =
+//                  superFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
+//
                 val impreciseName =
                   vassertSome(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionHeader.fullName.last))
+//
+//                // See ONBIFS and NBIFPR for why we need these bounds in our below env.
+//                val overridingKindReachableBounds =
+//                  TemplataCompiler.getReachableBounds(
+//                    interner, keywords, coutputs, KindTemplata(implPlaceholderedOverridingCitizen))
 
-                // See ONBIFS and NBIFPR for why we need these bounds in our below env.
-                val overridingKindReachableBounds =
-                  TemplataCompiler.getReachableBounds(
-                    interner, keywords, coutputs, KindTemplata(implPlaceholderedOverridingCitizen))
+                val abstractFuncInnerEnv =
+                  coutputs.getInnerEnvForFunction(abstractFunctionHeader.fullName)
 
-                val implEnvWithAbstractFuncConclusions =
-                  GeneralEnvironment.childOf(
-                    interner,
-                    overridingImpl.implOuterEnv,
-                    overridingImpl.implOuterEnv.fullName,
-                    abstractFuncInferences.map({ case (nameS, templata) =>
-                      interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-                    }).toVector ++
-                      overridingKindReachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
-                        interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
-                      }))
+                // We'll solve the impl given the placeholdered super interface.
+                // So if we have an abstract function:
+                //   func moo<int, T>(virtual a MyShipOrBike<int, T>);
+                // Imagine this body:
+                //   func moo<int, T, Z>(virtual self &MyShipOrBike<int, T, Z>) {
+                //     self match {
+                //       myShip MyShip<int, T, Z> => moo(myShip)
+                //       myBike MyBike<int, Z, T> => moo(myBike)
+                //     }
+                //   }
+                // Imagine we're actually compiling it, which means we have placeholders:
+                //   func moo<$0, $1>(virtual self &MyShipOrBike<$0, $1>) {
+                //     self match {
+                //       myShip &MyShip<$0, $1> => moo(myShip)
+                //       myBike &MyBike<$1, $0> => moo(myBike)
+                //     }
+                //   }
+                // Right here, we're trying to resolve an override function, eg `moo(myBike)`.
+                // First, we need to figure out `MyBike<$1, $0>`. That's what this impl solve is
+                // doing. It's feeding the MyShipOrBike<$0, $1> into the impl:
+                //   impl<T, Z> MyShipOrBike<T, Z> for MyBike<Z, T>;
+                // roughly solving to:
+                //   impl<moo$0, moo$1> MyShipOrBike<moo$0, moo$1> for MyBike<moo$1, moo$0>;
+                // to get the `MyBike<moo$1, moo$0>`.
+                //strt here
+                // At test:test.vale:7:3:
+                //   func go(virtual this &MyIFunction1<P1, R>, param P1) R;
+                // Couldn't evaluate impl statement:
+                // Conflict, thought rune _31311 was i32 but now concluding it's Kind$_0
+                // impl MyIFunction1<int, int> for MyFunc;
+                //                                 ^^^^^^ _2111: (unknown)
+                //                        ^^^ _31411: Kind$_1
+                //                   ^^^ _31311: Kind$_0
+                //      ^^^^^^^^^^^^^^^^^^^^^^ _311: MyIFunction1<Kind$_0, Kind$_1>
+                //      ^^^^^^^^^^^^ _31211: MyIFunction1
+                //
+                // Forgot about these dang specializing impls.
+                // Perhaps we should first solve the impl given its own placeholders, and then
+                // somehow enter into the abstract function with that as the interface.
+                val subCitizenFromAbstractFuncPerspective =
+                  implCompiler.getImplDescendantGivenParent(
+                    coutputs,
+                    List(range),
+                    abstractFuncInnerEnv,
+                    overridingImpl.templata,
+                    interfaceTypeForThisImpl,
+                    true,
+                    false) match {
+                    case Ok(x) => x
+                    case Err(x) => {
+                      throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), x))
+                    }
+                  }
+                // Now we have the `MyBike<moo$1, moo$0>`, so we can try to resolve that `moo(myBike)`,
+                // in other words look for a `moo(&MyBike<moo$1, moo$0>)`.
+                // This is also important for getting the instantiation bounds for that particular invocation,
+                // so that the monomorphizer can later know how to properly convey the abstract function's
+                // bounds (such as a drop(T)void) down to the override's bounds.
+//                val abstractFuncEnvWithImplBounds =
+//                  GeneralEnvironment.childOf(
+//                    interner,
+//                    abstractFuncInnerEnv,
+//                    abstractFuncInnerEnv.fullName,
+//                    Vector())
+//                    abstractFuncInferences.map({ case (nameS, templata) =>
+//                      interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+//                    }).toVector ++
+//                      overridingKindReachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
+//                        interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+//                      }))
+
+//                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
+                val overridingParamCoord = abstractParamType.copy(kind = subCitizenFromAbstractFuncPerspective)
+                val overrideFunctionParamTypes =
+                  abstractFuncPrototype.prototype.paramTypes
+                    .updated(abstractIndex, overridingParamCoord)
 
                 // We need the abstract function's conclusions because it contains knowledge of the
                 // existence of certain things like concept functions, see NFIEFRO.
@@ -145,11 +226,12 @@ class EdgeCompiler(
                   resolveOverride(
                     coutputs,
                     List(range, overridingImpl.templata.impl.range),
-                    implEnvWithAbstractFuncConclusions,
+                    abstractFuncInnerEnv,
                     interfaceTemplateFullName,
                     overridingCitizenTemplateFullName,
                     impreciseName,
                     overrideFunctionParamTypes)
+                vassert(coutputs.getInstantiationBounds(foundFunction.function.prototype.fullName).nonEmpty)
 
                 val abstractFuncTemplateFullName =
                   TemplataCompiler.getFunctionTemplate(abstractFuncPrototype.prototype.fullName)
@@ -164,7 +246,7 @@ class EdgeCompiler(
                 overridingImpl.instantiatedFullName,
                 overridingCitizenFullName,
                 overridingImpl.parentInterfaceFromPlaceholderedSubCitizen.fullName,
-                overridingImpl.functionBoundToRune,
+                overridingImpl.runeToFuncBound,
                 foundFunctions.toMap)
             overridingCitizenFullName -> edge
           }).toMap
