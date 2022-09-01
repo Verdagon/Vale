@@ -2,8 +2,8 @@ package dev.vale.typing
 
 //import dev.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 //import dev.vale.astronomer.VirtualFreeImpreciseNameS
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
-import dev.vale.postparsing.{GlobalFunctionFamilyNameS, IImpreciseNameS, RuneNameS}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, U, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.postparsing.{GlobalFunctionFamilyNameS, IImpreciseNameS, ITemplataType, RuneNameS}
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
@@ -13,8 +13,10 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
 import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IImplTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata.ITemplata.expectKindTemplata
-import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, KindTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
+
+import scala.collection.mutable
 
 sealed trait IMethod
 case class NeededOverride(
@@ -133,18 +135,22 @@ class EdgeCompiler(
             // So, the below code does the important parts of the above conceptual functions.
 
             val foundFunctions =
-              interfaceEdgeBlueprint.superFamilyRootHeaders.map(abstractFunctionHeader => {
+              interfaceEdgeBlueprint.superFamilyRootHeaders.map({ case (abstractFunctionPrototype, abstractIndex) =>
                 val abstractFuncTemplateFullName =
-                  TemplataCompiler.getFunctionTemplate(abstractFunctionHeader.fullName)
-                val abstractFunctionParamUnsubstitutedTypes = abstractFunctionHeader.paramTypes
-                val abstractIndex = abstractFunctionHeader.params.indexWhere(_.virtuality.nonEmpty)
+                  TemplataCompiler.getFunctionTemplate(abstractFunctionPrototype.fullName)
+                val abstractFunctionParamUnsubstitutedTypes = abstractFunctionPrototype.paramTypes
                 vassert(abstractIndex >= 0)
                 val abstractParamUnsubstitutedType = abstractFunctionParamUnsubstitutedTypes(abstractIndex)
 
-                val range = abstractFunctionHeader.maybeOriginFunctionTemplata.map(_.function.range).getOrElse(RangeS.internal(interner, -2976395))
+                val maybeOriginFunctionTemplata =
+                  coutputs.lookupFunction(abstractFunctionPrototype.toSignature)
+                    .flatMap(_.header.maybeOriginFunctionTemplata)
 
-                val originFunctionTemplata = vassertSome(abstractFunctionHeader.maybeOriginFunctionTemplata)
+                val range =
+                  maybeOriginFunctionTemplata.map(_.function.range)
+                    .getOrElse(RangeS.internal(interner, -2976395))
 
+                val originFunctionTemplata = vassertSome(maybeOriginFunctionTemplata)
 
                 // Recall:
                 //
@@ -198,35 +204,77 @@ class EdgeCompiler(
                 // - Replace ri$0 with moo$0
                 // - Replace ri$1 with moo$1
                 // So that instead of ISpaceship<int, ri$0, ri$1> we'll have ISpaceship<int, moo$0, moo$1>.
+
+                // There's a slight chance it's not ISomeInterface<ri$0, ri$1> but instead something
+                // like ISomeInterface<ri$3, ri$3>. The indexes won't necessarily line up.
+                val placeholderToSubstitution = mutable.HashMap[FullNameT[PlaceholderNameT], ITemplata[ITemplataType]]()
                 val substitutions =
                   // DO NOT SUBMIT factor out into function
-                  overridingImpl.instantiatedFullName.last.templateArgs map {
-                    case PlaceholderTemplata(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))), tyype) => {
-                      // Sanity check we're in an impl template, we're about to replace it with a function template
-                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
-                      val abstractFuncPlaceholderName =
-                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
-                      val abstractFuncPlaceholder = PlaceholderTemplata(abstractFuncPlaceholderName, tyype)
-                      implPlaceholderFullName -> abstractFuncPlaceholder
-                    }
-                    case KindTemplata(PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))))) => {
-                      // Sanity check we're in an impl template, we're about to replace it with a function template
-                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
-                      val abstractFuncPlaceholderName =
-                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
-                      val abstractFuncPlaceholder = KindTemplata(PlaceholderT(abstractFuncPlaceholderName))
-                      implPlaceholderFullName -> abstractFuncPlaceholder
-                    }
-                    case CoordTemplata(CoordT(ownership, PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index)))))) => {
-                      // Sanity check we're in an impl template, we're about to replace it with a function template
-                      initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
-                      val abstractFuncPlaceholderName =
-                        FullNameT(packageCoord, abstractFuncTemplateFullName.steps, interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
-                      val abstractFuncPlaceholder = CoordTemplata(CoordT(ownership, PlaceholderT(abstractFuncPlaceholderName)))
-                      implPlaceholderFullName -> abstractFuncPlaceholder
-                    }
-                    case other => vwat(other)
-                  }
+                  U.map[ITemplata[ITemplataType], (FullNameT[PlaceholderNameT], ITemplata[ITemplataType])](
+                    overridingImpl.instantiatedFullName.last.templateArgs.toArray,
+                    {
+                      case PlaceholderTemplata(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))), tyype) => {
+                        // Sanity check we're in an impl template, we're about to replace it with a function template
+                        initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+
+                        implPlaceholderFullName ->
+                          (placeholderToSubstitution.get(implPlaceholderFullName) match {
+                            case Some(existing) => existing
+                            case None => {
+                              val abstractFuncPlaceholderName =
+                                interner.intern(PlaceholderNameT(
+                                  interner.intern(PlaceholderTemplateNameT(
+                                    placeholderToSubstitution.size))))
+                              val abstractFuncPlaceholderFullName =
+                                FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                              val abstractFuncPlaceholder = PlaceholderTemplata(abstractFuncPlaceholderFullName, tyype)
+                              placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
+                              abstractFuncPlaceholder
+                            }
+                          })
+                      }
+                      case KindTemplata(PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index))))) => {
+                        // Sanity check we're in an impl template, we're about to replace it with a function template
+                        initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+
+                        implPlaceholderFullName ->
+                        (placeholderToSubstitution.get(implPlaceholderFullName) match {
+                          case Some(existing) => existing
+                          case None => {
+                            val abstractFuncPlaceholderName =
+                              interner.intern(PlaceholderNameT(
+                                interner.intern(PlaceholderTemplateNameT(
+                                  placeholderToSubstitution.size))))
+                            val abstractFuncPlaceholderFullName =
+                              FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                            val abstractFuncPlaceholder = KindTemplata(PlaceholderT(abstractFuncPlaceholderFullName))
+                            placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
+                            abstractFuncPlaceholder
+                          }
+                        })
+                      }
+                      case CoordTemplata(CoordT(ownership, PlaceholderT(implPlaceholderFullName @ FullNameT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(index)))))) => {
+                        // Sanity check we're in an impl template, we're about to replace it with a function template
+                        initSteps.last match { case _ : IImplTemplateNameT => case _ => vwat() }
+
+                        implPlaceholderFullName ->
+                          (placeholderToSubstitution.get(implPlaceholderFullName) match {
+                            case Some(existing) => existing
+                            case None => {
+                              val abstractFuncPlaceholderName =
+                                interner.intern(PlaceholderNameT(
+                                  interner.intern(PlaceholderTemplateNameT(
+                                    placeholderToSubstitution.size))))
+                              val abstractFuncPlaceholderFullName =
+                                FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                              val abstractFuncPlaceholder = CoordTemplata(CoordT(ownership, PlaceholderT(abstractFuncPlaceholderFullName)))
+                              placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
+                              abstractFuncPlaceholder
+                            }
+                          })
+                      }
+                      case other => vwat(other)
+                    })
                 val abstractFuncPlaceholderedInterface =
                   expectKindTemplata(
                     TemplataCompiler.substituteTemplatasInTemplata(
@@ -248,7 +296,7 @@ class EdgeCompiler(
                     List(range, overridingImpl.templata.impl.range),
                     abstractFuncOuterEnv,
                     originFunctionTemplata,
-                    abstractFunctionHeader.paramTypes.indices.map(_ => None)
+                    abstractFunctionPrototype.paramTypes.indices.map(_ => None)
                       .updated(abstractIndex, Some(abstractParamType))
                       .toVector) match {
                     case EvaluateFunctionFailure(x) => {
@@ -257,7 +305,7 @@ class EdgeCompiler(
                     case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
                 val abstractFuncInnerEnv =
-                  coutputs.getInnerEnvForFunction(abstractFunctionHeader.fullName)
+                  coutputs.getInnerEnvForFunction(abstractFunctionPrototype.fullName)
                 // Recall the match-dispatching function:
                 //
                 //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
@@ -318,7 +366,7 @@ class EdgeCompiler(
                 val impreciseName =
                   vassertSome(
                     TemplatasStore.getImpreciseName(
-                      interner, abstractFunctionHeader.fullName.last))
+                      interner, abstractFunctionPrototype.fullName.last))
 //
 //                // See ONBIFS and NBIFPR for why we need these bounds in our below env.
 //                val overridingKindReachableBounds =
@@ -418,7 +466,7 @@ class EdgeCompiler(
                     overrideFunctionParamTypes)
                 vassert(coutputs.getInstantiationBounds(foundFunction.function.prototype.fullName).nonEmpty)
 
-                abstractFuncTemplateFullName -> foundFunction.function.prototype
+                abstractFuncPrototype.prototype.fullName -> foundFunction.function.prototype
               })
             val overridingCitizenFullName = overridingImpl.subCitizen.fullName
             vassert(coutputs.getInstantiationBounds(overridingCitizenFullName).nonEmpty)
@@ -488,13 +536,16 @@ class EdgeCompiler(
         // when it calls array generators/consumers' first method.
         val interfaceDef = coutputs.getAllInterfaces().find(_.templateName == interfaceTemplateFullName).get
         // Make sure `functions` has everything that the interface def wanted.
-        vassert((interfaceDef.internalMethods.toSet -- functions.map(_.header).toSet).isEmpty)
+        vassert(
+          (interfaceDef.internalMethods.toSet --
+            functions.map(func => func.header.toPrototype -> vassertSome(func.header.getVirtualIndex)).toSet)
+            .isEmpty)
         // Move all the internal methods to the front.
         val orderedMethods =
           interfaceDef.internalMethods ++
-            functions.map(_.header).filter(x => {
-              !interfaceDef.internalMethods.contains(x)//exists(y => y.toSignature == x.toSignature)
-            })
+            functions.map(_.header)
+              .filter(x => !interfaceDef.internalMethods.exists(y => y._1.toSignature == x.toSignature))
+              .map(header => header.toPrototype -> vassertSome(header.getVirtualIndex))
         (interfaceTemplateFullName -> orderedMethods)
       })
     val abstractFunctionHeadersByInterfaceTemplateFullNameWithoutEmpties = x4

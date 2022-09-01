@@ -92,7 +92,7 @@ case class FunctionExternT(
 case class InterfaceEdgeBlueprint(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interface: FullNameT[IInterfaceNameT],
-  superFamilyRootHeaders: Vector[FunctionHeaderT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+  superFamilyRootHeaders: Vector[(PrototypeT, Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class EdgeT(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
@@ -103,7 +103,8 @@ case class EdgeT(
   interface: FullNameT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
-  abstractFuncTemplateToOverrideFunc: Map[FullNameT[IFunctionTemplateNameT], PrototypeT]
+  // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
+  abstractFuncToOverrideFunc: Map[FullNameT[IFunctionNameT], PrototypeT]
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 

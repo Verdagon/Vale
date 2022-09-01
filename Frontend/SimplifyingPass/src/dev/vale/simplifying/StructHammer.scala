@@ -36,15 +36,15 @@ class StructHammer(
   def translateInterfaceMethods(
       hinputs: Hinputs,
       hamuts: HamutsBox,
-      interfaceTT: InterfaceTT) = {
+      interfaceTT: InterfaceTT):
+  Vector[InterfaceMethodH] = {
 
     val edgeBlueprint = vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.fullName))
 
     val methodsH =
-      edgeBlueprint.superFamilyRootHeaders.map(superFamilyRootBanner => {
-        val header = vassertSome(hinputs.lookupFunction(superFamilyRootBanner.toSignature)).header
-        val prototypeH = translatePrototype(hinputs, hamuts, header.toPrototype)
-        val virtualParamIndex = header.params.indexWhere(_.virtuality.nonEmpty)
+      edgeBlueprint.superFamilyRootHeaders.map({ case (superFamilyPrototype, virtualParamIndex) =>
+//        val header = vassertSome(hinputs.lookupFunction(superFamilyPrototype.toSignature)).header
+        val prototypeH = translatePrototype(hinputs, hamuts, superFamilyPrototype)
         InterfaceMethodH(prototypeH, virtualParamIndex)
       })
 
@@ -243,7 +243,17 @@ class StructHammer(
     // Purposefully not trying to translate the entire struct here, because we might hit a circular dependency
     val interfaceRefH = translateInterfaceRef(hinputs, hamuts, interfaceTT)
     val interfacePrototypesH = translateInterfaceMethods(hinputs, hamuts, interfaceTT)
-    val (prototypesH) = vimpl() //edge2.methods.map(translatePrototype(hinputs, hamuts, _))
+
+    val prototypesH =
+      vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.fullName))
+        .superFamilyRootHeaders.map({
+        case (superFamilyPrototype, virtualParamIndex) =>
+          val overridePrototypeT =
+            vassertSome(edge2.abstractFuncToOverrideFunc.get(superFamilyPrototype.fullName))
+          val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeT)
+          overridePrototypeH
+      })
+
     val structPrototypesByInterfacePrototype = ListMap[InterfaceMethodH, PrototypeH](interfacePrototypesH.zip(prototypesH) : _*)
     (EdgeH(structRefH, interfaceRefH, structPrototypesByInterfacePrototype))
   }

@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.typing.ast.{AsSubtypeTE, FunctionHeaderT, SignatureT}
+import dev.vale.typing.ast.{AsSubtypeTE, FunctionHeaderT, PrototypeT, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
@@ -55,7 +55,7 @@ class CompilerVirtualTests extends FunSuite with Matchers {
 
     val interface = coutputs.lookupInterface("Opt")
     interface.internalMethods.collect({
-      case FunctionHeaderT(FullNameT(_, _, FreeNameT(FreeTemplateNameT(_), _, coord)), _, _, _, _) => {
+      case (PrototypeT(FullNameT(_, _, FreeNameT(FreeTemplateNameT(_), _, coord)), _), _) => {
         vassert(coord.kind == interface.ref)
       }
     }).size shouldEqual 1
