@@ -109,6 +109,9 @@ object CompilerErrorHumanizer {
         case ImmStructCantHaveVaryingMember(range, structName, memberName) => {
           "Immutable struct (\"" + printableName(codeMap, structName) + "\") cannot have varying member (\"" + memberName + "\")."
         }
+        case ImmStructCantHaveMutableMember(range, structName, memberName) => {
+          "Immutable struct (\"" + printableName(codeMap, structName) + "\") cannot have mutable member (\"" + memberName + "\")."
+        }
         case WrongNumberOfDestructuresError(range, actualNum, expectedNum) => {
           "Wrong number of receivers; receiving " + actualNum + " but should be " + expectedNum + "."
         }
@@ -258,7 +261,7 @@ object CompilerErrorHumanizer {
       case BoolT() => "bool"
       case FloatT() => "float"
       case StrT() => "str"
-      case StructTT(f, _) => printableFullName(f)
+      case StructTT(f) => printableFullName(f)
     }
   }
   private def printableFullName(fullName2: FullNameT[INameT]): String = {
@@ -483,8 +486,8 @@ object CompilerErrorHumanizer {
           case VoidT() => "void"
           case FloatT() => "float"
           case OverloadSetT(_, name) => "(overloads: " + PostParserErrorHumanizer.humanizeImpreciseName(name) + ")"
-          case InterfaceTT(name, _) => humanizeName(codeMap, name)
-          case StructTT(name, _) => humanizeName(codeMap, name)
+          case InterfaceTT(name) => humanizeName(codeMap, name)
+          case StructTT(name) => humanizeName(codeMap, name)
           case RuntimeSizedArrayTT(mutability, elementType) => {
             "Array<" +
               humanizeTemplata(codeMap, mutability) + ", " +
