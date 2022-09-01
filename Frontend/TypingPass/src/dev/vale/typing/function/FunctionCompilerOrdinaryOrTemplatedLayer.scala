@@ -135,7 +135,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
-        runedEnv, coutputs, callRange, function)
+        nearEnv, runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), inferredTemplatas)
@@ -197,7 +197,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val banner =
       middleLayer.getOrEvaluateFunctionForBanner(
-        runedEnv, coutputs, callRange, function)
+        declaringEnv, runedEnv, coutputs, callRange, function)
 
     vassert(coutputs.getInstantiationBounds(banner.prototype.fullName).nonEmpty)
     EvaluateFunctionSuccess(banner, inferredTemplatas)
@@ -390,7 +390,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val prototypeTemplata =
       middleLayer.getOrEvaluateFunctionForBanner(
-        runedEnv, coutputs, callRange, function)
+        nearEnv, runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(prototypeTemplata.prototype.fullName, runeToFunctionBound)
     EvaluateFunctionSuccess(prototypeTemplata, inferences)
@@ -674,7 +674,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
-        runedEnv, coutputs, parentRanges, function)
+        nearEnv, runedEnv, coutputs, parentRanges, function)
 
     // We don't add these here because we aren't instantiating anything here, we're compiling a function
     // not calling it.
