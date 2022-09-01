@@ -492,7 +492,8 @@ object ExpressionVivem {
             }
           })
 
-        if (programH.lookupFunction(prototypeH).isExtern) {
+        val functionH = programH.lookupFunction(prototypeH)
+        if (functionH.isExtern) {
           val externFunction = FunctionVivem.getExternFunction(programH, prototypeH)
 
           val resultRef =
@@ -516,14 +517,12 @@ object ExpressionVivem {
           heap.vivemDout.println()
           heap.vivemDout.println("  " * expressionId.callId.callDepth + "Making new stack frame (call)")
 
-          val function = programH.lookupFunction(prototypeH)
-
           // The receiver should increment with their own arg referrers.
           argRefs.foreach(r => heap.decrementReferenceRefCount(RegisterToObjectReferrer(callId, r.ownership), r))
 
           val (calleeCallId, retuurn) =
             FunctionVivem.executeFunction(
-              programH, stdin, stdout, heap, argRefs.toVector, function)
+              programH, stdin, stdout, heap, argRefs.toVector, functionH)
           heap.vivemDout.print("  " * expressionId.callId.callDepth + "Getting return reference")
 
           val returnRef = possessCalleeReturn(heap, callId, calleeCallId, retuurn)

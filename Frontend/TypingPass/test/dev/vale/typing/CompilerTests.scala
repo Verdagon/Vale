@@ -408,8 +408,9 @@ class CompilerTests extends FunSuite with Matchers {
       }))
     val method =
       vassertSome(methods.collectFirst({
-        case f @ FunctionHeaderT(simpleName("bork"), _, _, _, _) => f
+        case (f @ PrototypeT(simpleName("bork"), _), _) => f
       }))
+    vimpl() // use method somewhere?
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({

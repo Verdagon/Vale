@@ -1082,7 +1082,7 @@ class ExpressionHammer(
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)
     val edge = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName)
     vassert(edge.interface == interfaceTT.fullName)
-    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionPrototype.toSignature == x.toSignature)
+    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionPrototype.toSignature == x._1.toSignature)
     vassert(indexInEdge >= 0)
 
     val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionPrototype)

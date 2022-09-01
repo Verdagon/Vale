@@ -94,8 +94,9 @@ case class InterfaceDefinitionT(
   mutability: ITemplata[MutabilityTemplataType],
   runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   // This does not include abstract functions declared outside the interface.
+  // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.
-  internalMethods: Vector[FunctionHeaderT]
+  internalMethods: Vector[(PrototypeT, Int)]
 ) extends CitizenDefinitionT  {
   override def genericParamTypes: Vector[ITemplataType] = {
     instantiatedCitizen.fullName.last.templateArgs.map(_.tyype)

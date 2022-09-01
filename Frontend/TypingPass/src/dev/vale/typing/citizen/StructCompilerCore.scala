@@ -289,8 +289,10 @@ class StructCompilerCore(
     val internalMethods =
       outerEnv.templatas.entriesByNameT.collect({
         case (name, FunctionEnvEntry(functionA)) => {
-          delegate.evaluateGenericFunctionFromNonCallForHeader(
-            coutputs, parentRanges, FunctionTemplata(outerEnv, functionA), true)
+          val header =
+            delegate.evaluateGenericFunctionFromNonCallForHeader(
+              coutputs, parentRanges, FunctionTemplata(outerEnv, functionA), true)
+          header.toPrototype -> vassertSome(header.getVirtualIndex)
         }
       }).toVector
 
