@@ -290,7 +290,7 @@ class ImplCompiler(
         InitialKnown(rune.rune, placeholder)
       })
 
-    val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
+    val CompleteCompilerSolve(_, inferences, runeToFunctionBound1) =
       solveImplForDefine(coutputs, List(implA.range), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
@@ -326,7 +326,8 @@ class ImplCompiler(
         inferences.map({ case (nameS, templata) =>
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
         }).toVector)
-    val functionBoundToRune = TemplataCompiler.assembleFunctionBoundToRune(implInnerEnv.templatas)
+    val runeToNeededFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(implInnerEnv.templatas)
+//    vcurious(runeToFunctionBound1 == runeToNeededFunctionBound) // which do we want?
 
     val implT =
       interner.intern(
@@ -339,7 +340,7 @@ class ImplCompiler(
           subCitizen,
           superInterface,
           superInterfaceTemplateFullName,
-          functionBoundToRune))
+          runeToNeededFunctionBound))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
     //          subCitizenFromPlaceholderedParentInterface))

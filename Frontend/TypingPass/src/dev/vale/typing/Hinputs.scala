@@ -24,7 +24,7 @@ case class Hinputs(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[FullNameT[IInterfaceNameT], Map[FullNameT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToRuneToFunctionBound: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeTemplata]],
+  instantiationNameToRuneToFunctionBound: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeT]],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -53,7 +53,7 @@ case class Hinputs(
     vassertSome(interfaces.find(_.instantiatedCitizen.fullName == interfaceFullName))
   }
 
-  def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeTemplata] = {
+  def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeT] = {
     vassertSome(instantiationNameToRuneToFunctionBound.get(instantiationName))
   }
 

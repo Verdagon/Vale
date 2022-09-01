@@ -197,8 +197,8 @@ class FunctionCompilerCore(
               Some(fullEnv.function), params2, maybeRetCoord)
 
           coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
-          val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(fullEnv.templatas)
-          coutputs.addFunction(FunctionT(header, runeToFunctionBound, body))
+          val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnv.templatas)
+          coutputs.addFunction(FunctionT(header, neededFunctionBounds, body))
 
           if (header.toSignature != signature2) {
             throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
@@ -217,6 +217,7 @@ class FunctionCompilerCore(
             case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
+        coutputs.addInstantiationBounds(header.toPrototype.fullName, Map())
         coutputs.addFunctionExport(
           fullEnv.function.range,
           header.toPrototype,
@@ -316,8 +317,8 @@ class FunctionCompilerCore(
     //     }
     //   }
     vassert(coutputs.lookupFunction(header.toSignature).isEmpty)
-    val functionBoundToRune = TemplataCompiler.assembleFunctionBoundToRune(fullEnvSnapshot.templatas)
-    val function2 = FunctionT(header, functionBoundToRune, body2);
+    val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnvSnapshot.templatas)
+    val function2 = FunctionT(header, neededFunctionBounds, body2);
     coutputs.addFunction(function2)
     header
   }

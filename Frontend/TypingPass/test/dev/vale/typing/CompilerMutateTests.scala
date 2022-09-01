@@ -98,9 +98,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
         |
         |interface IXOption<T Ref> where func drop(T)void { }
         |struct XSome<T Ref> where func drop(T)void { value T; }
-        |impl<T Ref> IXOption<T> for XSome<T> where func drop(T)void;
+        |impl<T Ref> IXOption<T> for XSome<T>;
         |struct XNone<T Ref> where func drop(T)void { }
-        |impl<T Ref> IXOption<T> for XNone<T> where func drop(T)void;
+        |impl<T Ref> IXOption<T> for XNone<T>;
         |
         |struct Marine {
         |  weapon! IXOption<int>;

@@ -106,10 +106,10 @@ class ExpressionHammer(
         (access, Vector.empty)
       }
 
-      case InterfaceFunctionCallTE(superFunctionHeader, resultType2, argsExprs2) => {
+      case InterfaceFunctionCallTE(superFunctionPrototype, virtualParamIndex, resultType2, argsExprs2) => {
         val access =
           translateInterfaceFunctionCall(
-            hinputs, hamuts, currentFunctionHeader, locals, superFunctionHeader, resultType2, argsExprs2)
+            hinputs, hamuts, currentFunctionHeader, locals, superFunctionPrototype, virtualParamIndex, resultType2, argsExprs2)
         (access, Vector.empty)
       }
 
@@ -1062,7 +1062,8 @@ class ExpressionHammer(
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
-    superFunctionHeader: FunctionHeaderT,
+    superFunctionPrototype: PrototypeT,
+    virtualParamIndex: Int,
     resultType2: CoordT,
     argsExprs2: Vector[ExpressionT]):
   ExpressionH[KindH] = {
@@ -1074,17 +1075,17 @@ class ExpressionHammer(
       return Hammer.consecrash(locals, argsHE)
     }
 
-    val virtualParamIndex = superFunctionHeader.getVirtualIndex.get
+//    val virtualParamIndex = superFunctionHeader.getVirtualIndex.get
     val CoordT(_, interfaceTT @ InterfaceTT(_)) =
-      superFunctionHeader.paramTypes(virtualParamIndex)
+      superFunctionPrototype.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterfaceRef(hinputs, hamuts, interfaceTT)
     val edge = hinputs.interfaceToEdgeBlueprints(interfaceTT.fullName)
     vassert(edge.interface == interfaceTT.fullName)
-    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionHeader.toBanner.same(x.toBanner))
+    val indexInEdge = edge.superFamilyRootHeaders.indexWhere(x => superFunctionPrototype.toSignature == x.toSignature)
     vassert(indexInEdge >= 0)
 
-    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionHeader.toPrototype)
+    val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, superFunctionPrototype)
 
     val callNode =
       InterfaceCallH(

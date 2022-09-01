@@ -142,12 +142,12 @@ object TemplataCompiler {
     FullNameT(packageCoord, initSteps, last.template)
   }
 
-  def assembleFunctionBoundToRune(templatas: TemplatasStore): Map[PrototypeT, IRuneS] = {
+  def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, FullNameT[FunctionBoundNameT]] = {
     templatas.entriesByNameT.toIterable.flatMap({
-      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
-        List(prototype -> rune)
+      case (RuneNameT(rune), TemplataEnvEntry(PrototypeTemplata(_, PrototypeT(FullNameT(packageCoord, initSteps, name @ FunctionBoundNameT(_, _, _)), returnType)))) => {
+        Some(rune -> FullNameT(packageCoord, initSteps, name))
       }
-      case _ => List()
+      case _ => None
     }).toMap
   }
 

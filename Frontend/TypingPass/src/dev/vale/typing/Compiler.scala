@@ -450,7 +450,7 @@ class Compiler(
           coords: Vector[CoordT],
           verifyConclusions: Boolean):
         Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
-          overloadCompiler.findFunction(
+          overloadResolver.findFunction(
             callingEnv,
             state,
             range,
@@ -549,7 +549,7 @@ class Compiler(
           explicitTemplateArgRunesS: Array[IRuneS],
           args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
         EvaluateFunctionSuccess = {
-          overloadCompiler.findFunction(env, coutputs, callRange, functionName,
+          overloadResolver.findFunction(env, coutputs, callRange, functionName,
             explicitTemplateArgRulesS,
             explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact, verifyConclusions) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
@@ -606,10 +606,10 @@ class Compiler(
         functionCompilerCore, structCompiler, destructorCompiler, arrayCompiler, fullEnv, coutputs, life, callRange, originFunction, paramCoords, maybeRetCoord)
     }
   })
-  val overloadCompiler: OverloadResolver = new OverloadResolver(opts, interner, keywords, templataCompiler, inferCompiler, functionCompiler)
-  val destructorCompiler: DestructorCompiler = new DestructorCompiler(opts, interner, keywords, structCompiler, overloadCompiler)
+  val overloadResolver: OverloadResolver = new OverloadResolver(opts, interner, keywords, templataCompiler, inferCompiler, functionCompiler)
+  val destructorCompiler: DestructorCompiler = new DestructorCompiler(opts, interner, keywords, structCompiler, overloadResolver)
 
-  val virtualCompiler = new VirtualCompiler(opts, interner, overloadCompiler)
+  val virtualCompiler = new VirtualCompiler(opts, interner, overloadResolver)
 
   val sequenceCompiler = new SequenceCompiler(opts, interner, keywords, structCompiler, templataCompiler)
 
@@ -619,7 +619,7 @@ class Compiler(
       interner,
       keywords,
       inferCompiler,
-      overloadCompiler)
+      overloadResolver)
 
   val expressionCompiler: ExpressionCompiler =
     new ExpressionCompiler(
@@ -633,7 +633,7 @@ class Compiler(
       structCompiler,
       implCompiler,
       sequenceCompiler,
-      overloadCompiler,
+      overloadResolver,
       destructorCompiler,
       convertHelper,
       new IExpressionCompilerDelegate {
@@ -671,7 +671,7 @@ class Compiler(
         }
       })
 
-  val edgeCompiler = new EdgeCompiler(interner, keywords, functionCompiler, overloadCompiler, implCompiler)
+  val edgeCompiler = new EdgeCompiler(interner, keywords, functionCompiler, overloadResolver, implCompiler)
 
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator, destructorCompiler)
@@ -681,25 +681,25 @@ class Compiler(
   val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords)
-  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadCompiler)
+  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadResolver)
   val rsaPushMacro = new RSAMutablePushMacro(interner, keywords)
   val rsaPopMacro = new RSAMutablePopMacro(interner, keywords)
   val rsaCapacityMacro = new RSAMutableCapacityMacro(interner, keywords)
   val ssaLenMacro = new SSALenMacro(keywords)
   val rsaDropMacro = new RSADropIntoMacro(keywords, arrayCompiler)
   val ssaDropMacro = new SSADropIntoMacro(keywords, arrayCompiler)
-  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadCompiler, destructorCompiler)
-  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadCompiler, destructorCompiler)
+  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
+  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
 //  val ssaLenMacro = new SSALenMacro(keywords)
   val implDropMacro = new ImplDropMacro(interner, nameTranslator)
   val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)
   val interfaceDropMacro = new InterfaceDropMacro(interner, keywords, nameTranslator)
-  val abstractBodyMacro = new AbstractBodyMacro(keywords)
+  val abstractBodyMacro = new AbstractBodyMacro(interner, keywords, overloadResolver)
   val lockWeakMacro = new LockWeakMacro(keywords, expressionCompiler)
   val sameInstanceMacro = new SameInstanceMacro(keywords)
   val anonymousInterfaceMacro =
     new AnonymousInterfaceMacro(
-      opts, interner, keywords, nameTranslator, overloadCompiler, structCompiler, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
+      opts, interner, keywords, nameTranslator, overloadResolver, structCompiler, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {

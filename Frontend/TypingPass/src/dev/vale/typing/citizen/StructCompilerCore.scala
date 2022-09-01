@@ -159,7 +159,7 @@ class StructCompilerCore(
       case _ => vcurious()
     })
 
-    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(structRunesEnv.templatas)
+    val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structRunesEnv.templatas)
 
     val structDefT =
       StructDefinitionT(
@@ -294,7 +294,7 @@ class StructCompilerCore(
         }
       }).toVector
 
-    val runeToFunctionBound = TemplataCompiler.assembleFunctionBoundToRune(interfaceRunesEnv.templatas)
+    val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(interfaceRunesEnv.templatas)
 
     val interfaceDef2 =
       InterfaceDefinitionT(

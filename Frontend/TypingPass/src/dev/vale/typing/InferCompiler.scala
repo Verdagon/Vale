@@ -7,6 +7,7 @@ import dev.vale.postparsing.rules._
 import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
+import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.citizen.ResolveSuccess
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
@@ -30,7 +31,7 @@ sealed trait IIncompleteOrFailedCompilerSolve extends ICompilerSolverOutcome {
 case class CompleteCompilerSolve(
   steps: Stream[Step[IRulexSR, IRuneS, ITemplata[ITemplataType]]],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-  runeToFunctionBound: Map[IRuneS, PrototypeTemplata]
+  runeToFunctionBound: Map[IRuneS, PrototypeT]
 ) extends ICompilerSolverOutcome {
   override def getOrDie(): Map[IRuneS, ITemplata[ITemplataType]] = conclusions
 }
@@ -235,7 +236,7 @@ class InferCompiler(
                 case Err(e) => return FailedCompilerSolve(steps, Vector(), e)
               }
             } else {
-              Map[IRuneS, PrototypeTemplata]()
+              Map[IRuneS, PrototypeT]()
             }
           CompleteCompilerSolve(steps, conclusionsMaybeWithReachableBounds, runeToFunctionBound)
         }
@@ -260,7 +261,7 @@ class InferCompiler(
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
     isRootSolve: Boolean):
-  Result[Option[Map[IRuneS, PrototypeTemplata]], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[Option[Map[IRuneS, PrototypeT]], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // This is a temporary env which contains all of our conclusions.
     // This is important if we want to resolve some sort of existing type, like how
     //   impl<T> Opt<T> for Some<T> where func drop(T)void;
@@ -309,7 +310,7 @@ class InferCompiler(
     ranges: List[RangeS],
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Result[Option[Map[IRuneS, PrototypeTemplata]], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[Option[Map[IRuneS, PrototypeT]], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // Check all template calls
     rules.foreach({
       case r@CallSR(_, _, _, _) => {
@@ -351,7 +352,7 @@ class InferCompiler(
     ranges: List[RangeS],
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Result[Option[(IRuneS, PrototypeTemplata)], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
+  Result[Option[(IRuneS, PrototypeT)], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val ResolveSR(range, resultRune, name, paramsListRune, returnRune) = c
 
     // If it was an incomplete solve, then just skip.
@@ -376,7 +377,7 @@ class InferCompiler(
       throw CompileErrorExceptionT(RangedInternalErrorT(range :: ranges, "Return type conflict"))
     }
 
-    Ok(Some((resultRune.rune, funcSuccess.function)))
+    Ok(Some((resultRune.rune, funcSuccess.function.prototype)))
   }
 
   // Returns None for any call that we don't even have params for,
