@@ -440,15 +440,16 @@ class FunctionCompilerClosureOrLightLayer(
     val variables =
       closureStructDef.members.map(member => {
         val variableFullName = closureStructDef.instantiatedCitizen.fullName.addStep(member.name)
-        member.tyype match {
-          case AddressMemberTypeT(reference) => {
-            AddressibleClosureVariableT(
-              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(coutputs, reference))
-          }
-          case ReferenceMemberTypeT(reference) => {
+        member match {
+          case NormalStructMemberT(name, variability, ReferenceMemberTypeT(reference)) => {
             ReferenceClosureVariableT(
-              variableFullName, closureStructRef, member.variability, substituter.substituteForCoord(coutputs, reference))
+              variableFullName, closureStructRef, variability, substituter.substituteForCoord(coutputs, reference))
           }
+          case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
+            AddressibleClosureVariableT(
+              variableFullName, closureStructRef, variability, substituter.substituteForCoord(coutputs, reference))
+          }
+          case VariadicStructMemberT(name, tyype) => vimpl()
         }
       })
     val entries =

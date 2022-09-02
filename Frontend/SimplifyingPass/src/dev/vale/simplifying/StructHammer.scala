@@ -149,31 +149,32 @@ class StructHammer(
     }
   }
 
-  def translateMembers(hinputs: Hinputs, hamuts: HamutsBox, structName: FullNameT[INameT], members: Vector[StructMemberT]):
+  def translateMembers(hinputs: Hinputs, hamuts: HamutsBox, structName: FullNameT[INameT], members: Vector[IStructMemberT]):
   (Vector[StructMemberH]) = {
     members.map(translateMember(hinputs, hamuts, structName, _))
   }
 
-  def translateMember(hinputs: Hinputs, hamuts: HamutsBox, structName: FullNameT[INameT], member2: StructMemberT):
+  def translateMember(hinputs: Hinputs, hamuts: HamutsBox, structName: FullNameT[INameT], member2: IStructMemberT):
   (StructMemberH) = {
-    val (memberH) =
-      member2.tyype match {
-        case ReferenceMemberTypeT(coord) => {
-          translateReference(hinputs, hamuts, coord.unsubstitutedCoord)
+    val (variability, memberType) =
+      member2 match {
+        case VariadicStructMemberT(name, tyype) => vimpl()
+        case NormalStructMemberT(_, variability, ReferenceMemberTypeT(coord)) => {
+          (variability, translateReference(hinputs, hamuts, coord.unsubstitutedCoord))
         }
-        case AddressMemberTypeT(coord) => {
+        case NormalStructMemberT(_, variability, AddressMemberTypeT(coord)) => {
           val (referenceH) =
             translateReference(hinputs, hamuts, coord.unsubstitutedCoord)
           val (boxStructRefH) =
-            makeBox(hinputs, hamuts, member2.variability, coord.unsubstitutedCoord, referenceH)
+            makeBox(hinputs, hamuts, variability, coord.unsubstitutedCoord, referenceH)
           // The stack owns the box, closure structs just borrow it.
-          (ReferenceH(BorrowH, YonderH, boxStructRefH))
+          (variability, ReferenceH(BorrowH, YonderH, boxStructRefH))
         }
       }
     StructMemberH(
       nameHammer.translateFullName(hinputs, hamuts, structName.addStep(member2.name)),
-      Conversions.evaluateVariability(member2.variability),
-      memberH)
+      Conversions.evaluateVariability(variability),
+      memberType)
   }
 
   def makeBox(

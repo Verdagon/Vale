@@ -291,7 +291,10 @@ class ExpressionCompiler(
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
       closureStructDef.members.map({
-        case StructMemberT(memberName, variability, tyype) => {
+        case VariadicStructMemberT(name, tyype) => {
+          vwat() // closures cant contain variadic members
+        }
+        case NormalStructMemberT(memberName, variability, tyype) => {
           val lookup =
             evaluateAddressibleLookup(coutputs, nenv, range, memberName) match {
               case None => throw CompileErrorExceptionT(RangedInternalErrorT(range, "Couldn't find " + memberName))
@@ -1061,15 +1064,17 @@ class ExpressionCompiler(
                 DestroyTE(
                   innerExpr2,
                   structTT,
-                  structDef.members.map(_.tyype).zipWithIndex.map({ case (memberType, index) =>
-                    memberType match {
-                      case ReferenceMemberTypeT(unsubstitutedCoord) => {
-                        val reference = substituter.substituteForCoord(coutputs, unsubstitutedCoord)
-                        localHelper.makeTemporaryLocal(nenv, life + 1 + index, reference)
-                      }
-                      case _ => vfail()
-                    }
-                  }))
+                  structDef.members
+                    .zipWithIndex
+                    .map({
+                      case (NormalStructMemberT(_, _, ReferenceMemberTypeT(coord)), index) => (coord, index)
+                      case (NormalStructMemberT(_, _, AddressMemberTypeT(_)), index) => vimpl()
+                      case (VariadicStructMemberT(_, _), _) => vimpl()
+                    })
+                    .map({ case (unsubstitutedCoord, index) =>
+                      val reference = substituter.substituteForCoord(coutputs, unsubstitutedCoord)
+                      localHelper.makeTemporaryLocal(nenv, life + 1 + index, reference)
+                    }))
               }
               case interfaceTT @ InterfaceTT(_) => {
                 destructorCompiler.drop(nenv.snapshot, coutputs, range :: parentRanges, innerExpr2)

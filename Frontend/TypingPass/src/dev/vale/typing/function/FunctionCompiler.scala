@@ -130,7 +130,7 @@ class FunctionCompiler(
           (variability, AddressMemberTypeT(UnsubstitutedCoordT(reference)))
         }
       }
-    StructMemberT(nameTranslator.translateVarNameStep(name), variability2, memberType)
+    NormalStructMemberT(nameTranslator.translateVarNameStep(name), variability2, memberType)
   }
 
   def evaluateClosureStruct(

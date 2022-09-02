@@ -969,3 +969,30 @@ did you know that `Opt<Ship>` and `Opt<Boat>` might have different vtables? one 
 https://doc.rust-lang.org/rust-by-example/generics/where.html
 `where Option<T>: Debug` wow
 
+
+
+
+# Tuples And Variadics With Generics (TAVWG)
+
+Tuples have a variadic member:
+
+```
+struct Tup<T RefList> {
+  ..T;
+}
+```
+
+It would be easy to work with these if we knew the actual instantiation, like if we were currently dealing with a Tup<(int, bool)> we could reasonably determine what myTup.0 is, or how to destroy myTup.
+
+However, we need to be able to write generic functions for tuples, for example drop. It would look something like:
+
+```
+func drop<T RefList>(tup Tup<T>)
+where func drop(T...)void {
+  (tup)...drop();
+}
+```
+
+which means we need some sort of "move ellipsis" operator and something to check the bounds on each T.
+
+Alas, that's likely too much work for now, we'll have to disable tuples and come back to them.

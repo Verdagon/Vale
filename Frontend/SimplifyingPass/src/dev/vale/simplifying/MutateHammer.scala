@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{Keywords, finalast, vassert}
+import dev.vale.{Keywords, finalast, vassert, vimpl}
 import dev.vale.finalast.{BorrowH, ExpressionH, KindH, LocalLoadH, LocalStoreH, MemberLoadH, MemberStoreH, ReferenceH, RuntimeSizedArrayStoreH, StaticSizedArrayStoreH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, MutateTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE}
@@ -137,7 +137,11 @@ class MutateHammer(
     val structDefT = hinputs.lookupStruct(structTT.fullName)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
-    val member2 = structDefT.members(memberIndex)
+    val member2 =
+      structDefT.members(memberIndex) match {
+        case n @ NormalStructMemberT(name, variability, tyype) => n
+        case VariadicStructMemberT(name, tyype) => vimpl()
+      }
 
     val variability = member2.variability
 

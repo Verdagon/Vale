@@ -2,7 +2,7 @@ package dev.vale.typing.expression
 
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vfail}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vfail, vimpl}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, TypingPassOptions, WrongNumberOfDestructuresError}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
@@ -21,7 +21,6 @@ import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.{Interner, Profiler, RangeS, vassert, vassertSome, vfail}
 
 import scala.collection.immutable.{List, Set}
 
@@ -399,7 +398,11 @@ class PatternCompiler(
 
     val memberLocals =
       structDefT.members
-        .map(_.tyype.expectReferenceMember().reference)
+        .map({
+          case NormalStructMemberT(name, variability, ReferenceMemberTypeT(reference)) => reference
+          case NormalStructMemberT(name, variability, AddressMemberTypeT(_)) => vimpl()
+          case VariadicStructMemberT(name, tyype) => vimpl()
+        })
         .map(unsubstitutedMemberCoord => substituter.substituteForCoord(coutputs, unsubstitutedMemberCoord))
         .zipWithIndex
         .map({ case (memberType, i) => localHelper.makeTemporaryLocal(nenv, life + 1 + i, memberType) }).toVector
@@ -478,7 +481,12 @@ class PatternCompiler(
 
     val member = structDefT.members(index)
 
-    val unsubstitutedMemberCoord = member.tyype.expectReferenceMember().reference
+    val (variability, unsubstitutedMemberCoord) =
+      member match {
+        case NormalStructMemberT(name, variability, ReferenceMemberTypeT(reference)) => (variability, reference)
+        case NormalStructMemberT(name, variability, AddressMemberTypeT(_)) => vimpl()
+        case VariadicStructMemberT(name, tyype) => vimpl()
+      }
     val memberType =
       TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
         .substituteForCoord(coutputs, unsubstitutedMemberCoord)
@@ -488,7 +496,7 @@ class PatternCompiler(
       containerAlias,
       structDefT.templateName.addStep(structDefT.members(index).name),
       memberType,
-      member.variability)
+      variability)
   }
 
   private def loadFromStaticSizedArray(

@@ -1,8 +1,6 @@
 
-// struct ImmTup<T RefList imm> imm {
-//   _ ..T;
-// }
-//
+// See TAVWG for what it would take to re-enable tuples.
+
 // struct Tup<T RefList> {
-//   _ ..T;
+//  _ ..T;
 // }

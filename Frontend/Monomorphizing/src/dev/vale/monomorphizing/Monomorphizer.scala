@@ -499,19 +499,25 @@ class DenizenMonomorphizer(
     })
   }
 
-  def translateStructMember(member: StructMemberT): StructMemberT = {
-    val StructMemberT(name, variability, tyype) = member
-    StructMemberT(
-      translateVarName(name),
-      variability,
-      tyype match {
-        case ReferenceMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
-          ReferenceMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
-        }
-        case AddressMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
-          AddressMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
-        }
-      })
+  def translateStructMember(member: IStructMemberT): IStructMemberT = {
+    member match {
+      case NormalStructMemberT(name, variability, tyype) => {
+        NormalStructMemberT(
+          translateVarName(name),
+          variability,
+          tyype match {
+            case ReferenceMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
+              ReferenceMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
+            }
+            case AddressMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
+              AddressMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
+            }
+          })
+      }
+      case VariadicStructMemberT(name, tyype) => {
+        vimpl()
+      }
+    }
   }
 
   // This is run at the call site, from the caller's perspective

@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{Keywords, finalast, vassert, vfail}
+import dev.vale.{Keywords, finalast, vassert, vfail, vimpl}
 import dev.vale.finalast.{BorrowH, ExpressionH, KindH, LocalLoadH, MemberLoadH, OwnH, ReferenceH, RuntimeSizedArrayLoadH, ShareH, StaticSizedArrayLoadH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
@@ -172,7 +172,11 @@ class LoadHammer(
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
-    val member2 = structDefT.members(memberIndex)
+    val member2 =
+      structDefT.members(memberIndex) match {
+        case n @ NormalStructMemberT(name, variability, tyype) => n
+        case VariadicStructMemberT(name, tyype) => vimpl()
+      }
 
     val variability = member2.variability
 
@@ -375,7 +379,11 @@ class LoadHammer(
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
     val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
-    val member2 = structDefT.members(memberIndex)
+    val member2 =
+      structDefT.members(memberIndex) match {
+        case n @ NormalStructMemberT(name, variability, tyype) => n
+        case VariadicStructMemberT(name, tyype) => vimpl()
+      }
 
     val variability = member2.variability
     vassert(variability == VaryingT, "Expected varying for member " + memberName) // curious

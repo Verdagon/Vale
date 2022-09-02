@@ -1,9 +1,9 @@
 package dev.vale.typing.ast
 
-import dev.vale.postparsing.{IRuneS, ITemplataType, MutabilityTemplataType}
+import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType}
 import dev.vale.typing.TemplataCompiler
 import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
 
@@ -23,7 +23,7 @@ case class StructDefinitionT(
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
-  members: Vector[StructMemberT],
+  members: Vector[IStructMemberT],
   isClosure: Boolean,
   runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
 ) extends CitizenDefinitionT {
@@ -34,33 +34,50 @@ case class StructDefinitionT(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
 //  override def getRef: StructTT = ref
+//
+//  def getMember(memberName: StrI): NormalStructMemberT = {
+//    members.find(p => p.name.equals(CodeVarNameT(memberName))) match {
+//      case None => vfail("Couldn't find member " + memberName)
+//      case Some(member) => member
+//    }
+//  }
+//
+//  private def getIndex(memberName: IVarNameT): Int = {
+//    members.zipWithIndex.find(p => p._1.name.equals(memberName)) match {
+//      case None => vfail("wat")
+//      case Some((member, index)) => index
+//    }
+//  }
 
-  def getMember(memberName: StrI): StructMemberT = {
-    members.find(p => p.name.equals(CodeVarNameT(memberName))) match {
-      case None => vfail("Couldn't find member " + memberName)
-      case Some(member) => member
-    }
-  }
-
-  private def getIndex(memberName: IVarNameT): Int = {
-    members.zipWithIndex.find(p => p._1.name.equals(memberName)) match {
-      case None => vfail("wat")
-      case Some((member, index)) => index
-    }
-  }
-
-  def getMemberAndIndex(memberName: IVarNameT): Option[(StructMemberT, Int)] = {
-    members.zipWithIndex.find(p => p._1.name.equals(memberName))
+  def getMemberAndIndex(needleName: IVarNameT): Option[(NormalStructMemberT, Int)] = {
+    members.zipWithIndex
+      .foreach({
+        case (m @ NormalStructMemberT(hayName, _, _), index) if hayName == needleName => {
+          return Some((m, index))
+        }
+        case _ =>
+      })
+    None
   }
 }
 
-case class StructMemberT(
+sealed trait IStructMemberT {
+  def name: IVarNameT
+}
+
+case class NormalStructMemberT(
   name: IVarNameT,
   // In the case of address members, this refers to the variability of the pointee variable.
   variability: VariabilityT,
   tyype: IMemberTypeT
-)  {
+) extends IStructMemberT {
+  vpass()
+}
 
+case class VariadicStructMemberT(
+  name: IVarNameT,
+  tyype: PlaceholderTemplata[PackTemplataType]
+) extends IStructMemberT {
   vpass()
 }
 

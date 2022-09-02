@@ -493,7 +493,7 @@ class StructCompilerGenericArgsLayer(
     parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
-    members: Vector[StructMemberT]):
+    members: Vector[NormalStructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
     core.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)
   }
