@@ -221,7 +221,7 @@ class StructCompiler(
     parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
-    members: Vector[StructMemberT]):
+    members: Vector[NormalStructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
 //    Profiler.reentrant("StructCompiler-makeClosureUnderstruct", name.codeLocation.toString, () => {
       templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)

@@ -6,7 +6,7 @@ import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironmen
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass}
+import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PrototypeTemplata}
 import dev.vale.typing.types.InterfaceTT
@@ -309,9 +309,19 @@ case class CompilerOutputs() {
 
   def addStruct(structDef: StructDefinitionT): Unit = {
     if (structDef.mutability == MutabilityTemplata(ImmutableT)) {
-      if (structDef.members.exists(_.tyype.reference.unsubstitutedCoord.ownership != ShareT)) {
-        vfail("ImmutableP contains a non-immutable!")
-      }
+      structDef.members.foreach({
+        case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
+          vwat() // Immutable structs cant contain address members
+        }
+        case NormalStructMemberT(name, variability, ReferenceMemberTypeT(UnsubstitutedCoordT(reference))) => {
+          if (reference.ownership != ShareT) {
+            vfail("ImmutableP contains a non-immutable!")
+          }
+        }
+        case VariadicStructMemberT(name, tyype) => {
+          vimpl() // We dont yet have immutable structs with variadic members
+        }
+      })
     }
     vassert(typeNameToMutability.contains(structDef.templateName))
     vassert(!structTemplateNameToDefinition.contains(structDef.templateName))

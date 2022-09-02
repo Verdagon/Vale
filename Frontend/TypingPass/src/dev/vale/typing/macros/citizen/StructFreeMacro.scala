@@ -175,14 +175,15 @@ class StructFreeMacro(
 
     val memberLocalVariables =
       structDef.members.flatMap({
-        case StructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
+        case NormalStructMemberT(name, _, ReferenceMemberTypeT(reference)) => {
           Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, substituter.substituteForCoord(coutputs, reference)))
         }
-        case StructMemberT(_, _, AddressMemberTypeT(_)) => {
+        case NormalStructMemberT(_, _, AddressMemberTypeT(_)) => {
           // See Destructure2 and its handling of addressible members for why
           // we don't include these in the destination variables.
           Vector.empty
         }
+        case VariadicStructMemberT(name, tyype) => vimpl()
       })
     val expr =
       structDef.mutability match {

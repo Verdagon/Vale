@@ -125,12 +125,11 @@ class StructConstructorMacro(
       TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
     val members =
       definition.members.map({
-        case StructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
+        case NormalStructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
           (name, placeholderSubstituter.substituteForCoord(coutputs, tyype))
         }
-        case StructMemberT(name, variability, AddressMemberTypeT(tyype)) => {
-          vcurious()
-        }
+        case NormalStructMemberT(name, variability, AddressMemberTypeT(tyype)) => vcurious()
+        case VariadicStructMemberT(name, tyype) => vimpl()
       })
 
     val constructorFullName = env.fullName

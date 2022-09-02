@@ -323,7 +323,7 @@ class CompilerTests extends FunSuite with Matchers {
         _,
         false,
         MutabilityTemplata(MutableT),
-        Vector(StructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32))))),
+        Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32))))),
         false,
         _) =>
     }).get

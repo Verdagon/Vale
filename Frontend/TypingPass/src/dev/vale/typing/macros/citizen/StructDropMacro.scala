@@ -162,37 +162,41 @@ class StructDropMacro(
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
-    val memberLocalVariables =
-      structDef.members.flatMap({
-        case StructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
-          val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
-          val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)
-          Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
-        }
-        case StructMemberT(_, _, AddressMemberTypeT(_)) => {
-          // See Destructure2 and its handling of addressible members for why
-          // we don't include these in the destination variables.
-          Vector.empty
-        }
-      })
-    val expr =
-      structDef.mutability match {
-        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
-        case MutabilityTemplata(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
-        case MutabilityTemplata(MutableT) => {
-          Compiler.consecutive(
-            Vector(DestroyTE(ArgLookupTE(0, structType), structTT, memberLocalVariables)) ++
-              memberLocalVariables.map(v => {
-                destructorCompiler.drop(
-                  bodyEnv,
-                  coutputs,
-                  originFunction1.map(_.range).toList ++ callRange,
-                  UnletTE(v))
-              }))
-        }
-      }
+    val body =
+      BlockTE(
+        Compiler.consecutive(
+          Vector(
+            structDef.mutability match {
+              case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+              case MutabilityTemplata(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
+              case MutabilityTemplata(MutableT) => {
+                val memberLocalVariables =
+                  structDef.members.flatMap({
+                    case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
+                      val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+                      val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)
+                      Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
+                    }
+                    case NormalStructMemberT(_, _, AddressMemberTypeT(_)) => {
+                      // See Destructure2 and its handling of addressible members for why
+                      // we don't include these in the destination variables.
+                      Vector.empty
+                    }
+                    case VariadicStructMemberT(name, tyype) => vimpl()
+                  })
 
-    val body = BlockTE(Compiler.consecutive(Vector(expr, ReturnTE(VoidLiteralTE()))))
+                Compiler.consecutive(
+                  Vector(DestroyTE(ArgLookupTE(0, structType), structTT, memberLocalVariables)) ++
+                    memberLocalVariables.map(v => {
+                      destructorCompiler.drop(
+                        bodyEnv,
+                        coutputs,
+                        originFunction1.map(_.range).toList ++ callRange,
+                        UnletTE(v))
+                    }))
+              }
+            },
+            ReturnTE(VoidLiteralTE()))))
     (header, body)
   }
 }

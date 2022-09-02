@@ -1196,12 +1196,19 @@ class Compiler(
         exportedKind match {
           case sr@StructTT(_) => {
             val structDef = coutputs.lookupStruct(sr)
-            structDef.members.foreach({ case StructMemberT(_, _, member) =>
-              val UnsubstitutedCoordT(CoordT(_, memberKind)) = member.reference
-              if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
-                throw CompileErrorExceptionT(
-                  vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
-                    List(export.range), packageCoord, exportedKind, memberKind))
+            structDef.members.foreach({
+              case VariadicStructMemberT(name, tyype) => {
+                vimpl()
+              }
+              case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
+                vimpl()
+              }
+              case NormalStructMemberT(_, _, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(_, memberKind)))) => {
+                if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
+                  throw CompileErrorExceptionT(
+                    vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
+                      List(export.range), packageCoord, exportedKind, memberKind))
+                }
               }
             })
           }

@@ -117,27 +117,32 @@ class StructCompilerCore(
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
     if (mutability == MutabilityTemplata(ImmutableT)) {
-      members.zipWithIndex.foreach({ case (member, index) =>
-        if (member.variability == VaryingT) {
-          throw CompileErrorExceptionT(
-            ImmStructCantHaveVaryingMember(
-              structA.members(index).range :: parentRanges,
-              structA.name,
-              structA.members(index) match {
-                case NormalStructMemberS(range, name, variability, typeRune) => name.str
-                case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
-              }))
+      members.zipWithIndex.foreach({
+        case (VariadicStructMemberT(name, tyype), index) => {
+          vimpl() // Dont have imm variadics yet
         }
+        case (NormalStructMemberT(name, variability, tyype), index) => {
+          if (variability == VaryingT) {
+            throw CompileErrorExceptionT(
+              ImmStructCantHaveVaryingMember(
+                structA.members(index).range :: parentRanges,
+                structA.name,
+                structA.members(index) match {
+                  case NormalStructMemberS(range, name, variability, typeRune) => name.str
+                  case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
+                }))
+          }
 
-        if (member.tyype.reference.unsubstitutedCoord.ownership != ShareT) {
-          throw CompileErrorExceptionT(
-            ImmStructCantHaveMutableMember(
-              structA.members(index).range :: parentRanges,
-              structA.name,
-              structA.members(index) match {
-                case NormalStructMemberS(range, name, variability, typeRune) => name.str
-                case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
-              }))
+          if (tyype.reference.unsubstitutedCoord.ownership != ShareT) {
+            throw CompileErrorExceptionT(
+              ImmStructCantHaveMutableMember(
+                structA.members(index).range :: parentRanges,
+                structA.name,
+                structA.members(index) match {
+                  case NormalStructMemberS(range, name, variability, typeRune) => name.str
+                  case VariadicStructMemberS(range, variability, typeRune) => "(unnamed)"
+                }))
+          }
         }
       })
     }
@@ -329,15 +334,19 @@ class StructCompilerCore(
     (interfaceDef2)
   }
 
-  private def makeStructMembers(env: IEnvironment, coutputs: CompilerOutputs, members: Vector[IStructMemberS]): (Vector[StructMemberT]) = {
-    members.flatMap(makeStructMember(env, coutputs, _))
+  private def makeStructMembers(
+    env: IEnvironment,
+    coutputs: CompilerOutputs,
+    members: Vector[IStructMemberS]):
+  Vector[IStructMemberT] = {
+    members.map(makeStructMember(env, coutputs, _))
   }
 
   private def makeStructMember(
     env: IEnvironment,
     coutputs: CompilerOutputs,
     member: IStructMemberS):
-  Vector[StructMemberT] = {
+  IStructMemberT = {
     val typeTemplata =
       vassertOne(
         env.lookupNearestWithImpreciseName(
@@ -346,17 +355,22 @@ class StructCompilerCore(
     member match {
       case NormalStructMemberS(_, name, _, _) => {
         val CoordTemplata(coord) = typeTemplata
-        Vector(
-          StructMemberT(
-            interner.intern(CodeVarNameT(name)),
-            variabilityT,
-            ReferenceMemberTypeT(UnsubstitutedCoordT(coord))))
+        NormalStructMemberT(
+          interner.intern(CodeVarNameT(name)),
+          variabilityT,
+          ReferenceMemberTypeT(UnsubstitutedCoordT(coord)))
       }
-      case VariadicStructMemberS(_, _, _) => {
-        val CoordListTemplata(coords) = typeTemplata
-        coords.zipWithIndex.map({ case (coord, index) =>
-          StructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI(index.toString)))), variabilityT, ReferenceMemberTypeT(UnsubstitutedCoordT(coord)))
-        })
+      case VariadicStructMemberS(_, variability, coordListRune) => {
+        val placeholderTemplata =
+          env.lookupNearestWithName(interner.intern(RuneNameT(coordListRune.rune)), Set(TemplataLookupContext)) match {
+            case Some(PlaceholderTemplata(fullNameT, PackTemplataType(CoordTemplataType()))) => {
+              PlaceholderTemplata(fullNameT, PackTemplataType(CoordTemplataType()))
+            }
+            case _ => vwat()
+          }
+        VariadicStructMemberT(
+          interner.intern(CodeVarNameT(keywords.emptyString)),
+          placeholderTemplata)
       }
     }
   }
@@ -368,10 +382,10 @@ class StructCompilerCore(
     parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
-    members: Vector[StructMemberT]):
+    members: Vector[NormalStructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
     val isMutable =
-      members.exists({ case StructMemberT(name, variability, tyype) =>
+      members.exists({ case NormalStructMemberT(name, variability, tyype) =>
         if (variability == VaryingT) {
           true
         } else {

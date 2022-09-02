@@ -40,7 +40,7 @@ object ITemplata {
     }
   }
 
-  def expectIntegerTemplata(templata: ITemplata[ITemplataType]): ITemplata[IntegerTemplataType] = {
+  def expectIntegerTemplata(templata: ITemplata[ITemplataType]): IntegerTemplata = {
     templata match {
       case t @ IntegerTemplata(_) => t
       case _ => vfail()

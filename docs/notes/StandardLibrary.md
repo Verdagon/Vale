@@ -9,15 +9,21 @@
 
 A linked array list, where every slab has a certain number of elements.
 
+Good for holding an unknown number of things with stable addresses, with good iterating speed.
+
 ## PageList
 
 A linked array list, where every slab has a specified number of bytes.
+
+Bad for random access (O(N)) so perhaps we should definitely have an accompanying array that points to each of the chunks.
 
 ## ExponentialSegmentedList
 
 A linked array list, where the first slab has 64 bytes, next slab has 128, and so on.
 
 If theyre immutables or unis, then maybe this can lower to just be a vector.
+
+Bad for random access (O(logN)) so perhaps we should have an accompanying array that points to each of the chunks instead of working forwards or backwards.
 
 ## PinningHashMap
 
