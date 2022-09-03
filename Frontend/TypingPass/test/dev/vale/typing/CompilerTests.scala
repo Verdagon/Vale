@@ -207,57 +207,6 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
   }
 
-  test("Simple lambda") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func main() int { return { 7 }(); }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    // Make sure it inferred the param type and return type correctly
-    coutputs.lookupFunction("__call").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
-    coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
-  }
-
-  test("Lambda with one magic arg") {
-    val compile =
-      CompilerTestCompilation.test(
-        """
-          |exported func main() int { return {_}(3); }
-          |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    // Make sure it inferred the param type and return type correctly
-    Collector.only(coutputs.lookupLambdaIn("main"),
-        { case ParameterT(_, None, CoordT(ShareT, IntT.i32)) => })
-
-    coutputs.lookupLambdaIn("main").header.returnType shouldEqual
-        CoordT(ShareT, IntT.i32)
-  }
-
-
-  // Test that the lambda's arg is the right type, and the name is right
-  test("Lambda with a type specified param") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arith.*;
-        |exported func main() int {
-        |  return (a int) => {+(a,a)}(3);
-        |}
-        |""".stripMargin);
-    val coutputs = compile.expectCompilerOutputs()
-
-    val lambda = coutputs.lookupLambdaIn("main");
-
-    // Check that the param type is right
-    Collector.only(lambda, { case ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, IntT.i32)) => {} })
-    // Check the name is right
-    vassert(coutputs.nameIsLambdaIn(lambda.header.fullName, "main"))
-
-    val main = coutputs.lookupFunction("main");
-    Collector.only(main, { case FunctionCallTE(callee, _) if coutputs.nameIsLambdaIn(callee.fullName, "main") => })
-  }
-
   test("Test overloads") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/functions/overloads.vale"))
     val coutputs = compile.expectCompilerOutputs()
@@ -889,24 +838,6 @@ class CompilerTests extends FunSuite with Matchers {
     destructorCalls.size shouldEqual 2
   }
 
-  test("Tests lambda and concept function") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.print.*;
-        |import v.builtins.drop.*;
-        |import v.builtins.str.*;
-        |
-        |func moo<X, F>(x X, f F)
-        |where func(&F, &X)void, func drop(X)void, func drop(F)void {
-        |  f(&x);
-        |}
-        |exported func main() {
-        |  moo("hello", { print(_); });
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Recursive struct") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1519,29 +1450,6 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupImpl(struct.instantiatedCitizen.fullName, interface.instantiatedInterface.fullName)
   }
 
-  test("Lambda inside different function with same name") {
-    // This originally didn't work because both helperFunc(:Int) and helperFunc(:Str)
-    // made a closure struct called helperFunc:lam1, which collided.
-    // We need to disambiguate by parameters, not just template args.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import printutils.*;
-        |
-        |func helperFunc(x int) {
-        |  { print(x); }();
-        |}
-        |func helperFunc(x str) {
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
   test("Report when imm contains varying member") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1810,29 +1718,6 @@ class CompilerTests extends FunSuite with Matchers {
         |where func drop(T)void { value T; }
         |struct MyMutStruct { }
         |exported func main() { x = MyImmContainer<MyMutStruct>(MyMutStruct()); }
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Lambda inside template") {
-    // This originally didn't work because both helperFunc<int> and helperFunc<Str>
-    // made a closure struct called helperFunc:lam1, which collided.
-    // This is what spurred paackage support.
-
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.drop.*;
-        |import printutils.*;
-        |
-        |func helperFunc<T>(x T)
-        |where func print(&T)void, func drop(T)void
-        |{
-        |  { print(x); }();
-        |}
-        |exported func main() {
-        |  helperFunc(4);
-        |  helperFunc("bork");
-        |}
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }

@@ -96,26 +96,26 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
   // - env is the environment the templated function was made in
   def evaluateTemplatedFunctionFromCallForPrototype(
     // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    outerEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    args: Vector[Option[CoordT]],
+    args: Vector[CoordT],
     verifyConclusions: Boolean):
   (IEvaluateFunctionResult) = {
-    val function = nearEnv.function
+    val function = outerEnv.function
     // Check preconditions
-    checkClosureConcernsHandled(nearEnv)
+    checkClosureConcernsHandled(outerEnv)
 
     val callSiteRules =
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound) =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, callRange, nearEnv),
+        InferEnv(originalCallingEnv, callRange, outerEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -131,11 +131,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       }
 
     val runedEnv =
-      addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
+      addRunedDataToNearEnv(outerEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
-        nearEnv, runedEnv, coutputs, callRange, function)
+        outerEnv, runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, header.toPrototype), inferredTemplatas)
@@ -162,7 +162,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       originalCallingEnv: IEnvironment, // See CSSNCE
       callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[Option[CoordT]]):
+      args: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     val function = declaringEnv.function
     // Check preconditions
@@ -173,7 +173,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, 0)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound) =
       inferCompiler.solveComplete(
         InferEnv(originalCallingEnv, callRange, declaringEnv),
@@ -353,7 +353,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     originalCallingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      args: Vector[Option[CoordT]]):
+      args: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     val function = nearEnv.function
     // Check preconditions
@@ -367,7 +367,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       TemplataCompiler.assembleCallSiteRules(
         function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
     val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
       inferCompiler.solveComplete(
@@ -462,16 +462,16 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
   // - env is the environment the templated function was made in
   def evaluateGenericFunctionFromCallForPrototype(
     // The environment the function was defined in.
-    nearEnv: BuildingFunctionEnvironmentWithClosureds,
+    outerEnv: BuildingFunctionEnvironmentWithClosureds,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[Option[CoordT]]):
   (IEvaluateFunctionResult) = {
-    val function = nearEnv.function
+    val function = outerEnv.function
     // Check preconditions
-    checkClosureConcernsHandled(nearEnv)
+    checkClosureConcernsHandled(outerEnv)
 
     val callSiteRules =
         TemplataCompiler.assembleCallSiteRules(
@@ -480,7 +480,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound) =
       inferCompiler.solveComplete(
-        InferEnv(callingEnv, callRange, nearEnv),
+        InferEnv(callingEnv, callRange, outerEnv),
         coutputs,
         callSiteRules,
         function.runeToType,
@@ -495,7 +495,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         case Ok(i) => (i)
       }
 
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
+    val runedEnv = addRunedDataToNearEnv(outerEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -606,7 +606,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     val functionTemplateFullName =
       nearEnv.parentEnv.fullName.addStep(
-        nameTranslator.translateFunctionNameToTemplateName(nearEnv.function.name))
+        nameTranslator.translateGenericFunctionName(nearEnv.function.name))
 
     val definitionRules =
       function.rules.filter(

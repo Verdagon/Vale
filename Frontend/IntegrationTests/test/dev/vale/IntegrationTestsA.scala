@@ -372,6 +372,64 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
+  test("Tests lambda") {
+    val compile =
+      RunCompilation.test(
+        """
+          |exported func main() int {
+          |  a = 7;
+          |  return { a }();
+          |}
+          |""".stripMargin)
+    compile.run(Vector())
+  }
+
+  test("Tests generic with a lambda") {
+    val compile =
+      RunCompilation.test(
+        """
+          |func genFunc<T>(a &T) &T {
+          |  return { a }();
+          |}
+          |exported func main() int {
+          |  genFunc(7)
+          |}
+          |""".stripMargin)
+    compile.run(Vector())
+  }
+
+  test("Tests generic with a polymorphic lambda") {
+    // This lambda has an implicit <Y> template param
+    val compile =
+      RunCompilation.test(
+        """
+          |func genFunc<T>(a &T) &T {
+          |  return (x => a)(true);
+          |}
+          |exported func main() int {
+          |  genFunc(7)
+          |}
+          |""".stripMargin)
+    compile.run(Vector())
+  }
+
+  test("Tests generic with a polymorphic lambda invoked twice") {
+    // This lambda has an implicit <Y> template param, invoked with a bool then a string
+    val compile =
+      RunCompilation.test(
+        """
+          |func genFunc<T>(a &T) &T {
+          |  lam = (x => a);
+          |  lam(true);
+          |  return lam("hello");
+          |}
+          |exported func main() int {
+          |  genFunc(7)
+          |}
+          |""".stripMargin)
+    compile.run(Vector())
+  }
+
   test("Tests double closure") {
     val compile = RunCompilation.test(Tests.loadExpected("programs/lambdas/doubleclosure.vale"))
     compile.run(Vector())

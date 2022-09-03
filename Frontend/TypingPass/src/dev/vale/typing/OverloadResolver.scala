@@ -307,7 +307,7 @@ class OverloadResolver(
                       if (ft.function.isLambda()) {
                         // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                         functionCompiler.evaluateTemplatedFunctionFromCallForBanner(
-                          coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
+                          coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(prototype, conclusions)) => {
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
@@ -322,7 +322,7 @@ class OverloadResolver(
                       } else {
                         // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                          coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters.map(x => Some(x))) match {
+                          coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(prototype, conclusions)) => {
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
@@ -344,7 +344,7 @@ class OverloadResolver(
               // So it's not a template, but it's a template in context. We'll still need to
               // feed it into the inferer.
               functionCompiler.evaluateTemplatedFunctionFromCallForBanner(
-                coutputs, callingEnv, callRange, ft, Vector.empty, paramFilters.map(x => Some(x))) match {
+                coutputs, callingEnv, callRange, ft, Vector.empty, paramFilters) match {
                 case (EvaluateFunctionFailure(reason)) => {
                   Err(reason)
                 }
@@ -363,7 +363,7 @@ class OverloadResolver(
         } else {
           if (ft.function.isLambda()) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs, callRange, callingEnv, ft, Vector(), paramFilters.map(x => Some(x)), verifyConclusions) match {
+                coutputs, callRange, callingEnv, ft, Vector(), paramFilters, verifyConclusions) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
@@ -379,7 +379,7 @@ class OverloadResolver(
             }
           } else {
             functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-              coutputs, callRange, callingEnv, ft, Vector(), paramFilters.map(x => Some(x))) match {
+              coutputs, callRange, callingEnv, ft, Vector(), paramFilters) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
@@ -651,7 +651,7 @@ class OverloadResolver(
 //        if (ft.function.isTemplate) {
           val (EvaluateFunctionSuccess(successBanner, conclusions)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForBanner(
-              coutputs, callingEnv, callRange, ft, Vector.empty, banner.paramTypes.map(x => Some(x)));
+              coutputs, callingEnv, callRange, ft, Vector.empty, banner.paramTypes);
           successBanner
 //        } else {
 //          functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
@@ -678,7 +678,7 @@ class OverloadResolver(
         if (ft.function.isLambda()) {
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs,callRange, callingEnv, ft, templateArgs, args.map(x => Some(x)), verifyConclusions) match {
+                coutputs,callRange, callingEnv, ft, templateArgs, args, verifyConclusions) match {
               case efs @ EvaluateFunctionSuccess(_, _) => efs
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
@@ -690,7 +690,7 @@ class OverloadResolver(
 //          }
         } else {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, ft, templateArgs, args.map(x => Some(x))) match {
+            coutputs, callRange, callingEnv, ft, templateArgs, args) match {
             case efs @ EvaluateFunctionSuccess(_, _) => efs
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))

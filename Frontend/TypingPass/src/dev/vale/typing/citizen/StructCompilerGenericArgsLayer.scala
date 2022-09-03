@@ -397,7 +397,7 @@ class StructCompilerGenericArgsLayer(
               // just be name-prefixed like Free is, see IMRFDI.
               interfaceA.internalMethods
                 .map(internalMethod => {
-                  val functionName = nameTranslator.translateFunctionNameToTemplateName(internalMethod.name)
+                  val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
                   (functionName -> FunctionEnvEntry(internalMethod))
                 }) ++
                 // Merge in any things from the global environment that say they're part of this

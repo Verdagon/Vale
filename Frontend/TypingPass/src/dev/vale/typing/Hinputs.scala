@@ -160,25 +160,25 @@ case class Hinputs(
   }
 
   def nameIsLambdaIn(name: FullNameT[IFunctionNameT], needleFunctionHumanName: String): Boolean = {
-    val lastThree = name.steps.slice(name.steps.size - 3, name.steps.size)
-    println(lastThree)
-    lastThree match {
-      case Vector(
+    val first = name.steps.head
+    val lastTwo = name.steps.slice(name.steps.size - 2, name.steps.size)
+    (first, lastTwo) match {
+      case (
         FunctionNameT(FunctionTemplateNameT(StrI(hayFunctionHumanName), _), _, _),
-        LambdaCitizenTemplateNameT(_),
-        FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)) if hayFunctionHumanName == needleFunctionHumanName => true
+        Vector(
+          LambdaCitizenTemplateNameT(_),
+          LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_, _))))
+        if hayFunctionHumanName == needleFunctionHumanName => true
       case _ => false
     }
   }
 
+  def lookupLambdasIn(needleFunctionHumanName: String): Array[FunctionT] = {
+    functions.filter(f => nameIsLambdaIn(f.header.fullName, needleFunctionHumanName)).toArray
+  }
+
   def lookupLambdaIn(needleFunctionHumanName: String): FunctionT = {
-    val matches = functions.filter(f => nameIsLambdaIn(f.header.fullName, needleFunctionHumanName))
-    if (matches.size == 0) {
-      vfail("Lambda for \"" + needleFunctionHumanName + "\" not found!")
-    } else if (matches.size > 1) {
-      vfail("Multiple found!")
-    }
-    matches.head
+    vassertOne(lookupLambdasIn(needleFunctionHumanName))
   }
 
   def getAllNonExternFunctions: Iterable[FunctionT] = {

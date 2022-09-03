@@ -996,3 +996,158 @@ where func drop(T...)void {
 which means we need some sort of "move ellipsis" operator and something to check the bounds on each T.
 
 Alas, that's likely too much work for now, we'll have to disable tuples and come back to them.
+
+
+# Lambdas Are Generic Templates (LAGT)
+
+Lambdas are instantiated every time they're called. In this:
+
+```
+func genFunc<T>(a &T) &T {
+  f = x => a; // Lambda struct at code loc 2:6
+  f(true);
+  f(a);
+  f(7)
+}
+exported func main() int {
+  genFunc(7)
+}
+```
+
+There are actually three generic functions created:
+
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{bool}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{genFunc$0}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{int}`
+
+These are each generic functions, just like a normal `func moo<T>(a T) { ... }`/`moo<moo$0>` generic function. These just have an extra disambiguation, these are **not** instantiations.
+
+They are disambiguated by the "generic template args" (eg `{bool}`). It's just a list of coords to disambiguate them from each other. These are not generic args, they are generic **template** args.
+
+In this program, we're calling only `genFunc(7)` so after the monomorphizer pass these would be the three final instantiations in total:
+
+ * `mvtest/genFunc<int>.lam:2:6.__call{bool}<bool>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>` (duplicate!)
+
+The generic template args are usually redundant with the actual parameters, so we don't include a `(bool)` at the end of the name like we usually do for function names.
+
+However, theyre not necessarily redundant with the template args. If we had a `(a int, b)` then the lambda has only one generic arg, the implicit one for b. That thing's name might be `__call{int, bool}<bool>`.
+
+Serendipitously, this approach will result in the same ending instantiation name for those latter two, so we don't have to instantiate that lambda an extra time needlessly.
+
+
+If we also called `genFunc("hello")` we'd have these 6 in total:
+
+ * `mvtest/genFunc<int>.lam:2:6.__call{bool}<bool>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`
+ * `mvtest/genFunc<str>.lam:2:6.__call{bool}<bool>`
+ * `mvtest/genFunc<str>.lam:2:6.__call{str}<str>`
+ * `mvtest/genFunc<str>.lam:2:6.__call{int}<int>`
+
+So in a way, a generic is a template that makes a generic function. That one `x => a` is a template which formed three generic functions. Each of those generic functions was instantiated twice, so we have six in total.
+
+
+## Lambdas Have Placeholders from Containing Top Level Denizen (LHPCTLD)
+
+Look at LAGT's example, and we see that lambdas never create placeholders for themselves; there are never any lambda parameter placeholders.
+
+They do however sometimes use placeholders from their parent function, such as the `mvtest/genFunc<genFunc$0>.lam:2:6.__call{genFunc$0}`.
+
+Another example, this program has a lambda inside a generic function:
+
+```
+func genFunc<T>(a &T) &T {
+  return { a }();
+}
+exported func main() int {
+  genFunc(7)
+}
+```
+
+The function `genFunc.lam:2:10`, is loading `a` whose type is actually the containing genFunc's 0th placeholder.
+
+In other words, lambda functions load placeholders from a different function (their parent function).
+
+
+## Getting Lambda Instantiation's Original Generic's Name (GLIOGN)
+
+Normally, if we have a PrototypeT's full name, it's pretty easy to get its original template's full name. Take a FullNameT[IFunctionNameT]'s local name (the IFunctionNameT) and just call .template on it.
+
+However, that doesn't work for lambdas, which are templates rather than generics.
+
+```
+func genFunc<T>(a &T) &T {
+  f = x => a; // Lambda struct at code loc 2:6
+  f(true);
+  f(a);
+  f(7)
+}
+exported func main() int {
+  genFunc(7)
+}
+```
+
+Here, there are actually three generic functions created:
+
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{bool}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{genFunc$0}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{int}`
+
+In this program, we're calling only `genFunc(7)` so these would be the final three instantiations in total:
+
+ * `mvtest/genFunc<int>.lam:2:6.__call{bool}<bool>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>` (duplicate!)
+  
+These all might be completely different functions, depending on what happened inside the body, what kind of metaprogramming it does, etc.
+
+Now the challenge: What is `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`'s original generic's name? We have to be careful because these look very similar:
+
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{genFunc$0}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{int}`
+
+It's actually the second one.
+
+We can find that second one by comparing all their generic full names. The generic full name is where we remove any template args (`<...>`) and parameters (`(...)`) from every name in the full name.
+
+`mvtest/genFunc<int>.lam:2:6.__call{int}<int>` becomes `mvtest/genFunc.lam:2:6.__call{int}`.
+
+The two candidates become:
+ * `mvtest/genFunc.lam:2:6.__call{genFunc$0}`
+ * `mvtest/genFunclam:2:6.__call{int}`
+
+The second one matches nicely!
+
+And that's how we find the original generic function for a particular instantiation.
+
+
+
+
+
+
+
+
+
+
+
+if we dont find this things template name, we could do a search then perhaps
+
+could hash by supertemplate then just linear through them perhaps
+
+could we hash on last name actually? hm. no placeholders there right? there can be...
+only top level denizen created em.
+
+super template can note which slots actually differentiate, like a mask. then we can hash based on those. seems a bit overkill tho tbh.
+
+what if we invoke it with moo$0,moo$1 but then with moo$1,moo$0 ?
+
+hard to tell those apart. will need to do some mapping.
+also itd be funny if both were int, collision lol
+
+pattern match TLD (any of same supertemplate) to get substitutions, then look where else they are in hay full name. then put placeholders there in needle full name. then find it that way.
+should be pretty reliable.
+but... can invoke it with moo$0,moo$2 and then int,int lol.
+
+yeah i think the map may be the way to go.

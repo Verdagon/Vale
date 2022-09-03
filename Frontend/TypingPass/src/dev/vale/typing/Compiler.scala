@@ -645,7 +645,8 @@ class Compiler(
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
             args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
-          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)), true)
+          functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
+            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args, true)
         }
 
         override def evaluateGenericFunctionFromCallForPrototype(
@@ -657,7 +658,7 @@ class Compiler(
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args.map(x => Some(x)))
+            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
         }
 
         override def evaluateClosureStruct(
@@ -757,7 +758,7 @@ class Compiler(
               implDropMacro.getImplSiblingEntries(implNameT, implA)
             }) ++
             programA.functions.map(functionA => {
-              val functionNameT = packageName.addStep(nameTranslator.translateFunctionNameToTemplateName(functionA.name))
+              val functionNameT = packageName.addStep(nameTranslator.translateGenericFunctionName(functionA.name))
               Vector((functionNameT, FunctionEnvEntry(functionA)))
             })
           }).flatten.flatten.toVector

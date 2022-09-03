@@ -1368,12 +1368,21 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             VonMember(humanName.str, VonStr(humanName.str)),
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case LambdaTemplateNameT(codeLocation) => {
-        VonObject(
-          "LambdaTemplateName",
-          None,
-          Vector(
-            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+      case LambdaCallFunctionNameT(template, templateArgs) => {
+        vimpl()
+//        VonObject(
+//          "LambdaTemplateName",
+//          None,
+//          Vector(
+//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+      }
+      case LambdaCallFunctionTemplateNameT(codeLoc, params) => {
+//        VonObject(
+//          "LambdaTemplateName",
+//          None,
+//          Vector(
+//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+        vimpl()
       }
       case LambdaCitizenTemplateNameT(codeLocation) => {
         VonObject(

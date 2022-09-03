@@ -92,7 +92,7 @@ class InterfaceFreeMacro(interner: Interner, keywords: Keywords, nameTranslator:
         rules.buildArray().toVector,
         AbstractBodyS)
 
-    val freeNameT = interfaceName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+    val freeNameT = interfaceName.addStep(nameTranslator.translateGenericFunctionName(freeFunctionA.name))
     Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
   }
 

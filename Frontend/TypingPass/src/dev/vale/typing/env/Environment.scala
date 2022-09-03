@@ -209,7 +209,7 @@ object TemplatasStore {
       }
       case FreeTemplateNameT(codeLocation) => Some(interner.intern(FreeImpreciseNameS()))
       case FreeNameT(_, templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
-      case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
+//      case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
       case PlaceholderNameT(PlaceholderTemplateNameT(index)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
       case ReachablePrototypeNameT(num) => None
       case FreeTemplateNameT(codeLoc) => Some(interner.intern(FreeImpreciseNameS()))
@@ -298,14 +298,14 @@ case class TemplatasStore(
           case (key, entry @ TemplataEnvEntry(IsaTemplata(_, _, subKind, superKind))) => {
             val subImpreciseName =
               subKind match {
-                case StructTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
-                case InterfaceTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
+                case StructTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
+                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case _ => vwat()
               }
             val superImpreciseName =
               superKind match {
-                case InterfaceTT(fullName, _) => vassertSome(getImpreciseName(interner, fullName.last))
+                case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.last))
                 case _ => vwat()
               }
