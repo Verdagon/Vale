@@ -85,12 +85,12 @@ class FunctionCompilerClosureOrLightLayer(
       closureStructRef: StructTT,
       function: FunctionA,
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      argTypes: Vector[Option[CoordT]]):
+      argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
-    val name = makeNameWithClosureds(declaringEnv, function.name)
+    val name = declaringEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
     coutputs.declareType(name)
     coutputs.declareTypeOuterEnv(name, declaringEnv)
     val newEnv =
@@ -115,11 +115,11 @@ class FunctionCompilerClosureOrLightLayer(
     closureStructRef: StructTT,
     function: FunctionA,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    argTypes: Vector[Option[CoordT]],
+    argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   (IEvaluateFunctionResult) = {
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
-    val name = makeNameWithClosureds(outerEnv, function.name)
+    val name = outerEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
     val newEnv =
       env.BuildingFunctionEnvironmentWithClosureds(
         outerEnv.globalEnv,
@@ -134,24 +134,25 @@ class FunctionCompilerClosureOrLightLayer(
   }
 
   def evaluateTemplatedLightFunctionFromCallForPrototype2(
-      ourEnv: IEnvironment,
+      parentEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
       callRange: List[RangeS],
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      argTypes: Vector[Option[CoordT]],
+      argTypes: Vector[CoordT],
       verifyConclusions: Boolean):
   (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, false)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForPrototype(
-      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes, verifyConclusions)
+      outerEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes, verifyConclusions)
   }
 
   def evaluateGenericLightFunctionFromCallForPrototype2(
-    ourEnv: IEnvironment,
+    parentEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
@@ -161,13 +162,14 @@ class FunctionCompilerClosureOrLightLayer(
   (IEvaluateFunctionResult) = {
     checkNotClosure(function);
 
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, false)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericFunctionName(function.name))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromCallForPrototype(
-      newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
+      outerEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, args)
   }
 
   def evaluateGenericLightFunctionParentForPrototype2(
-    ourEnv: IEnvironment,
+    parentEnv: IEnvironment,
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment, // See CSSNCE
     callRange: List[RangeS],
@@ -175,10 +177,10 @@ class FunctionCompilerClosureOrLightLayer(
     args: Vector[Option[CoordT]]):
   IEvaluateFunctionResult = {
     checkNotClosure(function);
-
-    val newEnv = makeEnvWithoutClosureStuff(ourEnv, function, true)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericFunctionName(function.name))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, true)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionParentForPrototype(
-      newEnv, coutputs, callingEnv, callRange, args)
+      outerEnv, coutputs, callingEnv, callRange, args)
   }
 
 
@@ -199,15 +201,16 @@ class FunctionCompilerClosureOrLightLayer(
 //  }
 
   def evaluateGenericLightFunctionFromNonCall(
-    outerEnv: IEnvironment,
+    parentEnv: IEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     function: FunctionA,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function, true)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericFunctionName(function.name))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, true)
     ordinaryOrTemplatedLayer.evaluateGenericFunctionFromNonCall(
-      newEnv, coutputs, parentRanges, verifyConclusions)
+      outerEnv, coutputs, parentRanges, verifyConclusions)
   }
 
 //  def evaluateTemplatedLightFunctionFromNonCallForHeader(
@@ -367,44 +370,45 @@ class FunctionCompilerClosureOrLightLayer(
   // are a lot of overloads available.
   // This assumes it met any type bound restrictions (or, will; not implemented yet)
   def evaluateTemplatedLightBannerFromCall(
-      declaringEnv: IEnvironment,
+      parentEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
       callRange: List[RangeS],
       function: FunctionA,
       explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-      argTypes: Vector[Option[CoordT]]):
+      argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     checkNotClosure(function)
     vassert(function.isTemplate)
 
-    val newEnv = makeEnvWithoutClosureStuff(declaringEnv, function, false)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedLightBannerFromCall(
-        newEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes)
+        outerEnv, coutputs, callingEnv, callRange, explicitTemplateArgs, argTypes)
   }
 
   def evaluateTemplatedFunctionFromCallForBanner(
-      outerEnv: IEnvironment,
+      parentEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment, // See CSSNCE
       function: FunctionA,
       callRange: List[RangeS],
       alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-      argTypes: Vector[Option[CoordT]]):
+      argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     vassert(function.isTemplate)
-
-    val newEnv = makeEnvWithoutClosureStuff(outerEnv, function, false)
+    val outerEnvFullName = parentEnv.fullName.addStep(nameTranslator.translateGenericFunctionName(function.name))
+    val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
-        newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
+        outerEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
   }
 
   private def makeEnvWithoutClosureStuff(
     outerEnv: IEnvironment,
     function: FunctionA,
+    name: FullNameT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val name = makeNameWithClosureds(outerEnv, function.name)
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,
       outerEnv,
@@ -413,13 +417,6 @@ class FunctionCompilerClosureOrLightLayer(
       function,
       Vector.empty,
       isRootCompilingDenizen)
-  }
-
-  private def makeNameWithClosureds(
-    containingEnv: IEnvironment,
-    functionName: IFunctionDeclarationNameS
-  ): FullNameT[IFunctionTemplateNameT] = {
-    containingEnv.fullName.addStep(nameTranslator.translateFunctionNameToTemplateName(functionName))
   }
 
   private def checkNotClosure(function: FunctionA) = {

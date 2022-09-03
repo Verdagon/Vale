@@ -9,6 +9,7 @@ object simpleName {
   def unapply(fullName: FullNameT[INameT]): Option[String] = {
     fullName.last match {
 //      case ImplDeclareNameT(_) => None
+      case LambdaCallFunctionNameT(_, _) => Some("__call")
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
       case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), _, _) => Some(humanName.str)

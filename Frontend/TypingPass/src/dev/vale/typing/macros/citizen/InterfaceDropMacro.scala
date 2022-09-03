@@ -91,7 +91,7 @@ class InterfaceDropMacro(
         AbstractBodyS)
 
     Vector(
-      interfaceName.copy(last = nameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name)) ->
+      interfaceName.copy(last = nameTranslator.translateGenericFunctionName(dropFunctionA.name)) ->
         FunctionEnvEntry(dropFunctionA))
   }
 

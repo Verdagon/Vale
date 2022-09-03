@@ -103,7 +103,7 @@ class StructFreeMacro(
       rules.buildArray().toVector,
       GeneratedBodyS(freeGeneratorId))
 
-    val freeNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(freeFunctionA.name))
+    val freeNameT = structName.addStep(nameTranslator.translateGenericFunctionName(freeFunctionA.name))
     Vector((freeNameT, FunctionEnvEntry(freeFunctionA)))
   }
 

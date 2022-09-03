@@ -330,6 +330,23 @@ case class FunctionTemplateNameT(
   }
 }
 
+case class LambdaCallFunctionTemplateNameT(
+  codeLocation: CodeLocationS,
+  paramTypes: Vector[CoordT]
+) extends INameT with IFunctionTemplateNameT {
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
+    vassert(params == paramTypes)
+    interner.intern(LambdaCallFunctionNameT(this, templateArgs))
+  }
+}
+
+case class LambdaCallFunctionNameT(
+  template: LambdaCallFunctionTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
+) extends IFunctionNameT {
+  override def parameters: Vector[CoordT] = template.paramTypes
+}
+
 case class ForwarderFunctionTemplateNameT(
   inner: IFunctionTemplateNameT,
   index: Int
@@ -370,13 +387,13 @@ case class ForwarderFunctionTemplateNameT(
 //  parameters: Vector[CoordT]
 //) extends INameT with IFunctionNameT
 
-case class LambdaTemplateNameT(
-  codeLocation: CodeLocationS
-) extends INameT with IFunctionTemplateNameT {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(keywords.underscoresCall, codeLocation)), templateArgs, params))
-  }
-}
+//case class LambdaTemplateNameT(
+//  codeLocation: CodeLocationS
+//) extends INameT with IFunctionTemplateNameT {
+//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
+//    interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(keywords.underscoresCall, codeLocation)), templateArgs, params))
+//  }
+//}
 case class ConstructorTemplateNameT(
   codeLocation: CodeLocationS
 ) extends INameT with IFunctionTemplateNameT {
@@ -462,7 +479,6 @@ case class InterfaceNameT(
 case class LambdaCitizenTemplateNameT(
   codeLocation: CodeLocationS
 ) extends IStructTemplateNameT {
-  def templateArgs: Vector[ITemplata[ITemplataType]] = Vector.empty
   override def makeStructName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IStructNameT = {
     vassert(templateArgs.isEmpty)
     interner.intern(LambdaCitizenNameT(this))

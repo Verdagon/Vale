@@ -94,7 +94,7 @@ class StructDropMacro(
         rules.buildArray().toVector,
         GeneratedBodyS(dropGeneratorId))
 
-    val dropNameT = structName.addStep(nameTranslator.translateFunctionNameToTemplateName(dropFunctionA.name))
+    val dropNameT = structName.addStep(nameTranslator.translateGenericFunctionName(dropFunctionA.name))
     Vector((dropNameT, FunctionEnvEntry(dropFunctionA)))
   }
 

@@ -75,7 +75,7 @@ class AnonymousInterfaceMacro(
 
     val forwarderMethods =
       interfaceA.internalMethods.zip(memberRunes).zipWithIndex.map({ case ((method, rune), methodIndex) =>
-        val name = structNameT.copy(last = nameTranslator.translateFunctionNameToTemplateName(method.name))
+        val name = structNameT.copy(last = nameTranslator.translateGenericFunctionName(method.name))
         (name, FunctionEnvEntry(makeForwarderFunction(structNameS, interfaceA, structA, method, methodIndex)))
       })
 

@@ -1,35 +1,40 @@
 package dev.vale.typing.names
 
-import dev.vale.{CodeLocationS, Interner, vimpl}
+import dev.vale.{CodeLocationS, Interner, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.typing.types.ICitizenTT
+import dev.vale.typing.types.{CoordT, ICitizenTT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
-import dev.vale.CodeLocationS
 
 import scala.collection.mutable
 
 
 class NameTranslator(interner: Interner) {
-  def translateFunctionNameToTemplateName(functionName: IFunctionDeclarationNameS): IFunctionTemplateNameT = {
+  def translateGenericTemplateFunctionName(
+    functionName: IFunctionDeclarationNameS,
+    params: Vector[CoordT]):
+  IFunctionTemplateNameT = {
     functionName match {
-      case LambdaDeclarationNameS(/*parent, */ codeLocation) => {
-        interner.intern(LambdaTemplateNameT(translateCodeLocation(codeLocation)))
+      case LambdaDeclarationNameS(codeLocation) => {
+        interner.intern(LambdaCallFunctionTemplateNameT(translateCodeLocation(codeLocation), params))
+      }
+      case other => vwat(other) // Only templates should call this
+    }
+  }
+
+  def translateGenericFunctionName(functionName: IFunctionDeclarationNameS): IFunctionTemplateNameT = {
+    functionName match {
+      case LambdaDeclarationNameS(codeLocation) => {
+        vfail() // Lambdas are generic templates, not generics
       }
       case FreeDeclarationNameS(codeLocationS) => {
         interner.intern(FreeTemplateNameT(translateCodeLocation(codeLocationS)))
       }
-//      case AbstractVirtualFreeDeclarationNameS(codeLoc) => {
-//        interner.intern(AbstractVirtualFreeTemplateNameT(codeLoc))
-//      }
-//      case OverrideVirtualFreeDeclarationNameS(codeLoc) => {
-//        interner.intern(OverrideVirtualFreeTemplateNameT(codeLoc))
-//      }
       case FunctionNameS(name, codeLocation) => {
         interner.intern(FunctionTemplateNameT(name, translateCodeLocation(codeLocation)))
       }
       case ForwarderFunctionDeclarationNameS(inner, index) => {
-        interner.intern(ForwarderFunctionTemplateNameT(translateFunctionNameToTemplateName(inner), index))
+        interner.intern(ForwarderFunctionTemplateNameT(translateGenericFunctionName(inner), index))
       }
       case ConstructorNameS(TopLevelCitizenDeclarationNameS(name, codeLocation)) => {
         interner.intern(FunctionTemplateNameT(name, translateCodeLocation(codeLocation.begin)))
@@ -37,14 +42,6 @@ class NameTranslator(interner: Interner) {
       case ConstructorNameS(thing @ AnonymousSubstructTemplateNameS(_)) => {
         interner.intern(AnonymousSubstructConstructorTemplateNameT(translateCitizenName(thing)))
       }
-//      case OverrideVirtualDropFunctionDeclarationNameS(implName) => {
-//        interner.intern(OverrideVirtualDropFunctionTemplateNameT(
-//          translateNameStep(implName)))
-//      }
-//      case AbstractVirtualDropFunctionDeclarationNameS(implName) => {
-//        interner.intern(AbstractVirtualDropFunctionTemplateNameT(
-//          translateNameStep(implName)))
-//      }
     }
   }
 
@@ -94,7 +91,8 @@ class NameTranslator(interner: Interner) {
       case s @ TopLevelStructDeclarationNameS(_, _) => translateStructName(s)
       case s @ TopLevelInterfaceDeclarationNameS(_, _) => translateInterfaceName(s)
       case LambdaDeclarationNameS(codeLocation) => {
-        interner.intern(LambdaTemplateNameT(translateCodeLocation(codeLocation)))
+        vcurious()
+//        interner.intern(LambdaTemplateNameT(translateCodeLocation(codeLocation)))
       }
       case FunctionNameS(name, codeLocation) => {
         interner.intern(FunctionTemplateNameT(name, translateCodeLocation(codeLocation)))
