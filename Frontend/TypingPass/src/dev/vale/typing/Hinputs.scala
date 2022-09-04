@@ -167,7 +167,7 @@ case class Hinputs(
         FunctionNameT(FunctionTemplateNameT(StrI(hayFunctionHumanName), _), _, _),
         Vector(
           LambdaCitizenTemplateNameT(_),
-          LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_, _))))
+          LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_, _), _, _)))
         if hayFunctionHumanName == needleFunctionHumanName => true
       case _ => false
     }

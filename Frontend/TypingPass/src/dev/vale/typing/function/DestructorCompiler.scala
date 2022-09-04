@@ -107,14 +107,14 @@ class DestructorCompiler(
               case OverloadSetT(overloadSetEnv, name) => {
                 DiscardTE(undestructedExpr2)
               }
-              case as@StaticSizedArrayTT(_, _, _, _) => {
+              case as@StaticSizedArrayTT(_) => {
                 val underarrayReference2 =
                   CoordT(
                     undestructedExpr2.result.reference.ownership,
                     as)
                 destroySharedArray(coutputs, underarrayReference2)
               }
-              case as@RuntimeSizedArrayTT(_, _) => {
+              case as@RuntimeSizedArrayTT(_) => {
                 val underarrayReference2 =
                   CoordT(
                     undestructedExpr2.result.reference.ownership,

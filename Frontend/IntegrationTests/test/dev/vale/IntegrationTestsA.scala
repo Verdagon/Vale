@@ -108,6 +108,145 @@ class RunCompilation(
 }
 
 class IntegrationTestsA extends FunSuite with Matchers {
+
+
+  //  test("Scratch scratch") {
+  //    val compile =
+  //      RunCompilation.test(
+  //        """
+  //          |scratch code here
+  //          |""".stripMargin)
+  //    compile.evalForKind(Vector())
+  //  }
+
+  test("Simple program returning an int") {
+    val compile = RunCompilation.test("exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+
+  test("Simple program with drop") {
+    val compile = RunCompilation.test("import v.builtins.drop.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with arith") {
+    val compile = RunCompilation.test("import v.builtins.arith.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with logic") {
+    val compile = RunCompilation.test("import v.builtins.logic.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with migrate") {
+    val compile = RunCompilation.test("import v.builtins.migrate.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with str") {
+    val compile = RunCompilation.test("import v.builtins.str.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with arrays") {
+    val compile = RunCompilation.test("import v.builtins.arrays.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with mainargs") {
+    val compile = RunCompilation.test("import v.builtins.mainargs.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with as") {
+    val compile = RunCompilation.test("import v.builtins.as.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with print") {
+    val compile = RunCompilation.test("import v.builtins.print.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with tup") {
+    val compile = RunCompilation.test("import v.builtins.tup.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with panic") {
+    val compile = RunCompilation.test("import v.builtins.panic.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with opt") {
+    val compile = RunCompilation.test("import v.builtins.opt.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with result") {
+    val compile = RunCompilation.test("import v.builtins.result.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with sameinstance") {
+    val compile = RunCompilation.test("import v.builtins.sameinstance.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+  test("Simple program with weak") {
+    val compile = RunCompilation.test("import v.builtins.weak.*; exported func main() int { return 3; }", false)
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+
+  test("Hardcoding negative numbers") {
+    val compile = RunCompilation.test("exported func main() int { return -3; }")
+    compile.evalForKind(Vector()) match { case VonInt(-3) => }
+  }
+
+  test("Taking an argument and returning it") {
+    val compile = RunCompilation.test("exported func main(a int) int { return a; }")
+    compile.evalForKind(Vector(IntV(5, 32))) match { case VonInt(5) => }
+  }
+
+  test("Tests adding two numbers") {
+    val compile = RunCompilation.test("exported func main() int { return +(2, 3); }")
+    compile.evalForKind(Vector()) match { case VonInt(5) => }
+  }
+
+  test("Tests adding two floats") {
+    val compile = RunCompilation.test("exported func main() float { return +(2.5, 3.5); }")
+    compile.evalForKind(Vector()) match { case VonFloat(6.0f) => }
+  }
+
+  test("Tests inline adding") {
+    val compile = RunCompilation.test("exported func main() int { return 2 + 3; }")
+    compile.evalForKind(Vector()) match { case VonInt(5) => }
+  }
+
+  test("Test constraint ref") {
+    val compile = RunCompilation.test(Tests.loadExpected("programs/constraintRef.vale"))
+    compile.evalForKind(Vector()) match { case VonInt(8) => }
+  }
+
+  test("Test borrow ref") {
+    val compile = RunCompilation.test(Tests.loadExpected("programs/borrowRef.vale"))
+    compile.evalForKind(Vector()) match { case VonInt(8) => }
+  }
+
+  test("Tests inline adding more") {
+    val compile = RunCompilation.test("exported func main() int { return 2 + 3 + 4 + 5 + 6; }")
+    compile.evalForKind(Vector()) match { case VonInt(20) => }
+  }
+
+  test("Simple lambda") {
+    val compile = RunCompilation.test("exported func main() int { return {7}(); }")
+    compile.evalForKind(Vector()) match { case VonInt(7) => }
+  }
+
+  test("Lambda with one magic arg") {
+    val compile = RunCompilation.test("exported func main() int { return {_}(3); }")
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+
+
+  // Test that the lambda's arg is the right type, and the name is right
+  test("Lambda with a type specified param") {
+    val compile = RunCompilation.test("exported func main() int { return (a int) => { return +(a,a); }(3); }");
+    compile.evalForKind(Vector()) match { case VonInt(6) => }
+  }
+
+  test("Test overloads") {
+    val compile = RunCompilation.test(Tests.loadExpected("programs/functions/overloads.vale"))
+    compile.evalForKind(Vector()) match { case VonInt(6) => }
+  }
+
   test("Test overload set") {
     val compile =
       RunCompilation.test(
@@ -393,6 +532,21 @@ class IntegrationTestsA extends FunSuite with Matchers {
           |}
           |exported func main() int {
           |  genFunc(7)
+          |}
+          |""".stripMargin)
+    compile.run(Vector())
+  }
+
+  test("Tests generic's lambda calling parent function's bound") {
+    val compile =
+      RunCompilation.test(
+        """
+          |func genFunc<T>(a &T)
+          |where func print(&T)void {
+          |  { print(a); }()
+          |}
+          |exported func main() {
+          |  genFunc("hello");
           |}
           |""".stripMargin)
     compile.run(Vector())
@@ -823,145 +977,16 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector())
   }
 
+  test("Call borrow parameter with shared reference") {
+    val compile = RunCompilation.test(
+      """
+        |func get<T>(a &T) &T { return a; }
+        |
+        |exported func main() int {
+        |  return get(6);
+        |}
+      """.stripMargin)
 
-  // BEGIN HERE DO NOT SUBMIT
-
-
-  //  test("Scratch scratch") {
-  //    val compile =
-  //      RunCompilation.test(
-  //        """
-  //          |scratch code here
-  //          |""".stripMargin)
-  //    compile.evalForKind(Vector())
-  //  }
-
-  test("Simple program returning an int") {
-    val compile = RunCompilation.test("exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-
-  test("Simple program with drop") {
-    val compile = RunCompilation.test("import v.builtins.drop.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with arith") {
-    val compile = RunCompilation.test("import v.builtins.arith.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with logic") {
-    val compile = RunCompilation.test("import v.builtins.logic.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with migrate") {
-    val compile = RunCompilation.test("import v.builtins.migrate.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with str") {
-    val compile = RunCompilation.test("import v.builtins.str.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with arrays") {
-    val compile = RunCompilation.test("import v.builtins.arrays.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with mainargs") {
-    val compile = RunCompilation.test("import v.builtins.mainargs.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with as") {
-    val compile = RunCompilation.test("import v.builtins.as.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with print") {
-    val compile = RunCompilation.test("import v.builtins.print.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with tup") {
-    val compile = RunCompilation.test("import v.builtins.tup.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with panic") {
-    val compile = RunCompilation.test("import v.builtins.panic.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with opt") {
-    val compile = RunCompilation.test("import v.builtins.opt.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with result") {
-    val compile = RunCompilation.test("import v.builtins.result.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with sameinstance") {
-    val compile = RunCompilation.test("import v.builtins.sameinstance.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-  test("Simple program with weak") {
-    val compile = RunCompilation.test("import v.builtins.weak.*; exported func main() int { return 3; }", false)
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-
-  test("Hardcoding negative numbers") {
-    val compile = RunCompilation.test("exported func main() int { return -3; }")
-    compile.evalForKind(Vector()) match { case VonInt(-3) => }
-  }
-
-  test("Taking an argument and returning it") {
-    val compile = RunCompilation.test("exported func main(a int) int { return a; }")
-    compile.evalForKind(Vector(IntV(5, 32))) match { case VonInt(5) => }
-  }
-
-  test("Tests adding two numbers") {
-    val compile = RunCompilation.test("exported func main() int { return +(2, 3); }")
-    compile.evalForKind(Vector()) match { case VonInt(5) => }
-  }
-
-  test("Tests adding two floats") {
-    val compile = RunCompilation.test("exported func main() float { return +(2.5, 3.5); }")
-    compile.evalForKind(Vector()) match { case VonFloat(6.0f) => }
-  }
-
-  test("Tests inline adding") {
-    val compile = RunCompilation.test("exported func main() int { return 2 + 3; }")
-    compile.evalForKind(Vector()) match { case VonInt(5) => }
-  }
-
-  test("Test constraint ref") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/constraintRef.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(8) => }
-  }
-
-  test("Test borrow ref") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/borrowRef.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(8) => }
-  }
-
-  test("Tests inline adding more") {
-    val compile = RunCompilation.test("exported func main() int { return 2 + 3 + 4 + 5 + 6; }")
-    compile.evalForKind(Vector()) match { case VonInt(20) => }
-  }
-
-  test("Simple lambda") {
-    val compile = RunCompilation.test("exported func main() int { return {7}(); }")
-    compile.evalForKind(Vector()) match { case VonInt(7) => }
-  }
-
-  test("Lambda with one magic arg") {
-    val compile = RunCompilation.test("exported func main() int { return {_}(3); }")
-    compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-
-
-  // Test that the lambda's arg is the right type, and the name is right
-  test("Lambda with a type specified param") {
-    val compile = RunCompilation.test("exported func main() int { return (a int) => { return +(a,a); }(3); }");
     compile.evalForKind(Vector()) match { case VonInt(6) => }
   }
-
-  test("Test overloads") {
-    val compile = RunCompilation.test(Tests.loadExpected("programs/functions/overloads.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(6) => }
-  }
-
 }

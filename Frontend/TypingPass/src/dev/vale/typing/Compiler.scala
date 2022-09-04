@@ -636,6 +636,7 @@ class Compiler(
       sequenceCompiler,
       overloadResolver,
       destructorCompiler,
+      implCompiler,
       convertHelper,
       new IExpressionCompilerDelegate {
         override def evaluateTemplatedFunctionFromCallForPrototype(

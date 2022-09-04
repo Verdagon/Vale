@@ -484,21 +484,26 @@ class StructCompilerCore(
 
     val closuredVarsStructRef = understructStructTT;
 
-    if (mutability == ImmutableT) {
+//    if (mutability == ImmutableT) {
       // Adds the free function to the coutputs
       // Free is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
+
+    // We always evaluate a free for everything, itll be a no-op for mutables.
+    val freePrototype =
       delegate.evaluateGenericFunctionFromNonCallForHeader(
         coutputs,
         parentRanges,
         structInnerEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
-          case Some(ft@FunctionTemplata(_, _)) => ft
+          case Some(ft@FunctionTemplata(_, _)) => {
+            ft
+          }
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure free function we just added!"))
         },
         true)
-      // Adds the drop function to the coutputs
-      // Drop is indeed ordinary because it just takes in the lambda struct. The lambda struct
-      // isn't templated. The lambda call function might be, but the struct isnt.
+
+    // Always evaluate a drop, drops only capture borrows so there should always be a drop defined
+    // on all members.
       delegate.evaluateGenericFunctionFromNonCallForHeader(
         coutputs,
         parentRanges,
@@ -507,7 +512,7 @@ class StructCompilerCore(
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
         },
         true)
-    }
+//    }
 
     (closuredVarsStructRef, mutability, functionTemplata)
   }

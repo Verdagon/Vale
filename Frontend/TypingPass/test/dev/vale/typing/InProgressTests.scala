@@ -28,6 +28,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // make sure that we dont satisfy a function bound from the caller's environment unless using another function bound
 
+    vimpl() // take sealed off of the weak tests to see what happens. the anonymous substruct stuff is being all borked up and weird
+
     // is something like this possible?
     // and would it mean that we have to detect reentrant evaluation of that lambda template function?
     """

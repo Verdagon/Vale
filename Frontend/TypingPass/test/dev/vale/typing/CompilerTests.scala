@@ -3,12 +3,11 @@ package dev.vale.typing
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.infer.{KindIsNotConcrete, OwnershipDidntMatch}
-import dev.vale.{CodeLocationS, Collector, Err, FileCoordinateMap, Ok, PackageCoordinate, RangeS, Tests, vassert, vassertOne, vpass, vwat}
+import dev.vale.{CodeLocationS, Collector, Err, FileCoordinateMap, Ok, PackageCoordinate, RangeS, Tests, vassert, vassertOne, vpass, vwat, _}
 import dev.vale.parsing.ParseErrorHumanizer
 import dev.vale.postparsing.PostParser
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale._
 import dev.vale.highertyping.{FunctionA, HigherTypingCompilation}
 import dev.vale.solver.RuleError
 import OverloadResolver.{FindFunctionFailure, InferFailure, SpecificParamDoesntSend, WrongNumberOfArguments}
@@ -1898,4 +1897,19 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
+  test("Something") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func genFunc<T>(a &T) T
+        |where func +(&T, &T)T {
+        |  { a + a }()
+        |}
+        |exported func main() int {
+        |  genFunc(7)
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+
+    vimpl() // remember to make a better name for this test
+  }
 }
