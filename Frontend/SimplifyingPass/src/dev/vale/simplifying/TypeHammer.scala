@@ -31,8 +31,8 @@ class TypeHammer(
 
       case OverloadSetT(_, _) => VoidH()
 
-      case a @ StaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
-      case a @ RuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
+      case a @ contentsStaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
+      case a @ contentsRuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
       case PlaceholderT(fullName) => vwat(tyype)
     }
   }
@@ -83,8 +83,8 @@ class TypeHammer(
     hamuts.staticSizedArrays.get(ssaTT) match {
       case Some(x) => x.kind
       case None => {
-        val name = nameHammer.translateFullName(hinputs, hamuts, ssaTT.getName(interner, keywords))
-        val StaticSizedArrayTT(_, mutabilityT, variabilityT, memberType) = ssaTT
+        val name = nameHammer.translateFullName(hinputs, hamuts, ssaTT.name)
+        val contentsStaticSizedArrayTT(_, mutabilityT, variabilityT, memberType) = ssaTT
         val memberReferenceH = translateReference(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         val variability = Conversions.evaluateVariabilityTemplata(variabilityT)
@@ -100,8 +100,8 @@ class TypeHammer(
     hamuts.runtimeSizedArrays.get(rsaTT) match {
       case Some(x) => x.kind
       case None => {
-        val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaTT.getName(interner, keywords))
-        val RuntimeSizedArrayTT(mutabilityT, memberType) = rsaTT
+        val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaTT.name)
+        val contentsRuntimeSizedArrayTT(mutabilityT, memberType) = rsaTT
         val memberReferenceH = translateReference(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         //    val variability = Conversions.evaluateVariability(variabilityT)

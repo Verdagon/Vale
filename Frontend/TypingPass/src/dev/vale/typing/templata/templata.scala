@@ -40,6 +40,21 @@ object ITemplata {
     }
   }
 
+  def expectCoord(templata: ITemplata[ITemplataType]): ITemplata[CoordTemplataType] = {
+    templata match {
+      case t @ CoordTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, CoordTemplataType()) => PlaceholderTemplata(fullNameT, CoordTemplataType())
+      case other => vfail(other)
+    }
+  }
+
+  def expectCoordTemplata(templata: ITemplata[ITemplataType]): CoordTemplata = {
+    templata match {
+      case t @ CoordTemplata(_) => t
+      case other => vfail(other)
+    }
+  }
+
   def expectIntegerTemplata(templata: ITemplata[ITemplataType]): IntegerTemplata = {
     templata match {
       case t @ IntegerTemplata(_) => t

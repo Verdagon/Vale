@@ -4,13 +4,12 @@ import dev.vale.{Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, v
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RuneNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.parsing.ast.ImmutableRuneAttributeP
 import dev.vale.postparsing._
-import dev.vale.typing.TemplataCompiler.getCitizenTemplate
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, UnsubstitutedCoordT}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
@@ -94,52 +93,97 @@ object TemplataCompiler {
 
   def getFunctionTemplate(fullName: FullNameT[IFunctionNameT]): FullNameT[IFunctionTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getCitizenTemplate(fullName: FullNameT[ICitizenNameT]): FullNameT[ICitizenTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
+  }
+
+  def getNameTemplate(name: INameT): INameT = {
+    name match {
+      case x : IInstantiationNameT => x.template
+      case _ => name
+    }
+  }
+
+  def getSuperTemplate(fullName: FullNameT[INameT]): FullNameT[INameT] = {
+    val FullNameT(packageCoord, initSteps, last) = fullName
+    FullNameT(
+      packageCoord,
+      initSteps.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      getNameTemplate(last))
   }
 
   def getTemplate(fullName: FullNameT[IInstantiationNameT]): FullNameT[ITemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getSubKindTemplate(fullName: FullNameT[ISubKindNameT]): FullNameT[ISubKindTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getSuperKindTemplate(fullName: FullNameT[ISuperKindNameT]): FullNameT[ISuperKindTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getStructTemplate(fullName: FullNameT[IStructNameT]): FullNameT[IStructTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getInterfaceTemplate(fullName: FullNameT[IInterfaceNameT]): FullNameT[IInterfaceTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getExportTemplate(fullName: FullNameT[ExportNameT]): FullNameT[ExportTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getImplTemplate(fullName: FullNameT[IImplNameT]): FullNameT[IImplTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def getPlaceholderTemplate(fullName: FullNameT[PlaceholderNameT]): FullNameT[PlaceholderTemplateNameT] = {
     val FullNameT(packageCoord, initSteps, last) = fullName
-    FullNameT(packageCoord, initSteps, last.template)
+    FullNameT(
+      packageCoord,
+      initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
   }
 
   def assembleRuneToFunctionBound(templatas: TemplatasStore): Map[IRuneS, FullNameT[FunctionBoundNameT]] = {
@@ -198,19 +242,31 @@ object TemplataCompiler {
       case FloatT() => KindTemplata(kind)
       case VoidT() => KindTemplata(kind)
       case NeverT(_) => KindTemplata(kind)
-      case RuntimeSizedArrayTT(mutability, elementType) => {
+      case RuntimeSizedArrayTT(FullNameT(packageCoord, initSteps, RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType)))) => {
         KindTemplata(
-          interner.intern(RuntimeSizedArrayTT(
-            expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, mutability, substitutions)),
-            substituteTemplatasInCoord(coutputs, interner, keywords, elementType, substitutions))))
+          RuntimeSizedArrayTT(
+            FullNameT(
+              packageCoord,
+              initSteps,
+              interner.intern(RuntimeSizedArrayNameT(
+                template,
+                interner.intern(RawArrayNameT(
+                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, mutability, substitutions)),
+                  substituteTemplatasInCoord(coutputs, interner, keywords, elementType, substitutions))))))))
       }
-      case StaticSizedArrayTT(size, mutability, variability, elementType) => {
+      case StaticSizedArrayTT(FullNameT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType)))) => {
         KindTemplata(
-          interner.intern(StaticSizedArrayTT(
-            expectInteger(substituteTemplatasInTemplata(coutputs, interner, keywords, size, substitutions)),
-            expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, mutability, substitutions)),
-            expectVariability(substituteTemplatasInTemplata(coutputs, interner, keywords, variability, substitutions)),
-            substituteTemplatasInCoord(coutputs, interner, keywords, elementType, substitutions))))
+          StaticSizedArrayTT(
+            FullNameT(
+              packageCoord,
+              initSteps,
+              interner.intern(StaticSizedArrayNameT(
+                template,
+                expectInteger(substituteTemplatasInTemplata(coutputs, interner, keywords, size, substitutions)),
+                expectVariability(substituteTemplatasInTemplata(coutputs, interner, keywords, variability, substitutions)),
+                interner.intern(RawArrayNameT(
+                  expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, mutability, substitutions)),
+                  substituteTemplatasInCoord(coutputs, interner, keywords, elementType, substitutions))))))))
       }
       case PlaceholderT(hayName @ FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))))
           if index < substitutions.length && hayName == substitutions(index)._1 => {
@@ -398,7 +454,8 @@ object TemplataCompiler {
     maybeMentionedKind match {
       case Some(ICitizenTT(fullName)) => {
         val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, fullName)
-        val innerEnv = coutputs.getInnerEnvForType(TemplataCompiler.getCitizenTemplate(fullName))
+        val citizenTemplateFullName = TemplataCompiler.getCitizenTemplate(fullName)
+        val innerEnv = coutputs.getInnerEnvForType(citizenTemplateFullName)
         val reachablePrototypes =
           innerEnv
             .lookupAllWithImpreciseName(interner.intern(PrototypeNameS()), Set(TemplataLookupContext))
@@ -440,8 +497,8 @@ class TemplataCompiler(
     (sourceType, targetType) match {
       case (NeverT(_), _) => return true
       case (a, b) if a == b =>
-      case (VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _), _) => return false
-      case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | RuntimeSizedArrayTT(_, _) | StaticSizedArrayTT(_, _, _, _)) => return false
+      case (VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | contentsRuntimeSizedArrayTT(_, _) | contentsStaticSizedArrayTT(_, _, _, _), _) => return false
+      case (_, VoidT() | IntT(_) | BoolT() | StrT() | FloatT() | contentsRuntimeSizedArrayTT(_, _) | contentsStaticSizedArrayTT(_, _, _, _)) => return false
       case (_, StructTT(_)) => return false
       case (a : ISubKindTT, b : ISuperKindTT) => {
         delegate.isParent(coutputs, callingEnv, parentRanges, a, b) match {
@@ -484,10 +541,10 @@ class TemplataCompiler(
         case MutabilityTemplata(ImmutableT) => ShareT
       }
     kind match {
-      case a @ RuntimeSizedArrayTT(_, _) => {
+      case a @ contentsRuntimeSizedArrayTT(_, _) => {
         CoordT(ownership, a)
       }
-      case a @ StaticSizedArrayTT(_, _, _, _) => {
+      case a @ contentsStaticSizedArrayTT(_, _, _, _) => {
         CoordT(ownership, a)
       }
       case s @ StructTT(_) => {
@@ -711,23 +768,41 @@ class TemplataCompiler(
       expectedCitizenTemplata match {
         case st @ StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
         case it @ InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
-        case KindTemplata(c : ICitizenTT) => getCitizenTemplate(c.fullName)
-        case CoordTemplata(CoordT(OwnT | ShareT, c : ICitizenTT)) => getCitizenTemplate(c.fullName)
+        case KindTemplata(c : ICitizenTT) => TemplataCompiler.getCitizenTemplate(c.fullName)
+        case CoordTemplata(CoordT(OwnT | ShareT, c : ICitizenTT)) => TemplataCompiler.getCitizenTemplate(c.fullName)
         case _ => return false
       }
     TemplataCompiler.getCitizenTemplate(actualCitizenRef.fullName) == citizenTemplateFullName
   }
 
   def createPlaceholder(
-      coutputs: CompilerOutputs,
-      env: IEnvironment,
-      namePrefix: FullNameT[INameT],
-      genericParam: GenericParameterS,
-      index: Int,
-      runeToType: Map[IRuneS, ITemplataType],
-      registerWithCompilerOutputs: Boolean):
+    coutputs: CompilerOutputs,
+    env: IEnvironment,
+    namePrefix: FullNameT[INameT],
+    genericParam: GenericParameterS,
+    index: Int,
+    runeToType: Map[IRuneS, ITemplataType],
+    registerWithCompilerOutputs: Boolean):
   ITemplata[ITemplataType] = {
+    val immutable =
+      genericParam.attributes.exists({
+        case ImmutableRuneAttributeS(_) => true
+        case _ => false
+      })
     val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
+    createPlaceholderInner(
+      coutputs, env, namePrefix, index, runeType, immutable, registerWithCompilerOutputs)
+  }
+
+  def createPlaceholderInner(
+    coutputs: CompilerOutputs,
+    env: IEnvironment,
+    namePrefix: FullNameT[INameT],
+    index: Int,
+    runeType: ITemplataType,
+    immutable: Boolean,
+    registerWithCompilerOutputs: Boolean):
+  ITemplata[ITemplataType] = {
     val placeholderFullName =
       namePrefix.addStep(
         interner.intern(PlaceholderNameT(
@@ -755,10 +830,7 @@ class TemplataCompiler(
       // So, I guess we could just assume the function's default region here then.
       case CoordTemplataType() => {
         val ownership =
-          if (genericParam.attributes.exists({
-            case ImmutableRuneAttributeS(_) => true
-            case _ => false
-          })) {
+          if (immutable) {
             ShareT
           } else {
             OwnT

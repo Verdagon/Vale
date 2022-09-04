@@ -488,7 +488,7 @@ class StructCompilerGenericArgsLayer(
 
   // Makes a struct to back a closure
   def makeClosureUnderstruct(
-    containingFunctionEnv: IEnvironment,
+    containingFunctionEnv: NodeEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,

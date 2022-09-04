@@ -70,8 +70,8 @@ import scala.collection.mutable
 //      case DestroyImmRuntimeSizedArrayTE(_, _, _, calleePrototype) => visitFunction(program, edgeBlueprints, edges, reachables, calleePrototype.toSignature)
 //      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
 //      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
-//      case ssa @ StaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
-//      case rsa @ RuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
+//      case ssa @ contentsStaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
+//      case rsa @ contentsRuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
 //      case LockWeakTE(_, _, someConstructor, noneConstructor) => {
 //        visitFunction(program, edgeBlueprints, edges, reachables, someConstructor.toSignature)
 //        visitFunction(program, edgeBlueprints, edges, reachables, noneConstructor.toSignature)
@@ -98,8 +98,8 @@ import scala.collection.mutable
 //    Collector.all(structDef, {
 //      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
 //      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
-//      case ssa @ StaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
-//      case rsa @ RuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
+//      case ssa @ contentsStaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
+//      case rsa @ contentsRuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
 //    })
 //    edges.foreach({ case (interface, structToMethods) =>
 //      structToMethods.get(structTT) match {
@@ -138,8 +138,8 @@ import scala.collection.mutable
 //    Collector.all(interfaceDef, {
 //      case sr @ StructTT(_) => visitStruct(program, edgeBlueprints, edges, reachables, sr)
 //      case ir @ InterfaceTT(_) => visitInterface(program, edgeBlueprints, edges, reachables, ir)
-//      case ssa @ StaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
-//      case rsa @ RuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
+//      case ssa @ contentsStaticSizedArrayTT(_, _, _, _) => visitStaticSizedArray(program, edgeBlueprints, edges, reachables, ssa)
+//      case rsa @ contentsRuntimeSizedArrayTT(_, _) => visitRuntimeSizedArray(program, edgeBlueprints, edges, reachables, rsa)
 //    })
 //    edgeBlueprints.find(_.interface == interfaceTT).get.superFamilyRootBanners.foreach(f => {
 //      visitFunction(program, edgeBlueprints, edges, reachables, f.toSignature)

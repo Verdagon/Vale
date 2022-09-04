@@ -36,7 +36,7 @@ class RSAFreeMacro(
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
-    val Vector(rsaCoord @ CoordT(ShareT, arrayTT @ RuntimeSizedArrayTT(_, _))) = params2.map(_.tyype)
+    val Vector(rsaCoord @ CoordT(ShareT, arrayTT @ contentsRuntimeSizedArrayTT(_, _))) = params2.map(_.tyype)
 
     val ret = CoordT(ShareT, VoidT())
     val header = FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))

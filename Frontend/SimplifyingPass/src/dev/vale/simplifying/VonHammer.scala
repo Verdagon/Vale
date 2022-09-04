@@ -1078,15 +1078,16 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("range", vonifyRange(range))))
       }
-      case StaticSizedArrayNameT(size, arr) => {
+      case StaticSizedArrayNameT(_, size, variability, arr) => {
         VonObject(
           "StaticSizedArrayName",
           None,
           Vector(
             VonMember("size", VonInt(Conversions.evaluateIntegerTemplata(size))),
+            VonMember("variability", vimpl()),
             VonMember("arr", translateName(hinputs, hamuts, arr))))
       }
-      case RuntimeSizedArrayNameT(arr) => {
+      case RuntimeSizedArrayNameT(_, arr) => {
         VonObject(
           "RuntimeSizedArrayName",
           None,
@@ -1369,20 +1370,33 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
       case LambdaCallFunctionNameT(template, templateArgs) => {
-        vimpl()
-//        VonObject(
-//          "LambdaTemplateName",
-//          None,
-//          Vector(
-//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
+        VonObject(
+          "LambdaTemplateName",
+          None,
+          Vector(
+            VonMember("template", translateName(hinputs, hamuts, template)),
+            VonMember(
+              "templateArgs",
+              VonArray(
+                None,
+                templateArgs
+                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
+                  .toVector))))
       }
       case LambdaCallFunctionTemplateNameT(codeLoc, params) => {
-//        VonObject(
-//          "LambdaTemplateName",
-//          None,
-//          Vector(
-//            VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
-        vimpl()
+        VonObject(
+          "LambdaTemplateName",
+          None,
+          Vector(
+            VonMember("codeLocation", vonifyCodeLocation2(codeLoc)),
+            VonMember(
+              "params",
+              VonArray(
+                None,
+                params
+                  .map(templateArg => typeHammer.translateReference(hinputs, hamuts, templateArg))
+                  .map(vonifyCoord)
+                  .toVector))))
       }
       case LambdaCitizenTemplateNameT(codeLocation) => {
         VonObject(

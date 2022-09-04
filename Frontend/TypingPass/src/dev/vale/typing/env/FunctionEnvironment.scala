@@ -149,7 +149,7 @@ case class NodeEnvironment(
     }
   }
 
-  override def fullName: FullNameT[INameT] = parentFunctionEnv.fullName
+  override def fullName: FullNameT[IFunctionNameT] = parentFunctionEnv.fullName
   def function = parentFunctionEnv.function
 
   private[env] override def lookupWithNameInner(

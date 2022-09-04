@@ -684,7 +684,7 @@ case class PopRuntimeSizedArrayTE(
 ) extends ReferenceExpressionTE {
   private val elementType =
     arrayExpr.result.reference.kind match {
-      case RuntimeSizedArrayTT(_, e) => e
+      case contentsRuntimeSizedArrayTT(_, e) => e
       case other => vwat(other)
     }
   override def result: ReferenceResultT = ReferenceResultT(elementType)

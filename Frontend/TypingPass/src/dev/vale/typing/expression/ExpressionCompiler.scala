@@ -632,10 +632,10 @@ class ExpressionCompiler(
 
           val exprTemplata =
             containerExpr2.result.reference.kind match {
-              case rsa @ RuntimeSizedArrayTT(_, _) => {
+              case rsa @ contentsRuntimeSizedArrayTT(_, _) => {
                 arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, indexExpr2, rsa)
               }
-              case at@StaticSizedArrayTT(_, _, _, _) => {
+              case at@contentsStaticSizedArrayTT(_, _, _, _) => {
                 arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
 //              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(), CitizenNameT(CitizenTemplateNameT(ProgramT.tupleHumanName), _))) => {
@@ -690,14 +690,14 @@ class ExpressionCompiler(
 
                 ast.ReferenceMemberLookupTE(range, containerExpr2, memberFullName, memberType, structMember.variability)
               }
-              case as@StaticSizedArrayTT(_, _, _, _) => {
+              case as@contentsStaticSizedArrayTT(_, _, _, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), as)
                 } else {
                   throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Sequence has no member named " + memberNameStr))
                 }
               }
-              case at@RuntimeSizedArrayTT(_, _) => {
+              case at@contentsRuntimeSizedArrayTT(_, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
                 } else {

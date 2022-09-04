@@ -214,14 +214,14 @@ class LocalHelper(
       case FloatT() => ShareT
       case StrT() => ShareT
       case VoidT() => ShareT
-      case StaticSizedArrayTT(_, mutability, _, _) => {
+      case contentsStaticSizedArrayTT(_, mutability, _, _) => {
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT
           case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
         }
       }
-      case RuntimeSizedArrayTT(mutability, _) => {
+      case contentsRuntimeSizedArrayTT(mutability, _) => {
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT

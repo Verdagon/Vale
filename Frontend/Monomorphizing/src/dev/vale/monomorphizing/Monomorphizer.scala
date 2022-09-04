@@ -559,7 +559,9 @@ object DenizenMonomorphizer {
     val originalFullName =
       vassertSome(monouts.fullNameToOriginalTemplate.get(desiredFuncFullName))
     val funcT =
-      vassertOne(hinputs.functions.filter(_.header.fullName == originalFullName))
+      vassertOne(
+        hinputs.functions
+          .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.fullName) == TemplataCompiler.getSuperTemplate(originalFullName)))
 
     val topLevelDenizenPlaceholderIndexToTemplata =
     // One would imagine we'd get structFullName.last.templateArgs here, because that's the struct
@@ -952,7 +954,7 @@ class DenizenMonomorphizer(
         val coord = translateCoord(resultReference)
         vassert(coord == vassertSome(free.fullName.last.parameters.headOption))
         if (coord.ownership == ShareT) {
-          monouts.immKindToDestructor.put(coord.kind, freePrototype)
+          monouts.immKindToDestructor.put(coord.kind, free)
         }
         ConstructTE(
           translateStruct(
@@ -1231,19 +1233,41 @@ class DenizenMonomorphizer(
   }
 
   def translateStaticSizedArray(ssaTT: StaticSizedArrayTT): StaticSizedArrayTT = {
-    val StaticSizedArrayTT(size, mutability, variability, elementType) = ssaTT
-    interner.intern(StaticSizedArrayTT(
-      expectIntegerTemplata(translateTemplata(size)),
-      expectMutabilityTemplata(translateTemplata(mutability)),
-      expectVariabilityTemplata(translateTemplata(variability)),
-      translateCoord(elementType)))
+    val StaticSizedArrayTT(
+    FullNameT(
+    packageCoord,
+    initSteps,
+    StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType)))) = ssaTT
+
+    StaticSizedArrayTT(
+      FullNameT(
+        packageCoord,
+        initSteps,
+        interner.intern(StaticSizedArrayNameT(
+          template,
+          expectIntegerTemplata(translateTemplata(size)),
+          expectVariabilityTemplata(translateTemplata(variability)),
+          interner.intern(RawArrayNameT(
+            expectMutabilityTemplata(translateTemplata(mutability)),
+            translateCoord(elementType)))))))
   }
 
   def translateRuntimeSizedArray(ssaTT: RuntimeSizedArrayTT): RuntimeSizedArrayTT = {
-    val RuntimeSizedArrayTT(mutability, elementType) = ssaTT
-    interner.intern(RuntimeSizedArrayTT(
-      expectMutabilityTemplata(translateTemplata(mutability)),
-      translateCoord(elementType)))
+    val RuntimeSizedArrayTT(
+    FullNameT(
+    packageCoord,
+    initSteps,
+    RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType)))) = ssaTT
+
+    RuntimeSizedArrayTT(
+      FullNameT(
+        packageCoord,
+        initSteps,
+        interner.intern(RuntimeSizedArrayNameT(
+          template,
+          interner.intern(RawArrayNameT(
+            expectMutabilityTemplata(translateTemplata(mutability)),
+            translateCoord(elementType)))))))
   }
 
   def translateKind(kind: KindT): KindT = {
@@ -1263,8 +1287,8 @@ class DenizenMonomorphizer(
         translateInterface(
           s, translateBoundsForCallee(hinputs.getInstantiationBounds(s.fullName)))
       }
-      case a @ StaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(a)
-      case a @ RuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(a)
+      case a @ contentsStaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(a)
+      case a @ contentsRuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(a)
       case other => vimpl(other)
     }
   }
@@ -1346,6 +1370,13 @@ class DenizenMonomorphizer(
           interner.intern(FunctionBoundTemplateNameT(humanName, codeLocation)),
           templateArgs.map(translateTemplata),
           params.map(translateCoord)))
+      }
+      case LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(codeLocation, paramTypes), templateArgs) => {
+        interner.intern(LambdaCallFunctionNameT(
+          interner.intern(LambdaCallFunctionTemplateNameT(
+            codeLocation,
+            paramTypes.map(translateCoord))),
+          templateArgs.map(translateTemplata)))
       }
       case other => vimpl(other)
     }

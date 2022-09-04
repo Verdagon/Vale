@@ -4,7 +4,7 @@ import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IEnvironment}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenTemplateNameT, FreeNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IInstantiationNameT, IInterfaceTemplateNameT, INameT, IStructTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, LambdaTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
 import dev.vale.typing.ast._
@@ -60,6 +60,11 @@ case class CompilerOutputs() {
   // Outer env is the env that contains the template.
   private val typeNameToOuterEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
   // Inner env is the env that contains the solved rules for the declaration, given placeholders.
+  // We can key by template name here because there's only one inner env per template. This is the env
+  // that has placeholders and stuff.
+  // Also, if it's keyed by template name, we can access it earlier, before the definition is even made.
+  // This is important for when we want to be compiling a struct/interface and one of its internal methods
+  // wants to look in its inner env to get some bounds.
   private val typeNameToInnerEnv: mutable.HashMap[FullNameT[ITemplateNameT], IEnvironment] = mutable.HashMap()
   // One must fill this in when putting things into declaredNames.
   private val typeNameToMutability: mutable.HashMap[FullNameT[ITemplateNameT], ITemplata[MutabilityTemplataType]] = mutable.HashMap()
@@ -296,15 +301,16 @@ case class CompilerOutputs() {
   }
 
   def declareTypeInnerEnv(
-    nameT: FullNameT[ITemplateNameT],
+    templateFullName: FullNameT[ITemplateNameT],
     env: IEnvironment,
   ): Unit = {
-    vassert(typeDeclaredNames.contains(nameT))
+//    val templateFullName = TemplataCompiler.getTemplate(nameT)
+    vassert(typeDeclaredNames.contains(templateFullName))
     // One should declare the outer env first
-    vassert(typeNameToOuterEnv.contains(nameT))
-    vassert(!typeNameToInnerEnv.contains(nameT))
+    vassert(typeNameToOuterEnv.contains(templateFullName))
+    vassert(!typeNameToInnerEnv.contains(templateFullName))
     //    vassert(nameT == env.fullName)
-    typeNameToInnerEnv += (nameT -> env)
+    typeNameToInnerEnv += (templateFullName -> env)
   }
 
   def addStruct(structDef: StructDefinitionT): Unit = {
@@ -336,12 +342,12 @@ case class CompilerOutputs() {
   }
 
 //  def addStaticSizedArray(ssaTT: StaticSizedArrayTT): Unit = {
-//    val StaticSizedArrayTT(size, elementType, mutability, variability) = ssaTT
+//    val contentsStaticSizedArrayTT(size, elementType, mutability, variability) = ssaTT
 //    staticSizedArrayTypes += ((size, elementType, mutability, variability) -> ssaTT)
 //  }
 //
 //  def addRuntimeSizedArray(rsaTT: RuntimeSizedArrayTT): Unit = {
-//    val RuntimeSizedArrayTT(elementType, mutability) = rsaTT
+//    val contentsRuntimeSizedArrayTT(elementType, mutability) = rsaTT
 //    runtimeSizedArrayTypes += ((elementType, mutability) -> rsaTT)
 //  }
 
