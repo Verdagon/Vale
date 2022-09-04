@@ -1515,7 +1515,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    main.header.params.head.tyype.kind match { case RuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
+    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
   }
 
   test("Tests calling an abstract function") {

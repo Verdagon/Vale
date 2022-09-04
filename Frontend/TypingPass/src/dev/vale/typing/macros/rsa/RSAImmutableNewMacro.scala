@@ -2,7 +2,7 @@ package dev.vale.typing.macros.rsa
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
-import dev.vale.typing.{CompileErrorExceptionT, CompilerErrorHumanizer, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, ast}
+import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerErrorHumanizer, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
@@ -16,7 +16,12 @@ import dev.vale.typing.templata.PrototypeTemplata
 import dev.vale.typing.types._
 
 
-class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResolver: OverloadResolver) extends IFunctionBodyMacro {
+class RSAImmutableNewMacro(
+  interner: Interner,
+  keywords: Keywords,
+  overloadResolver: OverloadResolver,
+  arrayCompiler: ArrayCompiler
+) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_runtime_sized_array_imm_new
 
   def generateFunctionBody(
@@ -50,14 +55,14 @@ class RSAImmutableNewMacro(interner: Interner, keywords: Keywords, overloadResol
 //        env.lookupNearestWithImpreciseName(
 //          interner.intern(RuneNameS(CodeRuneS(keywords.F))), Set(TemplataLookupContext)))
 
-    val variability =
-      mutability match {
-        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
-        case MutabilityTemplata(ImmutableT) => FinalT
-        case MutabilityTemplata(MutableT) => VaryingT
-      }
+//    val variability =
+//      mutability match {
+//        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
+//        case MutabilityTemplata(ImmutableT) => FinalT
+//        case MutabilityTemplata(MutableT) => VaryingT
+//      }
 
-    val arrayTT = interner.intern(RuntimeSizedArrayTT(mutability, elementType))
+    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability)
 
     val generatorArgCoord =
       paramCoords(1).tyype match {

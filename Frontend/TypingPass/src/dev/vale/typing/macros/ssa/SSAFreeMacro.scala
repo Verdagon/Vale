@@ -37,7 +37,7 @@ class SSAFreeMacro(
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
-    val Vector(ssaCoord @ CoordT(ShareT, arrayTT @ StaticSizedArrayTT(_, _, _, elementCoord))) = params2.map(_.tyype)
+    val Vector(ssaCoord @ CoordT(ShareT, arrayTT @ contentsStaticSizedArrayTT(_, _, _, elementCoord))) = params2.map(_.tyype)
 
     val ret = CoordT(ShareT, VoidT())
     val header = FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))

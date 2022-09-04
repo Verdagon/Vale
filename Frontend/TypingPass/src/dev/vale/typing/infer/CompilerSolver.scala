@@ -861,14 +861,14 @@ class CompilerRuleSolver(
           }
           case Some(result) => {
             result match {
-              case KindTemplata(StaticSizedArrayTT(size, mutability, variability, elementType)) => {
+              case KindTemplata(contentsStaticSizedArrayTT(size, mutability, variability, elementType)) => {
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(elementType))
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
                 Ok(())
               }
-              case CoordTemplata(CoordT(OwnT | ShareT, StaticSizedArrayTT(size, mutability, variability, elementType))) => {
+              case CoordTemplata(CoordT(OwnT | ShareT, contentsStaticSizedArrayTT(size, mutability, variability, elementType))) => {
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(elementType))
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
@@ -892,12 +892,12 @@ class CompilerRuleSolver(
           }
           case Some(result) => {
             result match {
-              case KindTemplata(RuntimeSizedArrayTT(mutability, elementType)) => {
+              case KindTemplata(contentsRuntimeSizedArrayTT(mutability, elementType)) => {
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(elementType))
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                 Ok(())
               }
-              case CoordTemplata(CoordT(OwnT | ShareT, RuntimeSizedArrayTT(mutability, elementType))) => {
+              case CoordTemplata(CoordT(OwnT | ShareT, contentsRuntimeSizedArrayTT(mutability, elementType))) => {
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(elementType))
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                 Ok(())
@@ -923,7 +923,7 @@ class CompilerRuleSolver(
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 result match {
-                  case CoordTemplata(CoordT(ShareT | OwnT, RuntimeSizedArrayTT(mutability, memberType))) => {
+                  case CoordTemplata(CoordT(ShareT | OwnT, contentsRuntimeSizedArrayTT(mutability, memberType))) => {
                     if (argRunes.size != 2) {
                       return Err(WrongNumberOfTemplateArgs(2))
                     }
@@ -932,7 +932,7 @@ class CompilerRuleSolver(
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
                     Ok(())
                   }
-                  case KindTemplata(RuntimeSizedArrayTT(mutability, memberType)) => {
+                  case KindTemplata(contentsRuntimeSizedArrayTT(mutability, memberType)) => {
                     val Array(mutabilityRune, elementRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))

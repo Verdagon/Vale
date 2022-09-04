@@ -377,7 +377,7 @@ class StructCompilerCore(
 
   // Makes a struct to back a closure
   def makeClosureUnderstruct(
-    containingFunctionEnv: IEnvironment,
+    containingFunctionEnv: NodeEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     name: IFunctionDeclarationNameS,
@@ -402,11 +402,16 @@ class StructCompilerCore(
       })
     val mutability = if (isMutable) MutableT else ImmutableT
 
-    val understructTemplateNameT = interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
-    val understructTemplatedFullNameT = containingFunctionEnv.fullName.addStep(understructTemplateNameT)
+    val understructTemplateNameT =
+      interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
+    val understructTemplatedFullNameT =
+      containingFunctionEnv.fullName
+        .addStep(understructTemplateNameT)
+
     val understructInstantiatedNameT =
       understructTemplateNameT.makeStructName(interner, Vector())
-    val understructInstantiatedFullNameT = containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
+    val understructInstantiatedFullNameT =
+      containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
     coutputs.addInstantiationBounds(understructInstantiatedFullNameT, Map())
@@ -421,7 +426,7 @@ class StructCompilerCore(
     // struct, so that those who use the struct can reach into its environment
     // and see the function and use it.
     // See CSFMSEO and SAFHE.
-    val structInnerEnv =
+    val structOuterEnv =
       CitizenEnvironment(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
@@ -437,24 +442,30 @@ class StructCompilerCore(
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
+              freeFuncNameT ->
+                FunctionEnvEntry(
+                  containingFunctionEnv.globalEnv.structFreeMacro.makeImplicitFreeFunction(
+                    interner.intern(FreeDeclarationNameS(functionA.range.begin)), functionA.range)),
               understructInstantiatedNameT -> TemplataEnvEntry(KindTemplata(understructStructTT)),
-              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(understructStructTT))) ++
-//              (if (mutability == ImmutableT) {
-                Vector(
-                  freeFuncNameT ->
-                    FunctionEnvEntry(
-                      containingFunctionEnv.globalEnv.structFreeMacro.makeImplicitFreeFunction(
-                        interner.intern(FreeDeclarationNameS(functionA.range.begin)), functionA.range)))
-//              } else {
-//                Vector()
-//              })
-  ))
+              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(understructStructTT)))))
+
+    val structInnerEnv =
+      CitizenEnvironment(
+        structOuterEnv.globalEnv,
+        structOuterEnv,
+        understructTemplatedFullNameT,
+        understructInstantiatedFullNameT,
+        TemplatasStore(understructInstantiatedFullNameT, Map(), Map())
+          // There are no inferences we'd need to add, because it's a lambda and they don't have
+          // any rules or anything.
+          .addEntries(interner, Vector()))
+
     // We return this from the function in case we want to eagerly compile it (which we do
     // if it's not a template).
     val functionTemplata = FunctionTemplata(structInnerEnv, functionA)
 
     coutputs.declareType(understructTemplatedFullNameT)
-    coutputs.declareTypeOuterEnv(understructTemplatedFullNameT, structInnerEnv)
+    coutputs.declareTypeOuterEnv(understructTemplatedFullNameT, structOuterEnv)
     coutputs.declareTypeInnerEnv(understructTemplatedFullNameT, structInnerEnv)
     coutputs.declareTypeMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
 

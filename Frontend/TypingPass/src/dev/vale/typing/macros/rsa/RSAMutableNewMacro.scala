@@ -2,7 +2,7 @@ package dev.vale.typing.macros.rsa
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
-import dev.vale.typing.CompilerOutputs
+import dev.vale.typing.{ArrayCompiler, CompilerOutputs, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, NewMutRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
@@ -14,10 +14,9 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.typing.types.RuntimeSizedArrayTT
-import dev.vale.typing.ast
 
 
-class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFunctionBodyMacro {
+class RSAMutableNewMacro(interner: Interner, keywords: Keywords, arrayCompiler: ArrayCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_runtime_sized_array_mut_new
 
   def generateFunctionBody(
@@ -46,7 +45,7 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords) extends IFuncti
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val arrayTT = interner.intern(RuntimeSizedArrayTT(mutability, elementType))
+    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability)
 
     val body =
       BlockTE(

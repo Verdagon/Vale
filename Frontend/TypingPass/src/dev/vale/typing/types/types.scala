@@ -127,37 +127,34 @@ case class FloatT() extends KindT {
 
 }
 
-case class StaticSizedArrayTT(
-  size: ITemplata[IntegerTemplataType],
-  mutability: ITemplata[MutabilityTemplataType],
-  variability: ITemplata[VariabilityTemplataType],
-  elementType: CoordT
-) extends KindT with IInterning  {
-  def getName(interner: Interner, keywords: Keywords): FullNameT[StaticSizedArrayNameT] = {
-    FullNameT(
-      PackageCoordinate.BUILTIN(interner, keywords),
-      Vector.empty,
-      interner.intern(
-        StaticSizedArrayNameT(
-          size,
-          interner.intern(RawArrayNameT(mutability, elementType)))))
+object contentsStaticSizedArrayTT {
+  def unapply(ssa: StaticSizedArrayTT):
+  Option[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT)] = {
+    val FullNameT(_, _, StaticSizedArrayNameT(_, size, variability, RawArrayNameT(mutability, coord))) = ssa.name
+    Some((size, mutability, variability, coord))
   }
 }
-
-case class RuntimeSizedArrayTT(
-  mutability: ITemplata[MutabilityTemplataType],
-  elementType: CoordT
+case class StaticSizedArrayTT(
+  name: FullNameT[StaticSizedArrayNameT]
 ) extends KindT with IInterning {
+  vassert(name.initSteps.isEmpty)
+  def mutability: ITemplata[MutabilityTemplataType] = name.last.arr.mutability
+  def elementType = name.last.arr.elementType
+  def size = name.last.size
+  def variability = name.last.variability
+}
 
-
-  def getName(interner: Interner, keywords: Keywords): FullNameT[RuntimeSizedArrayNameT] = {
-    FullNameT(
-      PackageCoordinate.BUILTIN(interner, keywords),
-      Vector.empty,
-      interner.intern(
-        RuntimeSizedArrayNameT(
-          interner.intern(RawArrayNameT(mutability, elementType)))))
+object contentsRuntimeSizedArrayTT {
+  def unapply(rsa: RuntimeSizedArrayTT): Option[(ITemplata[MutabilityTemplataType], CoordT)] = {
+    val FullNameT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, coord))) = rsa.name
+    Some((mutability, coord))
   }
+}
+case class RuntimeSizedArrayTT(
+  name: FullNameT[RuntimeSizedArrayNameT]
+) extends KindT with IInterning {
+  def mutability = name.last.arr.mutability
+  def elementType = name.last.arr.elementType
 }
 
 object ICitizenTT {

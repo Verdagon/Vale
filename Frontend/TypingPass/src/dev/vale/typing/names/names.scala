@@ -1,12 +1,13 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType}
+import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectInteger, expectMutability, expectVariability}
 import dev.vale.typing.types._
 
 // Scout's/Astronomer's name parts correspond to where they are in the source code,
@@ -39,6 +40,8 @@ case class FullNameT[+T <: INameT](
         case AnonymousSubstructConstructorTemplateNameT(_) =>
         case ForwarderFunctionTemplateNameT(_,_) =>
         case FreeTemplateNameT(_) =>
+        case StaticSizedArrayTemplateNameT() =>
+        case RuntimeSizedArrayTemplateNameT() =>
         case other => vfail(other)
       }
     }
@@ -208,16 +211,38 @@ case class ReachablePrototypeNameT(num: Int) extends INameT
 
 case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
   override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
-    vimpl()
+    vassert(templateArgs.size == 4)
+    val size = expectInteger(templateArgs(0))
+    val mutability = expectMutability(templateArgs(1))
+    val variability = expectVariability(templateArgs(2))
+    val elementType = expectCoordTemplata(templateArgs(3)).reference
+    interner.intern(StaticSizedArrayNameT(this, size, variability, RawArrayNameT(mutability, elementType)))
   }
 }
-case class StaticSizedArrayNameT(size: ITemplata[IntegerTemplataType], arr: RawArrayNameT) extends INameT
+case class StaticSizedArrayNameT(
+  template: StaticSizedArrayTemplateNameT,
+  size: ITemplata[IntegerTemplataType],
+  variability: ITemplata[VariabilityTemplataType],
+  arr: RawArrayNameT) extends ICitizenNameT {
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = {
+    Vector(size, arr.mutability, variability, CoordTemplata(arr.elementType))
+  }
+}
+
 case class RuntimeSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
   override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
-    vimpl()
+    vassert(templateArgs.size == 2)
+    val mutability = expectMutability(templateArgs(0))
+    val elementType = expectCoordTemplata(templateArgs(1)).reference
+    interner.intern(RuntimeSizedArrayNameT(this, RawArrayNameT(mutability, elementType)))
   }
 }
-case class RuntimeSizedArrayNameT(arr: RawArrayNameT) extends INameT
+
+case class RuntimeSizedArrayNameT(template: RuntimeSizedArrayTemplateNameT, arr: RawArrayNameT) extends ICitizenNameT {
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = {
+    Vector(arr.mutability, CoordTemplata(arr.elementType))
+  }
+}
 
 // This exists because PlaceholderT is a kind, and all kinds need environments to assist
 // in call/overload resolution. Environments are associated with templates, so it makes
