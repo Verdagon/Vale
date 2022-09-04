@@ -29,7 +29,7 @@ class OwnershipTests extends FunSuite with Matchers {
     Collector.only(main, {
       case letTE @ LetAndLendTE(ReferenceLocalVariableT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector())),TypingPassTemporaryVarNameT(_)),FinalT,_),refExpr,targetOwnership) => {
         refExpr.result.reference match {
-          case CoordT(OwnT, StructTT(simpleName("Muta"), _)) =>
+          case CoordT(OwnT, StructTT(simpleName("Muta"))) =>
         }
         targetOwnership shouldEqual BorrowT
         letTE.result.reference.ownership shouldEqual BorrowT

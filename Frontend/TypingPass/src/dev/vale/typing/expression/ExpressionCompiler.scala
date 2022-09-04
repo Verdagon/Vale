@@ -9,7 +9,7 @@ import dev.vale.postparsing.rules.{RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal, CantMutateFinalElement, CantMutateFinalMember, CantReconcileBranchesResults, CantUnstackifyOutsideLocalFromInsideWhile, CantUseUnstackifiedLocal, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForMutateT, CouldntConvertForReturnT, CouldntFindIdentifierToLoadT, CouldntFindMemberT, HigherTypingInferError, IfConditionIsntBoolean, InferCompiler, OverloadResolver, RangedInternalErrorT, SequenceCompiler, TemplataCompiler, TypingPassOptions, ast, templata}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
-import dev.vale.typing.citizen.{ImplCompiler, StructCompiler}
+import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, StructCompiler}
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, ExpressionLookupContext, FunctionEnvironment, IEnvironment, ILocalVariableT, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.highertyping._
@@ -20,13 +20,11 @@ import dev.vale.postparsing.RuneTypeSolver
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
-import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
-import dev.vale.typing.names.{ArbitraryNameT, ClosureParamNameT, CodeVarNameT, IVarNameT, NameTranslator, RuneNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT}
+import dev.vale.typing.names.{ArbitraryNameT, CitizenTemplateNameT, ClosureParamNameT, CodeVarNameT, FullNameT, IImplNameT, IVarNameT, NameTranslator, RuneNameT, TypingPassBlockResultVarNameT, TypingPassFunctionResultVarNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.typing.names.CitizenTemplateNameT
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -76,6 +74,7 @@ class ExpressionCompiler(
     sequenceCompiler: SequenceCompiler,
     overloadCompiler: OverloadResolver,
     destructorCompiler: DestructorCompiler,
+    implCompiler: ImplCompiler,
     convertHelper: ConvertHelper,
     delegate: IExpressionCompilerDelegate) {
   val localHelper = new LocalHelper(opts, interner, nameTranslator, destructorCompiler)
@@ -1191,7 +1190,7 @@ class ExpressionCompiler(
     nenv: FunctionEnvironment,
     range: List[RangeS],
     containedCoord: CoordT):
-  (CoordT, PrototypeT, PrototypeT) = {
+  (CoordT, PrototypeT, PrototypeT, FullNameT[IImplNameT], FullNameT[IImplNameT]) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Opt)), Set(TemplataLookupContext)).toList match {
         case List(it@InterfaceDefinitionTemplata(_, _)) => it
@@ -1225,7 +1224,20 @@ class ExpressionCompiler(
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
-    (ownOptCoord, someConstructor, noneConstructor)
+
+    val someImplFullName =
+      implCompiler.isParent(coutputs, nenv, range, someConstructor.returnType.kind.expectCitizen(), optInterfaceRef) match {
+        case IsParent(_, _, implFullName) => implFullName
+        case IsntParent(_) => vwat()
+      }
+
+    val noneImplFullName =
+      implCompiler.isParent(coutputs, nenv, range, noneConstructor.returnType.kind.expectCitizen(), optInterfaceRef) match {
+        case IsParent(_, _, implFullName) => implFullName
+        case IsntParent(_) => vwat()
+      }
+
+    (ownOptCoord, someConstructor, noneConstructor, someImplFullName, noneImplFullName)
   }
 
   def getResult(

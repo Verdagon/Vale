@@ -183,17 +183,4 @@ class StructTests extends FunSuite with Matchers {
       case PanicException() =>
     }
   }
-
-
-  test("Call borrow parameter with shared reference") {
-    val compile = RunCompilation.test(
-      """func get<T>(a &T) &T { return a; }
-        |
-        |exported func main() int {
-        |  return get(6);
-        |}
-      """.stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(6) => }
-  }
 }

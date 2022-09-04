@@ -166,7 +166,7 @@ class ExpressionHammer(
         (arrayLengthAndDeferredsExprH, Vector.empty)
       }
 
-      case LockWeakTE(innerExpr2, resultOptBorrowType2, someConstructor, noneConstructor) => {
+      case LockWeakTE(innerExpr2, resultOptBorrowType2, someConstructor, noneConstructor, _, _) => {
         val (resultHE, deferreds) =
           translate(hinputs, hamuts, currentFunctionHeader, locals, innerExpr2);
         val (resultOptBorrowTypeH) =

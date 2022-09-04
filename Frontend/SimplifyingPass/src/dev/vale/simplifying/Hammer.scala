@@ -172,6 +172,7 @@ class Hammer(interner: Interner, keywords: Keywords) {
     kindToDestructor,
     interfaceToEdgeBlueprints,
     edges,
+    _,
     kindExports,
     functionExports,
     kindExterns,

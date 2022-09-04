@@ -93,6 +93,13 @@ case class LockWeakTE(
   someConstructor: PrototypeT,
   // Function to make a None of the right type
   noneConstructor: PrototypeT,
+
+  // This is the impl we use to allow/permit the upcast from the some to the none.
+  // It'll be useful for monomorphization and later on for locating the itable ptr to put in fat pointers.
+  someImplName: FullNameT[IImplNameT],
+  // This is the impl we use to allow/permit the upcast from the some to the none.
+  // It'll be useful for monomorphization and later on for locating the itable ptr to put in fat pointers.
+  noneImplName: FullNameT[IImplNameT],
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {

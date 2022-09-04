@@ -24,7 +24,7 @@ class WeakTests extends FunSuite with Matchers {
     Collector.only(main, {
       case LetNormalTE(ReferenceLocalVariableT(FullNameT(_, _,CodeVarNameT(StrI("weakMuta"))),FinalT,CoordT(WeakT, _)),refExpr) => {
         refExpr.result.reference match {
-          case CoordT(WeakT, StructTT(simpleName("Muta"), _)) =>
+          case CoordT(WeakT, StructTT(simpleName("Muta"))) =>
         }
       }
     })
@@ -133,7 +133,7 @@ class WeakTests extends FunSuite with Matchers {
           |""".stripMargin)
 
     try {
-       compile.expectCompilerOutputs().lookupFunction("main")
+      compile.expectCompilerOutputs().lookupFunction("main")
       vfail()
     } catch {
       case WeakableImplingMismatch(false, true) =>
@@ -153,7 +153,7 @@ class WeakTests extends FunSuite with Matchers {
     Collector.only(main, {
       case LetNormalTE(ReferenceLocalVariableT(FullNameT(_, _,CodeVarNameT(StrI("weakUnit"))),FinalT,CoordT(WeakT, _)),refExpr) => {
         refExpr.result.reference match {
-          case CoordT(WeakT, InterfaceTT(simpleName("IUnit"), _)) =>
+          case CoordT(WeakT, InterfaceTT(simpleName("IUnit"))) =>
         }
       }
     })
@@ -177,7 +177,7 @@ class WeakTests extends FunSuite with Matchers {
       vfail()
     } catch {
       case ConstraintViolatedException(_) =>
-      case _ => vfail()
+      case other => vfail(other)
     }
   }
 

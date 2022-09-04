@@ -43,7 +43,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     val launchGeneric = coutputs.lookupFunction("launchGeneric")
 
     val main = coutputs.lookupFunction("main")
-    Collector.all(main, { case UpcastTE(_, _, _, _, _) => }).size shouldEqual 0
+    Collector.all(main, { case UpcastTE(_, _, _, _) => }).size shouldEqual 0
     vimpl()
     //    Collector.all(main, {
     //      case FuncCallTE =>
@@ -192,7 +192,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("genericGetFuel").header.fullName.last.templateArgs.last match {
-      case CoordTemplata(CoordT(_,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_)), _))) =>
+      case CoordTemplata(CoordT(_,StructTT(FullNameT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
     }
   }
 

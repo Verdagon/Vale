@@ -360,17 +360,17 @@ case class LambdaCallFunctionTemplateNameT(
   paramTypes: Vector[CoordT]
 ) extends INameT with IFunctionTemplateNameT {
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    vassert(params == paramTypes)
-    interner.intern(LambdaCallFunctionNameT(this, templateArgs))
+    // Post monomorphizer, the params will be real, but our template paramTypes will still be placeholders
+    // vassert(params == paramTypes)
+    interner.intern(LambdaCallFunctionNameT(this, templateArgs, params))
   }
 }
 
 case class LambdaCallFunctionNameT(
   template: LambdaCallFunctionTemplateNameT,
-  templateArgs: Vector[ITemplata[ITemplataType]]
-) extends IFunctionNameT {
-  override def parameters: Vector[CoordT] = template.paramTypes
-}
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  parameters: Vector[CoordT]
+) extends IFunctionNameT
 
 case class ForwarderFunctionTemplateNameT(
   inner: IFunctionTemplateNameT,
