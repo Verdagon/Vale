@@ -113,9 +113,6 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   }
 
   test("Templated interface and struct") {
-    strt here
-    // it seems its declaring the override placeholder name thingy into coutputs twice, for some reason
-
     val compile = CompilerTestCompilation.test(
       """
         |sealed interface Opt<T Ref>

@@ -1,4 +1,6 @@
 import v.builtins.arith.*;
+import v.builtins.drop.*;
+import v.builtins.panic.*;
 
 func drop_into<V, S, E, F>(arr [#S]<imm, V>E, consumer &F) void
 where func(&F, E)void

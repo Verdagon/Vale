@@ -454,6 +454,9 @@ object DenizenMonomorphizer {
     val superInterfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(implDefinitionT.superInterface)
     val superInterfaceDefinitionT = hinputs.lookupInterfaceByTemplateFullName(superInterfaceTemplateFullName)
     val superInterfacePlaceholderedName = superInterfaceDefinitionT.instantiatedInterface
+    val subCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(implDefinitionT.subCitizen)
+    val subCitizenDefinitionT = hinputs.lookupCitizenByTemplateFullName(subCitizenTemplateFullName)
+    val subCitizenPlaceholderedName = subCitizenDefinitionT.instantiatedCitizen
 
     val abstractFuncTemplateName = TemplataCompiler.getFunctionTemplate(abstractFuncPrototype.fullName)
     val abstractFuncPlaceholderedNameT =
@@ -465,7 +468,7 @@ object DenizenMonomorphizer {
     val edgeT =
       vassertSome(
         vassertSome(hinputs.interfaceToSubCitizenToEdge.get(superInterfacePlaceholderedName.fullName))
-          .get(implDefinitionT.subCitizen))
+          .get(subCitizenPlaceholderedName.fullName))
 
     val overridePrototypeT =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))

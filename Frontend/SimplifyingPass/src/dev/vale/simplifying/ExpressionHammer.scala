@@ -220,7 +220,7 @@ class ExpressionHammer(
         (newStructAndDeferredsExprH, Vector.empty)
       }
 
-      case StaticArrayFromValuesTE(exprs, arrayReference2, arrayType2) => {
+      case StaticArrayFromValuesTE(exprs, arrayReference2, arrayType2, _) => {
         val (resultsHE, deferreds) =
           translateExpressionsUntilNever(hinputs, hamuts, currentFunctionHeader, locals, exprs);
         // Don't evaluate anything that can't ever be run, see BRCOBS
@@ -354,14 +354,14 @@ class ExpressionHammer(
         (access, Vector.empty)
       }
 
-      case nirsaTE @ NewImmRuntimeSizedArrayTE(_, _, _, _) => {
+      case nirsaTE @ NewImmRuntimeSizedArrayTE(_, _, _, _, _) => {
         val access =
           translateNewImmRuntimeSizedArray(
             hinputs, hamuts, currentFunctionHeader, locals, nirsaTE)
         (access, Vector.empty)
       }
 
-      case ca2 @ StaticArrayFromCallableTE(_, _, _) => {
+      case ca2 @ StaticArrayFromCallableTE(_, _, _, _) => {
         val access =
           translateStaticArrayFromCallable(
             hinputs, hamuts, currentFunctionHeader, locals, ca2)
@@ -814,7 +814,7 @@ class ExpressionHammer(
     locals: LocalsBox,
     constructArray2: NewImmRuntimeSizedArrayTE):
   (ExpressionH[KindH]) = {
-    val NewImmRuntimeSizedArrayTE(arrayType2, sizeExpr2, generatorExpr2, generatorMethod) = constructArray2;
+    val NewImmRuntimeSizedArrayTE(arrayType2, sizeExpr2, generatorExpr2, generatorMethod, _) = constructArray2;
 
     val (sizeRegisterId, sizeDeferreds) =
       translate(
@@ -856,7 +856,7 @@ class ExpressionHammer(
     locals: LocalsBox,
     exprTE: StaticArrayFromCallableTE):
   (ExpressionH[KindH]) = {
-    val StaticArrayFromCallableTE(arrayType2, generatorExpr2, generatorMethod) = exprTE;
+    val StaticArrayFromCallableTE(arrayType2, generatorExpr2, generatorMethod, _) = exprTE;
 
     val (generatorRegisterId, generatorDeferreds) =
       translate(
