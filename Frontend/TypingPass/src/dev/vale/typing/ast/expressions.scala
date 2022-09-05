@@ -362,9 +362,13 @@ case class TupleTE(
 //}
 
 case class StaticArrayFromValuesTE(
-    elements: Vector[ReferenceExpressionTE],
-    resultReference: CoordT,
-    arrayType: StaticSizedArrayTT) extends ReferenceExpressionTE {
+  elements: Vector[ReferenceExpressionTE],
+  resultReference: CoordT,
+  arrayType: StaticSizedArrayTT,
+  // This is here so that there's always a call to a free function for any struct we actually make.
+  // This'll help when monomorphizing so we can be sure it makes it to later stages.
+  freePrototype: PrototypeT
+) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(resultReference)
 }
@@ -578,7 +582,8 @@ case class ConstructTE(
     args: Vector[ExpressionT],
     // This is here so that there's always a call to a free function for any struct we actually make.
     // This'll help when monomorphizing so we can be sure it makes it to later stages.
-    freePrototype: PrototypeT) extends ReferenceExpressionTE {
+    freePrototype: PrototypeT
+) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 
@@ -589,7 +594,10 @@ case class ConstructTE(
 // it's up to later stages to replace that with an actual index
 case class NewMutRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
-  capacityExpr: ReferenceExpressionTE
+  capacityExpr: ReferenceExpressionTE,
+//  // This is here so that there's always a call to a free function for any struct we actually make.
+//  // This'll help when monomorphizing so we can be sure it makes it to later stages.
+//  freePrototype: PrototypeT
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {
@@ -607,7 +615,10 @@ case class NewMutRuntimeSizedArrayTE(
 case class StaticArrayFromCallableTE(
   arrayType: StaticSizedArrayTT,
   generator: ReferenceExpressionTE,
-  generatorMethod: PrototypeT
+  generatorMethod: PrototypeT,
+  // This is here so that there's always a call to a free function for any struct we actually make.
+  // This'll help when monomorphizing so we can be sure it makes it to later stages.
+  freePrototype: PrototypeT
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {
@@ -666,7 +677,7 @@ case class DestroyStaticSizedArrayIntoLocalsTE(
 }
 
 case class DestroyMutRuntimeSizedArrayTE(
-  arrayExpr: ReferenceExpressionTE
+  arrayExpr: ReferenceExpressionTE,
 ) extends ReferenceExpressionTE {
   override def result: ReferenceResultT = ReferenceResultT(CoordT(ShareT, VoidT()))
 }
@@ -775,7 +786,7 @@ case class DestroyImmRuntimeSizedArrayTE(
   arrayExpr: ReferenceExpressionTE,
   arrayType: RuntimeSizedArrayTT,
   consumer: ReferenceExpressionTE,
-  consumerMethod: PrototypeT
+  consumerMethod: PrototypeT,
 ) extends ReferenceExpressionTE {
   arrayType.mutability match {
     case MutabilityTemplata(ImmutableT) =>
@@ -802,7 +813,10 @@ case class NewImmRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
   sizeExpr: ReferenceExpressionTE,
   generator: ReferenceExpressionTE,
-  generatorMethod: PrototypeT
+  generatorMethod: PrototypeT,
+  // This is here so that there's always a call to a free function for any struct we actually make.
+  // This'll help when monomorphizing so we can be sure it makes it to later stages.
+  freePrototype: PrototypeT
 ) extends ReferenceExpressionTE {
   arrayType.mutability match {
     case MutabilityTemplata(ImmutableT) =>

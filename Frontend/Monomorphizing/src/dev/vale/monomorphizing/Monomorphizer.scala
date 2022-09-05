@@ -451,7 +451,7 @@ object DenizenMonomorphizer {
           .flatMap(_._2.values)
           .filter(edge => TemplataCompiler.getImplTemplate(edge.edgeFullName) == TemplataCompiler.getImplTemplate(implFullName)))
 
-    val superInterfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(implDefinitionT.interface)
+    val superInterfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(implDefinitionT.superInterface)
     val superInterfaceDefinitionT = hinputs.lookupInterfaceByTemplateFullName(superInterfaceTemplateFullName)
     val superInterfacePlaceholderedName = superInterfaceDefinitionT.instantiatedInterface
 
@@ -465,7 +465,7 @@ object DenizenMonomorphizer {
     val edgeT =
       vassertSome(
         vassertSome(hinputs.interfaceToSubCitizenToEdge.get(superInterfacePlaceholderedName.fullName))
-          .get(implDefinitionT.struct))
+          .get(implDefinitionT.subCitizen))
 
     val overridePrototypeT =
       vassertSome(edgeT.abstractFuncToOverrideFunc.get(abstractFuncPlaceholderedNameT))
@@ -890,6 +890,14 @@ class DenizenMonomorphizer(
           translateCoord(resultType2),
           variability)
       }
+      case RuntimeSizedArrayLookupTE(range, arrayExpr, arrayType, indexExpr, variability) => {
+        RuntimeSizedArrayLookupTE(
+          range,
+          translateRefExpr(arrayExpr),
+          translateRuntimeSizedArray(arrayType),
+          translateRefExpr(indexExpr),
+          variability)
+      }
       case other => vimpl(other)
     }
   }
@@ -974,14 +982,18 @@ class DenizenMonomorphizer(
             translatePrototype(prototype2),
             args.map(translateRefExpr))
         }
-        case ConstructTE(structTT, resultReference, args, freePrototype) => {
-          val free = translatePrototype(freePrototype)
-
+        case ConstructTE(structTT, resultReference, args, freePrototypeT) => {
           val coord = translateCoord(resultReference)
-          vassert(coord == vassertSome(free.fullName.last.parameters.headOption))
+
+          val freePrototype = translatePrototype(freePrototypeT)
+          // They might disagree on the ownership, and thats fine.
+          // That free prototype is only going to take an owning or a share reference, and we'll only
+          // use it if we have a shared reference so it's all good.
+          vassert(coord.kind == vassertSome(freePrototype.fullName.last.parameters.headOption).kind)
           if (coord.ownership == ShareT) {
-            monouts.immKindToDestructor.put(coord.kind, free)
+            monouts.immKindToDestructor.put(coord.kind, freePrototype)
           }
+
           ConstructTE(
             translateStruct(
               structTT,
@@ -989,7 +1001,7 @@ class DenizenMonomorphizer(
                 hinputs.getInstantiationBounds(structTT.fullName))),
             coord,
             args.map(translateExpr),
-            free)
+            freePrototype)
         }
         case DestroyTE(expr, structTT, destinationReferenceVariables) => {
           DestroyTE(
@@ -1005,7 +1017,7 @@ class DenizenMonomorphizer(
             translateAddrExpr(destinationExpr),
             translateRefExpr(sourceExpr))
         }
-        case u @ UpcastTE(innerExprUnsubstituted, targetSuperKind, untranslatedImplFullName, interfaceFreePrototype) => {
+        case u @ UpcastTE(innerExprUnsubstituted, targetSuperKind, untranslatedImplFullName, freePrototypeT) => {
           val implFullName =
             translateImplFullName(
               untranslatedImplFullName,
@@ -1019,21 +1031,21 @@ class DenizenMonomorphizer(
   //            (rune -> PrototypeTemplata(declarationRange, translatePrototype(prototype)))
   //          })
 
-          val free = translatePrototype(interfaceFreePrototype)
+          val freePrototype = translatePrototype(freePrototypeT)
           val coord = translateCoord(u.result.reference)
           // They might disagree on the ownership, and thats fine.
           // That free prototype is only going to take an owning or a share reference, and we'll only
           // use it if we have a shared reference so it's all good.
-          vassert(coord.kind == vassertSome(free.fullName.last.parameters.headOption).kind)
+          vassert(coord.kind == vassertSome(freePrototype.fullName.last.parameters.headOption).kind)
           if (coord.ownership == ShareT) {
-            monouts.immKindToDestructor.put(coord.kind, interfaceFreePrototype)
+            monouts.immKindToDestructor.put(coord.kind, freePrototypeT)
           }
 
           UpcastTE(
             translateRefExpr(innerExprUnsubstituted),
             translateSuperKind(targetSuperKind),
             implFullName,
-            free)
+            freePrototype)
         }
         case IfTE(condition, thenCall, elseCall) => {
           IfTE(
@@ -1046,11 +1058,23 @@ class DenizenMonomorphizer(
             translateRefExpr(left),
             translateRefExpr(right))
         }
-        case StaticArrayFromValuesTE(elements, resultReference, arrayType) => {
+        case StaticArrayFromValuesTE(elements, resultReference, arrayType, freePrototypeT) => {
+
+          val freePrototype = translatePrototype(freePrototypeT)
+          val coord = translateCoord(resultReference)
+          // They might disagree on the ownership, and thats fine.
+          // That free prototype is only going to take an owning or a share reference, and we'll only
+          // use it if we have a shared reference so it's all good.
+          vassert(coord.kind == vassertSome(freePrototype.fullName.last.parameters.headOption).kind)
+          if (coord.ownership == ShareT) {
+            monouts.immKindToDestructor.put(coord.kind, freePrototypeT)
+          }
+
           StaticArrayFromValuesTE(
             elements.map(translateRefExpr),
             translateCoord(resultReference),
-            arrayType)
+            arrayType,
+            freePrototype)
         }
         case DeferTE(innerExpr, deferredExpr) => {
           DeferTE(
@@ -1091,6 +1115,84 @@ class DenizenMonomorphizer(
             translateStaticSizedArray(arrayType),
             translateRefExpr(consumer),
             translatePrototype(consumerMethod))
+        }
+        case NewImmRuntimeSizedArrayTE(arrayType, sizeExpr, generator, generatorMethod, freePrototypeT) => {
+          val freePrototype = translatePrototype(freePrototypeT)
+
+          val result =
+            NewImmRuntimeSizedArrayTE(
+              translateRuntimeSizedArray(arrayType),
+              translateRefExpr(sizeExpr),
+              translateRefExpr(generator),
+              translatePrototype(generatorMethod),
+              freePrototype)
+
+          val coord = result.result.reference
+          // They might disagree on the ownership, and thats fine.
+          // That free prototype is only going to take an owning or a share reference, and we'll only
+          // use it if we have a shared reference so it's all good.
+          vassert(coord.kind == vassertSome(freePrototype.fullName.last.parameters.headOption).kind)
+          if (coord.ownership == ShareT) {
+            monouts.immKindToDestructor.put(coord.kind, freePrototype)
+          }
+
+          result
+        }
+        case StaticArrayFromCallableTE(arrayType, generator, generatorMethod, freePrototypeT) => {
+          val freePrototype = translatePrototype(freePrototypeT)
+
+          val result =
+            StaticArrayFromCallableTE(
+              translateStaticSizedArray(arrayType),
+              translateRefExpr(generator),
+              translatePrototype(generatorMethod),
+              freePrototype)
+
+          val coord = result.result.reference
+          // They might disagree on the ownership, and thats fine.
+          // That free prototype is only going to take an owning or a share reference, and we'll only
+          // use it if we have a shared reference so it's all good.
+          vassert(coord.kind == vassertSome(freePrototype.fullName.last.parameters.headOption).kind)
+          if (coord.ownership == ShareT) {
+            monouts.immKindToDestructor.put(coord.kind, freePrototype)
+          }
+
+          result
+        }
+        case RuntimeSizedArrayCapacityTE(arrayExpr) => {
+          RuntimeSizedArrayCapacityTE(translateRefExpr(arrayExpr))
+        }
+        case PushRuntimeSizedArrayTE(arrayExpr, newElementExpr) => {
+          PushRuntimeSizedArrayTE(
+            translateRefExpr(arrayExpr),
+            translateRefExpr(newElementExpr))
+        }
+        case PopRuntimeSizedArrayTE(arrayExpr) => {
+          PopRuntimeSizedArrayTE(translateRefExpr(arrayExpr))
+        }
+        case ArrayLengthTE(arrayExpr) => {
+          ArrayLengthTE(translateRefExpr(arrayExpr))
+        }
+        case DestroyImmRuntimeSizedArrayTE(arrayExpr, arrayType, consumer, consumerMethod) => {
+          DestroyImmRuntimeSizedArrayTE(
+            translateRefExpr(arrayExpr),
+            translateRuntimeSizedArray(arrayType),
+            translateRefExpr(consumer),
+            translatePrototype(consumerMethod))
+//            translatePrototype(freePrototype))
+        }
+        case DestroyMutRuntimeSizedArrayTE(arrayExpr) => {
+          DestroyMutRuntimeSizedArrayTE(translateRefExpr(arrayExpr))
+        }
+        case NewMutRuntimeSizedArrayTE(arrayType, capacityExpr) => {
+          NewMutRuntimeSizedArrayTE(
+            translateRuntimeSizedArray(arrayType),
+            translateRefExpr(capacityExpr))
+        }
+        case TupleTE(elements, resultReference) => {
+          TupleTE(
+            elements.map(translateRefExpr),
+            translateCoord(resultReference))
         }
         case other => vimpl(other)
       }
@@ -1245,7 +1347,38 @@ class DenizenMonomorphizer(
           case KindTemplata(kind) => CoordT(ownership, kind)
         }
       }
-      case other => CoordT(ownership, translateKind(other))
+      case other => {
+        // We could, for example, be translating an Array<myFunc$0, T> (which is temporarily regarded mutable)
+        // to an Array<imm, int> (which is immutable).
+        // So, we have to check for that here and possibly make the ownership share.
+        val kind = translateKind(other)
+        val mutability = getMutability(kind)
+        val newOwnership =
+          (ownership, mutability) match {
+            case (_, ImmutableT) => ShareT
+            case (other, MutableT) => other
+          }
+        CoordT(newOwnership, translateKind(other))
+      }
+    }
+  }
+
+  def getMutability(t: KindT): MutabilityT = {
+    t match {
+      case IntT(_) | BoolT() | StrT() | NeverT(_) | FloatT() | VoidT() => ImmutableT
+      case StructTT(name) => {
+        expectMutabilityTemplata(vassertSome(monouts.structs.get(name)).mutability).mutability
+      }
+      case InterfaceTT(name) => {
+        expectMutabilityTemplata(vassertSome(monouts.interfacesWithoutMethods.get(name)).mutability).mutability
+      }
+      case RuntimeSizedArrayTT(FullNameT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, _)))) => {
+        expectMutabilityTemplata(mutability).mutability
+      }
+      case StaticSizedArrayTT(FullNameT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(mutability, _)))) => {
+        expectMutabilityTemplata(mutability).mutability
+      }
+      case other => vimpl(other)
     }
   }
 
@@ -1525,6 +1658,7 @@ class DenizenMonomorphizer(
       }
       case LambdaCitizenNameT(LambdaCitizenTemplateNameT(codeLocation)) => name
       case InterfaceTemplateNameT(humanNamee) => name
+      case FreeTemplateNameT(codeLoc) => name
       case f : IFunctionNameT => translateFunctionName(f)
       case other => vimpl(other)
     }
@@ -1540,12 +1674,12 @@ class DenizenMonomorphizer(
 
     val citizen =
       translateCitizenFullName(
-        implDefinition.struct,
-        translateBoundsForCallee(hinputs.getInstantiationBounds(implDefinition.struct)))
+        implDefinition.subCitizen,
+        translateBoundsForCallee(hinputs.getInstantiationBounds(implDefinition.subCitizen)))
     val superInterface =
       translateInterfaceFullName(
-        implDefinition.interface,
-        translateBoundsForCallee(hinputs.getInstantiationBounds(implDefinition.interface)))
+        implDefinition.superInterface,
+        translateBoundsForCallee(hinputs.getInstantiationBounds(implDefinition.superInterface)))
     monouts.impls.put(implFullName, (citizen, superInterface, denizenFunctionBoundToDenizenCallerSuppliedPrototype))
 
     vassertSome(monouts.interfaceToImplToAbstractPrototypeToOverridePrototype.get(superInterface))

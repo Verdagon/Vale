@@ -35,3 +35,4 @@ need that destructor prototype. So, best get it from elsewhere.
 Past me was totally right. Look at how many parts of vivem call
 discard() on something. We'd need to add a destructor prototype to
 *every one of those*, not just the Discard instruction.
+

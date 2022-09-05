@@ -388,6 +388,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
   }
 
   test("imm tuple access") {
+    vfail() // these tuples are actually mutable
     val compile = RunCompilation.test(Tests.loadExpected("programs/tuples/immtupleaccess.vale"))
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
@@ -538,6 +539,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
   }
 
   test("Tests generic's lambda calling parent function's bound") {
+    // See LCCPGB for explanation.
     val compile =
       RunCompilation.test(
         """

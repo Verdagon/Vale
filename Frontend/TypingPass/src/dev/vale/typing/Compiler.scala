@@ -100,7 +100,7 @@ class Compiler(
           callRange: List[RangeS],
           structTemplata: StructDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-        ResolveSuccess[StructTT] = {
+        IResolveOutcome[StructTT] = {
           structCompiler.resolveStruct(
             coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
         }
@@ -111,7 +111,7 @@ class Compiler(
             callRange: List[RangeS],
             interfaceTemplata: InterfaceDefinitionTemplata,
             uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-        ResolveSuccess[InterfaceTT] = {
+        IResolveOutcome[InterfaceTT] = {
           structCompiler.resolveInterface(
             coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
@@ -227,13 +227,13 @@ class Compiler(
                 }
                 case other => vfail(other)
               }
-            accum.elementsReversed.foreach({ case FullNameT(paackage, initSteps, _) =>
-              val placeholderDeclaringEnvName = FullNameT(paackage, initSteps.init, initSteps.last)
+            accum.elementsReversed.foreach(placeholderName => {
               // There should only ever be placeholders from the original calling environment, we should
               // *never* mix placeholders from two environments.
               // If this assert trips, that means we're not correctly phrasing everything in terms of
               // placeholders from this top level denizen.
-              vassert(placeholderDeclaringEnvName == originalCallingEnvTemplateName)
+              // See OWPFRD.
+              vassert(placeholderName.steps.startsWith(originalCallingEnvTemplateName.steps))
             })
           }
         }
@@ -425,7 +425,7 @@ class Compiler(
           templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
-        ResolveSuccess[InterfaceTT] = {
+        IResolveOutcome[InterfaceTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs)
         }
@@ -437,7 +437,7 @@ class Compiler(
           templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           verifyConclusions: Boolean):
-        ResolveSuccess[StructTT] = {
+        IResolveOutcome[StructTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
           structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs)
         }
@@ -620,6 +620,7 @@ class Compiler(
       keywords,
       inferCompiler,
       overloadResolver,
+      destructorCompiler,
       templataCompiler)
 
   val expressionCompiler: ExpressionCompiler =
@@ -683,8 +684,8 @@ class Compiler(
   val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
   val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
-  val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords, arrayCompiler)
-  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadResolver, arrayCompiler)
+  val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords, arrayCompiler, destructorCompiler)
+  val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadResolver, arrayCompiler, destructorCompiler)
   val rsaPushMacro = new RSAMutablePushMacro(interner, keywords)
   val rsaPopMacro = new RSAMutablePopMacro(interner, keywords)
   val rsaCapacityMacro = new RSAMutableCapacityMacro(interner, keywords)

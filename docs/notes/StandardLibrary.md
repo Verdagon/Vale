@@ -29,6 +29,18 @@ Bad for random access (O(logN)) so perhaps we should have an accompanying array 
 
 I'd like some sort of hash map that doesn't move its values. Perhaps we'd have a separate array
 
+## Sparse Collections
+
+Sparse means that they're conceptually collections of optionals. Particularly good for implementing hash maps, swiss tables, etc.
+
+We could have these automatically created behind the scenes for collections of optionals. Yeah, that sounds reasonable. Some optimizations:
+
+ * Collections of optional yonders can be lowered to nullables (we should do that in general for optionals anyway)
+ * Collections of optional mutables can use a bit in the generation word.
+ * We can use any padding that exist in any contained imm.
+
+Otherwise, we can have a parallel array of bits.
+
 ## PrefetchingIterator
 
 This is an iterator that will prefetch a certain number (L) of elements ahead.

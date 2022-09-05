@@ -8,15 +8,21 @@ import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
+import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.typing.types.RuntimeSizedArrayTT
 
 
-class RSAMutableNewMacro(interner: Interner, keywords: Keywords, arrayCompiler: ArrayCompiler) extends IFunctionBodyMacro {
+class RSAMutableNewMacro(
+  interner: Interner,
+  keywords: Keywords,
+  arrayCompiler: ArrayCompiler,
+  destructorCompiler: DestructorCompiler
+) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_runtime_sized_array_mut_new
 
   def generateFunctionBody(
@@ -53,6 +59,7 @@ class RSAMutableNewMacro(interner: Interner, keywords: Keywords, arrayCompiler: 
           NewMutRuntimeSizedArrayTE(
             arrayTT,
             ArgLookupTE(0, paramCoords(0).tyype))))
+//            freePrototype)))
     (header, body)
   }
 }

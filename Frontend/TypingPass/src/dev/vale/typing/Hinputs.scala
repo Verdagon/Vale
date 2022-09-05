@@ -53,6 +53,10 @@ case class Hinputs(
     vassertSome(interfaces.find(_.instantiatedCitizen.fullName == interfaceFullName))
   }
 
+  def lookupEdge(implFullName: FullNameT[IImplNameT]): EdgeT = {
+    vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeFullName == implFullName))
+  }
+
   def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeT] = {
     vassertSome(instantiationNameToRuneToFunctionBound.get(instantiationName))
   }

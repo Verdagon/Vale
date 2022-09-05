@@ -71,7 +71,7 @@ object SourceCodeUtils {
     codeLocationS: CodeLocationS):
   (Int, Int) = {
     val CodeLocationS(file, offset) = codeLocationS
-    if (file.isInternal) {
+    if (offset < 0) {
       return (-1, 0)
     }
     val text = filenamesAndSources(file)

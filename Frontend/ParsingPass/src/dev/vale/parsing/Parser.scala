@@ -111,9 +111,18 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
     val begin = iter.getPos()
 
     val name =
-      iter.nextWord() match {
-        case None => return Err(BadStructMember(iter.getPos()))
-        case Some(WordLE(range, str)) => NameP(range, str)
+      iter.peek() match {
+        case Some(ParsedIntegerLE(range, int, _)) => {
+          // This is just temporary until we add proper variadics again, see TAVWG.
+          iter.advance()
+          NameP(range, interner.intern(StrI(int.toString)))
+        }
+        case _ => {
+          iter.nextWord() match {
+            case None => return Err(BadStructMember(iter.getPos()))
+            case Some(WordLE(range, str)) => NameP(range, str)
+          }
+        }
       }
 
     val variability = if (iter.trySkipSymbol('!')) VaryingP else FinalP

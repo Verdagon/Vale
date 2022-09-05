@@ -8,10 +8,11 @@ import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassertSome, vfail, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassert, vassertSome, vfail, vimpl}
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
+import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.templata.PrototypeTemplata
 import dev.vale.typing.types._
 
@@ -20,7 +21,8 @@ class RSAImmutableNewMacro(
   interner: Interner,
   keywords: Keywords,
   overloadResolver: OverloadResolver,
-  arrayCompiler: ArrayCompiler
+  arrayCompiler: ArrayCompiler,
+  destructorCompiler: DestructorCompiler
 ) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_runtime_sized_array_imm_new
 
@@ -86,6 +88,13 @@ class RSAImmutableNewMacro(
         case Ok(x) => x
       }
 
+    // Thisll still exist for mutable things, itll just contain a no-op.
+    val freePrototype =
+      destructorCompiler.getFreeFunction(
+        coutputs, env, callRange, header.returnType)
+        .function.prototype
+    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
+
     val body =
       BlockTE(
         ReturnTE(
@@ -93,7 +102,8 @@ class RSAImmutableNewMacro(
             arrayTT,
             ArgLookupTE(0, paramCoords(0).tyype),
             ArgLookupTE(1, paramCoords(1).tyype),
-            generatorPrototype.function.prototype)))
+            generatorPrototype.function.prototype,
+            freePrototype)))
     (header, body)
   }
 }

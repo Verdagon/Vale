@@ -6,7 +6,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.{CompilerOutputs, InferCompiler, TypingPassOptions}
+import dev.vale.typing.{CompilerOutputs, IIncompleteOrFailedCompilerSolve, InferCompiler, TypingPassOptions, _}
 import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator, PackageTopLevelNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -16,7 +16,6 @@ import dev.vale.typing.templata._
 import dev.vale.parsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.postparsing.rules._
-import dev.vale.typing._
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
@@ -59,10 +58,17 @@ trait IStructCompilerDelegate {
   EvaluateFunctionSuccess
 }
 
-case class ResolveSuccess[+T <: KindT](
-  kind: T,
-  //runeToSuppliedFunction: Map[IRuneS, PrototypeTemplata]
-)
+sealed trait IResolveOutcome[+T <: KindT] {
+  def expect(): ResolveSuccess[T]
+}
+case class ResolveSuccess[+T <: KindT](kind: T) extends IResolveOutcome[T] {
+  override def expect(): ResolveSuccess[T] = this
+}
+case class ResolveFailure[+T <: KindT](range: List[RangeS], x: IIncompleteOrFailedCompilerSolve) extends IResolveOutcome[T] {
+  override def expect(): ResolveSuccess[T] = {
+    throw CompileErrorExceptionT(TypingPassSolverError(range, x))
+  }
+}
 
 class StructCompiler(
     opts: TypingPassOptions,
@@ -82,7 +88,7 @@ class StructCompiler(
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  ResolveSuccess[StructTT] = {
+  IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       templateArgsLayer.resolveStruct(
         coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
@@ -180,7 +186,7 @@ class StructCompiler(
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  ResolveSuccess[InterfaceTT] = {
+  IResolveOutcome[InterfaceTT] = {
     val success =
       templateArgsLayer.resolveInterface(
         coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
@@ -196,7 +202,7 @@ class StructCompiler(
     // their rules as needed
     citizenTemplata: CitizenDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
-  ResolveSuccess[ICitizenTT] = {
+  IResolveOutcome[ICitizenTT] = {
     citizenTemplata match {
       case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs)
       case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs)

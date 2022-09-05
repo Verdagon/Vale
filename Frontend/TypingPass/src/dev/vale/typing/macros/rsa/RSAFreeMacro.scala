@@ -1,6 +1,6 @@
 package dev.vale.typing.macros.rsa
 
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, vassertSome, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.{CodeNameS, CodeRuneS, FunctorParamRuneNameS, FunctorPrototypeRuneNameS, FunctorReturnRuneNameS, IRuneS, RuneNameS}
 import dev.vale.postparsing.rules.{RuneParentEnvLookupSR, RuneUsage}
@@ -67,6 +67,12 @@ class RSAFreeMacro(
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.D))),
           Set(TemplataLookupContext)))
+
+//    val freePrototype =
+//      destructorCompiler.getFreeFunction(
+//        coutputs, env, callRange, rsaCoord)
+//        .function.prototype
+//    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
 
     val expr =
       DestroyImmRuntimeSizedArrayTE(

@@ -49,12 +49,24 @@ extern("vale_runtime_sized_array_len")
 func len<M, E>(arr &[]<M>E) int;
 
 extern("vale_static_sized_array_free")
-func __free_replaced<V, S, E>(arr @[#S]<imm, V>E)
+func __free_replaced<V, S, E>(arr [#S]<imm, V>E)
 where D Prot = func drop(void, E)void;
 
 extern("vale_runtime_sized_array_free")
-func __free_replaced<E>(arr @[]<imm>E)
+func __free_replaced<E>(arr []<imm>E)
 where D Prot = func drop(void, E)void;
+
+
+
+func __free_replaced<V, S, E>(arr [#S]<mut, V>E) {
+  __vbi_panic();
+}
+
+func __free_replaced<E>(arr []<mut>E) {
+  __vbi_panic();
+}
+
+
 
 extern("vale_runtime_sized_array_capacity")
 func capacity<E>(arr &[]<mut>E) int;
@@ -66,8 +78,8 @@ extern("vale_runtime_sized_array_pop")
 func pop<E>(arr &[]<mut>E) E;
 
 extern("vale_runtime_sized_array_mut_new")
-func Array<M, E>(size int) []<M>E
-where M Mutability = mut, E Ref;
+func Array<M Mutability, E Ref>(size int) []<M>E
+where M = mut;
 
 func Array<M, E, G>(n int, generator G) []<M>E
 where
@@ -89,4 +101,5 @@ func Array<M, E, G>(n int, generator G) []<M>E
 where
   M Mutability = imm,
   func(&G, int)E,
-  func drop(G)void;
+  func drop(G)void,
+  func drop(E)void;

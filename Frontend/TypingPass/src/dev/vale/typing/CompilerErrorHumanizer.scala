@@ -13,13 +13,14 @@ import dev.vale.postparsing.PostParserErrorHumanizer
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
-import dev.vale.typing.infer.{BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
+import dev.vale.typing.infer.{BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
 import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types.CoordT
 import dev.vale.RangeS
+import dev.vale.typing.citizen.ResolveFailure
 
 object CompilerErrorHumanizer {
   def humanize(
@@ -203,6 +204,24 @@ object CompilerErrorHumanizer {
     errorStrBody + "\n"
   }
 
+  def humanizeResolveFailure(
+    verbose: Boolean,
+    codeMap: FileCoordinateMap[String],
+    fff: ResolveFailure[KindT]):
+  String = {
+    val ResolveFailure(range, reason) = fff
+    humanizeCandidateAndFailedSolve(codeMap, reason match {
+      case IncompleteCompilerSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
+        IncompleteSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+          steps, unsolvedRules, unknownRunes, incompleteConclusions)
+      }
+      case FailedCompilerSolve(steps, unsolvedRules, error) => {
+        FailedSolve[IRulexSR, IRuneS, ITemplata[ITemplataType], ITypingPassSolverError](
+          steps, unsolvedRules, error)
+      }
+    })
+  }
+
   def humanizeFindFunctionFailure(
     verbose: Boolean,
     codeMap: FileCoordinateMap[String],
@@ -363,6 +382,9 @@ object CompilerErrorHumanizer {
       }
       case CouldntFindFunction(range, fff) => {
         "Couldn't find function to call: " + humanizeFindFunctionFailure(false, codeMap, range, fff)
+      }
+      case CouldntResolveKind(rf) => {
+        "Couldn't find type: " + humanizeResolveFailure(false, codeMap, rf)
       }
       case WrongNumberOfTemplateArgs(expectedNumArgs) => {
         "Wrong number of template args, expected " + expectedNumArgs + "."

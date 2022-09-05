@@ -163,13 +163,26 @@ class TemplexScout(
               resultRuneS
             }
             case PackPT(range, members) => {
+              val rangeS = PostParser.evalRange(env.file, range)
+
+              val templateRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+              ruleBuilder += LookupSR(rangeS, templateRuneS, CodeNameS(keywords.tupleHumanName))
+
               val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder +=
-                rules.PackSR(
-                  evalRange(range),
-                  resultRuneS,
-                  members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+              ruleBuilder += CallSR(
+                rangeS,
+                resultRuneS,
+                templateRuneS,
+                members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+
               resultRuneS
+//              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+//              ruleBuilder +=
+//                rules.PackSR(
+//                  evalRange(range),
+//                  resultRuneS,
+//                  members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+//              resultRuneS
             }
             case StaticSizedArrayPT(range, mutability, variability, size, element) => {
               val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
@@ -207,12 +220,18 @@ class TemplexScout(
                   evalRange(range),
                   resultRuneS,
                   templateRuneS,
-                  Array(packRuneS))
-              ruleBuilder +=
-                rules.PackSR(
-                  evalRange(range),
-                  packRuneS,
                   elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+//              ruleBuilder +=
+//                rules.CallSR(
+//                  evalRange(range),
+//                  resultRuneS,
+//                  templateRuneS,
+//                  Array(packRuneS))
+//              ruleBuilder +=
+//                rules.PackSR(
+//                  evalRange(range),
+//                  packRuneS,
+//                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
               resultRuneS
             }
           }

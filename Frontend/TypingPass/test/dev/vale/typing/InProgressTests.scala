@@ -30,6 +30,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // take sealed off of the weak tests to see what happens. the anonymous substruct stuff is being all borked up and weird
 
+    vimpl() // take the type off of []int(5, {_}), we made that not work anymore, see MSAE
+
     // is something like this possible?
     // and would it mean that we have to detect reentrant evaluation of that lambda template function?
     """

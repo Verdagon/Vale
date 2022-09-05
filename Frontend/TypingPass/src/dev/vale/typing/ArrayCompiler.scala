@@ -28,6 +28,7 @@ class ArrayCompiler(
     keywords: Keywords,
     inferCompiler: InferCompiler,
     overloadResolver: OverloadResolver,
+    destructorCompiler: DestructorCompiler,
     templataCompiler: TemplataCompiler) {
 
   val runeTypeSolver = new RuneTypeSolver(interner)
@@ -90,7 +91,23 @@ class ArrayCompiler(
       }
     })
 
-    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
+    val resultCoord =
+      CoordT(
+        mutability match {
+          case MutabilityTemplata(MutableT) => OwnT
+          case MutabilityTemplata(ImmutableT) => ShareT
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        },
+        ssaMT)
+
+    // Thisll still exist for mutable things, itll just contain a no-op.
+    val freePrototype =
+      destructorCompiler.getFreeFunction(
+        coutputs, callingEnv, range, resultCoord)
+        .function.prototype
+    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
+
+    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype, freePrototype)
     expr2
   }
 
@@ -127,6 +144,11 @@ class ArrayCompiler(
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
 
+    if (maybeElementTypeRune.isEmpty) {
+      // Temporary until we can figure out MSAE.
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Must specify element for arrays."))
+    }
+
     mutability match {
       case PlaceholderTemplata(_, MutabilityTemplataType()) => vimpl()
       case MutabilityTemplata(ImmutableT) => {
@@ -150,7 +172,23 @@ class ArrayCompiler(
           }
         })
 
-        NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
+        val resultCoord =
+          CoordT(
+            mutability match {
+              case MutabilityTemplata(MutableT) => OwnT
+              case MutabilityTemplata(ImmutableT) => ShareT
+              case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+            },
+            rsaMT)
+
+        // Thisll still exist for mutable things, itll just contain a no-op.
+        val freePrototype =
+          destructorCompiler.getFreeFunction(
+            coutputs, callingEnv, range, resultCoord)
+            .function.prototype
+        vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
+
+        NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype, freePrototype)
       }
       case MutabilityTemplata(MutableT) => {
         val EvaluateFunctionSuccess(prototype, conclusions) =
@@ -266,7 +304,19 @@ class ArrayCompiler(
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(_, _) => OwnT
       }
-    val finalExpr = StaticArrayFromValuesTE(exprs2, CoordT(ownership, staticSizedArrayType), staticSizedArrayType)
+
+    val ssaCoord = CoordT(ownership, staticSizedArrayType)
+
+    // Thisll still exist for mutable things, itll just contain a no-op.
+    val freePrototype =
+      destructorCompiler.getFreeFunction(
+        coutputs, callingEnv, range, ssaCoord)
+        .function.prototype
+    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
+
+    val finalExpr =
+      StaticArrayFromValuesTE(
+        exprs2, ssaCoord, staticSizedArrayType, freePrototype)
     (finalExpr)
   }
 
@@ -324,6 +374,12 @@ class ArrayCompiler(
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
         coutputs, fate, range, callableTE, arrayTT.elementType, true)
+
+//    val freePrototype =
+//      destructorCompiler.getFreeFunction(
+//        coutputs, fate, range, arrTE.result.reference)
+//        .function.prototype
+//    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
 
     ast.DestroyImmRuntimeSizedArrayTE(
       arrTE,
