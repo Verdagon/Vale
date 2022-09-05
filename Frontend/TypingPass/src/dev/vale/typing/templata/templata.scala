@@ -62,7 +62,7 @@ object ITemplata {
     }
   }
 
-  def expectMutabilityTemplata(templata: ITemplata[ITemplataType]): ITemplata[MutabilityTemplataType] = {
+  def expectMutabilityTemplata(templata: ITemplata[ITemplataType]): MutabilityTemplata = {
     templata match {
       case t @ MutabilityTemplata(_) => t
       case _ => vfail()

@@ -61,11 +61,25 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
-  test("Destroy RSA of imms into function") {
+  test("Call Array<> without element type") {
     val compile = RunCompilation.test(
       """
         |exported func main() int {
         |  a = Array<imm>(3, {13 + _});
+        |  sum = 0;
+        |  drop_into(a, &(e) => { set sum = sum + e; });
+        |  return sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(42) => }
+  }
+
+  test("Destroy RSA of imms into function") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  a = Array<imm, int>(3, {13 + _});
         |  sum = 0;
         |  drop_into(a, &(e) => { set sum = sum + e; });
         |  return sum;
@@ -96,7 +110,7 @@ class ArrayTests extends FunSuite with Matchers {
         |import array.make.*;
         |struct Spaceship { fuel int; }
         |exported func main() int {
-        |  a = MakeVaryArray(3, &{Spaceship(13 + _)});
+        |  a = MakeVaryArray<Spaceship>(3, &{Spaceship(13 + _)});
         |  sum = 0;
         |  drop_into(a, &(e) => { set sum = sum + e.fuel; });
         |  return sum;
@@ -216,7 +230,7 @@ class ArrayTests extends FunSuite with Matchers {
         |import array.make.*;
         |exported func main() int {
         |  i = 3;
-        |  a = MakeVaryArray(5, &{_ * 42});
+        |  a = MakeVaryArray<int>(5, &{_ * 42});
         |  return a[1];
         |}
         |""".stripMargin)
@@ -224,7 +238,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
       case RuntimeSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutableT
+        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
       }
     })
 
@@ -302,7 +316,7 @@ class ArrayTests extends FunSuite with Matchers {
         |func __call(lol int, i int) int { return i; }
         |
         |exported func main() int {
-        |  a = #[](10, 1337);
+        |  a = #[]int(10, 1337);
         |  return a.3;
         |}
       """.stripMargin)
@@ -310,7 +324,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -344,8 +358,8 @@ class ArrayTests extends FunSuite with Matchers {
         |func __call(lam Lam, i int) int { return i; }
         |
         |exported func main() int
-        |where F Prot = func(Lam, Int)Int {
-        |  a = #[](10, Lam());
+        |where F Prot = func(Lam, int)int {
+        |  a = #[]int(10, Lam());
         |  return a.3;
         |}
       """.stripMargin)
@@ -353,7 +367,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -368,7 +382,7 @@ class ArrayTests extends FunSuite with Matchers {
           |func __call(lam Lam, i int) int { return i; }
           |
           |exported func main() int {
-          |  a = MakeArray(10, Lam());
+          |  a = MakeArray<int>(10, Lam());
           |  return a.3;
           |}
         """.stripMargin)
@@ -381,7 +395,7 @@ class ArrayTests extends FunSuite with Matchers {
         """
           |import array.make.*;
           |exported func main() int {
-          |  a = MakeArray(10, {_});
+          |  a = MakeArray<int>(10, {_});
           |  return a.3;
           |}
         """.stripMargin)
@@ -403,7 +417,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("Array")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -414,7 +428,7 @@ class ArrayTests extends FunSuite with Matchers {
         """import array.make.*;
           |exported func main() int {
           |  x = 7;
-          |  a = MakeImmArray(10, { _ + x });
+          |  a = MakeImmArray<int>(10, { _ + x });
           |  return a.3;
           |}
         """.stripMargin)
@@ -425,7 +439,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
-          |  a = MakeImmArray(10, {_});
+          |  a = MakeImmArray<int>(10, {_});
           |  i = 5;
           |  return a[i];
           |}
@@ -451,9 +465,9 @@ class ArrayTests extends FunSuite with Matchers {
         """import array.make.*;
           |exported func main() int {
           |  board =
-          |      MakeArray(
+          |      MakeArray<Array<mut, int>>(
           |          3,
-          |          (row) => { MakeArray(3, { row + _ }) });
+          |          (row) => { MakeArray<int>(3, { row + _ }) });
           |  return board.1.2;
           |}
         """.stripMargin)
@@ -470,7 +484,7 @@ class ArrayTests extends FunSuite with Matchers {
           |
           |exported func main() int {
           |  box = IntBox(7);
-          |  board = MakeArray(3, &(col) => { box.i });
+          |  board = MakeArray<int>(3, &(col) => { box.i });
           |  return board.1;
           |}
         """.stripMargin)
@@ -481,8 +495,8 @@ class ArrayTests extends FunSuite with Matchers {
   test("Capture") {
     val compile = RunCompilation.test(
       """
-        |func myFunc<F>(generator F) T
-        |where T Ref, func(F, int)T
+        |func myFunc<T, F>(generator F) T
+        |where func(&F, int)T, func drop(F)void
         |{
         |  return generator(9);
         |}
@@ -494,7 +508,7 @@ class ArrayTests extends FunSuite with Matchers {
         |exported func main() int {
         |  box = IntBox(7);
         |  lam = (col) => { box.i };
-        |  board = myFunc(&lam);
+        |  board = myFunc<int>(&lam);
         |  return board;
         |}
       """.stripMargin)
@@ -507,7 +521,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
-          |  arr = MakeVaryArray(3, {_});
+          |  arr = MakeVaryArray<int>(3, {_});
           |  set arr[1] = 1337;
           |  return arr.1;
           |}
@@ -519,13 +533,11 @@ class ArrayTests extends FunSuite with Matchers {
   test("Capture mutable array") {
     val compile = RunCompilation.test(
         """import array.make.*;
-          |import ifunction.ifunction1.*;
           |struct MyIntIdentity {}
-          |impl IFunction1<mut, int, int> for MyIntIdentity;
           |func __call(this &MyIntIdentity, i int) int { return i; }
           |exported func main() {
           |  m = MyIntIdentity();
-          |  arr = MakeArray(10, &m);
+          |  arr = MakeArray<int>(10, &m);
           |  lam = { print(str(arr.6)); };
           |  lam();
           |}
@@ -537,15 +549,10 @@ class ArrayTests extends FunSuite with Matchers {
   test("Swap out of array") {
     val compile = RunCompilation.test(
         """import array.make.*;
-          |import ifunction.ifunction1.*;
           |struct Goblin { }
           |
-          |struct GoblinMaker {}
-          |impl IFunction1<mut, int, Goblin> for GoblinMaker;
-          |func __call(this &GoblinMaker, i int) Goblin { return Goblin(); }
           |exported func main() int {
-          |  m = GoblinMaker();
-          |  arr = MakeVaryArray(1, &m);
+          |  arr = MakeArray<Goblin>(1, i => Goblin());
           |  set arr.0 = Goblin();
           |  return 4;
           |}
@@ -559,7 +566,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
-          |  a = MakeArray(11, {_});
+          |  a = MakeArray<int>(11, {_});
           |  return len(&a);
           |}
         """.stripMargin)
@@ -571,9 +578,9 @@ class ArrayTests extends FunSuite with Matchers {
         """
           |import array.make.*;
           |exported func main() int {
-          |  board = MakeArray(5, {_});
+          |  board = MakeArray<int>(5, {_});
           |  result =
-          |      MakeArray(5, &(i) => {
+          |      MakeArray<int>(5, &(i) => {
           |        board[i] + 2
           |      });
           |  return result.2;
@@ -587,12 +594,11 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """
           |import array.make.*;
-          |func toArray<M, N, E>(seq &[#N]<_>E) []<M>E
-          |where M Mutability {
-          |  return MakeArray(N, { seq[_] });
+          |func toArray<TargetM Mutability, N, E, SourceM Mutability>(seq &[#N]<SourceM>E) []<TargetM>E {
+          |  return MakeArray<E>(N, { seq[_] });
           |}
           |exported func main() int {
-          |  return #[#][6, 4, 3, 5, 2, 8].toArray<mut>()[3];
+          |  return #[#]int[6, 4, 3, 5, 2, 8].toArray<mut>()[3];
           |}
           |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(5) => }
@@ -603,7 +609,7 @@ class ArrayTests extends FunSuite with Matchers {
       """
         |import array.make.*;
         |exported func main() int {
-        |  return #[#][#[#][6, 60].toImmArray(), #[#][4, 40].toImmArray(), #[#][3, 30].toImmArray()].toImmArray()[2][1];
+        |  return #[#]#[#2]int[#[#]int[6, 60].toImmArray(), #[#]int[4, 40].toImmArray(), #[#]int[3, 30].toImmArray()].toImmArray()[2][1];
         |}
         |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(30) => }
@@ -614,10 +620,9 @@ class ArrayTests extends FunSuite with Matchers {
       """
         |import array.make.*;
         |import array.each.*;
-        |import ifunction.ifunction1.*;
         |exported func main() int {
         |  sum = 0;
-        |  [#][6, 60, 103].each(&IFunction1<mut, int, void>({ set sum = sum + _; }));
+        |  [#]int[6, 60, 103].each({ set sum = sum + _; });
         |  return sum;
         |}
         |""".stripMargin)
@@ -629,7 +634,7 @@ class ArrayTests extends FunSuite with Matchers {
         """
           |import array.has.*;
           |exported func main() bool {
-          |  return (&[#][6, 60, 103]).has(103);
+          |  return (&[#]int[6, 60, 103]).has(103);
           |}
           |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonBool(true) => }
@@ -655,7 +660,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
       """import array.make.*;
         |exported func main() str {
-        |  a = MakeArray(10, { str(_) });
+        |  a = MakeArray<str>(10, { str(_) });
         |  b = a.toImmArray();
         |  return a.3;
         |}
@@ -668,7 +673,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
       """
         |exported func main() int {
-        |  a = #[](3);
+        |  a = #[]int(3);
         |  a.push(73);
         |  return a.0;
         |}

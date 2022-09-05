@@ -195,12 +195,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       addRunedDataToNearEnv(
         declaringEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas)
 
-    val banner =
+    val prototype =
       middleLayer.getOrEvaluateFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, function)
 
-    vassert(coutputs.getInstantiationBounds(banner.prototype.fullName).nonEmpty)
-    EvaluateFunctionSuccess(banner, inferredTemplatas)
+    coutputs.addInstantiationBounds(prototype.prototype.fullName, runeToFunctionBound)
+
+    EvaluateFunctionSuccess(prototype, inferredTemplatas)
   }
 
 //  // Preconditions:

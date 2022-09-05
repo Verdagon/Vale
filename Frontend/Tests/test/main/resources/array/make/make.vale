@@ -12,27 +12,11 @@ where func(&G, int)T
   return arr;
 }
 
-// func MakeVaryArray<T Ref, G Ref>(n int, generator G)
-// []<mut>T
-// where G Ref = Ref[any(share, borrow), _], func(G, int)T
-// {
-//   arr = Array<mut, T>(n);
-//   i = 0;
-//   while (i < n) {
-//     arr.push(generator(i));
-//     set i = i + 1;
-//   }
-//   return arr;
-// }
-//
-// func MakeImmArray<T Ref, G Ref>(n int, generator G)
-// []<imm>T
-// where
-//   G Ref = Ref[any(share, borrow), _],
-//   F Prot = func(G, int)T
-// {
-//   return Array<imm, T>(n, generator);
-// }
+func MakeImmArray<T Ref, G Ref>(n int, generator G) []<imm>T
+where F Prot = func(&G, int)T, func drop(G)void, func drop(T)void
+{
+  return Array<imm, T>(n, generator);
+}
 //
 // func toImmArray<N, E>(seq &[#N]<_, _>E) []<imm>E {
 //   return MakeImmArray(N, { seq[_] });

@@ -333,8 +333,8 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
-      impl.struct == structDef.instantiatedCitizen.fullName &&
-        impl.interface == interfaceDef.instantiatedCitizen.fullName
+      impl.subCitizen == structDef.instantiatedCitizen.fullName &&
+        impl.superInterface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -354,11 +354,9 @@ class CompilerTests extends FunSuite with Matchers {
       vassertOne(coutputs.interfaces.collectFirst({
         case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, methods) => (id, methods)
       }))
-    val method =
-      vassertSome(methods.collectFirst({
-        case (f @ PrototypeT(simpleName("bork"), _), _) => f
-      }))
-    vimpl() // use method somewhere?
+    vassertSome(methods.collectFirst({
+      case (f @ PrototypeT(simpleName("bork"), _), _) => f
+    }))
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
@@ -366,8 +364,8 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
-      impl.struct == structDef.instantiatedCitizen.fullName &&
-        impl.interface == interfaceDef.instantiatedCitizen.fullName
+      impl.subCitizen == structDef.instantiatedCitizen.fullName &&
+        impl.superInterface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
 
@@ -626,14 +624,19 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val main = coutputs.lookupFunction("main")
-    Collector.only(main, {
-      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car")), null, null) => {
-        Collector.only(innerExpr.result, {
-          case StructTT(simpleName("Toyota")) =>
-        })
-        up.result.reference.kind match { case InterfaceTT(FullNameT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Car")), Vector()))) => vassert(x.isTest) }
-      }
+    val up @ UpcastTE(innerExpr, _, implName, freePrototype) =
+      Collector.only(main, { case up @ UpcastTE(_, InterfaceTT(simpleName("Car")), _, _) => up})
+
+    Collector.only(innerExpr.result, {
+      case StructTT(simpleName("Toyota")) =>
     })
+    up.result.reference.kind match { case InterfaceTT(FullNameT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Car")), Vector()))) => vassert(x.isTest) }
+
+    val impl = coutputs.lookupEdge(implName)
+    vassert(impl.subCitizen == up.innerExpr.result.reference.kind.expectCitizen().fullName)
+    vassert(impl.superInterface == up.result.reference.kind.expectCitizen().fullName)
+
+    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
   }
 
   test("Tests calling a virtual function through a borrow ref") {
@@ -789,8 +792,8 @@ class CompilerTests extends FunSuite with Matchers {
       case UpcastTE(
       _,
       InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
-      null,
-      null) =>
+      _,
+      _) =>
     })
   }
 
@@ -892,35 +895,13 @@ class CompilerTests extends FunSuite with Matchers {
     vpass()
   }
 
-  test("Test struct default generic argument in call") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |struct MyHashSet<K Ref, H Int = 5> { }
-        |func moo() {
-        |  x = MyHashSet<bool>();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val moo = coutputs.lookupFunction("moo")
-    val variable = Collector.only(moo, { case LetNormalTE(v, _) => v })
-    variable.reference match {
-      case CoordT(
-        OwnT,
-        StructTT(
-          FullNameT(_,_,
-            StructNameT(
-              StructTemplateNameT(StrI("MyHashSet")),
-              Vector(
-                CoordTemplata(CoordT(ShareT,BoolT())),
-                IntegerTemplata(5)))))) =>
-    }
-  }
-
   test("Test Array of StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.arrays.*;
         |import v.builtins.functor1.*;
+        |import v.builtins.drop.*;
+        |import v.builtins.panic.*;
         |
         |struct Vec2 imm {
         |  x float;
@@ -1724,6 +1705,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test MakeArray") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.panic.*;
         |import v.builtins.arith.*;
         |import array.make.*;
         |import v.builtins.arrays.*;

@@ -20,6 +20,13 @@ case class FullNameT[+T <: INameT](
   last: T
 )  {
 
+  this match {
+    case FullNameT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),PlaceholderTemplateNameT(0)) => {
+      vpass()
+    }
+    case _ =>
+  }
+
   // Placeholders should only be the last name, getPlaceholdersInKind assumes it
   initSteps.foreach({
     case PlaceholderNameT(_) => vfail()
@@ -32,16 +39,13 @@ case class FullNameT[+T <: INameT](
   last match {
     case PlaceholderNameT(_) => {
       initSteps.last match {
-        case FunctionTemplateNameT(_, _) =>
-        case StructTemplateNameT(_) =>
-        case InterfaceTemplateNameT(_) =>
-        case ImplTemplateDeclareNameT(_) =>
-        case AnonymousSubstructTemplateNameT(_) =>
-        case AnonymousSubstructConstructorTemplateNameT(_) =>
-        case ForwarderFunctionTemplateNameT(_,_) =>
-        case FreeTemplateNameT(_) =>
-        case StaticSizedArrayTemplateNameT() =>
-        case RuntimeSizedArrayTemplateNameT() =>
+        case _ : ITemplateNameT =>
+        case ImplOverrideNameT(_) => {
+          initSteps.init.last match {
+            case _ : ITemplateNameT =>
+            case other => vfail(other)
+          }
+        }
         case other => vfail(other)
       }
     }
@@ -251,6 +255,10 @@ case class PlaceholderTemplateNameT(index: Int) extends ISubKindTemplateNameT wi
 case class PlaceholderNameT(template: PlaceholderTemplateNameT) extends ISubKindNameT with ISuperKindNameT {
   override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()
 }
+
+// See NNSPAFOC.
+case class ImplOverrideNameT(implTemplateFullName: FullNameT[IImplTemplateNameT]) extends INameT
+case class ImplOverrideCaseNameT() extends INameT
 
 sealed trait IVarNameT extends INameT
 case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT

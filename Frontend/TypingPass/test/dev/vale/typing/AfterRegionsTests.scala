@@ -124,6 +124,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.tup.*;
+        |import v.builtins.drop.*;
         |
         |func swap<T, Y>(x (T, Y)) (Y, T) {
         |  [a, b] = x;
@@ -131,14 +132,19 @@ class AfterRegionsTests extends FunSuite with Matchers {
         |}
         |
         |exported func main() bool {
-        |  return swap((5, true)).0;
+        |  return swap((5, true)).a;
         |}
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
-      case CoordTemplata(CoordT(ShareT, BoolT())) =>
+
+    coutputs.lookupFunction("main").header.returnType match {
+      case CoordT(ShareT, BoolT()) =>
     }
+
+//    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
+//      case CoordTemplata(CoordT(ShareT, BoolT())) =>
+//    }
   }
 
   test("Can turn a borrow coord into an owning coord") {
@@ -243,4 +249,29 @@ class AfterRegionsTests extends FunSuite with Matchers {
     //    val call =
     //      Collector.only(main, { case call @ FunctionCallTE(PrototypeT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("__call"), _), _, _)), _), _) => call })
   }
+
+  test("Test struct default generic argument in call") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |struct MyHashSet<K Ref, H Int = 5> { }
+        |func moo() {
+        |  x = MyHashSet<bool>();
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupFunction("moo")
+    val variable = Collector.only(moo, { case LetNormalTE(v, _) => v })
+    variable.reference match {
+      case CoordT(
+      OwnT,
+      StructTT(
+      FullNameT(_,_,
+      StructNameT(
+      StructTemplateNameT(StrI("MyHashSet")),
+      Vector(
+      CoordTemplata(CoordT(ShareT,BoolT())),
+      IntegerTemplata(5)))))) =>
+    }
+  }
+
 }

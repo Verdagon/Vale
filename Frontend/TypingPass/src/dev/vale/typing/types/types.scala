@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FullNameT, ICitizenNameT, IInterfaceNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -59,6 +59,12 @@ case object YonderT extends LocationT {
 
 case class CoordT(ownership: OwnershipT, kind: KindT)  {
   vpass()
+  this match {
+    case CoordT(BorrowT,RuntimeSizedArrayTT(FullNameT(_,_,RuntimeSizedArrayNameT(_,RawArrayNameT(MutabilityTemplata(ImmutableT),CoordT(ShareT,IntT(32))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
 
   kind match {
     case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) => {

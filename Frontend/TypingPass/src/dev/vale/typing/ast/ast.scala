@@ -98,9 +98,9 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   edgeFullName: FullNameT[IImplNameT],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-  struct: FullNameT[ICitizenNameT],
+  subCitizen: FullNameT[ICitizenNameT],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-  interface: FullNameT[IInterfaceNameT],
+  superInterface: FullNameT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
@@ -111,7 +111,7 @@ case class EdgeT(
   override def equals(obj: Any): Boolean = {
     obj match {
       case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _) => {
-        val isSame = struct == thatStruct && interface == thatInterface
+        val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
           vassert(edgeFullName == thatEdgeFullName)
         }

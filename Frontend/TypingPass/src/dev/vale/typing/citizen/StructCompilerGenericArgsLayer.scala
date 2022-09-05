@@ -9,7 +9,7 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.names.{AnonymousSubstructNameT, FullNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Accumulator, Interner, Keywords, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.highertyping._
 import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.types._
@@ -36,7 +36,7 @@ class StructCompilerGenericArgsLayer(
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  ResolveSuccess[StructTT] = {
+  IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
@@ -56,7 +56,7 @@ class StructCompilerGenericArgsLayer(
 
       // Check if its a valid use of this template
       val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
-        inferCompiler.solveExpectComplete(
+        inferCompiler.solve(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
@@ -66,7 +66,10 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          Set())
+          Set()) match {
+          case ccs @ CompleteCompilerSolve(_, _, _) => ccs
+          case x : IIncompleteOrFailedCompilerSolve => return ResolveFailure(callRange, x)
+        }
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -215,7 +218,7 @@ class StructCompilerGenericArgsLayer(
     callRange: List[RangeS],
     interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]]):
-  ResolveSuccess[InterfaceTT] = {
+  IResolveOutcome[InterfaceTT] = {
     Profiler.frame(() => {
       val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
@@ -235,7 +238,7 @@ class StructCompilerGenericArgsLayer(
 
       // This checks to make sure it's a valid use of this template.
       val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
-        inferCompiler.solveExpectComplete(
+        inferCompiler.solve(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
@@ -245,7 +248,10 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          Set())
+          Set()) match {
+          case ccs @ CompleteCompilerSolve(_, _, _) => ccs
+          case x : IIncompleteOrFailedCompilerSolve => return ResolveFailure(callRange, x)
+        }
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.

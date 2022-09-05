@@ -15,6 +15,7 @@ import dev.vale._
 import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
+import dev.vale.typing.citizen.ResolveFailure
 import dev.vale.typing.{CompilerOutputs, InferEnv, templata, types}
 import dev.vale.typing.types._
 
@@ -26,6 +27,11 @@ case class KindIsNotConcrete(kind: KindT) extends ITypingPassSolverError
 case class KindIsNotInterface(kind: KindT) extends ITypingPassSolverError
 case class KindIsNotStruct(kind: KindT) extends ITypingPassSolverError
 case class CouldntFindFunction(range: List[RangeS], fff: FindFunctionFailure) extends ITypingPassSolverError {
+  vpass()
+}
+case class CouldntResolveKind(
+  rf: ResolveFailure[KindT]
+) extends ITypingPassSolverError {
   vpass()
 }
 case class CantShareMutable(kind: KindT) extends ITypingPassSolverError

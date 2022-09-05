@@ -66,7 +66,7 @@ class FunctionCompilerCore(
     callRange: List[RangeS],
     params2: Vector[ParameterT]):
   (FunctionHeaderT) = {
-    opts.debugOut("Evaluating function " + fullEnv.fullName)
+//    opts.debugOut("Evaluating function " + fullEnv.fullName)
 
 //    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
     val functionTemplateName = fullEnv.fullName

@@ -8,13 +8,13 @@ import dev.vale.solver._
 import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.citizen.ResolveSuccess
+import dev.vale.typing.citizen.{IResolveOutcome, ResolveFailure, ResolveSuccess}
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
-import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, IInfererDelegate, ITypingPassSolverError}
+import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceDefinitionTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructDefinitionTemplata}
-import dev.vale.typing.types.{CoordT, ICitizenTT, InterfaceTT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
+import dev.vale.typing.types.{CoordT, ICitizenTT, InterfaceTT, KindT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
 import scala.collection.immutable.{List, Set}
 
@@ -91,7 +91,7 @@ trait IInferCompilerDelegate {
     templata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
-  ResolveSuccess[StructTT]
+  IResolveOutcome[StructTT]
 
   def resolveInterface(
     callingEnv: IEnvironment,
@@ -100,7 +100,7 @@ trait IInferCompilerDelegate {
     templata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     verifyConclusions: Boolean):
-  ResolveSuccess[InterfaceTT]
+  IResolveOutcome[InterfaceTT]
 
   def resolveStaticSizedArrayKind(
     coutputs: CompilerOutputs,
@@ -314,10 +314,10 @@ class InferCompiler(
     // Check all template calls
     rules.foreach({
       case r@CallSR(_, _, _, _) => {
-        checkTemplateCall(env, state, ranges, r, conclusions) //match {
-//          case Ok(maybeRuneAndPrototype) => maybeRuneAndPrototype
-//          case Err(e) => return Err(e)
-//        }
+        checkTemplateCall(env, state, ranges, r, conclusions) match {
+          case Ok(()) =>
+          case Err(e) => return Err(RuleError(CouldntResolveKind(e)))
+        }
       }
       case _ =>
     })
@@ -388,7 +388,7 @@ class InferCompiler(
     ranges: List[RangeS],
     c: CallSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
-  Unit = {
+  Result[Unit, ResolveFailure[KindT]] = {
 //  Result[Option[(IRuneS, PrototypeTemplata)], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     val CallSR(range, resultRune, templateRune, argRunes) = c
 
@@ -411,15 +411,24 @@ class InferCompiler(
         val Array(m, CoordTemplata(coord)) = args
         val mutability = ITemplata.expectMutability(m)
         delegate.resolveRuntimeSizedArrayKind(state, coord, mutability)
+        Ok(())
       }
       case it @ StructDefinitionTemplata(_, _) => {
-        delegate.resolveStruct(callingEnv, state, range :: ranges, it, args.toVector, true).kind
+        delegate.resolveStruct(callingEnv, state, range :: ranges, it, args.toVector, true) match {
+          case ResolveSuccess(kind) => kind
+          case rf @ ResolveFailure(_, _) => return Err(rf)
+        }
+        Ok(())
       }
       case it @ InterfaceDefinitionTemplata(_, _) => {
-        delegate.resolveInterface(callingEnv, state, range :: ranges, it, args.toVector, true).kind
+        delegate.resolveInterface(callingEnv, state, range :: ranges, it, args.toVector, true) match {
+          case ResolveSuccess(kind) => kind
+          case rf @ ResolveFailure(_, _) => return Err(rf)
+        }
+        Ok(())
       }
       case kt @ KindTemplata(_) => {
-        Ok(kt)
+        Ok(())
       }
       case other => vimpl(other)
     }

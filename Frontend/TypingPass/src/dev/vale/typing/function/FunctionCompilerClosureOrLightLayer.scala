@@ -78,7 +78,7 @@ class FunctionCompilerClosureOrLightLayer(
 //  }
 
   def evaluateTemplatedClosureFunctionFromCallForBanner(
-      declaringEnv: IEnvironment,
+      parentEnv: IEnvironment,
       coutputs: CompilerOutputs,
       callingEnv: IEnvironment,
       callRange: List[RangeS],
@@ -90,21 +90,21 @@ class FunctionCompilerClosureOrLightLayer(
     vassert(function.isTemplate)
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
-    val name = declaringEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
+    val name = parentEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
     coutputs.declareType(name)
-    coutputs.declareTypeOuterEnv(name, declaringEnv)
-    val newEnv =
+    val outerEnv =
       BuildingFunctionEnvironmentWithClosureds(
-        declaringEnv.globalEnv,
-        declaringEnv,
+        parentEnv.globalEnv,
+        parentEnv,
         name,
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
         variables,
         false)
+    coutputs.declareTypeOuterEnv(name, outerEnv)
 
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
-      newEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
+      outerEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)
   }
 
   def evaluateTemplatedClosureFunctionFromCallForPrototype(

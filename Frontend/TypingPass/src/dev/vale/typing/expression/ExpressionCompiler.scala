@@ -332,8 +332,8 @@ class ExpressionCompiler(
     // Thisll still exist for mutable things, itll just contain a no-op.
     val freePrototype =
       destructorCompiler.getFreeFunction(coutputs, nenv.snapshot, range, resultPointerType)
-
     vassert(coutputs.getInstantiationBounds(freePrototype.function.prototype.fullName).nonEmpty)
+
     val constructExpr2 =
       ConstructTE(closureStructRef, resultPointerType, lookupExpressions2, freePrototype.function.prototype)
     (constructExpr2)
@@ -1198,7 +1198,7 @@ class ExpressionCompiler(
       }
     val optInterfaceRef =
       structCompiler.resolveInterface(
-        coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedCoord))).kind
+        coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedCoord))).expect().kind
     val ownOptCoord = CoordT(OwnT, optInterfaceRef)
 
     val someConstructorTemplata =
@@ -1253,7 +1253,7 @@ class ExpressionCompiler(
         case _ => vfail()
       }
     val resultInterfaceRef =
-      structCompiler.resolveInterface(coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord))).kind
+      structCompiler.resolveInterface(coutputs, nenv, range, interfaceTemplata, Vector(CoordTemplata(containedSuccessCoord), CoordTemplata(containedFailCoord))).expect().kind
     val ownResultCoord = CoordT(OwnT, resultInterfaceRef)
 
     val okConstructorTemplata =

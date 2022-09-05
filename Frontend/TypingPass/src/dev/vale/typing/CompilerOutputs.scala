@@ -76,7 +76,7 @@ case class CompilerOutputs() {
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
   // This is a HashSet to help deduplicate, see CIFBD.
-  private val allImpls: mutable.HashSet[ImplT] = mutable.HashSet()
+  private val allImpls: mutable.HashMap[FullNameT[ImplTemplateDeclareNameT], ImplT] = mutable.HashMap()
   private val subCitizenTemplateToImpls: mutable.HashMap[FullNameT[ICitizenTemplateNameT], Vector[ImplT]] = mutable.HashMap()
   private val superInterfaceTemplateToImpls: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Vector[ImplT]] = mutable.HashMap()
 
@@ -352,7 +352,8 @@ case class CompilerOutputs() {
 //  }
 
   def addImpl(impl: ImplT): Unit = {
-    allImpls += impl
+    vassert(!allImpls.contains(impl.templateFullName))
+    allImpls.put(impl.templateFullName, impl)
     subCitizenTemplateToImpls.put(
       impl.subCitizenTemplateFullName,
       subCitizenTemplateToImpls.getOrElse(impl.subCitizenTemplateFullName, Vector()) :+ impl)
@@ -469,7 +470,7 @@ case class CompilerOutputs() {
   def getAllStructs(): Iterable[StructDefinitionT] = structTemplateNameToDefinition.values
   def getAllInterfaces(): Iterable[InterfaceDefinitionT] = interfaceTemplateNameToDefinition.values
   def getAllFunctions(): Iterable[FunctionT] = signatureToFunction.values
-  def getAllImpls(): Iterable[ImplT] = allImpls
+  def getAllImpls(): Iterable[ImplT] = allImpls.values
 //  def getAllStaticSizedArrays(): Iterable[StaticSizedArrayTT] = staticSizedArrayTypes.values
 //  def getAllRuntimeSizedArrays(): Iterable[RuntimeSizedArrayTT] = runtimeSizedArrayTypes.values
 //  def getKindToDestructorMap(): Map[KindT, PrototypeT] = kindToDestructor.toMap

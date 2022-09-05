@@ -11,7 +11,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
-import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IImplTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, ITemplateNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionTemplateNameT, IImplTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, ITemplateNameT, ImplOverrideCaseNameT, ImplOverrideNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructTemplateNameT}
 import dev.vale.typing.templata.ITemplata.expectKindTemplata
 import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
@@ -64,7 +64,7 @@ class EdgeCompiler(
             // Our goal now is to figure out the override functions.
             // Imagine we have these interfaces and impls:
             //
-            //   interface ISpaceship<D, E, F> { ... }
+            //   interface ISpaceship<E, F, G> { ... }
             //
             //   struct Serenity<A, B, C> { ... }
             //   impl<H, I, J> ISpaceship<H, I, J> for Serenity<H, I, J>;
@@ -73,9 +73,14 @@ class EdgeCompiler(
             //   impl<H, I, J> ISpaceship<J, I, H> for Firefly<H, I, J>;
             //   // Note the weird order here ^
             //
-            //   struct Raza<A, B, C> { ... }
+            //   struct Raza<B, C> { ... }
             //   impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
             //   // Note this int here ^
+            //
+            //   struct Milano<A, B, C, D> { ... }
+            //   impl<I, J, K, L> ISpaceship<I, J, K> for Milano<I, J, K, L>;
+            //   // Note that Milano has more params than ISpaceship.
+            //   // This is like a MyStruct<T> implementing a IIntObserver.
             //
             //   struct Enterprise<A> { ... }
             //   impl<H> ISpaceship<H, H, H> for Enterprise<H>;
@@ -90,6 +95,7 @@ class EdgeCompiler(
             //   func moo<X, Y, Z>(self &Serenity<X, Y, Z>, bork X) where exists drop(Y)void { ... }
             //   func moo<X, Y, Z>(self &Firefly<X, Y, Z>, bork X) where exists drop(Y)void { ... }
             //   func moo<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
+            //   func moo<X, Y, Z, ZZ>(self &Milano<X, Y, Z, ZZ>, bork X) where exists drop(Y)void { ... }
             //   func moo<X>(self &Enterprise<X>, bork X) where exists drop(X)void { ... }
             //
             // We need to find those overrides.
@@ -102,6 +108,7 @@ class EdgeCompiler(
             //     self match {
             //       serenity &Serenity<X, Y, Z> => moo(serenity, bork)
             //       firefly &Firefly<Z, Y, X> => moo(firefly, bork)
+            //       <ZZ> milano &Milano<X, Y, Z, ZZ> => moo(milano, bork) // See the end for wtf this is
             //       // Read on for why the other cases aren't here
             //     }
             //   }
@@ -133,6 +140,22 @@ class EdgeCompiler(
             //    * moo(enterprise) is resolving moo(&Enterprise<H>, X)
             //
             // So, the below code does the important parts of the above conceptual functions.
+            //
+            // Now, how do we handle Milano's case?
+            //
+            //   func moo<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+            //   where exists drop(Y)void {
+            //     self match {
+            //       serenity &Serenity<X, Y, Z> => moo(serenity, bork)
+            //       firefly &Firefly<Z, Y, X> => moo(firefly, bork)
+            //       <ZZ> milano &Milano<X, Y, Z, ZZ> => moo(milano, bork)
+            //     }
+            //   }
+            //
+            // As you can see, it doesn't really fit into this whole match/enum paradigm.
+            // There could be any number of Milano variants in there... ZZ could be int, or str, or bool,
+            // or whatever. Luckily there is a solution, described further below.
+
 
             val foundFunctions =
               interfaceEdgeBlueprint.superFamilyRootHeaders.map({ case (abstractFunctionPrototype, abstractIndex) =>
@@ -154,7 +177,7 @@ class EdgeCompiler(
 
                 // Recall:
                 //
-                //   interface ISpaceship<D, E, F> { ... }
+                //   interface ISpaceship<E, F, G> { ... }
                 //   abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
                 //
                 //   struct Raza<A, B, C> { ... }
@@ -191,10 +214,14 @@ class EdgeCompiler(
                 //
                 // and try to compile it given the impl's interface (ISpaceship<int, ri$0, ri$1>)
                 // as the first parameter. However, rephrase the placeholders to be in terms of the abstract
-                // function itself (so instead of ri$0, think of it as moo$0) because we're conceptually
-                // compiling this function, not resolving it.
+                // function itself (so instead of ri$0, think of it as moo$0)
                 //
                 //   abstract func moo(self ISpaceship<int, moo$0, moo$1>, bork int) where exists drop(ri$0)void;
+                //
+                // We rephrased like that because:
+                //
+                //  1. We're conceptually compiling this function, not resolving it.
+                //  2. There's an extremely valuable sanity check (OWPFRD) that will trip if we don't.
                 //
                 // In a way, we compiled it as if X = int, Y = moo$0, Z = moo$1.
                 //
@@ -205,11 +232,24 @@ class EdgeCompiler(
                 // - Replace ri$1 with moo$1
                 // So that instead of ISpaceship<int, ri$0, ri$1> we'll have ISpaceship<int, moo$0, moo$1>.
 
+                val abstractFuncOuterEnv =
+                  coutputs.getOuterEnvForFunction(abstractFuncTemplateFullName)
+
+                val implOverrideName =
+                  interner.intern(ImplOverrideNameT(overridingImpl.templateFullName))
+                val implOverrideFullName =
+                  abstractFuncTemplateFullName.addStep(implOverrideName)
+                val implOverrideEnv =
+                  GeneralEnvironment.childOf(
+                    interner,
+                    abstractFuncOuterEnv,
+                    implOverrideFullName)
+
                 // There's a slight chance it's not ISomeInterface<ri$0, ri$1> but instead something
-                // like ISomeInterface<ri$3, ri$3>. The indexes won't necessarily line up.
+                // like ISomeInterface<ri$3, ri$3>. The indexes won't necessarily line up, so this is a map
+                // instead of a vector.
                 val placeholderToSubstitution = mutable.HashMap[FullNameT[PlaceholderNameT], ITemplata[ITemplataType]]()
                 val substitutions =
-                  // DO NOT SUBMIT factor out into function
                   U.map[ITemplata[ITemplataType], (FullNameT[PlaceholderNameT], ITemplata[ITemplataType])](
                     overridingImpl.instantiatedFullName.last.templateArgs.toArray,
                     {
@@ -221,12 +261,8 @@ class EdgeCompiler(
                           (placeholderToSubstitution.get(implPlaceholderFullName) match {
                             case Some(existing) => existing
                             case None => {
-                              val abstractFuncPlaceholderName =
-                                interner.intern(PlaceholderNameT(
-                                  interner.intern(PlaceholderTemplateNameT(
-                                    placeholderToSubstitution.size))))
                               val abstractFuncPlaceholderFullName =
-                                FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                                createOverridePlaceholder(coutputs, implOverrideEnv, placeholderToSubstitution.size)
                               val abstractFuncPlaceholder = PlaceholderTemplata(abstractFuncPlaceholderFullName, tyype)
                               placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
                               abstractFuncPlaceholder
@@ -241,12 +277,8 @@ class EdgeCompiler(
                         (placeholderToSubstitution.get(implPlaceholderFullName) match {
                           case Some(existing) => existing
                           case None => {
-                            val abstractFuncPlaceholderName =
-                              interner.intern(PlaceholderNameT(
-                                interner.intern(PlaceholderTemplateNameT(
-                                  placeholderToSubstitution.size))))
                             val abstractFuncPlaceholderFullName =
-                              FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                              createOverridePlaceholder(coutputs, implOverrideEnv, placeholderToSubstitution.size)
                             val abstractFuncPlaceholder = KindTemplata(PlaceholderT(abstractFuncPlaceholderFullName))
                             placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
                             abstractFuncPlaceholder
@@ -261,12 +293,8 @@ class EdgeCompiler(
                           (placeholderToSubstitution.get(implPlaceholderFullName) match {
                             case Some(existing) => existing
                             case None => {
-                              val abstractFuncPlaceholderName =
-                                interner.intern(PlaceholderNameT(
-                                  interner.intern(PlaceholderTemplateNameT(
-                                    placeholderToSubstitution.size))))
                               val abstractFuncPlaceholderFullName =
-                                FullNameT(packageCoord, abstractFuncTemplateFullName.steps, abstractFuncPlaceholderName)
+                                createOverridePlaceholder(coutputs, implOverrideEnv, placeholderToSubstitution.size)
                               val abstractFuncPlaceholder = CoordTemplata(CoordT(ownership, PlaceholderT(abstractFuncPlaceholderFullName)))
                               placeholderToSubstitution.put(implPlaceholderFullName, abstractFuncPlaceholder)
                               abstractFuncPlaceholder
@@ -286,10 +314,11 @@ class EdgeCompiler(
                 val abstractParamType =
                   abstractParamUnsubstitutedType.copy(kind = abstractFuncPlaceholderedInterface)
                 // Now we have a ISpaceship<int, moo$0, moo$1> that we can use to compile the abstract
-                // function header.
+                // function header. (Using the Raza example)
+                // In the Milano case, we have an ISpaceship<moo$0, moo$1, moo$2> and also another
+                // substitution for a moo$3 that doesnt actually correspond to any template parameter
+                // of the abstract function.
 
-                val abstractFuncOuterEnv =
-                  coutputs.getOuterEnvForFunction(abstractFuncTemplateFullName)
                 val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
                     coutputs,
@@ -304,8 +333,19 @@ class EdgeCompiler(
                     }
                     case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
-                val abstractFuncInnerEnv =
-                  coutputs.getInnerEnvForFunction(abstractFunctionPrototype.fullName)
+                // We don't do this here:
+                //   coutputs.getInnerEnvForFunction(abstractFunctionPrototype.fullName)
+                // because that will get the original declaration's inner env.
+                // We want an environment with the above inferences instead.
+                val implOverrideCaseEnv =
+                  GeneralEnvironment.childOf(
+                    interner,
+                    implOverrideEnv,
+                    implOverrideEnv.fullName.addStep(interner.intern(ImplOverrideCaseNameT())),
+                    abstractFuncInferences
+                      .map({ case (nameS, templata) =>
+                        interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+                      }).toVector)
                 // Recall the match-dispatching function:
                 //
                 //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
@@ -318,9 +358,15 @@ class EdgeCompiler(
                 //
                 // Now we have it's inner environment! We can below use this to resolve some overrides.
 
-
-
-
+                // For the Milano case, we'll add to the inner environment the extra placeholder
+                // that doesn't correspond to any template argument in the abstract function.
+                // Conceptually, we're in a compile-time pack expansion. We're basically expanding this:
+                //
+                //       milano &Milano<X, Y, Z, ...> => moo(milano, bork)
+                //
+                // into a bunch of:
+                //
+                //
 
 
                 // This is so we fill the other params' types, like that bork int.
@@ -416,19 +462,28 @@ class EdgeCompiler(
                 // Perhaps we should first solve the impl given its own placeholders, and then
                 // somehow enter into the abstract function with that as the interface.
                 val abstractFuncPlaceholderedSubCitizen =
-                  implCompiler.getImplDescendantGivenParent(
-                    coutputs,
-                    List(range),
-                    abstractFuncInnerEnv,
-                    overridingImpl.templata,
-                    abstractFuncPlaceholderedInterface,
-                    true,
-                    false) match {
-                    case Ok(x) => x
-                    case Err(x) => {
-                      throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), x))
-                    }
-                  }
+                  expectKindTemplata(
+                    TemplataCompiler.substituteTemplatasInTemplata(
+                      coutputs,
+                      interner,
+                      keywords,
+                      KindTemplata(overridingImpl.subCitizen),
+                      substitutions.toArray))
+                    .kind.expectCitizen()
+//
+//                  implCompiler.getImplDescendantGivenParent(
+//                    coutputs,
+//                    List(range),
+//                    abstractFuncInnerEnv,
+//                    overridingImpl.templata,
+//                    abstractFuncPlaceholderedInterface,
+//                    true,
+//                    false) match {
+//                    case Ok(x) => x
+//                    case Err(x) => {
+//                      throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), x))
+//                    }
+//                  }
                 // Now we have the `Raza<moo$1, moo$0>`, so we can try to resolve that `moo(myBike)`,
                 // in other words look for a `moo(&Raza<moo$1, moo$0>)`.
                 // This is also important for getting the instantiation bounds for that particular invocation,
@@ -459,7 +514,7 @@ class EdgeCompiler(
                   resolveOverride(
                     coutputs,
                     List(range, overridingImpl.templata.impl.range),
-                    abstractFuncInnerEnv,
+                    implOverrideCaseEnv,
                     interfaceTemplateFullName,
                     overridingCitizenTemplateFullName,
                     impreciseName,
@@ -479,7 +534,8 @@ class EdgeCompiler(
                 overridingImpl.superInterface.fullName,
                 overridingImpl.runeToFuncBound,
                 foundFunctions.toMap)
-            overridingCitizenFullName -> edge
+            val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateFullName)
+            overridingCitizenDef.instantiatedCitizen.fullName -> edge
           }).toMap
         interfaceFullName -> overridingCitizenToFoundFunction
       }).toMap
@@ -566,5 +622,60 @@ class EdgeCompiler(
             functionHeaders2.toVector)
         })
     interfaceEdgeBlueprints.toVector
+  }
+
+  def createOverridePlaceholder(
+    coutputs: CompilerOutputs,
+    implOverrideEnv: IEnvironment,
+    index: Int):
+  FullNameT[PlaceholderNameT] = {
+    // Need New Special Placeholders for Abstract Function Override Case (NNSPAFOC)
+    //
+    // One would think that we could just conjure up some placeholders under the abstract
+    // function's name, like:
+    //
+    //   val placeholderName =
+    //     PlaceholderNameT(PlaceholderTemplateNameT(placeholderToSubstitution.size))
+    //   val placeholderFullName =
+    //     FullNameT(packageCoord, abstractFuncTemplateFullName.steps, placeholderName)
+    //
+    // It would even mostly work, because the abstract function was already compiled, already
+    // made a bunch of placeholders, and registered them and their envs with the coutputs so
+    // we can just reuse them.
+    //
+    // Alas, not so simple, because of the Milano case. Those god damned Milanos.
+    //
+    // Recall this line:
+    //
+    //   <ZZ> milano &Milano<X, Y, Z, ZZ> => moo(milano, bork)
+    //
+    // We're actually introducing a fourth placeholder, one that doesn't really refer to a
+    // generic arg of the abstract function. This is a moo$3, and moo only had generic args
+    // moo$0-moo$2.
+    //
+    // So, we need to conjure an entirely new placeholder.
+    //
+    // And of course, since this might happen multiple times (for multiple impls), and we
+    // don't want to double-register anything with the coutputs. To get around that, we're
+    // just going to make entirely new placeholders every time.
+    //
+    // For that, we need a unique name, so we'll put the impl's name inside the placeholder's
+    // name. The placeholder's full name will be the abstract function's name, then a step
+    // containing the impl's name, and then the placeholder name.
+    //
+    // To be consistent, we'll do this for every placeholder, not just the extra one like ZZ.
+
+    val placeholderName =
+      interner.intern(PlaceholderNameT(
+        interner.intern(PlaceholderTemplateNameT(index))))
+    val placeholderFullName = implOverrideEnv.fullName.addStep(placeholderName)
+    // And, because it's new, we need to declare it and its environment.
+    val placeholderTemplateFullName =
+      TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
+    coutputs.declareType(placeholderTemplateFullName)
+    coutputs.declareTypeOuterEnv(
+      placeholderTemplateFullName,
+      GeneralEnvironment.childOf(interner, implOverrideEnv, placeholderTemplateFullName))
+    placeholderFullName
   }
 }

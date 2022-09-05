@@ -103,6 +103,31 @@ struct Functor1<P1 Ref, R Ref, F Prot = func(P1)R> imm { }
 And then we should make placeholders for P1 and R, and let the 3rd param's DefinitionCallSR create a prototype using those two. Then things would work.
 
 
+# Only Work with Placeholders From the Root Denizen (OWPFRD)
+
+Let's say we're in this function:
+
+```
+struct SomeStruct<X> {
+  x X;
+}
+func genFunc<T>() {
+  thing = SomeStruct<int>(7);
+  z = thing.x;
+  println(z);
+}
+```
+
+The type of `z` is `int`, of course.
+
+`SomeStruct.x` (of the template) is of type SomeStruct$0. We did a substitution to go from SomeStruct$0 to int.
+
+If we don't do that substitution, then a SomeStruct$0 creeps into our `genFunc` and wreaks absolute havoc, because then we're likely confusing it with genFunc's own placeholder, `genFunc$0`.
+
+This is the reason we prefix placeholders with the name of their container (both in FullNameT and here in the docs when talking about them).
+
+We also have a sanity check in the solver to make sure that we're never dealing with foreign placeholders, search for OWPFRD.
+
 
 # Struct Can Impl Interface Multiple Times (SCIIMT)
 
@@ -139,6 +164,8 @@ The answer is to only run the innards when compiling the definition, not when we
 
 
 # Compile Impl From Both Directions (CIFBD)
+
+NOTE: Not sure this is true anymore, ever since generics.
 
 We previously compiled all impls for a given struct. We did this for each struct.
 
@@ -995,7 +1022,7 @@ where func drop(T...)void {
 
 which means we need some sort of "move ellipsis" operator and something to check the bounds on each T.
 
-Alas, that's likely too much work for now, we'll have to disable tuples and come back to them.
+Alas, that's likely too much work for now, we'll have to fall back to having a two-element tuple and come back to them.
 
 
 # Lambdas Are Generic Templates (LAGT)
@@ -1098,8 +1125,10 @@ Here, there are actually three generic functions created:
 In this program, we're calling only `genFunc(7)` so these would be the final three instantiations in total:
 
  * `mvtest/genFunc<int>.lam:2:6.__call{bool}<bool>`
+ * `mvtest/genFunc<int>.lam:2:6.__call{genFunc$0}<int>`
  * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>`
- * `mvtest/genFunc<int>.lam:2:6.__call{int}<int>` (duplicate!)
+
+Note how `{genFunc$0}` is still there, even in an instantiation name. See DMPOGN for why.
   
 These all might be completely different functions, depending on what happened inside the body, what kind of metaprogramming it does, etc.
 
@@ -1121,6 +1150,73 @@ The two candidates become:
 The second one matches nicely!
 
 And that's how we find the original generic function for a particular instantiation.
+
+## Don't Monomorphize Parts Of Generic Names (DMPOGN)
+
+Because of GLIOGN, we need a lambda function to remember its original generic.
+
+There was an interesting oddity, where we had an instantiated name that contained a placeholder: `mvtest/genFunc<int>.lam:2:6.__call{genFunc$0}<int>`.
+
+This section explains why that's important, by showing what happens if we don't.
+
+Let's say we have a similar program, but calling `genFunc(str)`
+
+```
+func genFunc<T>(a &T) &T {
+  f = x => a; // Lambda struct at code loc 2:6
+  f(true);
+  f(a);
+  f(7)
+}
+exported func main() int {
+  genFunc("hello")
+}
+```
+
+We have those same three generic functions coming from the typing pass:
+
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{bool}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{genFunc$0}`
+ * `mvtest/genFunc<genFunc$0>.lam:2:6.__call{int}`
+
+But now the challenge is: What is `mvtest/genFunc<str>.lam:2:6.__call{str}<str>`'s original generic's name?
+
+We apply the same rules to get the generic full name, and end up with `mvtest/genFunc.lam:2:6.__call{str}`. **However, that doesn't exist.** There is no generic by that name.
+
+This happened because we were looking for something nonsensical. How did that `__call{str}` even happen, and why were we looking for something with that? It's because our translator in monomorphizer was blindly replacing *all* placeholders.
+
+Moral of the story: It shouldn't replace placeholders in generic names, such as `__call{genFunc$0)`. It should leave that alone, so that we instead looked for `mvtest/genFunc<str>.lam:2:6.__call{$genFunc0}<str>`.
+
+
+# Must Specify Array Element (MSAE)
+
+We no longer support grabbing a prototype's return type, so we can no longer say:
+
+`Array<mut>(5, x => x)`
+
+It previously would look at the incoming lambda, send it an argument type, and grab the return value. We'll need to add that back in.
+
+For now, we have to specify the type:
+
+`Array<mut, int>(5, x => x)`
+
+
+# Lambdas Can Call Parents' Generic Bounds (LCCPGB)
+
+If we have a lambda in a generic function:
+
+```
+func genFunc<T>(a &T)
+where func print(&T)void {
+  { print(a); }()
+}
+exported func main() {
+  genFunc("hello");
+}
+```
+
+Then when we monomorphize the lambda, the instantiator needs to remember the supplied `print` from `genFunc`'s caller.
+
 
 
 
