@@ -165,6 +165,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Reports when we try to mutate an element in an imm static-sized array") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.arrays.*;
+        |import v.builtins.drop.*;
+        |import v.builtins.panic.*;
         |
         |exported func main() int {
         |  arr = #[#10]({_});
@@ -215,9 +218,10 @@ class CompilerMutateTests extends FunSuite with Matchers {
   test("Can mutate an element in a runtime-sized array") {
     val compile = CompilerTestCompilation.test(
       """
-        |
         |import v.builtins.arrays.*;
         |import v.builtins.drop.*;
+        |import v.builtins.panic.*;
+        |
         |exported func main() int {
         |  arr = Array<mut, int>(3);
         |  arr.push(0);

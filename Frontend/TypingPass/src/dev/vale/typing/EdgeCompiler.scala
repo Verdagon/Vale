@@ -3,7 +3,7 @@ package dev.vale.typing
 //import dev.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 //import dev.vale.astronomer.VirtualFreeImpreciseNameS
 import dev.vale.{Err, Interner, Keywords, Ok, RangeS, U, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
-import dev.vale.postparsing.{GlobalFunctionFamilyNameS, IImpreciseNameS, ITemplataType, RuneNameS}
+import dev.vale.postparsing.{GlobalFunctionFamilyNameS, IImpreciseNameS, ITemplataType, ReachablePrototypeRuneS, RuneNameS}
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
@@ -319,7 +319,7 @@ class EdgeCompiler(
                 // substitution for a moo$3 that doesnt actually correspond to any template parameter
                 // of the abstract function.
 
-                val EvaluateFunctionSuccess(abstractFuncPrototype, abstractFuncInferences) =
+                val EvaluateFunctionSuccess(dispatchingAbstractFuncPrototype, abstractFuncInferences) =
                   functionCompiler.evaluateGenericLightFunctionParentForPrototype(
                     coutputs,
                     List(range, overridingImpl.templata.impl.range),
@@ -333,19 +333,6 @@ class EdgeCompiler(
                     }
                     case efs @ EvaluateFunctionSuccess(_, _) => efs
                   }
-                // We don't do this here:
-                //   coutputs.getInnerEnvForFunction(abstractFunctionPrototype.fullName)
-                // because that will get the original declaration's inner env.
-                // We want an environment with the above inferences instead.
-                val implOverrideCaseEnv =
-                  GeneralEnvironment.childOf(
-                    interner,
-                    implOverrideEnv,
-                    implOverrideEnv.fullName.addStep(interner.intern(ImplOverrideCaseNameT())),
-                    abstractFuncInferences
-                      .map({ case (nameS, templata) =>
-                        interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-                      }).toVector)
                 // Recall the match-dispatching function:
                 //
                 //   func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
@@ -356,7 +343,8 @@ class EdgeCompiler(
                 //     }
                 //   }
                 //
-                // Now we have it's inner environment! We can below use this to resolve some overrides.
+                // Now we have it's inner environment's inferences! We'll construct an IEnvironment below
+                // containing these. Then we can use this to resolve some overrides.
 
                 // For the Milano case, we'll add to the inner environment the extra placeholder
                 // that doesn't correspond to any template argument in the abstract function.
@@ -409,7 +397,7 @@ class EdgeCompiler(
 //                val overrideFunctionParamTypes =
 //                  superFunctionParamTypes.updated(abstractIndex, overridingParamCoord)
 //
-                val impreciseName =
+                val overrideImpreciseName =
                   vassertSome(
                     TemplatasStore.getImpreciseName(
                       interner, abstractFunctionPrototype.fullName.last))
@@ -470,6 +458,69 @@ class EdgeCompiler(
                       KindTemplata(overridingImpl.subCitizen),
                       substitutions.toArray))
                     .kind.expectCitizen()
+
+                // We need this to pull in some bounds knowledge from the override struct.
+                //
+                // For example, this is a parent interface that has no knowledge or assumptions of
+                // being droppable:
+                //
+                //   #!DeriveInterfaceDrop
+                //   sealed interface ILaunchable {
+                //     func launch(virtual self &ILaunchable) int;
+                //   }
+                //
+                //   #!DeriveStructDrop
+                //   struct Ship<T>
+                //   where func drop(Lam)void, func __call(&Lam)int {
+                //     lam Lam;
+                //   }
+                //
+                //   impl<T> ILaunchable for Ship<T>;
+                //
+                //   func launch<T>(self &Ship<T>) int {
+                //     return (self.lam)();
+                //   }
+                //
+                // When resolving overrides for it, this is the conceptual case:
+                //
+                //   func launch(virtual self &ILaunchable) {
+                //     self match {
+                //       <ZZ> borky &Ship<ZZ> => bork(fwd)
+                //     }
+                //   }
+                //
+                // However, there's something subtle that's needed. The bork(fwd) call is trying to resolve
+                // this function:
+                //
+                //   func launch<T>(self &Ship<T>) int
+                //
+                // However, the `Ship<T>` invocation requires that Lam has a `drop`... which nobody
+                // can guarantee.
+                //
+                // But wait! We're taking an *existing* Ship<T> there. So we can know that the T already
+                // supports a drop.
+                //
+                // We do this for NBIFPR for parameters and returns and one day for cases inside matches.
+                // Let's do it here for this conceptual case too.
+                val boundsForCase =
+                  TemplataCompiler.getReachableBounds(interner, keywords, coutputs, KindTemplata(abstractFuncPlaceholderedSubCitizen))
+                    .zipWithIndex
+                    .map({ case (templata, num) => ReachablePrototypeRuneS(num) -> templata })
+
+                // We don't do this here:
+                //   coutputs.getInnerEnvForFunction(abstractFunctionPrototype.fullName)
+                // because that will get the original declaration's inner env.
+                // We want an environment with the above inferences instead.
+                val implOverrideCaseEnv =
+                  GeneralEnvironment.childOf(
+                    interner,
+                    implOverrideEnv,
+                    implOverrideEnv.fullName.addStep(interner.intern(ImplOverrideCaseNameT())),
+                    (abstractFuncInferences ++ boundsForCase)
+
+                      .map({ case (nameS, templata) =>
+                        interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
+                      }).toVector)
 //
 //                  implCompiler.getImplDescendantGivenParent(
 //                    coutputs,
@@ -505,7 +556,7 @@ class EdgeCompiler(
 //                val implPlaceholderedOverridingCitizen = overridingImpl.placeholderedSubCitizen
                 val overridingParamCoord = abstractParamType.copy(kind = abstractFuncPlaceholderedSubCitizen)
                 val overrideFunctionParamTypes =
-                  abstractFuncPrototype.prototype.paramTypes
+                  dispatchingAbstractFuncPrototype.prototype.paramTypes
                     .updated(abstractIndex, overridingParamCoord)
 
                 // We need the abstract function's conclusions because it contains knowledge of the
@@ -517,11 +568,11 @@ class EdgeCompiler(
                     implOverrideCaseEnv,
                     interfaceTemplateFullName,
                     overridingCitizenTemplateFullName,
-                    impreciseName,
+                    overrideImpreciseName,
                     overrideFunctionParamTypes)
                 vassert(coutputs.getInstantiationBounds(foundFunction.function.prototype.fullName).nonEmpty)
 
-                abstractFuncPrototype.prototype.fullName -> foundFunction.function.prototype
+                abstractFunctionPrototype.fullName -> foundFunction.function.prototype
               })
             val overridingCitizenFullName = overridingImpl.subCitizen.fullName
             vassert(coutputs.getInstantiationBounds(overridingCitizenFullName).nonEmpty)

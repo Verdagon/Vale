@@ -948,7 +948,8 @@ class Compiler(
 //            })
 //        })
 
-        Profiler.frame(() => {
+        val (interfaceEdgeBlueprints, interfaceToSubCitizenToEdge) =
+          Profiler.frame(() => {
 //                val env =
 //                  PackageEnvironment.makeTopLevelEnvironment(
 //                    globalEnv, FullNameT(PackageCoordinate.BUILTIN, Vector(), interner.intern(PackageTopLevelNameT())))
@@ -957,8 +958,8 @@ class Compiler(
                 // This doesnt actually stamp *all* overrides, just the ones we can immediately
                 // see missing. We don't know if, in the process of stamping these, we'll find more.
                 // Also note, these don't stamp them right now, they defer them for later evaluating.
-          edgeCompiler.compileITables(coutputs)
-        })
+            edgeCompiler.compileITables(coutputs)
+          })
 
         while (coutputs.peekNextDeferredFunctionBodyCompile().nonEmpty || coutputs.peekNextDeferredFunctionCompile().nonEmpty) {
           while (coutputs.peekNextDeferredFunctionCompile().nonEmpty) {
@@ -984,8 +985,6 @@ class Compiler(
 //              break
 //          }
 //        }
-
-        val (interfaceEdgeBlueprints, interfaceToSubCitizenToEdge) = edgeCompiler.compileITables(coutputs)
 
 //        // NEVER ZIP TWO SETS TOGETHER
 //        val edgeBlueprintsAsList = edgeBlueprints.toVector
