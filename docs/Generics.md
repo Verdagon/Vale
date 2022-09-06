@@ -854,7 +854,7 @@ A few places we'll need to do this:
 
  * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters and returns (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
  * When an abstract function is "calling" an override, we'll need to incorporate the bounds for the overriding struct. (See ONBIFS)
- * (Possibly) In a match's case statement, when we mention a type, we could incorporate the bounds from that type.
+ * In a match's case statement, when we mention a type, we need to incorporate the bounds from that type.
 
 
 
