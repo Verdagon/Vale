@@ -476,6 +476,12 @@ object DenizenMonomorphizer {
     val abstractFunctionMonomorphizer =
       vassertSome(monouts.abstractFuncToMonomorphizer.get(abstractFuncPrototype.fullName))
 
+    // right here we're calling it from the perspective of the abstract function
+    // we need to call it from the perspective of the abstract dispatcher function's case.
+    // we might need a sub-monomorphizer if that makes sense...
+
+    // we need to make a monomorphizer that thinks in terms of impl overrides.
+
     val overridePrototype = abstractFunctionMonomorphizer.translatePrototype(overridePrototypeT)
 
     val superInterfaceFullName = vassertSome(monouts.impls.get(implFullName))._2

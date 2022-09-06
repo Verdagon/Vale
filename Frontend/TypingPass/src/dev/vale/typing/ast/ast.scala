@@ -104,7 +104,15 @@ case class EdgeT(
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-  abstractFuncToOverrideFunc: Map[FullNameT[IFunctionNameT], PrototypeT]
+  abstractFuncToOverrideFunc:
+    Map[
+      FullNameT[IFunctionNameT],
+    // it seems right here we'll need some sort of mapping of abstract func placeholder to the
+    // override impl case placeholders, and perhaps also the existence of the <T>s for the case?
+    // we need to instantiate the override, so its going to need some values for it... i guess
+    // its from the impl, so the impl has it i think. so maybe a map from the impl rune to it
+      PrototypeT],
+
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
