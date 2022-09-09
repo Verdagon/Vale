@@ -65,7 +65,7 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val CompleteCompilerSolve(_, templatas, _) =
+    val CompleteCompilerSolve(_, templatas, _, Array()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv),
         coutputs,
@@ -76,7 +76,7 @@ class ArrayCompiler(
         Vector(),
         true,
         true,
-        Set())
+        Array())
 
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -137,9 +137,9 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val CompleteCompilerSolve(_, templatas, _) =
+    val CompleteCompilerSolve(_, templatas, _, Array()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Set())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Array())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -279,9 +279,9 @@ class ArrayCompiler(
     }
     val memberType = memberTypes.head
 
-    val CompleteCompilerSolve(_, templatas, _) =
+    val CompleteCompilerSolve(_, templatas, _, Array()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Set())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Array())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {

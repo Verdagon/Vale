@@ -40,16 +40,14 @@ class ImplCompiler(
 
   // We don't have an isAncestor call, see REMUIDDA.
 
-  private def solveImplForCall(
+  def solveImplForCall(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
     isRootSolve: Boolean):
-  Result[
-      CompleteCompilerSolve,
-      IIncompleteOrFailedCompilerSolve] = {
+  ICompilerSolverOutcome = {
     val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
       range,
@@ -80,7 +78,7 @@ class ImplCompiler(
     val definitionRules = rules.filter(InferCompiler.includeRuleInCallSiteSolve)
 
     val result =
-      inferCompiler.solveComplete(
+      inferCompiler.solve(
         InferEnv(
           // This is callingEnv because we might be coming from an abstraction function that's trying
           // to evaluate an override.
@@ -97,7 +95,7 @@ class ImplCompiler(
         isRootSolve,
         // We include the reachable bounds for the struct rune. Those are bounds that this impl will
         // have to satisfy when it calls the interface.
-        Set(structKindRune.rune))
+        Array(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -162,7 +160,7 @@ class ImplCompiler(
         true,
         isRootSolve,
         // We include reachable bounds for the struct so we don't have to re-specify all its bounds in the impl.
-        Set(structKindRune.rune))
+        Array(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -218,53 +216,6 @@ class ImplCompiler(
   //    coutputs.addImpl(implT)
   //  }
   //
-  //  private def compileImplGivenSuperInterface(
-  //    coutputs: CompilerOutputs,
-  //    placeholderedSuperInterfaceTT: InterfaceTT,
-  //    implTemplata: ImplTemplata):
-  //  Unit = {
-  //    val parentInterfaceTemplateFullName =
-  //      TemplataCompiler.getInterfaceTemplate(placeholderedSuperInterfaceTT.fullName)
-  //
-  //    val inferencesFromPlaceholderedSuperInterface =
-  //      solveImpl(
-  //        coutputs,
-  //        Vector(InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(placeholderedSuperInterfaceTT))),
-  //        implTemplata)
-  //    val subCitizenFromPlaceholderedParentInterface =
-  //      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.subCitizenRune.rune) match {
-  //        case KindTemplata(cit : ICitizenTT) => cit
-  //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-  //        case other => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
-  //      }
-  //
-  //    val subCitizenTemplateFullName =
-  //      TemplataCompiler.getCitizenTemplate(subCitizenFromPlaceholderedParentInterface.fullName)
-  //    val subCitizenDefinition =
-  //      coutputs.lookupCitizen(subCitizenTemplateFullName)
-  //
-  //    val inferencesFromPlaceholderedSubCitizen =
-  //      solveImpl(
-  //        coutputs,
-  //        Vector(InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(subCitizenDefinition.placeholderedCitizen))),
-  //        implTemplata)
-  //    val parentInterfaceFromPlaceholderedSubCitizen =
-  //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
-  //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-  //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
-  //      }
-  //
-  //    val implT =
-  //      interner.intern(
-  //        ImplT(
-  //          subCitizenTemplateFullName,
-  //          parentInterfaceFromPlaceholderedSubCitizen,
-  //          parentInterfaceTemplateFullName,
-  //          subCitizenFromPlaceholderedParentInterface))
-  //    // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
-  //    coutputs.addImpl(implT)
-  //  }
 
   // This will just figure out the struct template and interface template,
   // so we can add it to the temputs.
@@ -283,14 +234,14 @@ class ImplCompiler(
         TemplatasStore(implTemplateFullName, Map(), Map()))
 
     val implPlaceholders =
-      implA.identifyingRunes.zipWithIndex.map({ case (rune, index) =>
+      implA.genericParams.zipWithIndex.map({ case (rune, index) =>
         val placeholder =
           templataCompiler.createPlaceholder(
             coutputs, implOuterEnv, implTemplateFullName, rune, index, implA.runeToType, true)
         InitialKnown(rune.rune, placeholder)
       })
 
-    val CompleteCompilerSolve(_, inferences, runeToFunctionBound1) =
+    val CompleteCompilerSolve(_, inferences, runeToFunctionBound1, reachableBoundsFromSubCitizen) =
       solveImplForDefine(coutputs, List(implA.range), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
@@ -315,7 +266,7 @@ class ImplCompiler(
       TemplataCompiler.getInterfaceTemplate(superInterface.fullName)
 
 
-    val templateArgs = implA.identifyingRunes.map(_.rune.rune).map(inferences)
+    val templateArgs = implA.genericParams.map(_.rune.rune).map(inferences)
     val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
 
     val implInnerEnv =
@@ -323,11 +274,17 @@ class ImplCompiler(
         interner,
         implOuterEnv,
         instantiatedFullName,
+        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, index) =>
+          interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
+        }).toVector ++
         inferences.map({ case (nameS, templata) =>
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
         }).toVector)
     val runeToNeededFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(implInnerEnv.templatas)
 //    vcurious(runeToFunctionBound1 == runeToNeededFunctionBound) // which do we want?
+
+    val runeIndexToIndependence =
+      calculateRunesIndependence(coutputs, implTemplata, implOuterEnv, superInterface)
 
     val implT =
       interner.intern(
@@ -340,12 +297,52 @@ class ImplCompiler(
           subCitizen,
           superInterface,
           superInterfaceTemplateFullName,
-          runeToNeededFunctionBound))
+          runeToNeededFunctionBound,
+          runeIndexToIndependence.toArray))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
+    coutputs.declareTypeInnerEnv(implTemplateFullName, implInnerEnv)
     //          subCitizenFromPlaceholderedParentInterface))
     // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
     coutputs.addImpl(implT)
+  }
+
+  def calculateRunesIndependence(
+    coutputs: CompilerOutputs,
+    implTemplata: ImplDefinitionTemplata,
+    implOuterEnv: IEnvironment,
+    interface: InterfaceTT,
+  ): Vector[Boolean] = {
+
+    // Now we're going to figure out the <ZZ> for the eg Milano case.
+    val (partialCaseConclusionsFromSuperInterface, _) =
+      solveImplForCall(
+        coutputs,
+        List(implTemplata.impl.range),
+        implOuterEnv,
+        Vector(
+          InitialKnown(
+            implTemplata.impl.interfaceKindRune,
+            // We may be feeding in something interesting like IObserver<Opt<T>> here should be fine,
+            // the impl will receive it and match it to its own unknown runes appropriately.
+            KindTemplata(interface))),
+        implTemplata,
+        false) match {
+        case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
+        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Array[ITemplata[ITemplataType]]())
+        case fcs @ FailedCompilerSolve(_, _, _) => {
+          throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implTemplata.impl.range), fcs))
+        }
+      }
+    // These will be anything that wasn't already determined by the incoming interface.
+    // These are the "independent" generic params, like the <ZZ> in Milano.
+    // No particular reason they're ordered, it just feels appropriate to keep them in the same
+    // order they appeared in the impl.
+    val runeToIndependence =
+      implTemplata.impl.genericParams.map(_.rune.rune)
+        .map(rune => !partialCaseConclusionsFromSuperInterface.contains(rune))
+
+    runeToIndependence
   }
 
   def assembleImplName(
@@ -535,10 +532,10 @@ class ImplCompiler(
     val initialKnowns =
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
-    val CompleteCompilerSolve(_, conclusions, _) =
+    val CompleteCompilerSolve(_, conclusions, _, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, isRootSolve) match {
-        case Ok(c) => c
-        case Err(e) => return Err(e)
+        case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
+        case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
     val parentTT = conclusions.get(implTemplata.impl.subCitizenRune.rune)
     vassertSome(parentTT) match {
@@ -561,10 +558,10 @@ class ImplCompiler(
     val childEnv =
       coutputs.getOuterEnvForType(
         TemplataCompiler.getCitizenTemplate(child.fullName))
-    val CompleteCompilerSolve(_, conclusions, _) =
+    val CompleteCompilerSolve(_, conclusions, _, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false) match {
-        case Ok(c) => c
-        case Err(e) => return Err(e)
+        case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
+        case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
     val parentTT = conclusions.get(implTemplata.impl.interfaceKindRune.rune)
     vassertSome(parentTT) match {
@@ -689,16 +686,19 @@ class ImplCompiler(
             InitialKnown(impl.impl.subCitizenRune, KindTemplata(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superKindTT)))
         solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, impl, false) match {
-          case Ok(x) => Ok((impl, x))
-          case Err(x) => Err(x)
+          case ccs @ CompleteCompilerSolve(_, _, _, _) => Ok((impl, ccs))
+          case x : IIncompleteOrFailedCompilerSolve => Err(x)
         }
       })
     val (oks, errs) = Result.split(results)
     vcurious(oks.size <= 1)
     oks.headOption match {
-      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, runeToSuppliedFunction))) => {
+      case Some((implTemplata, CompleteCompilerSolve(_, conclusions, runeToSuppliedFunction, reachableBoundsFromSubCitizen))) => {
+        // Dont need this for anything yet
+        val _ = reachableBoundsFromSubCitizen
+
         val templateArgs =
-          implTemplata.impl.identifyingRunes.map(_.rune.rune).map(conclusions)
+          implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateFullName =
           implTemplata.env.fullName.addStep(
             interner.intern(ImplTemplateDeclareNameT(implTemplata.impl.range.begin)))

@@ -121,7 +121,7 @@ class PatternCompiler(
             unconvertedInputExpr
           }
           case Some(receiverRune) => {
-            val CompleteCompilerSolve(_, templatasByRune, _) =
+            val CompleteCompilerSolve(_, templatasByRune, _, Array()) =
               inferCompiler.solveExpectComplete(
                 InferEnv(nenv.snapshot, parentRanges, nenv.snapshot),
                 coutputs,
@@ -136,7 +136,7 @@ class PatternCompiler(
                     CoordTemplata(unconvertedInputExpr.result.reference))),
                 true,
                 true,
-                Set())
+                Array())
             nenv.addEntries(
               interner,
               templatasByRune.toVector

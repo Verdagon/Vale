@@ -251,7 +251,7 @@ class StructHammer(
         case (superFamilyPrototype, virtualParamIndex) =>
           val overridePrototypeT =
             vassertSome(edge2.abstractFuncToOverrideFunc.get(superFamilyPrototype.fullName))
-          val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeT)
+          val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeT.overridePrototype)
           overridePrototypeH
       })
 

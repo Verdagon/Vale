@@ -1,7 +1,7 @@
 package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.names.{CitizenTemplateNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructTemplateNameT, IVarNameT, ImplDeclareNameT, ImplTemplateDeclareNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
@@ -44,6 +44,8 @@ case class ImplT(
 
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+
+  runeIndexToIndependence: Array[Boolean]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -94,6 +96,55 @@ case class InterfaceEdgeBlueprint(
   interface: FullNameT[IInterfaceNameT],
   superFamilyRootHeaders: Vector[(PrototypeT, Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
+case class OverrideT(
+  // it seems right here we'll need some sort of mapping of abstract func placeholder to the
+  // override impl case placeholders, and perhaps also the existence of the <T>s for the case?
+  // we need to instantiate the override, so its going to need some values for it... i guess
+  // its from the impl, so the impl has it i think. so maybe a map from the impl rune to it
+
+
+
+  // This is the name of the conceptual function called by the abstract function.
+  // It has enough information to do simple dispatches, but not all cases, it can't handle
+  // the Milano case, see OMCNAGP.
+  // This will have some placeholders from the abstract function; this is the abstract function
+  // calling the dispatcher.
+  // This is like:
+  //   abstract func send<T>(self &IObserver<T>, event T) void
+  // calling:
+  //   func add<int>(self &IObserver<int>, event int) void
+  // or a more complex case:
+  //   func add<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
+  // as you can see there may be some interesting templatas in there like that Opt<int>, they
+  // might not be simple placeholders
+  dispatcherCallFullName: FullNameT[OverrideDispatcherInstantiationNameT],
+
+  implPlaceholderToDispatcherPlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+  implPlaceholderToCasePlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+
+  // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
+  // bounds. This is the one for our conceptual dispatcher function.
+  dispatcherRuneToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+
+  // This is the name of the conceptual case that's calling the override prototype. It'll have
+  // template args inherited from the dispatcher function and template args inherited from the
+  // impl. After typing pass these will be placeholders, and after instantiator these will be
+  // actual real templatas.
+  // This will have some placeholders from the impl; this is the impl calling the case, kind of.
+  caseFullName: FullNameT[OverrideDispatcherCaseNameT],
+
+  // See if we can just have these be in the case full name.
+//  // DO NOT SUBMIT explain better
+//  // If this has two elements, that means there's two <ZZ> Milano template args.
+//  // Each value integer is the where it came from; the index in the impl's full name
+//  implGenericArgIndices: Array[Int],
+
+  // The override function we're calling.
+  // Conceptually, this is being called from the case's environment. It might even have some complex stuff
+  // in the template args.
+  overridePrototype: PrototypeT
+)
+
 case class EdgeT(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   edgeFullName: FullNameT[IImplNameT],
@@ -104,15 +155,7 @@ case class EdgeT(
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-  abstractFuncToOverrideFunc:
-    Map[
-      FullNameT[IFunctionNameT],
-    // it seems right here we'll need some sort of mapping of abstract func placeholder to the
-    // override impl case placeholders, and perhaps also the existence of the <T>s for the case?
-    // we need to instantiate the override, so its going to need some values for it... i guess
-    // its from the impl, so the impl has it i think. so maybe a map from the impl rune to it
-      PrototypeT],
-
+  abstractFuncToOverrideFunc: Map[FullNameT[IFunctionNameT], OverrideT]
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -207,7 +250,7 @@ case class ValidHeaderCalleeCandidate(
 case class ValidPrototypeTemplataCalleeCandidate(
   prototype: PrototypeTemplata
 ) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; // DO NOT SUBMIT i removed the equals vcurious
 
   override def range: Option[RangeS] = Some(prototype.declarationRange)
   override def paramTypes: Array[CoordT] = prototype.prototype.fullName.last.parameters.toArray

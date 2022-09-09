@@ -898,9 +898,9 @@ class Compiler(
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
-            val CompleteCompilerSolve(_, templataByRune, _) =
+            val CompleteCompilerSolve(_, templataByRune, _, Array()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Set())
+                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Array())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

@@ -32,6 +32,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // take the type off of []int(5, {_}), we made that not work anymore, see MSAE
 
+    vimpl() // Add test for an abstract func with no virtual param like: abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where func drop(X)void;
+
     // is something like this possible?
     // and would it mean that we have to detect reentrant evaluation of that lambda template function?
     """

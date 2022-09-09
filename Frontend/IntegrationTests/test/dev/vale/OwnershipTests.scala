@@ -43,7 +43,7 @@ class OwnershipTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
       """
         |struct Muta { hp int; }
-        |func take(m Muta) {
+        |func take(m Muta) int {
         |  return m.hp;
         |}
         |exported func main() int {
