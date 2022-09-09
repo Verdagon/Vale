@@ -105,6 +105,118 @@ class VirtualTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 
+  test("Simple override with param and bound") {
+    // This is the Serenity case in ROWC.
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |sealed interface ISpaceship<E Ref, F Ref, G Ref> { }
+        |abstract func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+        |    where func drop(X)void;
+        |
+        |struct Serenity<A Ref, B Ref, C Ref> { }
+        |impl<H, I, J> ISpaceship<H, I, J> for Serenity<H, I, J>;
+        |func launch<M, N, P>(self &Serenity<M, N, P>, bork M)
+        |    where func drop(M)void { }
+        |
+        |exported func main() {
+        |  ship ISpaceship<int, bool, str> = Serenity<int, bool, str>();
+        |  ship.launch(7);
+        |}
+        |""".stripMargin, false)
+    compile.evalForKind(Vector())
+  }
+
+  test("Struct with different ordered runes") {
+    // This is the Firefly case in ROWC.
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |sealed interface ISpaceship<E Ref, F Ref, G Ref> { }
+        |abstract func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+        |    where func drop(X)void;
+        |
+        |struct Firefly<A Ref, B Ref, C Ref> { }
+        |impl<H, I, J> ISpaceship<H, I, J> for Firefly<J, I, H>;
+        |func launch<M, N, P>(self &Firefly<M, N, P>, bork P)
+        |    where func drop(P)void { }
+        |
+        |exported func main() {
+        |  ship ISpaceship<int, bool, str> = Firefly<str, bool, int>();
+        |  ship.launch(7);
+        |}
+        |""".stripMargin, false)
+    compile.evalForKind(Vector())
+  }
+
+  test("Struct with less generic params than interface") {
+    // This is the Raza case in ROWC.
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |sealed interface ISpaceship<E Ref, F Ref, G Ref> { }
+        |abstract func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+        |    where func drop(X)void;
+        |
+        |struct Raza<B Ref, C Ref> { }
+        |impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+        |func launch<N, P>(self &Raza<N, P>, bork int) { }
+        |
+        |exported func main() {
+        |  ship ISpaceship<int, bool, str> = Raza<bool, str>();
+        |  ship.launch(7);
+        |}
+        |""".stripMargin, false)
+    compile.evalForKind(Vector())
+  }
+
+  test("Struct with more generic params than interface") {
+    // This is the Milano case in ROWC.
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |sealed interface ISpaceship<E Ref, F Ref, G Ref> { }
+        |abstract func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+        |    where func drop(X)void;
+        |
+        |struct Milano<A Ref, B Ref, C Ref, D Ref> { }
+        |impl<H, I, J, K> ISpaceship<H, I, J> for Milano<H, I, J, K>;
+        |func launch<H, I, J, K>(self &Milano<H, I, J, K>, bork H) where func drop(H)void { }
+        |
+        |exported func main() {
+        |  ship ISpaceship<int, bool, str> = Milano<int, bool, str, float>();
+        |  ship.launch(7);
+        |}
+        |""".stripMargin, false)
+    compile.evalForKind(Vector())
+  }
+
+  test("Struct repeating generic params for interface") {
+    // This is the Enterprise case in ROWC.
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.drop.*;
+        |
+        |sealed interface ISpaceship<E Ref, F Ref, G Ref> { }
+        |abstract func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+        |    where func drop(X)void;
+        |
+        |struct Enterprise<A Ref> { }
+        |impl<H> ISpaceship<H, H, H> for Enterprise<H>;
+        |func launch<H>(self &Enterprise<H>, bork H) where func drop(H)void { }
+        |
+        |exported func main() {
+        |  ship ISpaceship<int, int, int> = Enterprise<int>();
+        |  ship.launch(7);
+        |}
+        |""".stripMargin, false)
+    compile.evalForKind(Vector())
+  }
+
   test("Imm interface") {
     val compile = RunCompilation.test(
       Tests.loadExpected("programs/virtuals/interfaceimm.vale"))
@@ -114,7 +226,7 @@ class VirtualTests extends FunSuite with Matchers {
   test("Can call interface env's function from outside") {
     val compile = RunCompilation.test(
       """
-        |interface I {
+        |sealed interface I {
         |  func doThing(virtual i I) int;
         |}
         |func main(i I) int {
@@ -136,8 +248,9 @@ class VirtualTests extends FunSuite with Matchers {
   test("Interface with method with param of substruct") {
     val compile = RunCompilation.test(
         """
-          |import list.*;
-          |interface SectionMember {}
+          |struct List<T Ref> { }
+          |
+          |sealed interface SectionMember {}
           |struct Header {}
           |impl SectionMember for Header;
           |abstract func collectHeaders2(header &List<&Header>, virtual this &SectionMember);

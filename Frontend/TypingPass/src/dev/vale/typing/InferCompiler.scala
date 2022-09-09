@@ -31,7 +31,8 @@ sealed trait IIncompleteOrFailedCompilerSolve extends ICompilerSolverOutcome {
 case class CompleteCompilerSolve(
   steps: Stream[Step[IRulexSR, IRuneS, ITemplata[ITemplataType]]],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-  runeToFunctionBound: Map[IRuneS, PrototypeT]
+  runeToFunctionBound: Map[IRuneS, PrototypeT],
+  reachableBounds: Array[ITemplata[ITemplataType]]
 ) extends ICompilerSolverOutcome {
   override def getOrDie(): Map[IRuneS, ITemplata[ITemplataType]] = conclusions
 }
@@ -143,12 +144,12 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Set[IRuneS]):
+    includeReachableBoundsForRunes: Array[IRuneS]):
   Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
     solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, _) => Err(f)
       case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
-      case c @ CompleteCompilerSolve(_, _, _) => Ok(c)
+      case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
     }
   }
 
@@ -162,7 +163,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Set[IRuneS]):
+    includeReachableBoundsForRunes: Array[IRuneS]):
   CompleteCompilerSolve = {
     solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, err) => {
@@ -171,7 +172,7 @@ class InferCompiler(
       case i @ IncompleteCompilerSolve(_, _, _, _) => {
         throw CompileErrorExceptionT(typing.TypingPassSolverError(invocationRange, i))
       }
-      case c @ CompleteCompilerSolve(_, conclusions, _) => c
+      case c @ CompleteCompilerSolve(_, _, _, _) => c
     }
   }
 
@@ -186,7 +187,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Set[IRuneS]):
+    includeReachableBoundsForRunes: Array[IRuneS]):
   ICompilerSolverOutcome = {
     Profiler.frame(() => {
       val runeToType =
@@ -221,28 +222,25 @@ class InferCompiler(
           rules,
           runeToType,
           alreadyKnown) match {
-        case CompleteSolve(steps, conclusionsWithoutReachableBounds) => {
-          val conclusionsMaybeWithReachableBounds =
-            conclusionsWithoutReachableBounds ++
-              includeReachableBoundsForRunes
-                .map(conclusionsWithoutReachableBounds)
-                .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
-                .zipWithIndex
-                .map({ case (templata, num) => ReachablePrototypeRuneS(num) -> templata })
+        case CompleteSolve(steps, conclusions) => {
+          val reachableBounds =
+            includeReachableBoundsForRunes
+              .map(conclusions)
+              .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
           val runeToFunctionBound =
             if (verifyConclusions) {
-              checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusionsMaybeWithReachableBounds, isRootSolve) match {
+              checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusions, reachableBounds, isRootSolve) match {
                 case Ok(c) => vassertSome(c)
                 case Err(e) => return FailedCompilerSolve(steps, Vector(), e)
               }
             } else {
               Map[IRuneS, PrototypeT]()
             }
-          CompleteCompilerSolve(steps, conclusionsMaybeWithReachableBounds, runeToFunctionBound)
+          CompleteCompilerSolve(steps, conclusions, runeToFunctionBound, reachableBounds)
         }
         case IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
           if (verifyConclusions) {
-            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, incompleteConclusions, isRootSolve) match {
+            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, incompleteConclusions, Array(), isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedCompilerSolve(steps, unsolvedRules, e)
             }
@@ -260,6 +258,7 @@ class InferCompiler(
     ranges: List[RangeS],
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
+    reachableBounds: Array[ITemplata[ITemplataType]],
     isRootSolve: Boolean):
   Result[Option[Map[IRuneS, PrototypeT]], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // This is a temporary env which contains all of our conclusions.
@@ -286,7 +285,7 @@ class InferCompiler(
     if (isRootSolve) {
       // If this is the original calling env, in other words, if we're the original caller for
       // this particular solve, then lets add all of our templatas to the environment.
-      val originalCallingEnvWithUnverifiedConclusions =
+      val originalCallingEnvWithBoundsAndUnverifiedConclusions =
         GeneralEnvironment.childOf(
           interner,
           envs.originalCallingEnv,
@@ -294,13 +293,27 @@ class InferCompiler(
           conclusions
             .map({ case (nameS, templata) =>
               interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
-            }).toVector)
+            }).toVector ++
+            // These are the bounds we pulled in from the parameters, return type, impl sub citizen, etc.
+          reachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
+            interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+          }))
 
       checkTemplateInstantiationsForEnv(
-          originalCallingEnvWithUnverifiedConclusions, state, ranges, rules, conclusions)
+        originalCallingEnvWithBoundsAndUnverifiedConclusions, state, ranges, rules, conclusions)
     } else {
+      val envWithBounds =
+        GeneralEnvironment.childOf(
+          interner,
+          envs.originalCallingEnv,
+          envs.originalCallingEnv.fullName,
+          // These are the bounds we pulled in from the parameters, return type, impl sub citizen, etc.
+          reachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
+            interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
+          }).toVector)
+
       checkTemplateInstantiationsForEnv(
-          envs.originalCallingEnv, state, ranges, rules, conclusions)
+        envWithBounds, state, ranges, rules, conclusions)
     }
   }
 

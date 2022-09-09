@@ -296,11 +296,11 @@ class OverloadResolver(
                     Vector(),
                     true,
                     false,
-                    Set()) match {
+                    Array()) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
                     }
-                    case (Ok(CompleteCompilerSolve(_, explicitRuneSToTemplata, _))) => {
+                    case (Ok(CompleteCompilerSolve(_, explicitRuneSToTemplata, _, Array()))) => {
                       val explicitlySpecifiedTemplateArgTemplatas =
                         explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 

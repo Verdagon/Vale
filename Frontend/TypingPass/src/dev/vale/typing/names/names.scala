@@ -40,7 +40,7 @@ case class FullNameT[+T <: INameT](
     case PlaceholderNameT(_) => {
       initSteps.last match {
         case _ : ITemplateNameT =>
-        case ImplOverrideNameT(_) => {
+        case OverrideDispatcherInstantiationNameT(_, _, _) => {
           initSteps.init.last match {
             case _ : ITemplateNameT =>
             case other => vfail(other)
@@ -257,8 +257,39 @@ case class PlaceholderNameT(template: PlaceholderTemplateNameT) extends ISubKind
 }
 
 // See NNSPAFOC.
-case class ImplOverrideNameT(implTemplateFullName: FullNameT[IImplTemplateNameT]) extends INameT
-case class ImplOverrideCaseNameT() extends INameT
+case class OverrideDispatcherTemplateNameT(
+  implFullName: FullNameT[IImplTemplateNameT]
+) extends IFunctionTemplateNameT {
+  override def makeFunctionName(
+    interner: Interner,
+    keywords: Keywords,
+    templateArgs: Vector[ITemplata[ITemplataType]],
+    params: Vector[CoordT]):
+  OverrideDispatcherInstantiationNameT = {
+    interner.intern(OverrideDispatcherInstantiationNameT(this, templateArgs, params))
+  }
+}
+
+// DO NOT SUBMIT take Instantiation out of the name
+case class OverrideDispatcherInstantiationNameT(
+  template: OverrideDispatcherTemplateNameT,
+  // This will have placeholders in it after the typing pass.
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  parameters: Vector[CoordT]
+) extends IFunctionNameT {
+  vpass()
+}
+
+case class OverrideDispatcherCaseNameT(
+  // DO NOT SUBMIT explain better
+  // These are like the <ZZ> for Milano
+  // These are placeholders, kind of inherited from the impl.
+  // See OMCNAGP.
+  independentImplTemplateArgs: Vector[ITemplata[ITemplataType]]
+) extends ITemplateNameT with IInstantiationNameT {
+  override def template: ITemplateNameT = this
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = independentImplTemplateArgs
+}
 
 sealed trait IVarNameT extends INameT
 case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT

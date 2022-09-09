@@ -1,4 +1,5 @@
 import v.builtins.panic.*;
+import v.builtins.drop.*;
 
 #!DeriveInterfaceDrop
 sealed interface Opt<T> where T Ref { }

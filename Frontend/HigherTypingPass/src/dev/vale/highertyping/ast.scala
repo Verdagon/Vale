@@ -106,7 +106,7 @@ case class StructA(
 case class ImplA(
   range: RangeS,
   name: IImplDeclarationNameS,
-  identifyingRunes: Vector[GenericParameterS],
+  genericParams: Vector[GenericParameterS],
   rules: Vector[IRulexSR],
   runeToType: Map[IRuneS, ITemplataType],
   subCitizenRune: RuneUsage,
@@ -122,7 +122,7 @@ case class ImplA(
     return range == that.range && name == that.name;
   }
 
-  def isTemplate: Boolean = identifyingRunes.nonEmpty
+  def isTemplate: Boolean = genericParams.nonEmpty
 }
 
 case class ExportAsA(

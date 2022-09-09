@@ -248,12 +248,6 @@ case class CompilerOutputs() {
   // We can't declare the struct at the same time as we declare its mutability or environment,
   // see MFDBRE.
   def declareType(templateName: FullNameT[ITemplateNameT]): Unit = {
-    templateName match {
-      case FullNameT(_,Vector(InterfaceTemplateNameT(StrI("Opt")), FreeTemplateNameT(_), ImplOverrideNameT(FullNameT(_,Vector(),ImplTemplateDeclareNameT(_)))),PlaceholderTemplateNameT(0)) => {
-        vpass()
-      }
-      case _ =>
-    }
     vassert(!typeDeclaredNames.contains(templateName))
     typeDeclaredNames += templateName
   }

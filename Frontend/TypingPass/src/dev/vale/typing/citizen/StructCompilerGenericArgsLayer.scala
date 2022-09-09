@@ -55,7 +55,7 @@ class StructCompilerGenericArgsLayer(
           structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
       // Check if its a valid use of this template
-      val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
+      val CompleteCompilerSolve(_, inferences, runeToFunctionBound, Array()) =
         inferCompiler.solve(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -66,8 +66,8 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          Set()) match {
-          case ccs @ CompleteCompilerSolve(_, _, _) => ccs
+          Array()) match {
+          case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
           case x : IIncompleteOrFailedCompilerSolve => return ResolveFailure(callRange, x)
         }
 
@@ -118,7 +118,7 @@ class StructCompilerGenericArgsLayer(
 
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, _, Array()) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -130,7 +130,7 @@ class StructCompilerGenericArgsLayer(
           // False because we're just predicting, see STCMBDP.
           false,
           false,
-          Set())
+          Array())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -181,7 +181,7 @@ class StructCompilerGenericArgsLayer(
 
       // This *doesnt* check to make sure it's a valid use of the template. Its purpose is really
       // just to populate any generic parameter default values.
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, _, Array()) =
         inferCompiler.solveExpectComplete(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -193,7 +193,7 @@ class StructCompilerGenericArgsLayer(
           // False because we're just predicting, see STCMBDP.
           false,
           false,
-          Set())
+          Array())
 
       // We can't just make a StructTT with the args they gave us, because they may have been
       // missing some, in which case we had to run some default rules.
@@ -237,7 +237,7 @@ class StructCompilerGenericArgsLayer(
           interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
 
       // This checks to make sure it's a valid use of this template.
-      val CompleteCompilerSolve(_, inferences, runeToFunctionBound) =
+      val CompleteCompilerSolve(_, inferences, runeToFunctionBound, Array()) =
         inferCompiler.solve(
           InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
@@ -248,8 +248,8 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           false,
-          Set()) match {
-          case ccs @ CompleteCompilerSolve(_, _, _) => ccs
+          Array()) match {
+          case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
           case x : IIncompleteOrFailedCompilerSolve => return ResolveFailure(callRange, x)
         }
 
@@ -309,12 +309,12 @@ class StructCompilerGenericArgsLayer(
       val preliminaryInferences =
         inferCompiler.solve(
           InferEnv(outerEnv, List(structA.range), outerEnv),
-          coutputs, definitionRules.toVector, allRuneToType, structA.range :: parentRanges, Vector(), Vector(), true, true, Set()) match {
+          coutputs, definitionRules.toVector, allRuneToType, structA.range :: parentRanges, Vector(), Vector(), true, true, Array()) match {
           case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(structA.range :: parentRanges, f))
           }
           case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteCompilerSolve(_, conclusions, _) => conclusions
+          case CompleteCompilerSolve(_, conclusions, _, Array()) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -333,7 +333,7 @@ class StructCompilerGenericArgsLayer(
         })
 
 
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, _, Array()) =
         inferCompiler.solveExpectComplete(
           InferEnv(outerEnv, List(structA.range), outerEnv),
           coutputs,
@@ -347,7 +347,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           true,
-          Set())
+          Array())
 
       structA.maybePredictedMutability match {
         case None => {
@@ -426,12 +426,12 @@ class StructCompilerGenericArgsLayer(
       val preliminaryInferences =
         inferCompiler.solve(
           InferEnv(outerEnv, List(interfaceA.range), outerEnv),
-          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector(), true, true, Set()) match {
+          coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector(), true, true, Array()) match {
           case f @ FailedCompilerSolve(_, _, err) => {
             throw CompileErrorExceptionT(typing.TypingPassSolverError(interfaceA.range :: parentRanges, f))
           }
           case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-          case CompleteCompilerSolve(_, conclusions, _) => conclusions
+          case CompleteCompilerSolve(_, conclusions, _, Array()) => conclusions
         }
       // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
 
@@ -449,7 +449,7 @@ class StructCompilerGenericArgsLayer(
           }
         })
 
-      val CompleteCompilerSolve(_, inferences, _) =
+      val CompleteCompilerSolve(_, inferences, _, Array()) =
         inferCompiler.solveExpectComplete(
           InferEnv(outerEnv, interfaceA.range :: parentRanges, outerEnv),
           coutputs,
@@ -460,7 +460,7 @@ class StructCompilerGenericArgsLayer(
           Vector(),
           true,
           true,
-          Set())
+          Array())
 
       interfaceA.maybePredictedMutability match {
         case None => {

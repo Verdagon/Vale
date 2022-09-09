@@ -244,4 +244,18 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Implementing a non-generic interface call") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |interface IObserver<T Ref> { }
+        |
+        |#!DeriveStructDrop
+        |struct MyThing { }
+        |
+        |impl<T> IObserver<T> for MyThing;
+        |
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
 }

@@ -60,6 +60,15 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
+  def getPlaceholderTemplataFullName(implPlaceholder: ITemplata[ITemplataType]) = {
+    implPlaceholder match {
+      case PlaceholderTemplata(n, _) => n
+      case KindTemplata(PlaceholderT(n)) => n
+      case CoordTemplata(CoordT(_, PlaceholderT(n))) => n
+      case other => vwat(other)
+    }
+  }
+
   // See SFWPRL
   def assemblePredictRules(genericParameters: Vector[GenericParameterS], numExplicitTemplateArgs: Int): Vector[IRulexSR] = {
     genericParameters.zipWithIndex.flatMap({ case (genericParam, index) =>

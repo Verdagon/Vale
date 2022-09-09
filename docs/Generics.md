@@ -15,7 +15,7 @@ However, sometimes during the compilation, we'll be resolving _other_ templates.
 This snippet is using a function bound:
 
 ```
-func moo<X>(x X)
+func launch<X>(x X)
 where func foo(int)void {
   ...
 }
@@ -35,7 +35,7 @@ In other words, some rules only apply to the call site, and some rules only appl
 This snippet is using a **function bound generic parameter**:
 
 ```
-func moo<X, func foo(int)void>(x X)
+func launch<X, func foo(int)void>(x X)
 where  {
   ...
 }
@@ -1219,31 +1219,413 @@ Then when we monomorphize the lambda, the instantiator needs to remember the sup
 
 
 
+# WTF Is Going On With Impls (WTFIGOWI)
+
+Recall:
+
+```
+interface ISpaceship<E, F, G> { ... }
+abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+
+struct Raza<A, B, C> { ... }
+impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+
+func moo<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
+```
+
+Right now we have ISpaceship, moo, and the impl ("ri").
+
+We want to locate that moo/Raza override, similarly to the above conceptual
+match-dispatching function:
+
+```
+func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+where exists drop(Y)void {
+  self match {
+    raza &Raza<Y, Z> => moo(raza, bork)
+  }
+}
+```
+
+The first step is figuring out this function's inner environment, so we can
+later use it to resolve our moo override.
+
+Start by compiling the impl, supplying any placeholders for it.
+
+```
+impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+```
+
+becomes:
+
+```
+impl<ri$0, ri$1> ISpaceship<int, ri$0, ri$1> for Raza<ri$0, ri$1>
+```
+
+Now, take the original abstract function:
+
+```
+abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+```
+
+and try to compile it given the impl's interface (ISpaceship<int, ri$0, ri$1>)
+as the first parameter. However, rephrase the placeholders to be in terms of the dispatching
+function's case (so instead of ri$0, think of it as case$0)
+
+```
+abstract func moo(self ISpaceship<int, case$0, case$1>, bork int) where exists drop(case$0)void;
+```
+
+We rephrased like that because we're conceptually compiling a match's case, from
+which we'll resolve a function. Also, the abstract function has some bounds which are phrased in terms
+of its own placeholders. 
+
+In a way, we compiled it as if X = int, Y = case$0, Z = case$1.
+
+And now we have our inner environment from which we can resolve some overloads.
+
+
+## Resolving Overrides With Cases (ROWC)
+
+Our goal now is to figure out the override functions.
+Imagine we have these interfaces and impls:
+
+```
+interface ISpaceship<E, F, G> { ... }
+
+struct Serenity<A, B, C> { ... }
+impl<H, I, J> ISpaceship<H, I, J> for Serenity<H, I, J>;
+
+struct Firefly<A, B, C> { ... }
+impl<H, I, J> ISpaceship<J, I, H> for Firefly<H, I, J>;
+// Note the weird order here ^
+
+struct Raza<B, C> { ... }
+impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
+// Note this int here ^
+
+struct Milano<A, B, C, D> { ... }
+impl<I, J, K, L> ISpaceship<I, J, K> for Milano<I, J, K, L>;
+// Note that Milano has more params than ISpaceship.
+// This is like a MyStruct<T> implementing a IIntObserver.
+
+struct Enterprise<A> { ... }
+impl<H> ISpaceship<H, H, H> for Enterprise<H>;
+// Note they're all the same type
+```
+
+If we have an abstract function:
+
+```
+abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(X)void;
+```
+
+and these overrides:
+
+```
+func launch<X, Y, Z>(self &Serenity<X, Y, Z>, bork X) where exists drop(X)void { ... }
+func launch<X, Y, Z>(self &Firefly<X, Y, Z>, bork X) where exists drop(X)void { ... }
+func launch<Y, Z>(self &Raza<Y, Z>, bork int) { ... }
+func launch<X, Y, Z, ZZ>(self &Milano<X, Y, Z, ZZ>, bork X) where exists drop(X)void { ... }
+func launch<X>(self &Enterprise<X>, bork X) where exists drop(X)void { ... }
+```
+
+We need to find those overrides.
+
+To do it, we need to *conceptually* lower these abstract functions to match-dispatching
+functions. We're not actually doing this, just thinking this way. One might be:
+
+```
+func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+where exists drop(X)void {
+  self match {
+    serenity &Serenity<X, Y, Z> => launch(serenity, bork)
+    firefly &Firefly<Z, Y, X> => launch(firefly, bork)
+    <ZZ> milano &Milano<X, Y, Z, ZZ> => launch(milano, bork) // See the end for wtf this is
+    // Read on for why the other cases aren't here
+  }
+}
+```
+
+Raza and Enterprise have some assumptions about their generic args, so we'll need different
+conceptual functions for them.
+
+```
+func launch<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int) {
+  self match {
+    raza &Raza<Y, Z> => launch(raza, bork)
+    // other cases unimportant for our purposes
+  }
+}
+
+func launch<X>(virtual self &ISpaceship<X, X, X>, bork X)
+where exists drop(X)void {
+  self match {
+    enterprise &Enterprise<X> => launch(enterprise, bork)
+    // other cases unimportant for our purposes
+  }
+}
+```
+
+The reason we do all this is so we can do those resolves:
+
+   * launch(serenity) is resolving launch(&Serenity<X, Y, Z>, X)
+   * launch(firefly) is resolving launch(&Firefly<Z, Y, X>, X)
+   * launch(raza) is resolving launch(&Raza<Y, Z>, int)
+   * launch(enterprise) is resolving launch(&Enterprise<H>, X)
+
+So, the below code does the important parts of the above conceptual functions.
+
+
+## Override Milano Case Needs Additional Generic Params (OMCNAGP)
+
+Now, how do we handle Milano's case?
+
+```
+func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
+where exists drop(X)void {
+  self match {
+    serenity &Serenity<X, Y, Z> => launch(serenity, bork)
+    firefly &Firefly<Z, Y, X> => launch(firefly, bork)
+    <ZZ> milano &Milano<X, Y, Z, ZZ> => launch(milano, bork)
+  }
+}
+```
+
+As you can see, it doesn't really fit into this whole match/enum paradigm.
+There could be any number of Milano variants in there... ZZ could be int, or str, or bool,
+or whatever. Luckily there is a solution, described further below. (TODO: inline that here)
+
+
+The `<ZZ>` is an "independent" generic arg.
+
+Try and think if there's any times we should generate only one placeholder for an impl that has a bunch of independent generic args.
+
+
+## Abstract Function Calls The Dispatcher (AFCTD)
+
+Let's say we have this abstract func:
+
+```
+abstract func send<T>(self &IObs<T>, e T)
+where D Prot = func drop(T)void
+```
+
+And this impl:
+
+```
+impl<X, ZZ> IObs<Opt<X>> for MyStruct<X, ZZ>
+```
+
+Then call the abstract function with `&IObs<Opt<dis$X>>` which is the interface from the impl but with its placeholders phrased as "dis" placeholders which stands for "dispatcher". We end up with this:
+
+```
+func ...(self &IObs<Opt<dis$X>>, e Opt<dis$X>)
+where D Prot = func drop(Opt<dis$X>)void
+```
+
+Now fill in the name; it's the "dispatcher" and it takes in generic parameters similar to the impl. Think of this as an alternate way of compiling a function; we end up with something like a compiled function, that's phrased in terms of its own placeholders.
+
+```
+func dis<dis$X>(self &IObs<Opt<dis$X>>, e Opt<dis$X>)
+where func drop(Opt<dis$X>)void
+```
+
+(Note that there's no `dis$ZZ` in here, we don't include independent runes, see OMCNAGP.)
+
+So it's like the abstract function `send<T>` magically decided that its own `T` = `Opt<dis$X>`, and calls `dis` with it.
+
+In the end, `send<T>` is calling `dis<dis$X>(&IObs<Opt<dis$X>>, Opt<dis$X>)` and sends instantiation bounds `D` = `func drop(send$T)void`.
+
+Of course, if this was an actual call AST, some asserts would definitely trigger, because we're sending an `&IObs<send$T>` into a parameter expecting a `&IObs<Opt<dis$X>>`, and the other argument doesn't match either.
+
+This is an unusual call. It's manufacturing a `dis$X` out of thin air. The abstract function doesn't have that, and has no idea where it comes from, while it's in the typing pass. It's up to the monomorphizer to substitute `send$T` and `dis$X` correctly so that the arguments and parameters line up.
+
+
+### Monomorphizing
+
+Let's walk through some monomorphizing cases.
+
+Someone calls `send<Opt<str>>(&IObs<Opt<str>>, Opt<str>)`. The call's instantiation bounds say that `D` = `func drop(Opt<str>)void`.
+
+We look through the edges to find all the structs that could implement `IObs<Opt<bool>>`.
+
+  * We consider an instantiation `OtherStruct<bool>` impls `IObs<bool>` from an `impl<E> OtherStruct<E> for IObs<bool>`.
+     * Its interface doesn't match, abort.
+  * We consider an instantiation `MyStruct<int, Opt<str>>` impls `IObs<Opt<str>>`, from our original impl.
+     * Its interface matches, so proceed.
+
+We look at that edge's full name and find its ZZ = `int` and X = `str`.
+
+Now we look at the call from the typing pass: `send<send$T>` calls `dis<dis$X>(&IObs<Opt<dis$X>>, Opt<dis$X>)` with instantiation bounds `D` = `func drop(send$T)void`).
+
+We have all the substitutions we need.
+ 
+ * We know from the original call's name that `send$T` is an `Opt<str>`.
+ * We know `dis$X` should be `str` from the edge.
+
+The call becomes: `dis<str>(&IObs<Opt<str>>, Opt<str>)` with instantiation bounds `D` = `func drop(Opt<str>)void`).
+
+
+
+## Something
+
+
+We'll solve the impl given the placeholdered super interface.
+So if we have an abstract function:
+
+```
+func launch<T>(virtual a ISpaceship<int, T>);
+```
+
+Imagine this body:
+
+```
+func launch<T, Z>(virtual self &ISpaceship<int, T, Z>) {
+  self match {
+    myShip Serenity<int, T, Z> => launch(myShip)
+    myBike Raza<int, Z, T> => launch(myBike)
+  }
+}
+```
+
+Imagine we're actually compiling it, which means we have placeholders:
+
+```
+func launch<$0, $1>(virtual self &ISpaceship<int, $0, $1>) {
+  self match {
+    myShip &Serenity<int, $0, $1> => launch(myShip)
+    myBike &Raza<int, $1, $0> => launch(myBike)
+  }
+}
+```
+
+Right here, we're trying to resolve an override function, eg `launch(myBike)`.
+First, we need to figure out `Raza<$1, $0>`. That's what this impl solve is
+doing. It's feeding the ISpaceship<$0, $1> into the impl:
+
+```
+impl<T, Z> ISpaceship<T, Z> for Raza<Z, T>;
+```
+
+roughly solving to:
+
+```
+impl<launch$0, launch$1> ISpaceship<launch$0, launch$1> for Raza<launch$1, launch$0>;
+```
+
+to get the `Raza<launch$1, launch$0>`.
+
+
+## Next Step 3
+
+
+
+Recall the match-dispatching function:
+
+```
+func launch<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+where exists drop(Y)void {
+  self match {
+    raza &Raza<Y, Z> => launch(raza, bork)
+    // other cases unimportant for our purposes
+  }
+}
+```
+
+Now we have it's inner environment's inferences! We'll construct an IEnvironment below
+containing these. Then we can use this to resolve some overrides.
+
+For the Milano case, we'll add to the inner environment the extra placeholder
+that doesn't correspond to any template argument in the abstract function. It actually
+comes from the impl; any placeholders that cant be figured out from just the incoming interface
+will be added as generic parameters for the case.
+
+```
+<ZZ> milano &Milano<X, Y, Z, ZZ> => launch(milano, bork)
+```
+
+For all ZZ, we're having a Milano case. Later on in the instantiator, we'll loop over all impls and get the ZZ from there.
 
 
 
 
 
 
+This is so we fill the other params' types, like that bork int.
+
+Now, try to resolve an overload with the impl's struct there instead, look for:
+```
+launch(Raza<ri$0, ri$1>, int)
+```
+and sure enough, we find the override func:
+```
+func launch<P, Q>(self Raza<P, Q>, bork int) where exists drop(P)void;
+```
+
+Instantiating it is the next challenge, we'll do that below.
+
+All this is done from the impl's perspective, the impl is the original calling
+env for all these solves and resolves, and all these placeholders are phrased in
+terms of impl placeholders (eg ri$0).
 
 
 
-if we dont find this things template name, we could do a search then perhaps
+## WTFBBQ
 
-could hash by supertemplate then just linear through them perhaps
 
-could we hash on last name actually? hm. no placeholders there right? there can be...
-only top level denizen created em.
+We need this to pull in some bounds knowledge from the override struct.
 
-super template can note which slots actually differentiate, like a mask. then we can hash based on those. seems a bit overkill tho tbh.
+For example, this is a parent interface that has no knowledge or assumptions of
+being droppable:
 
-what if we invoke it with moo$0,moo$1 but then with moo$1,moo$0 ?
+```
+#!DeriveInterfaceDrop
+sealed interface ILaunchable {
+  func launch(virtual self &ILaunchable) int;
+}
 
-hard to tell those apart. will need to do some mapping.
-also itd be funny if both were int, collision lol
+#!DeriveStructDrop
+struct Ship<T>
+where func drop(Lam)void, func __call(&Lam)int {
+  lam Lam;
+}
 
-pattern match TLD (any of same supertemplate) to get substitutions, then look where else they are in hay full name. then put placeholders there in needle full name. then find it that way.
-should be pretty reliable.
-but... can invoke it with moo$0,moo$2 and then int,int lol.
+impl<T> ILaunchable for Ship<T>;
 
-yeah i think the map may be the way to go.
+func launch<T>(self &Ship<T>) int {
+  return (self.lam)();
+}
+```
+
+When resolving overrides for it, this is the conceptual case:
+
+```
+func launch(virtual self &ILaunchable) {
+  self match {
+    <ZZ> borky &Ship<ZZ> => bork(fwd)
+  }
+}
+```
+
+However, there's something subtle that's needed. The bork(fwd) call is trying to resolve
+this function:
+
+```
+func launch<T>(self &Ship<T>) int
+```
+
+However, the `Ship<T>` invocation requires that Lam has a `drop`... which nobody
+can guarantee.
+
+But wait! We're taking an *existing* `Ship<T>` there. So we can know that the T already
+supports a drop.
+
+We do this for NBIFPR for parameters and returns and one day for cases inside matches.
+Let's do it here for this conceptual case too.
+
+
+
+
+
+
