@@ -13,8 +13,8 @@ import dev.vale.postparsing.PostParserErrorHumanizer
 import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
-import dev.vale.typing.infer.{BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.infer.{BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, ReturnTypeConflict, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
@@ -38,6 +38,9 @@ object CompilerErrorHumanizer {
         }
         case NewImmRSANeedsCallable(range) => {
           "To make an immutable runtime-sized array, need two params: capacity int, plus lambda to populate that many elements."
+        }
+        case UnexpectedArrayElementType(range, expectedType, actualType) => {
+          "Unexpected type for array element, tried to put a " + humanizeTemplata(codeMap, CoordTemplata(actualType)) + " into an array of " + humanizeTemplata(codeMap, CoordTemplata(expectedType))
         }
         case IndexedArrayWithNonInteger(range, tyype) => {
           "Indexed array with non-integer: " + humanizeTemplata(codeMap, CoordTemplata(tyype))
@@ -365,6 +368,9 @@ object CompilerErrorHumanizer {
       case CantGetComponentsOfPlaceholderPrototype(_) => {
         "Can't get components of placeholder."
       }
+      case ReturnTypeConflict(_, expectedReturnType, actualPrototype) => {
+        "Found function: " + humanizeName(codeMap, actualPrototype.fullName) + " which returns " + humanizeTemplata(codeMap, CoordTemplata(actualPrototype.returnType)) + " but expected return type of " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType))
+      }
       case CantShareMutable(kind) => {
         "Can't share a mutable kind: " + humanizeTemplata(codeMap, KindTemplata(kind))
       }
@@ -553,6 +559,24 @@ object CompilerErrorHumanizer {
       case FunctionBoundTemplateNameT(humanName, codeLocation) => humanName.str
       case LambdaCallFunctionTemplateNameT(codeLocation, _) => "λF:" + humanizePos(codeMap, codeLocation)
       case LambdaCitizenTemplateNameT(codeLocation) => "λC:" + humanizePos(codeMap, codeLocation)
+      case LambdaCallFunctionNameT(template, templateArgs, parameters) => {
+        humanizeName(codeMap, template) +
+          (if (templateArgs.nonEmpty) {
+            "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+          } else {
+            ""
+          }) +
+          "(" + parameters.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+      }
+      case FunctionBoundNameT(template, templateArgs, parameters) => {
+        humanizeName(codeMap, template) +
+          (if (templateArgs.nonEmpty) {
+            "<" + templateArgs.map(humanizeTemplata(codeMap, _)).mkString(", ") + ">"
+          } else {
+            ""
+          }) +
+          "(" + parameters.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
+      }
       case PlaceholderNameT(template) => humanizeName(codeMap, template)
       case PlaceholderTemplateNameT(index) => "_" + index
       case CodeVarNameT(name) => name.str

@@ -129,6 +129,17 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
   }
 
+  test("Make array and dot it") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |exported func main() int {
+        |  [#]int[6, 60, 103].2
+        |}
+        |""".stripMargin)
+    compile.expectCompilerOutputs()
+  }
+
   test("Simple struct instantiate") {
     val compile = CompilerTestCompilation.test(
       """

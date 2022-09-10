@@ -10,7 +10,7 @@ class TupleTests extends FunSuite with Matchers {
   test("Returning tuple from function and dotting it") {
     val compile = RunCompilation.test(
       """
-        |func makeTup() (int, int, int) { return (2, 3, 4); }
+        |func makeTup() (int, int) { return (2, 3); }
         |exported func main() int {
         |  return makeTup().1;
         |}

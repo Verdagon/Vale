@@ -12,8 +12,14 @@ class ArrayListTest extends FunSuite with Matchers {
   test("Simple ArrayList, no optionals") {
     val compile = RunCompilation.test(
         """
-          |struct List<E> where E Ref {
+          |#!DeriveStructDrop
+          |struct List<E Ref> {
           |  array! []<mut>E;
+          |}
+          |func drop<E>(self List<E>)
+          |where func drop(E)void {
+          |  [array] = self;
+          |  drop(array);
           |}
           |func len<E>(list &List<E>) int { return len(&list.array); }
           |func add<E>(list &List<E>, newElement E) {
@@ -29,12 +35,10 @@ class ArrayListTest extends FunSuite with Matchers {
           |  }
           |  set list.array = newArray;
           |}
-          |// todo: make that return a &E
-          |func get<E>(list &List<E>, index int) E {
+          |func get<E>(list &List<E>, index int) &E {
           |  a = list.array;
           |  return a[index];
           |}
-          |
           |exported func main() int {
           |  l = List<int>(Array<mut, int>(0));
           |  add(&l, 5);

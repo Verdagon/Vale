@@ -218,14 +218,14 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case contentsRuntimeSizedArrayTT(mutability, _) => {
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case sr2 @ StructTT(_) => {
@@ -233,7 +233,7 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case ir2 @ InterfaceTT(_) => {
@@ -241,7 +241,7 @@ class LocalHelper(
         mutability match {
           case MutabilityTemplata(MutableT) => BorrowT
           case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case OverloadSetT(_, _) => {

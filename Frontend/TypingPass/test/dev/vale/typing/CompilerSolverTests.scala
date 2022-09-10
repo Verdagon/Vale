@@ -14,7 +14,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{ITypingPassSolverError, KindIsNotConcrete, SendingNonCitizen}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata._
@@ -75,10 +75,17 @@ class CompilerSolverTests extends FunSuite with Matchers {
           FullNameT(
             _,
             _,
-            FunctionNameT(
-              FunctionTemplateNameT(StrI("drop"), _),
+            FunctionBoundNameT(
+              FunctionBoundTemplateNameT(StrI("drop"),_),
               Vector(),
-              Vector(CoordT(OwnT,PlaceholderT(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
+              Vector(
+                CoordT(
+                  OwnT,
+                  PlaceholderT(
+                    FullNameT(
+                      _,
+                      Vector(FunctionTemplateNameT(StrI("bork"),_)),
+                      PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
           CoordT(ShareT,VoidT())),
         _) =>
     }

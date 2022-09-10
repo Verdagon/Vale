@@ -259,7 +259,34 @@ class VirtualTests extends FunSuite with Matchers {
     val coutputs = compile.getHamuts()
   }
 
-  test("Open interface constructors") {
+  test("Open interface constructor") {
+    val compile = RunCompilation.test(
+      """
+        |interface Bipedal {
+        |  func hop(virtual s &Bipedal) int;
+        |}
+        |
+        |struct Human {  }
+        |func hop(s &Human) int { return 7; }
+        |impl Bipedal for Human;
+        |
+        |func hopscotch(s &Bipedal) int {
+        |  s.hop();
+        |  return s.hop();
+        |}
+        |
+        |exported func main() int {
+        |   x = Bipedal({ 3 });
+        |  // x is an unnamed substruct which implements Bipedal.
+        |
+        |  return hopscotch(&x);
+        |}
+        """.stripMargin)
+    val coutputs = compile.getHamuts()
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+
+  test("Open interface constructor, multiple methods") {
     val compile = RunCompilation.test(
         """
           |interface Bipedal {

@@ -61,20 +61,6 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
-  test("Call Array<> without element type") {
-    val compile = RunCompilation.test(
-      """
-        |exported func main() int {
-        |  a = Array<imm>(3, {13 + _});
-        |  sum = 0;
-        |  drop_into(a, &(e) => { set sum = sum + e; });
-        |  return sum;
-        |}
-      """.stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-
   test("Destroy RSA of imms into function") {
     val compile = RunCompilation.test(
       """
@@ -110,7 +96,7 @@ class ArrayTests extends FunSuite with Matchers {
         |import array.make.*;
         |struct Spaceship { fuel int; }
         |exported func main() int {
-        |  a = MakeVaryArray<Spaceship>(3, &{Spaceship(13 + _)});
+        |  a = MakeArray<Spaceship>(3, &{Spaceship(13 + _)});
         |  sum = 0;
         |  drop_into(a, &(e) => { set sum = sum + e.fuel; });
         |  return sum;
@@ -230,7 +216,7 @@ class ArrayTests extends FunSuite with Matchers {
         |import array.make.*;
         |exported func main() int {
         |  i = 3;
-        |  a = MakeVaryArray<int>(5, &{_ * 42});
+        |  a = MakeArray<int>(5, &{_ * 42});
         |  return a[1];
         |}
         |""".stripMargin)
@@ -521,7 +507,7 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
-          |  arr = MakeVaryArray<int>(3, {_});
+          |  arr = MakeArray<int>(3, {_});
           |  set arr[1] = 1337;
           |  return arr.1;
           |}
@@ -594,11 +580,12 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """
           |import array.make.*;
-          |func toArray<TargetM Mutability, N, E, SourceM Mutability>(seq &[#N]<SourceM>E) []<TargetM>E {
-          |  return MakeArray<E>(N, { seq[_] });
+          |func toArray<N, E, SourceM>(seq &[#N]<SourceM>E) []E
+          |where func clone(&E)E {
+          |  return MakeArray<E>(N, &{ clone(seq[_]) });
           |}
           |exported func main() int {
-          |  return #[#]int[6, 4, 3, 5, 2, 8].toArray<mut>()[3];
+          |  return #[#]int[6, 4, 3, 5, 2, 8].toArray()[3];
           |}
           |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(5) => }
@@ -609,7 +596,11 @@ class ArrayTests extends FunSuite with Matchers {
       """
         |import array.make.*;
         |exported func main() int {
-        |  return #[#]#[#2]int[#[#]int[6, 60].toImmArray(), #[#]int[4, 40].toImmArray(), #[#]int[3, 30].toImmArray()].toImmArray()[2][1];
+        |  return #[#]#[]int[
+        |    #[#]int[6, 60].toImmArray(),
+        |    #[#]int[4, 40].toImmArray(),
+        |    #[#]int[3, 30].toImmArray()
+        |  ].toImmArray()[2][1];
         |}
         |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonInt(30) => }
@@ -622,7 +613,7 @@ class ArrayTests extends FunSuite with Matchers {
         |import array.each.*;
         |exported func main() int {
         |  sum = 0;
-        |  [#]int[6, 60, 103].each({ set sum = sum + _; });
+        |  [#]int[6, 60, 103]&.each(&{ set sum = sum + _; });
         |  return sum;
         |}
         |""".stripMargin)
@@ -634,7 +625,7 @@ class ArrayTests extends FunSuite with Matchers {
         """
           |import array.has.*;
           |exported func main() bool {
-          |  return (&[#]int[6, 60, 103]).has(103);
+          |  return [#]int[6, 60, 103]&.has(103);
           |}
           |""".stripMargin)
     compile.evalForKind(Vector()) match { case VonBool(true) => }
@@ -731,4 +722,19 @@ class ArrayTests extends FunSuite with Matchers {
   // if we want to make sure that our thing returns an int, then we can
   // try and cast it to a callable:
   // func makeArray<T>(size: Int, callable: (Int):T) {
+
+  test("Call Array<> without element type") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  a = Array<imm>(3, {13 + _});
+        |  sum = 0;
+        |  drop_into(a, &(e) => { set sum = sum + e; });
+        |  return sum;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(42) => }
+  }
+
 }

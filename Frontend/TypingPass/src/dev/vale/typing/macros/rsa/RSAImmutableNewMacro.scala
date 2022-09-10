@@ -8,7 +8,7 @@ import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassert, vassertSome, vfail, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, vassert, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
@@ -69,7 +69,8 @@ class RSAImmutableNewMacro(
     val generatorArgCoord =
       paramCoords(1).tyype match {
         case CoordT(ShareT, kind) => CoordT(ShareT, kind)
-        case CoordT(OwnT, kind) => CoordT(BorrowT, kind)
+        case CoordT(BorrowT, kind) => CoordT(BorrowT, kind)
+        case CoordT(OwnT, kind) => vwat() // shouldnt happen, signature takes in an &
       }
 
     val generatorPrototype =
@@ -94,14 +95,18 @@ class RSAImmutableNewMacro(
         coutputs, env, callRange, header.returnType)
         .function.prototype
     vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
+    vassert(generatorPrototype.function.prototype.returnType.ownership == ShareT)
+
+    val sizeTE = ArgLookupTE(0, paramCoords(0).tyype)
+    val generatorTE = ArgLookupTE(1, paramCoords(1).tyype)
 
     val body =
       BlockTE(
         ReturnTE(
           NewImmRuntimeSizedArrayTE(
             arrayTT,
-            ArgLookupTE(0, paramCoords(0).tyype),
-            ArgLookupTE(1, paramCoords(1).tyype),
+            sizeTE,
+            generatorTE,
             generatorPrototype.function.prototype,
             freePrototype)))
     (header, body)

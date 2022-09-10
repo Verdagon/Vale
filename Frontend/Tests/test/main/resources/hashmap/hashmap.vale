@@ -1,7 +1,6 @@
 import array.make.*;
 import math.*;
 import list.*;
-import ifunction.ifunction1.*;
 
 
 struct IntHasher { }
@@ -30,12 +29,12 @@ func HashMap<K, V, H, E>(hasher H, equator E, capacity int) HashMap<K, V, H, E> 
   return HashMap<K, V>(
       hasher,
       equator,
-      MakeVaryArray(
+      MakeArray(
         capacity,
-        &IFunction1<mut, int, Opt<HashMapNode<K, V>>>((index) => {
+        &(index) => {
           opt Opt<HashMapNode<K, V>> = None<HashMapNode<K, V>>();
           opt
-        })),
+        }),
       0);
 }
 
@@ -62,12 +61,12 @@ func add<K, V, H, E>(map &HashMap<K, V, H, E>, key K, value V) void {
         if (map.table.len() == 0) { 2 }
         else { map.table.len() * 2 };
     newTable =
-        MakeVaryArray(
+        MakeArray(
             newSize,
-            &IFunction1<mut, int, Opt<HashMapNode<K, V>>>((index) => {
+            &(index) => {
               opt Opt<HashMapNode<K, V>> = None<HashMapNode<K, V>>();
               opt
-            }));
+            });
     i = 0;
     while (i < map.table.len()) {
       if (map.table[i].isEmpty()) {

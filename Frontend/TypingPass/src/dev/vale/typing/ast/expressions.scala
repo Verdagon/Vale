@@ -822,6 +822,15 @@ case class NewImmRuntimeSizedArrayTE(
     case MutabilityTemplata(ImmutableT) =>
     case _ => vwat()
   }
+  // We dont want to own the generator
+  generator.result.reference.ownership match {
+    case BorrowT | ShareT =>
+    case other => vwat(other)
+  }
+  generatorMethod.returnType.ownership match {
+    case ShareT =>
+    case other => vwat(other)
+  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {

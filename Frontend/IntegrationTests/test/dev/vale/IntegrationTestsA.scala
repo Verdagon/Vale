@@ -469,7 +469,6 @@ class IntegrationTestsA extends FunSuite with Matchers {
         |import castutils.*;
         |import printutils.*;
         |import array.make.*;
-        |import ifunction.ifunction1.*;
         |
         |exported func main() int {
         |  arr = Array<mut, int>(9);
@@ -585,6 +584,23 @@ class IntegrationTestsA extends FunSuite with Matchers {
           |""".stripMargin)
     compile.run(Vector())
   }
+
+//  test("Test getting generic value out of lambda") {
+//    val compile = RunCompilation.test(
+//      """
+//        |#!DeriveStructDrop
+//        |struct MyStruct<A Ref imm, B Ref imm, C Ref imm, D Ref imm> imm { a A; b B; c C; d D; }
+//        |
+//        |func bork<A, B, C, D>(m &MyStruct<A, B, C, D>) &D {
+//        |  return { m.d }();
+//        |}
+//        |exported func main() int {
+//        |  x = MyStruct(true, 1, "hello", 3);
+//        |  return bork(&x);
+//        |}
+//        |""".stripMargin)
+//    compile.evalForKind(Vector()) match { case VonInt(5) => }
+//  }
 
   test("Tests double closure") {
     val compile = RunCompilation.test(Tests.loadExpected("programs/lambdas/doubleclosure.vale"))

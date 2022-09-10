@@ -59,6 +59,7 @@ case class IsaFailed(sub: KindT, suuper: KindT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: List[RangeS], name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: List[RangeS]) extends ITypingPassSolverError
+case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT) extends ITypingPassSolverError
 
 trait IInfererDelegate {
 //  def lookupMemberTypes(
@@ -815,8 +816,7 @@ class CompilerRuleSolver(
             val CoordTemplata(initialCoord) = vassertSome(stepState.getConclusion(resultRune.rune))
             val newCoord =
               delegate.getMutability(state, initialCoord.kind) match {
-                case PlaceholderTemplata(fullNameT, tyype) => vimpl()
-                case MutabilityTemplata(MutableT) => {
+                case PlaceholderTemplata(_, _) | MutabilityTemplata(MutableT) => {
                   if (augmentOwnership == ShareP) {
                     return Err(CantShareMutable(initialCoord.kind))
                   }

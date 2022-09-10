@@ -8,7 +8,7 @@ import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PrototypeTemplata}
+import dev.vale.typing.templata.{CoordTemplata, ITemplata, MutabilityTemplata, PrototypeTemplata}
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.immutable.{List, Map}
@@ -163,9 +163,20 @@ case class CompilerOutputs() {
         // Theres some ambiguities or something here DO NOT SUBMIT sometimes when we evaluate
         // the same thing twice we get different results. Best investigate that more before
         // submitting.
+        // It's gonna be especially tricky because we get each function bounds from the overload
+        // resolver which only returns one. We might need to have a flavor that doesn't just
+        // arbitrarily choose a function bound to call.
+        // Once we do that, we can store *all* function bounds that would work for this instantiation
+        // and they'll likely all match.
         // vassert(existing == functionBoundToRune)
       }
       case None =>
+    }
+    instantiationFullName match {
+      case FullNameT(_,Vector(),AnonymousSubstructNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))),Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(AnonymousSubstructConstructorTemplateNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))))),PlaceholderNameT(PlaceholderTemplateNameT(0))))))))) => {
+        vpass()
+      }
+      case _ =>
     }
 
     instantiationNameToRuneToFunctionBound.put(instantiationFullName, functionBoundToRune)

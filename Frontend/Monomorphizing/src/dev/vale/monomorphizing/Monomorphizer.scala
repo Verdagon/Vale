@@ -4,6 +4,7 @@ import dev.vale.monomorphizing.DenizenMonomorphizer.translateOverride
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
+import dev.vale.typing.TemplataCompiler.getTopLevelDenizenFullName
 import dev.vale.typing.{Hinputs, TemplataCompiler}
 import dev.vale.typing.ast.{EdgeT, _}
 import dev.vale.typing.env._
@@ -356,27 +357,6 @@ object DenizenMonomorphizer {
 //    val structDefT =
 //
 //  }
-
-  def getTopLevelDenizenFullName(
-    fullName: FullNameT[INameT],
-  ): FullNameT[IInstantiationNameT] = {
-    // That said, some things are namespaced inside templates. If we have a `struct Marine` then we'll
-    // also have a func drop within its namespace; we'll have a free function instance under a Marine
-    // struct template. We want to grab the instance.
-    val index =
-      fullName.steps.indexWhere({
-        case x : IInstantiationNameT => true
-        case _ => false
-      })
-    vassert(index >= 0)
-    val initSteps = fullName.steps.slice(0, index)
-    val lastStep =
-      fullName.steps(index) match {
-        case x : IInstantiationNameT => x
-        case _ => vwat()
-      }
-    FullNameT(fullName.packageCoord, initSteps, lastStep)
-  }
 
   def translateStructDefinition(
     opts: GlobalOptions,
@@ -1712,6 +1692,15 @@ class DenizenMonomorphizer(
           templateArgs.map(translateTemplata),
           params.map(translateCoord)))
       }
+      case AnonymousSubstructConstructorNameT(template, templateArgs, params) => {
+        interner.intern(AnonymousSubstructConstructorNameT(
+          translateName(template) match {
+            case x @ AnonymousSubstructConstructorTemplateNameT(_) => x
+            case other => vwat(other)
+          },
+          templateArgs.map(translateTemplata),
+          params.map(translateCoord)))
+      }
       case LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(codeLocation, paramTypesForGeneric), templateArgs, paramTypes) => {
         interner.intern(LambdaCallFunctionNameT(
           interner.intern(LambdaCallFunctionTemplateNameT(
@@ -1792,6 +1781,13 @@ class DenizenMonomorphizer(
         interner.intern(StructNameT(
           interner.intern(StructTemplateNameT(humanName)),
           templateArgs.map(translateTemplata)))
+      }
+      case AnonymousSubstructConstructorTemplateNameT(substructTemplateName) => {
+        interner.intern(AnonymousSubstructConstructorTemplateNameT(
+          translateName(substructTemplateName) match {
+            case x : ICitizenTemplateNameT => x
+            case other => vwat(other)
+          }))
       }
 //      case FunctionNameT(FunctionTemplateNameT(humanName, codeLoc), templateArgs, params) => {
 //        interner.intern(FunctionNameT(

@@ -11,7 +11,7 @@ import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.citizen.{IResolveOutcome, ResolveFailure, ResolveSuccess}
 import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
-import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError}
+import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError, ReturnTypeConflict}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, FullNameT, INameT, ITemplateNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceDefinitionTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructDefinitionTemplata}
 import dev.vale.typing.types.{CoordT, ICitizenTT, InterfaceTT, KindT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
@@ -387,7 +387,7 @@ class InferCompiler(
       }
 
     if (funcSuccess.function.prototype.returnType != returnCoord) {
-      throw CompileErrorExceptionT(RangedInternalErrorT(range :: ranges, "Return type conflict"))
+      return Err(RuleError(ReturnTypeConflict(range :: ranges, returnCoord, funcSuccess.function.prototype)))
     }
 
     Ok(Some((resultRune.rune, funcSuccess.function.prototype)))

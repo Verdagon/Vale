@@ -678,6 +678,7 @@ case class NewImmRuntimeSizedArrayH(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   generatorExpression.resultType.ownership match {
     case ShareH | BorrowH =>
+    case other => vwat(other)
   }
   vassert(sizeExpression.resultType.kind == IntH.i32)
 }

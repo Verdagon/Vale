@@ -269,7 +269,14 @@ class ArrayCompiler(
         rulesA,
         List(),
         true,
-        Map()) match {
+        Map[IRuneS, ITemplataType](
+          sizeRuneA -> IntegerTemplataType(),
+          mutabilityRuneA -> MutabilityTemplataType(),
+          variabilityRuneA -> VariabilityTemplataType()) ++
+          (maybeElementTypeRuneA match {
+            case Some(rune) => Map(rune -> CoordTemplataType())
+            case None => Map()
+          })) match {
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
