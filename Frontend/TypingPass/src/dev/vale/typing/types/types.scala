@@ -96,6 +96,13 @@ sealed trait KindT {
       case _ => vfail()
     }
   }
+
+  def expectStruct(): StructTT = {
+    this match {
+      case c @ StructTT(_) => c
+      case _ => vfail()
+    }
+  }
 }
 
 // like Scala's Nothing. No instance of this can ever happen.

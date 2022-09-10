@@ -4,7 +4,7 @@ import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.ast.{FunctionCallTE, LetAndLendTE, LetNormalTE, UnletTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{FullNameT, FunctionNameT, FunctionTemplateNameT, TypingPassTemporaryVarNameT}
+import dev.vale.typing.names.{FullNameT, FunctionNameT, FunctionTemplateNameT, StructNameT, StructTemplateNameT, TypingPassTemporaryVarNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.postparsing._
@@ -175,7 +175,14 @@ class OwnershipTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     // Destructor should only be calling println, NOT the destructor (itself)
-    val destructor = coutputs.lookupUserFunction("drop")
+    val destructor =
+      vassertOne(
+        coutputs.functions.find(func => {
+          func.header.fullName.last match {
+            case FunctionNameT(FunctionTemplateNameT(StrI("drop"), _), _, Vector(CoordT(OwnT, StructTT(FullNameT(_, _, StructNameT(StructTemplateNameT(StrI("Muta")), _)))))) => true
+            case _ => false
+          }
+        }))
     // The only function lookup should be println
     Collector.only(destructor, { case FunctionCallTE(functionName("println"), _) => })
     // Only one call (the above println)

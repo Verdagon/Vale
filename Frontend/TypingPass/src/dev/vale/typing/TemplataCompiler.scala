@@ -1,10 +1,10 @@
 package dev.vale.typing
 
-import dev.vale.{Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
+import dev.vale.{CodeLocationS, Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -60,6 +60,27 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
+  def getTopLevelDenizenFullName(
+    fullName: FullNameT[INameT],
+  ): FullNameT[IInstantiationNameT] = {
+    // That said, some things are namespaced inside templates. If we have a `struct Marine` then we'll
+    // also have a func drop within its namespace; we'll have a free function instance under a Marine
+    // struct template. We want to grab the instance.
+    val index =
+    fullName.steps.indexWhere({
+      case x : IInstantiationNameT => true
+      case _ => false
+    })
+    vassert(index >= 0)
+    val initSteps = fullName.steps.slice(0, index)
+    val lastStep =
+      fullName.steps(index) match {
+        case x : IInstantiationNameT => x
+        case _ => vwat()
+      }
+    FullNameT(fullName.packageCoord, initSteps, lastStep)
+  }
+
   def getPlaceholderTemplataFullName(implPlaceholder: ITemplata[ITemplataType]) = {
     implPlaceholder match {
       case PlaceholderTemplata(n, _) => n
@@ -349,9 +370,12 @@ object TemplataCompiler {
     templata match {
       case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(coutputs, interner, keywords, c, substitutions))
       case KindTemplata(k) => substituteTemplatasInKind(coutputs, interner, keywords, k, substitutions)
-      case p @ PlaceholderTemplata(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))), _)
-        if index < substitutions.length && p.fullNameT == substitutions(index)._1 => {
-        substitutions(index)._2
+      case p @ PlaceholderTemplata(FullNameT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))), _) => {
+        if (index < substitutions.length && p.fullNameT == substitutions(index)._1) {
+          substitutions(index)._2
+        } else {
+          vwat()
+        }
       }
       case MutabilityTemplata(_) => templata
       case VariabilityTemplata(_) => templata
@@ -396,11 +420,39 @@ object TemplataCompiler {
     name: FullNameT[IInstantiationNameT]):
     // The Engine<T> is given later to the IPlaceholderSubstituter
   IPlaceholderSubstituter = {
+//    FullNameT(_,
+//      Vector(
+//        FunctionNameT(
+//          FunctionTemplateNameT(toArray,_),
+//          Vector(
+//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(0))), MutabilityTemplataType()),
+//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(1))),IntegerTemplataType()),
+//            CoordTemplata(CoordT(own,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(2)))))),
+//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(3))),MutabilityTemplataType())),
+//          Vector(
+//            CoordT(
+//              borrow,
+//              StaticSizedArrayTT(
+//                FullNameT(
+//                  _,
+//                  Vector(),
+//                  StaticSizedArrayNameT(_,
+//                    PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(1))),IntegerTemplataType()),
+//                    VariabilityTemplata(final),
+//                    RawArrayNameT(
+//                      PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(3))),MutabilityTemplataType()),
+//                      CoordT(own,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(2))))))))))))),
+//      LambdaCitizenNameT(LambdaCitizenTemplateNameT(FileCoordinate(_,0.vale):142)))
+
+    val topLevelDenizenFullName = getTopLevelDenizenFullName(name)
+    val templateArgs = topLevelDenizenFullName.last.templateArgs
+    val topLevelDenizenTemplateFullName = getTemplate(topLevelDenizenFullName)
+
     TemplataCompiler.getPlaceholderSubstituter(
       interner,
       keywords,
-      TemplataCompiler.getTemplate(name),
-      name.last.templateArgs)
+      topLevelDenizenTemplateFullName,
+      templateArgs)
   }
 
   // Let's say you have the line:

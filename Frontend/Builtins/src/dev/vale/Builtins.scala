@@ -14,6 +14,7 @@ object Builtins {
       "migrate" -> "migrate.vale",
       "str" -> "str.vale",
       "drop" -> "drop.vale",
+      "clone" -> "clone.vale",
       "arrays" -> "arrays.vale",
       "mainargs" -> "mainargs.vale",
       "as" -> "as.vale",

@@ -42,11 +42,11 @@ class HammerTests extends FunSuite with Matchers {
   test("Two templated structs make it into hamuts") {
     val compile = RunCompilation.test(
       """
-        |interface MyOption<T> imm where T Ref { }
-        |struct MyNone<T> imm where T Ref { }
-        |impl<T> MyOption<T> for MyNone<T>;
-        |struct MySome<T> imm where T Ref { value T; }
-        |impl<T> MyOption<T> for MySome<T>;
+        |interface MyOption<T Ref imm> imm where T Ref { }
+        |struct MyNone<T Ref imm> imm where T Ref { }
+        |impl<T Ref imm> MyOption<T> for MyNone<T>;
+        |struct MySome<T Ref imm> imm where T Ref { value T; }
+        |impl<T Ref imm> MyOption<T> for MySome<T>;
         |
         |func main(a @MySome<int>, b @MyNone<int>) {}
       """.stripMargin)

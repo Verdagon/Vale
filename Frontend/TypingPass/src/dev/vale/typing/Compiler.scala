@@ -203,6 +203,7 @@ class Compiler(
             case StructTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
             case InterfaceTT(FullNameT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
             case PlaceholderT(fullName) => accum.add(fullName)
+            case OverloadSetT(env, name) =>
             case other => vimpl(other)
           }
         }
