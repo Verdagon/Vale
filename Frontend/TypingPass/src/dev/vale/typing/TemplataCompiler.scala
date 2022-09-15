@@ -885,6 +885,10 @@ class TemplataCompiler(
     val placeholderKindT = PlaceholderT(placeholderFullName)
     if (registerWithCompilerOutputs) {
       coutputs.declareType(placeholderTemplateFullName)
+
+      val mutability = MutabilityTemplata(if (immutable) ImmutableT else MutableT)
+      coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
+
       val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
       coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
       coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)

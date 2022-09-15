@@ -2,7 +2,7 @@ package dev.vale.monomorphizing
 
 import dev.vale.monomorphizing.DenizenMonomorphizer.translateOverride
 import dev.vale.options.GlobalOptions
-import dev.vale.{Accumulator, Collector, Interner, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat}
+import dev.vale.{Accumulator, Collector, Interner, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
 import dev.vale.typing.TemplataCompiler.getTopLevelDenizenFullName
 import dev.vale.typing.{Hinputs, TemplataCompiler}
@@ -58,7 +58,7 @@ class MonomorphizedOutputs() {
   val newImpls: mutable.Queue[(FullNameT[IImplNameT], Map[IRuneS, PrototypeT])] = mutable.Queue()
   // The int is a virtual index
   val newAbstractFuncs: mutable.Queue[(PrototypeT, Int, FullNameT[IInterfaceNameT], Map[IRuneS, PrototypeT])] = mutable.Queue()
-  val newFunctions: mutable.Queue[(FullNameT[IFunctionNameT], Map[IRuneS, PrototypeT], Option[Map[FullNameT[FunctionBoundNameT], PrototypeT]])] = mutable.Queue()
+  val newFunctions: mutable.Queue[(PrototypeT, Map[IRuneS, PrototypeT], Option[Map[FullNameT[FunctionBoundNameT], PrototypeT]])] = mutable.Queue()
 
   def addMethodToVTable(
     implFullName: FullNameT[IImplNameT],
@@ -666,15 +666,15 @@ object DenizenMonomorphizer {
     interner: Interner,
     hinputs: Hinputs,
     monouts: MonomorphizedOutputs,
-    desiredFuncFullName: FullNameT[IFunctionNameT],
+    desiredPrototype: PrototypeT,
     runeToSuppliedPrototype: Map[IRuneS, PrototypeT],
     // This is only Some if this is a lambda. This will contain the prototypes supplied to the top level denizen by its
     // own caller.
     maybeTopLevelDenizenFunctionBoundToTopLevelDenizenCallerSuppliedPrototype: Option[Map[FullNameT[FunctionBoundNameT], PrototypeT]]):
   FunctionT = {
-    val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredFuncFullName)
+    val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototype.fullName)
 
-    val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredFuncFullName)
+    val desiredFuncSuperTemplateName = TemplataCompiler.getSuperTemplate(desiredPrototype.fullName)
     val funcT =
       vassertOne(
         hinputs.functions
@@ -690,7 +690,7 @@ object DenizenMonomorphizer {
 
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(desiredFuncFullName)
+      getTopLevelDenizenFullName(desiredPrototype.fullName)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
     // One would imagine we'd get structFullName.last.templateArgs here, because that's the struct
@@ -706,7 +706,7 @@ object DenizenMonomorphizer {
         hinputs,
         monouts,
         funcTemplateNameT,
-        desiredFuncFullName,
+        desiredPrototype.fullName,
         topLevelDenizenPlaceholderIndexToTemplata.toArray.zipWithIndex.map({ case (templateArg, index) =>
           val placeholderName =
             topLevelDenizenTemplateFullName
@@ -715,7 +715,16 @@ object DenizenMonomorphizer {
         }).toMap,
         denizenFunctionBoundToDenizenCallerSuppliedPrototype)
 
+    desiredPrototype.fullName match {
+      case FullNameT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("as"),_),_, _)) => {
+        vpass()
+      }
+      case _ => false
+    }
+
     val monomorphizedFuncT = monomorphizer.translateFunction(funcT)
+
+    vassert(desiredPrototype.returnType == monomorphizedFuncT.header.returnType)
 
     monomorphizedFuncT
   }
@@ -805,7 +814,7 @@ class DenizenMonomorphizer(
           denizenName.steps)
         monouts.newFunctions.enqueue(
           (
-            desiredPrototype.fullName,
+            desiredPrototype,
             runeToSuppliedPrototypeForCall,
             // We need to supply our bounds to our lambdas, see LCCPGB.
             Some(denizenFunctionBoundToDenizenCallerSuppliedPrototype)))
@@ -813,7 +822,7 @@ class DenizenMonomorphizer(
       }
       case FullNameT(_, _, _) => {
         monouts.newFunctions.enqueue(
-          (desiredPrototype.fullName, runeToSuppliedPrototypeForCall, None))
+          (desiredPrototype, runeToSuppliedPrototypeForCall, None))
         desiredPrototype
       }
     }
@@ -1059,9 +1068,10 @@ class DenizenMonomorphizer(
         case UnletTE(variable) => UnletTE(translateLocalVariable(variable))
         case DiscardTE(expr) => DiscardTE(translateRefExpr(expr))
         case VoidLiteralTE() => VoidLiteralTE()
-        case FunctionCallTE(callable, args) => {
+        case FunctionCallTE(prototypeT, args) => {
+          val prototype = translatePrototype(prototypeT)
           FunctionCallTE(
-            translatePrototype(callable),
+            prototype,
             args.map(translateRefExpr))
         }
         case InterfaceFunctionCallTE(superFunctionPrototypeT, virtualParamIndex, resultReference, args) => {
@@ -1153,14 +1163,6 @@ class DenizenMonomorphizer(
               untranslatedImplFullName,
               translateBoundsForCallee(
                 hinputs.getInstantiationBounds(untranslatedImplFullName)))
-  //
-  //        val runeToFunctionBound =
-  //          runeToFunctionBoundUnsubstituted.map({ case (rune, PrototypeTemplata(declarationRange, prototype)) =>
-  //            // We're resolving some function bounds, and function bounds have no function bounds
-  //            // themselves, so we supply Map() here.
-  //            (rune -> PrototypeTemplata(declarationRange, translatePrototype(prototype)))
-  //          })
-
           val freePrototype = translatePrototype(freePrototypeT)
           val coord = translateCoord(u.result.reference)
           // They might disagree on the ownership, and thats fine.
@@ -1324,13 +1326,21 @@ class DenizenMonomorphizer(
             elements.map(translateRefExpr),
             translateCoord(resultReference))
         }
-        case AsSubtypeTE(sourceExpr, targetSubtype, resultResultType, okConstructor, errConstructor) => {
+        case AsSubtypeTE(sourceExpr, targetSubtype, resultResultType, okConstructor, errConstructor, untranslatedImplFullName, freePrototypeT) => {
+          val implFullName =
+            translateImplFullName(
+              untranslatedImplFullName,
+              translateBoundsForCallee(
+                hinputs.getInstantiationBounds(untranslatedImplFullName)))
+          val freePrototype = translatePrototype(freePrototypeT)
           AsSubtypeTE(
             translateRefExpr(sourceExpr),
-            translateKind(targetSubtype),
+            translateCoord(targetSubtype),
             translateCoord(resultResultType),
             translatePrototype(okConstructor),
-            translatePrototype(errConstructor))
+            translatePrototype(errConstructor),
+            implFullName,
+            freePrototype)
         }
         case other => vimpl(other)
       }

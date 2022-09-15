@@ -196,9 +196,11 @@ class ClosureTests extends FunSuite with Matchers {
     val interner = compile.interner
 
     // The struct should have an int x in it.
-    val closuredVarsStruct = vassertSome(coutputs.structs.find(struct => struct.instantiatedCitizen.fullName.last match { case l @ LambdaCitizenNameT(_) => true case _ => false }));
+    val closure = coutputs.lookupLambdaIn("main")
+    val closureStruct = closure.header.params.head.tyype.kind.expectStruct()
+    val closureStructDef = coutputs.lookupStruct(closureStruct.fullName)
     val expectedMembers = Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), VaryingT, AddressMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32)))));
-    vassert(closuredVarsStruct.members == expectedMembers)
+    closureStructDef.members shouldEqual expectedMembers
 
     val lambda = coutputs.lookupLambdaIn("main")
     Collector.only(lambda, {

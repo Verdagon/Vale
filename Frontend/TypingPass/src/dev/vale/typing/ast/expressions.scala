@@ -387,7 +387,7 @@ case class IsSameInstanceTE(left: ReferenceExpressionTE, right: ReferenceExpress
 
 case class AsSubtypeTE(
     sourceExpr: ReferenceExpressionTE,
-    targetSubtype: KindT,
+    targetType: CoordT,
 
     // We could just calculate this, but it feels better to let the StructCompiler
     // make it, so we're sure it's created.
@@ -396,6 +396,11 @@ case class AsSubtypeTE(
     okConstructor: PrototypeT,
     // Function to make a None of the right type
     errConstructor: PrototypeT,
+
+
+    // This is the impl we use to allow/permit the downcast. It'll be useful for monomorphization.
+    implName: FullNameT[IImplNameT],
+    interfaceFreePrototype: PrototypeT,
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(resultResultType)

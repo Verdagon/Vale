@@ -565,7 +565,7 @@ class ExpressionHammer(
         val (resultHE, deferreds) =
           translate(hinputs, hamuts, currentFunctionHeader, locals, leftExprT);
         val (targetSubtypeH) =
-          typeHammer.translateKind(hinputs, hamuts, targetSubtype)
+          typeHammer.translateReference(hinputs, hamuts, targetSubtype).kind
         val (resultOptTypeH) =
           typeHammer.translateReference(hinputs, hamuts, resultOptType).expectInterfaceReference()
 

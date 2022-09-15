@@ -309,7 +309,7 @@ class ArrayCompiler(
       staticSizedArrayType.mutability match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(_, _) => OwnT
+        case PlaceholderTemplata(_, MutabilityTemplataType()) => OwnT
       }
 
     val ssaCoord = CoordT(ownership, staticSizedArrayType)

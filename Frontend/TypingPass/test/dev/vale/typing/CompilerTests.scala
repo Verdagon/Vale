@@ -1856,7 +1856,7 @@ class CompilerTests extends FunSuite with Matchers {
         case CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
         //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
       }
-      targetSubtype match {
+      targetSubtype.kind match {
         case PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))) =>
         case StructTT(FullNameT(_, Vector(), StructNameT(StructTemplateNameT(StrI("Raza")), Vector()))) =>
       }
@@ -1890,9 +1890,11 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Something") {
+  test("Closure using parent function's bound") {
     val compile = CompilerTestCompilation.test(
       """
+        |import v.builtins.arith.*;
+        |
         |func genFunc<T>(a &T) T
         |where func +(&T, &T)T {
         |  { a + a }()
@@ -1902,7 +1904,5 @@ class CompilerTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-
-    vimpl() // remember to make a better name for this test
   }
 }
