@@ -34,6 +34,19 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // Add test for an abstract func with no virtual param like: abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where func drop(X)void;
 
+    // had a bug when as was defined like this:
+    //   extern("vale_as_subtype")
+    //   func as<SubKind Kind, SuperType Ref>(left SuperType) Result<SubType, SuperType>
+    //     where O Ownership,
+    //   SuperKind Kind,
+    //   SubType Ref = Ref[O, SubKind],
+    //   SuperType Ref = Ref[O, SuperKind],
+    //   implements(SubType, SuperType);
+    // the definition assumed O was own, and the call inferred O to be borrow.
+    // this cause some mayhem further down when a name didnt match.
+
+
+
     // is something like this possible?
     // and would it mean that we have to detect reentrant evaluation of that lambda template function?
     """

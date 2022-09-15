@@ -14,7 +14,7 @@ import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
 import dev.vale.typing.names._
 import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectKindTemplata}
-import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 
 import scala.collection.mutable
@@ -176,11 +176,12 @@ class EdgeCompiler(
     interfaceEdgeBlueprints.toVector
   }
 
-  def createOverridePlaceholder(
+  def createOverridePlaceholderMimicking(
     coutputs: CompilerOutputs,
+    originalTemplataToMimic: ITemplata[ITemplataType],
     dispatcherOuterEnv: IEnvironment,
     index: Int):
-  FullNameT[PlaceholderNameT] = {
+  ITemplata[ITemplataType] = {
     // Need New Special Placeholders for Abstract Function Override Case (NNSPAFOC)
     //
     // One would think that we could just conjure up some placeholders under the abstract
@@ -224,17 +225,32 @@ class EdgeCompiler(
     // And, because it's new, we need to declare it and its environment.
     val placeholderTemplateFullName =
       TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
-//    placeholderTemplateFullName match {
-//      case FullNameT(_,Vector(InterfaceTemplateNameT(StrI("ISpaceship")), FreeTemplateNameT(_), OverrideDispatcherTemplateNameT(FullNameT(_,Vector(),ImplTemplateDeclareNameT(_)))),PlaceholderTemplateNameT(0)) => {
-//        vpass()
-//      }
-//      case _ =>
-//    }
+
     coutputs.declareType(placeholderTemplateFullName)
     coutputs.declareTypeOuterEnv(
       placeholderTemplateFullName,
       GeneralEnvironment.childOf(interner, dispatcherOuterEnv, placeholderTemplateFullName))
-    placeholderFullName
+
+    val result =
+      originalTemplataToMimic match {
+        case PlaceholderTemplata(_, tyype) => {
+          PlaceholderTemplata(placeholderFullName, tyype)
+        }
+        case KindTemplata(PlaceholderT(originalPlaceholderFullName)) => {
+          val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
+          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
+          coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
+          KindTemplata(PlaceholderT(placeholderFullName))
+        }
+        case CoordTemplata(CoordT(ownership, PlaceholderT(originalPlaceholderFullName))) => {
+          val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
+          val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
+          coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
+          CoordTemplata(CoordT(ownership, PlaceholderT(placeholderFullName)))
+        }
+        case other => vwat(other)
+      }
+    result
   }
 
   // DO NOT SUBMIT rename or perhaps combine with resolveOverride
@@ -300,15 +316,9 @@ class EdgeCompiler(
           // Sanity check we're in an impl template, we're about to replace it with a function template
           implPlaceholderFullName.initSteps.last match { case _: IImplTemplateNameT => case _ => vwat() }
 
-          val dispatcherPlaceholderFullName =
-            createOverridePlaceholder(coutputs, dispatcherOuterEnv, dispatcherPlaceholderIndex)
           val dispatcherPlaceholder =
-            implPlaceholder match {
-              case PlaceholderTemplata(_, tyype) => PlaceholderTemplata(dispatcherPlaceholderFullName, tyype)
-              case KindTemplata(PlaceholderT(_)) => KindTemplata(PlaceholderT(dispatcherPlaceholderFullName))
-              case CoordTemplata(CoordT(ownership, PlaceholderT(_))) => CoordTemplata(CoordT(ownership, PlaceholderT(dispatcherPlaceholderFullName)))
-              case other => vwat(other)
-            }
+            createOverridePlaceholderMimicking(
+              coutputs, implPlaceholder, dispatcherOuterEnv, dispatcherPlaceholderIndex)
           (implPlaceholderFullName, dispatcherPlaceholder)
         })
     val dispatcherPlaceholders = implPlaceholderToDispatcherPlaceholder.map(_._2)
@@ -385,14 +395,7 @@ class EdgeCompiler(
           .map({ case ((rune, templata), independent) => rune -> templata }),
         { case (index, (rune, implPlaceholderTemplata)) =>
           val implPlaceholderFullName = TemplataCompiler.getPlaceholderTemplataFullName(implPlaceholderTemplata)
-          val casePlaceholderFullName = createOverridePlaceholder(coutputs, dispatcherInnerEnv, index)
-          val casePlaceholder =
-            implPlaceholderTemplata match {
-              case PlaceholderTemplata(_, tyype) => PlaceholderTemplata(casePlaceholderFullName, tyype)
-              case KindTemplata(PlaceholderT(_)) => KindTemplata(PlaceholderT(casePlaceholderFullName))
-              case CoordTemplata(CoordT(ownership, PlaceholderT(_))) => CoordTemplata(CoordT(ownership, PlaceholderT(casePlaceholderFullName)))
-              case other => vwat(other)
-            }
+          val casePlaceholder = createOverridePlaceholderMimicking(coutputs, implPlaceholderTemplata, dispatcherInnerEnv, index)
           (rune, implPlaceholderFullName, casePlaceholder)
         })
     val implRuneToCasePlaceholder =

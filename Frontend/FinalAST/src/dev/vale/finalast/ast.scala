@@ -98,7 +98,9 @@ case class ProgramH(
   }
   def lookupFunction(prototype: PrototypeH): FunctionH = {
     val paackage = lookupPackage(prototype.fullName.packageCoordinate)
-    vassertSome(paackage.functions.find(_.fullName == prototype.fullName))
+    val result = vassertSome(paackage.functions.find(_.fullName == prototype.fullName))
+    vassert(prototype == result.prototype)
+    result
   }
   def lookupStruct(structRefH: StructRefH): StructDefinitionH = {
     val paackage = lookupPackage(structRefH.fullName.packageCoordinate)

@@ -129,6 +129,7 @@ class Heap(in_vivemDout: PrintStream) {
 
   def addLocal(varAddr: VariableAddressV, reference: ReferenceV, expectedType: ReferenceH[KindH]) = {
     val call = getCurrentCall(varAddr.callId)
+    checkReference(expectedType, reference)
     call.addLocal(varAddr, reference, expectedType)
     incrementReferenceRefCount(VariableToObjectReferrer(varAddr, expectedType.ownership), reference)
   }

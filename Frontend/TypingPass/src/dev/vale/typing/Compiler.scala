@@ -683,7 +683,7 @@ class Compiler(
   val structDropMacro = new StructDropMacro(interner, keywords, nameTranslator, destructorCompiler)
   val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
   val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
-  val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler)
+  val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler, destructorCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords, arrayCompiler, destructorCompiler)
   val rsaImmNewMacro = new RSAImmutableNewMacro(interner, keywords, overloadResolver, arrayCompiler, destructorCompiler)
@@ -1307,7 +1307,7 @@ object Compiler {
   def getMutability(coutputs: CompilerOutputs, concreteValue2: KindT):
   ITemplata[MutabilityTemplataType] = {
     concreteValue2 match {
-      case PlaceholderT(_) => MutabilityTemplata(MutableT)
+      case PlaceholderT(fullName) => coutputs.lookupMutability(TemplataCompiler.getPlaceholderTemplate(fullName))
       case NeverT(_) => MutabilityTemplata(ImmutableT)
       case IntT(_) => MutabilityTemplata(ImmutableT)
       case FloatT() => MutabilityTemplata(ImmutableT)
