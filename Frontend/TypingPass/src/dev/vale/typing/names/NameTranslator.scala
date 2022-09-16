@@ -27,9 +27,6 @@ class NameTranslator(interner: Interner) {
       case LambdaDeclarationNameS(codeLocation) => {
         vfail() // Lambdas are generic templates, not generics
       }
-      case FreeDeclarationNameS(codeLocationS) => {
-        interner.intern(FreeTemplateNameT(translateCodeLocation(codeLocationS)))
-      }
       case FunctionNameS(name, codeLocation) => {
         interner.intern(FunctionTemplateNameT(name, translateCodeLocation(codeLocation)))
       }
@@ -144,7 +141,7 @@ class NameTranslator(interner: Interner) {
   def translateImplName(n: IImplDeclarationNameS): IImplTemplateNameT = {
     n match {
       case ImplDeclarationNameS(l) => {
-        interner.intern(ImplTemplateDeclareNameT(translateCodeLocation(l)))
+        interner.intern(ImplTemplateNameT(translateCodeLocation(l)))
       }
       case AnonymousSubstructImplDeclarationNameS(interfaceName) => {
         interner.intern(AnonymousSubstructImplTemplateNameT(translateInterfaceName(interfaceName)))

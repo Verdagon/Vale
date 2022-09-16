@@ -18,7 +18,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeTemplateNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -70,9 +70,9 @@ class StructCompilerCore(
 
     val defaultCalledMacros =
       Vector(
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop))//,
+//        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
+//        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
     val macrosToCall =
       structA.attributes.foldLeft(defaultCalledMacros)({
         case (macrosToCall, mc @ MacroCallS(range, CallMacroP, macroName)) => {
@@ -165,6 +165,7 @@ class StructCompilerCore(
     })
 
     val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(structRunesEnv.templatas)
+    val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(structRunesEnv.templatas)
 
     val structDefT =
       StructDefinitionT(
@@ -175,7 +176,8 @@ class StructCompilerCore(
         mutability,
         members,
         false,
-        runeToFunctionBound)
+        runeToFunctionBound,
+        runeToImplBound)
 
     coutputs.addStruct(structDefT);
 
@@ -302,6 +304,7 @@ class StructCompilerCore(
       }).toVector
 
     val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(interfaceRunesEnv.templatas)
+    val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(interfaceRunesEnv.templatas)
 
     val interfaceDef2 =
       InterfaceDefinitionT(
@@ -312,6 +315,7 @@ class StructCompilerCore(
         interfaceA.weakable,
         mutability,
         runeToFunctionBound,
+        runeToImplBound,
         internalMethods)
     coutputs.addInterface(interfaceDef2)
 
@@ -414,11 +418,9 @@ class StructCompilerCore(
       containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructInstantiatedFullNameT, Map())
+    coutputs.addInstantiationBounds(understructInstantiatedFullNameT, InstantiationBoundArguments(Map(), Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT))
 
-    val freeFuncNameT =
-      interner.intern(FreeTemplateNameT(functionA.range.begin))
     val dropFuncNameT =
       interner.intern(FunctionTemplateNameT(keywords.drop, functionA.range.begin))
 
@@ -442,10 +444,6 @@ class StructCompilerCore(
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
-              freeFuncNameT ->
-                FunctionEnvEntry(
-                  containingFunctionEnv.globalEnv.structFreeMacro.makeImplicitFreeFunction(
-                    interner.intern(FreeDeclarationNameS(functionA.range.begin)), functionA.range)),
               understructInstantiatedNameT -> TemplataEnvEntry(KindTemplata(understructStructTT)),
               interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(understructStructTT)))))
 
@@ -478,7 +476,8 @@ class StructCompilerCore(
         MutabilityTemplata(mutability),
         members,
         true,
-        // Closures have no function bounds
+        // Closures have no function bounds or impl bounds
+        Map(),
         Map());
     coutputs.addStruct(closureStructDefinition)
 
@@ -488,19 +487,6 @@ class StructCompilerCore(
       // Adds the free function to the coutputs
       // Free is indeed ordinary because it just takes in the lambda struct. The lambda struct
       // isn't templated. The lambda call function might be, but the struct isnt.
-
-    // We always evaluate a free for everything, itll be a no-op for mutables.
-    val freePrototype =
-      delegate.evaluateGenericFunctionFromNonCallForHeader(
-        coutputs,
-        parentRanges,
-        structInnerEnv.lookupNearestWithName(freeFuncNameT, Set(ExpressionLookupContext)) match {
-          case Some(ft@FunctionTemplata(_, _)) => {
-            ft
-          }
-          case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure free function we just added!"))
-        },
-        true)
 
     // Always evaluate a drop, drops only capture borrows so there should always be a drop defined
     // on all members.

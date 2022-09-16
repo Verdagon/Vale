@@ -26,13 +26,6 @@ trait IConvertHelperDelegate {
     descendantCitizenRef: ISubKindTT,
     ancestorInterfaceRef: ISuperKindTT):
   IsParentResult
-
-  def getFreeFunction(
-    coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
-    callRange: List[RangeS],
-    type2: CoordT):
-  EvaluateFunctionSuccess
 }
 
 class ConvertHelper(
@@ -127,21 +120,9 @@ class ConvertHelper(
   (ReferenceExpressionTE) = {
     delegate.isParent(coutputs, callingEnv, range, sourceSubKind, targetSuperKind) match {
       case IsParent(_, _, implFullName) => {
-        val ownership =
-          sourceExpr.result.reference.ownership match {
-            case BorrowT => OwnT
-            case OwnT => OwnT
-            case WeakT => OwnT
-            case ShareT => ShareT
-          }
-        // Thisll still exist for mutable things, itll just contain a no-op.
-        val freeInterfacePrototype =
-          delegate.getFreeFunction(
-            coutputs, callingEnv, range, CoordT(ownership, targetSuperKind))
-
         vassert(coutputs.getInstantiationBounds(implFullName).nonEmpty)
         UpcastTE(
-          sourceExpr, targetSuperKind, implFullName, freeInterfacePrototype.function.prototype)
+          sourceExpr, targetSuperKind, implFullName)
       }
       case IsntParent(candidates) => {
         throw CompileErrorExceptionT(RangedInternalErrorT(range, "Can't upcast a " + sourceSubKind + " to a " + targetSuperKind + ": " + candidates))

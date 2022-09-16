@@ -46,7 +46,7 @@ class AsSubtypeMacro(
     val resultOwnership = incomingOwnership
     val successCoord = CoordT(resultOwnership, targetKind)
     val failCoord = CoordT(resultOwnership, incomingKind)
-    val (resultCoord, okConstructor, errConstructor) =
+    val (resultCoord, okConstructor, okResultImpl, errConstructor, errResultImpl) =
       expressionCompiler.getResult(coutputs, env, callRange, successCoord, failCoord)
     if (resultCoord != vassertSome(maybeRetCoord)) {
       throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Bad result coord:\n" + resultCoord + "\nand\n" + vassertSome(maybeRetCoord)))
@@ -59,11 +59,6 @@ class AsSubtypeMacro(
       implCompiler.isParent(coutputs, env, callRange, subKind, superKind) match {
         case IsParent(_, _, implFullName) => implFullName
       }
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freeInterfacePrototype =
-      destructorCompiler.getFreeFunction(
-        coutputs, env, callRange, incomingCoord).function.prototype
-
 
     val asSubtypeExpr =
       AsSubtypeTE(
@@ -73,7 +68,8 @@ class AsSubtypeMacro(
         okConstructor,
         errConstructor,
         implFullName,
-        freeInterfacePrototype)
+        okResultImpl,
+        errResultImpl)
 
     (header, BlockTE(ReturnTE(asSubtypeExpr)))
   }

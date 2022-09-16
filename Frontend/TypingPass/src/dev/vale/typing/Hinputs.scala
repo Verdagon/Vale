@@ -12,19 +12,23 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
+case class InstantiationBoundArguments(
+  runeToFunctionBoundArg: Map[IRuneS, PrototypeT],
+  runeToImplBoundArg: Map[IRuneS, FullNameT[IImplNameT]])
+
 case class Hinputs(
   interfaces: Vector[InterfaceDefinitionT],
   structs: Vector[StructDefinitionT],
 //  emptyPackStructRef: StructTT,
   functions: Vector[FunctionT],
-  immKindToDestructor: Map[KindT, PrototypeT],
+//  immKindToDestructor: Map[KindT, PrototypeT],
 
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToEdgeBlueprints: Map[FullNameT[IInterfaceNameT], InterfaceEdgeBlueprint],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[FullNameT[IInterfaceNameT], Map[FullNameT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToRuneToFunctionBound: Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeT]],
+  instantiationNameToInstantiationBounds: Map[FullNameT[IInstantiationNameT], InstantiationBoundArguments],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -57,8 +61,8 @@ case class Hinputs(
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeFullName == implFullName))
   }
 
-  def getInstantiationBounds(instantiationName: FullNameT[IInstantiationNameT]): Map[IRuneS, PrototypeT] = {
-    vassertSome(instantiationNameToRuneToFunctionBound.get(instantiationName))
+  def getInstantiationBoundArgs(instantiationName: FullNameT[IInstantiationNameT]): InstantiationBoundArguments = {
+    vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 
   def lookupStructByTemplateFullName(structTemplateFullName: FullNameT[IStructTemplateNameT]): StructDefinitionT = {

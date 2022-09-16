@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, Interner, Keywords, RangeS, vassert, vassertOne,
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, ImplBoundNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -225,6 +225,15 @@ object TemplataCompiler {
     }).toMap
   }
 
+  def assembleRuneToImplBound(templatas: TemplatasStore): Map[IRuneS, FullNameT[ImplBoundNameT]] = {
+    templatas.entriesByNameT.toIterable.flatMap({
+      case (RuneNameT(rune), TemplataEnvEntry(IsaTemplata(_, FullNameT(packageCoord, initSteps, name @ ImplBoundNameT(_, _)), _, _))) => {
+        Some(rune -> FullNameT(packageCoord, initSteps, name))
+      }
+      case _ => None
+    }).toMap
+  }
+
   def substituteTemplatasInCoord(
     coutputs: CompilerOutputs,
     interner: Interner,
@@ -391,7 +400,7 @@ object TemplataCompiler {
         prototype.fullName.last match {
           case FunctionBoundNameT(template, templateArgs, parameters) => {
             // It's a function bound, it has no function bounds of its own.
-            coutputs.addInstantiationBounds(prototype.fullName, Map())
+            coutputs.addInstantiationBounds(prototype.fullName, InstantiationBoundArguments(Map(), Map()))
           }
           case _ => {
             // Not really sure if we're supposed to add bounds or something here.

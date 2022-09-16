@@ -76,7 +76,7 @@ case class CompilerOutputs() {
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
   // This is a HashSet to help deduplicate, see CIFBD.
-  private val allImpls: mutable.HashMap[FullNameT[ImplTemplateDeclareNameT], ImplT] = mutable.HashMap()
+  private val allImpls: mutable.HashMap[FullNameT[ImplTemplateNameT], ImplT] = mutable.HashMap()
   private val subCitizenTemplateToImpls: mutable.HashMap[FullNameT[ICitizenTemplateNameT], Vector[ImplT]] = mutable.HashMap()
   private val superInterfaceTemplateToImpls: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Vector[ImplT]] = mutable.HashMap()
 
@@ -92,8 +92,8 @@ case class CompilerOutputs() {
   // This map is how we remember it.
   // Here, we'd remember: [drop<int>(Opt<int>), [Rune1337, drop(int)]].
   // We also do this for structs and interfaces too.
-  private val instantiationNameToRuneToFunctionBound: mutable.HashMap[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeT]] =
-    mutable.HashMap[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeT]]()
+  private val instantiationNameToInstantiationBounds: mutable.HashMap[FullNameT[IInstantiationNameT], InstantiationBoundArguments] =
+    mutable.HashMap[FullNameT[IInstantiationNameT], InstantiationBoundArguments]()
 
 //  // Only ArrayCompiler can make an RawArrayT2.
 //  private val staticSizedArrayTypes:
@@ -136,8 +136,8 @@ case class CompilerOutputs() {
     deferredFunctionCompiles -= name
   }
 
-  def getInstantiationNameToFunctionBoundToRune(): Map[FullNameT[IInstantiationNameT], Map[IRuneS, PrototypeT]] = {
-    instantiationNameToRuneToFunctionBound.toMap
+  def getInstantiationNameToFunctionBoundToRune(): Map[FullNameT[IInstantiationNameT], InstantiationBoundArguments] = {
+    instantiationNameToInstantiationBounds.toMap
   }
 
   def lookupFunction(signature: SignatureT): Option[FunctionT] = {
@@ -146,19 +146,19 @@ case class CompilerOutputs() {
 
   def getInstantiationBounds(
     instantiationFullName: FullNameT[IInstantiationNameT]):
-  Option[Map[IRuneS, PrototypeT]] = {
-    instantiationNameToRuneToFunctionBound.get(instantiationFullName)
+  Option[InstantiationBoundArguments] = {
+    instantiationNameToInstantiationBounds.get(instantiationFullName)
   }
 
   def addInstantiationBounds(
     instantiationFullName: FullNameT[IInstantiationNameT],
-    functionBoundToRune: Map[IRuneS, PrototypeT]):
+    functionBoundToRune: InstantiationBoundArguments):
   Unit = {
     // We'll do this when we can cache instantiations from StructTemplar etc. DO NOT SUBMIT
     // // We should only add instantiation bounds in exactly one place: the place that makes the
     // // PrototypeT/StructTT/InterfaceTT.
-    // vassert(!instantiationNameToRuneToFunctionBound.contains(instantiationFullName))
-    instantiationNameToRuneToFunctionBound.get(instantiationFullName) match {
+    // vassert(!instantiationNameToInstantiationBounds.contains(instantiationFullName))
+    instantiationNameToInstantiationBounds.get(instantiationFullName) match {
       case Some(existing) => {
         // Theres some ambiguities or something here DO NOT SUBMIT sometimes when we evaluate
         // the same thing twice we get different results. Best investigate that more before
@@ -179,7 +179,7 @@ case class CompilerOutputs() {
       case _ =>
     }
 
-    instantiationNameToRuneToFunctionBound.put(instantiationFullName, functionBoundToRune)
+    instantiationNameToInstantiationBounds.put(instantiationFullName, functionBoundToRune)
   }
 
   def findImmDestructor(kind: KindT): FunctionHeaderT = {

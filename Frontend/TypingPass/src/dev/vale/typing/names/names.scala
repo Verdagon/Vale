@@ -187,13 +187,25 @@ case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationName
   override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()
 }
 
-case class ImplTemplateDeclareNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplDeclareNameT = {
-    interner.intern(ImplDeclareNameT(this, templateArgs))
+case class ImplTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplNameT = {
+    interner.intern(ImplNameT(this, templateArgs))
   }
 }
-case class ImplDeclareNameT(
-  template: ImplTemplateDeclareNameT,
+case class ImplNameT(
+  template: ImplTemplateNameT,
+  templateArgs: Vector[ITemplata[ITemplataType]]
+) extends IImplNameT {
+
+}
+
+case class ImplBoundTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplBoundNameT = {
+    interner.intern(ImplBoundNameT(this, templateArgs))
+  }
+}
+case class ImplBoundNameT(
+  template: ImplBoundTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IImplNameT {
 
@@ -464,24 +476,24 @@ case class ConstructorTemplateNameT(
   override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = vimpl()
 }
 
-case class FreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
-  vpass()
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
-    params match {
-      case Vector(coord) => {
-        interner.intern(FreeNameT(this, templateArgs, coord))
-      }
-      case other => vwat(other)
-    }
-  }
-}
-case class FreeNameT(
-  template: FreeTemplateNameT,
-  templateArgs: Vector[ITemplata[ITemplataType]],
-  coordT: CoordT
-) extends IFunctionNameT {
-  override def parameters: Vector[CoordT] = Vector(coordT)
-}
+//case class FreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {
+//  vpass()
+//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
+//    params match {
+//      case Vector(coord) => {
+//        interner.intern(FreeNameT(this, templateArgs, coord))
+//      }
+//      case other => vwat(other)
+//    }
+//  }
+//}
+//case class FreeNameT(
+//  template: FreeTemplateNameT,
+//  templateArgs: Vector[ITemplata[ITemplataType]],
+//  coordT: CoordT
+//) extends IFunctionNameT {
+//  override def parameters: Vector[CoordT] = Vector(coordT)
+//}
 
 //// See NSIDN for why we have these virtual names
 //case class AbstractVirtualFreeTemplateNameT(codeLoc: CodeLocationS) extends INameT with IFunctionTemplateNameT {

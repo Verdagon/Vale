@@ -34,7 +34,7 @@ case class ImplT(
   implOuterEnv: IEnvironment,
 
   instantiatedFullName: FullNameT[IImplNameT],
-  templateFullName: FullNameT[ImplTemplateDeclareNameT],
+  templateFullName: FullNameT[ImplTemplateNameT],
 
   subCitizenTemplateFullName: FullNameT[ICitizenTemplateNameT],
   subCitizen: ICitizenTT,
@@ -44,6 +44,7 @@ case class ImplT(
 
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
 
   runeIndexToIndependence: Array[Boolean]
 
@@ -125,6 +126,7 @@ case class OverrideT(
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.
   dispatcherRuneToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  dispatcherRuneToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
@@ -154,6 +156,7 @@ case class EdgeT(
   superInterface: FullNameT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   abstractFuncToOverrideFunc: Map[FullNameT[IFunctionNameT], OverrideT]
 ) {
@@ -161,7 +164,7 @@ case class EdgeT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _) => {
+      case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
           vassert(edgeFullName == thatEdgeFullName)
@@ -183,6 +186,7 @@ object ProgramT {
 case class FunctionT(
   header: FunctionHeaderT,
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
   body: ReferenceExpressionTE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 

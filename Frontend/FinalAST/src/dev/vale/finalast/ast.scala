@@ -37,7 +37,7 @@ case class PackageH(
     // Used for native compilation only, not JVM/CLR/JS/iOS.
     // These are pointing into the specific functions (in the `functions` field)
     // which should be called when we drop a reference to an immutable object.
-    immDestructorsByKind: Map[KindH, PrototypeH],
+//    immDestructorsByKind: Map[KindH, PrototypeH],
     // Translations for backends to use if they need to export a name.
     exportNameToFunction: Map[StrI, PrototypeH],
     // Translations for backends to use if they need to export a name.

@@ -57,14 +57,14 @@ class FunctionScout(
     val codeLocation = PostParser.evalPos(file, range.begin)
     val name =
       (file, originalCodeName) match {
-        case (FileCoordinate(PackageCoordinate(v, Vector(builtins, arrays)), "arrays.vale"), __free_replaced)
-          if v == keywords.v && builtins == keywords.builtins && arrays == keywords.arrays && __free_replaced == keywords.__free_replaced => {
-          interner.intern(postparsing.FreeDeclarationNameS(PostParser.evalPos(file, originalNameRange.begin)))
-        }
-        case (FileCoordinate(PackageCoordinate(emptyString, Vector()), "arrays.vale"), __free_replaced)
-          if emptyString == keywords.emptyString && __free_replaced == keywords.__free_replaced => {
-          interner.intern(FreeDeclarationNameS(PostParser.evalPos(file, originalNameRange.begin)))
-        }
+//        case (FileCoordinate(PackageCoordinate(v, Vector(builtins, arrays)), "arrays.vale"), __free_replaced)
+//          if v == keywords.v && builtins == keywords.builtins && arrays == keywords.arrays && __free_replaced == keywords.__free_replaced => {
+//          interner.intern(postparsing.FreeDeclarationNameS(PostParser.evalPos(file, originalNameRange.begin)))
+//        }
+//        case (FileCoordinate(PackageCoordinate(emptyString, Vector()), "arrays.vale"), __free_replaced)
+//          if emptyString == keywords.emptyString && __free_replaced == keywords.__free_replaced => {
+//          interner.intern(FreeDeclarationNameS(PostParser.evalPos(file, originalNameRange.begin)))
+//        }
         case (_, n) => interner.intern(postparsing.FunctionNameS(n, codeLocation))
       }
 

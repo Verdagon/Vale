@@ -46,21 +46,6 @@ class DestructorCompiler(
     }
   }
 
-  def getFreeFunction(
-    coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
-    callRange: List[RangeS],
-    type2: CoordT):
-  EvaluateFunctionSuccess = {
-    val name = interner.intern(FreeImpreciseNameS())
-    val args = Vector(type2)
-    overloadCompiler.findFunction(
-      callingEnv, coutputs, callRange, name, Vector.empty, Array.empty, args, Vector(), true, true) match {
-      case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
-      case Ok(x) => x
-    }
-  }
-
   def drop(
     env: IEnvironment,
     coutputs: CompilerOutputs,
@@ -79,12 +64,13 @@ class DestructorCompiler(
         case CoordT(ShareT, _) => {
           val destroySharedCitizenOrPlaceholder =
             (coutputs: CompilerOutputs, coord: CoordT) => {
-              val destructorHeader =
-                getDropFunction(env, coutputs, callRange, coord)
-              // We just needed to ensure it's in the coutputs, so that the backend can use it
-              // for when reference counts drop to zero.
-              // If/when we have a GC backend, we can skip generating share destructors.
-              val _ = destructorHeader
+              // DO NOT SUBMIT
+//              val destructorHeader =
+//                getDropFunction(env, coutputs, callRange, coord)
+//              // We just needed to ensure it's in the coutputs, so that the backend can use it
+//              // for when reference counts drop to zero.
+//              // If/when we have a GC backend, we can skip generating share destructors.
+//              val _ = destructorHeader
               DiscardTE(undestructedExpr2)
             };
           val destroySharedArray =

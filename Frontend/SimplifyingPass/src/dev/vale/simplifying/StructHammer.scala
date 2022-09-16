@@ -4,7 +4,7 @@ import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vassertSome, vi
 import dev.vale.finalast.{BorrowH, EdgeH, InterfaceDefinitionH, InterfaceMethodH, InterfaceRefH, KindH, Mutable, PrototypeH, ReferenceH, StructDefinitionH, StructMemberH, StructRefH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{EdgeT, PrototypeT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FreeNameT, FullNameT, INameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata}
 import dev.vale.typing.types._
 import dev.vale.finalast._
@@ -82,13 +82,13 @@ class StructHammer(
         interfaceDefT.mutability match {
           case MutabilityTemplata(MutableT) => None
           case MutabilityTemplata(ImmutableT) => {
-            vassert(
-              hinputs.functions.exists(function => {
-                function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == interfaceDefT.instantiatedInterface => true
-                  case _ => false
-                }
-              }))
+//            vassert(
+//              hinputs.functions.exists(function => {
+//                function.header.fullName match {
+//                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == interfaceDefT.instantiatedInterface => true
+//                  case _ => false
+//                }
+//              }))
           }
         }
 
@@ -133,13 +133,13 @@ class StructHammer(
         structDefT.mutability match {
           case MutabilityTemplata(MutableT) => None
           case MutabilityTemplata(ImmutableT) => {
-            vassert(
-              hinputs.functions.exists(function => {
-                function.header.fullName match {
-                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == structDefT.instantiatedCitizen => true
-                  case _ => false
-                }
-              }))
+//            vassert(
+//              hinputs.functions.exists(function => {
+//                function.header.fullName match {
+//                  case FullNameT(_, _, FreeNameT(_, _, k)) if k.kind == structDefT.instantiatedCitizen => true
+//                  case _ => false
+//                }
+//              }))
           }
         }
 

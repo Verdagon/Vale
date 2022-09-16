@@ -3,7 +3,7 @@ package dev.vale.typing.env
 import dev.vale.{CodeLocationS, Err, Interner, Ok, PackageCoordinate, Profiler, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.macros.citizen.{InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
+import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.{AnonymousInterfaceMacro, FunctorHelper, IFunctionBodyMacro, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, StructConstructorMacro}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
@@ -112,9 +112,9 @@ case class GlobalEnvironment(
   functorHelper: FunctorHelper,
   structConstructorMacro: StructConstructorMacro,
   structDropMacro: StructDropMacro,
-  structFreeMacro: StructFreeMacro,
+//  structFreeMacro: StructFreeMacro,
   interfaceDropMacro: InterfaceDropMacro,
-  interfaceFreeMacro: InterfaceFreeMacro,
+//  interfaceFreeMacro: InterfaceFreeMacro,
   anonymousInterfaceMacro: AnonymousInterfaceMacro,
   nameToStructDefinedMacro: Map[StrI, IOnStructDefinedMacro],
   nameToInterfaceDefinedMacro: Map[StrI, IOnInterfaceDefinedMacro],
@@ -202,17 +202,14 @@ object TemplatasStore {
         Some(interner.intern(CodeNameS(humanName)))
       }
       case AnonymousSubstructNameT(interfaceName, _) => getImpreciseName(interner, interfaceName)
-      case ImplTemplateDeclareNameT(_) => {
+      case ImplTemplateNameT(_) => {
         // We shouldn't get here, caller shouldn't pass these in. Should instead get the impl
         // imprecise name from the ImplA or somewhere else.
         vwat()
       }
-      case FreeTemplateNameT(codeLocation) => Some(interner.intern(FreeImpreciseNameS()))
-      case FreeNameT(_, templateArgs, kind) => Some(interner.intern(FreeImpreciseNameS()))
 //      case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
       case PlaceholderNameT(PlaceholderTemplateNameT(index)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
       case ReachablePrototypeNameT(num) => None
-      case FreeTemplateNameT(codeLoc) => Some(interner.intern(FreeImpreciseNameS()))
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
       case ForwarderFunctionNameT(_, inner) => getImpreciseName(interner, inner)

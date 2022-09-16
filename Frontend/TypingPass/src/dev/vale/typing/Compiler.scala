@@ -19,7 +19,7 @@ import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, Struct
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
-import dev.vale.typing.macros.citizen.{ImplDropMacro, ImplFreeMacro, InterfaceDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
+import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
 import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
 import dev.vale.typing.names._
@@ -401,7 +401,7 @@ class Compiler(
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(result.fullName, Map())
+          state.addInstantiationBounds(result.fullName, InstantiationBoundArguments(Map(), Map()))
 
           result
         }
@@ -411,8 +411,8 @@ class Compiler(
             range,
             env.selfEnv.fullName.addStep(
               interner.intern(
-                ImplDeclareNameT(
-                  interner.intern(ImplTemplateDeclareNameT(range.begin)),
+                ImplBoundNameT(
+                  interner.intern(ImplBoundTemplateNameT(range.begin)),
                   Vector()))),
             subKind,
             superKind)
@@ -471,6 +471,16 @@ class Compiler(
         override def resolveRuntimeSizedArrayKind(coutputs: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
           arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
         }
+
+        override def resolveImpl(
+          callingEnv: IEnvironment,
+          state: CompilerOutputs,
+          range: List[RangeS],
+          subKind: ISubKindTT,
+          superKind: ISuperKindTT):
+        IsParentResult = {
+          implCompiler.isParent(state, callingEnv, range, subKind, superKind)
+        }
       })
   val convertHelper =
     new ConvertHelper(
@@ -485,20 +495,6 @@ class Compiler(
         IsParentResult = {
           implCompiler.isParent(
             coutputs, callingEnv, parentRanges, descendantCitizenRef, ancestorInterfaceRef)
-        }
-
-        override def getFreeFunction(
-          coutputs: CompilerOutputs,
-          callingEnv: IEnvironment,
-          callRange: List[RangeS],
-          type2: CoordT):
-        EvaluateFunctionSuccess = {
-          type2.ownership match {
-            case OwnT =>
-            case ShareT =>
-            case _ => vwat()
-          }
-          destructorCompiler.getFreeFunction(coutputs, callingEnv, callRange, type2)
         }
       })
 
@@ -681,8 +677,8 @@ class Compiler(
   val functorHelper = new FunctorHelper(interner, keywords)
   val structConstructorMacro = new StructConstructorMacro(opts, interner, keywords, nameTranslator, destructorCompiler)
   val structDropMacro = new StructDropMacro(interner, keywords, nameTranslator, destructorCompiler)
-  val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
-  val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
+//  val structFreeMacro = new StructFreeMacro(interner, keywords, nameTranslator, destructorCompiler)
+//  val interfaceFreeMacro = new InterfaceFreeMacro(interner, keywords, nameTranslator)
   val asSubtypeMacro = new AsSubtypeMacro(keywords, implCompiler, expressionCompiler, destructorCompiler)
   val rsaLenMacro = new RSALenMacro(keywords)
   val rsaMutNewMacro = new RSAMutableNewMacro(interner, keywords, arrayCompiler, destructorCompiler)
@@ -697,14 +693,14 @@ class Compiler(
   val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
 //  val ssaLenMacro = new SSALenMacro(keywords)
   val implDropMacro = new ImplDropMacro(interner, nameTranslator)
-  val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)
+//  val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)
   val interfaceDropMacro = new InterfaceDropMacro(interner, keywords, nameTranslator)
   val abstractBodyMacro = new AbstractBodyMacro(interner, keywords, overloadResolver)
   val lockWeakMacro = new LockWeakMacro(keywords, expressionCompiler)
   val sameInstanceMacro = new SameInstanceMacro(keywords)
   val anonymousInterfaceMacro =
     new AnonymousInterfaceMacro(
-      opts, interner, keywords, nameTranslator, overloadResolver, structCompiler, structConstructorMacro, structDropMacro, structFreeMacro, interfaceFreeMacro, implDropMacro)
+      opts, interner, keywords, nameTranslator, overloadResolver, structCompiler, structConstructorMacro, structDropMacro, implDropMacro)
 
 
   def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
@@ -713,20 +709,20 @@ class Compiler(
         val nameToStructDefinedMacro =
           Map(
             structConstructorMacro.macroName -> structConstructorMacro,
-            structDropMacro.macroName -> structDropMacro,
-            structFreeMacro.macroName -> structFreeMacro,
-            implFreeMacro.macroName -> implFreeMacro)
+            structDropMacro.macroName -> structDropMacro)//,
+//            structFreeMacro.macroName -> structFreeMacro,
+//            implFreeMacro.macroName -> implFreeMacro)
         val nameToInterfaceDefinedMacro =
           Map(
             interfaceDropMacro.macroName -> interfaceDropMacro,
-            interfaceFreeMacro.macroName -> interfaceFreeMacro,
+//            interfaceFreeMacro.macroName -> interfaceFreeMacro,
             anonymousInterfaceMacro.macroName -> anonymousInterfaceMacro)
         val nameToImplDefinedMacro = Map[StrI, IOnImplDefinedMacro]()
         val nameToFunctionBodyMacro =
           Map(
             abstractBodyMacro.generatorId -> abstractBodyMacro,
             structConstructorMacro.generatorId -> structConstructorMacro,
-            structFreeMacro.freeGeneratorId -> structFreeMacro,
+//            structFreeMacro.freeGeneratorId -> structFreeMacro,
             structDropMacro.dropGeneratorId -> structDropMacro,
             rsaLenMacro.generatorId -> rsaLenMacro,
             rsaMutNewMacro.generatorId -> rsaMutNewMacro,
@@ -784,9 +780,9 @@ class Compiler(
             functorHelper,
             structConstructorMacro,
             structDropMacro,
-            structFreeMacro,
+//            structFreeMacro,
             interfaceDropMacro,
-            interfaceFreeMacro,
+//            interfaceFreeMacro,
             anonymousInterfaceMacro,
             nameToStructDefinedMacro,
             nameToInterfaceDefinedMacro,
@@ -925,8 +921,8 @@ class Compiler(
             globalEnv,
             FullNameT(builtinPackageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
 
-        val freeImpreciseName = interner.intern(FreeImpreciseNameS())
-        val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
+//        val freeImpreciseName = interner.intern(FreeImpreciseNameS())
+//        val dropImpreciseName = interner.intern(CodeNameS(keywords.drop))
 
 //        val immutableKinds =
 //          coutputs.getAllStructs().filter(_.mutability == MutabilityTemplata(ImmutableT)).map(_.templateName) ++
@@ -1076,7 +1072,7 @@ class Compiler(
             reachableInterfaces.toVector,
             reachableStructs.toVector,
             reachableFunctions.toVector,
-            Map(), // Will be populated by monomorphizer
+//            Map(), // Will be populated by monomorphizer
             interfaceEdgeBlueprints.groupBy(_.interface).mapValues(vassertOne(_)),
             interfaceToSubCitizenToEdge,
             coutputs.getInstantiationNameToFunctionBoundToRune(),
@@ -1101,9 +1097,9 @@ class Compiler(
     val defaultCalledMacros =
       Vector(
         MacroCallS(structA.range, CallMacroP, keywords.DeriveStructConstructor),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
-        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
+        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructDrop))//,
+//        MacroCallS(structA.range, CallMacroP, keywords.DeriveStructFree),
+//        MacroCallS(structA.range, CallMacroP, keywords.DeriveImplFree))
     determineMacrosToCall(nameToStructDefinedMacro, defaultCalledMacros, List(structA.range), structA.attributes)
       .flatMap(_.getStructSiblingEntries(structNameT, structA))
   }
@@ -1116,7 +1112,7 @@ class Compiler(
     val defaultCalledMacros =
       Vector(
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceDrop),
-        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree),
+//        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree),
         MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveAnonymousSubstruct))
     val macrosToCall =
       determineMacrosToCall(nameToInterfaceDefinedMacro, defaultCalledMacros, List(interfaceA.range), interfaceA.attributes)
