@@ -10,7 +10,7 @@ import dev.vale.typing.{OverloadResolver, TypingPassOptions}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, IEnvEntry, ImplEnvEntry, StructEnvEntry}
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.macros.citizen.{ImplDropMacro, InterfaceFreeMacro, StructDropMacro, StructFreeMacro}
+import dev.vale.typing.macros.citizen._
 import dev.vale.typing.names.{FullNameT, INameT, NameTranslator}
 import dev.vale.typing.types.MutabilityT
 import dev.vale.highertyping.FunctionA
@@ -36,8 +36,8 @@ class AnonymousInterfaceMacro(
     structCompiler: StructCompiler,
     structConstructorMacro: StructConstructorMacro,
     structDropMacro: StructDropMacro,
-    structFreeMacro: StructFreeMacro,
-    interfaceFreeMacro: InterfaceFreeMacro,
+//    structFreeMacro: StructFreeMacro,
+//    interfaceFreeMacro: InterfaceFreeMacro,
     implDropMacro: ImplDropMacro
 ) extends IOnInterfaceDefinedMacro {
 
@@ -70,8 +70,8 @@ class AnonymousInterfaceMacro(
     val moreEntries =
 //        interfaceFreeMacro.getInterfaceSiblingEntries(interfaceName, interfaceA) ++
         structConstructorMacro.getStructSiblingEntries(structNameT, structA) ++
-        structDropMacro.getStructSiblingEntries(structNameT, structA) ++
-        structFreeMacro.getStructSiblingEntries(structNameT, structA)
+        structDropMacro.getStructSiblingEntries(structNameT, structA)// ++
+        //structFreeMacro.getStructSiblingEntries(structNameT, structA)
 
     val forwarderMethods =
       interfaceA.internalMethods.zip(memberRunes).zipWithIndex.map({ case ((method, rune), methodIndex) =>

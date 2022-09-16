@@ -87,6 +87,7 @@ class Keywords(interner: Interner) {
   // See NSIDN for more on this.
   // Every type, including interfaces, has a function of this name. These won't be virtual.
   val drop: StrI = interner.intern(StrI("drop"))
+  val free: StrI = interner.intern(StrI("free"))
   val not: StrI = interner.intern(StrI("not"))
   val range: StrI = interner.intern(StrI("range"))
   val begin: StrI = interner.intern(StrI("begin"))
@@ -98,10 +99,10 @@ class Keywords(interner: Interner) {
 
   // Macros exposed to the user
   val DeriveStructDrop: StrI = interner.intern(StrI("DeriveStructDrop"))
-  val DeriveStructFree: StrI = interner.intern(StrI("DeriveStructFree"))
-  val DeriveImplFree: StrI = interner.intern(StrI("DeriveImplFree"))
+//  val DeriveStructFree: StrI = interner.intern(StrI("DeriveStructFree"))
+//  val DeriveImplFree: StrI = interner.intern(StrI("DeriveImplFree"))
   val DeriveAnonymousSubstruct: StrI = interner.intern(StrI("DeriveAnonymousSubstruct"))
-  val DeriveInterfaceFree: StrI = interner.intern(StrI("DeriveInterfaceFree"))
+//  val DeriveInterfaceFree: StrI = interner.intern(StrI("DeriveInterfaceFree"))
   val DeriveInterfaceDrop: StrI = interner.intern(StrI("DeriveInterfaceDrop"))
   val DeriveImplDrop: StrI = interner.intern(StrI("DeriveImplDrop"))
 

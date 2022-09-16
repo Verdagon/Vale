@@ -329,13 +329,8 @@ class ExpressionCompiler(
       }
     val resultPointerType = CoordT(ownership, closureStructRef)
 
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freePrototype =
-      destructorCompiler.getFreeFunction(coutputs, nenv.snapshot, range, resultPointerType)
-    vassert(coutputs.getInstantiationBounds(freePrototype.function.prototype.fullName).nonEmpty)
-
     val constructExpr2 =
-      ConstructTE(closureStructRef, resultPointerType, lookupExpressions2, freePrototype.function.prototype)
+      ConstructTE(closureStructRef, resultPointerType, lookupExpressions2)
     (constructExpr2)
   }
 
@@ -1246,7 +1241,7 @@ class ExpressionCompiler(
     range: List[RangeS],
     containedSuccessCoord: CoordT,
     containedFailCoord: CoordT):
-  (CoordT, PrototypeT, PrototypeT) = {
+  (CoordT, PrototypeT, FullNameT[IImplNameT], PrototypeT, FullNameT[IImplNameT]) = {
     val interfaceTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Result)), Set(TemplataLookupContext)).toList match {
         case List(it@InterfaceDefinitionTemplata(_, _)) => it
@@ -1267,6 +1262,12 @@ class ExpressionCompiler(
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
+    val okKind = okConstructor.returnType.kind
+    val okResultImpl =
+      implCompiler.isParent(coutputs, nenv, range, okKind.expectStruct(), resultInterfaceRef) match {
+        case IsParent(templata, conclusions, implFullName) => implFullName
+        case IsntParent(candidates) => vfail()
+      }
 
     val errConstructorTemplata =
       nenv.lookupNearestWithImpreciseName(interner.intern(CodeNameS(keywords.Err)), Set(ExpressionLookupContext)).toList match {
@@ -1279,8 +1280,14 @@ class ExpressionCompiler(
         case fff@EvaluateFunctionFailure(_) => throw CompileErrorExceptionT(RangedInternalErrorT(range, fff.toString))
         case EvaluateFunctionSuccess(p, conclusions) => p.prototype
       }
+    val errKind = errConstructor.returnType.kind
+    val errResultImpl =
+      implCompiler.isParent(coutputs, nenv, range, errKind.expectStruct(), resultInterfaceRef) match {
+        case IsParent(templata, conclusions, implFullName) => implFullName
+        case IsntParent(candidates) => vfail()
+      }
 
-    (ownResultCoord, okConstructor, errConstructor)
+    (ownResultCoord, okConstructor, okResultImpl, errConstructor, errResultImpl)
   }
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {

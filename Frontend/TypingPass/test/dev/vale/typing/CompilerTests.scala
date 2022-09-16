@@ -16,7 +16,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -284,6 +284,7 @@ class CompilerTests extends FunSuite with Matchers {
         MutabilityTemplata(MutableT),
         Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32))))),
         false,
+        _,
         _) =>
     }).get
     // Check there's a constructor
@@ -335,12 +336,12 @@ class CompilerTests extends FunSuite with Matchers {
 
     val interfaceDef =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, Vector(free)) => id
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, Vector()) => id
       }))
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
@@ -363,7 +364,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val (interfaceDef, methods) =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, methods) => (id, methods)
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, methods) => (id, methods)
       }))
     vassertSome(methods.collectFirst({
       case (f @ PrototypeT(simpleName("bork"), _), _) => f
@@ -371,7 +372,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
@@ -621,7 +622,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car")), _, _) => {
+      case up @ UpcastTE(innerExpr, InterfaceTT(simpleName("Car")), _) => {
         Collector.only(innerExpr.result, {
           case StructTT(simpleName("Toyota")) =>
         })
@@ -635,8 +636,8 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val main = coutputs.lookupFunction("main")
-    val up @ UpcastTE(innerExpr, _, implName, freePrototype) =
-      Collector.only(main, { case up @ UpcastTE(_, InterfaceTT(simpleName("Car")), _, _) => up})
+    val up @ UpcastTE(innerExpr, _, implName) =
+      Collector.only(main, { case up @ UpcastTE(_, InterfaceTT(simpleName("Car")), _) => up})
 
     Collector.only(innerExpr.result, {
       case StructTT(simpleName("Toyota")) =>
@@ -647,7 +648,7 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(impl.subCitizen == up.innerExpr.result.reference.kind.expectCitizen().fullName)
     vassert(impl.superInterface == up.result.reference.kind.expectCitizen().fullName)
 
-    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
+//    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
   }
 
   test("Tests calling a virtual function through a borrow ref") {
@@ -758,7 +759,6 @@ class CompilerTests extends FunSuite with Matchers {
       case UpcastTE(
         _,
         InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
-        _,
         _) =>
     })
   }
@@ -780,7 +780,6 @@ class CompilerTests extends FunSuite with Matchers {
       case UpcastTE(
         _,
         InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
-        _,
         _) =>
     })
   }
@@ -803,7 +802,6 @@ class CompilerTests extends FunSuite with Matchers {
       case UpcastTE(
       _,
       InterfaceTT(FullNameT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), _))),
-      _,
       _) =>
     })
   }
@@ -1515,7 +1513,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     coutputs.functions.collectFirst({
-      case FunctionT(header @ functionName("doThing"), _, _) if header.getAbstractInterface != None => true
+      case FunctionT(header @ functionName("doThing"), _, _, _) if header.getAbstractInterface != None => true
     }).get
   }
 
@@ -1646,15 +1644,15 @@ class CompilerTests extends FunSuite with Matchers {
       case DestroyTE(_, _, _) =>
     }).size shouldEqual 0
 
-    // Make sure there's a destroy in its destructor though.
-    val destructor =
-      vassertOne(
-        coutputs.functions.collect({
-          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
-        }))
-
-    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
-    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
+//    // Make sure there's a destroy in its destructor though.
+//    val destructor =
+//      vassertOne(
+//        coutputs.functions.collect({
+//          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
+//        }))
+//
+//    Collector.only(destructor, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
+//    Collector.all(destructor, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
 
@@ -1669,15 +1667,15 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
-    // Make sure there's a destroy in its destructor though.
-    val freeFunc =
-      vassertOne(
-        coutputs.functions.collect({
-          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
-        }))
-
-    Collector.only(freeFunc, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
-    Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
+//    // Make sure there's a destroy in its destructor though.
+//    val freeFunc =
+//      vassertOne(
+//        coutputs.functions.collect({
+//          case f if (f.header.fullName.last match { case FreeNameT(_, _, _) => true case _ => false }) => f
+//        }))
+//
+//    Collector.only(freeFunc, { case DestroyTE(referenceExprResultStructName(StrI("Vec3i")), _, _) => })
+//    Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
   test("Reports when exported SSA depends on non-exported element") {
@@ -1774,7 +1772,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val doUpcast = coutputs.lookupFunction("doUpcast")
     Collector.only(doUpcast, {
-      case UpcastTE(sourceExpr, targetSuperKind, _, _) => {
+      case UpcastTE(sourceExpr, targetSuperKind, _) => {
         sourceExpr.result.reference.kind match {
           case PlaceholderT(_) =>
         }
@@ -1822,7 +1820,7 @@ class CompilerTests extends FunSuite with Matchers {
         }
 
       asPrototypeTemplateArgs match {
-        case Vector(KindTemplata(StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector())))), CoordTemplata(CoordT(borrow,InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))) =>
+        case Vector(CoordTemplata(CoordT(OwnT, StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))), CoordTemplata(CoordT(OwnT,   InterfaceTT(FullNameT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))) =>
       }
 
       asPrototypeParams match {
@@ -1849,11 +1847,16 @@ class CompilerTests extends FunSuite with Matchers {
     }
 
     {
-      val asFunc = coutputs.lookupFunction("as")
-      val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _) => as })
-      val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor) = as
+      val asFunc =
+        vassertOne(
+          coutputs.functions.filter({
+            case FunctionT(FunctionHeaderT(FullNameT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _)))), _, _, _, _), _, _, _) => true
+            case _ => false
+          }))
+      val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _, _, _, _) => as })
+      val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor, _, _, _) = as
       sourceExpr.result.reference match {
-        case CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
+        case CoordT(BorrowT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
         //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
       }
       targetSubtype.kind match {
@@ -1875,18 +1878,18 @@ class CompilerTests extends FunSuite with Matchers {
       firstGenericArg match {
         case CoordTemplata(
         CoordT(
-        OwnT,
+        BorrowT,
         PlaceholderT(
         FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
       }
       secondGenericArg match {
         case CoordTemplata(
         CoordT(
-        OwnT,
+        BorrowT,
         PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1)))))) =>
       }
-      vassert(okConstructor.paramTypes.head.kind == targetSubtype)
-      vassert(errConstructor.paramTypes.head.kind == sourceExpr.result.reference.kind)
+      vassert(okConstructor.paramTypes.head == targetSubtype)
+      vassert(errConstructor.paramTypes.head == sourceExpr.result.reference)
     }
   }
 

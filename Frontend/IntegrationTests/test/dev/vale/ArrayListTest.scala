@@ -12,6 +12,8 @@ class ArrayListTest extends FunSuite with Matchers {
   test("Simple ArrayList, no optionals") {
     val compile = RunCompilation.test(
         """
+          |import v.builtins.migrate.*;
+          |
           |#!DeriveStructDrop
           |struct List<E Ref> {
           |  array! []<mut>E;
@@ -23,17 +25,9 @@ class ArrayListTest extends FunSuite with Matchers {
           |}
           |func len<E>(list &List<E>) int { return len(&list.array); }
           |func add<E>(list &List<E>, newElement E) {
-          |  newArray = Array<mut, E>(len(&list) + 1);
-          |  while (newArray.len() < newArray.capacity()) {
-          |    index = newArray.len();
-          |    if (index == len(&list)) {
-          |      newArray.push(newElement);
-          |    } else {
-          |      a = list.array;
-          |      newArray.push(a[index]);
-          |    }
-          |  }
-          |  set list.array = newArray;
+          |  oldArray = set list.array = Array<mut, E>(len(&list) + 1);
+          |  migrate(oldArray, list.array);
+          |  list.array.push(newElement);
           |}
           |func get<E>(list &List<E>, index int) &E {
           |  a = list.array;
@@ -64,29 +58,6 @@ class ArrayListTest extends FunSuite with Matchers {
         |  return l.get(1);
         |}
         """.stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(9) => }
-  }
-
-  test("Array list with optionals") {
-    val compile = RunCompilation.test(
-      """import list.*;
-        |import ifunction.ifunction1.*;
-        |
-        |exported func main() int {
-        |  l =
-        |      List<int>(
-        |          Array<mut, int>(
-        |              0,
-        |              &(index) => {
-        |                0
-        |              }));
-        |  add(&l, 5);
-        |  add(&l, 9);
-        |  add(&l, 7);
-        |  return l.get(1);
-        |}
-      """.stripMargin)
 
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }

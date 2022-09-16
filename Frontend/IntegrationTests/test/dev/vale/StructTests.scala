@@ -5,6 +5,43 @@ import dev.vale.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
 
 class StructTests extends FunSuite with Matchers {
+  test("Make empty imm struct") {
+    val compile = RunCompilation.test(
+      """
+        |struct Marine imm {}
+        |exported func main() {
+        |  Marine();
+        |}
+      """.stripMargin)
+
+    compile.run(Vector())
+  }
+
+  test("Make imm struct with one member") {
+    val compile = RunCompilation.test(
+      """
+        |struct Marine imm { hp int; }
+        |exported func main() {
+        |  Marine(7);
+        |}
+      """.stripMargin)
+
+    compile.run(Vector())
+  }
+
+  test("Make nested imm struct") {
+    val compile = RunCompilation.test(
+      """
+        |struct Weapon imm { ammo int; }
+        |struct Marine imm { hp int; weapon Weapon; }
+        |exported func main() {
+        |  Marine(5, Weapon(7));
+        |}
+      """.stripMargin)
+
+    compile.run(Vector())
+  }
+
   test("Make empty mut struct") {
     val compile = RunCompilation.test(
       """

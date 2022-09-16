@@ -100,14 +100,7 @@ class ArrayCompiler(
         },
         ssaMT)
 
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freePrototype =
-      destructorCompiler.getFreeFunction(
-        coutputs, callingEnv, range, resultCoord)
-        .function.prototype
-    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
-
-    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype, freePrototype)
+    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
     expr2
   }
 
@@ -181,14 +174,7 @@ class ArrayCompiler(
             },
             rsaMT)
 
-        // Thisll still exist for mutable things, itll just contain a no-op.
-        val freePrototype =
-          destructorCompiler.getFreeFunction(
-            coutputs, callingEnv, range, resultCoord)
-            .function.prototype
-        vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
-
-        NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype, freePrototype)
+        NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplata(MutableT) => {
         val EvaluateFunctionSuccess(prototype, conclusions) =
@@ -314,16 +300,9 @@ class ArrayCompiler(
 
     val ssaCoord = CoordT(ownership, staticSizedArrayType)
 
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freePrototype =
-      destructorCompiler.getFreeFunction(
-        coutputs, callingEnv, range, ssaCoord)
-        .function.prototype
-    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
-
     val finalExpr =
       StaticArrayFromValuesTE(
-        exprs2, ssaCoord, staticSizedArrayType, freePrototype)
+        exprs2, ssaCoord, staticSizedArrayType)
     (finalExpr)
   }
 

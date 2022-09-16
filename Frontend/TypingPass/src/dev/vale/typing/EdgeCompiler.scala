@@ -85,6 +85,7 @@ class EdgeCompiler(
                 overridingCitizenFullName,
                 overridingImpl.superInterface.fullName,
                 overridingImpl.runeToFuncBound,
+                overridingImpl.runeToImplBound,
                 foundFunctions.toMap)
             val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateFullName)
             overridingCitizenDef.instantiatedCitizen.fullName -> edge
@@ -370,6 +371,7 @@ class EdgeCompiler(
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
     val dispatcherRuneToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(dispatcherInnerEnv.templatas)
+    val dispatcherRuneToImplBound = TemplataCompiler.assembleRuneToImplBound(dispatcherInnerEnv.templatas)
 
 //    // These will be anything that wasn't already determined by the incoming interface.
 //    // These are the "independent" generic params, like the <ZZ> in Milano.
@@ -535,6 +537,7 @@ class EdgeCompiler(
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
       dispatcherRuneToFunctionBound,
+      dispatcherRuneToImplBound,
       dispatcherCaseEnv.fullName,
       foundFunction.function.prototype)
   }

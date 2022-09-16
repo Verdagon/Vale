@@ -753,7 +753,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val doIt = coutputs.lookupFunction("doIt")
     Collector.only(doIt, {
-      case UpcastTE(_, _, null, null) =>
+      case UpcastTE(_, _, null) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }

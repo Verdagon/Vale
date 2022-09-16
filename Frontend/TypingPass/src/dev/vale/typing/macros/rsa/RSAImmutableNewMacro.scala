@@ -89,12 +89,6 @@ class RSAImmutableNewMacro(
         case Ok(x) => x
       }
 
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freePrototype =
-      destructorCompiler.getFreeFunction(
-        coutputs, env, callRange, header.returnType)
-        .function.prototype
-    vassert(coutputs.getInstantiationBounds(freePrototype.fullName).nonEmpty)
     vassert(generatorPrototype.function.prototype.returnType.ownership == ShareT)
 
     val sizeTE = ArgLookupTE(0, paramCoords(0).tyype)
@@ -107,8 +101,7 @@ class RSAImmutableNewMacro(
             arrayTT,
             sizeTE,
             generatorTE,
-            generatorPrototype.function.prototype,
-            freePrototype)))
+            generatorPrototype.function.prototype)))
     (header, body)
   }
 }

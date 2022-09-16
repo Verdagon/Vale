@@ -2,7 +2,7 @@ package dev.vale.typing.ast
 
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType}
 import dev.vale.typing.TemplataCompiler
-import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, StructNameT}
+import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FullNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, ImplBoundNameT, StructNameT}
 import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
@@ -26,6 +26,7 @@ case class StructDefinitionT(
   members: Vector[IStructMemberT],
   isClosure: Boolean,
   runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
 ) extends CitizenDefinitionT {
   override def genericParamTypes: Vector[ITemplataType] = {
     instantiatedCitizen.fullName.last.templateArgs.map(_.tyype)
@@ -110,6 +111,7 @@ case class InterfaceDefinitionT(
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
   runeToFunctionBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
+  runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
   // This does not include abstract functions declared outside the interface.
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.

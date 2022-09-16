@@ -13,7 +13,6 @@ object simpleName {
       case LetNameT(_) => None
       case UnnamedLocalNameT(_) => None
       case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, _), _, _) => Some(humanName.str)
-      case FreeNameT(_, _, _) => None
       case ClosureParamNameT() => None
       case MagicParamNameT(_) => None
       case CodeVarNameT(name) => Some(name.str)

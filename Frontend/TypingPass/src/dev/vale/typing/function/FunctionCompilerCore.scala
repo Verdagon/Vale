@@ -198,7 +198,8 @@ class FunctionCompilerCore(
 
           coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
           val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnv.templatas)
-          coutputs.addFunction(FunctionT(header, neededFunctionBounds, body))
+          val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnv.templatas)
+          coutputs.addFunction(FunctionT(header, neededFunctionBounds, neededImplBounds, body))
 
           if (header.toSignature != signature2) {
             throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Generator made a function whose signature doesn't match the expected one!\n" +
@@ -217,7 +218,7 @@ class FunctionCompilerCore(
             case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
-        coutputs.addInstantiationBounds(header.toPrototype.fullName, Map())
+        coutputs.addInstantiationBounds(header.toPrototype.fullName, InstantiationBoundArguments(Map(), Map()))
         coutputs.addFunctionExport(
           fullEnv.function.range,
           header.toPrototype,
@@ -318,7 +319,8 @@ class FunctionCompilerCore(
     //   }
     vassert(coutputs.lookupFunction(header.toSignature).isEmpty)
     val neededFunctionBounds = TemplataCompiler.assembleRuneToFunctionBound(fullEnvSnapshot.templatas)
-    val function2 = FunctionT(header, neededFunctionBounds, body2);
+    val neededImplBounds = TemplataCompiler.assembleRuneToImplBound(fullEnvSnapshot.templatas)
+    val function2 = FunctionT(header, neededFunctionBounds, neededImplBounds, body2);
     coutputs.addFunction(function2)
     header
   }
@@ -353,13 +355,14 @@ class FunctionCompilerCore(
         val externFullName = FullNameT(fullName.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFullName, header.returnType)
         coutputs.addFunctionExtern(range, externPrototype, fullName.packageCoord, humanName)
-        coutputs.addInstantiationBounds(externPrototype.fullName, Map())
+        coutputs.addInstantiationBounds(externPrototype.fullName, InstantiationBoundArguments(Map(), Map()))
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })
         val function2 =
           FunctionT(
             header,
+            Map(),
             Map(),
             ReturnTE(ExternFunctionCallTE(externPrototype, argLookups)))
 

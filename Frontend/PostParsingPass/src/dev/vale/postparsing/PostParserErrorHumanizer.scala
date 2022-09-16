@@ -82,7 +82,7 @@ object PostParserErrorHumanizer {
     name match {
 //      case UnnamedLocalNameS(codeLocation) => "(unnamed)"
       case ClosureParamNameS() => "(closure)"
-      case FreeDeclarationNameS(_) => "(free)"
+//      case FreeDeclarationNameS(_) => "(free)"
 //      case CodeNameS(n) => n
       case GlobalFunctionFamilyNameS(n) => n
 //      case DropNameS(_) => "(drop)"
@@ -101,7 +101,7 @@ object PostParserErrorHumanizer {
     name match {
       case SelfNameS() => "_Self"
       case CodeNameS(n) => n.str
-      case FreeImpreciseNameS() => "_Free"
+//      case FreeImpreciseNameS() => "_Free"
       case RuneNameS(rune) => humanizeRune(rune)
       case AnonymousSubstructTemplateImpreciseNameS(interfaceHumanName) => humanizeImpreciseName(interfaceHumanName) + "._AnonSub"
       case LambdaStructImpreciseNameS(lambdaName) => humanizeImpreciseName(lambdaName) + ".struct"

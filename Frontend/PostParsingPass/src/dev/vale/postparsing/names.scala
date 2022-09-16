@@ -17,14 +17,14 @@ trait ICitizenDeclarationNameS extends INameS {
   def packageCoordinate: PackageCoordinate
   def getImpreciseName(interner: Interner): IImpreciseNameS
 }
-case class FreeDeclarationNameS(codeLocationS: CodeLocationS) extends IFunctionDeclarationNameS {
-
-  override def packageCoordinate: PackageCoordinate = codeLocationS.file.packageCoordinate
-  override def getImpreciseName(interner: Interner): IImpreciseNameS = interner.intern(FreeImpreciseNameS())
-}
-case class FreeImpreciseNameS() extends IImpreciseNameS {
-
-}
+//case class FreeDeclarationNameS(codeLocationS: CodeLocationS) extends IFunctionDeclarationNameS {
+//
+//  override def packageCoordinate: PackageCoordinate = codeLocationS.file.packageCoordinate
+//  override def getImpreciseName(interner: Interner): IImpreciseNameS = interner.intern(FreeImpreciseNameS())
+//}
+//case class FreeImpreciseNameS() extends IImpreciseNameS {
+//
+//}
 case class LambdaDeclarationNameS(
 //  parentName: INameS,
   codeLocation: CodeLocationS

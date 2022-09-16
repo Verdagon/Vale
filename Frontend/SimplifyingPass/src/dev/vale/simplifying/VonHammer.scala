@@ -44,7 +44,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
       functions,
       staticSizedArrays,
       runtimeSizedArrays,
-      immDestructorsByKind,
+//      immDestructorsByKind,
       exportNameToFunction,
       exportNameToKind,
       externNameToFunction,
@@ -61,18 +61,18 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
         VonMember("functions", VonArray(None, functions.map(vonifyFunction).toVector)),
         VonMember("staticSizedArrays", VonArray(None, staticSizedArrays.map(vonifyStaticSizedArrayDefinition).toVector)),
         VonMember("runtimeSizedArrays", VonArray(None, runtimeSizedArrays.map(vonifyRuntimeSizedArrayDefinition).toVector)),
-        VonMember(
-          "immDestructorsByKind",
-          VonArray(
-            None,
-            immDestructorsByKind.toVector.map({ case (kind, destructor) =>
-              VonObject(
-                "Entry",
-                None,
-                Vector(
-                  VonMember("kind", vonifyKind(kind)),
-                  VonMember("destructor", vonifyPrototype(destructor))))
-            }))),
+//        VonMember(
+//          "immDestructorsByKind",
+//          VonArray(
+//            None,
+//            immDestructorsByKind.toVector.map({ case (kind, destructor) =>
+//              VonObject(
+//                "Entry",
+//                None,
+//                Vector(
+//                  VonMember("kind", vonifyKind(kind)),
+//                  VonMember("destructor", vonifyPrototype(destructor))))
+//            }))),
         VonMember(
           "exportNameToFunction",
           VonArray(
@@ -1230,23 +1230,23 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("humanName", VonStr(humanName.str))))
       }
-      case FreeNameT(template, templateArgs, coord) => {
-        VonObject(
-          "StructFreeName",
-          None,
-          Vector(
-//            VonMember("codeLoc", vonifyCodeLocation2(nameTranslator.translateCodeLocation(codeLoc))),
-            VonMember(
-              "templateArgs",
-              VonArray(
-                None,
-                templateArgs
-                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
-                  .toVector)),
-            VonMember(
-              "coord",
-              vonifyCoord(typeHammer.translateReference(hinputs, hamuts, coord)))))
-      }
+//      case FreeNameT(template, templateArgs, coord) => {
+//        VonObject(
+//          "StructFreeName",
+//          None,
+//          Vector(
+////            VonMember("codeLoc", vonifyCodeLocation2(nameTranslator.translateCodeLocation(codeLoc))),
+//            VonMember(
+//              "templateArgs",
+//              VonArray(
+//                None,
+//                templateArgs
+//                  .map(templateArg => vonifyTemplata(hinputs, hamuts, templateArg))
+//                  .toVector)),
+//            VonMember(
+//              "coord",
+//              vonifyCoord(typeHammer.translateReference(hinputs, hamuts, coord)))))
+//      }
 //      case AbstractVirtualFreeNameT(templateArgs, param) => {
 //        VonObject(
 //          "AbstractVirtualFreeF",

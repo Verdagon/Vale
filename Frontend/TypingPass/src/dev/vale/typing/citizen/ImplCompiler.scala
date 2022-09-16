@@ -62,7 +62,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateDeclareNameT(range.begin)))
+      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(range.begin)))
 
     val outerEnv =
       CitizenEnvironment(
@@ -128,7 +128,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateDeclareNameT(range.begin)))
+      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(range.begin)))
 
     val outerEnv =
       CitizenEnvironment(
@@ -223,7 +223,7 @@ class ImplCompiler(
     val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateDeclareNameT(implA.range.begin)))
+      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(implA.range.begin)))
 
     val implOuterEnv =
       CitizenEnvironment(
@@ -281,6 +281,7 @@ class ImplCompiler(
           interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
         }).toVector)
     val runeToNeededFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(implInnerEnv.templatas)
+    val runeToNeededImplBound = TemplataCompiler.assembleRuneToImplBound(implInnerEnv.templatas)
 //    vcurious(runeToFunctionBound1 == runeToNeededFunctionBound) // which do we want?
 
     val runeIndexToIndependence =
@@ -298,6 +299,7 @@ class ImplCompiler(
           superInterface,
           superInterfaceTemplateFullName,
           runeToNeededFunctionBound,
+          runeToNeededImplBound,
           runeIndexToIndependence.toArray))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
@@ -671,7 +673,7 @@ class ImplCompiler(
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
-        coutputs.addInstantiationBounds(impl.implName, Map())
+        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArguments(Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -701,7 +703,7 @@ class ImplCompiler(
           implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateFullName =
           implTemplata.env.fullName.addStep(
-            interner.intern(ImplTemplateDeclareNameT(implTemplata.impl.range.begin)))
+            interner.intern(ImplTemplateNameT(implTemplata.impl.range.begin)))
         val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
         coutputs.addInstantiationBounds(instantiatedFullName, runeToSuppliedFunction)
         IsParent(implTemplata, conclusions, instantiatedFullName)

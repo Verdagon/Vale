@@ -49,3 +49,7 @@ func get<T>(opt Some<T>) T {
 abstract func get<T>(virtual opt &Opt<T>) &T;
 func get<T>(opt &None<T>) &T { panic("Called get() on a None!"); }
 func get<T>(opt &Some<T>) &T { return &opt.value; }
+
+abstract func expect_none<T>(virtual opt Opt<T>) None<T>;
+func expect_none<T>(opt Some<T>) None<T> { panic("Called expect_none() on a Some!"); }
+func expect_none<T>(opt None<T>) None<T> { opt }

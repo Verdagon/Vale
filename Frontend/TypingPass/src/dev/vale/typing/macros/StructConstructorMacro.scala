@@ -145,10 +145,6 @@ class StructConstructorMacro(
       }
     val constructorReturnType = CoordT(constructorReturnOwnership, structTT)
 
-    // Thisll still exist for mutable things, itll just contain a no-op.
-    val freePrototype =
-      destructorCompiler.getFreeFunction(coutputs, env, callRange, constructorReturnType)
-
     // not virtual because how could a constructor be virtual
     val header =
       ast.FunctionHeaderT(
@@ -158,15 +154,13 @@ class StructConstructorMacro(
         constructorReturnType,
         Some(env.templata))
 
-    vassert(coutputs.getInstantiationBounds(freePrototype.function.prototype.fullName).nonEmpty)
     val body =
       BlockTE(
         ReturnTE(
           ConstructTE(
             structTT,
             constructorReturnType,
-            constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) }),
-            freePrototype.function.prototype)))
+            constructorParams.zipWithIndex.map({ case (p, index) => ArgLookupTE(index, p.tyype) }))))
     (header, body)
   }
 }
