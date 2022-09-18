@@ -7,6 +7,35 @@ import dev.vale.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
 
 class HashMapTest extends FunSuite with Matchers {
+  test("Monomorphize problem") {
+    // See NBIFP
+
+    val compile = RunCompilation.test(
+      """
+        |struct IntHasher { }
+        |func __call(this &IntHasher, x int) int { return x; }
+        |
+        |#!DeriveStructDrop
+        |struct HashMap<H> where func(&H, int)int {
+        |  hasher H;
+        |}
+        |
+        |func moo<H>(self &HashMap<H>) {
+        |  // Nothing needed in here, to cause the bug
+        |}
+        |
+        |exported func main() int {
+        |  m = HashMap(IntHasher());
+        |  moo(&m);
+        |  destruct m;
+        |  return 9;
+        |}
+        |""".stripMargin, false)
+
+    compile.evalForKind(Vector()) match { case VonInt(9) => }
+  }
+
+
   test("Hash map update") {
     val compile = RunCompilation.test(
         """

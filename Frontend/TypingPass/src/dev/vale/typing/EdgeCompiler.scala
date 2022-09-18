@@ -486,7 +486,7 @@ class EdgeCompiler(
 //          implPlaceholderToDispatcherPlaceholder.toArray)).kind.expectCitizen()
 
     // See WTFBBQ
-    // See ONBIFS and NBIFPR for why we need these bounds in our below env.
+    // See ONBIFS and NBIFP for why we need these bounds in our below env.
     val boundsForCase =
       TemplataCompiler.getReachableBounds(interner, keywords, coutputs, KindTemplata(caseSubCitizen))
         .zipWithIndex

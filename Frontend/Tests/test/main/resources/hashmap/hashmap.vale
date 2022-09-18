@@ -33,11 +33,13 @@ where func drop(V)void, func drop(H)void, func drop(E)void {
   destruct self;
 }
 
-func HashMap<K Ref imm, V, H, E>(hasher H, equator E) HashMap<K, V, H, E> {
+func HashMap<K Ref imm, V, H, E>(hasher H, equator E) HashMap<K, V, H, E>
+where func(&H, &K)int, func(&E, &K, &K)bool {
   return HashMap<K, V, H, E>(hasher, equator, 0);
 }
 
-func HashMap<K Ref imm, V, H, E>(hasher H, equator E, capacity int) HashMap<K, V, H, E> {
+func HashMap<K Ref imm, V, H, E>(hasher H, equator E, capacity int) HashMap<K, V, H, E>
+where func(&H, &K)int, func(&E, &K, &K)bool {
   return HashMap<K, V>(
       hasher,
       equator,

@@ -46,7 +46,7 @@ class MonomorphizedCompilation(
       case None => {
         val monouts =
           Monomorphizer.translate(
-            options.globalOptions, interner, typingPassCompilation.expectCompilerOutputs())
+            options.globalOptions, interner, keywords, typingPassCompilation.expectCompilerOutputs())
         monoutsCache = Some(monouts)
         monouts
       }

@@ -815,9 +815,9 @@ If we want to know all children for `MyObserver`, would we count this? It's hard
 For now, we leave that question unanswered, and say that we can never know all children for a specific interface template.
 
 
-# Need Bound Information From Parameters and Returns (NBIFPR)
+# Need Bound Information From Parameters (NBIFP)
 
-(previously NBIFP)
+(previously NBIFPR)
 
 Let's say we have this code:
 
@@ -852,9 +852,22 @@ So, we'll need to do #2.
 
 A few places we'll need to do this:
 
- * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters and returns (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
+ * At the beginning of the current denizen, where we introduce the placeholders. We scour all of the requirements imposed by all of the parameters (like the `BorkForwarder<LamT>` that requires `__call(&LamT)int`) and create prototypes for them. (See also [Rust #2089](https://github.com/rust-lang/rfcs/pull/2089))
  * When an abstract function is "calling" an override, we'll need to incorporate the bounds for the overriding struct. (See ONBIFS)
  * In a match's case statement, when we mention a type, we need to incorporate the bounds from that type.
+
+
+### ... but not return types.
+
+Note that while we can incorporate bounds from parameters, we can't incorporate any from return types. We used to do this, and in this example:
+
+```
+func HashMap<K Ref imm, V, H, E>(hasher H, equator E) HashMap<K, V, H, E> {
+  return HashMap<K, V, H, E>(hasher, equator, 0);
+}
+```
+
+It failed because `main` wasn't passing any functions to satisfy the bounds which were expected by the `HashMap<K, V, H, E>(hasher, equator, 0)` invocation (it expected a `drop(H)`). At best, we can hoist the _requirements_ from the return type, but we can't use the return type as evidence that a type satisfies some bounds.
 
 
 
