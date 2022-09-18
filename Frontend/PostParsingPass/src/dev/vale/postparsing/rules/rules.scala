@@ -50,7 +50,7 @@ case class CallSiteCoordIsaSR(
   // solves, that rune is still there, and all runes must be solved, so we need something to solve it.
   // So, we make CallSiteCoordIsaSR solve it, and populate it with an ImplTemplata or ImplDefinitionTemplata.
   // It's also similar to how Definition/CallSiteFuncSR work.
-  // It also means the call site has access to the impls, which might be nice for ONBIFS and NBIFPR.
+  // It also means the call site has access to the impls, which might be nice for ONBIFS and NBIFP.
   // It's an Option because CoordSendSR sometimes produces one of these, and it doesn't care about
   // the result.
   resultRune: Option[RuneUsage],

@@ -616,10 +616,9 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
       function.rules.filter(
         InferCompiler.includeRuleInDefinitionSolve)
 
-    // This is so we can automatically grab the bounds from parameters and returns, see NBIFPR.
-    val paramAndReturnRunes =
-      (function.params.flatMap(_.pattern.coordRune.map(_.rune)) ++
-        function.maybeRetCoordRune.map(_.rune)).distinct.toArray
+    // This is so we can automatically grab the bounds from parameters and returns, see NBIFP.
+    val paramRunes =
+      function.params.flatMap(_.pattern.coordRune.map(_.rune)).distinct.toArray
 
     // This is temporary, to support specialization like:
     //   extern("vale_runtime_sized_array_mut_new")
@@ -637,8 +636,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         Vector(),
         true,
         true,
-        // This is so we can automatically grab the bounds from parameters, see NBIFPR.
-        paramAndReturnRunes) match {
+        // This is so we can automatically grab the bounds from parameters, see NBIFP.
+        paramRunes) match {
         case f @ FailedCompilerSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
         }
@@ -672,8 +671,8 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         Vector(),
         true,
         true,
-        // This is so we can automatically grab the bounds from parameters, see NBIFPR.
-        paramAndReturnRunes)
+        // This is so we can automatically grab the bounds from parameters, see NBIFP.
+        paramRunes)
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBoundsFromParamsAndReturn)
 
     val header =

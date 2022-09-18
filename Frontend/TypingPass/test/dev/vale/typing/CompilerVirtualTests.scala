@@ -170,10 +170,10 @@ class CompilerVirtualTests extends FunSuite with Matchers {
   }
 
   test("Use bound from struct") {
-    // See NBIFPR.
+    // See NBIFP.
     // Without it, when it tries to compile (1), at (2) it tries to resolve BorkForwarder
     // and fails bound (3) because (1) has no such bound.
-    // NBIFPR says we should first get that knowledge from (2).
+    // NBIFP says we should first get that knowledge from (2).
     val compile = CompilerTestCompilation.test(
       """
         |#!DeriveStructDrop
