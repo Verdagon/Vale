@@ -87,43 +87,8 @@ case class FullNameT[+T <: INameT](
   def addStep[Y <: INameT](newLast: Y): FullNameT[Y] = {
     FullNameT[Y](packageCoord, steps, newLast)
   }
-//  def init: FullNameT[INameT] = {
-//    if (initSteps.isEmpty) {
-//      last match {
-//        case PackageTopLevelNameT() => vimpl()
-//        case _ => {
-//          FullNameT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
-//        }
-//      }
-//    } else {
-//      FullNameT(packageCoord, initSteps.init, initSteps.last)
-//    }
-//  }
 
-//  def parent: Option[FullNameT[INameT]] = {
-//    if (initSteps.isEmpty) {
-//      packageCoord.parent match {
-//        case None => None
-//        case Some(parentPackage) => Some(FullNameT(parentPackage, Vector(), interner.intern(PackageTopLevelNameT())))
-//      }
-//    } else {
-//      Some(FullNameT(packageCoord, initSteps.init, initSteps.last))
-//    }
-//  }
-//
-//  def selfAndParents: List[FullNameT[INameT]] = {
-//    parent match {
-//      case None => List(this)
-//      case Some(parent) => this :: parent.selfAndParents
-//    }
-//  }
-//
-//  def parents: List[FullNameT[INameT]] = {
-//    parent match {
-//      case None => List()
-//      case Some(parent) => parent.selfAndParents
-//    }
-//  }
+
 }
 
 sealed trait INameT extends IInterning

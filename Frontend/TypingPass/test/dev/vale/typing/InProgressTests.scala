@@ -34,6 +34,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // Add test for an abstract func with no virtual param like: abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where func drop(X)void;
 
+    vimpl() // in hashmap.vale, in innerRemove, change it to: [_, oldElement] = (set table[index] = None<HashMapNode<K, V>>()).get(); to see some sort of failure where an undercore will create a variable but it doesnt later get unstackified... as if its created but not added to the locals or something
+
     // had a bug when as was defined like this:
     //   extern("vale_as_subtype")
     //   func as<SubKind Kind, SuperType Ref>(left SuperType) Result<SubType, SuperType>

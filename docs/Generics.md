@@ -870,6 +870,33 @@ func HashMap<K Ref imm, V, H, E>(hasher H, equator E) HashMap<K, V, H, E> {
 It failed because `main` wasn't passing any functions to satisfy the bounds which were expected by the `HashMap<K, V, H, E>(hasher, equator, 0)` invocation (it expected a `drop(H)`). At best, we can hoist the _requirements_ from the return type, but we can't use the return type as evidence that a type satisfies some bounds.
 
 
+### Monomorphizer
+
+The monomorphizer also needs to do this. This example (search NBIFP for test case) shows why:
+
+```
+struct IntHasher { }
+func __call(this &IntHasher, x int) int { return x; }
+
+#!DeriveStructDrop
+struct HashMap<H> where func(&H, int)int {
+  hasher H;
+}
+
+func moo<H>(self &HashMap<H>) {
+  // Nothing needed in here to cause the bug
+}
+
+exported func main() int {
+  m = HashMap(IntHasher());
+  moo(&m);
+  destruct m;
+  return 9;
+}
+```
+
+When we instantiate `moo`, we're given 
+
 
 # Overrides Need Bound Information From Structs (ONBIFS)
 
@@ -1111,6 +1138,7 @@ The function `genFunc.lam:2:10`, is loading `a` whose type is actually the conta
 In other words, lambda functions load placeholders from a different function (their parent function).
 
 
+
 ## Getting Lambda Instantiation's Original Generic's Name (GLIOGN)
 
 Normally, if we have a PrototypeT's full name, it's pretty easy to get its original template's full name. Take a FullNameT[IFunctionNameT]'s local name (the IFunctionNameT) and just call .template on it.
@@ -1229,6 +1257,41 @@ exported func main() {
 ```
 
 Then when we monomorphize the lambda, the instantiator needs to remember the supplied `print` from `genFunc`'s caller.
+
+
+## Lambdas and Children Need Bound Arguments From Above (LCNBAFA)
+
+When we're monomorphizing a lambda, it will be calling function bounds that came from the parent function. So, the monomorphizer needs to convey those downward when we stamp a lambda generic template.
+
+
+For example, when we're inside
+
+`add<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher)`
+
+it will want to call 
+
+`add:204<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher>).lam:281` which might call `HashMap.bound:__call<>(&add$2, @add$0)int`. But the lambda itself doesn't know any bounds... it really should contain the mapping `IntHasher.__call<>(&IntHasher, int)` ->
+`HashMap.bound:__call<>(&add$2, @add$0)int` somehow.
+
+So in the monomorphizer, when a function tries to instantiate something beginning with its own name, it will pass down its own bounds into it as well.
+
+
+Additionally, we run into the same problem with child functions of the lambda (and likely will again with interfaces' child functions).
+
+`add<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher)`
+
+Will want to call this `drop` function:
+
+```
+add:204<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher>)
+.lam:281
+.drop<>(@add:204<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher>).lam:281)
+```
+
+so it tries to monomorphize that. It takes a `@add:204<int, int, ^IntHasher>(&HashMap<int, int, ^IntHasher>).lam:281` argument, which has a template arg of `HashMap<int, int, ^IntHasher>`, but when it sees that it doesn't see that we satisfied its bounds (similar to above) so it dies.
+
+The solution is the same: in the monomorphizer, when a function tries to instantiate something beginning with its own name, it will pass down its own bounds into it as well.
+
 
 
 

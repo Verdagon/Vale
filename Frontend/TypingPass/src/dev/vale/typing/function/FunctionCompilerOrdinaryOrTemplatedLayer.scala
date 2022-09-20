@@ -1,6 +1,6 @@
 package dev.vale.typing.function
 
-import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, typing, vassert, vassertSome, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, StrI, typing, vassert, vassertSome, vcurious, vimpl, vpass}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.citizen.StructCompiler
@@ -18,7 +18,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
-import dev.vale.typing.names.{FullNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT}
+import dev.vale.typing.names.{FullNameT, FunctionNameT, FunctionTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -481,6 +481,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
+    function.name match {
+      case FunctionNameS(StrI("len"), _) => {
+        vpass()
+      }
+      case _ =>
+    }
+
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveComplete(
@@ -682,6 +689,13 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     // We don't add these here because we aren't instantiating anything here, we're compiling a function
     // not calling it.
     // coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+
+    header.fullName match {
+      case FullNameT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("keys"),_),Vector(_),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(_)))))))) => {
+        vpass()
+      }
+      case _ =>
+    }
 
     header
   }

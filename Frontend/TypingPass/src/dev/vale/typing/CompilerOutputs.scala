@@ -225,6 +225,7 @@ case class CompilerOutputs() {
     vassert(
       function.body.result.reference.kind == NeverT(false) ||
       function.body.result.reference == function.header.returnType)
+
 //    if (!useOptimization) {
 //      Collector.all(function, {
 //        case ReturnTE(innerExpr) => {
