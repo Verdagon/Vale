@@ -88,7 +88,7 @@ func add<K Ref imm, V, H, E>(map &HashMap<K, V, H, E>, key K, value V) void {
       set i = i + 1;
     }
     oldTable = set map.table = newTable;
-    drop_into(oldTable, e => panicVoid(e));
+    drop_into(oldTable, e => { (e).expect_none(); });
   }
 
   addNodeToTable(map.table, &map.hasher, HashMapNode<K, V>(key, value));
@@ -208,7 +208,7 @@ where func(&H, &K)int, func(&E, &K, &K)bool
   startIndex = abs(hash mod table.len());
   maybeIndex = findIndexOfKey(&table, equator, startIndex, key);
   index = maybeIndex.get();
-  [_, oldElement] = (set table[index] = None<HashMapNode<K, V>>()).get();
+  [unused, oldElement] = (set table[index] = None<HashMapNode<K, V>>()).get();
   return (index, oldElement);
 }
 

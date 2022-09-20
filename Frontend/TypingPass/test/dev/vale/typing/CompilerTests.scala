@@ -391,7 +391,8 @@ class CompilerTests extends FunSuite with Matchers {
         |struct SomeStruct<X Ref> where func drop(X)void { x X; }
         |impl<X> MyInterface<X> for SomeStruct<X>;
         |
-        |func doAThing<T>(t T) SomeStruct<T> {
+        |func doAThing<T>(t T) SomeStruct<T>
+        |where func drop(T)void {
         |  return SomeStruct<T>(t);
         |}
         |

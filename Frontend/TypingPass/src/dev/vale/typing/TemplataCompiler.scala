@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, Interner, Keywords, RangeS, vassert, vassertOne,
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, ImplBoundNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FullNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, ImplBoundNameT, ImplNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -325,26 +325,85 @@ object TemplataCompiler {
     substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])]):
   StructTT = {
     val StructTT(FullNameT(packageCoord, initSteps, last)) = structTT
-    interner.intern(
-      StructTT(
-        FullNameT(
-          packageCoord,
-          initSteps,
-          last match {
-            case AnonymousSubstructNameT(template, templateArgs) => {
-              interner.intern(AnonymousSubstructNameT(
-                template,
-                templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
-            }
-            case StructNameT(template, templateArgs) => {
-              interner.intern(StructNameT(
-                template,
-                templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
-            }
-            case LambdaCitizenNameT(template) => {
-              interner.intern(LambdaCitizenNameT(template))
-            }
-          })))
+    val newStruct =
+      interner.intern(
+        StructTT(
+          FullNameT(
+            packageCoord,
+            initSteps,
+            last match {
+              case AnonymousSubstructNameT(template, templateArgs) => {
+                interner.intern(AnonymousSubstructNameT(
+                  template,
+                  templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
+              }
+              case StructNameT(template, templateArgs) => {
+                interner.intern(StructNameT(
+                  template,
+                  templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
+              }
+              case LambdaCitizenNameT(template) => {
+                interner.intern(LambdaCitizenNameT(template))
+              }
+            })))
+    coutputs.addInstantiationBounds(
+      newStruct.fullName,
+      substituteTemplatasInBounds(
+        coutputs,
+        interner,
+        keywords,
+        substitutions,
+        vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
+    newStruct
+  }
+
+  def substituteTemplatasInImplFullName(
+    coutputs: CompilerOutputs,
+    interner: Interner,
+    keywords: Keywords,
+    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    implFullName: FullNameT[IImplNameT]):
+  FullNameT[IImplNameT] = {
+    val FullNameT(packageCoord, initSteps, last) = implFullName
+    val newImplFullName =
+      FullNameT(
+        packageCoord,
+        initSteps,
+        last match {
+          case ImplNameT(template, templateArgs) => {
+            interner.intern(ImplNameT(
+              template,
+              templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
+          }
+          case other => vimpl(other)
+        })
+    coutputs.addInstantiationBounds(
+      newImplFullName,
+      substituteTemplatasInBounds(
+        coutputs,
+        interner,
+        keywords,
+        substitutions,
+        vassertSome(coutputs.getInstantiationBounds(implFullName))))
+    newImplFullName
+  }
+
+  def substituteTemplatasInBounds(
+    coutputs: CompilerOutputs,
+    interner: Interner,
+    keywords: Keywords,
+    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    boundArgs: InstantiationBoundArguments):
+  InstantiationBoundArguments = {
+    val InstantiationBoundArguments(runeToFunctionBoundArg, runeToImplBoundArg) = boundArgs
+    InstantiationBoundArguments(
+      runeToFunctionBoundArg.mapValues(funcBoundArg => {
+        substituteTemplatasInPrototype(coutputs, interner, keywords, substitutions, funcBoundArg)
+      }),
+      runeToImplBoundArg.mapValues(implBoundArg => {
+        substituteTemplatasInImplFullName(
+          coutputs, interner, keywords, substitutions, implBoundArg)
+      }))
   }
 
   def substituteTemplatasInInterface(
@@ -355,18 +414,31 @@ object TemplataCompiler {
     substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])]):
   InterfaceTT = {
     val InterfaceTT(FullNameT(packageCoord, initSteps, last)) = interfaceTT
-    interner.intern(
-      InterfaceTT(
-        FullNameT(
-          packageCoord,
-          initSteps,
-          last match {
-            case InterfaceNameT(template, templateArgs) => {
-              interner.intern(InterfaceNameT(
-                template,
-                templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
-            }
-          })))
+    val newInterface =
+      interner.intern(
+        InterfaceTT(
+          FullNameT(
+            packageCoord,
+            initSteps,
+            last match {
+              case InterfaceNameT(template, templateArgs) => {
+                interner.intern(InterfaceNameT(
+                  template,
+                  templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
+              }
+            })))
+    // GSFRTE
+    coutputs.getInstantiationBounds(newInterface.fullName).foreach(instantiationBounds => {
+      coutputs.addInstantiationBounds(
+        newInterface.fullName,
+        substituteTemplatasInBounds(
+          coutputs,
+          interner,
+          keywords,
+          substitutions,
+          instantiationBounds))
+    })
+    newInterface
   }
 
   def substituteTemplatasInTemplata(
@@ -390,28 +462,41 @@ object TemplataCompiler {
       case VariabilityTemplata(_) => templata
       case IntegerTemplata(_) => templata
       case BooleanTemplata(_) => templata
-      case PrototypeTemplata(declarationRange, PrototypeT(FullNameT(packageCoord, initSteps, funcName), returnType)) => {
-        val substitutedTemplateArgs = funcName.templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))
-        val substitutedParams = funcName.parameters.map(substituteTemplatasInCoord(coutputs, interner, keywords, _, substitutions))
-        val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, returnType, substitutions)
-        val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
-        val prototype = PrototypeT(FullNameT(packageCoord, initSteps, substitutedFuncName), substitutedReturnType)
-
-        prototype.fullName.last match {
-          case FunctionBoundNameT(template, templateArgs, parameters) => {
-            // It's a function bound, it has no function bounds of its own.
-            coutputs.addInstantiationBounds(prototype.fullName, InstantiationBoundArguments(Map(), Map()))
-          }
-          case _ => {
-            // Not really sure if we're supposed to add bounds or something here.
-            vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
-          }
-        }
-
-        PrototypeTemplata(declarationRange, prototype)
+      case PrototypeTemplata(declarationRange, prototype) => {
+        PrototypeTemplata(
+          declarationRange,
+          substituteTemplatasInPrototype(coutputs, interner, keywords, substitutions, prototype))
       }
       case other => vimpl(other)
     }
+  }
+
+  private def substituteTemplatasInPrototype(
+    coutputs: CompilerOutputs,
+    interner: Interner,
+    keywords: Keywords,
+    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    originalPrototype: PrototypeT):
+  PrototypeT = {
+    val PrototypeT(FullNameT(packageCoord, initSteps, funcName), returnType) = originalPrototype
+    val substitutedTemplateArgs = funcName.templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))
+    val substitutedParams = funcName.parameters.map(substituteTemplatasInCoord(coutputs, interner, keywords, _, substitutions))
+    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, returnType, substitutions)
+    val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
+    val prototype = PrototypeT(FullNameT(packageCoord, initSteps, substitutedFuncName), substitutedReturnType)
+
+    prototype.fullName.last match {
+      case FunctionBoundNameT(template, templateArgs, parameters) => {
+        // It's a function bound, it has no function bounds of its own.
+        coutputs.addInstantiationBounds(prototype.fullName, InstantiationBoundArguments(Map(), Map()))
+      }
+      case _ => {
+        // Not really sure if we're supposed to add bounds or something here.
+        vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
+      }
+    }
+
+    prototype
   }
 
   trait IPlaceholderSubstituter {

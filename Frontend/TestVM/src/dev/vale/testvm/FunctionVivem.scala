@@ -49,7 +49,11 @@ object FunctionVivem {
   }
 
   def getExternFunction(programH: ProgramH, ref: PrototypeH): (AdapterForExterns, Vector[ReferenceV]) => ReferenceV = {
-    ref.fullName.toFullString() match {
+
+    ref.fullName.toFullString()
+      // The tests have a mode where they can interpret the builtins as separate packages DO NOT SUBMIT explain
+      .replaceAllLiterally("v::builtins::arith", "") match {
+      case """v::builtins::arith::F("__vbi_lessThanI32",[],[R(@,<,i(32)),R(@,<,i(32))])""" => VivemExterns.addI32
       case """::F("__vbi_addI32",[],[R(@,<,i(32)),R(@,<,i(32))])""" => VivemExterns.addI32
       case """::F("__vbi_addFloatFloat",[],[R(@,<,f),R(@,<,f)])""" => VivemExterns.addFloatFloat
       case """::F("__vbi_panic")""" => VivemExterns.panic

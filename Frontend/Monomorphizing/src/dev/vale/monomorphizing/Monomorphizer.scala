@@ -735,7 +735,7 @@ object DenizenMonomorphizer {
     desiredPrototype: PrototypeT,
     suppliedBoundArgs: InstantiationBoundArguments,
     // This is only Some if this is a lambda. This will contain the prototypes supplied to the top level denizen by its
-    // own caller.
+    // own caller, see LCNBAFA.
     maybeDenizenBoundToDenizenCallerSuppliedThing: Option[DenizenBoundToDenizenCallerSuppliedThing]):
   FunctionT = {
     val funcTemplateNameT = TemplataCompiler.getFunctionTemplate(desiredPrototype.fullName)
@@ -985,26 +985,43 @@ class DenizenMonomorphizer(
         vassert(
           desiredPrototype.fullName.steps.slice(0, desiredPrototype.fullName.steps.length - 2) ==
           denizenName.steps)
-        monouts.newFunctions.enqueue(
-          (
-            desiredPrototype,
-            runeToBoundArgsForCall,
-            // We need to supply our bounds to our lambdas, see LCCPGB.
-            Some(denizenBoundToDenizenCallerSuppliedThing)))
-        desiredPrototype
-      }
-      case FullNameT(_, _, _) => {
-        desiredPrototypeUnsubstituted.fullName match {
-          case FullNameT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntEquator")),Vector())))))),Vector(CoordT(borrow,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntEquator")),Vector())))))))))), CoordT(ShareT,IntT(32)), CoordT(ShareT,IntT(32))))) => {
-            vpass()
-        }
-          case FullNameT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("HashMap"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntEquator")),Vector())))))),Vector(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))), CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntEquator")),Vector()))))))) => {
+        vcurious(desiredPrototype.fullName.steps.startsWith(denizenName.steps))
+
+        desiredPrototype.fullName match {
+          case FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))))))))), LambdaCitizenTemplateNameT(_)),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))) => {
             vpass()
           }
           case _ =>
         }
+
+        // DO NOT SUBMIT see if we can combine this whole case with the case below
+
         monouts.newFunctions.enqueue(
-          (desiredPrototype, runeToBoundArgsForCall, None))
+          (
+            desiredPrototype,
+            runeToBoundArgsForCall,
+            // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
+            Some(denizenBoundToDenizenCallerSuppliedThing)))
+        desiredPrototype
+      }
+      case FullNameT(_, _, _) => {
+        desiredPrototype.fullName match {
+          case FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))))))))), LambdaCitizenTemplateNameT(_)),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))) => {
+            vcurious(desiredPrototype.fullName.steps.startsWith(denizenName.steps))
+          }
+          case _ =>
+        }
+
+        monouts.newFunctions.enqueue(
+          (
+            desiredPrototype,
+            runeToBoundArgsForCall,
+            // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
+            if (desiredPrototype.fullName.steps.startsWith(denizenName.steps)) {
+              Some(denizenBoundToDenizenCallerSuppliedThing)
+            } else {
+              None
+            }))
         desiredPrototype
       }
     }

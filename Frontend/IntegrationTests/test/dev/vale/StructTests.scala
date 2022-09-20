@@ -200,10 +200,9 @@ class StructTests extends FunSuite with Matchers {
         |}
         |
         |struct XNone<T Ref> where func drop(T)void  { }
-        |impl<T> XOpt<T> for XNone<T> where func drop(T)void ;
+        |impl<T> XOpt<T> for XNone<T>;
         |
-        |func get<T>(opt &XNone<T>) &T
-        |where func drop(T)void {
+        |func get<T>(opt &XNone<T>) &T {
         |  __vbi_panic();
         |}
         |

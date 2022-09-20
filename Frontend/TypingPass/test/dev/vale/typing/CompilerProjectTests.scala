@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, RangeS, StrI, Tests, vassert, vassertSome, vimpl}
 import dev.vale.typing.ast.SignatureT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -42,14 +42,15 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val lambdaLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 23)
     val lambdaCitizenTemplateName = interner.intern(LambdaCitizenTemplateNameT(lambdaLoc))
     val lambdaCitizenName = interner.intern(LambdaCitizenNameT(lambdaCitizenTemplateName))
-    val lambdaFuncTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("__call")),lambdaLoc))
+    val lambdaFuncTemplateName = interner.intern(LambdaCallFunctionTemplateNameT(lambdaLoc, Vector(CoordT(ShareT,interner.intern(StructTT(FullNameT(packageCoord, Vector(mainName), lambdaCitizenName)))))))
     val lambdaCitizenFullName = FullNameT(packageCoord, Vector(mainName), lambdaCitizenName)
     val lambdaStruct = interner.intern(StructTT(lambdaCitizenFullName))
     val lambdaShareCoord = CoordT(ShareT, lambdaStruct)
-    val lambdaFuncName = interner.intern(FunctionNameT(lambdaFuncTemplateName, Vector(), Vector(lambdaShareCoord)))
-    val lambdaFuncFullName = FullNameT(packageCoord, Vector(mainName, lambdaCitizenTemplateName), lambdaFuncName)
+    val lambdaFuncName = interner.intern(LambdaCallFunctionNameT(lambdaFuncTemplateName, Vector(), Vector(lambdaShareCoord)))
+    val lambdaFuncFullName =
+      FullNameT(packageCoord, Vector(mainName, lambdaCitizenTemplateName), lambdaFuncName)
 
-    val lamFunc = coutputs.lookupFunction("__call")
+    val lamFunc = coutputs.lookupLambdaIn("main")
     lamFunc.header.fullName shouldEqual lambdaFuncFullName
   }
 

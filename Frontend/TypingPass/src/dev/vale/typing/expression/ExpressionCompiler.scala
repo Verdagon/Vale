@@ -703,6 +703,13 @@ class ExpressionCompiler(
               }
             }
 
+          expr2.result.kind match {
+            case ICitizenTT(fullName) => {
+              vassert(coutputs.getInstantiationBounds(fullName).nonEmpty)
+            }
+            case _ =>
+          }
+
           (expr2, returnsFromContainerExpr)
         }
         case FunctionSE(functionS @ FunctionS(range, name, _, _, _, _, _, _, _)) => {

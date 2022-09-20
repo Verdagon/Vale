@@ -9,7 +9,10 @@ import dev.vale.von.IVonData
 
 import scala.collection.immutable.List
 
-case class PanicException() extends Throwable { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+case class PanicException() extends Throwable {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
+  vpass()
+}
 case class ConstraintViolatedException(msg: String) extends Throwable {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   vpass()
