@@ -16,7 +16,7 @@ class PackTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    Collector.all(main, { case TupleTE(Vector(_, _, _), _) => }).size shouldEqual 1
+    Collector.all(main, { case TupleTE(Vector(_, _), _) => }).size shouldEqual 1
 
     compile.evalForKind(Vector()) match { case VonInt(5) => }
   }
