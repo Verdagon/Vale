@@ -345,7 +345,7 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
-      impl.subCitizen == structDef.instantiatedCitizen.fullName &&
+      impl.subCitizen.fullName == structDef.instantiatedCitizen.fullName &&
         impl.superInterface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
@@ -376,7 +376,7 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
-      impl.subCitizen == structDef.instantiatedCitizen.fullName &&
+      impl.subCitizen.fullName == structDef.instantiatedCitizen.fullName &&
         impl.superInterface == interfaceDef.instantiatedCitizen.fullName
     }))
   }
@@ -646,7 +646,7 @@ class CompilerTests extends FunSuite with Matchers {
     up.result.reference.kind match { case InterfaceTT(FullNameT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Car")), Vector()))) => vassert(x.isTest) }
 
     val impl = coutputs.lookupEdge(implName)
-    vassert(impl.subCitizen == up.innerExpr.result.reference.kind.expectCitizen().fullName)
+    vassert(impl.subCitizen.fullName == up.innerExpr.result.reference.kind.expectCitizen().fullName)
     vassert(impl.superInterface == up.result.reference.kind.expectCitizen().fullName)
 
 //    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
@@ -1516,30 +1516,6 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.functions.collectFirst({
       case FunctionT(header @ functionName("doThing"), _, _, _) if header.getAbstractInterface != None => true
     }).get
-  }
-
-  test("Test interface default generic argument in type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |sealed interface MyInterface<K Ref, H Int = 5> { }
-        |struct MyStruct {
-        |  x MyInterface<bool>;
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val moo = coutputs.lookupStruct("MyStruct")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
-    tyype match {
-      case CoordT(
-      OwnT,
-      InterfaceTT(
-      FullNameT(_,_,
-      InterfaceNameT(
-      InterfaceTemplateNameT(StrI("MyInterface")),
-      Vector(
-      CoordTemplata(CoordT(ShareT,BoolT())),
-      IntegerTemplata(5)))))) =>
-    }
   }
 
   test("Test struct default generic argument in type") {

@@ -13,7 +13,7 @@ where func drop(T)void;
 
 func drop<T>(self XSome<T>) void
 where func drop(T)void {
-  [_] = self;
+  [unused] = self;
 }
 
 abstract func getOr<T>(virtual opt &XOpt<T>, default &T) &T;

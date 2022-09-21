@@ -75,14 +75,14 @@ class EdgeCompiler(
                     abstractIndex)
                 abstractFunctionPrototype.fullName -> overrride
               })
-            val overridingCitizenFullName = overridingImpl.subCitizen.fullName
-            vassert(coutputs.getInstantiationBounds(overridingCitizenFullName).nonEmpty)
+            val overridingCitizen = overridingImpl.subCitizen
+            vassert(coutputs.getInstantiationBounds(overridingCitizen.fullName).nonEmpty)
             val superInterfaceFullName = overridingImpl.superInterface.fullName
             vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
             val edge =
               EdgeT(
                 overridingImpl.instantiatedFullName,
-                overridingCitizenFullName,
+                overridingCitizen,
                 overridingImpl.superInterface.fullName,
                 overridingImpl.runeToFuncBound,
                 overridingImpl.runeToImplBound,

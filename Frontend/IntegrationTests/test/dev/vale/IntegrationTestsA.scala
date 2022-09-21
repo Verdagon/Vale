@@ -247,21 +247,6 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(6) => }
   }
 
-  test("Test overload set") {
-    val compile =
-      RunCompilation.test(
-        """
-          |import array.each.*;
-          |func myfunc(i int) { }
-          |exported func main() int {
-          |  mylist = [#][1, 3, 3, 7];
-          |  mylist.each(myfunc);
-          |  42
-          |}
-          |""".stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-
 
   test("Test block") {
     val compile = RunCompilation.test("exported func main() int {true; 200; return 300;}")
@@ -384,12 +369,6 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
   test("set swapping locals") {
     val compile = RunCompilation.test(Tests.loadExpected("programs/mutswaplocals.vale"))
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-
-  test("imm tuple access") {
-    vfail() // these tuples are actually mutable
-    val compile = RunCompilation.test(Tests.loadExpected("programs/tuples/immtupleaccess.vale"))
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
@@ -753,18 +732,10 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val doIt = coutputs.lookupFunction("doIt")
     Collector.only(doIt, {
-      case UpcastTE(_, _, null) =>
+      case UpcastTE(_, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
-  }
-
-  test("Map function") {
-    val compile = RunCompilation.test(
-        Tests.loadExpected("programs/genericvirtuals/mapFunc.vale"))
-    compile.expectCompilerOutputs()
-
-    compile.evalForKind(Vector()) match { case VonBool(true) => }
   }
 
   test("Test shaking") {
@@ -816,19 +787,6 @@ class IntegrationTestsA extends FunSuite with Matchers {
     val coutputs = compile.getCompilerOutputs()
 
     compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-
-  test("Test returning empty seq") {
-    val compile = RunCompilation.test(
-      """
-        |export () as Tup0;
-        |exported func main() () {
-        |  return ();
-        |}
-        |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-
-    compile.run(Vector())
   }
 
   test("Truncate i64 to i32") {
@@ -976,32 +934,13 @@ class IntegrationTestsA extends FunSuite with Matchers {
     rsa.elementType.kind shouldEqual IntH.i32
   }
 
-  test("Readwrite thing") {
-    val compile = RunCompilation.test(
-      """
-        |func each<E, F>(func F) void
-        |where func(&F, &E)void {
-        |}
-        |
-        |struct PageMember { x int; }
-        |struct SomeMutableThing { x int; }
-        |
-        |exported func main() {
-        |  someMutableThing = SomeMutableThing(7);
-        |  each<PageMember>((a &PageMember) => { someMutableThing.x; a.x; });
-        |}
-        |
-        |""".stripMargin)
-    compile.evalForKind(Vector())
-  }
-
   test("Call borrow parameter with shared reference") {
     val compile = RunCompilation.test(
       """
-        |func get<T>(a &T) &T { return a; }
+        |func bork<T>(a &T) &T { return a; }
         |
         |exported func main() int {
-        |  return get(6);
+        |  return bork(6);
         |}
       """.stripMargin)
 

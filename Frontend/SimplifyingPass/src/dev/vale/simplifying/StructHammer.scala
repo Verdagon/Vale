@@ -226,7 +226,7 @@ class StructHammer(
       structRefH: StructRefH,
       structTT: StructTT):
   (Vector[EdgeH]) = {
-    val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.subCitizen == structTT.fullName)
+    val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.subCitizen.fullName == structTT.fullName)
     translateEdgesForStruct(hinputs, hamuts, structRefH, edges2.toVector)
   }
 

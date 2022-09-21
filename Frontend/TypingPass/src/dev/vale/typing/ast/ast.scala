@@ -151,7 +151,7 @@ case class EdgeT(
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   edgeFullName: FullNameT[IImplNameT],
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
-  subCitizen: FullNameT[ICitizenNameT],
+  subCitizen: ICitizenTT,
   // The typing pass keys this by placeholdered name, and the monomorphizer keys this by non-placeholdered names
   superInterface: FullNameT[IInterfaceNameT],
   // This is similar to FunctionT.runeToFuncBound

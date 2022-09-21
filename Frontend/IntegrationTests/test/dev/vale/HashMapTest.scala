@@ -208,7 +208,9 @@ class HashMapTest extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(111) => }
   }
 
-  test("Substitutes bounds for things accessed from dots") {
+  test("Gathers/substitutes bounds for structs inside things accessed from dots") {
+    // See SBITAFD, we had a problem where we didn't register coutputs for new instantiations that
+    // come from substituting existing ones.
 
     val compile = RunCompilation.test(
         """
@@ -249,14 +251,49 @@ class HashMapTest extends FunSuite with Matchers {
         """.stripMargin, false)
 
     compile.evalForKind(Vector()) match { case VonInt(1337) => }
+  }
 
-    vimpl() // explain
+  test("Gathers/substitutes bounds for interfaces inside things accessed from dots") {
+    // See SBITAFD, we had a problem where we didn't register coutputs for new instantiations that
+    // come from substituting existing ones.
 
-    vimpl() // rename test
+    val compile = RunCompilation.test(
+      """
+        |import v.builtins.arith.*;
+        |
+        |extern func __vbi_panic() __Never;
+        |
+        |extern("vale_runtime_sized_array_len")
+        |func len<M, E>(arr &[]<M>E) int;
+        |
+        |extern("vale_runtime_sized_array_mut_new")
+        |func Array<M Mutability, E Ref>(size int) []<M>E
+        |where M = mut;
+        |
+        |func __pretend<T>() T { __vbi_panic() }
+        |
+        |#!DeriveStructDrop
+        |interface HashMapNode<K Ref imm> { }
+        |
+        |#!DeriveStructDrop
+        |struct HashMap<K Ref imm> {
+        |  table! Array<mut, HashMapNode<K>>;
+        |}
+        |
+        |func keys<K Ref imm>(self &HashMap<K>) {
+        |  self.table.len();
+        |}
+        |
+        |exported func main() int {
+        |  m = HashMap<int>([]HashMapNode<int>(0));
+        |  m.keys();
+        |  [arr] = m;
+        |  [] = arr;
+        |  return 1337;
+        |}
+        """.stripMargin, false)
 
-    vimpl() // test for interfaces, ssas, rsas
-
-    vimpl() // take out GSFRTE map call hack, and figure out whether we really should assert there
+    compile.evalForKind(Vector()) match { case VonInt(1337) => }
   }
 
   test("Hash map values") {

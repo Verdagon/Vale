@@ -898,6 +898,46 @@ exported func main() int {
 When we instantiate `moo`, we're given 
 
 
+# Substitute Bounds In Things Accessed From Dots (SBITAFD)
+
+When we access something with a dot, we do a substitution so that we know what it is in terms of the current denizen's placeholders. For example, in:
+
+```
+#!DeriveStructDrop
+struct HashMapNode<X Ref imm> {
+  key X;
+}
+
+#!DeriveStructDrop
+struct HashMap<T Ref imm> {
+  table! Array<mut, HashMapNode<T>>;
+}
+
+func keys<K Ref imm>(self &HashMap<K>) {
+  self.table.len();
+}
+
+exported func main() int {
+  m = HashMap<int>([]HashMapNode<int>(0));
+  m.keys();
+  [arr] = m;
+  [] = arr;
+  return 1337;
+}
+```
+
+in `keys`, when we do `self.table`, that's accessing a
+
+`Array<mut, HashMapNode<HashMap$T>>` and turning it into a
+
+`Array<mut, HashMapNode<keys$K>>`. It's rephrasing it in more familiar terms, in other words. This is "substitution" and happens inside substituter currently.
+
+
+Every instantiation (such as `HashMapNode<HashMap$T>`) has some instantiation bounds, registered with the coutputs. This also means that `HashMapNode<keys$K>` needs some instantiation bounds registered, because it is also an instantiation.
+
+This means that we need to register some new instantiation bounds when we turn the `HashMapNode<HashMap$T>` into the new `HashMapNode<keys$K>`. We do that in the substituter.
+
+
 # Overrides Need Bound Information From Structs (ONBIFS)
 
 This is a special case of NBIFPR, where an abstract function is trying to resolve an override which has some requirements.

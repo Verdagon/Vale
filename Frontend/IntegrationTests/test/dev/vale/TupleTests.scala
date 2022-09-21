@@ -19,17 +19,6 @@ class TupleTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Simple tuple with one int") {
-    val compile = RunCompilation.test( "exported func main() int { return (9,).0; }")
-
-    val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("main").header.returnType.kind shouldEqual IntT.i32
-    // Funny story, theres no such thing as a one element tuple! It becomes a one element array.
-    Collector.only(coutputs.lookupFunction("main"), { case TupleTE(_, _) => })
-
-    compile.evalForKind(Vector()) match { case VonInt(9) => }
-  }
-
   test("Tuple with two things") {
     val compile = RunCompilation.test( "exported func main() bool { return (9, true).1; }")
     compile.evalForKind(Vector()) match { case VonBool(true) => }
