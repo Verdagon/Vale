@@ -13,7 +13,7 @@ import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, UnsubstitutedCoordT}
 import dev.vale.typing.citizen.{IResolveOutcome, ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
-import dev.vale.typing.templata.ITemplata.{expectInteger, expectMutability, expectVariability}
+import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -346,6 +346,7 @@ object TemplataCompiler {
                 interner.intern(LambdaCitizenNameT(template))
               }
             })))
+    // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
       newStruct.fullName,
       substituteTemplatasInBounds(
@@ -370,13 +371,15 @@ object TemplataCompiler {
         packageCoord,
         initSteps,
         last match {
-          case ImplNameT(template, templateArgs) => {
+          case in @ ImplNameT(template, templateArgs, subCitizen) => {
             interner.intern(ImplNameT(
               template,
-              templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
+              templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions)),
+              expectKindTemplata(substituteTemplatasInKind(coutputs, interner, keywords, subCitizen, substitutions)).kind.expectCitizen()))
           }
           case other => vimpl(other)
         })
+    // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
       newImplFullName,
       substituteTemplatasInBounds(
@@ -427,17 +430,15 @@ object TemplataCompiler {
                   templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))))
               }
             })))
-    // GSFRTE
-    coutputs.getInstantiationBounds(newInterface.fullName).foreach(instantiationBounds => {
-      coutputs.addInstantiationBounds(
-        newInterface.fullName,
-        substituteTemplatasInBounds(
-          coutputs,
-          interner,
-          keywords,
-          substitutions,
-          instantiationBounds))
-    })
+    // See SBITAFD, we need to register bounds for these new instantiations.
+    coutputs.addInstantiationBounds(
+      newInterface.fullName,
+      substituteTemplatasInBounds(
+        coutputs,
+        interner,
+        keywords,
+        substitutions,
+        vassertSome(coutputs.getInstantiationBounds(interfaceTT.fullName))))
     newInterface
   }
 

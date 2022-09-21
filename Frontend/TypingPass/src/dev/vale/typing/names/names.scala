@@ -141,7 +141,7 @@ sealed trait IInterfaceNameT extends ICitizenNameT with ISubKindNameT with ISupe
   override def templateArgs: Vector[ITemplata[ITemplataType]]
 }
 sealed trait IImplTemplateNameT extends ITemplateNameT {
-  def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IImplNameT
+  def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]], subCitizen: ICitizenTT): IImplNameT
 }
 sealed trait IImplNameT extends IInstantiationNameT {
   def template: IImplTemplateNameT
@@ -153,19 +153,22 @@ case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationName
 }
 
 case class ImplTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplNameT = {
-    interner.intern(ImplNameT(this, templateArgs))
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]], subCitizen: ICitizenTT): ImplNameT = {
+    interner.intern(ImplNameT(this, templateArgs, subCitizen))
   }
 }
 case class ImplNameT(
   template: ImplTemplateNameT,
-  templateArgs: Vector[ITemplata[ITemplataType]]
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  // The monomorphizer wants this so it can know the struct type up-front before monomorphizing the
+  // whole impl, so it can hoist some bounds out of the struct, like NBIFP.
+  subCitizen: ICitizenTT
 ) extends IImplNameT {
 
 }
 
 case class ImplBoundTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ImplBoundNameT = {
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]], subCitizen: ICitizenTT): ImplBoundNameT = {
     interner.intern(ImplBoundNameT(this, templateArgs))
   }
 }
@@ -584,13 +587,14 @@ case class InterfaceTemplateNameT(
 case class AnonymousSubstructImplTemplateNameT(
   interface: IInterfaceTemplateNameT
 ) extends IImplTemplateNameT {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): IImplNameT = {
-    interner.intern(AnonymousSubstructImplNameT(this, templateArgs))
+  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]], subCitizen: ICitizenTT): IImplNameT = {
+    interner.intern(AnonymousSubstructImplNameT(this, templateArgs, subCitizen))
   }
 }
 case class AnonymousSubstructImplNameT(
   template: AnonymousSubstructImplTemplateNameT,
-  templateArgs: Vector[ITemplata[ITemplataType]]
+  templateArgs: Vector[ITemplata[ITemplataType]],
+  subCitizen: ICitizenTT
 ) extends IImplNameT
 
 

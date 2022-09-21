@@ -6,7 +6,7 @@ import dev.vale.typing.OverloadResolver.{InferFailure, SpecificParamDoesntSend}
 import dev.vale.typing.ast.{AsSubtypeTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionT, LocalLookupTE, PrototypeT, ReferenceMemberTypeT, SignatureT, SoftLoadTE, UnletTE, UpcastTE, referenceExprResultKind, referenceExprResultStructName}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.infer.OwnershipDidntMatch
-import dev.vale.typing.names.{FreeNameT, FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FullNameT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{CoordTemplata, IntegerTemplata, KindTemplata, MutabilityTemplata, functionName, simpleName}
 import dev.vale.typing.types.{BoolT, BorrowT, CoordT, ImmutableT, IntT, InterfaceTT, OwnT, PlaceholderT, RuntimeSizedArrayTT, ShareT, StructTT, VoidT}
 import dev.vale.{Collector, Err, Ok, PackageCoordinate, StrI, Tests, vassert, vassertOne, vfail, vimpl, vwat}
@@ -36,6 +36,15 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // in hashmap.vale, in innerRemove, change it to: [_, oldElement] = (set table[index] = None<HashMapNode<K, V>>()).get(); to see some sort of failure where an undercore will create a variable but it doesnt later get unstackified... as if its created but not added to the locals or something
 
+    // every time we do a templatas substitute, we do a substitutions for any of their bounds in the
+    // coutputs. that's likely really expensive.
+    // and it might be unnecessary? can the monomorphizer resolve those mappings themselves? perhaps
+    // there's some in-between where templar can track merely that a bound *was* satisfied, but not
+    // what satisfied it.
+    // would that be enough for e.g. cases, which bring in bounds from the kind they're matching?
+    // and parameters and stuff?
+    vimpl()
+
     // had a bug when as was defined like this:
     //   extern("vale_as_subtype")
     //   func as<SubKind Kind, SuperType Ref>(left SuperType) Result<SubType, SuperType>
@@ -46,7 +55,7 @@ class InProgressTests extends FunSuite with Matchers {
     //   implements(SubType, SuperType);
     // the definition assumed O was own, and the call inferred O to be borrow.
     // this cause some mayhem further down when a name didnt match.
-
+    vimpl()
 
 
     // is something like this possible?

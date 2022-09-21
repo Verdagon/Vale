@@ -43,7 +43,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     val launchGeneric = coutputs.lookupFunction("launchGeneric")
 
     val main = coutputs.lookupFunction("main")
-    Collector.all(main, { case UpcastTE(_, _, _, _) => }).size shouldEqual 0
+    Collector.all(main, { case UpcastTE(_, _, _) => }).size shouldEqual 0
     vimpl()
     //    Collector.all(main, {
     //      case FuncCallTE =>
@@ -268,6 +268,30 @@ class AfterRegionsTests extends FunSuite with Matchers {
       FullNameT(_,_,
       StructNameT(
       StructTemplateNameT(StrI("MyHashSet")),
+      Vector(
+      CoordTemplata(CoordT(ShareT,BoolT())),
+      IntegerTemplata(5)))))) =>
+    }
+  }
+
+  test("Test interface default generic argument in type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |sealed interface MyInterface<K Ref, H Int = 5> { }
+        |struct MyStruct {
+        |  x MyInterface<bool>;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val moo = coutputs.lookupStruct("MyStruct")
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
+    tyype match {
+      case CoordT(
+      OwnT,
+      InterfaceTT(
+      FullNameT(_,_,
+      InterfaceNameT(
+      InterfaceTemplateNameT(StrI("MyInterface")),
       Vector(
       CoordTemplata(CoordT(ShareT,BoolT())),
       IntegerTemplata(5)))))) =>

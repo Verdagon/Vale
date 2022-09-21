@@ -335,41 +335,6 @@ class VirtualTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
-  test("Upcasting in a generic function") {
-    // This is testing two things:
-    //  - Upcasting inside a generic function
-    //  - The return type's ownership is actually calculated from the parameter. This will
-    //    fail as long as we still have CoordT(Ownership, ITemplata[KindTemplataType])
-    //    because that ownership isn't a templata. The call site will correctly have that
-    //    ownership as borrow, but the definition will think it's an own, *not* a placeholder
-    //    or variable-thing or anything like that. So, when it gets to the monomorphizer, it
-    //    will actually make the wrong return type. I think the solution will be to make CoordT
-    //    contain a placeholder, and move O to be a generic param.
-    val compile = RunCompilation.test(
-      """
-        |func upcast<SuperKind Kind, SubType Ref>(left SubType) SuperType
-        |where O Ownership,
-        |  SubKind Kind,
-        |  SuperType Ref = Ref[O, SuperKind],
-        |  SubType Ref = Ref[O, SubKind],
-        |  implements(SubType, SuperType)
-        |{
-        |  left
-        |}
-        |
-        |sealed interface IShip  {}
-        |struct Serenity {}
-        |impl IShip for Serenity;
-        |
-        |exported func main() {
-        |  ship &IShip = upcast<IShip>(&Serenity());
-        |}
-        |
-        |""".stripMargin)
-
-    compile.evalForKind(Vector())
-  }
-
   test("Failed pointer downcast with as") {
     val compile = RunCompilation.test(
       Tests.loadExpected("programs/downcast/downcastPointerFailed.vale"))

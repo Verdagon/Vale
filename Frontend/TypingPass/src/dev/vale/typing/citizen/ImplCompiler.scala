@@ -267,7 +267,7 @@ class ImplCompiler(
 
 
     val templateArgs = implA.genericParams.map(_.rune.rune).map(inferences)
-    val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
+    val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs, subCitizen)
 
     val implInnerEnv =
       GeneralEnvironment.childOf(
@@ -349,10 +349,11 @@ class ImplCompiler(
 
   def assembleImplName(
     templateName: FullNameT[IImplTemplateNameT],
-    templateArgs: Vector[ITemplata[ITemplataType]]):
+    templateArgs: Vector[ITemplata[ITemplataType]],
+    subCitizen: ICitizenTT):
   FullNameT[IImplNameT] = {
     templateName.copy(
-      last = templateName.last.makeImplName(interner, templateArgs))
+      last = templateName.last.makeImplName(interner, templateArgs, subCitizen))
   }
 
   //    // First, figure out what citizen is implementing.
@@ -704,7 +705,7 @@ class ImplCompiler(
         val implTemplateFullName =
           implTemplata.env.fullName.addStep(
             interner.intern(ImplTemplateNameT(implTemplata.impl.range.begin)))
-        val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs)
+        val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs, subKindTT.expectCitizen())
         coutputs.addInstantiationBounds(instantiatedFullName, runeToSuppliedFunction)
         IsParent(implTemplata, conclusions, instantiatedFullName)
       }
