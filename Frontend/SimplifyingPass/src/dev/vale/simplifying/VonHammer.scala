@@ -1463,7 +1463,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                   .map(coord => vonifyTemplata(hinputs, hamuts, coord))
                   .toVector))))
       }
-      case AnonymousSubstructImplNameT(template, templateArgs) => {
+      case AnonymousSubstructImplNameT(template, templateArgs, subCitizen) => {
         VonObject(
           "AnonymousSubstructImplName",
           None,
@@ -1477,7 +1477,10 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
                 None,
                 templateArgs
                   .map(coord => vonifyTemplata(hinputs, hamuts, coord))
-                  .toVector))))
+                  .toVector)),
+            VonMember(
+              "subCitizen",
+              vonifyKind(typeHammer.translateKind(hinputs, hamuts, subCitizen)))))
       }
     }
   }

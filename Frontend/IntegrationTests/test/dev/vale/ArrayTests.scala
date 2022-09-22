@@ -310,7 +310,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -353,7 +353,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }
@@ -403,7 +403,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("Array")
     Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _, _) =>
+      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(3) => }

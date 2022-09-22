@@ -541,6 +541,7 @@ object DenizenMonomorphizer {
     dispatcherFullNameT,
     implPlaceholderToDispatcherPlaceholder,
     implPlaceholderToCasePlaceholder,
+    implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
     dispatcherRuneToFunctionBound,
     dispatcherRuneToImplBound,
     dispatcherCaseFullNameT,
@@ -614,19 +615,35 @@ object DenizenMonomorphizer {
         }
       })
 
-    val edgeDenizenBoundToDenizenCallerSuppliedThing = edgeMonomorphizer.denizenBoundToDenizenCallerSuppliedThing
+    val edgeDenizenBoundToDenizenCallerSuppliedThing =
+      edgeMonomorphizer.denizenBoundToDenizenCallerSuppliedThing
 
     // strt here
     // need to substitute things in edgeDenizenBoundToDenizenCallerSuppliedThing
     // according to the substitutions in implPlaceholderToCasePlaceholder
+    // or we need something else from templar perhaps
 
     val caseFunctionBoundToIncomingPrototype =
       dispatcherFunctionBoundToIncomingPrototype ++
+        // We're using the supplied prototypes from the impl, but we need to rephrase the keys
+        // of this map to be in terms of the override dispatcher function's placeholders, not the
+        // original impl's placeholders. DO NOT SUBMIT explain this more holistically here and
+        // somewhere else too
         edgeDenizenBoundToDenizenCallerSuppliedThing.functionBoundToCallerSuppliedPrototype
+          .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) => {
+            vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
+          }})
     val caseImplBoundToIncomingImpl =
       dispatcherImplBoundToIncomingImpl ++
         edgeDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedImpl
+          .map({ case (key, value) => {
+            vimpl()
+          }})
 
+    val caseDenizenBoundToDenizenCallerSuppliedThing =
+      DenizenBoundToDenizenCallerSuppliedThing(
+        caseFunctionBoundToIncomingPrototype,
+        caseImplBoundToIncomingImpl)
 
     // we should pull in all the impl's placeholders
     // override should have info: what extra args there are, and what index from the impl full name
@@ -664,9 +681,7 @@ object DenizenMonomorphizer {
         dispatcherCaseFullNameT,
         dispatcherCaseFullNameT,
         placeholderFullNameToTemplata.toMap,
-        DenizenBoundToDenizenCallerSuppliedThing(
-          caseFunctionBoundToIncomingPrototype,
-          caseImplBoundToIncomingImpl))
+        caseDenizenBoundToDenizenCallerSuppliedThing)
 
 
     // right here we're calling it from the perspective of the abstract function
@@ -681,7 +696,7 @@ object DenizenMonomorphizer {
 
     val overrride =
       OverrideT(
-        dispatcherFullNameT, Vector(), Vector(), Map(), Map(), dispatcherCaseFullNameT, overridePrototype)
+        dispatcherFullNameT, Vector(), Vector(), Map(), Map(), Map(), dispatcherCaseFullNameT, overridePrototype)
     monouts.addMethodToVTable(implFullName, superInterfaceFullName, abstractFuncPrototype, overrride)
   }
 

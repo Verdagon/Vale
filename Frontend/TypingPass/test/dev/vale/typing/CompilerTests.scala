@@ -1741,8 +1741,7 @@ class CompilerTests extends FunSuite with Matchers {
         |}
         |
         |exported func main() {
-        |  ship IShip = Raza(42);
-        |  doUpcast(ship);
+        |  doUpcast(Raza(42));
         |}
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()

@@ -170,7 +170,7 @@ class ClosureTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
       case ConstructTE(
-        StructTT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector())),LambdaCitizenNameT(_))), _, _, _) =>
+        StructTT(FullNameT(_, Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"), _),Vector(),Vector())),LambdaCitizenNameT(_))), _, _) =>
     })
 
     // Make sure we call the function somewhere

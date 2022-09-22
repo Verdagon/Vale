@@ -300,7 +300,8 @@ class ImplCompiler(
           superInterfaceTemplateFullName,
           runeToNeededFunctionBound,
           runeToNeededImplBound,
-          runeIndexToIndependence.toArray))
+          runeIndexToIndependence.toArray,
+          reachableBoundsFromSubCitizen.map(_.prototype)))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateFullName, implInnerEnv)

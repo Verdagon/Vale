@@ -32,7 +32,7 @@ case class CompleteCompilerSolve(
   steps: Stream[Step[IRulexSR, IRuneS, ITemplata[ITemplataType]]],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
   runeToBound: InstantiationBoundArguments,
-  reachableBounds: Array[ITemplata[ITemplataType]]
+  reachableBounds: Array[PrototypeTemplata]
 ) extends ICompilerSolverOutcome {
   override def getOrDie(): Map[IRuneS, ITemplata[ITemplataType]] = conclusions
 }
@@ -266,7 +266,7 @@ class InferCompiler(
     ranges: List[RangeS],
     rules: Array[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-    reachableBounds: Array[ITemplata[ITemplataType]],
+    reachableBounds: Array[PrototypeTemplata],
     isRootSolve: Boolean):
   Result[Option[InstantiationBoundArguments], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // This is a temporary env which contains all of our conclusions.

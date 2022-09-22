@@ -407,6 +407,19 @@ class EdgeCompiler(
       implRuneToImplPlaceholderAndCasePlaceholder
         .map({ case (implRune, implPlaceholder, casePlaceholder) => (implPlaceholder, casePlaceholder) })
 
+    val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
+      impl.reachableBoundsFromSubCitizen
+        .map({
+          case proto @ PrototypeT(FullNameT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
+            val funcBoundFullName = FullNameT(packageCoord, initSteps, fb)
+            val casePlaceholderedReachableFuncBoundFullName =
+              TemplataCompiler.substituteTemplatasInFunctionBoundFullName(
+                coutputs, interner, keywords, implPlaceholderToDispatcherPlaceholder, funcBoundFullName)
+            funcBoundFullName -> casePlaceholderedReachableFuncBoundFullName
+          }
+          case other => vimpl(other)
+        }).toMap
+
 //    val dispatcherPlaceholders = implPlaceholderToDispatcherPlaceholder.map(_._2)
 //    val dispatcherParams =
 //      originFunctionTemplata.function.params.map(_.pattern.coordRune).map(vassertSome(_)).map(_.rune)
@@ -461,6 +474,7 @@ class EdgeCompiler(
         coutputs,
         List(range),
         dispatcherInnerEnv,
+        // risky combination of different denizens runes (RCDDR) DO NOT SUBMIT
         (partialCaseConclusionsFromSuperInterface ++ implRuneToCasePlaceholder.toMap)
           .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }).toVector,
         impl.templata,
@@ -536,6 +550,7 @@ class EdgeCompiler(
       dispatcherFullName,
       implPlaceholderToDispatcherPlaceholder.toVector,
       implPlaceholderToCasePlaceholder.toVector,
+      implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
       dispatcherRuneToFunctionBound,
       dispatcherRuneToImplBound,
       dispatcherCaseEnv.fullName,

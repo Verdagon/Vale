@@ -172,7 +172,7 @@ class FunctionCompilerMiddleLayer(
     val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     coutputs.lookupFunction(needleSignature) match {
-      case Some(FunctionT(header, _, _)) => {
+      case Some(FunctionT(header, _, _, _)) => {
         (header)
       }
       case None => {

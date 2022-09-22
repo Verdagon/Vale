@@ -46,7 +46,9 @@ case class ImplT(
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
 
-  runeIndexToIndependence: Array[Boolean]
+  runeIndexToIndependence: Array[Boolean],
+
+  reachableBoundsFromSubCitizen: Array[PrototypeT]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -122,6 +124,9 @@ case class OverrideT(
 
   implPlaceholderToDispatcherPlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+
+  // DO NOT SUBMIT comment
+  implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[FullNameT[FunctionBoundNameT], FullNameT[FunctionBoundNameT]],
 
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.

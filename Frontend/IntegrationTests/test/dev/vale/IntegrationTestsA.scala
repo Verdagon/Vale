@@ -637,7 +637,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
   test("Template overrides are stamped") {
     val compile = RunCompilation.test(
-        Tests.loadExpected("programs/genericvirtuals/templatedoption.vale"))
+        Tests.loadExpected("programs/genericvirtuals/templatedoption.vale"), false)
     compile.evalForKind(Vector()) match { case VonInt(1) => }
   }
 

@@ -443,7 +443,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       }
     }
     Collector.all(main, {
-      case UpcastTE(_, _, _, _) =>
+      case UpcastTE(_, _, _) =>
     }).size shouldEqual 2
   }
 
@@ -473,7 +473,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
           UpcastTE(
             _,
             InterfaceTT(FullNameT(_,_,InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))))))),
-            _, _))) =>
+            _))) =>
     }
   }
 

@@ -1,3 +1,4 @@
+import v.builtins.drop.*;
 
 sealed interface MyOption<T Ref> { }
 
