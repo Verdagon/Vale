@@ -347,7 +347,7 @@ case class FunctionBoundTemplateNameT(
     case _ =>
   }
   vpass()
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): IFunctionNameT = {
+  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordT]): FunctionBoundNameT = {
     interner.intern(FunctionBoundNameT(this, templateArgs, params))
   }
 }

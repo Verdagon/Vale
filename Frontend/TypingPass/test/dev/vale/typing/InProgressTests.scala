@@ -36,6 +36,8 @@ class InProgressTests extends FunSuite with Matchers {
 
     vimpl() // in hashmap.vale, in innerRemove, change it to: [_, oldElement] = (set table[index] = None<HashMapNode<K, V>>()).get(); to see some sort of failure where an undercore will create a variable but it doesnt later get unstackified... as if its created but not added to the locals or something
 
+    vimpl() // search for RCDDR
+
     // every time we do a templatas substitute, we do a substitutions for any of their bounds in the
     // coutputs. that's likely really expensive.
     // and it might be unnecessary? can the monomorphizer resolve those mappings themselves? perhaps

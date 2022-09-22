@@ -472,7 +472,7 @@ object TemplataCompiler {
     }
   }
 
-  private def substituteTemplatasInPrototype(
+  def substituteTemplatasInPrototype(
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
@@ -500,6 +500,26 @@ object TemplataCompiler {
     prototype
   }
 
+  def substituteTemplatasInFunctionBoundFullName(
+    coutputs: CompilerOutputs,
+    interner: Interner,
+    keywords: Keywords,
+    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    original: FullNameT[FunctionBoundNameT]):
+  FullNameT[FunctionBoundNameT] = {
+    val FullNameT(packageCoord, initSteps, funcName) = original
+    val substitutedTemplateArgs = funcName.templateArgs.map(substituteTemplatasInTemplata(coutputs, interner, keywords, _, substitutions))
+    val substitutedParams = funcName.parameters.map(substituteTemplatasInCoord(coutputs, interner, keywords, _, substitutions))
+//    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, returnType, substitutions)
+    val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
+    val newFullName = FullNameT(packageCoord, initSteps, substitutedFuncName)
+
+    // It's a function bound, it has no function bounds of its own.
+    coutputs.addInstantiationBounds(newFullName, InstantiationBoundArguments(Map(), Map()))
+
+    newFullName
+  }
+
   trait IPlaceholderSubstituter {
     def substituteForCoord(coutputs: CompilerOutputs, coordT: UnsubstitutedCoordT): CoordT = {
       substituteForCoord(coutputs, coordT.unsubstitutedCoord)
@@ -507,6 +527,7 @@ object TemplataCompiler {
     def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT
     def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coutputs: CompilerOutputs, coordT: ITemplata[ITemplataType]): ITemplata[ITemplataType]
+    def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT
   }
   def getPlaceholderSubstituter(
     interner: Interner,
@@ -579,6 +600,9 @@ object TemplataCompiler {
       override def substituteForTemplata(coutputs: CompilerOutputs, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
         TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords, templata, substitutions)
       }
+      override def substituteForPrototype(coutputs: CompilerOutputs, proto: PrototypeT): PrototypeT = {
+        TemplataCompiler.substituteTemplatasInPrototype(coutputs, interner, keywords, substitutions, proto)
+      }
     }
   }
 
@@ -611,7 +635,7 @@ object TemplataCompiler {
     keywords: Keywords,
     coutputs: CompilerOutputs,
     templata: ITemplata[ITemplataType]):
-  Vector[ITemplata[ITemplataType]] = {
+  Vector[PrototypeTemplata] = {
     val maybeMentionedKind =
       templata match {
         case KindTemplata(kind) => Some(kind)
@@ -627,10 +651,8 @@ object TemplataCompiler {
           innerEnv
             .lookupAllWithImpreciseName(interner.intern(PrototypeNameS()), Set(TemplataLookupContext))
             .map({
-              case pt @ PrototypeTemplata(_, _) => {
-                val unsubstituted = pt
-                val substituted = substituter.substituteForTemplata(coutputs, unsubstituted)
-                substituted
+              case PrototypeTemplata(range, prototype) => {
+                PrototypeTemplata(range, substituter.substituteForPrototype(coutputs, prototype))
               }
               case other => vwat(other)
             })

@@ -43,6 +43,7 @@ class FunctionHammer(
         val FunctionT(
             header @ FunctionHeaderT(humanName, attrs2, params2, returnType2, _),
             _,
+            _,
             body) = function2;
 
         val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, header.toPrototype);
