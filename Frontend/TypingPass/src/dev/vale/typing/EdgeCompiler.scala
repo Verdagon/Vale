@@ -421,7 +421,7 @@ class EdgeCompiler(
                 coutputs,
                 interner,
                 keywords,
-                implPlaceholderToDispatcherPlaceholder,
+                implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder,
                 // These are bounds we're bringing in from the sub citizen.
                 InheritBoundsFromTypeItself,
                 funcBoundFullName)

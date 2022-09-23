@@ -34,6 +34,7 @@ case class IsntParent(
 class ImplCompiler(
     opts: TypingPassOptions,
     interner: Interner,
+    nameTranslator: NameTranslator,
     structCompiler: StructCompiler,
     templataCompiler: TemplataCompiler,
     inferCompiler: InferCompiler) {
@@ -62,7 +63,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(range.begin)))
+      parentEnv.fullName.addStep(nameTranslator.translateImplName(name))
 
     val outerEnv =
       CitizenEnvironment(
@@ -128,7 +129,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(range.begin)))
+      parentEnv.fullName.addStep(nameTranslator.translateImplName(name))
 
     val outerEnv =
       CitizenEnvironment(
@@ -223,7 +224,8 @@ class ImplCompiler(
     val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(interner.intern(ImplTemplateNameT(implA.range.begin)))
+      parentEnv.fullName.addStep(
+        nameTranslator.translateImplName(implA.name))
 
     val implOuterEnv =
       CitizenEnvironment(
@@ -705,7 +707,7 @@ class ImplCompiler(
           implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateFullName =
           implTemplata.env.fullName.addStep(
-            interner.intern(ImplTemplateNameT(implTemplata.impl.range.begin)))
+            nameTranslator.translateImplName(implTemplata.impl.name))
         val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs, subKindTT.expectCitizen())
         coutputs.addInstantiationBounds(instantiatedFullName, runeToSuppliedFunction)
         IsParent(implTemplata, conclusions, instantiatedFullName)

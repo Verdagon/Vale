@@ -556,7 +556,7 @@ class Compiler(
       })
 
   val implCompiler: ImplCompiler =
-    new ImplCompiler(opts, interner, structCompiler, templataCompiler, inferCompiler)
+    new ImplCompiler(opts, interner, nameTranslator, structCompiler, templataCompiler, inferCompiler)
 
   val functionCompiler: FunctionCompiler =
     new FunctionCompiler(opts, interner, keywords, nameTranslator, templataCompiler, inferCompiler, convertHelper, structCompiler,

@@ -628,9 +628,9 @@ object DenizenMonomorphizer {
         // original impl's placeholders. DO NOT SUBMIT explain this more holistically here and
         // somewhere else too
         edgeDenizenBoundToDenizenCallerSuppliedThing.functionBoundToCallerSuppliedPrototype
-          .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) => {
+          .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) =>
             vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
-          }})
+          })
     val caseImplBoundToIncomingImpl =
       dispatcherImplBoundToIncomingImpl ++
         edgeDenizenBoundToDenizenCallerSuppliedThing.implBoundToCallerSuppliedImpl
@@ -712,7 +712,9 @@ object DenizenMonomorphizer {
       vassertOne(
         hinputs.interfaceToSubCitizenToEdge
           .flatMap(_._2.values)
-          .filter(edge => TemplataCompiler.getImplTemplate(edge.edgeFullName) == implTemplateFullName))
+          .filter(edge => {
+            TemplataCompiler.getImplTemplate(edge.edgeFullName) == implTemplateFullName
+          }))
 
 
     val subCitizenT = implDefinition.subCitizen
@@ -1999,6 +2001,7 @@ class DenizenMonomorphizer(
       case IteratorNameT(range) => name
       case IterationOptionNameT(range) => name
       case MagicParamNameT(codeLocation2) => name
+      case SelfNameT() => name
       case other => vimpl(other)
     }
   }
@@ -2013,15 +2016,19 @@ class DenizenMonomorphizer(
           templateArgs.map(translateTemplata),
           params.map(translateCoord)))
       }
+      case ForwarderFunctionNameT(ForwarderFunctionTemplateNameT(innerTemplate, index), inner) => {
+        interner.intern(ForwarderFunctionNameT(
+          interner.intern(ForwarderFunctionTemplateNameT(
+            // We dont translate these, as these are what uniquely identify generics, and we need that
+            // information later to map this back to its originating generic.
+            // See DMPOGN for a more detailed explanation. This oddity is really tricky.
+            innerTemplate,
+            index)),
+          translateFunctionName(inner)))
+      }
       case ExternFunctionNameT(humanName, parameters) => {
         interner.intern(ExternFunctionNameT(humanName, parameters.map(translateCoord)))
       }
-      //      case FreeNameT(FreeTemplateNameT(codeLoc), templateArgs, coord) => {
-      //        interner.intern(FreeNameT(
-      //          interner.intern(FreeTemplateNameT(codeLoc)),
-      //          templateArgs.map(translateTemplata),
-      //          translateCoord(coord)))
-      //      }
       case FunctionBoundNameT(FunctionBoundTemplateNameT(humanName, codeLocation), templateArgs, params) => {
         interner.intern(FunctionBoundNameT(
           interner.intern(FunctionBoundTemplateNameT(humanName, codeLocation)),
@@ -2069,6 +2076,18 @@ class DenizenMonomorphizer(
         interner.intern(ImplBoundNameT(
           interner.intern(ImplBoundTemplateNameT(codeLocationS)),
           templateArgs.map(translateTemplata)))
+      }
+      case AnonymousSubstructImplNameT(AnonymousSubstructImplTemplateNameT(interface), templateArgs, subCitizen) => {
+        interner.intern(AnonymousSubstructImplNameT(
+          interner.intern(AnonymousSubstructImplTemplateNameT(
+            // We dont translate these, as these are what uniquely identify generics, and we need that
+            // information later to map this back to its originating generic.
+            // See DMPOGN for a more detailed explanation. This oddity is really tricky.
+            interface)),
+          templateArgs.map(translateTemplata),
+          translateCitizen(
+            subCitizen,
+            hinputs.getInstantiationBoundArgs(subCitizen.fullName))))
       }
     }
   }
@@ -2127,6 +2146,14 @@ class DenizenMonomorphizer(
           interner.intern(StructTemplateNameT(humanName)),
           templateArgs.map(translateTemplata)))
       }
+      case ForwarderFunctionTemplateNameT(inner, index) => {
+        interner.intern(ForwarderFunctionTemplateNameT(
+          // We dont translate these, as these are what uniquely identify generics, and we need that
+          // information later to map this back to its originating generic.
+          // See DMPOGN for a more detailed explanation. This oddity is really tricky.
+          inner,
+          index))
+      }
       case AnonymousSubstructConstructorTemplateNameT(substructTemplateName) => {
         interner.intern(AnonymousSubstructConstructorTemplateNameT(
           translateName(substructTemplateName) match {
@@ -2134,12 +2161,6 @@ class DenizenMonomorphizer(
             case other => vwat(other)
           }))
       }
-      //      case FunctionNameT(FunctionTemplateNameT(humanName, codeLoc), templateArgs, params) => {
-      //        interner.intern(FunctionNameT(
-      //          interner.intern(FunctionTemplateNameT(humanName, codeLoc)),
-      //          templateArgs.map(translateTemplata),
-      //          params.map(translateCoord)))
-      //      }
       case FunctionTemplateNameT(humanName, codeLoc) => name
       case StructTemplateNameT(humanName) => name
       case LambdaCitizenTemplateNameT(codeLoc) => name
