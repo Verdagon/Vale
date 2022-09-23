@@ -173,7 +173,7 @@ case class CompilerOutputs() {
       case None =>
     }
     instantiationFullName match {
-      case FullNameT(_,Vector(),AnonymousSubstructNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))),Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(AnonymousSubstructConstructorTemplateNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))))),PlaceholderNameT(PlaceholderTemplateNameT(0))))))))) => {
+      case FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("MyList")),Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(StrI("MyList"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0))))))))) => {
         vpass()
       }
       case _ =>

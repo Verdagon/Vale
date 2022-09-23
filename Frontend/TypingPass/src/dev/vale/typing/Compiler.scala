@@ -257,7 +257,7 @@ class Compiler(
             case p @ PlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, p, false)
             case contentsRuntimeSizedArrayTT(_, _) => false
             case OverloadSetT(_, _) => false
-            case NeverT(fromBreak) => vimpl()
+            case NeverT(fromBreak) => true
             case contentsStaticSizedArrayTT(_, _, _, _) => false
             case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
             case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
@@ -1196,6 +1196,12 @@ class Compiler(
         exportedKind match {
           case sr@StructTT(_) => {
             val structDef = coutputs.lookupStruct(sr)
+
+            val substituter =
+              TemplataCompiler.getPlaceholderSubstituter(
+                interner, keywords, sr.fullName,
+                InheritBoundsFromTypeItself)
+
             structDef.members.foreach({
               case VariadicStructMemberT(name, tyype) => {
                 vimpl()
@@ -1203,7 +1209,9 @@ class Compiler(
               case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
                 vimpl()
               }
-              case NormalStructMemberT(_, _, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(_, memberKind)))) => {
+              case NormalStructMemberT(_, _, ReferenceMemberTypeT(UnsubstitutedCoordT(unsubstitutedMemberCoord))) => {
+                val memberCoord = substituter.substituteForCoord(coutputs, unsubstitutedMemberCoord)
+                val memberKind = memberCoord.kind
                 if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {
                   throw CompileErrorExceptionT(
                     vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
@@ -1288,6 +1296,7 @@ object Compiler {
     kind match {
       case VoidT() | IntT(_) | BoolT() | StrT() | NeverT(_) | FloatT() => true
 //      case TupleTT(_, understruct) => isPrimitive(understruct)
+      case PlaceholderT(_) => false
       case StructTT(_) => false
       case InterfaceTT(_) => false
       case contentsStaticSizedArrayTT(_, _, _, _) => false

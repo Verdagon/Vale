@@ -48,6 +48,10 @@ case class ImplT(
 
   runeIndexToIndependence: Array[Boolean],
 
+  // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
+  // citizen, and a case block from its receiving kind.
+  // We'll need to remember those, so the monomorphizer can do its thing.
+  // See TIBANFC for more.
   reachableBoundsFromSubCitizen: Array[PrototypeT]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
@@ -125,7 +129,8 @@ case class OverrideT(
   implPlaceholderToDispatcherPlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
 
-  // DO NOT SUBMIT comment
+  // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
+  // TIBANFC.
   implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[FullNameT[FunctionBoundNameT], FullNameT[FunctionBoundNameT]],
 
   // Any FunctionT has a runeToFunctionBound, which is a map of the function's rune to its required

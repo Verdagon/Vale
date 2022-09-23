@@ -405,7 +405,14 @@ class OverloadResolver(
         }
       }
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
-        val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, prototype.fullName)
+        // We get here if we're considering a function that's being passed in as a bound.
+        vcurious(prototype.fullName.last.templateArgs.isEmpty)
+        val substituter =
+          TemplataCompiler.getPlaceholderSubstituter(
+            interner, keywords, prototype.fullName,
+            // These types are phrased in terms of the calling denizen already, so we can grab their
+            // bounds.
+            InheritBoundsFromTypeItself)
         val params = prototype.fullName.last.parameters.map(paramType => {
           substituter.substituteForCoord(coutputs, paramType)
         })

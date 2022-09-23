@@ -611,6 +611,8 @@ class CompilerRuleSolver(
         val resultingIsaTemplata =
           if (subCoord == superCoord) {
             delegate.assembleImpl(env, range, subCoord.kind, superCoord.kind)
+          } else if (subCoord.kind match { case NeverT(_) => true case _ => false }) {
+            delegate.assembleImpl(env, range, subCoord.kind, superCoord.kind)
           } else {
             val subKind =
               subCoord.kind match {

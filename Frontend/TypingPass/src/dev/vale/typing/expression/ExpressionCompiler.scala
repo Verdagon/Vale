@@ -286,7 +286,9 @@ class ExpressionCompiler(
   (ReferenceExpressionTE) = {
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
     val substituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, closureStructRef.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner, keywords, closureStructRef.fullName,
+        InheritBoundsFromTypeItself)
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
       closureStructDef.members.map({
@@ -677,7 +679,13 @@ class ExpressionCompiler(
                 val memberFullName = structDef.templateName.addStep(structDef.members(memberIndex).name)
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
-                  TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+                  TemplataCompiler.getPlaceholderSubstituter(
+                    interner, keywords, structTT.fullName,
+                    // DO NOT SUBMIT explain
+                    UseBoundsFromContainer(
+                      structDef.runeToFunctionBound,
+                      structDef.runeToImplBound,
+                      vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
                     .substituteForCoord(coutputs, unsubstitutedMemberType)
 
                 vassert(structDef.members.exists(member => structDef.templateName.addStep(member.name) == memberFullName))
@@ -1061,7 +1069,12 @@ class ExpressionCompiler(
             innerExpr2.kind match {
               case structTT@StructTT(_) => {
                 val structDef = coutputs.lookupStruct(structTT)
-                val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+                val substituter =
+                  TemplataCompiler.getPlaceholderSubstituter(
+                    interner, keywords, structTT.fullName,
+                    // This type is already phrased in terms of our placeholders, so it can use the
+                    // bounds it already has.
+                    InheritBoundsFromTypeItself)
                 DestroyTE(
                   innerExpr2,
                   structTT,
