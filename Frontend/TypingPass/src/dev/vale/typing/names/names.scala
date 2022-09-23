@@ -21,7 +21,7 @@ case class FullNameT[+T <: INameT](
 )  {
 
   this match {
-    case FullNameT(_,Vector(FunctionTemplateNameT(StrI("bork"),_)),PlaceholderTemplateNameT(0)) => {
+    case FullNameT(_,Vector(),ImplNameT(ImplTemplateNameT(_),Vector(CoordTemplata(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),StructTT(FullNameT(_,Vector(),AnonymousSubstructNameT(AnonymousSubstructTemplateNameT(InterfaceTemplateNameT(StrI("Bipedal"))),Vector(CoordTemplata(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))))))) => {
       vpass()
     }
     case _ =>
@@ -153,6 +153,7 @@ case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationName
 }
 
 case class ImplTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {
+  vpass()
   override def makeImplName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]], subCitizen: ICitizenTT): ImplNameT = {
     interner.intern(ImplNameT(this, templateArgs, subCitizen))
   }
@@ -164,7 +165,7 @@ case class ImplNameT(
   // whole impl, so it can hoist some bounds out of the struct, like NBIFP.
   subCitizen: ICitizenTT
 ) extends IImplNameT {
-
+  vpass()
 }
 
 case class ImplBoundTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {

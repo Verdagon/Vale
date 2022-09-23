@@ -267,10 +267,6 @@ class VirtualTests extends FunSuite with Matchers {
         |  func hop(virtual s &Bipedal) int;
         |}
         |
-        |struct Human {  }
-        |func hop(s &Human) int { return 7; }
-        |impl Bipedal for Human;
-        |
         |func hopscotch(s &Bipedal) int {
         |  s.hop();
         |  return s.hop();
@@ -282,7 +278,7 @@ class VirtualTests extends FunSuite with Matchers {
         |
         |  return hopscotch(&x);
         |}
-        """.stripMargin)
+        """.stripMargin, false)
     val coutputs = compile.getHamuts()
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
@@ -386,7 +382,8 @@ class VirtualTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
       """
         |import castutils.*;
-        |interface AFunction2<R, P1, P2> where R Ref, P1 Ref, P2 Ref {
+        |
+        |interface AFunction2<R Ref, P1 Ref, P2 Ref> {
         |  func __call(virtual this &AFunction2<R, P1, P2>, a P1, b P2) R;
         |}
         |exported func main() str {

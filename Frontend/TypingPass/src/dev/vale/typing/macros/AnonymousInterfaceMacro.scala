@@ -80,32 +80,38 @@ class AnonymousInterfaceMacro(
       })
 
     val rules =
-      (structA.headerRules ++ structA.memberRules) :+
+      //structA.headerRules ++
+      structA.memberRules ++
+      Vector(
         LookupSR(
-          interfaceA.range,
-          RuneUsage(interfaceA.range, AnonymousSubstructTemplateRuneS()),
-          structA.name.getImpreciseName(interner)) :+
+          structA.range,
+          RuneUsage(structA.range, AnonymousSubstructTemplateRuneS()),
+          structA.name.getImpreciseName(interner)),
         CallSR(
           structA.range,
           RuneUsage(structA.range, AnonymousSubstructRuneS()),
           RuneUsage(structA.range, AnonymousSubstructTemplateRuneS()),
-          structA.genericParameters.map(_.rune).toArray) :+
+          structA.genericParameters.map(_.rune).toArray),
         LookupSR(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
-          interfaceA.name.getImpreciseName(interner)) :+
+          interfaceA.name.getImpreciseName(interner)),
         CallSR(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS()),
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
-          interfaceA.genericParameters.map(_.rune).toArray)
+          interfaceA.genericParameters.map(_.rune).toArray))
     val runeToType =
-      structA.headerRuneToType ++
-      structA.membersRuneToType +
-        (AnonymousSubstructRuneS() -> KindTemplataType()) +
-        (AnonymousSubstructTemplateRuneS() -> structA.tyype) +
-        (AnonymousSubstructParentInterfaceRuneS() -> KindTemplataType()) +
-        (AnonymousSubstructParentInterfaceTemplateRuneS() -> interfaceA.tyype)
+      structA.genericParameters.map(_.rune.rune)
+        .map(rune => rune -> vassertSome(structA.headerRuneToType.get(rune)))
+        .toMap ++
+//      structA.headerRuneToType ++
+      structA.membersRuneToType ++
+      Vector(
+        (AnonymousSubstructRuneS() -> KindTemplataType()),
+        (AnonymousSubstructTemplateRuneS() -> structA.tyype),
+        (AnonymousSubstructParentInterfaceRuneS() -> KindTemplataType()),
+        (AnonymousSubstructParentInterfaceTemplateRuneS() -> interfaceA.tyype))
     val structKindRuneS = RuneUsage(interfaceA.range, AnonymousSubstructRuneS())
     val interfaceKindRuneS = RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS())
 

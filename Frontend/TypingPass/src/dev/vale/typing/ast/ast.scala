@@ -34,7 +34,7 @@ case class ImplT(
   implOuterEnv: IEnvironment,
 
   instantiatedFullName: FullNameT[IImplNameT],
-  templateFullName: FullNameT[ImplTemplateNameT],
+  templateFullName: FullNameT[IImplTemplateNameT],
 
   subCitizenTemplateFullName: FullNameT[ICitizenTemplateNameT],
   subCitizen: ICitizenTT,
