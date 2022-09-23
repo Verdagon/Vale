@@ -7,7 +7,7 @@ import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
-import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, ast, env}
+import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, InheritBoundsFromTypeItself, ast, env}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
@@ -173,7 +173,11 @@ class StructDropMacro(
                 val memberLocalVariables =
                   structDef.members.flatMap({
                     case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
-                      val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+                      val substituter =
+                        TemplataCompiler.getPlaceholderSubstituter(
+                          interner, keywords, structTT.fullName,
+                          // We received an instance of this type, so we can use the bounds from it.
+                          InheritBoundsFromTypeItself)
                       val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)
                       Vector(ReferenceLocalVariableT(env.fullName.addStep(name), FinalT, reference))
                     }

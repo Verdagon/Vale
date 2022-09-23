@@ -618,11 +618,9 @@ object DenizenMonomorphizer {
     val edgeDenizenBoundToDenizenCallerSuppliedThing =
       edgeMonomorphizer.denizenBoundToDenizenCallerSuppliedThing
 
-    // strt here
-    // need to substitute things in edgeDenizenBoundToDenizenCallerSuppliedThing
-    // according to the substitutions in implPlaceholderToCasePlaceholder
-    // or we need something else from templar perhaps
 
+    // See TIBANFC, we need this map to bring in the impl bound args for the override dispatcher
+    // case.
     val caseFunctionBoundToIncomingPrototype =
       dispatcherFunctionBoundToIncomingPrototype ++
         // We're using the supplied prototypes from the impl, but we need to rephrase the keys

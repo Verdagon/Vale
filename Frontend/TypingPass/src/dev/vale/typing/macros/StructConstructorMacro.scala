@@ -4,12 +4,12 @@ import dev.vale.highertyping.{FunctionA, StructA}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing.rules.{CallSR, IRulexSR, LookupSR, RuneUsage}
 import dev.vale.postparsing._
-import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, TypingPassOptions, ast}
+import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, InheritBoundsFromTypeItself, TypingPassOptions, UseBoundsFromContainer, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConstructTE, FunctionHeaderT, FunctionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FullNameT, FunctionNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, INameT, ITemplateNameT, NameTranslator, PlaceholderNameT}
-import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vcurious, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertSome, vcurious, vimpl}
 import dev.vale.typing.types._
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.ConstructorNameS
@@ -122,7 +122,16 @@ class StructConstructorMacro(
     val Some(CoordT(_, structTT @ StructTT(_))) = maybeRetCoord
     val definition = coutputs.lookupStruct(structTT)
     val placeholderSubstituter =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner,
+        keywords,
+        structTT.fullName,
+        // We only know about this struct from the return type, we don't get to inherit any of its
+        // bounds or guarantees from. Satisfy them from our environment instead.
+        UseBoundsFromContainer(
+          definition.runeToFunctionBound,
+          definition.runeToImplBound,
+          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
     val members =
       definition.members.map({
         case NormalStructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
@@ -136,7 +145,15 @@ class StructConstructorMacro(
     vassert(constructorFullName.last.parameters.size == members.size)
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, coord) })
-    val mutability = StructCompiler.getMutability(interner, keywords, coutputs, structTT)
+    val mutability =
+      StructCompiler.getMutability(
+        interner, keywords, coutputs, structTT,
+        // Not entirely sure if this is right, but it's consistent with using it for the return kind
+        // and its the more conservative option so we'll go with it for now.
+        UseBoundsFromContainer(
+          definition.runeToFunctionBound,
+          definition.runeToImplBound,
+          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
     val constructorReturnOwnership =
       mutability match {
         case MutabilityTemplata(MutableT) => OwnT

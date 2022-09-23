@@ -342,7 +342,13 @@ class PatternCompiler(
               // Since we're receiving an owning reference, and we're *not* capturing
               // it in a variable, it will be destroyed and we will harvest its parts.
 
-              loadFromStruct(coutputs, headMaybeDestructureMemberPattern.range, containerAliasingExprTE, structTT, memberIndex)
+              loadFromStruct(
+                coutputs,
+                nenv.snapshot,
+                headMaybeDestructureMemberPattern.range,
+                containerAliasingExprTE,
+                structTT,
+                memberIndex)
             }
             case staticSizedArrayT@contentsStaticSizedArrayTT(size, _, _, elementType) => {
               loadFromStaticSizedArray(headMaybeDestructureMemberPattern.range, staticSizedArrayT, expectedContainerCoord, expectedContainerOwnership, containerAliasingExprTE, memberIndex)
@@ -394,7 +400,11 @@ class PatternCompiler(
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
-    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+    val substituter =
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner, keywords, structTT.fullName,
+        // We're receiving something of this type, so it should supply its own bounds.
+        InheritBoundsFromTypeItself)
 
     val memberLocals =
       structDefT.members
@@ -472,6 +482,7 @@ class PatternCompiler(
 
   private def loadFromStruct(
     coutputs: CompilerOutputs,
+    env: IEnvironment,
     loadRange: RangeS,
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
@@ -488,7 +499,15 @@ class PatternCompiler(
         case VariadicStructMemberT(name, tyype) => vimpl()
       }
     val memberType =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner,
+        keywords,
+        structTT.fullName,
+        // DO NOT SUBMIT explain
+        UseBoundsFromContainer(
+          structDefT.runeToFunctionBound,
+          structDefT.runeToImplBound,
+          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
         .substituteForCoord(coutputs, unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(

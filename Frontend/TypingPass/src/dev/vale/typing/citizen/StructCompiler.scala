@@ -256,10 +256,16 @@ object StructCompiler {
     if (allMembersImmutable) ImmutableT else MutableT
   }
 
-  def getMutability(interner: Interner, keywords: Keywords, coutputs: CompilerOutputs, structTT: StructTT): ITemplata[MutabilityTemplataType] = {
+  def getMutability(
+    interner: Interner,
+    keywords: Keywords,
+    coutputs: CompilerOutputs,
+    structTT: StructTT,
+    boundArgumentsSource: IBoundArgumentsSource):
+  ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
     val transformer =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName, boundArgumentsSource)
     val result = transformer.substituteForTemplata(coutputs, definition.mutability)
     ITemplata.expectMutability(result)
   }

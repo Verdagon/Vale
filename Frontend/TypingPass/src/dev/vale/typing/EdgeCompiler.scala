@@ -330,8 +330,11 @@ class EdgeCompiler(
           coutputs,
           interner,
           keywords,
-          impl.superInterface,
-          implPlaceholderToDispatcherPlaceholder)).kind.expectInterface()
+          implPlaceholderToDispatcherPlaceholder,
+          // The dispatcher is receiving these types as parameters, so it can bring in bounds from
+          // them.
+          InheritBoundsFromTypeItself,
+          impl.superInterface)).kind.expectInterface()
     val dispatcherPlaceholderedAbstractParamType =
       abstractParamUnsubstitutedType.copy(kind = dispatcherPlaceholderedInterface)
     // Now we have a ISpaceship<int, moo$0, moo$1> that we can use to compile the abstract
@@ -407,14 +410,21 @@ class EdgeCompiler(
       implRuneToImplPlaceholderAndCasePlaceholder
         .map({ case (implRune, implPlaceholder, casePlaceholder) => (implPlaceholder, casePlaceholder) })
 
+    // This is needed for pulling the impl bound args in for the override dispatcher's case.
     val implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds =
       impl.reachableBoundsFromSubCitizen
         .map({
-          case proto @ PrototypeT(FullNameT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
+          case PrototypeT(FullNameT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
             val funcBoundFullName = FullNameT(packageCoord, initSteps, fb)
             val casePlaceholderedReachableFuncBoundFullName =
               TemplataCompiler.substituteTemplatasInFunctionBoundFullName(
-                coutputs, interner, keywords, implPlaceholderToDispatcherPlaceholder, funcBoundFullName)
+                coutputs,
+                interner,
+                keywords,
+                implPlaceholderToDispatcherPlaceholder,
+                // These are bounds we're bringing in from the sub citizen.
+                InheritBoundsFromTypeItself,
+                funcBoundFullName)
             funcBoundFullName -> casePlaceholderedReachableFuncBoundFullName
           }
           case other => vimpl(other)
