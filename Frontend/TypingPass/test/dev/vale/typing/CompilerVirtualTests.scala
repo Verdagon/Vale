@@ -229,6 +229,67 @@ class CompilerVirtualTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Generic interface forwarder") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |sealed interface Bork<T Ref> {
+        |  func bork(virtual self &Bork<T>) int;
+        |}
+        |
+        |#!DeriveStructDrop
+        |struct BorkForwarder<T Ref, Lam>
+        |where func drop(Lam)void, func __call(&Lam)T {
+        |  lam Lam;
+        |}
+        |
+        |impl<T, Lam> Bork<T> for BorkForwarder<T, Lam>;
+        |
+        |func bork<T, Lam>(self &BorkForwarder<T, Lam>) T {
+        |  return (self.lam)();
+        |}
+        |
+        |exported func main() int {
+        |  f = BorkForwarder<int>({ 7 });
+        |  z = f.bork();
+        |  [_] = f;
+        |  return z;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Generic interface forwarder with bound") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |#!DeriveInterfaceDrop
+        |sealed interface Bork<T Ref>
+        |where func triple(&T)T {
+        |  func bork(virtual self &Bork<T>) int;
+        |}
+        |
+        |#!DeriveStructDrop
+        |struct BorkForwarder<T Ref, Lam>
+        |where func drop(Lam)void, func __call(&Lam)T, func triple(&T)T {
+        |  lam Lam;
+        |}
+        |
+        |impl<T, Lam> Bork<T> for BorkForwarder<T, Lam>;
+        |
+        |func bork<T, Lam>(self &BorkForwarder<T, Lam>) T {
+        |  return (self.lam)()&.triple();
+        |}
+        |
+        |exported func main() int {
+        |  f = BorkForwarder<int>({ 7 });
+        |  z = f.bork();
+        |  [_] = f;
+        |  return z;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
   test("Basic interface anonymous subclass") {
     val compile = CompilerTestCompilation.test(
       """
@@ -239,6 +300,23 @@ class CompilerVirtualTests extends FunSuite with Matchers {
         |exported func main() int {
         |  f = Bork({ 7 });
         |  return f.bork();
+        |}
+        |
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
+  test("Lambda is compatible with interface anonymous substruct") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.str.*;
+        |
+        |interface AFunction2<R Ref, P1 Ref> {
+        |  func __call(virtual this &AFunction2<R, P1>, a P1) R;
+        |}
+        |exported func main() str {
+        |  func = AFunction2<str, int>((i) => { str(i) });
+        |  return func(42);
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()

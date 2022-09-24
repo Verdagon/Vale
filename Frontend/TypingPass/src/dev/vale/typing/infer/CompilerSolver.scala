@@ -208,9 +208,13 @@ class CompilerSolver(
       case RuneParentEnvLookupSR(range, rune) => Array(Array())
       case CallSR(range, resultRune, templateRune, args) => {
         Array(
-          Array(resultRune.rune, templateRune.rune),
-          Array(templateRune.rune) ++ args.map(_.rune))
-//          Array(resultRune.rune) ++ args.map(_.rune))
+          Array(templateRune.rune) ++ args.map(_.rune),
+          // Do we really need to do
+          //   Array(resultRune.rune, templateRune.rune),
+          // Because if we have X = T<A> and we know that X is a Moo<int>
+          // then we can know T = Moo and A = int.
+          // So maybe one day we can not require templateRune here.
+          Array(resultRune.rune, templateRune.rune))
       }
       case PackSR(range, resultRune, members) => Array(Array(resultRune.rune), members.map(_.rune))
       case KindComponentsSR(range, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
@@ -924,9 +928,9 @@ class CompilerRuleSolver(
         Ok(())
       }
       case CallSR(range, resultRune, templateRune, argRunes) => {
-        val template = vassertSome(stepState.getConclusion(templateRune.rune))
         stepState.getConclusion(resultRune.rune) match {
           case Some(result) => {
+            val template = vassertSome(stepState.getConclusion(templateRune.rune))
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 result match {
@@ -1047,6 +1051,7 @@ class CompilerRuleSolver(
             }
           }
           case None => {
+            val template = vassertSome(stepState.getConclusion(templateRune.rune))
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
