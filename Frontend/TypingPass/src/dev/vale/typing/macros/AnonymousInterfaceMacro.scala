@@ -183,6 +183,21 @@ class AnonymousInterfaceMacro(
   }
 
   private def makeStruct(interfaceA: InterfaceA, memberRunes: Vector[RuneUsage], members: Vector[NormalStructMemberS], structTemplateNameS: AnonymousSubstructTemplateNameS) = {
+    // For this interface:
+    //
+    //   #!DeriveInterfaceDrop
+    //   sealed interface Bork<A Ref, B Ref> {
+    //     func bork(virtual self &Bork<A Ref, B Ref>, a Opt<A>) B;
+    //   }
+    //
+    // We're trying to make a struct with a bunch of callables:
+    //
+    //   #!DeriveStructDrop
+    //   struct IBorkForwarder<A Ref, B Ref, Lam>
+    //       where func drop(Lam)void, func __call(&Lam, Opt<A>)B {
+    //     lam Lam;
+    //   }
+
     val rulesBuilder = new Accumulator[IRulexSR]()
     val runeToType = mutable.HashMap[IRuneS, ITemplataType]()
 
@@ -197,7 +212,7 @@ class AnonymousInterfaceMacro(
       LookupSR(
         interfaceA.range, RuneUsage(interfaceA.range, voidRune), interner.intern(CodeNameS(keywords.void))))
 
-    val methodGenericParams =
+    val structGenericParams =
       interfaceA.genericParameters ++ memberRunes.map(mr => GenericParameterS(mr.range, mr, Vector(), None))
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
@@ -219,6 +234,8 @@ class AnonymousInterfaceMacro(
           inheritedMethodRune(interfaceA, internalMethod, originalRetRune.rune))
       }
 
+      // Now we make the __call bound, which involves figuring out the params and return runes and
+      // assembling a call rule for it.
       {
         val selfBorrowCoordRuneS =
           AnonymousSubstructMethodSelfBorrowCoordRuneS(interfaceA.name, internalMethod.name)
@@ -229,9 +246,7 @@ class AnonymousInterfaceMacro(
         val paramRunes =
           internalMethod.params.map(_.pattern).map({
             case AtomSP(range, name, None, coordRune, destructure) => {
-              RuneUsage(
-                range,
-                inheritedMethodRune(interfaceA, internalMethod, vassertSome(coordRune).rune))
+              RuneUsage(range, inheritedMethodRune(interfaceA, internalMethod, vassertSome(coordRune).rune))
             }
             case AtomSP(range, name, Some(_), coordRune, destructure) => {
               RuneUsage(range, selfBorrowCoordRuneS)
@@ -241,6 +256,56 @@ class AnonymousInterfaceMacro(
           RuneUsage(internalMethod.range, AnonymousSubstructFunctionBoundParamsListRuneS(interfaceA.name, internalMethod.name))
         rulesBuilder.add(PackSR(internalMethod.range, methodParamsListRune, paramRunes.toArray))
         runeToType.put(methodParamsListRune.rune, PackTemplataType(CoordTemplataType()))
+
+        // the struct runes are guaranteed to line up with the interface runes...
+        // but not necessarily this function's runes.
+        // we need to grab the owner
+
+        // Let's say we had a:
+        //
+        //   func bork<X Ref, Y Ref>(virtual self &IBork<X, Y>, Opt<X>) Y;
+        //
+        // our bound will probably look like:
+        //
+        //   func __call(&Lam, Opt<A>)B
+        //
+        // we need to make a IBork<B, A> = IBork<X, Y> to connect those two worlds of runes.
+        val interfaceParam =
+          vassertOne(internalMethod.params.map(_.pattern).filter(_.virtuality.nonEmpty))
+        val originalInterfaceCoordRune = vassertSome(interfaceParam.coordRune).rune
+        val interfaceCoordRune =
+          RuneUsage(interfaceParam.range, inheritedMethodRune(interfaceA, internalMethod, vassertSome(interfaceParam.coordRune).rune))
+        runeToType.put(interfaceCoordRune.rune, CoordTemplataType())
+
+        val methodInterfaceKindRune =
+          RuneUsage(
+            interfaceParam.range,
+            inheritedMethodRune(interfaceA, internalMethod,
+              vassertOne(
+                internalMethod.rules.collect({
+                  case AugmentSR(_, resultRune, ownership, innerRune) if resultRune.rune == originalInterfaceCoordRune => {
+                    innerRune.rune
+                  }
+                }))))
+
+//        val methodInterfaceKindRune =
+//          RuneUsage(interfaceParam.range, AnonymousSubstructFunctionInterfaceKindRune(interfaceA.name, internalMethod.name))
+//        runeToType.put(methodInterfaceKindRune.rune, KindTemplataType())
+
+//        val methodInterfaceOwnershipRune =
+//          RuneUsage(interfaceParam.range, AnonymousSubstructFunctionInterfaceOwnershipRune(interfaceA.name, internalMethod.name))
+//        runeToType.put(methodInterfaceOwnershipRune.rune, OwnershipTemplataType())
+
+        val methodInterfaceTemplateRune =
+          RuneUsage(interfaceParam.range, AnonymousSubstructFunctionInterfaceTemplateRune(interfaceA.name, internalMethod.name))
+        runeToType.put(methodInterfaceTemplateRune.rune, interfaceA.tyype)
+
+        rulesBuilder.add(
+          LookupSR(interfaceParam.range, methodInterfaceTemplateRune, interfaceA.name.getImpreciseName(interner)))
+//        rulesBuilder.add(
+//          CoordComponentsSR(interfaceParam.range, interfaceCoordRune, methodInterfaceOwnershipRune, methodInterfaceKindRune))
+        rulesBuilder.add(
+          CallSR(interfaceParam.range, methodInterfaceKindRune, methodInterfaceTemplateRune, interfaceA.genericParameters.map(_.rune).toArray))
 
         val methodPrototypeRune =
           RuneUsage(
@@ -258,6 +323,8 @@ class AnonymousInterfaceMacro(
         runeToType.put(methodPrototypeRune.rune, PrototypeTemplataType())
       }
 
+      // Now we make the drop bound, which involves figuring out the params and return runes and
+      // assembling a call rule for it.
       {
         val selfOwnCoordRuneS =
           AnonymousSubstructMethodSelfOwnCoordRuneS(interfaceA.name, internalMethod.name)
@@ -304,7 +371,7 @@ class AnonymousInterfaceMacro(
           case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
         }) ++ memberRunes.map(_ => CoordTemplataType()),
         KindTemplataType()),
-      methodGenericParams,
+      structGenericParams,
       runeToType.toMap,
       rulesBuilder.buildArray(),
       Map(),

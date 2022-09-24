@@ -179,6 +179,9 @@ case class AnonymousSubstructDropBoundPrototypeRuneS(interface: TopLevelInterfac
 case class AnonymousSubstructDropBoundParamsListRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
 case class AnonymousSubstructFunctionBoundPrototypeRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
 case class AnonymousSubstructFunctionBoundParamsListRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+//case class AnonymousSubstructFunctionInterfaceKindRune(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+//case class AnonymousSubstructFunctionInterfaceOwnershipRune(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
+case class AnonymousSubstructFunctionInterfaceTemplateRune(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS) extends IRuneS { }
 case class AnonymousSubstructMethodInheritedRuneS(interface: TopLevelInterfaceDeclarationNameS, method: IFunctionDeclarationNameS, inner: IRuneS) extends IRuneS { }
 case class FunctorPrototypeRuneNameS() extends IRuneS
 case class FunctorParamRuneNameS(index: Int) extends IRuneS

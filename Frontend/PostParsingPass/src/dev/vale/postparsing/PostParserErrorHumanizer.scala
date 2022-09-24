@@ -140,6 +140,9 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructMemberRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".functor"
       case AnonymousSubstructFunctionBoundParamsListRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".params"
       case AnonymousSubstructFunctionBoundPrototypeRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".proto"
+      case AnonymousSubstructFunctionInterfaceTemplateRune(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".itemplate"
+//      case AnonymousSubstructFunctionInterfaceKindRune(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".ikind"
+//      case AnonymousSubstructFunctionInterfaceOwnershipRune(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".iown"
       case AnonymousSubstructDropBoundParamsListRuneS(interface, method) => "$" + humanizeName(interface) + ".anon.drop.params"
       case AnonymousSubstructDropBoundPrototypeRuneS(interface, method) => "$" + humanizeName(interface) + ".anon.drop.proto"
       case AnonymousSubstructMethodInheritedRuneS(interface, method, inner) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ":" + humanizeRune(inner)
