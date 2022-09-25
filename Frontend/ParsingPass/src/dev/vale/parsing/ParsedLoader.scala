@@ -350,7 +350,7 @@ class ParsedLoader(interner: Interner) {
         ConstantIntPE(
           loadRange(getObjectField(jobj, "range")),
           getLongField(jobj, "value"),
-          loadOptionalObject(getObjectField(jobj, "bits"), expectNumber).map(_.toInt))
+          loadOptional(getObjectField(jobj, "bits"), expectNumber).map(_.toInt))
       }
       case "ConstantFloat" => {
         ConstantFloatPE(
@@ -589,6 +589,13 @@ class ParsedLoader(interner: Interner) {
     getType(jobj) match {
       case "None" => None
       case "Some" => Some(loadContents(getObjectField(jobj, "value")))
+    }
+  }
+
+  def loadOptional[T](jobj: JObject, loadContents: JValue => T): Option[T] = {
+    getType(jobj) match {
+      case "None" => None
+      case "Some" => Some(loadContents(getField(jobj, "value")))
     }
   }
 
@@ -831,8 +838,8 @@ class ParsedLoader(interner: Interner) {
     GenericParameterP(
       loadRange(getObjectField(jobj, "range")),
       loadName(getObjectField(jobj, "name")),
-      loadOptionalObject(jobj, loadGenericParameterType),
+      loadOptionalObject(getObjectField(jobj, "maybeType"), loadGenericParameterType),
       getArrayField(jobj, "attributes").map(expectObject).map(loadRuneAttribute),
-      loadOptionalObject(jobj, loadTemplex))
+      loadOptionalObject(getObjectField(jobj, "maybeDefault"), loadTemplex))
   }
 }

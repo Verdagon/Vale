@@ -58,6 +58,8 @@ object ParserVonifier {
       case PoolRuneAttributeP(range) => VonObject("PoolRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case ArenaRuneAttributeP(range) => VonObject("ArenaRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case BumpRuneAttributeP(range) => VonObject("BumpRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
+      case ImmutableRegionRuneAttributeP(range) => VonObject("ImmutableRegionRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
+      case ImmutableRuneAttributeP(range) => VonObject("ImmutableRuneAttribute", None, Vector(VonMember("range", vonifyRange(range))))
       case x => vimpl(x.toString)
     }
   }
@@ -508,10 +510,10 @@ object ParserVonifier {
       None,
       Vector(
         VonMember("range", vonifyRange(range)),
-        VonMember("identifyingRunes", VonArray(None, identifyingRunesP.map(vonifyIdentifyingRune).toVector))))
+        VonMember("identifyingRunes", VonArray(None, identifyingRunesP.map(vonifyGenericParameter).toVector))))
   }
 
-  def vonifyIdentifyingRune(thing: GenericParameterP): VonObject = {
+  def vonifyGenericParameter(thing: GenericParameterP): VonObject = {
     val GenericParameterP(range, name, maybeType, attributes, maybeDefault) = thing
     VonObject(
       "IdentifyingRune",
@@ -521,7 +523,7 @@ object ParserVonifier {
         VonMember("name", vonifyName(name)),
         VonMember("maybeType", vonifyOptional(maybeType, vonifyGenericParameterType)),
         VonMember("attributes", VonArray(None, attributes.map(vonifyRuneAttribute).toVector)),
-        VonMember("maybeDefault", VonArray(None, maybeDefault.map(vonifyTemplex).toVector))))
+        VonMember("maybeDefault", vonifyOptional(maybeDefault, vonifyTemplex))))
   }
 
   def vonifyName(thing: NameP): VonObject = {

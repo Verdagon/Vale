@@ -349,7 +349,7 @@ object PassManager {
     }
   }
 
-  def main(args: Vector[String]): Unit = {
+  def main(args: Array[String]): Unit = {
     try {
       val interner = new Interner()
       val keywords = new Keywords(interner)
