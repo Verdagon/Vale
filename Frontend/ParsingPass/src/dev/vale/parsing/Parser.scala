@@ -197,7 +197,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           val scramble =
             returnTypeL match {
               case s @ ScrambleLE(_, _) => s
-              case other => ScrambleLE(other.range, Array(other))
+              case other => ScrambleLE(other.range, Vector(other))
             }
           templexParser.parseTemplex(new ScrambleIterator(scramble, 0, scramble.elements.length)) match {
             case Err(e) => return Err(e)
@@ -274,7 +274,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           val scramble =
             returnTypeL match {
               case s @ ScrambleLE(_, _) => s
-              case other => ScrambleLE(other.range, Array(other))
+              case other => ScrambleLE(other.range, Vector(other))
             }
           templexParser.parseTemplex(new ScrambleIterator(scramble, 0, scramble.elements.length)) match {
             case Err(e) => return Err(e)
@@ -500,7 +500,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
       case ExternAttributeL(range, Some(maybeName)) => {
         val name =
           maybeName.contents match {
-            case ScrambleLE(_, Array(StringLE(_, Array(StringPartLiteral(range, s))))) => {
+            case ScrambleLE(_, Vector(StringLE(_, Vector(StringPartLiteral(range, s))))) => {
               NameP(range, interner.intern(StrI(s)))
             }
             case _ => vfail("Bad builtin extern!")
@@ -580,7 +580,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           val scramble =
             returnTypeL match {
               case s @ ScrambleLE(_, _) => s
-              case other => ScrambleLE(other.range, Array(other))
+              case other => ScrambleLE(other.range, Vector(other))
             }
           templexParser.parseTemplex(new ScrambleIterator(scramble, 0, scramble.elements.length)) match {
             case Err(e) => return Err(e)
@@ -646,7 +646,7 @@ class ParserCompilation(
     val parsedMap = new FileCoordinateMap[(FileP, Vector[RangeL])]()
 
     ParseAndExplore.parseAndExplore[IDenizenP, Unit](
-      interner, keywords, opts, parser, packagesToBuild.toArray, resolver,
+      interner, keywords, opts, parser, packagesToBuild.toVector, resolver,
       (fileCoord, code, imports, denizen) => denizen,
       (fileCoord, code, commentRanges, denizens) => {
         foundCodeMap.put(fileCoord, code)

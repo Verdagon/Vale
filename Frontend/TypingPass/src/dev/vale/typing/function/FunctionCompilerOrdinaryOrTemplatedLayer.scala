@@ -124,7 +124,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         initialSends,
         false,
         false,
-        Array()
+        Vector()
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -185,7 +185,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         initialSends,
         true,
         false,
-        Array()
+        Vector()
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -381,7 +381,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         initialSends,
         true,
         false,
-        Array()) match {
+        Vector()) match {
       case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
       case Ok(inferredTemplatas) => inferredTemplatas
     }
@@ -434,7 +434,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]],
-    reachableBoundsFromParamsAndReturn: Array[PrototypeTemplata]
+    reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplata]
     // DO NOT SUBMIT add impl bounds things here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables, isRootCompilingDenizen) = nearEnv
@@ -501,7 +501,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         initialSends,
         true,
         false,
-        Array()
+        Vector()
       ) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
@@ -551,12 +551,12 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
           initialSends,
         false,
           true,
-        Array()) match {
+        Vector()) match {
         case f @ FailedCompilerSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: callRange, f))
         }
         case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => incompleteConclusions
-        case CompleteCompilerSolve(_, conclusions, _, Array()) => conclusions
+        case CompleteCompilerSolve(_, conclusions, _, Vector()) => conclusions
       }
     // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.
     // Our
@@ -591,7 +591,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         Vector(),
         true,
         true,
-        Array())
+        Vector())
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBounds)
 
     val prototype =
@@ -626,11 +626,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
 
     // This is so we can automatically grab the bounds from parameters and returns, see NBIFP.
     val paramRunes =
-      function.params.flatMap(_.pattern.coordRune.map(_.rune)).distinct.toArray
+      function.params.flatMap(_.pattern.coordRune.map(_.rune)).distinct.toVector
 
     // This is temporary, to support specialization like:
     //   extern("vale_runtime_sized_array_mut_new")
-    //   func Array<M, E>(size int) []<M>E
+    //   func Vector<M, E>(size int) []<M>E
     //   where M Mutability = mut, E Ref;
     // In the future we might need to outlaw specialization, unsure.
     val (preliminaryInferences, preliminaryReachableBoundsFromParamsAndReturn) =
@@ -649,7 +649,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         case f @ FailedCompilerSolve(_, _, err) => {
           throw CompileErrorExceptionT(typing.TypingPassSolverError(function.range :: parentRanges, f))
         }
-        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Array[ITemplata[ITemplataType]]())
+        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromParamsAndReturn) => (conclusions, reachableBoundsFromParamsAndReturn)
       }
     // Now we can use preliminaryInferences to know whether or not we need a placeholder for an identifying rune.

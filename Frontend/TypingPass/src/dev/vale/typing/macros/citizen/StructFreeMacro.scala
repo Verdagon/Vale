@@ -74,7 +74,7 @@
 //        structA.name.range,
 //        use(-64002, self),
 //        RuneUsage(structA.name.range, structNameRune),
-//        structA.genericParameters.map(_.rune).toArray))
+//        structA.genericParameters.map(_.rune).toVector))
 //
 //    val functionGenericParameters = structA.genericParameters
 //

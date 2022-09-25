@@ -161,84 +161,84 @@ class CompilerSolver(
   delegate: IInfererDelegate
 ) {
 
-  def getRunes(rule: IRulexSR): Array[IRuneS] = {
+  def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val result = rule.runeUsages.map(_.rune)
 
     if (globalOptions.sanityCheck) {
-      val sanityChecked: Array[RuneUsage] =
+      val sanityChecked: Vector[RuneUsage] =
         rule match {
-          case LookupSR(range, rune, literal) => Array(rune)
-          case LookupSR(range, rune, literal) => Array(rune)
-          case RuneParentEnvLookupSR(range, rune) => Array(rune)
-          case EqualsSR(range, left, right) => Array(left, right)
-          case DefinitionCoordIsaSR(range, result, sub, suuper) => Array(result, sub, suuper)
-          case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toArray ++ Array(sub, suuper)
-          case KindComponentsSR(range, resultRune, mutabilityRune) => Array(resultRune, mutabilityRune)
-          case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(resultRune, ownershipRune, kindRune)
-          case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(resultRune, paramsRune, returnRune)
-          case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
-          case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
-          case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(resultRune, paramsListRune, returnRune)
-          case OneOfSR(range, rune, literals) => Array(rune)
-          case IsConcreteSR(range, rune) => Array(rune)
-          case IsInterfaceSR(range, rune) => Array(rune)
-          case IsStructSR(range, rune) => Array(rune)
-          case CoerceToCoordSR(range, coordRune, kindRune) => Array(coordRune, kindRune)
-          case LiteralSR(range, rune, literal) => Array(rune)
-          case AugmentSR(range, resultRune, ownership, innerRune) => Array(resultRune, innerRune)
-          case CallSR(range, resultRune, templateRune, args) => Array(resultRune, templateRune) ++ args
-//          case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Array(resultRune) ++ parameters ++ Array(returnTypeRune)
-          case PackSR(range, resultRune, members) => Array(resultRune) ++ members
-          case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
-          case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Array(resultRune, mutabilityRune, elementRune)
-          //        case ManualSequenceSR(range, resultRune, elements) => Array(resultRune) ++ elements
-          //        case CoordListSR(range, resultRune, elements) => Array(resultRune) ++ elements
-          case CoordSendSR(range, senderRune, receiverRune) => Array(senderRune, receiverRune)
-          case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(resultRune, coordListRune)
+          case LookupSR(range, rune, literal) => Vector(rune)
+          case LookupSR(range, rune, literal) => Vector(rune)
+          case RuneParentEnvLookupSR(range, rune) => Vector(rune)
+          case EqualsSR(range, left, right) => Vector(left, right)
+          case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
+          case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toVector ++ Vector(sub, suuper)
+          case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
+          case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Vector(resultRune, ownershipRune, kindRune)
+          case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(resultRune, paramsRune, returnRune)
+          case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
+          case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
+          case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
+          case OneOfSR(range, rune, literals) => Vector(rune)
+          case IsConcreteSR(range, rune) => Vector(rune)
+          case IsInterfaceSR(range, rune) => Vector(rune)
+          case IsStructSR(range, rune) => Vector(rune)
+          case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
+          case LiteralSR(range, rune, literal) => Vector(rune)
+          case AugmentSR(range, resultRune, ownership, innerRune) => Vector(resultRune, innerRune)
+          case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
+//          case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
+          case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
+          case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
+          case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(resultRune, mutabilityRune, elementRune)
+          //        case ManualSequenceSR(range, resultRune, elements) => Vector(resultRune) ++ elements
+          //        case CoordListSR(range, resultRune, elements) => Vector(resultRune) ++ elements
+          case CoordSendSR(range, senderRune, receiverRune) => Vector(senderRune, receiverRune)
+          case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(resultRune, coordListRune)
         }
       vassert(result sameElements sanityChecked.map(_.rune))
     }
     result
   }
 
-  def getPuzzles(rule: IRulexSR): Array[Array[IRuneS]] = {
+  def getPuzzles(rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       // This means we can solve this puzzle and dont need anything to do it.
-      case LookupSR(range, _, _) => Array(Array())
-      case RuneParentEnvLookupSR(range, rune) => Array(Array())
+      case LookupSR(range, _, _) => Vector(Vector())
+      case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
       case CallSR(range, resultRune, templateRune, args) => {
-        Array(
-          Array(templateRune.rune) ++ args.map(_.rune),
+        Vector(
+          Vector(templateRune.rune) ++ args.map(_.rune),
           // Do we really need to do
-          //   Array(resultRune.rune, templateRune.rune),
+          //   Vector(resultRune.rune, templateRune.rune),
           // Because if we have X = T<A> and we know that X is a Moo<int>
           // then we can know T = Moo and A = int.
           // So maybe one day we can not require templateRune here.
-          Array(resultRune.rune, templateRune.rune))
+          Vector(resultRune.rune, templateRune.rune))
       }
-      case PackSR(range, resultRune, members) => Array(Array(resultRune.rune), members.map(_.rune))
-      case KindComponentsSR(range, kindRune, mutabilityRune) => Array(Array(kindRune.rune))
-      case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Array(Array(resultRune.rune), Array(ownershipRune.rune, kindRune.rune))
-      case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Array(Array(resultRune.rune))
-      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Array(Array(resultRune.rune))
+      case PackSR(range, resultRune, members) => Vector(Vector(resultRune.rune), members.map(_.rune))
+      case KindComponentsSR(range, kindRune, mutabilityRune) => Vector(Vector(kindRune.rune))
+      case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => Vector(Vector(resultRune.rune), Vector(ownershipRune.rune, kindRune.rune))
+      case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(Vector(resultRune.rune))
+      case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Vector(Vector(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
-      case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Array(Array(paramListRune.rune, returnRune.rune))
-      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Array(Array(paramsListRune.rune, returnRune.rune))
-      case OneOfSR(range, rune, literals) => Array(Array(rune.rune))
-      case EqualsSR(range, leftRune, rightRune) => Array(Array(leftRune.rune), Array(rightRune.rune))
-      case IsConcreteSR(range, rune) => Array(Array(rune.rune))
-      case IsInterfaceSR(range, rune) => Array(Array(rune.rune))
-      case IsStructSR(range, rune) => Array(Array(rune.rune))
-      case CoerceToCoordSR(range, coordRune, kindRune) => Array(Array(coordRune.rune), Array(kindRune.rune))
-      case LiteralSR(range, rune, literal) => Array(Array())
-      case AugmentSR(range, resultRune, ownership, innerRune) => Array(Array(innerRune.rune), Array(resultRune.rune))
-      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
-      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Array(Array(resultRune.rune), Array(mutabilityRune.rune, elementRune.rune))
+      case DefinitionFuncSR(range, placeholderRune, name, paramListRune, returnRune) => Vector(Vector(paramListRune.rune, returnRune.rune))
+      case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Vector(Vector(paramsListRune.rune, returnRune.rune))
+      case OneOfSR(range, rune, literals) => Vector(Vector(rune.rune))
+      case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
+      case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
+      case IsInterfaceSR(range, rune) => Vector(Vector(rune.rune))
+      case IsStructSR(range, rune) => Vector(Vector(rune.rune))
+      case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector(coordRune.rune), Vector(kindRune.rune))
+      case LiteralSR(range, rune, literal) => Vector(Vector())
+      case AugmentSR(range, resultRune, ownership, innerRune) => Vector(Vector(innerRune.rune), Vector(resultRune.rune))
+      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
+      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
       // See SAIRFU, this will replace itself with other rules.
-      case CoordSendSR(range, senderRune, receiverRune) => Array(Array(senderRune.rune), Array(receiverRune.rune))
-      case DefinitionCoordIsaSR(range, resultRune, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
-      case CallSiteCoordIsaSR(range, resultRune, senderRune, receiverRune) => Array(Array(senderRune.rune, receiverRune.rune))
-      case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Array(Array(coordListRune.rune))
+      case CoordSendSR(range, senderRune, receiverRune) => Vector(Vector(senderRune.rune), Vector(receiverRune.rune))
+      case DefinitionCoordIsaSR(range, resultRune, senderRune, receiverRune) => Vector(Vector(senderRune.rune, receiverRune.rune))
+      case CallSiteCoordIsaSR(range, resultRune, senderRune, receiverRune) => Vector(Vector(senderRune.rune, receiverRune.rune))
+      case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(Vector(coordListRune.rune))
     }
   }
 
@@ -938,13 +938,13 @@ class CompilerRuleSolver(
                     if (argRunes.size != 2) {
                       return Err(WrongNumberOfTemplateArgs(2))
                     }
-                    val Array(mutabilityRune, elementRune) = argRunes
+                    val Vector(mutabilityRune, elementRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
                     Ok(())
                   }
                   case KindTemplata(contentsRuntimeSizedArrayTT(mutability, memberType)) => {
-                    val Array(mutabilityRune, elementRune) = argRunes
+                    val Vector(mutabilityRune, elementRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
                     Ok(())
@@ -1055,7 +1055,7 @@ class CompilerRuleSolver(
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
-                val Array(m, CoordTemplata(coord)) = args
+                val Vector(m, CoordTemplata(coord)) = args
                 val mutability = ITemplata.expectMutability(m)
                 val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))

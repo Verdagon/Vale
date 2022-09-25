@@ -244,7 +244,7 @@ object TemplataCompiler {
     }).toMap
   }
 
-  def substituteTemplatasInCoord(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, coord: CoordT):
+  def substituteTemplatasInCoord(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, coord: CoordT):
   CoordT = {
     val CoordT(ownership, kind) = coord
     substituteTemplatasInKind(coutputs, interner, keywords, substitutions, boundArgumentsSource, kind) match {
@@ -276,7 +276,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     kind: KindT):
   ITemplata[ITemplataType] = {
@@ -323,7 +323,7 @@ object TemplataCompiler {
     }
   }
 
-  def substituteTemplatasInStruct(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, structTT: StructTT):
+  def substituteTemplatasInStruct(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, structTT: StructTT):
   StructTT = {
     val StructTT(FullNameT(packageCoord, initSteps, last)) = structTT
     val newStruct =
@@ -361,7 +361,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     instantiationBoundArgs: InstantiationBoundArguments):
   InstantiationBoundArguments = {
@@ -435,7 +435,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     implFullName: FullNameT[IImplNameT]):
   FullNameT[IImplNameT] = {
@@ -467,7 +467,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     boundArgs: InstantiationBoundArguments):
   InstantiationBoundArguments = {
@@ -482,7 +482,7 @@ object TemplataCompiler {
       }))
   }
 
-  def substituteTemplatasInInterface(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, interfaceTT: InterfaceTT):
+  def substituteTemplatasInInterface(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, interfaceTT: InterfaceTT):
   InterfaceTT = {
     val InterfaceTT(FullNameT(packageCoord, initSteps, last)) = interfaceTT
     val newInterface =
@@ -507,7 +507,7 @@ object TemplataCompiler {
     newInterface
   }
 
-  def substituteTemplatasInTemplata(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, templata: ITemplata[ITemplataType]):
+  def substituteTemplatasInTemplata(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, templata: ITemplata[ITemplataType]):
   ITemplata[ITemplataType] = {
     templata match {
       case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(coutputs, interner, keywords, substitutions, boundArgumentsSource, c))
@@ -536,7 +536,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     originalPrototype: PrototypeT):
   PrototypeT = {
@@ -565,7 +565,7 @@ object TemplataCompiler {
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
-    substitutions: Array[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
+    substitutions: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
     original: FullNameT[FunctionBoundNameT]):
   FullNameT[FunctionBoundNameT] = {
@@ -655,7 +655,7 @@ object TemplataCompiler {
       templateArgs.zipWithIndex.map({ case (arg, index) =>
         val placeholderFullName = templateName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
         placeholderFullName -> arg
-      }).toArray
+      }).toVector
     new IPlaceholderSubstituter {
       override def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT = {
         TemplataCompiler.substituteTemplatasInCoord(coutputs, interner, keywords, substitutions, boundArgumentsSource, coordT)
@@ -689,7 +689,7 @@ object TemplataCompiler {
 //        .flatMap({
 //          case (arg, p @ PlaceholderTemplata(_, _)) => Some((p, arg))
 //          case _ => None
-//        }).toArray
+//        }).toVector
 //    (templataToTransform: ITemplata[ITemplataType]) => {
 //      TemplataCompiler.substituteTemplatasInTemplata(coutputs, interner, keywords, templataToTransform, substitutions)
 //    }

@@ -82,11 +82,11 @@ case class StructS(
     // These are separated so that these alone can be run during resolving, see SMRASDR.
     headerRuneToExplicitType: Map[IRuneS, ITemplataType],
     headerPredictedRuneToType: Map[IRuneS, ITemplataType],
-    headerRules: Array[IRulexSR],
+    headerRules: Vector[IRulexSR],
     // These are separated so they can be skipped during resolving, see SMRASDR.
     membersRuneToExplicitType: Map[IRuneS, ITemplataType],
     membersPredictedRuneToType: Map[IRuneS, ITemplataType],
-    memberRules: Array[IRulexSR],
+    memberRules: Vector[IRulexSR],
 
     members: Vector[IStructMemberS]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -130,7 +130,7 @@ case class InterfaceS(
   predictedRuneToType: Map[IRuneS, ITemplataType],
   maybePredictedType: Option[ITemplataType],
 
-  rules: Array[IRulexSR],
+  rules: Vector[IRulexSR],
   // See IMRFDI
   internalMethods: Vector[FunctionS]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -146,7 +146,7 @@ case class ImplS(
     // The name of an impl is the human name of the subcitizen, see INSHN.
     name: ImplDeclarationNameS,
     userSpecifiedIdentifyingRunes: Vector[GenericParameterS],
-    rules: Array[IRulexSR],
+    rules: Vector[IRulexSR],
     runeToExplicitType: Map[IRuneS, ITemplataType],
     structKindRune: RuneUsage,
     subCitizenImpreciseName: IImpreciseNameS,
@@ -157,7 +157,7 @@ case class ImplS(
 
 case class ExportAsS(
     range: RangeS,
-    rules: Array[IRulexSR],
+    rules: Vector[IRulexSR],
     exportName: ExportAsNameS,
     rune: RuneUsage,
     exportedName: StrI) {
@@ -254,7 +254,7 @@ case class FunctionS(
     // We need to leave it an option to signal that the compiler can infer the return type.
     maybeRetCoordRune: Option[RuneUsage],
 
-    rules: Array[IRulexSR],
+    rules: Vector[IRulexSR],
     body: IBodyS
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

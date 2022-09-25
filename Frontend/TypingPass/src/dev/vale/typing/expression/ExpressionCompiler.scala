@@ -416,7 +416,7 @@ class ExpressionCompiler(
               range :: parentRanges,
               newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, name),
               rules.toVector,
-              maybeTemplateArgs.toArray.flatMap(_.map(_.rune)),
+              maybeTemplateArgs.toVector.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -432,7 +432,7 @@ class ExpressionCompiler(
               range :: parentRanges,
               newGlobalFunctionGroupExpression(nenv.snapshot, coutputs, name),
               rules.toVector,
-              templateArgTemplexesS.toArray.flatMap(_.map(_.rune)),
+              templateArgTemplexesS.toVector.flatMap(_.map(_.rune)),
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
@@ -446,7 +446,7 @@ class ExpressionCompiler(
           val (argsExprs2, returnsFromArgs) =
             evaluateAndCoerceToReferenceExpressions(coutputs, nenv, life + 1, parentRanges, argsExprs1)
           val functionPointerCall2 =
-            callCompiler.evaluatePrefixCall(coutputs, nenv, life + 2, range :: parentRanges, decayedCallableReferenceExpr2, Vector(), Array(), argsExprs2)
+            callCompiler.evaluatePrefixCall(coutputs, nenv, life + 2, range :: parentRanges, decayedCallableReferenceExpr2, Vector(), Vector(), argsExprs2)
           (functionPointerCall2, returnsFromCallable ++ returnsFromArgs)
         }
 
@@ -703,7 +703,7 @@ class ExpressionCompiler(
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
                 } else {
-                  throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Array has no member named " + memberNameStr))
+                  throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Vector has no member named " + memberNameStr))
                 }
               }
               case other => {
@@ -966,7 +966,7 @@ class ExpressionCompiler(
               range :: parentRanges,
               newGlobalFunctionGroupExpression(callEnv, coutputs, interner.intern(CodeNameS(keywords.List))),
               Vector(RuneParentEnvLookupSR(range, RuneUsage(range, SelfRuneS()))),
-              Array(SelfRuneS()),
+              Vector(SelfRuneS()),
               Vector())
 
           val listLocal =
@@ -1000,7 +1000,7 @@ class ExpressionCompiler(
                   range :: parentRanges,
                   newGlobalFunctionGroupExpression(callEnv, coutputs, interner.intern(CodeNameS(keywords.add))),
                   Vector(),
-                  Array(),
+                  Vector(),
                   Vector(
                     localHelper.borrowSoftLoad(
                       coutputs,

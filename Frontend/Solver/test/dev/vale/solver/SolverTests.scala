@@ -7,16 +7,16 @@ import scala.collection.immutable.Map
 
 class SolverTests extends FunSuite with Matchers with Collector {
   val complexRuleSet =
-    Array(
+    Vector(
       Literal(-3L, "1448"),
       CoordComponents(-6L, -5L, -5L),
       Literal(-2L, "1337"),
       Equals(-4L, -2L),
-      OneOf(-4L, Array("1337", "73")),
+      OneOf(-4L, Vector("1337", "73")),
       Equals(-1L, -5L),
       CoordComponents(-1L, -2L, -3L),
       Equals(-6L, -7L))
-  val complexRuleSetEqualsRules = Array(3, 5, 7)
+  val complexRuleSetEqualsRules = Vector(3, 5, 7)
 
   def testSimpleAndOptimized(testName: String, testTags : org.scalatest.Tag*)(testFun : Boolean => scala.Any)(implicit pos : org.scalactic.source.Position) : scala.Unit = {
     test(testName + " (simple solver)", testTags: _*){ testFun(false) }(pos)
@@ -25,14 +25,14 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Simple int rule") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
 
   test("Equals transitive") {
     val rules =
-      Array(
+      Vector(
         Equals(-2L, -1L),
         Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual
@@ -42,8 +42,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Incomplete solve") {
     val rules =
-      Array(
-        OneOf(-1L, Array("1448", "1337")))
+      Vector(
+        OneOf(-1L, Vector("1448", "1337")))
     getConclusions(rules, false) shouldEqual Map()
   }
 
@@ -51,8 +51,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
   test("Half-complete solve") {
     // Note how these two rules aren't connected to each other at all
     val rules =
-      Array(
-        OneOf(-1L, Array("1448", "1337")),
+      Vector(
+        OneOf(-1L, Vector("1448", "1337")),
         Literal(-2L, "1337"))
     getConclusions(rules, false) shouldEqual Map(-2L -> "1337")
   }
@@ -60,8 +60,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("OneOf") {
     val rules =
-      Array(
-        OneOf(-1L, Array("1448", "1337")),
+      Vector(
+        OneOf(-1L, Vector("1448", "1337")),
         Literal(-1L, "1337"))
     getConclusions(rules, true) shouldEqual Map(-1L -> "1337")
   }
@@ -69,7 +69,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Solves a components rule") {
     val rules =
-      Array(
+      Vector(
         CoordComponents(-1L, -2L, -3L),
         Literal(-2L, "1337"),
         Literal(-3L, "1448"))
@@ -80,7 +80,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Reverse-solve a components rule") {
     val rules =
-      Array(
+      Vector(
         CoordComponents(-1L, -2L, -3L),
         Literal(-1L, "1337/1448"))
     getConclusions(rules, true) shouldEqual
@@ -90,10 +90,10 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test infer Pack") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "1337"),
         Literal(-2L, "1448"),
-        Pack(-3L, Array(-1L, -2L)))
+        Pack(-3L, Vector(-1L, -2L)))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
@@ -101,9 +101,9 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test infer Pack from result") {
     val rules =
-      Array(
+      Vector(
         Literal(-3L, "1337,1448"),
-        Pack(-3L, Array(-1L, -2L)))
+        Pack(-3L, Vector(-1L, -2L)))
     getConclusions(rules, true) shouldEqual
       Map(-1L -> "1337", -2L -> "1448", -3L -> "1337,1448")
   }
@@ -111,9 +111,9 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test infer Pack from empty result") {
     val rules =
-      Array(
+      Vector(
         Literal(-3L, ""),
-        Pack(-3L, Array()))
+        Pack(-3L, Vector()))
     getConclusions(rules, true) shouldEqual
       Map(-3L -> "")
   }
@@ -121,8 +121,8 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test cant solve empty Pack") {
     val rules =
-      Array(
-        Pack(-3L, Array()))
+      Vector(
+        Pack(-3L, Vector()))
     getConclusions(rules, false) shouldEqual Map()
   }
 
@@ -135,7 +135,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test receiving struct to struct") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "Firefly"),
         Send(-2L, -1L))
     getConclusions(rules, true) shouldEqual
@@ -145,7 +145,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test receive struct from sent interface") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "Firefly"),
         Literal(-2L, "ISpaceship"),
         Send(-2L, -1L))
@@ -169,7 +169,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test receive interface from sent struct") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "ISpaceship"),
         Literal(-2L, "Firefly"),
         Send(-2L, -1L))
@@ -181,7 +181,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test complex solve: most specific ancestor") {
     val rules =
-      Array(
+      Vector(
         Literal(-2L, "Firefly"),
         Send(-2L, -1L))
     // Should be a successful solve
@@ -192,7 +192,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test complex solve: calculate common ancestor") {
     val rules =
-      Array(
+      Vector(
         Literal(-2L, "Firefly"),
         Literal(-3L, "Serenity"),
         Send(-2L, -1L),
@@ -205,7 +205,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test complex solve: descendant satisfying call") {
     val rules =
-      Array(
+      Vector(
         Literal(-2L, "Flamethrower:int"),
         Send(-2L, -1L),
         Call(-1L, -3L, -4L),
@@ -246,7 +246,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
         case Err(e) => vfail(e)
       }
     firstConclusions.toMap shouldEqual Map(-2 -> "A")
-    solverState.markRulesSolved(Array(), Map(solverState.getCanonicalRune(-1) -> "Firefly"))
+    solverState.markRulesSolved(Vector(), Map(solverState.getCanonicalRune(-1) -> "Firefly"))
 
     val secondConclusions =
       solver.solve((r: IRule) => r.allPuzzles, (), (), solverState, new TestRuleSolver(interner)) match {
@@ -280,7 +280,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
     // This is useful for recursive types.
     // See: Recursive Types Must Have Types Predicted (RTMHTP)
 
-    def solveWithPuzzler(puzzler: IRule => Array[Array[Long]]) = {
+    def solveWithPuzzler(puzzler: IRule => Vector[Vector[Long]]) = {
       val interner = new Interner()
 
       // Below, we're reporting that Lookup has no puzzles that can solve it.
@@ -308,11 +308,11 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
     val predictions =
       solveWithPuzzler({
-        // This Array() makes it unsolvable
-        case Lookup(rune, name) => Array()
+        // This Vector() makes it unsolvable
+        case Lookup(rune, name) => Vector()
         case rule => rule.allPuzzles
       })
-//    vassert(predictionRuleExecutionOrder sameElements Array(1))
+//    vassert(predictionRuleExecutionOrder sameElements Vector(1))
     vassert(predictions.size == 1)
     vassert(predictions(-2) == "1337")
 
@@ -324,7 +324,7 @@ class SolverTests extends FunSuite with Matchers with Collector {
 
   test("Test conflict") {
     val rules =
-      Array(
+      Vector(
         Literal(-1L, "1448"),
         Literal(-1L, "1337"))
     expectSolveFailure(rules) match {

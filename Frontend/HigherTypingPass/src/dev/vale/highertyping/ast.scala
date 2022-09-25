@@ -76,10 +76,10 @@ case class StructA(
 
     // These are separated so that these alone can be run during resolving, see SMRASDR.
     headerRuneToType: Map[IRuneS, ITemplataType],
-    headerRules: Array[IRulexSR],
+    headerRules: Vector[IRulexSR],
     // These are separated so they can be skipped during resolving, see SMRASDR.
     membersRuneToType: Map[IRuneS, ITemplataType],
-    memberRules: Array[IRulexSR],
+    memberRules: Vector[IRulexSR],
     members: Vector[IStructMemberS]
 ) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()

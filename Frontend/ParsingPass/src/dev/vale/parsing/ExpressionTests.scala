@@ -543,7 +543,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
       }
   }
 
-  test("Array indexing") {
+  test("Vector indexing") {
     compileExpressionExpect("board[i]") shouldHave
       {
       case BraceCallPE(_,_,LookupPE(LookupNameP(NameP(_,StrI("board"))),None),Vector(LookupPE(LookupNameP(NameP(_,StrI("i"))),None)),false) =>

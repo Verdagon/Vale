@@ -54,7 +54,7 @@ class RSAFreeMacro(
 //      Vector(
 //        RuneParentEnvLookupSR(callRange.head, RuneUsage(callRange.head, FunctorParamRuneNameS(0))),
 //        RuneParentEnvLookupSR(callRange.head, RuneUsage(callRange.head, FunctorReturnRuneNameS())))
-//    val callRunes = Array[IRuneS](FunctorParamRuneNameS(0), FunctorReturnRuneNameS())
+//    val callRunes = Vector[IRuneS](FunctorParamRuneNameS(0), FunctorReturnRuneNameS())
 //    val consumerPrototype =
 //      overloadResolver.findFunction(
 //        newEnv, coutputs, callRange, callName, callRules, callRunes, args, Vector(), true, true) match {

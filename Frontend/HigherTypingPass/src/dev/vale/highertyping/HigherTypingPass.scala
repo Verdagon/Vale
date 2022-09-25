@@ -352,7 +352,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     identifyingRunesS: Vector[IRuneS],
     runeToExplicitType: Map[IRuneS, ITemplataType],
     paramsS: Vector[ParameterS],
-    rulesS: Array[IRulexSR],
+    rulesS: Vector[IRulexSR],
     env: Environment):
   Map[IRuneS, ITemplataType] = {
     val runeSToPreKnownTypeA =

@@ -661,9 +661,30 @@ class IntegrationTestsA extends FunSuite with Matchers {
 //  }
 
   test("Tests recursion") {
-    vimpl()
-//    val compile = RunCompilation.test(Tests.loadExpected("programs/functions/recursion.vale"))
-//    compile.evalForKind(Vector()) match { case VonInt(120) => }
+    val compile = RunCompilation.test(Tests.loadExpected("programs/functions/recursion.vale"))
+    compile.evalForKind(Vector()) match { case VonInt(120) => }
+  }
+
+  test("Tests generic recursion") {
+    val compile = RunCompilation.test(
+      """
+        |func factorial<T>(one T, x T) T
+        |where func isZero(&T)bool, func *(&T, &T)T, func -(&T, &T)T, func drop(T)void {
+        |  return if isZero(&x) {
+        |      one
+        |    } else {
+        |      q = &one;
+        |      x * factorial(one, x - q)
+        |    };
+        |}
+        |
+        |func isZero(x int) bool { x == 0 }
+        |
+        |exported func main() int {
+        |  return factorial(1, 5);
+        |}
+        |""".stripMargin)
+    compile.evalForKind(Vector()) match { case VonInt(120) => }
   }
 
   test("Tests floats") {

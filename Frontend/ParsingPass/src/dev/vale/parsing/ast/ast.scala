@@ -12,8 +12,8 @@ case class NameP(range: RangeL, str: StrI) { override def equals(obj: Any): Bool
 
 case class FileP(
   fileCoord: FileCoordinate,
-  commentsRanges: Array[RangeL],
-  denizens: Array[IDenizenP]) {
+  commentsRanges: Vector[RangeL],
+  denizens: Vector[IDenizenP]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   def lookupFunction(name: String) = {
     val results =

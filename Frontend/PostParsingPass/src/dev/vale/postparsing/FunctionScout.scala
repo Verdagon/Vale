@@ -202,12 +202,12 @@ class FunctionScout(
         rangeS,
         userSpecifiedIdentifyingRunes.map(_.rune),
         runeToExplicitType.toMap,
-        ruleBuilder.toArray)
+        ruleBuilder.toVector)
 
     postParser.checkIdentifiability(
       rangeS,
       userSpecifiedIdentifyingRunes.map(_.rune),
-      ruleBuilder.toArray)
+      ruleBuilder.toVector)
 
     FunctionS(
       PostParser.evalRange(file, range),
@@ -217,7 +217,7 @@ class FunctionScout(
       runeToPredictedType,
       explicitParams1,
       maybeRetCoordRune,
-      ruleBuilder.toArray,
+      ruleBuilder.toVector,
       body1)
   }
 
@@ -412,7 +412,7 @@ class FunctionScout(
     postParser.checkIdentifiability(
       closureParamRange,
       identifyingRunes.map(_.rune),
-      ruleBuilder.toArray)
+      ruleBuilder.toVector)
 
     val function1 =
       FunctionS(
@@ -423,7 +423,7 @@ class FunctionScout(
         runeToExplicitType.toMap,
         totalParams,
         maybeRetCoordRune,
-        ruleBuilder.toArray,
+        ruleBuilder.toVector,
         CodeBodyS(body1))
     (function1, variableUses)
   }
@@ -520,8 +520,8 @@ class FunctionScout(
 
   def scoutInterfaceMember(
     interfaceEnv: EnvironmentS,
-    interfaceGenericParams: Array[GenericParameterS],
-    interfaceRules: Array[IRulexSR],
+    interfaceGenericParams: Vector[GenericParameterS],
+    interfaceRules: Vector[IRulexSR],
     interfaceRuneToExplicitType: Map[IRuneS, ITemplataType],
     functionP: FunctionP): FunctionS = {
     val FunctionP(range, headerP, None) = functionP;
@@ -624,7 +624,7 @@ class FunctionScout(
       throw CompileErrorExceptionS(RangedInternalErrorS(PostParser.evalRange(interfaceEnv.file, range), "Dont need abstract here"))
     }
 
-    val unfilteredRulesArray = ruleBuilder.toArray
+    val unfilteredRulesArray = ruleBuilder.toVector
     // Filter out any RuneParentEnvLookupSR rules, we don't want these methods to look up these runes
     // from the environment. See MKRFA.
     val rulesArray =

@@ -336,4 +336,29 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Anonymous substruct 8") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.arrays.*;
+        |//import array.make.*;
+        |
+        |interface IThing {
+        |  func __call(virtual self &IThing, i int) int;
+        |}
+        |
+        |struct MyThing { }
+        |func __call(self &MyThing, i int) int { i }
+        |
+        |impl IThing for MyThing;
+        |
+        |exported func main() int {
+        |  i IThing = MyThing();
+        |  a = Array<imm, int>(10, &i);
+        |  return a.3;
+        |}
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+  }
+
 }

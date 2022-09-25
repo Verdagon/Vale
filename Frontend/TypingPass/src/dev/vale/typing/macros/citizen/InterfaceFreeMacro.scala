@@ -63,7 +63,7 @@
 //        interfaceA.name.range,
 //        use(-64002, self),
 //        RuneUsage(interfaceA.name.range, interfaceNameRune),
-//        interfaceA.genericParameters.map(_.rune).toArray))
+//        interfaceA.genericParameters.map(_.rune).toVector))
 //
 //    val functionGenericParameters = interfaceA.genericParameters
 //
@@ -123,7 +123,7 @@
 ////
 ////    val virtualFreePrototype =
 ////      overloadCompiler.findFunction(
-////        env, coutputs, callRange, interner.intern(VirtualFreeImpreciseNameS()), Vector(), Array(),
+////        env, coutputs, callRange, interner.intern(VirtualFreeImpreciseNameS()), Vector(), Vector(),
 ////        Vector(ParamFilter(paramCoord, None)), Vector(), true) match {
 ////        case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
 ////        case Ok(x) => x

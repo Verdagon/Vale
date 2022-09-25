@@ -80,7 +80,7 @@ class RSAImmutableNewMacro(
         callRange,
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
-        Array(),
+        Vector(),
         Vector(generatorArgCoord, CoordT(ShareT, IntT(32))),
         Vector(),
         false,

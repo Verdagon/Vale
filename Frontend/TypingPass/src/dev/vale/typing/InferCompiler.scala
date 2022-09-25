@@ -32,7 +32,7 @@ case class CompleteCompilerSolve(
   steps: Stream[Step[IRulexSR, IRuneS, ITemplata[ITemplataType]]],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
   runeToBound: InstantiationBoundArguments,
-  reachableBounds: Array[PrototypeTemplata]
+  reachableBounds: Vector[PrototypeTemplata]
 ) extends ICompilerSolverOutcome {
   override def getOrDie(): Map[IRuneS, ITemplata[ITemplataType]] = conclusions
 }
@@ -152,7 +152,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Array[IRuneS]):
+    includeReachableBoundsForRunes: Vector[IRuneS]):
   Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
     solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, _) => Err(f)
@@ -171,7 +171,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Array[IRuneS]):
+    includeReachableBoundsForRunes: Vector[IRuneS]):
   CompleteCompilerSolve = {
     solve(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends, verifyConclusions, isRootSolve, includeReachableBoundsForRunes) match {
       case f @ FailedCompilerSolve(_, _, err) => {
@@ -195,7 +195,7 @@ class InferCompiler(
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
-    includeReachableBoundsForRunes: Array[IRuneS]):
+    includeReachableBoundsForRunes: Vector[IRuneS]):
   ICompilerSolverOutcome = {
     Profiler.frame(() => {
       val runeToType =
@@ -237,7 +237,7 @@ class InferCompiler(
               .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
           val runeToFunctionBound =
             if (verifyConclusions) {
-              checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, conclusions, reachableBounds, isRootSolve) match {
+              checkTemplateInstantiations(envs, state, invocationRange, rules.toVector, conclusions, reachableBounds, isRootSolve) match {
                 case Ok(c) => vassertSome(c)
                 case Err(e) => return FailedCompilerSolve(steps, Vector(), e)
               }
@@ -248,7 +248,7 @@ class InferCompiler(
         }
         case IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
           if (verifyConclusions) {
-            checkTemplateInstantiations(envs, state, invocationRange, rules.toArray, incompleteConclusions, Array(), isRootSolve) match {
+            checkTemplateInstantiations(envs, state, invocationRange, rules.toVector, incompleteConclusions, Vector(), isRootSolve) match {
               case Ok(c) =>
               case Err(e) => return FailedCompilerSolve(steps, unsolvedRules, e)
             }
@@ -264,9 +264,9 @@ class InferCompiler(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     ranges: List[RangeS],
-    rules: Array[IRulexSR],
+    rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-    reachableBounds: Array[PrototypeTemplata],
+    reachableBounds: Vector[PrototypeTemplata],
     isRootSolve: Boolean):
   Result[Option[InstantiationBoundArguments], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // This is a temporary env which contains all of our conclusions.
@@ -329,7 +329,7 @@ class InferCompiler(
     env: IEnvironment, // See CSSNCE
     state: CompilerOutputs,
     ranges: List[RangeS],
-    rules: Array[IRulexSR],
+    rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Option[InstantiationBoundArguments], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // Check all template calls
@@ -479,7 +479,7 @@ class InferCompiler(
 
     template match {
       case RuntimeSizedArrayTemplateTemplata() => {
-        val Array(m, CoordTemplata(coord)) = args
+        val Vector(m, CoordTemplata(coord)) = args
         val mutability = ITemplata.expectMutability(m)
         delegate.resolveRuntimeSizedArrayKind(state, coord, mutability)
         Ok(())

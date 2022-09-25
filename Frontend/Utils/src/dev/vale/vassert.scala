@@ -88,13 +88,13 @@ object vassertOne {
       case other => vfail("Expected one element, but was size " + other.size + ".")
     }
   }
-  def apply[T](thing: Array[T], message: String): T = {
+  def apply[T](thing: Vector[T], message: String): T = {
     thing.toList match {
       case List(x) => x
       case _ => vfail(message)
     }
   }
-  def apply[T](thing: Array[T]): T = {
+  def apply[T](thing: Vector[T]): T = {
     apply(thing, "Expected exactly one element!")
   }
 }
@@ -113,7 +113,7 @@ object vwat {
     vfail("wat")
   }
   def apply(message: Object*): Nothing = {
-    vfail("wat: " + message.toArray.mkString(", "))
+    vfail("wat: " + message.toVector.mkString(", "))
   }
 }
 

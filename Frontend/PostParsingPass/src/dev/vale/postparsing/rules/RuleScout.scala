@@ -60,7 +60,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
               case _ => vfail("Or rules can only contain values for their possibilities.")
             })
 
-        builder += rules.OneOfSR(evalRange(range), rune, values.toArray)
+        builder += rules.OneOfSR(evalRange(range), rune, values.toVector)
         rune
       }
       case ComponentsPR(range, tyype, componentsP) => {
@@ -167,17 +167,17 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
             })
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-          builder += rules.PackSR(evalRange(range), resultRune, argRunes.toArray)
+          builder += rules.PackSR(evalRange(range), resultRune, argRunes.toVector)
           runeToExplicitType.put(resultRune.rune, PackTemplataType(CoordTemplataType()))
 
           rules.RuneUsage(evalRange(range), resultRune.rune)
         } else if (name.str == keywords.ANY) {
-          val literals: Array[ILiteralSL] =
+          val literals: Vector[ILiteralSL] =
             args.map({
               case TemplexPR(IntPT(_, i)) => IntLiteralSL(i)
               case TemplexPR(OwnershipPT(_, i)) => OwnershipLiteralSL(i)
               case other => vimpl(other)
-            }).toArray
+            }).toVector
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
           builder += rules.OneOfSR(evalRange(range), resultRune, literals)

@@ -81,7 +81,7 @@
 ////                RangeS.internal(interner, -1672140),
 ////                RuneUsage(RangeS.internal(interner, -167219), FreeOverrideStructRuneS()),
 ////                RuneUsage(RangeS.internal(interner, -167219), FreeOverrideStructTemplateRuneS()),
-////                structA.identifyingRunes.map(_.rune).map(r => RuneUsage(RangeS.internal(interner, -167219), r)).toArray)
+////                structA.identifyingRunes.map(_.rune).map(r => RuneUsage(RangeS.internal(interner, -167219), r)).toVector)
 ////            }
 ////          },
 ////          LookupSR(RangeS.internal(interner, -1672141),RuneUsage(RangeS.internal(interner, -64002), FreeOverrideStructTemplateRuneS()),structA.name.getImpreciseName(interner)),
