@@ -106,11 +106,11 @@ class AllocationMap(vivemDout: PrintStream) {
     if (nonInternedObjects.nonEmpty) {
       nonInternedObjects
         .map(_.reference.allocId.num)
-        .toArray
+        .toVector
         .sorted
         .foreach(objId => print("o" + objId + " "))
       println()
-      nonInternedObjects.toArray.sortWith(_.reference.allocId.num < _.reference.allocId.num).foreach(_.printRefs())
+      nonInternedObjects.toVector.sortWith(_.reference.allocId.num < _.reference.allocId.num).foreach(_.printRefs())
       vfail("Memory leaks! See above for ")
     }
   }

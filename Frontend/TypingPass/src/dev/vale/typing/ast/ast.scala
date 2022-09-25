@@ -46,13 +46,13 @@ case class ImplT(
   runeToFuncBound: Map[IRuneS, FullNameT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, FullNameT[ImplBoundNameT]],
 
-  runeIndexToIndependence: Array[Boolean],
+  runeIndexToIndependence: Vector[Boolean],
 
   // A function will inherit bounds from its parameters' kinds. Same with an impl from its sub
   // citizen, and a case block from its receiving kind.
   // We'll need to remember those, so the monomorphizer can do its thing.
   // See TIBANFC for more.
-  reachableBoundsFromSubCitizen: Array[PrototypeT]
+  reachableBoundsFromSubCitizen: Vector[PrototypeT]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -149,7 +149,7 @@ case class OverrideT(
 //  // DO NOT SUBMIT explain better
 //  // If this has two elements, that means there's two <ZZ> Milano template args.
 //  // Each value integer is the where it came from; the index in the impl's full name
-//  implGenericArgIndices: Array[Int],
+//  implGenericArgIndices: Vector[Int],
 
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
@@ -251,7 +251,7 @@ case class PrototypeTemplataCalleeCandidate(range: RangeS, prototypeT: Prototype
 
 sealed trait IValidCalleeCandidate {
   def range: Option[RangeS]
-  def paramTypes: Array[CoordT]
+  def paramTypes: Vector[CoordT]
 }
 case class ValidHeaderCalleeCandidate(
   header: FunctionHeaderT
@@ -259,7 +259,7 @@ case class ValidHeaderCalleeCandidate(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
   override def range: Option[RangeS] = header.maybeOriginFunctionTemplata.map(_.function.range)
-  override def paramTypes: Array[CoordT] = header.paramTypes.toArray
+  override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
 }
 case class ValidPrototypeTemplataCalleeCandidate(
   prototype: PrototypeTemplata
@@ -267,7 +267,7 @@ case class ValidPrototypeTemplataCalleeCandidate(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; // DO NOT SUBMIT i removed the equals vcurious
 
   override def range: Option[RangeS] = Some(prototype.declarationRange)
-  override def paramTypes: Array[CoordT] = prototype.prototype.fullName.last.parameters.toArray
+  override def paramTypes: Vector[CoordT] = prototype.prototype.fullName.last.parameters.toVector
 }
 case class ValidCalleeCandidate(
   banner: FunctionHeaderT,
@@ -277,7 +277,7 @@ case class ValidCalleeCandidate(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
   override def range: Option[RangeS] = banner.maybeOriginFunctionTemplata.map(_.function.range)
-  override def paramTypes: Array[CoordT] = banner.paramTypes.toArray
+  override def paramTypes: Vector[CoordT] = banner.paramTypes.toVector
 }
 
 // A "signature" is just the things required for overload resolution, IOW function name and arg types.

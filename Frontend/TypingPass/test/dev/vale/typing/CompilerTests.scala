@@ -905,7 +905,7 @@ class CompilerTests extends FunSuite with Matchers {
     vpass()
   }
 
-  test("Test Array of StructTemplata") {
+  test("Test Vector of StructTemplata") {
     val compile = CompilerTestCompilation.test(
       """
         |import v.builtins.arrays.*;

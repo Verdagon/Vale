@@ -62,7 +62,7 @@ class ImplDropMacro(
 //              Vector(LocalS(interner.intern(CodeVarNameS("this")), NotUsed, Used, NotUsed, NotUsed, NotUsed, NotUsed)),
 //              FunctionCallSE(RangeS.internal(interner, -1672135),
 //                OutsideLoadSE(RangeS.internal(interner, -1672136),
-//                  Array(),
+//                  Vector(),
 //                  interner.intern(CodeNameS(CallCompiler.DROP_FUNCTION_NAME)),
 //                  None,
 //                  LoadAsPointerP(None)),

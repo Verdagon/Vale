@@ -405,7 +405,7 @@ class PostParser(
       PostParser.evalRange(file, range),
       implName,
       genericParametersS,
-      ruleBuilder.toArray,
+      ruleBuilder.toVector,
       runeToExplicitType.toMap,
       structRune,
       subCitizenImpreciseName,
@@ -424,7 +424,7 @@ class PostParser(
     val lidb = new LocationInDenizenBuilder(Vector())
     val runeS = templexScout.translateTemplex(exportEnv, lidb, ruleBuilder, templexP)
 
-    postparsing.ExportAsS(PostParser.evalRange(file, range), ruleBuilder.toArray, exportName, runeS, exportedName.str)
+    postparsing.ExportAsS(PostParser.evalRange(file, range), ruleBuilder.toVector, exportName, runeS, exportedName.str)
   }
 
   private def scoutImport(file: FileCoordinate, importP: ImportP): ImportS = {
@@ -435,7 +435,7 @@ class PostParser(
     postparsing.ImportS(PostParser.evalRange(file, range), moduleName.str, packageNames.map(_.str), importeeName.str)
   }
 
-  private def predictMutability(rangeS: RangeS, mutabilityRuneS: IRuneS, rulesS: Array[IRulexSR]):
+  private def predictMutability(rangeS: RangeS, mutabilityRuneS: IRuneS, rulesS: Vector[IRulexSR]):
   Option[MutabilityP] = {
     val predictedMutabilities =
       rulesS.collect({
@@ -519,8 +519,8 @@ class PostParser(
         }
       })
 
-    val headerRulesS = headerRuleBuilder.toArray
-    val memberRulesS = memberRuleBuilder.toArray
+    val headerRulesS = headerRuleBuilder.toVector
+    val memberRulesS = memberRuleBuilder.toVector
 
     val allRulesS = headerRulesS ++ memberRulesS
     val allRuneToExplicitType = headerRuneToExplicitType ++ membersRuneToExplicitType
@@ -579,7 +579,7 @@ class PostParser(
     rangeS: RangeS,
     identifyingRunesS: Vector[IRuneS],
     runeToExplicitType: Map[IRuneS, ITemplataType],
-    rulesS: Array[IRulexSR]):
+    rulesS: Vector[IRulexSR]):
   Map[IRuneS, ITemplataType] = {
     Profiler.frame(() => {
       val runeSToLocallyPredictedTypes =
@@ -599,7 +599,7 @@ class PostParser(
   def checkIdentifiability(
     rangeS: RangeS,
     identifyingRunesS: Vector[IRuneS],
-    rulesS: Array[IRulexSR]):
+    rulesS: Vector[IRulexSR]):
   Unit = {
     IdentifiabilitySolver.solve(
       globalOptions.sanityCheck,
@@ -660,7 +660,7 @@ class PostParser(
     val mutabilityRuneS = templexScout.translateTemplex(interfaceEnv, lidb.child(), ruleBuilder, mutability)
 
 
-    val rulesS = ruleBuilder.toArray
+    val rulesS = ruleBuilder.toVector
 
     val runeToPredictedType = predictRuneTypes(interfaceRangeS, userDeclaredRunes, Map(), rulesS)
 
@@ -678,7 +678,7 @@ class PostParser(
     val internalMethodsS =
       internalMethodsP.map(
         functionScout.scoutInterfaceMember(
-          interfaceEnv, genericParametersS.toArray, rulesS, runeToExplicitType.toMap, _))
+          interfaceEnv, genericParametersS.toVector, rulesS, runeToExplicitType.toMap, _))
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
     val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))

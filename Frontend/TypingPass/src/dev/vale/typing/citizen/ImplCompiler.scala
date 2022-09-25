@@ -96,7 +96,7 @@ class ImplCompiler(
         isRootSolve,
         // We include the reachable bounds for the struct rune. Those are bounds that this impl will
         // have to satisfy when it calls the interface.
-        Array(structKindRune.rune))
+        Vector(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -161,7 +161,7 @@ class ImplCompiler(
         true,
         isRootSolve,
         // We include reachable bounds for the struct so we don't have to re-specify all its bounds in the impl.
-        Array(structKindRune.rune))
+        Vector(structKindRune.rune))
     //    val inferences =
     //      result match {
     //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
@@ -302,7 +302,7 @@ class ImplCompiler(
           superInterfaceTemplateFullName,
           runeToNeededFunctionBound,
           runeToNeededImplBound,
-          runeIndexToIndependence.toArray,
+          runeIndexToIndependence.toVector,
           reachableBoundsFromSubCitizen.map(_.prototype)))
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
@@ -334,7 +334,7 @@ class ImplCompiler(
         implTemplata,
         false) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
-        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Array[ITemplata[ITemplataType]]())
+        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
         case fcs @ FailedCompilerSolve(_, _, _) => {
           throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implTemplata.impl.range), fcs))
         }
@@ -504,7 +504,7 @@ class ImplCompiler(
   //  def getParents(
   //    coutputs: CompilerOutputs,
   //    subCitizenTT: ICitizenTT):
-  //  Array[InterfaceTT] = {
+  //  Vector[InterfaceTT] = {
   //    val subCitizenTemplateFullName = TemplataCompiler.getCitizenTemplate(subCitizenTT.fullName)
   //    coutputs
   //      .getParentImplsForSubCitizenTemplate(subCitizenTemplateFullName)
@@ -512,7 +512,7 @@ class ImplCompiler(
   //        val substituter =
   //          TemplataCompiler.getPlaceholderSubstituter(interner, subCitizenTT.fullName)
   //        substituter.substituteForInterface(parentInterfaceFromPlaceholderedSubCitizen)
-  //      }).toArray
+  //      }).toVector
   //  }
   //
 
@@ -582,13 +582,13 @@ class ImplCompiler(
     callingEnv: IEnvironment,
     subKind: ISubKindTT,
     verifyConclusions: Boolean):
-  Array[ISuperKindTT] = {
+  Vector[ISuperKindTT] = {
     val subKindFullName = subKind.fullName
     val subKindTemplateName = TemplataCompiler.getSubKindTemplate(subKindFullName)
     val subKindEnv = coutputs.getOuterEnvForType(subKindTemplateName)
     val subKindImpreciseName =
       TemplatasStore.getImpreciseName(interner, subKindFullName.last) match {
-        case None => return Array()
+        case None => return Vector()
         case Some(n) => n
       }
     val implImpreciseNameS =
@@ -623,7 +623,7 @@ class ImplCompiler(
           }
           case _ => List()
         }
-      }).toArray
+      }).toVector
 
     val parentsFromImplTemplatas =
       implTemplatasWithDuplicates

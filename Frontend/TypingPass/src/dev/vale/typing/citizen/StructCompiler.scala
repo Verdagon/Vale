@@ -50,7 +50,7 @@ trait IStructCompilerDelegate {
     callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
+    explicitTemplateArgRunesS: Vector[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean,

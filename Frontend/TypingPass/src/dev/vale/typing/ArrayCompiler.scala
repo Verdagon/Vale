@@ -65,7 +65,7 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val CompleteCompilerSolve(_, templatas, _, Array()) =
+    val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv),
         coutputs,
@@ -76,7 +76,7 @@ class ArrayCompiler(
         Vector(),
         true,
         true,
-        Array())
+        Vector())
 
     val size = ITemplata.expectInteger(vassertSome(templatas.get(sizeRuneA)))
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
@@ -130,9 +130,9 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
-    val CompleteCompilerSolve(_, templatas, _, Array()) =
+    val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Array())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -195,7 +195,7 @@ class ArrayCompiler(
             maybeElementTypeRune.map(e => {
               RuneParentEnvLookupSR(range.head, RuneUsage(range.head, e))
             }),
-            Array(CodeRuneS(keywords.M)) ++ maybeElementTypeRune,
+            Vector(CodeRuneS(keywords.M)) ++ maybeElementTypeRune,
             Vector(sizeTE.result.reference) ++
               maybeCallableTE.map(c => c.result.reference),
             Vector(),
@@ -209,12 +209,12 @@ class ArrayCompiler(
           prototype.prototype.returnType.kind match {
             case RuntimeSizedArrayTT(FullNameT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType)))) => {
               if (mutability != MutabilityTemplata(MutableT)) {
-                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong mutability!"))
+                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Vector function returned wrong mutability!"))
               }
               elementType
             }
             case _ => {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong type!"))
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Vector function returned wrong type!"))
             }
           }
         maybeElementTypeRune.foreach(elementTypeRuneA => {
@@ -272,9 +272,9 @@ class ArrayCompiler(
     }
     val memberType = memberTypes.head
 
-    val CompleteCompilerSolve(_, templatas, _, Array()) =
+    val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Array())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {

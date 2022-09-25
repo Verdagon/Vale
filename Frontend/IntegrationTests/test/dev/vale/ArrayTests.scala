@@ -393,23 +393,28 @@ class ArrayTests extends FunSuite with Matchers {
     val compile = RunCompilation.test(
         """
           |import array.make.*;
-          |import ifunction.ifunction1.*;
+          |
+          |sealed interface IThing {
+          |  func __call(virtual self &IThing, i int) int;
+          |}
+          |
+          |struct MyThing { }
+          |func __call(self &MyThing, i int) int { i }
+          |
+          |impl IThing for MyThing;
+          |
           |exported func main() int {
-          |  a = Array<imm, int>(10, &IFunction1<imm, int, int>({_}));
+          |  i IThing = MyThing();
+          |  a = Array<imm, int>(10, &i);
           |  return a.3;
           |}
           |""".stripMargin)
 
     val coutputs = compile.expectCompilerOutputs()
-    val main = coutputs.lookupFunction("Array")
-    Collector.only(main, {
-      case NewImmRuntimeSizedArrayTE(contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), CoordT(ShareT, IntT(_))), _, _, _) =>
-    })
-
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Array map taking a closure which captures something") {
+  test("Vector map taking a closure which captures something") {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
@@ -461,7 +466,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Array with capture") {
+  test("Vector with capture") {
     val compile = RunCompilation.test(
         """import array.make.*;
           |struct IntBox {
@@ -606,7 +611,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(30) => }
   }
 
-  test("Array foreach") {
+  test("Vector foreach") {
     val compile = RunCompilation.test(
       """
         |import array.make.*;
@@ -620,7 +625,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(169) => }
   }
 
-  test("Array has") {
+  test("Vector has") {
     val compile = RunCompilation.test(
         """
           |import array.has.*;

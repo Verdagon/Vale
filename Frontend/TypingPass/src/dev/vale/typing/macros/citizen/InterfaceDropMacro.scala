@@ -61,7 +61,7 @@ class InterfaceDropMacro(
         interfaceA.name.range,
         use(-64002, self),
         RuneUsage(interfaceA.name.range, interfaceNameRune),
-        interfaceA.genericParameters.map(_.rune).toArray))
+        interfaceA.genericParameters.map(_.rune).toVector))
 
     // Use the same generic parameters as the interface, see MDSFONARFO.
     val functionGenericParameters = interfaceA.genericParameters

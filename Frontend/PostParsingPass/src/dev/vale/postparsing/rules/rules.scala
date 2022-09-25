@@ -19,12 +19,12 @@ case class RuneUsage(range: RangeS, rune: IRuneS) {
 // combine them.
 trait IRulexSR {
   def range: RangeS
-  def runeUsages: Array[RuneUsage]
+  def runeUsages: Vector[RuneUsage]
 }
 
 case class EqualsSR(range: RangeS, left: RuneUsage, right: RuneUsage) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(left, right)
+  override def runeUsages: Vector[RuneUsage] = Vector(left, right)
 }
 
 // See SAIRFU and SRCAMP for what's going on with these rules.
@@ -34,12 +34,12 @@ case class CoordSendSR(
   receiverRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(senderRune, receiverRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(senderRune, receiverRune)
 }
 
 case class DefinitionCoordIsaSR(range: RangeS, resultRune: RuneUsage, subRune: RuneUsage, superRune: RuneUsage) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, subRune, superRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, subRune, superRune)
 }
 
 case class CallSiteCoordIsaSR(
@@ -58,7 +58,7 @@ case class CallSiteCoordIsaSR(
   superRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = resultRune.toArray ++ Array(subRune, superRune)
+  override def runeUsages: Vector[RuneUsage] = resultRune.toVector ++ Vector(subRune, superRune)
 }
 
 case class KindComponentsSR(
@@ -67,7 +67,7 @@ case class KindComponentsSR(
   mutabilityRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(kindRune, mutabilityRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(kindRune, mutabilityRune)
 }
 
 case class CoordComponentsSR(
@@ -77,7 +77,7 @@ case class CoordComponentsSR(
   kindRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, ownershipRune, kindRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, ownershipRune, kindRune)
 }
 
 case class PrototypeComponentsSR(
@@ -87,7 +87,7 @@ case class PrototypeComponentsSR(
   returnRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsRune, returnRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, paramsRune, returnRune)
 }
 
 case class ResolveSR(
@@ -99,7 +99,7 @@ case class ResolveSR(
 ) extends IRulexSR {
   vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune, returnRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, paramsListRune, returnRune)
 }
 
 case class CallSiteFuncSR(
@@ -110,7 +110,7 @@ case class CallSiteFuncSR(
   returnRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(prototypeRune, paramsListRune, returnRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(prototypeRune, paramsListRune, returnRune)
 }
 
 case class DefinitionFuncSR(
@@ -121,18 +121,18 @@ case class DefinitionFuncSR(
   returnRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, paramsListRune, returnRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, paramsListRune, returnRune)
 }
 
 // See Possible Values Shouldnt Be Used For Inference (PVSBUFI)
 case class OneOfSR(
   range: RangeS,
   rune: RuneUsage,
-  literals: Array[ILiteralSL]
+  literals: Vector[ILiteralSL]
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vassert(literals.nonEmpty)
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class IsConcreteSR(
@@ -140,7 +140,7 @@ case class IsConcreteSR(
   rune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class IsInterfaceSR(
@@ -148,7 +148,7 @@ case class IsInterfaceSR(
   rune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class IsStructSR(
@@ -156,7 +156,7 @@ case class IsStructSR(
   rune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class CoerceToCoordSR(
@@ -165,7 +165,7 @@ case class CoerceToCoordSR(
   kindRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(coordRune, kindRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(coordRune, kindRune)
 }
 
 case class RefListCompoundMutabilitySR(
@@ -174,7 +174,7 @@ case class RefListCompoundMutabilitySR(
   coordListRune: RuneUsage,
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, coordListRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, coordListRune)
 }
 
 case class LiteralSR(
@@ -183,7 +183,7 @@ case class LiteralSR(
   literal: ILiteralSL
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class LookupSR(
@@ -193,7 +193,7 @@ case class LookupSR(
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 case class IndexListSR(
@@ -204,7 +204,7 @@ case class IndexListSR(
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, listRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, listRune)
 }
 
 case class RuneParentEnvLookupSR(
@@ -213,7 +213,7 @@ case class RuneParentEnvLookupSR(
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
-  override def runeUsages: Array[RuneUsage] = Array(rune)
+  override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
 // InterpretedAR will overwrite inner's permission and ownership to the given ones.
@@ -226,26 +226,26 @@ case class AugmentSR(
 ) extends IRulexSR {
   vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, innerRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, innerRune)
 }
 
 case class CallSR(
   range: RangeS,
   resultRune: RuneUsage,
   templateRune: RuneUsage,
-  args: Array[RuneUsage]
+  args: Vector[RuneUsage]
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, templateRune) ++ args
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, templateRune) ++ args
 }
 
 case class PackSR(
   range: RangeS,
   resultRune: RuneUsage,
-  members: Array[RuneUsage]
+  members: Vector[RuneUsage]
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune) ++ members
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune) ++ members
 }
 
 case class StaticSizedArraySR(
@@ -257,7 +257,7 @@ case class StaticSizedArraySR(
   elementRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
 }
 
 case class RuntimeSizedArraySR(
@@ -267,7 +267,7 @@ case class RuntimeSizedArraySR(
   elementRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Array[RuneUsage] = Array(resultRune, mutabilityRune, elementRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, mutabilityRune, elementRune)
 }
 
 sealed trait ILiteralSL {

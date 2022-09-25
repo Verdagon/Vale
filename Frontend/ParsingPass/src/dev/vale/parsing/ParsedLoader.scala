@@ -115,7 +115,7 @@ class ParsedLoader(interner: Interner) {
         Ok(
           FileP(
             loadFileCoord(getObjectField(jfile, "fileCoord")),
-            getArrayField(jfile, "commentsRanges").map(expectObject).map(x => loadRange(x)).toArray,
+            getArrayField(jfile, "commentsRanges").map(expectObject).map(x => loadRange(x)).toVector,
             getArrayField(jfile, "denizens").map(expectObject).map(denizen => {
               getType(denizen) match {
                 case "Struct" => TopLevelStructP(loadStruct(denizen))
@@ -126,7 +126,7 @@ class ParsedLoader(interner: Interner) {
                 case "ExportAs" => TopLevelExportAsP(loadExportAs(denizen))
                 case x => vimpl(x.toString)
               }
-            }).toArray))
+            }).toVector))
       } catch {
         case BadVPSTException(err) => Err(err)
       }

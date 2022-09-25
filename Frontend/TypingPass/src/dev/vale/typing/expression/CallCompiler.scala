@@ -32,7 +32,7 @@ class CallCompiler(
       range: List[RangeS],
       callableExpr: ReferenceExpressionTE,
       explicitTemplateArgRulesS: Vector[IRulexSR],
-      explicitTemplateArgRunesS: Array[IRuneS],
+      explicitTemplateArgRunesS: Vector[IRuneS],
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     callableExpr.result.reference.kind match {
@@ -114,7 +114,7 @@ class CallCompiler(
       range: List[RangeS],
       kind: KindT,
       explicitTemplateArgRulesS: Vector[IRulexSR],
-      explicitTemplateArgRunesS: Array[IRuneS],
+      explicitTemplateArgRunesS: Vector[IRuneS],
       givenCallableUnborrowedExpr2: ReferenceExpressionTE,
       givenArgsExprs2: Vector[ReferenceExpressionTE]):
       (FunctionCallTE) = {
@@ -224,7 +224,7 @@ class CallCompiler(
     range: List[RangeS],
       callableReferenceExpr2: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
+    explicitTemplateArgRunesS: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]):
   (FunctionCallTE) = {
     val callExpr =

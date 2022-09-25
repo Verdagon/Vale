@@ -275,7 +275,7 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
     val ownership =
       if (iter.trySkipSymbol('^')) { OwnP }
       else if (iter.trySkipSymbol('@')) { ShareP }
-      else if (iter.trySkipSymbols(Array('&', '&'))) { WeakP }
+      else if (iter.trySkipSymbols(Vector('&', '&'))) { WeakP }
       else if (iter.trySkipSymbol('&')) { BorrowP }
       else { return Ok(None) }
 
@@ -390,7 +390,7 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
       case StringLE(range, parts) => {
         iter.advance()
         parts match {
-          case Array(StringPartLiteral(range, s)) => Ok(StringPT(range, s))
+          case Vector(StringPartLiteral(range, s)) => Ok(StringPT(range, s))
           case _ => return Err(BadStringInTemplex(range.begin))
         }
       }

@@ -13,7 +13,7 @@ object SimpleSolverState {
       Map[Rune, Int](),
       Map[Int, Rune](),
       Vector[Rule](),
-      Map[Int, Array[Array[Int]]](),
+      Map[Int, Vector[Vector[Int]]](),
       Map[Int, Conclusion]())
   }
 }
@@ -26,7 +26,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
 
   private var rules: Vector[Rule],
 
-  private var openRuleToPuzzleToRunes: Map[Int, Array[Array[Int]]],
+  private var openRuleToPuzzleToRunes: Map[Int, Vector[Vector[Int]]],
 
   private var canonicalRuneToConclusion: Map[Int, Conclusion]
 ) extends ISolverState[Rule, Rune, Conclusion] {
@@ -91,8 +91,8 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
     vassertSome(userRuneToCanonicalRune.get(rune))
   }
 
-  override def addPuzzle(ruleIndex: Int, runes: Array[Int]): Unit = {
-    val thisRulePuzzleToRunes = openRuleToPuzzleToRunes.getOrElse(ruleIndex, Array())
+  override def addPuzzle(ruleIndex: Int, runes: Vector[Int]): Unit = {
+    val thisRulePuzzleToRunes = openRuleToPuzzleToRunes.getOrElse(ruleIndex, Vector())
     openRuleToPuzzleToRunes = openRuleToPuzzleToRunes + (ruleIndex -> (thisRulePuzzleToRunes :+ runes))
   }
 
@@ -134,7 +134,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
   }
 
   // Success returns number of new conclusions
-  override def markRulesSolved[ErrType](ruleIndices: Array[Int], newConclusions: Map[Int, Conclusion]):
+  override def markRulesSolved[ErrType](ruleIndices: Vector[Int], newConclusions: Map[Int, Conclusion]):
   Result[Int, ISolverError[Rune, Conclusion, ErrType]] = {
     val numNewConclusions =
       newConclusions.map({ case (newlySolvedRune, newConclusion) =>
@@ -154,7 +154,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
   }
 
   class SimpleStepState(
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     complex: Boolean,
     rules: Vector[(Int, Rule)]
   ) extends IStepState[Rule, Rune, Conclusion] {
@@ -196,7 +196,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
   }
 
   override def initialStep[ErrType](
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     step: IStepState[Rule, Rune, Conclusion] => Result[Unit, ISolverError[Rune, Conclusion, ErrType]]):
   Result[Step[Rule, Rune, Conclusion], ISolverError[Rune, Conclusion, ErrType]] = {
     val stepState = new SimpleStepState(ruleToPuzzles, false, Vector())
@@ -214,7 +214,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
   }
 
   override def simpleStep[ErrType](
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     ruleIndex: Int,
     rule: Rule,
     step: IStepState[Rule, Rune, Conclusion] => Result[Unit, ISolverError[Rune, Conclusion, ErrType]]):
@@ -234,7 +234,7 @@ case class SimpleSolverState[Rule, Rune, Conclusion](
   }
 
   override def complexStep[ErrType](
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     step: IStepState[Rule, Rune, Conclusion] => Result[Unit, ISolverError[Rune, Conclusion, ErrType]]):
   Result[Step[Rule, Rune, Conclusion], ISolverError[Rune, Conclusion, ErrType]] = {
     val stepState = new SimpleStepState(ruleToPuzzles, true, Vector())

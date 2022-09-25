@@ -255,7 +255,7 @@ object DenizenMonomorphizer {
         monouts,
         interfaceTemplate,
         interfaceFullName,
-        interfaceFullName.last.templateArgs.toArray.zipWithIndex.map({ case (templateArg, index) =>
+        interfaceFullName.last.templateArgs.toVector.zipWithIndex.map({ case (templateArg, index) =>
           interfaceTemplate.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index))))) -> templateArg
         }).toMap,
         DenizenBoundToDenizenCallerSuppliedThing(
@@ -422,7 +422,7 @@ object DenizenMonomorphizer {
         monouts,
         structTemplate,
         structFullName,
-        topLevelDenizenPlaceholderIndexToTemplata.toArray.zipWithIndex.map({ case (templateArg, index) =>
+        topLevelDenizenPlaceholderIndexToTemplata.toVector.zipWithIndex.map({ case (templateArg, index) =>
           val placeholderName =
             topLevelDenizenTemplateFullName
               .addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
@@ -479,7 +479,7 @@ object DenizenMonomorphizer {
         monouts,
         funcTemplateNameT,
         abstractFunc.fullName,
-        abstractFunc.fullName.last.templateArgs.toArray.zipWithIndex.map({ case (templateArg, index) =>
+        abstractFunc.fullName.last.templateArgs.toVector.zipWithIndex.map({ case (templateArg, index) =>
           funcTemplateNameT.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index))))) -> templateArg
         }).toMap,
         DenizenBoundToDenizenCallerSuppliedThing(
@@ -753,7 +753,7 @@ object DenizenMonomorphizer {
         monouts,
         implTemplateFullName,
         implFullName,
-        implFullName.last.templateArgs.toArray.zipWithIndex.map({ case (templateArg, index) =>
+        implFullName.last.templateArgs.toVector.zipWithIndex.map({ case (templateArg, index) =>
           implTemplateFullName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index))))) -> templateArg
         }).toMap,
         denizenBoundToDenizenCallerSuppliedThing)
@@ -859,7 +859,7 @@ object DenizenMonomorphizer {
         monouts,
         funcTemplateNameT,
         desiredPrototype.fullName,
-        topLevelDenizenPlaceholderIndexToTemplata.toArray.zipWithIndex.map({ case (templateArg, index) =>
+        topLevelDenizenPlaceholderIndexToTemplata.toVector.zipWithIndex.map({ case (templateArg, index) =>
           val placeholderName =
             topLevelDenizenTemplateFullName
               .addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index)))))
@@ -1521,11 +1521,30 @@ class DenizenMonomorphizer(
             translateRefExpr(innerExpr),
             translateRefExpr(deferredExpr))
         }
-        case LetAndLendTE(variable, expr, targetOwnership) => {
+        case LetAndLendTE(variable, sourceExprT, targetOwnership) => {
+          val sourceExpr = translateRefExpr(sourceExprT)
+
+          val resultOwnership =
+            (targetOwnership, sourceExpr.result.reference.ownership) match {
+              case (OwnT, OwnT) => OwnT
+              case (OwnT, BorrowT) => BorrowT
+              case (BorrowT, OwnT) => BorrowT
+              case (BorrowT, BorrowT) => BorrowT
+              case (BorrowT, WeakT) => WeakT
+              case (BorrowT, ShareT) => ShareT
+              case (WeakT, OwnT) => WeakT
+              case (WeakT, BorrowT) => WeakT
+              case (WeakT, WeakT) => WeakT
+              case (WeakT, ShareT) => ShareT
+              case (ShareT, ShareT) => ShareT
+              case (OwnT, ShareT) => ShareT
+              case other => vwat(other)
+            }
+
           LetAndLendTE(
             translateLocalVariable(variable),
-            translateRefExpr(expr),
-            targetOwnership)
+            sourceExpr,
+            resultOwnership)
         }
         case BorrowToWeakTE(innerExpr) => {
           BorrowToWeakTE(translateRefExpr(innerExpr))
@@ -1815,8 +1834,8 @@ class DenizenMonomorphizer(
         }
       }
       case other => {
-        // We could, for example, be translating an Array<myFunc$0, T> (which is temporarily regarded mutable)
-        // to an Array<imm, int> (which is immutable).
+        // We could, for example, be translating an Vector<myFunc$0, T> (which is temporarily regarded mutable)
+        // to an Vector<imm, int> (which is immutable).
         // So, we have to check for that here and possibly make the ownership share.
         val kind = translateKind(other)
         val mutability = getMutability(kind)

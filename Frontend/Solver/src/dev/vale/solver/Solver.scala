@@ -90,7 +90,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
     useOptimizedSolver: Boolean,
     interner: Interner) {
   def solve(
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     state: State,
     env: Env,
     solverState: ISolverState[Rule, Rune, Conclusion],
@@ -122,7 +122,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
                 step.conclusions.map({ case (userRune, conclusion) => solverState.getCanonicalRune(userRune) -> conclusion }).toMap
 
               //            println(s"Got conclusions for ${solvingRuleIndex}: " + canonicalConclusions.keySet)
-              solverState.markRulesSolved[ErrType](Array(solvingRuleIndex), canonicalConclusions) match {
+              solverState.markRulesSolved[ErrType](Vector(solvingRuleIndex), canonicalConclusions) match {
                 case Ok(_) =>
                 case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
               }
@@ -147,7 +147,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
           val canonicalConclusions =
             step.conclusions.map({ case (userRune, conclusion) => solverState.getCanonicalRune(userRune) -> conclusion }).toMap
           val continue =
-            solverState.markRulesSolved[ErrType](step.solvedRules.map(_._1).toArray, canonicalConclusions) match {
+            solverState.markRulesSolved[ErrType](step.solvedRules.map(_._1).toVector, canonicalConclusions) match {
               case Ok(0) => false // Do nothing, we're done
               case Ok(_) => true // continue
               case Err(e) => return Err(FailedSolve(solverState.getSteps(), solverState.getUnsolvedRules(), e))
@@ -170,7 +170,7 @@ class Solver[Rule, Rune, Env, State, Conclusion, ErrType](
     callRange: List[RangeS],
     initialRules: IndexedSeq[Rule],
     ruleToRunes: Rule => Iterable[Rune],
-    ruleToPuzzles: Rule => Array[Array[Rune]],
+    ruleToPuzzles: Rule => Vector[Vector[Rune]],
     initiallyKnownRunes: Map[Rune, Conclusion]):
   ISolverState[Rule, Rune, Conclusion] = {
     Profiler.frame(() => {

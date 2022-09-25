@@ -112,7 +112,7 @@ class EdgeCompiler(
       range,
       impreciseName,
       Vector.empty,
-      Array.empty,
+      Vector.empty,
       paramTypes,
       Vector(
         coutputs.getOuterEnvForType(interface),
@@ -308,7 +308,7 @@ class EdgeCompiler(
     // Note that these placeholder indexes might not line up with the ones from the original impl.
     val implPlaceholderToDispatcherPlaceholder =
       U.mapWithIndex[ITemplata[ITemplataType], (FullNameT[PlaceholderNameT], ITemplata[ITemplataType])](
-        impl.instantiatedFullName.last.templateArgs.toArray
+        impl.instantiatedFullName.last.templateArgs.toVector
         .zip(impl.runeIndexToIndependence)
         .filter({ case (templata, independent) => !independent }) // Only grab dependent runes
         .map({ case (templata, independent) => templata }),
@@ -393,7 +393,7 @@ class EdgeCompiler(
 
     val implRuneToImplPlaceholderAndCasePlaceholder =
       U.mapWithIndex[(IRuneS, ITemplata[ITemplataType]), (IRuneS, FullNameT[PlaceholderNameT], ITemplata[ITemplataType])](
-        impl.templata.impl.genericParams.map(_.rune.rune).toArray
+        impl.templata.impl.genericParams.map(_.rune.rune).toVector
           .zip(impl.instantiatedFullName.last.templateArgs.toIterable)
           .zip(impl.runeIndexToIndependence)
           .filter({ case ((rune, templata), independent) => independent }) // Only grab independent runes for the case
@@ -474,7 +474,7 @@ class EdgeCompiler(
         impl.templata,
         false) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
-        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Array[ITemplata[ITemplataType]]())
+        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
         case fcs @ FailedCompilerSolve(_, _, _) => {
           throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), fcs))
         }
@@ -507,7 +507,7 @@ class EdgeCompiler(
 //          interner,
 //          keywords,
 //          KindTemplata(overridingImpl.subCitizen),
-//          implPlaceholderToDispatcherPlaceholder.toArray)).kind.expectCitizen()
+//          implPlaceholderToDispatcherPlaceholder.toVector)).kind.expectCitizen()
 
     // See WTFBBQ
     // See ONBIFS and NBIFP for why we need these bounds in our below env.

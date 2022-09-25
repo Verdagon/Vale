@@ -181,8 +181,8 @@ case class Hinputs(
     }
   }
 
-  def lookupLambdasIn(needleFunctionHumanName: String): Array[FunctionT] = {
-    functions.filter(f => nameIsLambdaIn(f.header.fullName, needleFunctionHumanName)).toArray
+  def lookupLambdasIn(needleFunctionHumanName: String): Vector[FunctionT] = {
+    functions.filter(f => nameIsLambdaIn(f.header.fullName, needleFunctionHumanName)).toVector
   }
 
   def lookupLambdaIn(needleFunctionHumanName: String): FunctionT = {

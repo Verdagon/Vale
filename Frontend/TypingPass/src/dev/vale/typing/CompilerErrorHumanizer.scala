@@ -126,7 +126,7 @@ object CompilerErrorHumanizer {
           "Can't downcast to an interface (" + targetKind + ") yet."
         }
         case ArrayElementsHaveDifferentTypes(range, types) => {
-          "Array's elements have different types: " + types.mkString(", ")
+          "Vector's elements have different types: " + types.mkString(", ")
         }
         case ExportedFunctionDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
           "Exported function " + signature + " depends on kind " + nonExportedKind + " that wasn't exported from package " + paackage
@@ -520,7 +520,7 @@ object CompilerErrorHumanizer {
           case InterfaceTT(name) => humanizeName(codeMap, name)
           case StructTT(name) => humanizeName(codeMap, name)
           case contentsRuntimeSizedArrayTT(mutability, elementType) => {
-            "Array<" +
+            "Vector<" +
               humanizeTemplata(codeMap, mutability) + ", " +
               humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
           }

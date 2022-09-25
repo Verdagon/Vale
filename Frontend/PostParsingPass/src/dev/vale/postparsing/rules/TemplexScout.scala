@@ -117,7 +117,7 @@ class TemplexScout(
                   evalRange(range),
                   resultRuneS,
                   translateTemplex(env, lidb.child(), ruleBuilder, template),
-                  args.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+                  args.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
               resultRuneS
             }
             case FunctionPT(range, mutability, paramsPack, returnType) => {
@@ -133,7 +133,7 @@ class TemplexScout(
                   evalRange(range),
                   resultRuneS,
                   templateNameRuneS,
-                  Array(
+                  Vector(
                     mutabilityRuneS,
                     translateTemplex(env, lidb.child(), ruleBuilder, paramsPack),
                     translateTemplex(env, lidb.child(), ruleBuilder, returnType)))
@@ -147,7 +147,7 @@ class TemplexScout(
                   translateTemplex(env, lidb.child(), ruleBuilder, paramP)
                 })
               val paramListRuneS = rules.RuneUsage(paramsRangeS, ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder += PackSR(paramsRangeS, paramListRuneS, paramsS.toArray)
+              ruleBuilder += PackSR(paramsRangeS, paramListRuneS, paramsS.toVector)
 
               val returnRuneS = translateTemplex(env, lidb.child(), ruleBuilder, returnTypeP)
 
@@ -173,7 +173,7 @@ class TemplexScout(
                 rangeS,
                 resultRuneS,
                 templateRuneS,
-                members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+                members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
 
               resultRuneS
 //              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
@@ -181,7 +181,7 @@ class TemplexScout(
 //                rules.PackSR(
 //                  evalRange(range),
 //                  resultRuneS,
-//                  members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+//                  members.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
 //              resultRuneS
             }
             case StaticSizedArrayPT(range, mutability, variability, size, element) => {
@@ -220,18 +220,18 @@ class TemplexScout(
                   evalRange(range),
                   resultRuneS,
                   templateRuneS,
-                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
 //              ruleBuilder +=
 //                rules.CallSR(
 //                  evalRange(range),
 //                  resultRuneS,
 //                  templateRuneS,
-//                  Array(packRuneS))
+//                  Vector(packRuneS))
 //              ruleBuilder +=
 //                rules.PackSR(
 //                  evalRange(range),
 //                  packRuneS,
-//                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toArray)
+//                  elements.map(translateTemplex(env, lidb.child(), ruleBuilder, _)).toVector)
               resultRuneS
             }
           }

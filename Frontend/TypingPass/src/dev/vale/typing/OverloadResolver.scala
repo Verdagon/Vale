@@ -87,7 +87,7 @@ class OverloadResolver(
     callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
+    explicitTemplateArgRunesS: Vector[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean,
@@ -210,7 +210,7 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
+    explicitTemplateArgRunesS: Vector[IRuneS],
     paramFilters: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean,
@@ -296,11 +296,11 @@ class OverloadResolver(
                     Vector(),
                     true,
                     false,
-                    Array()) match {
+                    Vector()) match {
                     case (Err(e)) => {
                       Err(InferFailure(e))
                     }
-                    case (Ok(CompleteCompilerSolve(_, explicitRuneSToTemplata, _, Array()))) => {
+                    case (Ok(CompleteCompilerSolve(_, explicitRuneSToTemplata, _, Vector()))) => {
                       val explicitlySpecifiedTemplateArgTemplatas =
                         explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 
@@ -462,7 +462,7 @@ class OverloadResolver(
     callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
-    explicitTemplateArgRunesS: Array[IRuneS],
+    explicitTemplateArgRunesS: Vector[IRuneS],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     exact: Boolean,
@@ -730,7 +730,7 @@ class OverloadResolver(
         callableTE.result.underlyingReference,
         CoordT(ShareT, IntT.i32))
       findFunction(
-        callingEnv, coutputs, range, funcName, Vector.empty, Array.empty,
+        callingEnv, coutputs, range, funcName, Vector.empty, Vector.empty,
         paramFilters, Vector.empty, false, verifyConclusions) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x.function.prototype
@@ -751,7 +751,7 @@ class OverloadResolver(
         callableTE.result.underlyingReference,
         elementType)
     findFunction(
-      fate.snapshot, coutputs, range, funcName, Vector.empty, Array.empty, paramFilters, Vector.empty, false, verifyConclusions) match {
+      fate.snapshot, coutputs, range, funcName, Vector.empty, Vector.empty, paramFilters, Vector.empty, false, verifyConclusions) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
       case Ok(x) => x.function.prototype
     }

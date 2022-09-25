@@ -64,7 +64,7 @@ class VirtualCompiler(opts: TypingPassOptions, interner: Interner, overloadCompi
 //          callRange,
 //          nameToScoutFor,
 //          Vector.empty,
-//          Array.empty, needleSuperFunctionParamFilters, extraEnvsToLookIn, true) match {
+//          Vector.empty, needleSuperFunctionParamFilters, extraEnvsToLookIn, true) match {
 //          case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
 //          case Ok(x) => x
 //        }

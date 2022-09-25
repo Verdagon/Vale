@@ -356,7 +356,7 @@ class Compiler(
             }) ++
               (descendant match {
                 case s : ISubKindTT => implCompiler.getParents(coutputs, envs.parentRanges, envs.originalCallingEnv, s, true)
-                case _ => Array[KindT]()
+                case _ => Vector[KindT]()
               })
         }
 
@@ -457,7 +457,7 @@ class Compiler(
             range,
             interner.intern(CodeNameS(interner.intern(name))),
             Vector.empty,
-            Array.empty,
+            Vector.empty,
             coords,
             Vector.empty,
             true,
@@ -543,7 +543,7 @@ class Compiler(
         override def scoutExpectedFunctionForPrototype(
           env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
-          explicitTemplateArgRunesS: Array[IRuneS],
+          explicitTemplateArgRunesS: Vector[IRuneS],
           args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
         EvaluateFunctionSuccess = {
           overloadResolver.findFunction(env, coutputs, callRange, functionName,
@@ -895,9 +895,9 @@ class Compiler(
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
-            val CompleteCompilerSolve(_, templataByRune, _, Array()) =
+            val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Array())
+                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

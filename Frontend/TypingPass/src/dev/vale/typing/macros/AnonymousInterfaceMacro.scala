@@ -91,7 +91,7 @@ class AnonymousInterfaceMacro(
           structA.range,
           RuneUsage(structA.range, AnonymousSubstructRuneS()),
           RuneUsage(structA.range, AnonymousSubstructTemplateRuneS()),
-          structA.genericParameters.map(_.rune).toArray),
+          structA.genericParameters.map(_.rune).toVector),
         LookupSR(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
@@ -100,7 +100,7 @@ class AnonymousInterfaceMacro(
           interfaceA.range,
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceRuneS()),
           RuneUsage(interfaceA.range, AnonymousSubstructParentInterfaceTemplateRuneS()),
-          interfaceA.genericParameters.map(_.rune).toArray))
+          interfaceA.genericParameters.map(_.rune).toVector))
     val runeToType =
       structA.genericParameters.map(_.rune.rune)
         .map(rune => rune -> vassertSome(structA.headerRuneToType.get(rune)))
@@ -254,7 +254,7 @@ class AnonymousInterfaceMacro(
           })
         val methodParamsListRune =
           RuneUsage(internalMethod.range, AnonymousSubstructFunctionBoundParamsListRuneS(interfaceA.name, internalMethod.name))
-        rulesBuilder.add(PackSR(internalMethod.range, methodParamsListRune, paramRunes.toArray))
+        rulesBuilder.add(PackSR(internalMethod.range, methodParamsListRune, paramRunes.toVector))
         runeToType.put(methodParamsListRune.rune, PackTemplataType(CoordTemplataType()))
 
         // the struct runes are guaranteed to line up with the interface runes...
@@ -305,7 +305,7 @@ class AnonymousInterfaceMacro(
 //        rulesBuilder.add(
 //          CoordComponentsSR(interfaceParam.range, interfaceCoordRune, methodInterfaceOwnershipRune, methodInterfaceKindRune))
         rulesBuilder.add(
-          CallSR(interfaceParam.range, methodInterfaceKindRune, methodInterfaceTemplateRune, interfaceA.genericParameters.map(_.rune).toArray))
+          CallSR(interfaceParam.range, methodInterfaceKindRune, methodInterfaceTemplateRune, interfaceA.genericParameters.map(_.rune).toVector))
 
         val methodPrototypeRune =
           RuneUsage(
@@ -338,7 +338,7 @@ class AnonymousInterfaceMacro(
           PackSR(
             internalMethod.range,
             dropParamsListRune,
-            Array(RuneUsage(internalMethod.range, selfOwnCoordRuneS))))
+            Vector(RuneUsage(internalMethod.range, selfOwnCoordRuneS))))
         runeToType.put(dropParamsListRune.rune, PackTemplataType(CoordTemplataType()))
 
         val dropPrototypeRune =
@@ -375,7 +375,7 @@ class AnonymousInterfaceMacro(
       runeToType.toMap,
       rulesBuilder.buildArray(),
       Map(),
-      Array(),
+      Vector(),
       members)
   }
 
@@ -446,7 +446,7 @@ class AnonymousInterfaceMacro(
         abstractParamRange,
         RuneUsage(abstractParamRange, selfKindRune),
         RuneUsage(abstractParamRange, selfKindTemplateRune),
-        genericParams.map(_.rune).toArray)
+        genericParams.map(_.rune).toVector)
     rules.add(lookupStructRule)
 
     val assemblingStructRule =
@@ -457,16 +457,22 @@ class AnonymousInterfaceMacro(
         RuneUsage(abstractParamRange, selfKindRune))
     rules.add(assemblingStructRule)
 
-    val newParam =
-      ParameterS(
-        AtomSP(
-          abstractParamRange,
-          Some(CaptureS(interner.intern(SelfNameS()))),
-          None,//Some(OverrideSP(abstractParamRange, RuneUsage(abstractParamCoordRune.range, AnonymousSubstructParentInterfaceTemplateRuneS()))),
-          Some(RuneUsage(abstractParamCoordRune.range, selfCoordRune)),
-          None))
-
-    val newParams = originalParams.updated(abstractParamIndex, newParam)
+    val newParams =
+      originalParams.map({
+        case ParameterS(AtomSP(_, _, Some(_), Some(_), _)) => {
+          ParameterS(
+            AtomSP(
+              abstractParamRange,
+              Some(CaptureS(interner.intern(SelfNameS()))),
+              None,//Some(OverrideSP(abstractParamRange, RuneUsage(abstractParamCoordRune.range, AnonymousSubstructParentInterfaceTemplateRuneS()))),
+              Some(RuneUsage(abstractParamCoordRune.range, selfCoordRune)),
+              None))
+        }
+        case ParameterS(a @ AtomSP(_, _, None, Some(RuneUsage(runeRange, oldRune)), _)) => {
+          val rune = RuneUsage(runeRange, inheritedMethodRune(interface, method, oldRune))
+          ParameterS(a.copy(coordRune = Some(rune)))
+        }
+      })
 
     val newBody =
       FunctionCallSE(
