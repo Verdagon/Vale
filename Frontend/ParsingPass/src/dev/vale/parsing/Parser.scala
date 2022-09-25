@@ -651,6 +651,14 @@ class ParserCompilation(
       (fileCoord, code, commentRanges, denizens) => {
         foundCodeMap.put(fileCoord, code)
         val file = FileP(fileCoord, commentRanges.buildArray(), denizens.buildArray())
+
+        if (opts.sanityCheck) {
+          val json = new VonPrinter(JsonSyntax, 120).print(ParserVonifier.vonifyFile(file))
+          val loadedFile = new ParsedLoader(interner).load(json).getOrDie()
+          val secondJson = new VonPrinter(JsonSyntax, 120).print(ParserVonifier.vonifyFile(loadedFile))
+          vassert(json == secondJson)
+        }
+
         parsedMap.put(fileCoord, (file, commentRanges.buildArray().toVector))
       }) match {
       case Err(e) => return Err(e)
