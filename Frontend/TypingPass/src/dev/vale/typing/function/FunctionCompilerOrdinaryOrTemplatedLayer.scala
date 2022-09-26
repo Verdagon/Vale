@@ -196,7 +196,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
         declaringEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas, reachableBounds)
 
     val prototype =
-      middleLayer.getOrEvaluateFunctionForBanner(
+      middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(prototype.prototype.fullName, runeToFunctionBound)
@@ -390,7 +390,7 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBounds)
 
     val prototypeTemplata =
-      middleLayer.getOrEvaluateFunctionForBanner(
+      middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         nearEnv, runedEnv, coutputs, callRange, function)
 
     coutputs.addInstantiationBounds(prototypeTemplata.prototype.fullName, runeToFunctionBound)

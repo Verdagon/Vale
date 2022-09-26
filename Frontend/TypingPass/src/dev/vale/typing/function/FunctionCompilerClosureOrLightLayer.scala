@@ -91,7 +91,7 @@ class FunctionCompilerClosureOrLightLayer(
 
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = parentEnv.fullName.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
-    coutputs.declareType(name)
+//    coutputs.declareType(name)
     val outerEnv =
       BuildingFunctionEnvironmentWithClosureds(
         parentEnv.globalEnv,
@@ -101,7 +101,7 @@ class FunctionCompilerClosureOrLightLayer(
         function,
         variables,
         false)
-    coutputs.declareTypeOuterEnv(name, outerEnv)
+//    coutputs.declareTypeOuterEnv(name, outerEnv)
 
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
       outerEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, argTypes)

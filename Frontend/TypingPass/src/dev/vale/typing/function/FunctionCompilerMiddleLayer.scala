@@ -111,7 +111,7 @@ class FunctionCompilerMiddleLayer(
   // - already spawned local env
   // - either no template args, or they were already added to the env.
   // - either no closured vars, or they were already added to the env.
-  def getOrEvaluateFunctionForBanner(
+  def getOrEvaluateTemplatedFunctionForBanner(
     outerEnv: BuildingFunctionEnvironmentWithClosureds,
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
