@@ -1,6 +1,6 @@
 package dev.vale.parsing.functions
 
-import dev.vale.{Collector, StrI, vassertOne}
+import dev.vale.{Collector, StrI, vassertOne, vimpl}
 import dev.vale.parsing.ast._
 import dev.vale.parsing._
 import dev.vale.lexing.{BadFunctionBodyError, LightFunctionMustHaveParamTypes}
@@ -315,6 +315,33 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         FunctionHeaderP(_,
           Some(NameP(_, StrI("sum"))), Vector(), None, Some(_), Some(_), FunctionReturnP(_, None, None)),
         Some(BlockPE(_, ConstantIntPE(_, 3, _)))) =>
+    }
+  }
+
+  test("Func with func bound") {
+    compileDenizenExpect(
+      "func sum<T>() where func moo(&T)void {3}") shouldHave {
+      case TopLevelFunctionP(
+        FunctionP(_,
+          FunctionHeaderP(_,_,_,_,
+            Some(
+              TemplateRulesP(_,
+                Vector(
+                  TemplexPR(
+                    FuncPT(_,
+                      NameP(_,StrI("moo")),
+                      _,
+                      Vector(InterpretedPT(_,BorrowP,NameOrRunePT(NameP(_,StrI("T"))))),
+                      NameOrRunePT(NameP(_,StrI("void")))))))),
+          _,_),_)) =>
+    }
+  }
+
+
+  test("Func with func bound with missing 'where'") {
+    // It parses that func moo as a templex, and apparently a return can be a templex
+    compileDenizen("func sum<T>() func moo(&T)void {3}").expectErr() match {
+      case null => vimpl()
     }
   }
 
