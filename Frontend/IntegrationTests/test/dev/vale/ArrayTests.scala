@@ -414,7 +414,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Vector map taking a closure which captures something") {
+  test("Array map taking a closure which captures something") {
     val compile = RunCompilation.test(
         """import array.make.*;
           |exported func main() int {
@@ -466,7 +466,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Vector with capture") {
+  test("Array with capture") {
     val compile = RunCompilation.test(
         """import array.make.*;
           |struct IntBox {
@@ -611,7 +611,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(30) => }
   }
 
-  test("Vector foreach") {
+  test("Array foreach") {
     val compile = RunCompilation.test(
       """
         |import array.make.*;
@@ -625,7 +625,7 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(169) => }
   }
 
-  test("Vector has") {
+  test("Array has") {
     val compile = RunCompilation.test(
         """
           |import array.has.*;

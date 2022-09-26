@@ -62,7 +62,7 @@ class ArrayListTest extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 
-  test("Vector list zero-constructor") {
+  test("Array list zero-constructor") {
     val compile = RunCompilation.test(
         """import list.*;
           |
@@ -78,7 +78,7 @@ class ArrayListTest extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 
-  test("Vector list len") {
+  test("Array list len") {
     val compile = RunCompilation.test(
         """import list.*;
           |
@@ -94,7 +94,7 @@ class ArrayListTest extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
 
-  test("Vector list set") {
+  test("Array list set") {
     val compile = RunCompilation.test(
         """import list.*;
           |
@@ -111,7 +111,7 @@ class ArrayListTest extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(11) => }
   }
 
-  test("Vector list with optionals with mutable element") {
+  test("Array list with optionals with mutable element") {
     val compile = RunCompilation.test(
         """import list.*;
           |struct Marine { hp int; }
