@@ -1,5 +1,6 @@
 import panicutils.*;
 import stringutils.*;
+import stdlib.arrays.*;
 
 #!DeriveStructDrop
 struct List<E Ref> {
@@ -13,15 +14,6 @@ func List<E>(capacity int) List<E> {
 func List<E>() List<E> {
   List<E>(0)
 }
-
-//func List<E, M>(arr &Array<M, E>) List<E> {
-//  list = List<E>();
-//  foreach elem in arr {
-//    list.add(elem);
-//  }
-//  list
-//}
-
 
 func List<E, V, N>(arr [#N]<mut, V>E) List<E> {
   list = List<E>(arr.len());
@@ -45,54 +37,29 @@ where func drop(E)void {
   drop(array);
 }
 
-//func maybeExpand<E>(list &List<E>) {
-//  oldCapacity = list.array.capacity();
-//  if list.len() == oldCapacity {
-//    newCapacity = if (oldCapacity > 0) { oldCapacity * 2 } else { 1 };
-//    newArray = Array<mut, E>(newCapacity);
-//    oldArray = set list.array = newArray;
-//    migrate(oldArray, &list.array);
-//  }
-//}
-//
+func maybeExpand<E>(list &List<E>) {
+  oldCapacity = list.array.capacity();
+  if list.len() == oldCapacity {
+    newCapacity = if (oldCapacity > 0) { oldCapacity * 2 } else { 1 };
+    newArray = Array<mut, E>(newCapacity);
+    oldArray = set list.array = newArray;
+    migrate(oldArray, &list.array);
+  }
+}
+
 func len<E>(list &List<E>) int { len(&list.array) }
-//func add<E>(list &List<E>, newElement E) {
-//  list.maybeExpand();
-//  list.array.push(newElement);
-//}
-//func add<E>(list List<E>, newElement E) List<E> {
-//  list.add(newElement);
-//  return list;
-//}
+func add<E>(list &List<E>, newElement E) {
+  list.maybeExpand();
+  list.array.push(newElement);
+}
+func add<E>(list List<E>, newElement E) List<E> {
+  list.add(newElement);
+  return list;
+}
 func get<E>(list &List<E>, index int) &E {
   a = list.array;
   a[index]
 }
-
-//func set<E>(list &List<E>, index int, value E) E {
-//  set list.array[index] = value
-//}
-//
-////func toArray<E>(list List<E>) Array<mut, E> {
-////  [x] = list;
-////  x
-////}
-////func toArray<E>(list &List<E>) Array<mut, E> {
-////  toVaryArray(list)
-////}
-////func toVaryArray<E>(list &List<E>) Array<mut, E> {
-////  Array<mut, E>(list.len(), &(i) => { list.get(i) })
-////}
-////func toImmArray<E>(list &List<E>) Array<imm, E> {
-////  Array<imm, E>(list.len(), &(i) => { list.get(i) })
-////}
-////func toList<E>(arr *Array<_, E>) List<E> {
-////  list = List<E>();
-////  arr each (elem){
-////    list.add(elem);
-////  };
-////  = list;
-////}
 
 func each<E, F>(list &List<E>, func F) void
 where func drop(F)void, func(&F, &E)void {
@@ -104,250 +71,281 @@ where func drop(F)void, func(&F, &E)void {
   }
 }
 
-////func eachI<E, F>(list &List<E>, func F) void {
-////  i = 0;
-////  l = len(*list);
-////  while i < l {
-////    func(i, list.get(i));
-////    set i = i + 1;
-////  }
-////}
-////
-////func contains<E>(list &List<E>, element E) bool {
-////  i = 0;
-////  l = len(*list);
-////  while i < l {
-////    if list.get(i) == element {
-////      return true;
-////    }
-////    set i = i + 1;
-////  }
-////  return false;
-////}
-////
-////
+func map<T, E, F>(list &List<E>, func &F) List<T>
+where func(&F, &E)T {
+  result = List<T>();
+  list.each({ result.add((func)(_)); });
+  return result;
+}
+
+// Below here is untested
+
+
+func set<E>(list &List<E>, index int, value E) E {
+  set list.array[index] = value
+}
+
+func remove<E>(list &List<E>, removeAtIndex int) E {
+  if removeAtIndex < 0 {
+    panic("Can't remove at negative index!");
+  }
+  if removeAtIndex >= list.len() {
+    panic("Can't remove, index out of bounds!");
+  }
+
+  temp Opt<E> = Some<E>(list.array.pop());
+  i = list.len() - 1;
+  while i >= removeAtIndex {
+    (set temp = Some(set list.array[i] = (set temp = None<E>()).get())).expect_none();
+    set i = i - 1;
+  }
+
+  return (temp).get();
+}
+
+func indexOf<E>(list &List<E>, element &E) Opt<int>
+where func ==(&E, &E)bool {
+  i = 0;
+  l = len(&list);
+  while i < l {
+    if list.get(i) == element {
+      return Some(i);
+    }
+    set i = i + 1;
+  }
+  return None<int>();
+}
+
+func indexWhere<E, F>(list &List<E>, func F) Opt<int>
+where func(&F, &E)bool, func drop(F)void {
+  i = 0;
+  l = len(&list);
+  while i < l {
+    if func(list.get(i)) {
+      return Some(i);
+    }
+    set i = i + 1;
+  }
+  return None<int>();
+}
+
+func contains<E>(list &List<E>, element &E) bool
+where func ==(&E, &E)bool {
+  i = 0;
+  l = len(&list);
+  while i < l {
+    if list.get(i) == element {
+      return true;
+    }
+    set i = i + 1;
+  }
+  return false;
+}
+
+func reverse<E>(list List<E>) List<E> {
+  [arr] = list;
+  dest = Array<mut, E>(arr.capacity());
+  drop_into(arr, &{ dest.push(_); });
+  return List(dest);
+}
+
+
+func exists<E, F>(list &List<E>, func F) bool
+where func(&F, &E)bool, func drop(F)void {
+  i = 0;
+  while i < list.len() {
+    if (&func)(list.get(i)) {
+      return true;
+    }
+    set i = i + 1;
+  }
+  return false;
+}
+
+//func List<E, M>(arr &Array<M, E>) List<E> {
+//  list = List<E>();
+//  foreach elem in arr {
+//    list.add(elem);
+//  }
+//  list
+//}
+// func toVaryArray<E>(list List<E>) []<mut>E {
+//   [arr] = list;
+//   return arr;
+// }
+
+
+
+// below here is old List code
+
+//func toArray<E>(list List<E>) Array<mut, E> {
+//  [x] = list;
+//  x
+//}
+//func toArray<E>(list &List<E>) Array<mut, E> {
+//  toVaryArray(list)
+//}
+//func toVaryArray<E>(list &List<E>) Array<mut, E> {
+//  Array<mut, E>(list.len(), &(i) => { list.get(i) })
+//}
+//func toImmArray<E>(list &List<E>) Array<imm, E> {
+//  Array<imm, E>(list.len(), &(i) => { list.get(i) })
+//}
+//func toList<E>(arr *Array<_, E>) List<E> {
+//  list = List<E>();
+//  arr each (elem){
+//    list.add(elem);
+//  };
+//  = list;
+//}
+
+//func eachI<E, F>(list &List<E>, func F) void {
+//  i = 0;
+//  l = len(*list);
+//  while i < l {
+//    func(i, list.get(i));
+//    set i = i + 1;
+//  }
+//}
+//
+//func contains<E>(list &List<E>, element E) bool {
+//  i = 0;
+//  l = len(*list);
+//  while i < l {
+//    if list.get(i) == element {
+//      return true;
+//    }
+//    set i = i + 1;
+//  }
+//  return false;
+//}
+//
+//
+//import stdlib.*;
+//
+//struct List<E> rules(E Ref) {
+//  array! Array<mut, Opt<E>>;
+//  size! int;
+//}
+//func List<E>() List<E>
+//rules(E Ref) {
+//  List<E>([vary *](0, (index){ __pretend<Opt<E>>() }), 0)
+//}
+//func len<E>(list &List<E>) int { list.size }
+//func add<E>(list &List<E>, newElement E) {
+//  if list.size == list.len() {
+//    newLen = if (len(&list) == 0) { 1 } else { len(&list) * 2 };
+//    newArray =
+//       [vary *](newLen, &IFunction1<mut, int, Opt<E>>((index){
+//          res Opt<E> = if (index < len(&list)) {
+//              result Opt<E> = (set list.array[index] = None<E>());
+//              = result;
+//            } else {
+//              result Opt<E> = None<E>();
+//              = result;
+//            };
+//          return res;
+//        }));
+//    set list.array = newArray;
+//  }
+//  set list.array[list.size] = Some<E>(newElement);
+//  set list.size = list.size + 1;
+//}
+
+//func set<E>(list &List<E>, index int, value E) void {
+//  set list.array[index] = Some(value);
+//}
+//func toArray<E>(list &List<E>) Array<mut, E> {
+//  [*](list.len(), &(i){ list.get(i) })
+//}
+
+//func toImmArray<E>(list &List<E>) Array<imm, E> {
+//  [imm *](list.len(), &(i){ list.get(i) })
+//}
+//// deprecate
+//func toList<E>(arr &Array<_, _, E>) List<E> {
+//  list = List<E>();
+//  arr each (elem){
+//    list.add(elem);
+//  };
+//  = list;
+//}
+
+//func enumerate<E, F>(self &List<E>, func F) void {
+//  i = 0;
+//  l = self.len();
+//  while i < l {
+//    func(self.get(i), i);
+//    set i = i + 1;
+//  }
+//}
+//
+
+//
 //func remove<E>(list &List<E>, removeAtIndex int) E {
 //  if removeAtIndex < 0 {
 //    panic("Can't remove at negative index!");
 //  }
-//  if removeAtIndex >= list.len() {
+//  if removeAtIndex >= list.size {
 //    panic("Can't remove, index out of bounds!");
 //  }
 //
-//  temp Opt<E> = Some<E>(list.array.pop());
-//  i = list.len() - 1;
+//  temp = (set list.array[list.size - 1] = None<E>());
+//  i = list.size - 2;
 //  while i >= removeAtIndex {
-//    (set temp = Some(set list.array[i] = (set temp = None<E>()).get())).expect_none();
+//    set temp = (set list.array[i] = (set temp = None<E>()));
 //    set i = i - 1;
 //  }
+//
+//  set list.size = list.size - 1;
 //
 //  return (temp).get();
 //}
 //
-////import stdlib.*;
-////
-////struct List<E> rules(E Ref) {
-////  array! Array<mut, Opt<E>>;
-////  size! int;
-////}
-////func List<E>() List<E>
-////rules(E Ref) {
-////  List<E>([vary *](0, (index){ __pretend<Opt<E>>() }), 0)
-////}
-////func len<E>(list &List<E>) int { list.size }
-////func add<E>(list &List<E>, newElement E) {
-////  if list.size == list.len() {
-////    newLen = if (len(&list) == 0) { 1 } else { len(&list) * 2 };
-////    newArray =
-////       [vary *](newLen, &IFunction1<mut, int, Opt<E>>((index){
-////          res Opt<E> = if (index < len(&list)) {
-////              result Opt<E> = (set list.array[index] = None<E>());
-////              = result;
-////            } else {
-////              result Opt<E> = None<E>();
-////              = result;
-////            };
-////          return res;
-////        }));
-////    set list.array = newArray;
-////  }
-////  set list.array[list.size] = Some<E>(newElement);
-////  set list.size = list.size + 1;
-////}
-//
-////func set<E>(list &List<E>, index int, value E) void {
-////  set list.array[index] = Some(value);
-////}
-////func toArray<E>(list &List<E>) Array<mut, E> {
-////  [*](list.len(), &(i){ list.get(i) })
-////}
-//func toVaryArray<E>(list List<E>) []<mut>E {
-//  [arr] = list;
-//  return arr;
-//}
-////func toImmArray<E>(list &List<E>) Array<imm, E> {
-////  [imm *](list.len(), &(i){ list.get(i) })
-////}
-////// deprecate
-////func toList<E>(arr &Array<_, _, E>) List<E> {
-////  list = List<E>();
-////  arr each (elem){
-////    list.add(elem);
-////  };
-////  = list;
-////}
-//
-//func each<E, F>(list &List<E>, func F) void
-//where func drop(F)void, func(&F, &E)void {
-//  i = 0;
-//  l = len(&list);
-//  while i < l {
-//    func(&list.get(i));
-//    set i = i + 1;
-//  }
-//}
-//
-////func enumerate<E, F>(self &List<E>, func F) void {
-////  i = 0;
-////  l = self.len();
-////  while i < l {
-////    func(self.get(i), i);
-////    set i = i + 1;
-////  }
-////}
-////
-//
-//func indexOf<E>(list &List<E>, element E) Opt<int> {
-//  i = 0;
-//  l = len(&list);
-//  while i < l {
-//    if list.get(i) == element {
-//      return Some(i);
+
+//func join(list &List<str>) str { join(list, "") }
+//func join(list &List<str>, joiner str) str {
+//  combined = StringBuilder();
+//  first = true;
+//  foreach x in list {
+//    if not first {
+//      combined.print(joiner);
 //    }
-//    set i = i + 1;
+//    combined.print(x);
+//    set first = false;
 //  }
-//  return None<int>();
+//  return combined.str();
 //}
-//
-//func indexWhere<E, F>(list &List<E>, func F) Opt<int>
-//where func(&F, &E)bool, func drop(F)void {
-//  i = 0;
-//  l = len(&list);
-//  while i < l {
-//    if func(list.get(i)) {
-//      return Some(i);
+
+//func join(list &List<StrSlice>) str { join(list, "") }
+//func join(list &List<StrSlice>, joiner str) str {
+//  combined = StringBuilder();
+//  first = true;
+//  foreach x in list {
+//    if not first {
+//      combined.print(joiner);
 //    }
-//    set i = i + 1;
+//    combined.print(x);
+//    set first = false;
 //  }
-//  return None<int>();
+//  return combined.str();
 //}
-//
-//func contains<E>(list &List<E>, element &E) bool
-//where func ==(&E, &E)bool {
-//  i = 0;
-//  l = len(&list);
-//  while i < l {
-//    if list.get(i) == element {
-//      return true;
+
+
+//func print<T>(list &List<T>) {
+//  print("List(");
+//  first = true;
+//  each (&list) {
+//    if not first {
+//      print(", ");
 //    }
-//    set i = i + 1;
+//    set first = false;
+//    print(_);
 //  }
-//  return false;
+//  print(")");
 //}
 //
-//func reverse<E>(list List<E>) List<E> {
-//  [arr] = list;
-//  dest = Array<mut, E>(arr.capacity());
-//  drop_into(arr, &{ dest.push(_); });
-//  return List(dest);
+//func println<T>(list &List<T>) {
+//  print(list);
+//  println("");
 //}
-//
-////
-////func remove<E>(list &List<E>, removeAtIndex int) E {
-////  if removeAtIndex < 0 {
-////    panic("Can't remove at negative index!");
-////  }
-////  if removeAtIndex >= list.size {
-////    panic("Can't remove, index out of bounds!");
-////  }
-////
-////  temp = (set list.array[list.size - 1] = None<E>());
-////  i = list.size - 2;
-////  while i >= removeAtIndex {
-////    set temp = (set list.array[i] = (set temp = None<E>()));
-////    set i = i - 1;
-////  }
-////
-////  set list.size = list.size - 1;
-////
-////  return (temp).get();
-////}
-////
-//
-////func join(list &List<str>) str { join(list, "") }
-////func join(list &List<str>, joiner str) str {
-////  combined = StringBuilder();
-////  first = true;
-////  foreach x in list {
-////    if not first {
-////      combined.print(joiner);
-////    }
-////    combined.print(x);
-////    set first = false;
-////  }
-////  return combined.str();
-////}
-//
-////func join(list &List<StrSlice>) str { join(list, "") }
-////func join(list &List<StrSlice>, joiner str) str {
-////  combined = StringBuilder();
-////  first = true;
-////  foreach x in list {
-////    if not first {
-////      combined.print(joiner);
-////    }
-////    combined.print(x);
-////    set first = false;
-////  }
-////  return combined.str();
-////}
-//
-//func map<T, E, F>(list &List<E>, func &F) List<T>
-//where func(&F, &E)T {
-//  result = List<T>();
-//  list.each({ result.add((func)(_)); });
-//  return result;
-//}
-//
-//
-////func print<T>(list &List<T>) {
-////  print("List(");
-////  first = true;
-////  each (&list) {
-////    if not first {
-////      print(", ");
-////    }
-////    set first = false;
-////    print(_);
-////  }
-////  print(")");
-////}
-////
-////func println<T>(list &List<T>) {
-////  print(list);
-////  println("");
-////}
-//
-//
-//func exists<E, F>(list &List<E>, func F) bool
-//where func(&F, &E)bool, func drop(F)void {
-//  i = 0;
-//  while i < list.len() {
-//    if (&func)(list.get(i)) {
-//      return true;
-//    }
-//    set i = i + 1;
-//  }
-//  return false;
-//}
-//

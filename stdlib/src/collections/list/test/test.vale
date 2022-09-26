@@ -26,35 +26,35 @@ exported func main() {
   });
 
   suite.test("List from SSA of instances", {
-    //list =
-    //  List([#][
-    //    Ship(13),
-    //    Ship(14),
-    //    Ship(15)
-    //  ]);
-    //sum = 0;
-    //list.each({ set sum = sum + _.fuel; });
-    //sum should_equal 42;
+    list =
+      List([#][
+        Ship(13),
+        Ship(14),
+        Ship(15)
+      ]);
+    sum = 0;
+    list.each({ set sum = sum + _.fuel; });
+    sum should_equal 42;
   });
 
   suite.test("ListBuilder 1", {
-    //list = List<int>().add(13).add(14).add(15);
-    //sum = 0;
-    //list.each({ set sum = sum + _; });
-    //sum should_equal 42;
+    list = List<int>().add(13).add(14).add(15);
+    sum = 0;
+    list.each({ set sum = sum + _; });
+    sum should_equal 42;
   });
 
   suite.test("List from SSA", {
-    //list = List([#][13, 14, 15]);
-    //list.get(0) should_equal 13;
-    //list.get(1) should_equal 14;
-    //list.get(2) should_equal 15;
+    list = List([#][13, 14, 15]);
+    list.get(0) should_equal 13;
+    list.get(1) should_equal 14;
+    list.get(2) should_equal 15;
   });
 
   suite.test("List.map", {
-    //list = List([#][13, 14, 15]);
-    //newlist = list.map<int>({ _ + 3 });
-    //newlist.get(1) should_equal 17;
+    list = List([#][13, 14, 15]);
+    newlist = list.map<int>({ _ + 3 });
+    newlist.get(1) should_equal 17;
   });
 
   //suite.test("insert", {
