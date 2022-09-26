@@ -1,4 +1,5 @@
 import panicutils.*;
+import stringutils.*;
 
 #!DeriveStructDrop
 struct List<E Ref> {
@@ -62,19 +63,19 @@ func set<E>(list &List<E>, index int, value E) E {
   set list.array[index] = value
 }
 
-func toArray<E>(list List<E>) Array<mut, E> {
-  [x] = list;
-  x
-}
-func toArray<E>(list &List<E>) Array<mut, E> {
-  toVaryArray(list)
-}
-func toVaryArray<E>(list &List<E>) Array<mut, E> {
-  Array<mut, E>(list.len(), &(i) => { list.get(i) })
-}
-func toImmArray<E>(list &List<E>) Array<imm, E> {
-  Array<imm, E>(list.len(), &(i) => { list.get(i) })
-}
+//func toArray<E>(list List<E>) Array<mut, E> {
+//  [x] = list;
+//  x
+//}
+//func toArray<E>(list &List<E>) Array<mut, E> {
+//  toVaryArray(list)
+//}
+//func toVaryArray<E>(list &List<E>) Array<mut, E> {
+//  Array<mut, E>(list.len(), &(i) => { list.get(i) })
+//}
+//func toImmArray<E>(list &List<E>) Array<imm, E> {
+//  Array<imm, E>(list.len(), &(i) => { list.get(i) })
+//}
 //func toList<E>(arr *Array<_, E>) List<E> {
 //  list = List<E>();
 //  arr each (elem){
@@ -82,34 +83,17 @@ func toImmArray<E>(list &List<E>) Array<imm, E> {
 //  };
 //  = list;
 //}
-//
-//func each<E, F>(list &List<E>, func F) void {
-//  i = 0;
-//  l = len(*list);
-//  while i < l {
-//    func(list.get(i));
-//    set i = i + 1;
-//  }
-//}
-//
-//func each<E, F>(list &List<E>, func F) void {
-//  i = 0;
-//  l = len(*list);
-//  while i < l {
-//    func(list.get(i));
-//    set i = i + 1;
-//  }
-//}
-//
-//func eachI<E, F>(list &List<E>, func F) void {
-//  i = 0;
-//  l = len(*list);
-//  while i < l {
-//    func(i, list.get(i));
-//    set i = i + 1;
-//  }
-//}
-//
+
+func each<E, F>(list &List<E>, func F) void
+where func drop(F)void, func(&F, &E)void {
+  i = 0;
+  l = len(list);
+  while i < l {
+    func(list.get(i));
+    set i = i + 1;
+  }
+}
+
 //func eachI<E, F>(list &List<E>, func F) void {
 //  i = 0;
 //  l = len(*list);
@@ -143,7 +127,7 @@ func remove<E>(list &List<E>, removeAtIndex int) E {
   temp Opt<E> = Some<E>(list.array.pop());
   i = list.len() - 1;
   while i >= removeAtIndex {
-    set temp = Some(set list.array[i] = (set temp = None<E>()).get());
+    (set temp = Some(set list.array[i] = (set temp = None<E>()).get())).expect_none();
     set i = i - 1;
   }
 
@@ -204,9 +188,7 @@ func toVaryArray<E>(list List<E>) []<mut>E {
 //}
 
 func each<E, F>(list &List<E>, func F) void
-where
-    F = Ref[_, _],
-    func(&F, &E)void {
+where func drop(F)void, func(&F, &E)void {
   i = 0;
   l = len(&list);
   while i < l {
@@ -238,7 +220,7 @@ func indexOf<E>(list &List<E>, element E) Opt<int> {
 }
 
 func indexWhere<E, F>(list &List<E>, func F) Opt<int>
-where func(&F, &E)bool {
+where func(&F, &E)bool, func drop(F)void {
   i = 0;
   l = len(&list);
   while i < l {
@@ -250,7 +232,8 @@ where func(&F, &E)bool {
   return None<int>();
 }
 
-func contains<E>(list &List<E>, element E) bool {
+func contains<E>(list &List<E>, element &E) bool
+where func ==(&E, &E)bool {
   i = 0;
   l = len(&list);
   while i < l {
@@ -305,22 +288,22 @@ func join(list &List<str>, joiner str) str {
   return combined.str();
 }
 
-func join(list &List<StrSlice>) str { join(list, "") }
-func join(list &List<StrSlice>, joiner str) str {
-  combined = StringBuilder();
-  first = true;
-  foreach x in list {
-    if not first {
-      combined.print(joiner);
-    }
-    combined.print(x);
-    set first = false;
-  }
-  return combined.str();
-}
+//func join(list &List<StrSlice>) str { join(list, "") }
+//func join(list &List<StrSlice>, joiner str) str {
+//  combined = StringBuilder();
+//  first = true;
+//  foreach x in list {
+//    if not first {
+//      combined.print(joiner);
+//    }
+//    combined.print(x);
+//    set first = false;
+//  }
+//  return combined.str();
+//}
 
 func map<T, E, F>(list &List<E>, func &F) List<T>
-func(&F, E)T {
+func(&F, &E)T {
   result = List<T>();
   list.each({ result.add((func)(_)); });
   return result;
@@ -347,7 +330,7 @@ func(&F, E)T {
 
 
 func exists<E, F>(list &List<E>, func F) bool
-where func(&F, E)bool {
+where func(&F, &E)bool, func drop(F)void {
   i = 0;
   while i < list.len() {
     if (&func)(list.get(i)) {
