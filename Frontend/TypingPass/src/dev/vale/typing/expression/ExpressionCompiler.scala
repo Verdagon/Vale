@@ -703,7 +703,7 @@ class ExpressionCompiler(
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInUnknownSizedArray(parentRanges, range, containerExpr2, ConstantIntTE(IntegerTemplata(memberNameStr.str.toLong), 32), at)
                 } else {
-                  throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Vector has no member named " + memberNameStr))
+                  throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Array has no member named " + memberNameStr))
                 }
               }
               case other => {

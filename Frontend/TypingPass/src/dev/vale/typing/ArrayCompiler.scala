@@ -209,12 +209,12 @@ class ArrayCompiler(
           prototype.prototype.returnType.kind match {
             case RuntimeSizedArrayTT(FullNameT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType)))) => {
               if (mutability != MutabilityTemplata(MutableT)) {
-                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Vector function returned wrong mutability!"))
+                throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong mutability!"))
               }
               elementType
             }
             case _ => {
-              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Vector function returned wrong type!"))
+              throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong type!"))
             }
           }
         maybeElementTypeRune.foreach(elementTypeRuneA => {

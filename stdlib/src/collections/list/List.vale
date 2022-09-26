@@ -1,6 +1,7 @@
 import panicutils.*;
 
-struct List<E> where E Ref {
+#!DeriveStructDrop
+struct List<E Ref> {
   array! Array<mut, E>;
 }
 
@@ -25,6 +26,12 @@ func List<E, M, V, N>(arr [#N]<M, V>E) List<E> {
   list = List<E>(arr.len());
   migrate(arr, &list.array);
   return list;
+}
+
+func drop<E>(self List<E>)
+where func drop(E)void {
+  [array] = self;
+  drop(array);
 }
 
 func maybeExpand<E>(list &List<E>) {
@@ -231,7 +238,7 @@ func indexOf<E>(list &List<E>, element E) Opt<int> {
 }
 
 func indexWhere<E, F>(list &List<E>, func F) Opt<int>
-where func(&F, &E)_ {
+where func(&F, &E)bool {
   i = 0;
   l = len(&list);
   while i < l {
@@ -312,8 +319,8 @@ func join(list &List<StrSlice>, joiner str) str {
   return combined.str();
 }
 
-func map<E, F>(list &List<E>, func &F) List<T>
-where T Ref, func(&F, E)T {
+func map<T, E, F>(list &List<E>, func &F) List<T>
+func(&F, E)T {
   result = List<T>();
   list.each({ result.add((func)(_)); });
   return result;
@@ -340,7 +347,7 @@ where T Ref, func(&F, E)T {
 
 
 func exists<E, F>(list &List<E>, func F) bool
-where T Ref, func(&F, E)T {
+where func(&F, E)bool {
   i = 0;
   while i < list.len() {
     if (&func)(list.get(i)) {
