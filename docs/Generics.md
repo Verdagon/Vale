@@ -3,11 +3,7 @@
 
 Back when we did templates, every time we used (resolved) a struct, we would lazily compile it for that set of template args, unless we've seen that combination before.
 
-Now, we **compile** them all ahead of time, outside of any particular use.
-
-However, sometimes during the compilation, we'll be resolving _other_ templates. Those may or may not have been compiled yet.
-
-...we may need to do a declare phase so we can populate the overload index one day.
+Now, we **compile** them all\* ahead of time, outside of any particular use. (\* Except for lambdas, those are still templates, see UINIT and LAGT.)
 
 
 # Some Rules Only Apply to Call Site or Definition (SROACSD)
@@ -36,7 +32,7 @@ This snippet is using a **function bound generic parameter**:
 
 ```
 func launch<X, func foo(int)void>(x X)
-where  {
+where func foo(int)void {
   ...
 }
 ```
@@ -1744,4 +1740,45 @@ Let's do it here for this conceptual case too.
 
 
 
+
+
+
+# Translate Impl Bound Argument Names For Case (TIBANFC)
+
+When we're compiling the override dispatcher for func len, specifically for its case for MySome:
+
+`odis{impl:98}<^len.odis{impl:98}$0>(&MyOption<^len.odis{impl:98}$0>).case`
+
+we have a DenizenMonomorphizer for it that contains the actual generic arguments and the bound arguments.
+
+It accidentally contained:
+
+`MySome.bound:drop:66<>(^impl:98$0) -> drop(int)`
+
+because we just copied those arguments over from the impl's bound arguments. However, the case then tries to resolve the MySome<$0>, or more specifically:
+
+`MySome.bound:drop:66<>(^len.odis{impl:98}$0)`
+
+which isn't in the map.
+
+You can see the problem: when we brought the impl bound args over, they were keyed with full names that had impl placeholders. In other words, these bounds are still phrased in terms of the impl.
+
+So, when we bring impl bounds over, we need to translate those full names.
+
+
+
+# Must Declare All Type Outer Envs First (MDATOEF)
+
+We used to declare a type's outer environment when we compiled its definition. However, this exposed a problem when this sequence of events happens:
+
+ * We haven't yet compiled struct `LocationHasher`
+ * We start compiling struct `Level`.
+ * We're checking the template instantiations for `Level`'s member `HashMap<K, V, H, E>`
+ * We're checking the template instantiations for that `HashMap<Location, Tile, LocationHasher, LocationEquator>`'s bound function `__call(&LocationHasher, Location)int`.
+ * We're looking for any potential function matching that signature.
+ * We're looking up the environments for all args, in this case `LocationHasher` and `Location`.
+ * In looking up the environment for `LocationHasher`, we trip an assertion because *we haven't yet compiled* `LocationHasher` so its environment hasnt yet been declared.
+
+
+So, the solution we chose is to declare the outer environment in structs' pre-compile stage.
 

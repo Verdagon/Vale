@@ -154,22 +154,24 @@ class OverloadResolver(
   private def getCandidateBanners(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    range: List[RangeS],
     functionName: IImpreciseNameS,
     paramFilters: Vector[CoordT],
     extraEnvsToLookIn: Vector[IEnvironment],
     searchedEnvs: Accumulator[SearchedEnvironment],
     results: Accumulator[ICalleeCandidate]):
   Unit = {
-    getCandidateBannersInner(env, coutputs, functionName, searchedEnvs, results)
-    getParamEnvironments(coutputs, paramFilters)
-      .foreach(e => getCandidateBannersInner(e, coutputs, functionName, searchedEnvs, results))
+    getCandidateBannersInner(env, coutputs, range, functionName, searchedEnvs, results)
+    getParamEnvironments(coutputs, range, paramFilters)
+      .foreach(e => getCandidateBannersInner(e, coutputs, range, functionName, searchedEnvs, results))
     extraEnvsToLookIn
-      .foreach(e => getCandidateBannersInner(env, coutputs, functionName, searchedEnvs, results))
+      .foreach(e => getCandidateBannersInner(env, coutputs, range, functionName, searchedEnvs, results))
   }
 
   private def getCandidateBannersInner(
     env: IEnvironment,
     coutputs: CompilerOutputs,
+    range: List[RangeS],
     functionName: IImpreciseNameS,
     searchedEnvs: Accumulator[SearchedEnvironment],
     results: Accumulator[ICalleeCandidate]):
@@ -180,17 +182,17 @@ class OverloadResolver(
     candidates.foreach({
       case KindTemplata(OverloadSetT(overloadsEnv, nameInOverloadsEnv)) => {
         getCandidateBannersInner(
-          overloadsEnv, coutputs, nameInOverloadsEnv, searchedEnvs, results)
+          overloadsEnv, coutputs, range, nameInOverloadsEnv, searchedEnvs, results)
       }
       case KindTemplata(sr@StructTT(_)) => {
-        val structEnv = coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName))
+        val structEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.fullName))
         getCandidateBannersInner(
-          structEnv, coutputs, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
+          structEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
       case KindTemplata(sr@InterfaceTT(_)) => {
-        val interfaceEnv = coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(sr.fullName))
+        val interfaceEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(sr.fullName))
         getCandidateBannersInner(
-          interfaceEnv, coutputs, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
+          interfaceEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
       case ExternFunctionTemplata(header) => {
         results.add(HeaderCalleeCandidate(header))
@@ -437,13 +439,13 @@ class OverloadResolver(
   }
 
   // Gets all the environments for all the arguments.
-  private def getParamEnvironments(coutputs: CompilerOutputs, paramFilters: Vector[CoordT]):
+  private def getParamEnvironments(coutputs: CompilerOutputs, range: List[RangeS], paramFilters: Vector[CoordT]):
   Vector[IEnvironment] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
-        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getStructTemplate(sr.fullName)))
-        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getInterfaceTemplate(ir.fullName)))
-        case PlaceholderT(fullName) => Vector(coutputs.getOuterEnvForType(TemplataCompiler.getPlaceholderTemplate(fullName)))
+        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.fullName)))
+        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(ir.fullName)))
+        case PlaceholderT(fullName) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getPlaceholderTemplate(fullName)))
         case _ => Vector.empty
       })
     })
@@ -472,7 +474,7 @@ class OverloadResolver(
     val searchedEnvs = new Accumulator[SearchedEnvironment]()
     val undedupedCandidates = new Accumulator[ICalleeCandidate]()
     getCandidateBanners(
-      env, coutputs, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
+      env, coutputs, callRange, functionName, args, extraEnvsToLookIn, searchedEnvs, undedupedCandidates)
     val candidates = undedupedCandidates.buildArray().distinct
     val attempted =
       candidates.map(candidate => {

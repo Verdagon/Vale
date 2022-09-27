@@ -113,6 +113,25 @@ class StructCompiler(
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }
     }
+
+    // We declare the struct's outer environment this early because of MDATOEF.
+    val outerEnv =
+      CitizenEnvironment(
+        declaringEnv.globalEnv,
+        declaringEnv,
+        structTemplateFullName,
+        structTemplateFullName,
+        TemplatasStore(structTemplateFullName, Map(), Map())
+          .addEntries(
+            interner,
+            // Merge in any things from the global environment that say they're part of this
+            // structs's namespace (see IMRFDI and CODME).
+            // StructFreeMacro will put a free function here.
+            declaringEnv.globalEnv.nameToTopLevelEnvironment
+              .get(structTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+              .toVector
+              .flatMap(_.entriesByNameT)))
+    coutputs.declareTypeOuterEnv(structTemplateFullName, outerEnv)
   }
 
   def precompileInterface(
@@ -138,6 +157,32 @@ class StructCompiler(
     // The virtual function will need to know if the type is sealed to know whether it's allowed to be
     // virtual on this interface.
     coutputs.declareTypeSealed(interfaceTemplateFullName, interfaceA.attributes.contains(SealedS))
+
+
+    // We declare the interface's outer environment this early because of MDATOEF.
+    val outerEnv =
+      CitizenEnvironment(
+        declaringEnv.globalEnv,
+        declaringEnv,
+        interfaceTemplateFullName,
+        interfaceTemplateFullName,
+        TemplatasStore(interfaceTemplateFullName, Map(), Map())
+          .addEntries(
+            interner,
+            // TODO: Take those internal methods that were defined inside the interface, and move them to
+            // just be name-prefixed like Free is, see IMRFDI.
+            interfaceA.internalMethods
+              .map(internalMethod => {
+                val functionName = nameTranslator.translateGenericFunctionName(internalMethod.name)
+                (functionName -> FunctionEnvEntry(internalMethod))
+              }) ++
+              // Merge in any things from the global environment that say they're part of this
+              // interface's namespace (see IMRFDI and CODME).
+              declaringEnv.globalEnv.nameToTopLevelEnvironment
+                .get(interfaceTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+                .toVector
+                .flatMap(_.entriesByNameT)))
+    coutputs.declareTypeOuterEnv(interfaceTemplateFullName, outerEnv)
   }
 
   def compileStruct(

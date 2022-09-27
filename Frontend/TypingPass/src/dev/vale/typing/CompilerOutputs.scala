@@ -499,8 +499,13 @@ case class CompilerOutputs() {
   def getEnvForFunctionSignature(sig: SignatureT): FunctionEnvironment = {
     vassertSome(envByFunctionSignature.get(sig))
   }
-  def getOuterEnvForType(name: FullNameT[ITemplateNameT]): IEnvironment = {
-    vassertSome(typeNameToOuterEnv.get(name))
+  def getOuterEnvForType(range: List[RangeS], name: FullNameT[ITemplateNameT]): IEnvironment = {
+    typeNameToOuterEnv.get(name) match {
+      case None => {
+        throw CompileErrorExceptionT(RangedInternalErrorT(range, "No outer env for type: " + name))
+      }
+      case Some(x) => x
+    }
   }
   def getInnerEnvForType(name: FullNameT[ITemplateNameT]): IEnvironment = {
     vassertSome(typeNameToInnerEnv.get(name))

@@ -30,7 +30,8 @@ object CompilerErrorHumanizer {
   String = {
     val errorStrBody =
       err match {
-        case RangedInternalErrorT(range, message) => { " " + message
+        case RangedInternalErrorT(range, message) => {
+          "Internal error: " + message
         }
         case CouldntFindOverrideT(range, fff) => {
           "Couldn't find an override:\n" +

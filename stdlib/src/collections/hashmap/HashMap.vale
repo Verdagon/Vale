@@ -48,19 +48,19 @@ where func drop(V)void, func drop(H)void, func drop(E)void
   [hasher, equator, table, size] = self;
 }
 
-//func len<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>) int { self.size }
-//
-//func update<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>, key K, value V) void {
-//  hash int = abs((&self.hasher)(key));
-//  startIndex = hash mod self.table.len();
-//  maybeIndex = findIndexOfKey(&self.table, self.equator, startIndex, key);
-//  if maybeIndex.isEmpty() {
-//    panic("Map doesnt have given key!");
-//  }
-//  optNode &Opt<HashMapNode<K, V>> = self.table[maybeIndex.get()];
-//  node &HashMapNode<K, V> = &get(&optNode);
-//  set node.value = value;
-//}
+func len<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>) int { self.size }
+
+func update<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>, key K, value V) V {
+  hash int = abs((&self.hasher)(key));
+  startIndex = hash mod self.table.len();
+  maybeIndex = findIndexOfKey(&self.table, self.equator, startIndex, key);
+  if maybeIndex.isEmpty() {
+    panic("Map doesnt have given key!");
+  }
+  optNode &Opt<HashMapNode<K, V>> = self.table[maybeIndex.get()];
+  node &HashMapNode<K, V> = &get(&optNode);
+  return set node.value = value;
+}
 
 func add<K Ref imm, V, H, E>(map &HashMap<K, V, H, E>, key K, value V) void {
   if map.ContainsKey(key) {
@@ -171,20 +171,20 @@ func ContainsKey<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>, key K) bool {
 //  }
 //  list.toImmArray()
 //}
-//
-//func values<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>) Array<mut, V> {
-//  list = List<V>();
-//  index = 0;
-//  while index < self.table.len() {
-//    maybeNode = self.table[index];
-//    if not(maybeNode.isEmpty()) {
-//      list.add(maybeNode.get().value);
-//    }
-//    set index = index + 1;
-//  }
-//  (list).toVaryArray()
-//}
-//
+
+func values<K Ref imm, V, H, E>(self &HashMap<K, V, H, E>) Array<mut, &V> {
+  list = List<&V>();
+  index = 0;
+  while index < self.table.len() {
+    maybeNode = self.table[index];
+    if not(maybeNode.isEmpty()) {
+      list.add(maybeNode.get().value);
+    }
+    set index = index + 1;
+  }
+  (list).toArray()
+}
+
 func innerRemove<K Ref imm, V, H, E>(
   table &Array<mut, Opt<HashMapNode<K, V>>>,
   hasher &H,
