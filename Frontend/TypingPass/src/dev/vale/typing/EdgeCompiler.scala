@@ -472,7 +472,8 @@ class EdgeCompiler(
             // the impl will receive it and match it to its own unknown runes appropriately.
             KindTemplata(dispatcherPlaceholderedInterface))),
         impl.templata,
-        false) match {
+        false,
+        true) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
         case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
         case fcs @ FailedCompilerSolve(_, _, _) => {
@@ -488,7 +489,8 @@ class EdgeCompiler(
         (partialCaseConclusionsFromSuperInterface ++ implRuneToCasePlaceholder.toMap)
           .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }).toVector,
         impl.templata,
-        false) match {
+        false,
+        true) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromFullSolve) => (conclusions, reachableBoundsFromFullSolve)
         case IncompleteCompilerSolve(_, _, _, _) => vfail()
         case fcs @ FailedCompilerSolve(_, _, _) => {

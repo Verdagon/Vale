@@ -229,26 +229,4 @@ class ArrayListTest extends FunSuite with Matchers {
 
     compile.evalForKind(Vector())
   }
-
-  test("Borrowing toArray") {
-    val compile = RunCompilation.test(
-      """import list.*;
-        |
-        |func toArray<E>(list &List<E>) []<mut>&E {
-        |  return []&E(list.len(), { list.get(_) });
-        |}
-        |
-        |exported func main() int {
-        |  l = List<int>();
-        |  add(&l, 5);
-        |  add(&l, 9);
-        |  add(&l, 7);
-        |  return l.toArray().get(1);
-        |}
-        |
-        """.stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(9) => }
-  }
-
 }

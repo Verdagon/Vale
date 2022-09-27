@@ -47,7 +47,8 @@ class ImplCompiler(
     callingEnv: IEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
-    isRootSolve: Boolean):
+    isRootSolve: Boolean,
+    verifyConclusions: Boolean):
   ICompilerSolverOutcome = {
     val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
     val ImplA(
@@ -92,7 +93,7 @@ class ImplCompiler(
         range :: parentRanges,
         initialKnowns,
         Vector(),
-        true,
+        verifyConclusions,
         isRootSolve,
         // We include the reachable bounds for the struct rune. Those are bounds that this impl will
         // have to satisfy when it calls the interface.
@@ -332,6 +333,10 @@ class ImplCompiler(
             // the impl will receive it and match it to its own unknown runes appropriately.
             KindTemplata(interface))),
         implTemplata,
+        false,
+        // Don't verify conclusions, because this will likely be a partial solve, which means we
+        // might not even be able to solve the struct, which means we can't pull in any declared
+        // function bounds that come from them. We'll check them later.
         false) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
         case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
@@ -539,7 +544,7 @@ class ImplCompiler(
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
     val CompleteCompilerSolve(_, conclusions, _, _) =
-      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, isRootSolve) match {
+      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, isRootSolve, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
         case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
@@ -566,7 +571,7 @@ class ImplCompiler(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.fullName))
     val CompleteCompilerSolve(_, conclusions, _, _) =
-      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false) match {
+      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
         case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
@@ -694,7 +699,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplata(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superKindTT)))
-        solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, impl, false) match {
+        solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, impl, false, true) match {
           case ccs @ CompleteCompilerSolve(_, _, _, _) => Ok((impl, ccs))
           case x : IIncompleteOrFailedCompilerSolve => Err(x)
         }

@@ -264,21 +264,23 @@ class CompilerVirtualTests extends FunSuite with Matchers {
       """
         |#!DeriveInterfaceDrop
         |sealed interface Bork<T Ref>
-        |where func triple(&T)T {
+        |where func threeify(T)T {
         |  func bork(virtual self &Bork<T>) int;
         |}
         |
         |#!DeriveStructDrop
         |struct BorkForwarder<T Ref, Lam>
-        |where func drop(Lam)void, func __call(&Lam)T, func triple(&T)T {
+        |where func drop(Lam)void, func __call(&Lam)T, func threeify(T)T {
         |  lam Lam;
         |}
         |
         |impl<T, Lam> Bork<T> for BorkForwarder<T, Lam>;
         |
         |func bork<T, Lam>(self &BorkForwarder<T, Lam>) T {
-        |  return (self.lam)()&.triple();
+        |  return (self.lam)().threeify();
         |}
+        |
+        |func threeify(x int) int { 3 }
         |
         |exported func main() int {
         |  f = BorkForwarder<int>({ 7 });
