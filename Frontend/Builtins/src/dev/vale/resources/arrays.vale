@@ -102,5 +102,4 @@ extern("vale_runtime_sized_array_imm_new")
 func Array<M, E Ref imm, G>(n int, generator &G) []<M>E
 where
   M Mutability = imm,
-  func(&G, int)E,
-  func drop(E)void;
+  func(&G, int)E;

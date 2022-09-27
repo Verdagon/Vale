@@ -78,6 +78,16 @@ where func(&F, &E)T {
   return result;
 }
 
+func toImmArray<E Ref imm>(list &List<E>) Array<imm, E> {
+  Array<imm, E>(list.len(), &{ list.get(_) })
+}
+
+func toImmArray<E Ref imm>(list List<E>) Array<imm, E>
+where func drop(E)void {
+  [arr] = list;
+  Array<imm, E>(arr.len(), &{ arr[_] })
+}
+
 // Below here is untested
 
 
@@ -188,9 +198,7 @@ where func(&F, &E)bool, func drop(F)void {
 //func toVaryArray<E>(list &List<E>) Array<mut, E> {
 //  Array<mut, E>(list.len(), &(i) => { list.get(i) })
 //}
-//func toImmArray<E>(list &List<E>) Array<imm, E> {
-//  Array<imm, E>(list.len(), &(i) => { list.get(i) })
-//}
+
 //func toList<E>(arr *Array<_, E>) List<E> {
 //  list = List<E>();
 //  arr each (elem){

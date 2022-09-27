@@ -49,39 +49,39 @@
 
 
 
-//struct StaticSizedArrayIter<N, M, V, E> where E Ref {
-//  arr &[#N]<M, V>E;
-//  pos! int;
-//}
-//func begin<N, M, V, E>(arr &[#N]<M, V>E) StaticSizedArrayIter<N, M, V, E> {
-//  StaticSizedArrayIter<N, M, V, E>(arr, 0)
-//}
-//func next<N, M, V, E>(iter &StaticSizedArrayIter<N, M, V, E>) Opt<&E> {
-//  if iter.pos < iter.arr.len() {
-//    Some<&E>(&iter.arr[set iter.pos = iter.pos + 1])
-//  } else {
-//    None<&E>()
-//  }
-//}
-//
-//struct StaticSizedArrayEntriesIter<N, M, V, E> {
-//  arr &[#N]<M, V>E;
-//  pos! int;
-//}
-//func entries<N, M, V, E>(arr &[#N]<M, V>E) StaticSizedArrayEntriesIter<N, M, V, E> {
-//  StaticSizedArrayEntriesIter<N, M, V, E>(arr, 0)
-//}
-//func begin<N, M, V, E>(iter &StaticSizedArrayEntriesIter<N, M, V, E>)
-//StaticSizedArrayEntriesIter<N, M, V, E> {
-//  StaticSizedArrayEntriesIter<N, M, V, E>(iter.arr, iter.pos)
-//}
-//func next<N, M, V, E>(iter &StaticSizedArrayEntriesIter<N, M, V, E>) Opt<(int, &E)> {
-//  if iter.pos < iter.arr.len() {
-//    Some<(int, &E)>((iter.pos, &iter.arr[set iter.pos = iter.pos + 1]))
-//  } else {
-//    None<(int, &E)>()
-//  }
-//}
+struct StaticSizedArrayIter<N, M, V, E> where E Ref {
+  arr &[#N]<M, V>E;
+  pos! int;
+}
+func begin<N, M, V, E>(arr &[#N]<M, V>E) StaticSizedArrayIter<N, M, V, E> {
+  StaticSizedArrayIter<N, M, V, E>(arr, 0)
+}
+func next<N, M, V, E>(iter &StaticSizedArrayIter<N, M, V, E>) Opt<&E> {
+  if iter.pos < iter.arr.len() {
+    Some<&E>(&iter.arr[set iter.pos = iter.pos + 1])
+  } else {
+    None<&E>()
+  }
+}
+
+struct StaticSizedArrayEntriesIter<N, M, V, E> {
+  arr &[#N]<M, V>E;
+  pos! int;
+}
+func entries<N, M, V, E>(arr &[#N]<M, V>E) StaticSizedArrayEntriesIter<N, M, V, E> {
+  StaticSizedArrayEntriesIter<N, M, V, E>(arr, 0)
+}
+func begin<N, M, V, E>(iter &StaticSizedArrayEntriesIter<N, M, V, E>)
+StaticSizedArrayEntriesIter<N, M, V, E> {
+  StaticSizedArrayEntriesIter<N, M, V, E>(iter.arr, iter.pos)
+}
+func next<N, M, V, E>(iter &StaticSizedArrayEntriesIter<N, M, V, E>) Opt<(int, &E)> {
+  if iter.pos < iter.arr.len() {
+    Some<(int, &E)>((iter.pos, &iter.arr[set iter.pos = iter.pos + 1]))
+  } else {
+    None<(int, &E)>()
+  }
+}
 
 
 
