@@ -57,6 +57,7 @@ class ArrayListTest extends FunSuite with Matchers {
         |  add(&l, 7);
         |  return l.get(1);
         |}
+        |
         """.stripMargin)
 
     compile.evalForKind(Vector()) match { case VonInt(9) => }

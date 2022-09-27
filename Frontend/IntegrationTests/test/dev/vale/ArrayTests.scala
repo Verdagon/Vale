@@ -742,4 +742,66 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
+  test("New immutable array") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  arr = Array<mut, int>(3);
+        |  arr.push(13);
+        |  arr.push(14);
+        |  arr.push(15);
+        |  immArr = toImmArray(&arr);
+        |  return immArr[1];
+        |}
+        |
+        |func toImmArray<E Ref imm>(arr &[]E) Array<imm, E> {
+        |  Array<imm, E>(arr.len(), &{ arr[_] })
+        |}
+        |""".stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(14) => }
+  }
+
+  test("Diff iter") {
+    // When we try to compile this:
+    //   HashSetDiffIterator<K>(a.table, b, 0)
+    // it makes sure all the struct rules pass, including its members, including this:
+    //   table &[]Opt<X>;
+    // And here we get a conflict:
+    //   Conflict, thought rune X was Kind$_0 but now concluding it's Kind$_0
+    // because one is Share ownership, and one is Own. (they look similar dont they)
+    // I think it's because HashSet<K Ref imm> has an imm there, and HashSetDiffIterator<X> doesn't.
+    val compile = RunCompilation.test(
+      """
+        |
+        |#!DeriveStructDrop
+        |struct HashSet<K Ref imm> {
+        |  table! Array<mut, Opt<K>>;
+        |  size! int;
+        |}
+        |
+        |struct HashSetDiffIterator<X> {
+        |  table &[]Opt<X>;
+        |  otherTable &HashSet<X>;
+        |  pos! int;
+        |}
+        |
+        |func diff_iter<K>(
+        |  a &HashSet<K>,
+        |  b &HashSet<K>)
+        |HashSetDiffIterator<K> {
+        |  HashSetDiffIterator<K>(a.table, b, 0)
+        |}
+        |
+        |exported func main() int {
+        |  hash = HashSet([]Opt<int>(0), 0);
+        |  diff_iter(&hash, &hash);
+        |  destruct hash;
+        |  14
+        |}
+        |
+        |""".stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(14) => }
+  }
 }
