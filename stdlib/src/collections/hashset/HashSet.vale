@@ -226,10 +226,10 @@ void {
     neighborIndex = (originalIndex + i) mod len(&self.table);
     maybeNeighbor = (set self.table[neighborIndex] = None<K>());
     if not maybeNeighbor.isEmpty() {
-      neighborKey = (maybeNeighbor).get();
+      neighborKey = (maybeNeighbor).get("Neighbor missing!");
       addNodeToHashSetTable(&self.table, self.hasher, neighborKey);
     } else {
-      (maybeNeighbor).get();
+      (maybeNeighbor).expect_none();
       set i = self.table.len(); // break
     }
     set i = i + 1;

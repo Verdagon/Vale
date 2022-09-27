@@ -563,6 +563,7 @@ class ImplCompiler(
         InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(child)))
     val childEnv =
       coutputs.getOuterEnvForType(
+        parentRanges,
         TemplataCompiler.getCitizenTemplate(child.fullName))
     val CompleteCompilerSolve(_, conclusions, _, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false) match {
@@ -585,7 +586,7 @@ class ImplCompiler(
   Vector[ISuperKindTT] = {
     val subKindFullName = subKind.fullName
     val subKindTemplateName = TemplataCompiler.getSubKindTemplate(subKindFullName)
-    val subKindEnv = coutputs.getOuterEnvForType(subKindTemplateName)
+    val subKindEnv = coutputs.getOuterEnvForType(parentRanges, subKindTemplateName)
     val subKindImpreciseName =
       TemplatasStore.getImpreciseName(interner, subKindFullName.last) match {
         case None => return Vector()
@@ -657,9 +658,11 @@ class ImplCompiler(
       interner.intern(ImplImpreciseNameS(subKindImpreciseName, superKindImpreciseName))
 
     val subKindEnv =
-      coutputs.getOuterEnvForType(TemplataCompiler.getSubKindTemplate(subKindTT.fullName))
+      coutputs.getOuterEnvForType(
+        parentRanges, TemplataCompiler.getSubKindTemplate(subKindTT.fullName))
     val superKindEnv =
-      coutputs.getOuterEnvForType(TemplataCompiler.getSuperKindTemplate(superKindTT.fullName))
+      coutputs.getOuterEnvForType(
+        parentRanges, TemplataCompiler.getSuperKindTemplate(superKindTT.fullName))
 
     val matching =
       callingEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++

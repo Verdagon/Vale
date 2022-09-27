@@ -115,8 +115,8 @@ class EdgeCompiler(
       Vector.empty,
       paramTypes,
       Vector(
-        coutputs.getOuterEnvForType(interface),
-        coutputs.getOuterEnvForType(overridingCitizen)),
+        coutputs.getOuterEnvForType(range, interface),
+        coutputs.getOuterEnvForType(range, overridingCitizen)),
       true,
       true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))

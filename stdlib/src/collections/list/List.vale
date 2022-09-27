@@ -179,10 +179,15 @@ where func(&F, &E)bool, func drop(F)void {
 //  }
 //  list
 //}
-// func toVaryArray<E>(list List<E>) []<mut>E {
-//   [arr] = list;
-//   return arr;
-// }
+
+func toArray<E>(list List<E>) []<mut>E {
+  [arr] = list;
+  return arr;
+}
+
+func toArray<E>(list &List<E>) []<mut>&E {
+  return Array<mut, &E>(list.len(), { list.get(_) });
+}
 
 
 
