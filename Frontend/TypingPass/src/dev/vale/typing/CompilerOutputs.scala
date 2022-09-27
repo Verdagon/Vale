@@ -182,18 +182,6 @@ case class CompilerOutputs() {
     instantiationNameToInstantiationBounds.put(instantiationFullName, functionBoundToRune)
   }
 
-  def findImmDestructor(kind: KindT): FunctionHeaderT = {
-    vimpl()
-//    vassertOne(
-//      functionsByHeader.values
-//        .filter({
-////          case getFunctionLastName(DropNameT(_, CoordT(_, _, k))) if k == kind => true
-//          case getFunctionLastName(FreeTemplateNameT(_, _, k)) if k == kind => true
-//          case _ => false
-//        }))
-//      .header
-  }
-
 //  // This means we've at least started to evaluate this function's body.
 //  // We use this to cut short any infinite looping that might happen when,
 //  // for example, there's a recursive function call.
