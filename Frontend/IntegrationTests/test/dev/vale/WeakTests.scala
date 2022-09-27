@@ -87,63 +87,6 @@ class WeakTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(7) => }
   }
 
-  test("Cant make weak ref to non-weakable") {
-    val compile = RunCompilation.test(
-        """
-          |struct Muta { hp int; }
-          |func getHp(weakMuta &&Muta) { (lock(weakMuta)).get().hp }
-          |exported func main() int { getHp(&&Muta(7)) }
-          |""".stripMargin)
-
-    try {
-       compile.expectCompilerOutputs().lookupFunction("main")
-      vfail()
-    } catch {
-      case TookWeakRefOfNonWeakableError() =>
-      case _ => vfail()
-    }
-
-  }
-
-  test("Cant make weakable extend a non-weakable") {
-    val compile = RunCompilation.test(
-        """
-          |interface IUnit {}
-          |weakable struct Muta { hp int; }
-          |impl IUnit for Muta;
-          |func main(muta Muta) int  { return 7; }
-          |""".stripMargin)
-
-    try {
-       compile.expectCompilerOutputs().lookupFunction("main")
-      vfail()
-    } catch {
-      case WeakableImplingMismatch(true, false) =>
-      case _ => vfail()
-    }
-  }
-
-  test("Cant make non-weakable extend a weakable") {
-    val compile = RunCompilation.test(
-        """
-          |weakable interface IUnit {}
-          |struct Muta { hp int; }
-          |impl IUnit for Muta;
-          |func main(muta Muta) int  { return 7; }
-          |""".stripMargin)
-
-    try {
-      compile.expectCompilerOutputs().lookupFunction("main")
-      vfail()
-    } catch {
-      case WeakableImplingMismatch(false, true) =>
-      case other => {
-        other.printStackTrace()
-        vfail()
-      }
-    }
-  }
-
 
   test("Make and lock weak ref then destroy own, with interface") {
     val compile = RunCompilation.test(

@@ -722,26 +722,6 @@ class ArrayTests extends FunSuite with Matchers {
 //    compile.evalForKind(Vector()) match { case VonInt(3) => }
 //  }
 
-
-
-  // if we want to make sure that our thing returns an int, then we can
-  // try and cast it to a callable:
-  // func makeArray<T>(size: Int, callable: (Int):T) {
-
-  test("Call Array<> without element type") {
-    val compile = RunCompilation.test(
-      """
-        |exported func main() int {
-        |  a = Array<imm>(3, {13 + _});
-        |  sum = 0;
-        |  drop_into(a, &(e) => { set sum = sum + e; });
-        |  return sum;
-        |}
-      """.stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(42) => }
-  }
-
   test("New immutable array") {
     val compile = RunCompilation.test(
       """
@@ -762,46 +742,4 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(14) => }
   }
 
-  test("Diff iter") {
-    // When we try to compile this:
-    //   HashSetDiffIterator<K>(a.table, b, 0)
-    // it makes sure all the struct rules pass, including its members, including this:
-    //   table &[]Opt<X>;
-    // And here we get a conflict:
-    //   Conflict, thought rune X was Kind$_0 but now concluding it's Kind$_0
-    // because one is Share ownership, and one is Own. (they look similar dont they)
-    // I think it's because HashSet<K Ref imm> has an imm there, and HashSetDiffIterator<X> doesn't.
-    val compile = RunCompilation.test(
-      """
-        |
-        |#!DeriveStructDrop
-        |struct HashSet<K Ref imm> {
-        |  table! Array<mut, Opt<K>>;
-        |  size! int;
-        |}
-        |
-        |struct HashSetDiffIterator<X> {
-        |  table &[]Opt<X>;
-        |  otherTable &HashSet<X>;
-        |  pos! int;
-        |}
-        |
-        |func diff_iter<K>(
-        |  a &HashSet<K>,
-        |  b &HashSet<K>)
-        |HashSetDiffIterator<K> {
-        |  HashSetDiffIterator<K>(a.table, b, 0)
-        |}
-        |
-        |exported func main() int {
-        |  hash = HashSet([]Opt<int>(0), 0);
-        |  diff_iter(&hash, &hash);
-        |  destruct hash;
-        |  14
-        |}
-        |
-        |""".stripMargin)
-
-    compile.evalForKind(Vector()) match { case VonInt(14) => }
-  }
 }
