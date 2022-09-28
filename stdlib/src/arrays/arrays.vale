@@ -5,45 +5,47 @@
 //func Array<N, T>(arr [#N]<mut>T) []T {
 //  []T(N, { arr[_] })
 //}
-//
-//func each<M, V, N, T, F>(arr A, func F) void
-//where A Ref = Ref[_, [#N]<M, V>T] {
-//  i = 0;
-//  l = len(&arr);
-//  while (i < l) {
-//    func(arr[i]);
-//    set i = i + 1;
-//  }
-//}
-//
-//func eachI<M, V, N, T, F>(arr A, func F) void
-//where A Ref = Ref[_, [#N]<M, V>T] {
-//  i = 0;
-//  l = len(&arr);
-//  while (i < l) {
-//    func(i, arr[i]);
-//    set i = i + 1;
-//  }
-//}
-//
-//func each<M, T, F>(arr []<M>T, func F) void {
-//  i = 0;
-//  l = len(&arr);
-//  while (i < l) {
-//    func(arr[i]);
-//    set i = i + 1;
-//  }
-//}
-//
-//func eachI<F>(arr A, func F) void
-//where A Ref = Ref[_, []<_>_] {
-//  i = 0;
-//  l = len(&arr);
-//  while (i < l) {
-//    func(i, arr[i]);
-//    set i = i + 1;
-//  }
-//}
+
+func each<M, V, N, T, F>(arr &[#N]<M, V>T, func &F) void
+where func(&F,&T)void {
+  i = 0;
+  l = len(&arr);
+  while (i < l) {
+    func(arr[i]);
+    set i = i + 1;
+  }
+}
+
+func eachI<M, V, N, T, F>(arr &[#N]<M, V>T, func F) void
+where func drop(F)void, func(&F,int,&T)void {
+  i = 0;
+  l = len(&arr);
+  while (i < l) {
+    func(i, arr[i]);
+    set i = i + 1;
+  }
+}
+
+func each<M, T, F>(arr &[]<M>T, func &F) void
+where func(&F,&T)void {
+  i = 0;
+  l = len(&arr);
+  while (i < l) {
+    func(arr[i]);
+    set i = i + 1;
+  }
+}
+
+func eachI<F, M, T>(arr &[]<M>T, func F) void
+where func drop(F)void, func(&F,int,&T)void {
+  i = 0;
+  l = len(&arr);
+  while (i < l) {
+    func(i, arr[i]);
+    set i = i + 1;
+  }
+}
+
 
 
 
