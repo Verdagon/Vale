@@ -153,7 +153,7 @@ class StructDropMacro(
       structDef.mutability match {
         case MutabilityTemplata(MutableT) => OwnT
         case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
       }
     val structType = CoordT(structOwnership, structTT)
 
@@ -167,9 +167,8 @@ class StructDropMacro(
         Compiler.consecutive(
           Vector(
             structDef.mutability match {
-              case PlaceholderTemplata(fullNameT, tyype) => vimpl()
               case MutabilityTemplata(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
-              case MutabilityTemplata(MutableT) => {
+              case MutabilityTemplata(MutableT) | PlaceholderTemplata(_, _) => {
                 val memberLocalVariables =
                   structDef.members.flatMap({
                     case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {

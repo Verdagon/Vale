@@ -189,6 +189,11 @@ func toArray<E>(list &List<E>) []<mut>&E {
   return Array<mut, &E>(list.len(), { list.get(_) });
 }
 
+func clone<E>(list &List<E>) List<E>
+where func clone(&E)E {
+  return List<E>(Array<mut, E>(list.len(), { list.get(_).clone() }));
+}
+
 
 
 // below here is old List code
