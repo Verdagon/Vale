@@ -202,11 +202,6 @@ class AfterRegionsTests extends FunSuite with Matchers {
     }
   }
 
-  // so we can be sure we arent mixing up any rune names in the call
-  test("Test recursive generic function") {
-    vimpl()
-  }
-
   test("Test two instantiations of anonymous-param lambda") {
     val compile = CompilerTestCompilation.test(
       """
