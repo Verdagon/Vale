@@ -185,7 +185,7 @@ class AfterRegionsErrorTests extends FunSuite with Matchers {
         |  func __call(virtual this &AFunction1<P>, a P) int;
         |}
         |exported func main() {
-        |  arr = AFunction1<int>((_) => { true });
+        |  arr = AFunction1<int>((_) => { 4 });
         |}
         |""".stripMargin)
 

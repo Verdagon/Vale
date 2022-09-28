@@ -129,20 +129,27 @@ class FunctionCompilerMiddleLayer(
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
     val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.fullName)//, params2)
 
-    coutputs.declareFunction(callRange, namedEnv.fullName)
-    coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
-    coutputs.declareFunctionInnerEnv(namedEnv.fullName, runedEnv)
+    coutputs.lookupFunction(SignatureT(banner.name)) match {
+      case Some(FunctionT(header, _, _, _)) => {
+        PrototypeTemplata(function1.range, header.toPrototype)
+      }
+      case None => {
+        coutputs.declareFunction(callRange, namedEnv.fullName)
+        coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
+        coutputs.declareFunctionInnerEnv(namedEnv.fullName, runedEnv)
 
-    val header =
-      core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
-    if (!header.toBanner.same(banner)) {
-      val bannerFromHeader = header.toBanner
-      vfail("wut\n" + bannerFromHeader + "\n" + banner)
+        val header =
+          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
+        if (!header.toBanner.same(banner)) {
+          val bannerFromHeader = header.toBanner
+          vfail("wut\n" + bannerFromHeader + "\n" + banner)
+        }
+
+        //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
+
+        PrototypeTemplata(function1.range, header.toPrototype)
+      }
     }
-
-//        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
-
-    PrototypeTemplata(function1.range, header.toPrototype)
   }
 
   // Preconditions:

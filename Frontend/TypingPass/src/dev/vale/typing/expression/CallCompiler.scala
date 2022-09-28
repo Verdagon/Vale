@@ -151,7 +151,7 @@ class CallCompiler(
       mutability match {
         case MutabilityTemplata(MutableT) => BorrowT
         case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
       }
     vassert(givenCallableBorrowExpr2.result.reference.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
