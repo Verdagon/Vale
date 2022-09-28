@@ -56,7 +56,7 @@ then
     exit 1
   fi
 
-  LLVM_CMAKE_DIR="$LLVM_OUTER_DIR/13.0.1/lib/cmake/llvm"
+  LLVM_CMAKE_DIR="$LLVM_OUTER_DIR/13.0.1_1/lib/cmake/llvm"
   
   if [ ! -d "$LLVM_CMAKE_DIR" ]
   then
