@@ -40,7 +40,7 @@ case class FullNameT[+T <: INameT](
     case PlaceholderNameT(_) => {
       initSteps.last match {
         case _ : ITemplateNameT =>
-        case OverrideDispatcherInstantiationNameT(_, _, _) => {
+        case OverrideDispatcherNameT(_, _, _) => {
           initSteps.init.last match {
             case _ : ITemplateNameT =>
             case other => vfail(other)
@@ -246,13 +246,12 @@ case class OverrideDispatcherTemplateNameT(
     keywords: Keywords,
     templateArgs: Vector[ITemplata[ITemplataType]],
     params: Vector[CoordT]):
-  OverrideDispatcherInstantiationNameT = {
-    interner.intern(OverrideDispatcherInstantiationNameT(this, templateArgs, params))
+  OverrideDispatcherNameT = {
+    interner.intern(OverrideDispatcherNameT(this, templateArgs, params))
   }
 }
 
-// DO NOT SUBMIT take Instantiation out of the name
-case class OverrideDispatcherInstantiationNameT(
+case class OverrideDispatcherNameT(
   template: OverrideDispatcherTemplateNameT,
   // This will have placeholders in it after the typing pass.
   templateArgs: Vector[ITemplata[ITemplataType]],
@@ -262,10 +261,8 @@ case class OverrideDispatcherInstantiationNameT(
 }
 
 case class OverrideDispatcherCaseNameT(
-  // DO NOT SUBMIT explain better
-  // These are like the <ZZ> for Milano
-  // These are placeholders, kind of inherited from the impl.
-  // See OMCNAGP.
+  // These are the temlatas for the independent runes from the impl, like the <ZZ> for Milano, see
+  // OMCNAGP.
   independentImplTemplateArgs: Vector[ITemplata[ITemplataType]]
 ) extends ITemplateNameT with IInstantiationNameT {
   override def template: ITemplateNameT = this

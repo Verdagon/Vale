@@ -11,7 +11,7 @@ import dev.vale.highertyping._
 import dev.vale.parsing.ast.ImmutableRuneAttributeP
 import dev.vale.postparsing._
 import dev.vale.typing._
-import dev.vale.typing.ast.{PrototypeT, UnsubstitutedCoordT}
+import dev.vale.typing.ast.{PrototypeT}
 import dev.vale.typing.citizen.{IResolveOutcome, ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectVariability}
 import dev.vale.typing.types._
@@ -583,9 +583,6 @@ object TemplataCompiler {
   }
 
   trait IPlaceholderSubstituter {
-    def substituteForCoord(coutputs: CompilerOutputs, coordT: UnsubstitutedCoordT): CoordT = {
-      substituteForCoord(coutputs, coordT.unsubstitutedCoord)
-    }
     def substituteForCoord(coutputs: CompilerOutputs, coordT: CoordT): CoordT
     def substituteForInterface(coutputs: CompilerOutputs, interfaceTT: InterfaceTT): InterfaceTT
     def substituteForTemplata(coutputs: CompilerOutputs, coordT: ITemplata[ITemplataType]): ITemplata[ITemplataType]
@@ -596,34 +593,9 @@ object TemplataCompiler {
     keywords: Keywords,
     // This is the Ship<WarpFuel>.
     name: FullNameT[IInstantiationNameT],
-    // DO NOT SUBMIT explain this nonsense
     boundArgumentsSource: IBoundArgumentsSource):
     // The Engine<T> is given later to the IPlaceholderSubstituter
   IPlaceholderSubstituter = {
-//    FullNameT(_,
-//      Vector(
-//        FunctionNameT(
-//          FunctionTemplateNameT(toArray,_),
-//          Vector(
-//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(0))), MutabilityTemplataType()),
-//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(1))),IntegerTemplataType()),
-//            CoordTemplata(CoordT(own,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(2)))))),
-//            PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(3))),MutabilityTemplataType())),
-//          Vector(
-//            CoordT(
-//              borrow,
-//              StaticSizedArrayTT(
-//                FullNameT(
-//                  _,
-//                  Vector(),
-//                  StaticSizedArrayNameT(_,
-//                    PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(1))),IntegerTemplataType()),
-//                    VariabilityTemplata(final),
-//                    RawArrayNameT(
-//                      PlaceholderTemplata(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(3))),MutabilityTemplataType()),
-//                      CoordT(own,PlaceholderT(FullNameT(_,Vector(FunctionTemplateNameT(toArray,FileCoordinate(_,0.vale):22)),PlaceholderNameT(PlaceholderTemplateNameT(2))))))))))))),
-//      LambdaCitizenNameT(LambdaCitizenTemplateNameT(FileCoordinate(_,0.vale):142)))
-
     val topLevelDenizenFullName = getTopLevelDenizenFullName(name)
     val templateArgs = topLevelDenizenFullName.last.templateArgs
     val topLevelDenizenTemplateFullName = getTemplate(topLevelDenizenFullName)

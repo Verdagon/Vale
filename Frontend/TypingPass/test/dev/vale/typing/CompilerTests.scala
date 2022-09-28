@@ -282,7 +282,7 @@ class CompilerTests extends FunSuite with Matchers {
         _,
         false,
         MutabilityTemplata(MutableT),
-        Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32))))),
+        Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT((CoordT(ShareT, IntT.i32))))),
         false,
         _,
         _) =>
@@ -1528,7 +1528,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupStruct("MyStruct")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
     tyype match {
       case CoordT(
       OwnT,

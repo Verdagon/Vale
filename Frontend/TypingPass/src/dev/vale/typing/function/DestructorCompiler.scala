@@ -54,6 +54,8 @@ class DestructorCompiler(
   (ReferenceExpressionTE) = {
     val resultExpr2 =
       undestructedExpr2.result.reference match {
+        case CoordT(ShareT, NeverT(_)) => undestructedExpr2
+        case CoordT(ShareT, _) => DiscardTE(undestructedExpr2)
         case r@CoordT(OwnT, _) => {
           val destructorPrototype = getDropFunction(env, coutputs, callRange, r)
           vassert(coutputs.getInstantiationBounds(destructorPrototype.function.prototype.fullName).nonEmpty)
@@ -61,59 +63,6 @@ class DestructorCompiler(
         }
         case CoordT(BorrowT, _) => (DiscardTE(undestructedExpr2))
         case CoordT(WeakT, _) => (DiscardTE(undestructedExpr2))
-        case CoordT(ShareT, _) => {
-          val destroySharedCitizenOrPlaceholder =
-            (coutputs: CompilerOutputs, coord: CoordT) => {
-              // DO NOT SUBMIT
-//              val destructorHeader =
-//                getDropFunction(env, coutputs, callRange, coord)
-//              // We just needed to ensure it's in the coutputs, so that the backend can use it
-//              // for when reference counts drop to zero.
-//              // If/when we have a GC backend, we can skip generating share destructors.
-//              val _ = destructorHeader
-              DiscardTE(undestructedExpr2)
-            };
-          val destroySharedArray =
-            (coutputs: CompilerOutputs, coord: CoordT) => {
-              val destructorHeader = getDropFunction(env, coutputs, callRange, coord)
-              // We just needed to ensure it's in the coutputs, so that the backend can use it
-              // for when reference counts drop to zero.
-              // If/when we have a GC backend, we can skip generating share destructors.
-              val _ = destructorHeader
-              DiscardTE(undestructedExpr2)
-            };
-
-
-          val unshareExpr2 =
-            undestructedExpr2.result.reference.kind match {
-              case NeverT(_) => undestructedExpr2
-              case IntT(_) | StrT() | BoolT() | FloatT() | VoidT() => {
-                DiscardTE(undestructedExpr2)
-              }
-              case OverloadSetT(overloadSetEnv, name) => {
-                DiscardTE(undestructedExpr2)
-              }
-              case as@StaticSizedArrayTT(_) => {
-                val underarrayReference2 =
-                  CoordT(
-                    undestructedExpr2.result.reference.ownership,
-                    as)
-                destroySharedArray(coutputs, underarrayReference2)
-              }
-              case as@RuntimeSizedArrayTT(_) => {
-                val underarrayReference2 =
-                  CoordT(
-                    undestructedExpr2.result.reference.ownership,
-                    as)
-                destroySharedArray(coutputs, underarrayReference2)
-              }
-              case StructTT(_) | InterfaceTT(_) | PlaceholderT(_) => {
-                destroySharedCitizenOrPlaceholder(coutputs, undestructedExpr2.result.reference)
-              }
-              case other => vfail("Unknown type to drop: " + other)
-            }
-          unshareExpr2
-        }
       }
     resultExpr2.result.reference.kind match {
       case VoidT() | NeverT(_) =>

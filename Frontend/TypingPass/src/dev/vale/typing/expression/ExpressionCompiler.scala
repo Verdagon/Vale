@@ -681,7 +681,7 @@ class ExpressionCompiler(
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(
                     interner, keywords, structTT.fullName,
-                    // DO NOT SUBMIT explain
+                    // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
                       structDef.runeToFunctionBound,
                       structDef.runeToImplBound,

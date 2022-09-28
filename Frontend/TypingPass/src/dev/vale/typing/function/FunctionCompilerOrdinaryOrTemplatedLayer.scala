@@ -435,17 +435,11 @@ class FunctionCompilerOrdinaryOrTemplatedLayer(
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]],
     reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplata]
-    // DO NOT SUBMIT add impl bounds things here
+    // I suspect we'll eventually need some impl bounds here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(globalEnv, parentEnv, fullName, templatas, function, variables, isRootCompilingDenizen) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
-//    val newName =
-//      FullNameT(
-//        fullName.packageCoord,
-//        fullName.initSteps,
-//        interner.intern(BuildingFunctionNameWithClosuredsAndTemplateArgsT(
-//          fullName.last, identifyingTemplatas)))
 
     val newEntries =
       templatas.addEntries(

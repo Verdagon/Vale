@@ -148,10 +148,10 @@ class MutateHammer(
     val boxedType2 = member2.tyype.expectAddressMember().reference
 
     val (boxedTypeH) =
-      typeHammer.translateReference(hinputs, hamuts, boxedType2.unsubstitutedCoord);
+      typeHammer.translateReference(hinputs, hamuts, boxedType2);
 
     val (boxStructRefH) =
-      structHammer.makeBox(hinputs, hamuts, variability, boxedType2.unsubstitutedCoord, boxedTypeH)
+      structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
 
     // Remember, structs can never own boxes, they only borrow them
     val expectedStructBoxMemberType = ReferenceH(BorrowH, YonderH, boxStructRefH)

@@ -968,4 +968,19 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
     compile.evalForKind(Vector()) match { case VonInt(6) => }
   }
+
+  test("Same type multiple times in an invocation") {
+    val compile = RunCompilation.test(
+      """
+        |struct Bork<T> where func drop(T)void {
+        |  a T;
+        |}
+        |
+        |exported func main() int {
+        |  return Bork<Bork<Bork<int>>>(Bork(Bork(7))).a.a.a;
+        |}
+      """.stripMargin)
+
+    compile.evalForKind(Vector()) match { case VonInt(7) => }
+  }
 }

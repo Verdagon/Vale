@@ -160,13 +160,13 @@ class StructHammer(
       member2 match {
         case VariadicStructMemberT(name, tyype) => vimpl()
         case NormalStructMemberT(_, variability, ReferenceMemberTypeT(coord)) => {
-          (variability, translateReference(hinputs, hamuts, coord.unsubstitutedCoord))
+          (variability, translateReference(hinputs, hamuts, coord))
         }
         case NormalStructMemberT(_, variability, AddressMemberTypeT(coord)) => {
           val (referenceH) =
-            translateReference(hinputs, hamuts, coord.unsubstitutedCoord)
+            translateReference(hinputs, hamuts, coord)
           val (boxStructRefH) =
-            makeBox(hinputs, hamuts, variability, coord.unsubstitutedCoord, referenceH)
+            makeBox(hinputs, hamuts, variability, coord, referenceH)
           // The stack owns the box, closure structs just borrow it.
           (variability, ReferenceH(BorrowH, YonderH, boxStructRefH))
         }

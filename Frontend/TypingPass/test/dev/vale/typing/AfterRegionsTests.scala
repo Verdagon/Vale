@@ -284,7 +284,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupStruct("MyStruct")
-    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c.unsubstitutedCoord })
+    val tyype = Collector.only(moo, { case ReferenceMemberTypeT(c) => c })
     tyype match {
       case CoordT(
       OwnT,
