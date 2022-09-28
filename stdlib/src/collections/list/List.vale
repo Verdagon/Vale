@@ -321,33 +321,33 @@ where func clone(&E)E {
 //}
 //
 
-//func join(list &List<str>) str { join(list, "") }
-//func join(list &List<str>, joiner str) str {
-//  combined = StringBuilder();
-//  first = true;
-//  foreach x in list {
-//    if not first {
-//      combined.print(joiner);
-//    }
-//    combined.print(x);
-//    set first = false;
-//  }
-//  return combined.str();
-//}
+func join(list &List<str>) str { join(list, "") }
+func join(list &List<str>, joiner str) str {
+  combined = StringBuilder();
+  first = true;
+  foreach x in list {
+    if not first {
+      combined.print(joiner);
+    }
+    combined.print(x);
+    set first = false;
+  }
+  return combined.str();
+}
 
-//func join(list &List<StrSlice>) str { join(list, "") }
-//func join(list &List<StrSlice>, joiner str) str {
-//  combined = StringBuilder();
-//  first = true;
-//  foreach x in list {
-//    if not first {
-//      combined.print(joiner);
-//    }
-//    combined.print(x);
-//    set first = false;
-//  }
-//  return combined.str();
-//}
+func join(list &List<StrSlice>) str { join(list, "") }
+func join(list &List<StrSlice>, joiner str) str {
+  combined = StringBuilder();
+  first = true;
+  foreach x in list {
+    if not first {
+      combined.print(joiner);
+    }
+    combined.print(x);
+    set first = false;
+  }
+  return combined.str();
+}
 
 
 //func print<T>(list &List<T>) {

@@ -26,30 +26,6 @@ In the call site, instead we have a **Resolve** rule which looks in the current 
 In other words, some rules only apply to the call site, and some rules only apply when compiling the definition. There's some filtering that makes this happen.
 
 
-# Some Rules are Hoisted Out of Default Param (SRHODP)
-
-This snippet is using a **function bound generic parameter**:
-
-```
-func launch<X, func foo(int)void>(x X)
-where func foo(int)void {
-  ...
-}
-```
-
-It's particularly nice because the call-site can hand in something that's not called `foo`.
-
-This `func foo(int)void` generates three rules (see SROACSD):
-
- * DefinitionFunc, used when compiling definition, creates a prototype that can later be called.
- * Resolve, which looks in the current environment for a matching function.
- * CallSiteFunc, used when compiling call site, which makes sure the given prototype has the right parameters and returns.
-
-If the call-site wants to pass in their own prototype, then they *don't* want that Resolve rule in there. So, we need Resolve only be a *default* expression, only run when the user doesn't specify something.
-
-But we don't want the other two rules (DefinitionFunc, CallSiteFunc) to be defaults, we want those to always be there. So, we'll hoist them out of the generic parameter's "default rules" and into the function's main rules.
-
-
 
 # Call Site Solving Needs Caller Env (CSSNCE)
 
@@ -74,29 +50,6 @@ We're trying to solve `zoo(x)`. `zoo` requires a `func drop(Z)void` but that onl
 So, the callee needs access to the caller's environment.
 
 
-
-# Default Parameters Can Only Depend on Other Default Parameters (DPCODODP)
-
-We had:
-
-```
-struct Functor1<F Prot = func(P1)R> imm
-where P1 Ref, R Ref { }
-```
-
-But when defining it it had no idea what to do. It should have generated a DefinitionCallSR which would produce the right prototype, but it didn't know what coords to use for its param and return.
-
-I believe this means that we should have had some placeholders for the P1 and R.
-
-That then means that P1 and R should have been generic params themselves.
-
-So, it should be like this:
-
-```
-struct Functor1<P1 Ref, R Ref, F Prot = func(P1)R> imm { }
-```
-
-And then we should make placeholders for P1 and R, and let the 3rd param's DefinitionCallSR create a prototype using those two. Then things would work.
 
 
 # Only Work with Placeholders From the Root Denizen (OWPFRD)
@@ -156,38 +109,6 @@ struct ListNode<T> {
 when we try to resolve the `Opt<ListNode<T>>` it will try to resolve the `ListNode<T>` which runs all these rules _again_, and goes into an infinite loop.
 
 The answer is to only run the innards when compiling the definition, not when we're resolving.
-
-
-
-# Compile Impl From Both Directions (CIFBD)
-
-NOTE: Not sure this is true anymore, ever since generics.
-
-We previously compiled all impls for a given struct. We did this for each struct.
-
-However, this would miss some things. For example, if we had this interface:
-
-```
-sealed interface MySerenityOrRazaUnion { }
-impl Serenity for MySerenityOrRazaUnion { }
-impl Raza for MySerenityOrRazaUnion { }
-```
-
-and it was in some hidden leaf dependency, not seen by Serenity or Raza, then it would be missed.
-
-For this reason, we also compile all impls for a given interface.
-
-This *could* result in collisions. For example:
-
-```
-interface MyInterface { }
-struct MyStruct { }
-impl MyStruct for MyInterface { }
-```
-
-Compiling this from both directions will result in the same impl.
-
-That's fine, the CompilerOutputs class will deduplicate them.
 
 
 # Require Explicit Multiple Upcasting to Indirect Descendants and Ancestors (REMUIDDA)
@@ -1781,4 +1702,87 @@ We used to declare a type's outer environment when we compiled its definition. H
 
 
 So, the solution we chose is to declare the outer environment in structs' pre-compile stage.
+
+
+
+
+# Not sure if these are true
+
+## Some Rules are Hoisted Out of Default Param (SRHODP)
+
+This snippet is using a **bound function**:
+
+```
+func launch<X, func foo(int)void>(x X)
+where func foo(int)void {
+  ...
+}
+```
+
+It's particularly nice because the call-site can hand in something that's not called `foo`.
+
+This `func foo(int)void` generates three rules (see SROACSD):
+
+ * DefinitionFunc, used when compiling definition, creates a prototype that can later be called.
+ * Resolve, which looks in the current environment for a matching function.
+ * CallSiteFunc, used when compiling call site, which makes sure the given prototype has the right parameters and returns.
+
+If the call-site wants to pass in their own prototype, then they *don't* want that Resolve rule in there. So, we need Resolve only be a *default* expression, only run when the user doesn't specify something.
+
+But we don't want the other two rules (DefinitionFunc, CallSiteFunc) to be defaults, we want those to always be there. So, we'll hoist them out of the generic parameter's "default rules" and into the function's main rules.
+
+
+## Default Parameters Can Only Depend on Other Default Parameters (DPCODODP)
+
+We had:
+
+```
+struct Functor1<F Prot = func(P1)R> imm
+where P1 Ref, R Ref { }
+```
+
+But when defining it it had no idea what to do. It should have generated a DefinitionCallSR which would produce the right prototype, but it didn't know what coords to use for its param and return.
+
+I believe this means that we should have had some placeholders for the P1 and R.
+
+That then means that P1 and R should have been generic params themselves.
+
+So, it should be like this:
+
+```
+struct Functor1<P1 Ref, R Ref, F Prot = func(P1)R> imm { }
+```
+
+And then we should make placeholders for P1 and R, and let the 3rd param's DefinitionCallSR create a prototype using those two. Then things would work.
+
+
+# Compile Impl From Both Directions (CIFBD)
+
+NOTE: Not sure this is true anymore, ever since generics.
+
+We previously compiled all impls for a given struct. We did this for each struct.
+
+However, this would miss some things. For example, if we had this interface:
+
+```
+sealed interface MySerenityOrRazaUnion { }
+impl Serenity for MySerenityOrRazaUnion { }
+impl Raza for MySerenityOrRazaUnion { }
+```
+
+and it was in some hidden leaf dependency, not seen by Serenity or Raza, then it would be missed.
+
+For this reason, we also compile all impls for a given interface.
+
+This *could* result in collisions. For example:
+
+```
+interface MyInterface { }
+struct MyStruct { }
+impl MyStruct for MyInterface { }
+```
+
+Compiling this from both directions will result in the same impl.
+
+That's fine, the CompilerOutputs class will deduplicate them.
 
