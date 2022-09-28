@@ -206,24 +206,24 @@ class PatternCompiler(
     Compiler.consecutive(
       currentInstructions :+
         (maybeDestructure match {
-        case None => {
-          // Do nothing
-          afterSubPatternSuccessContinuation(coutputs, nenv, life + 0, liveCaptureLocals)
-        }
-        case Some(listOfMaybeDestructureMemberPatterns) => {
-          exprToDestructureOrDropOrPassTE.result.reference.ownership match {
-            case OwnT => {
-              // We aren't capturing the var, so the destructuring should consume the incoming value.
-              destructureOwning(
-                coutputs, nenv, life + 1, range :: parentRanges, liveCaptureLocals, exprToDestructureOrDropOrPassTE, listOfMaybeDestructureMemberPatterns, afterSubPatternSuccessContinuation)
-            }
-            case BorrowT | ShareT => {
-              destructureNonOwningAndMaybeContinue(
-                coutputs, nenv, life + 2, range :: parentRanges, liveCaptureLocals, exprToDestructureOrDropOrPassTE, listOfMaybeDestructureMemberPatterns, afterSubPatternSuccessContinuation)
+          case None => {
+            // Do nothing
+            afterSubPatternSuccessContinuation(coutputs, nenv, life + 0, liveCaptureLocals)
+          }
+          case Some(listOfMaybeDestructureMemberPatterns) => {
+            exprToDestructureOrDropOrPassTE.result.reference.ownership match {
+              case OwnT => {
+                // We aren't capturing the var, so the destructuring should consume the incoming value.
+                destructureOwning(
+                  coutputs, nenv, life + 1, range :: parentRanges, liveCaptureLocals, exprToDestructureOrDropOrPassTE, listOfMaybeDestructureMemberPatterns, afterSubPatternSuccessContinuation)
+              }
+              case BorrowT | ShareT => {
+                destructureNonOwningAndMaybeContinue(
+                  coutputs, nenv, life + 2, range :: parentRanges, liveCaptureLocals, exprToDestructureOrDropOrPassTE, listOfMaybeDestructureMemberPatterns, afterSubPatternSuccessContinuation)
+              }
             }
           }
-        }
-      }))
+        }))
   }
 
   private def destructureOwning(
@@ -503,7 +503,7 @@ class PatternCompiler(
         interner,
         keywords,
         structTT.fullName,
-        // DO NOT SUBMIT explain
+        // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
           structDefT.runeToFunctionBound,
           structDefT.runeToImplBound,

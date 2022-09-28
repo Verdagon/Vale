@@ -124,7 +124,7 @@ case class OverrideT(
   //   func add<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
   // as you can see there may be some interesting templatas in there like that Opt<int>, they
   // might not be simple placeholders
-  dispatcherCallFullName: FullNameT[OverrideDispatcherInstantiationNameT],
+  dispatcherCallFullName: FullNameT[OverrideDispatcherNameT],
 
   implPlaceholderToDispatcherPlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(FullNameT[PlaceholderNameT], ITemplata[ITemplataType])],
@@ -144,12 +144,6 @@ case class OverrideT(
   // actual real templatas.
   // This will have some placeholders from the impl; this is the impl calling the case, kind of.
   caseFullName: FullNameT[OverrideDispatcherCaseNameT],
-
-  // See if we can just have these be in the case full name.
-//  // DO NOT SUBMIT explain better
-//  // If this has two elements, that means there's two <ZZ> Milano template args.
-//  // Each value integer is the where it came from; the index in the impl's full name
-//  implGenericArgIndices: Vector[Int],
 
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
@@ -264,7 +258,7 @@ case class ValidHeaderCalleeCandidate(
 case class ValidPrototypeTemplataCalleeCandidate(
   prototype: PrototypeTemplata
 ) extends IValidCalleeCandidate {
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; // DO NOT SUBMIT i removed the equals vcurious
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
   override def range: Option[RangeS] = Some(prototype.declarationRange)
   override def paramTypes: Vector[CoordT] = prototype.prototype.fullName.last.parameters.toVector

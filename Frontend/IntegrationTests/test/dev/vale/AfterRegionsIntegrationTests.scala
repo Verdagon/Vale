@@ -12,13 +12,44 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.WeakableImplingMismatch
 import dev.vale.typing.expression.TookWeakRefOfNonWeakableError
 import dev.vale.typing.names.{FunctionNameT, FunctionTemplateNameT}
-import dev.vale.typing.types.IntT
+import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.types.{CoordT, ImmutableT, IntT, ShareT, contentsRuntimeSizedArrayTT}
 import dev.vale.typing.{Hinputs, ICompileErrorT}
 import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
 import org.scalatest.{FunSuite, Matchers}
 
 
 class AfterRegionsIntegrationTests extends FunSuite with Matchers {
+
+  test("TODO") {
+    // see MSBAMFI
+    vimpl()
+
+    // only look at function bounds from the caller's environment, dont get any actual functions
+    // from there. we can get actual functions from the type's environment, however.
+    vimpl()
+
+    // every time we do a templatas substitute, we do a substitutions for any of their bounds in the
+    // coutputs. that's likely really expensive.
+    // and it might be unnecessary? can the monomorphizer resolve those mappings themselves? perhaps
+    // there's some in-between where templar can track merely that a bound *was* satisfied, but not
+    // what satisfied it.
+    // would that be enough for e.g. cases, which bring in bounds from the kind they're matching?
+    // and parameters and stuff?
+    vimpl()
+
+    // had a bug when as was defined like this:
+    //   extern("vale_as_subtype")
+    //   func as<SubKind Kind, SuperType Ref>(left SuperType) Result<SubType, SuperType>
+    //     where O Ownership,
+    //   SuperKind Kind,
+    //   SubType Ref = Ref[O, SubKind],
+    //   SuperType Ref = Ref[O, SuperKind],
+    //   implements(SubType, SuperType);
+    // the definition assumed O was own, and the call inferred O to be borrow.
+    // this cause some mayhem further down when a name didnt match.
+    vimpl()
+  }
 
   test("Test returning empty seq") {
     val compile = RunCompilation.test(
@@ -166,6 +197,37 @@ class AfterRegionsIntegrationTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
+  test("Make array without type") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  a = #[](10, {_});
+        |  return a.3;
+        |}
+      """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    compile.evalForKind(Vector()) match { case VonInt(3) => }
+  }
+
+  test("Abstract func without virtual") {
+    val compile = RunCompilation.test(
+      """
+        |sealed interface ISpaceship<X Ref, Y Ref, Z Ref> { }
+        |abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where func drop(X)void;
+        |
+        |exported func main() int {
+        |  a = #[](10, {_});
+        |  return a.3;
+        |}
+      """.stripMargin)
+
+    compile.getCompilerOutputs() match {
+      case Err(e) => vimpl(e)
+      case Ok(_) => vfail()
+    }
+  }
+
   test("Cant make non-weakable extend a weakable") {
     val compile = RunCompilation.test(
       """
@@ -244,4 +306,32 @@ class AfterRegionsIntegrationTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(9) => }
   }
 
+  test("Infinite lambda call") {
+    val compile = RunCompilation.test(
+      """
+        |exported func main() int {
+        |  lam = (f, z) => {
+        |    f(f, z)
+        |  };
+        |  lam(lam, 7);
+        |}
+        |
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    compile.evalForKind(Vector()) match { case VonInt(8) => }
+  }
+
+
+  test("Ignoring receiver") {
+    val compile = RunCompilation.test(
+      """
+        |struct Marine { hp int; }
+        |exported func main() int { [_, y] = (Marine(6), Marine(8)); return y.hp; }
+        |
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main");
+    main.header.returnType shouldEqual CoordT(ShareT, IntT.i32)
+    compile.evalForKind(Vector()) match { case VonInt(8) => }
+  }
 }

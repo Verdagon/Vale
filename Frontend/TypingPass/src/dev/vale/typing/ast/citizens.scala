@@ -83,7 +83,7 @@ case class VariadicStructMemberT(
 }
 
 sealed trait IMemberTypeT  {
-  def reference: UnsubstitutedCoordT
+  def reference: CoordT
 
   def expectReferenceMember(): ReferenceMemberTypeT = {
     this match {
@@ -98,10 +98,9 @@ sealed trait IMemberTypeT  {
     }
   }
 }
-// DO NOT SUBMIT document
-case class UnsubstitutedCoordT(unsubstitutedCoord: CoordT)
-case class AddressMemberTypeT(reference: UnsubstitutedCoordT) extends IMemberTypeT
-case class ReferenceMemberTypeT(reference: UnsubstitutedCoordT) extends IMemberTypeT
+
+case class AddressMemberTypeT(reference: CoordT) extends IMemberTypeT
+case class ReferenceMemberTypeT(reference: CoordT) extends IMemberTypeT
 
 case class InterfaceDefinitionT(
   templateName: FullNameT[IInterfaceTemplateNameT],

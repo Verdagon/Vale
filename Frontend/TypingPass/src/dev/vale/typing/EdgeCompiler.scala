@@ -95,35 +95,6 @@ class EdgeCompiler(
     (interfaceEdgeBlueprints, itables)
   }
 
-  private def resolveOverride(
-      coutputs: CompilerOutputs,
-      range: List[RangeS],
-      abstractFuncEnv: IEnvironment,
-      interface: FullNameT[IInterfaceTemplateNameT],
-      overridingCitizen: FullNameT[ICitizenTemplateNameT],
-      impreciseName: IImpreciseNameS,
-      paramTypes: Vector[CoordT]):
-  EvaluateFunctionSuccess = {
-    overloadCompiler.findFunction(
-      // It's like the abstract function is the one calling the override.
-      // This is important so the override can see existing concept functions, see NAFEWRO.
-      abstractFuncEnv,
-      coutputs,
-      range,
-      impreciseName,
-      Vector.empty,
-      Vector.empty,
-      paramTypes,
-      Vector(
-        coutputs.getOuterEnvForType(range, interface),
-        coutputs.getOuterEnvForType(range, overridingCitizen)),
-      true,
-      true) match {
-      case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(range, e))
-      case Ok(x) => x
-    }
-  }
-
   private def makeInterfaceEdgeBlueprints(coutputs: CompilerOutputs): Vector[InterfaceEdgeBlueprint] = {
     val x1 =
       coutputs.getAllFunctions().flatMap({ case function =>
@@ -254,7 +225,6 @@ class EdgeCompiler(
     result
   }
 
-  // DO NOT SUBMIT rename or perhaps combine with resolveOverride
   private def lookForOverride(
     coutputs: CompilerOutputs,
     impl: ImplT,
@@ -480,14 +450,21 @@ class EdgeCompiler(
           throw CompileErrorExceptionT(CouldntEvaluatImpl(List(range), fcs))
         }
       }
+
+    val conclusionsFromInterfaceAndCase =
+      partialCaseConclusionsFromSuperInterface ++ implRuneToCasePlaceholder.toMap
+    // Risky combination of different denizens runes, let's see if it ever happens.
+    vassert(
+      conclusionsFromInterfaceAndCase.size ==
+      partialCaseConclusionsFromSuperInterface.size + implRuneToCasePlaceholder.size)
+
     val (caseConclusions, reachableBoundsFromFullSolve) =
       implCompiler.solveImplForCall(
         coutputs,
         List(range),
         dispatcherInnerEnv,
-        // risky combination of different denizens runes (RCDDR) DO NOT SUBMIT
-        (partialCaseConclusionsFromSuperInterface ++ implRuneToCasePlaceholder.toMap)
-          .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }).toVector,
+        conclusionsFromInterfaceAndCase.toVector
+          .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }),
         impl.templata,
         false,
         true) match {
@@ -548,14 +525,24 @@ class EdgeCompiler(
     // We need the abstract function's conclusions because it contains knowledge of the
     // existence of certain things like concept functions, see NFIEFRO.
     val foundFunction =
-      resolveOverride(
+      overloadCompiler.findFunction(
+        // It's like the abstract function is the one calling the override.
+        // This is important so the override can see existing concept functions, see NAFEWRO.
+        dispatcherCaseEnv,
         coutputs,
         List(range, impl.templata.impl.range),
-        dispatcherCaseEnv,
-        interfaceTemplateFullName,
-        subCitizenTemplateFullName,
         overrideImpreciseName,
-        overrideFunctionParamTypes)
+        Vector.empty,
+        Vector.empty,
+        overrideFunctionParamTypes,
+        Vector(
+          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), interfaceTemplateFullName),
+          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), subCitizenTemplateFullName)),
+        true,
+        true) match {
+        case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(List(range, impl.templata.impl.range), e))
+        case Ok(x) => x
+      }
     vassert(coutputs.getInstantiationBounds(foundFunction.function.prototype.fullName).nonEmpty)
 
     OverrideT(
@@ -568,4 +555,5 @@ class EdgeCompiler(
       dispatcherCaseEnv.fullName,
       foundFunction.function.prototype)
   }
+
 }

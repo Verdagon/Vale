@@ -1209,7 +1209,7 @@ class Compiler(
               case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
                 vimpl()
               }
-              case NormalStructMemberT(_, _, ReferenceMemberTypeT(UnsubstitutedCoordT(unsubstitutedMemberCoord))) => {
+              case NormalStructMemberT(_, _, ReferenceMemberTypeT(unsubstitutedMemberCoord)) => {
                 val memberCoord = substituter.substituteForCoord(coutputs, unsubstitutedMemberCoord)
                 val memberKind = memberCoord.kind
                 if (structDef.mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(memberKind) && !exportedKindToExport.contains(memberKind)) {

@@ -133,7 +133,7 @@ class StructCompilerCore(
                 }))
           }
 
-          if (tyype.reference.unsubstitutedCoord.ownership != ShareT) {
+          if (tyype.reference.ownership != ShareT) {
             throw CompileErrorExceptionT(
               ImmStructCantHaveMutableMember(
                 structA.members(index).range :: parentRanges,
@@ -362,7 +362,7 @@ class StructCompilerCore(
         NormalStructMemberT(
           interner.intern(CodeVarNameT(name)),
           variabilityT,
-          ReferenceMemberTypeT(UnsubstitutedCoordT(coord)))
+          ReferenceMemberTypeT(coord))
       }
       case VariadicStructMemberS(_, variability, coordListRune) => {
         val placeholderTemplata =
@@ -395,7 +395,7 @@ class StructCompilerCore(
         } else {
           tyype match {
             case AddressMemberTypeT(reference) => true
-            case ReferenceMemberTypeT(UnsubstitutedCoordT(reference)) => {
+            case ReferenceMemberTypeT(reference) => {
               reference.ownership match {
                 case OwnT | BorrowT | WeakT => true
                 case ShareT => false

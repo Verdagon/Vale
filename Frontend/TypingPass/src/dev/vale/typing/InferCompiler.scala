@@ -63,11 +63,6 @@ case class InferEnv(
 
   parentRanges: List[RangeS],
 
-//
-//  // We look in this for declared functions, see CSSNCE.
-//  // DO NOT SUBMIT we no longer need this because of SFWPRL
-//  directlyCallingEnv: IEnvironment,
-
   // We look in this for everything else, such as type names like "int" etc.
   selfEnv: IEnvironment,
 

@@ -143,7 +143,7 @@ class ClosureTests extends FunSuite with Matchers {
         }))
 
     val expectedMembers =
-      Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), FinalT, ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32)))));
+      Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), FinalT, ReferenceMemberTypeT(CoordT(ShareT, IntT.i32))));
     vassert(closuredVarsStructDef.members == expectedMembers)
 
     val lambda = coutputs.lookupLambdaIn("main")
@@ -199,7 +199,7 @@ class ClosureTests extends FunSuite with Matchers {
     val closure = coutputs.lookupLambdaIn("main")
     val closureStruct = closure.header.params.head.tyype.kind.expectStruct()
     val closureStructDef = coutputs.lookupStruct(closureStruct.fullName)
-    val expectedMembers = Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), VaryingT, AddressMemberTypeT(UnsubstitutedCoordT(CoordT(ShareT, IntT.i32)))));
+    val expectedMembers = Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), VaryingT, AddressMemberTypeT(CoordT(ShareT, IntT.i32))));
     closureStructDef.members shouldEqual expectedMembers
 
     val lambda = coutputs.lookupLambdaIn("main")

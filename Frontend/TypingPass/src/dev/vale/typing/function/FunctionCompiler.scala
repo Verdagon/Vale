@@ -109,25 +109,25 @@ class FunctionCompiler(
           // See "Captured own is borrow" test for why we do this
           val tyype =
             reference.ownership match {
-              case OwnT => ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(BorrowT, reference.kind)))
-              case BorrowT | ShareT => ReferenceMemberTypeT(UnsubstitutedCoordT(reference))
+              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, reference.kind))
+              case BorrowT | ShareT => ReferenceMemberTypeT(reference)
             }
           (variability, tyype)
         }
         case AddressibleLocalVariableT(_, variability, reference) => {
-          (variability, AddressMemberTypeT(UnsubstitutedCoordT(reference)))
+          (variability, AddressMemberTypeT(reference))
         }
         case ReferenceClosureVariableT(_, _, variability, reference) => {
           // See "Captured own is borrow" test for why we do this
           val tyype =
             reference.ownership match {
-              case OwnT => ReferenceMemberTypeT(UnsubstitutedCoordT(CoordT(BorrowT, reference.kind)))
-              case BorrowT | ShareT => ReferenceMemberTypeT(UnsubstitutedCoordT(reference))
+              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, reference.kind))
+              case BorrowT | ShareT => ReferenceMemberTypeT(reference)
             }
           (variability, tyype)
         }
         case AddressibleClosureVariableT(_, _, variability, reference) => {
-          (variability, AddressMemberTypeT(UnsubstitutedCoordT(reference)))
+          (variability, AddressMemberTypeT(reference))
         }
       }
     NormalStructMemberT(nameTranslator.translateVarNameStep(name), variability2, memberType)

@@ -1,6 +1,5 @@
 package dev.vale.monomorphizing
 
-import dev.vale.monomorphizing.DenizenMonomorphizer.{hoistBoundsFromParameter, translateOverride}
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
@@ -44,11 +43,11 @@ class MonomorphizedOutputs() {
   val impls:
     mutable.HashMap[
       FullNameT[IImplNameT],
-      (ICitizenTT, FullNameT[IInterfaceNameT], DenizenBoundToDenizenCallerBoundArg, DenizenMonomorphizer)] =
+      (ICitizenTT, FullNameT[IInterfaceNameT], DenizenBoundToDenizenCallerBoundArg, Monomorphizer)] =
     mutable.HashMap()
   // We already know from the hinputs that Opt<T has drop> has func drop(T).
   // In this map, we'll know that Opt<int> has func drop(int).
-  val abstractFuncToMonomorphizerAndSuppliedPrototypes: mutable.HashMap[FullNameT[IFunctionNameT], (DenizenMonomorphizer, InstantiationBoundArguments)] =
+  val abstractFuncToMonomorphizerAndSuppliedPrototypes: mutable.HashMap[FullNameT[IFunctionNameT], (Monomorphizer, InstantiationBoundArguments)] =
   mutable.HashMap()
   // This map collects all overrides for every impl. We'll use it to assemble vtables soon.
   val interfaceToImplToAbstractPrototypeToOverride:
@@ -100,7 +99,7 @@ object Monomorphizer {
         packageName.addStep(interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)))))
       val exportTemplateName = TemplataCompiler.getExportTemplate(exportName)
       val monomorphizer =
-        new DenizenMonomorphizer(
+        new Monomorphizer(
           opts, interner, keywords, hinputs, monouts, exportTemplateName, exportName, Map(), DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
       KindExportT(
         range,
@@ -116,7 +115,7 @@ object Monomorphizer {
           interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)))))
       val exportTemplateName = TemplataCompiler.getExportTemplate(exportName)
       val monomorphizer =
-        new DenizenMonomorphizer(
+        new Monomorphizer(
           opts, interner, keywords, hinputs, monouts, exportTemplateName, exportName, Map(), DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
       FunctionExportT(
         range,
@@ -140,18 +139,18 @@ object Monomorphizer {
       if (monouts.newFunctions.nonEmpty) {
         val (newFuncName, instantiationBoundArgs, maybeDenizenBoundToDenizenCallerSuppliedThing) =
           monouts.newFunctions.dequeue()
-        DenizenMonomorphizer.translateFunction(
+        Monomorphizer.translateFunction(
           opts, interner, keywords, hinputs, monouts, newFuncName, instantiationBoundArgs,
           maybeDenizenBoundToDenizenCallerSuppliedThing)
         true
       } else if (monouts.newImpls.nonEmpty) {
         val (implFullName, instantiationBoundsForUnsubstitutedImpl) = monouts.newImpls.dequeue()
-        DenizenMonomorphizer.translateImpl(
+        Monomorphizer.translateImpl(
           opts, interner, keywords, hinputs, monouts, implFullName, instantiationBoundsForUnsubstitutedImpl)
         true
       } else if (monouts.newAbstractFuncs.nonEmpty) {
         val (abstractFunc, virtualIndex, interfaceFullName, instantiationBoundArgs) = monouts.newAbstractFuncs.dequeue()
-        DenizenMonomorphizer.translateAbstractFunc(
+        Monomorphizer.translateAbstractFunc(
           opts, interner, keywords, hinputs, monouts, interfaceFullName, abstractFunc, virtualIndex, instantiationBoundArgs)
         true
       } else {
@@ -228,9 +227,7 @@ object Monomorphizer {
       kindExternsT,
       functionExternsT)
   }
-}
 
-object DenizenMonomorphizer {
   def translateInterfaceDefinition(
     opts: GlobalOptions,
     interner: Interner,
@@ -246,7 +243,7 @@ object DenizenMonomorphizer {
       vassertOne(hinputs.interfaces.filter(_.templateName == interfaceTemplate))
 
     val monomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -288,95 +285,6 @@ object DenizenMonomorphizer {
       vassertSome(calleeRuneToReceiverBoundT.get(calleeRune)) -> suppliedFunctionT
     })
   }
-  //
-  //  def isInstantiationOfFullName(
-  //    templateFullName: FullNameT[ITemplateNameT],
-  //    instantiationFullName: FullNameT[IInstantiationNameT]):
-  //  Boolean = {
-  //    templateFullName.packageCoord == instantiationFullName.packageCoord &&
-  //    templateFullName.initSteps.size == instantiationFullName.initSteps.size &&
-  //    templateFullName.steps.zip(instantiationFullName.steps)
-  //      .forall({ case (templateName, instantiationName) => isInstantiationOfName(templateName, instantiationName) })
-  //  }
-  //
-  //  def isInstantiationOfKind(kindA: KindT, kindB: KindT): Boolean = {
-  //    (kindA, kindB) match {
-  //
-  //    }
-  //  }
-  //
-  //  def isInstantiationOfCoord(coordA: CoordT, coordB: CoordT): Boolean = {
-  //    val CoordT(ownershipA, kindA) = coordA
-  //    val CoordT(ownershipB, kindB) = coordB
-  //    if (ownershipA != ownershipB) {
-  //      return false
-  //    }
-  //    isInstantiationOfKind(kindA, kindB)
-  //  }
-  //
-  //  def isInstantiationOfTemplata(templataA: ITemplata[ITemplataType], templataB: ITemplata[ITemplataType]): Boolean = {
-  //    vcurious(templataA.tyype == templataB.tyype)
-  //    if (templataA == templataB) {
-  //      return true
-  //    }
-  //    (templataA, templataB) match {
-  //      case (_, PlaceholderTemplata(_, _)) => true
-  //      case (CoordTemplata(coordA), CoordTemplata(coordB)) => {
-  //
-  //      }
-  //      case (KindTemplata(kindA), KindTemplata(kindB)) => {
-  //
-  //      }
-  //    }
-  //  }
-  //  def isInstantiationOfName(nameA: INameT, nameB: INameT): Boolean = {
-  //    if (nameA == nameB) {
-  //      return true
-  //    }
-  //    (nameA, nameB) match {
-  //      case (templateA: ITemplateNameT, templateB: ITemplateNameT) => {
-  //        templateA == templateB
-  //      }
-  //      case (instantiationA : IInstantiationNameT, templateB : ITemplateNameT) => {
-  //        instantiationA.template == templateB
-  //      }
-  //      case (_ : ITemplateNameT, _ : IInstantiationNameT) => {
-  //        return false
-  //      }
-  //      case (instantiationA : IInstantiationNameT, instantiationB : IInstantiationNameT) => {
-  //        if (instantiationA.template != instantiationB.template) {
-  //          return false
-  //        }
-  //        vassert(instantiationA.templateArgs.size == instantiationB.templateArgs.size)
-  //        val templateArgsMatch =
-  //          instantiationA.templateArgs.zip(instantiationB.templateArgs)
-  //            .forall({ case (templataA, templataB) => isInstantiationOfTemplata(templataA, templataB) })
-  //        if (!templateArgsMatch) {
-  //          return false
-  //        }
-  //
-  //        (instantiationA, instantiationB) match {
-  //          case (StructNameT(_, _), StructNameT(_, _)) => true // nothing additional needed
-  //          case (FunctionNameT(_, _, params1), FunctionNameT(_, _, paramsB)) => vimpl()
-  //          case other => vimpl(other)
-  //        }
-  //      }
-  //      case other => vwat(other)
-  //    }
-  //  }
-  //
-  //  def getStructTemplate(
-  //    hinputs: Hinputs,
-  //    needleStructFullName: FullNameT[IStructNameT]):
-  //  StructDefinitionT = {
-  //    vassertOne(
-  //      hinputs.structs.filter(structDef => {
-  //        structDef.templateName == needleStructFullName
-  //      })
-  //
-  //    val structDefT =
-  //
-  //  }
 
   def translateStructDefinition(
     opts: GlobalOptions,
@@ -413,7 +321,7 @@ object DenizenMonomorphizer {
         assembleCalleeDenizenImplBounds(
           structDefT.runeToImplBound, instantiationBoundArgs.runeToImplBoundArg))
     val monomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -470,7 +378,7 @@ object DenizenMonomorphizer {
         }))
 
     val abstractFuncMonomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -578,7 +486,7 @@ object DenizenMonomorphizer {
         dispatcherRuneToImplBound,
         dispatcherRuneToCallerSuppliedImpl)
     val dispatcherMonomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -624,8 +532,7 @@ object DenizenMonomorphizer {
       dispatcherFunctionBoundToIncomingPrototype ++
         // We're using the supplied prototypes from the impl, but we need to rephrase the keys
         // of this map to be in terms of the override dispatcher function's placeholders, not the
-        // original impl's placeholders. DO NOT SUBMIT explain this more holistically here and
-        // somewhere else too
+        // original impl's placeholders.
         edgeDenizenBoundToDenizenCallerSuppliedThing.funcBoundToCallerSuppliedBoundArgFunc
           .map({ case (implPlaceholderedBound, implPlaceholderedBoundArg) =>
             vassertSome(implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds.get(implPlaceholderedBound)) -> implPlaceholderedBoundArg
@@ -669,7 +576,7 @@ object DenizenMonomorphizer {
 
 
     val caseMonomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -744,7 +651,7 @@ object DenizenMonomorphizer {
           .reduceOption(_ ++ _).getOrElse(Map()))
 
     val monomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -850,7 +757,7 @@ object DenizenMonomorphizer {
 
 
     val monomorphizer =
-      new DenizenMonomorphizer(
+      new Monomorphizer(
         opts,
         interner,
         keywords,
@@ -978,9 +885,7 @@ object DenizenMonomorphizer {
   }
 }
 
-// DO NOT SUBMIT rename from denizen to something else, maybe just monomorphizer. this is for more than
-// denizens, its for cases, lambdas, lots of stuff.
-class DenizenMonomorphizer(
+class Monomorphizer(
   opts: GlobalOptions,
   interner: Interner,
   keywords: Keywords,
@@ -1012,11 +917,11 @@ class DenizenMonomorphizer(
           translateVarName(name),
           variability,
           tyype match {
-            case ReferenceMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
-              ReferenceMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
+            case ReferenceMemberTypeT((unsubstitutedCoord)) => {
+              ReferenceMemberTypeT(translateCoord(unsubstitutedCoord))
             }
-            case AddressMemberTypeT(UnsubstitutedCoordT(unsubstitutedCoord)) => {
-              AddressMemberTypeT(UnsubstitutedCoordT(translateCoord(unsubstitutedCoord)))
+            case AddressMemberTypeT((unsubstitutedCoord)) => {
+              AddressMemberTypeT(translateCoord(unsubstitutedCoord))
             }
           })
       }
@@ -1056,33 +961,12 @@ class DenizenMonomorphizer(
         }
         desiredPrototype
       }
-      case FullNameT(_, _, LambdaCallFunctionNameT(_, _, _)) => {
-        // We're calling one of our lambdas
-        vassert(
-          desiredPrototype.fullName.steps.slice(0, desiredPrototype.fullName.steps.length - 2) ==
-            denizenName.steps)
-        vcurious(desiredPrototype.fullName.steps.startsWith(denizenName.steps))
-
-        desiredPrototype.fullName match {
-          case FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))))))))), LambdaCitizenTemplateNameT(_)),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))) => {
-            vpass()
-          }
-          case _ =>
-        }
-
-        // DO NOT SUBMIT see if we can combine this whole case with the case below
-
-        monouts.newFunctions.enqueue(
-          (
-            desiredPrototype,
-            runeToBoundArgsForCall,
-            // We need to supply our bounds to our lambdas, see LCCPGB and LCNBAFA.
-            Some(denizenBoundToDenizenCallerSuppliedThing)))
-        desiredPrototype
-      }
-      case FullNameT(_, _, _) => {
-        desiredPrototype.fullName match {
-          case FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))))))))), LambdaCitizenTemplateNameT(_)),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(ShareT,StructTT(FullNameT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("add"),_),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector())))))),Vector(CoordT(BorrowT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(ShareT,IntT(32))), CoordTemplata(CoordT(OwnT,StructTT(FullNameT(_,Vector(),StructNameT(StructTemplateNameT(StrI("IntHasher")),Vector()))))))))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))) => {
+      case FullNameT(_, _, last) => {
+        last match {
+          case LambdaCallFunctionNameT(_, _, _) => {
+            vassert(
+              desiredPrototype.fullName.steps.slice(0, desiredPrototype.fullName.steps.length - 2) ==
+                denizenName.steps)
             vcurious(desiredPrototype.fullName.steps.startsWith(denizenName.steps))
           }
           case _ =>
@@ -1141,7 +1025,7 @@ class DenizenMonomorphizer(
                   FullNameT(packageCoord, initSteps, name)))
             }
             case _ => {
-              // Not sure about these three lines DO NOT SUBMIT
+              // Not sure about these three lines, but they seem to work.
               val runeToBoundArgsForCall =
                 translateBoundArgsForCallee(
                   hinputs.getInstantiationBoundArgs(suppliedImplUnsubstituted))
@@ -1718,7 +1602,7 @@ class DenizenMonomorphizer(
         translateStructName(lastT))
 
 
-    DenizenMonomorphizer.translateStructDefinition(
+    Monomorphizer.translateStructDefinition(
       opts, interner, keywords, hinputs, monouts, fullName, instantiationBoundArgs)
 
     return fullName
@@ -1736,7 +1620,7 @@ class DenizenMonomorphizer(
         translateInterfaceName(last))
 
 
-    DenizenMonomorphizer.translateInterfaceDefinition(
+    Monomorphizer.translateInterfaceDefinition(
       opts, interner, keywords, hinputs, monouts, newFullName, instantiationBoundArgs)
 
     newFullName
@@ -2219,7 +2103,8 @@ class DenizenMonomorphizer(
 
     vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(superInterface))
       .foreach({ case (abstractFuncPrototype, virtualIndex) =>
-        translateOverride(opts, interner, keywords, hinputs, monouts, implFullName, abstractFuncPrototype)
+        Monomorphizer.translateOverride(
+          opts, interner, keywords, hinputs, monouts, implFullName, abstractFuncPrototype)
       })
   }
 }

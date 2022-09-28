@@ -34,8 +34,7 @@ class TypeHammer(
       case a @ contentsStaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
       case a @ contentsRuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
       case PlaceholderT(fullName) => {
-        // vwat(tyype) DO NOT SUBMIT
-        // this is a massive hack. sometimes lambda templates like to remember their original
+        // this is a bit of a hack. sometimes lambda templates like to remember their original
         // defining generics, and we dont translate those in the monomorphizer, so it can later
         // use them to find those original templates.
         // because of that, they make their way into the hammer, right here.

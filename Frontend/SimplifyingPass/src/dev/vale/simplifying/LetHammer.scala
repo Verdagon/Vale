@@ -340,7 +340,7 @@ class LetHammer(
               val destinationReferenceLocalVariable = remainingDestinationReferenceLocalVariables.head
 
               val (memberRefTypeH) =
-                typeHammer.translateReference(hinputs, hamuts, memberRefType2.unsubstitutedCoord)
+                typeHammer.translateReference(hinputs, hamuts, memberRefType2)
               val varIdNameH = nameHammer.translateFullName(hinputs, hamuts, destinationReferenceLocalVariable.id)
               val localIndex =
                 locals.addTypingPassLocal(
@@ -356,11 +356,11 @@ class LetHammer(
             // unborrow it.
             case NormalStructMemberT(name, variability, AddressMemberTypeT(memberRefType2)) => {
               val (memberRefTypeH) =
-                typeHammer.translateReference(hinputs, hamuts, memberRefType2.unsubstitutedCoord);
+                typeHammer.translateReference(hinputs, hamuts, memberRefType2);
               // In the case of an addressible struct member, its variability refers to the
               // variability of the pointee variable, see structMember2
               val (boxStructRefH) =
-                structHammer.makeBox(hinputs, hamuts, variability, memberRefType2.unsubstitutedCoord, memberRefTypeH)
+                structHammer.makeBox(hinputs, hamuts, variability, memberRefType2, memberRefTypeH)
               // Structs only ever borrow boxes, boxes are only ever owned by the stack.
               val localBoxType = ReferenceH(BorrowH, YonderH, boxStructRefH)
               val localIndex = locals.addHammerLocal(localBoxType, Final)

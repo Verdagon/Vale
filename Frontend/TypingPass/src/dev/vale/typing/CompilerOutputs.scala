@@ -154,20 +154,18 @@ case class CompilerOutputs() {
     instantiationFullName: FullNameT[IInstantiationNameT],
     functionBoundToRune: InstantiationBoundArguments):
   Unit = {
-    // We'll do this when we can cache instantiations from StructTemplar etc. DO NOT SUBMIT
+    // We'll do this when we can cache instantiations from StructTemplar etc.
     // // We should only add instantiation bounds in exactly one place: the place that makes the
     // // PrototypeT/StructTT/InterfaceTT.
     // vassert(!instantiationNameToInstantiationBounds.contains(instantiationFullName))
     instantiationNameToInstantiationBounds.get(instantiationFullName) match {
       case Some(existing) => {
-        // Theres some ambiguities or something here DO NOT SUBMIT sometimes when we evaluate
-        // the same thing twice we get different results. Best investigate that more before
-        // submitting.
+        // Make Sure Bound Args Match For Instantiation (MSBAMFI)
+        // Theres some ambiguities or something here. sometimes when we evaluate
+        // the same thing twice we get different results.
         // It's gonna be especially tricky because we get each function bounds from the overload
-        // resolver which only returns one. We might need to have a flavor that doesn't just
-        // arbitrarily choose a function bound to call.
-        // Once we do that, we can store *all* function bounds that would work for this instantiation
-        // and they'll likely all match.
+        // resolver which only returns one. We might need to make it not arbitrarily choose a
+        // function to call. Perhaps it should tiebreak and choose the first bound that works.
         // vassert(existing == functionBoundToRune)
       }
       case None =>
@@ -325,7 +323,7 @@ case class CompilerOutputs() {
         case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
           vwat() // Immutable structs cant contain address members
         }
-        case NormalStructMemberT(name, variability, ReferenceMemberTypeT(UnsubstitutedCoordT(reference))) => {
+        case NormalStructMemberT(name, variability, ReferenceMemberTypeT(reference)) => {
           if (reference.ownership != ShareT) {
             vfail("ImmutableP contains a non-immutable!")
           }
