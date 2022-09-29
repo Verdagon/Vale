@@ -170,7 +170,7 @@ case class CompilerOutputs() {
       case None =>
     }
     instantiationFullName match {
-      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("MyList")),Vector(CoordTemplata(CoordT(OwnT,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("MyList"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0))))))))) => {
+      case IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("MyList")),Vector(CoordTemplata(CoordT(OwnT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("MyList"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0))))))))) => {
         vpass()
       }
       case _ =>
@@ -246,7 +246,7 @@ case class CompilerOutputs() {
   // see MFDBRE.
   def declareType(templateName: IdT[ITemplateNameT]): Unit = {
     templateName match {
-      case IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_,Vector(CoordT(ShareT,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),Vector(),Vector(CoordT(ShareT,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))), LambdaCitizenTemplateNameT(_)),LambdaCallFunctionTemplateNameT(_,Vector(CoordT(BorrowT,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_,Vector(CoordT(ShareT,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),Vector(),Vector(CoordT(ShareT,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))), CoordT(ShareT,IntT(32))))) => {
+      case IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_,Vector(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),Vector(),Vector(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))), LambdaCitizenTemplateNameT(_)),LambdaCallFunctionTemplateNameT(_,Vector(CoordT(BorrowT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector()), LambdaCitizenTemplateNameT(_), LambdaCallFunctionNameT(LambdaCallFunctionTemplateNameT(_,Vector(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))))),Vector(),Vector(CoordT(ShareT,_,StructTT(IdT(_,Vector(FunctionNameT(FunctionTemplateNameT(StrI("main"),_),Vector(),Vector())),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_)))))))),LambdaCitizenNameT(LambdaCitizenTemplateNameT(_))))), CoordT(ShareT,_,IntT(32))))) => {
         vpass()
       }
       case _ =>

@@ -20,8 +20,8 @@ import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunc
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen._
-import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAFreeMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
-import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSAFreeMacro, SSALenMacro}
+import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
+import dev.vale.typing.macros.ssa.{SSADropIntoMacro, SSALenMacro}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
@@ -154,8 +154,8 @@ class Compiler(
         def getPlaceholdersInTemplata(accum: Accumulator[IdT[INameT]], templata: ITemplata[ITemplataType]): Unit = {
           templata match {
             case KindTemplata(kind) => getPlaceholdersInKind(accum, kind)
-            case CoordTemplata(CoordT(_, kind)) => getPlaceholdersInKind(accum, kind)
-            case CoordTemplata(CoordT(_, _)) =>
+            case CoordTemplata(CoordT(_, _, kind)) => getPlaceholdersInKind(accum, kind)
+            case CoordTemplata(CoordT(_, _, _)) =>
             case PlaceholderTemplata(fullNameT, _) => accum.add(fullNameT)
             case IntegerTemplata(_) =>
             case BooleanTemplata(_) =>
@@ -689,8 +689,8 @@ class Compiler(
   val ssaLenMacro = new SSALenMacro(keywords)
   val rsaDropMacro = new RSADropIntoMacro(keywords, arrayCompiler)
   val ssaDropMacro = new SSADropIntoMacro(keywords, arrayCompiler)
-  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
-  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
+//  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
+//  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
 //  val ssaLenMacro = new SSALenMacro(keywords)
 //  val implDropMacro = new ImplDropMacro(interner, nameTranslator)
 //  val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)
@@ -733,8 +733,6 @@ class Compiler(
             ssaLenMacro.generatorId -> ssaLenMacro,
             rsaDropMacro.generatorId -> rsaDropMacro,
             ssaDropMacro.generatorId -> ssaDropMacro,
-            rsaFreeMacro.generatorId -> rsaFreeMacro,
-            ssaFreeMacro.generatorId -> ssaFreeMacro,
             lockWeakMacro.generatorId -> lockWeakMacro,
             sameInstanceMacro.generatorId -> sameInstanceMacro,
             asSubtypeMacro.generatorId -> asSubtypeMacro)
@@ -1219,14 +1217,14 @@ class Compiler(
               }
             })
           }
-          case contentsStaticSizedArrayTT(_, mutability, _, CoordT(_, elementKind)) => {
+          case contentsStaticSizedArrayTT(_, mutability, _, CoordT(_, _, elementKind)) => {
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
                   List(export.range), packageCoord, exportedKind, elementKind))
             }
           }
-          case contentsRuntimeSizedArrayTT(mutability, CoordT(_, elementKind)) => {
+          case contentsRuntimeSizedArrayTT(mutability, CoordT(_, _, elementKind)) => {
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(

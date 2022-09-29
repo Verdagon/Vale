@@ -179,14 +179,6 @@ case class EdgeT(
   }
 }
 
-object ProgramT {
-//  val emptyTupleTT =
-//    StructTT(FullNameT(PackageCoordinate.BUILTIN, Vector(), CitizenNameT(CitizenTemplateNameT(tupleHumanName), Vector(CoordListTemplata(Vector())))))
-
-  val intType = CoordT(ShareT, IntT.i32)
-  val boolType = CoordT(ShareT, BoolT())
-}
-
 case class FunctionDefinitionT(
   header: FunctionHeaderT,
   runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],
@@ -328,13 +320,19 @@ case object PureT extends IFunctionAttributeT
 case object SealedT extends ICitizenAttributeT
 case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
 
+case class RegionT(
+  name: IRegionNameT,
+  mutable: Boolean)
+
 case class FunctionHeaderT(
   // This one little name field can illuminate much of how the compiler works, see UINIT.
   fullName: IdT[IFunctionNameT],
   attributes: Vector[IFunctionAttributeT],
+  regions: Vector[RegionT],
   params: Vector[ParameterT],
   returnType: CoordT,
   maybeOriginFunctionTemplata: Option[FunctionTemplata]) {
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   vassert({
@@ -370,7 +368,7 @@ case class FunctionHeaderT(
                   case KindTemplata(PlaceholderT(placeholderNameAtIndex)) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
-                  case CoordTemplata(CoordT(_, PlaceholderT(placeholderNameAtIndex))) => {
+                  case CoordTemplata(CoordT(_, _, PlaceholderT(placeholderNameAtIndex))) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
                   case PlaceholderTemplata(placeholderNameAtIndex, _) => {
@@ -389,7 +387,7 @@ case class FunctionHeaderT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case FunctionHeaderT(thatName, _, _, _, _) => {
+      case FunctionHeaderT(thatName, _, _, _, _, _) => {
         fullName == thatName
       }
       case _ => false
@@ -420,7 +418,7 @@ case class FunctionHeaderT(
   def getAbstractInterface: Option[InterfaceTT] = {
     val abstractInterfaces =
       params.collect({
-        case ParameterT(_, Some(AbstractT()), CoordT(_, ir @ InterfaceTT(_))) => ir
+        case ParameterT(_, Some(AbstractT()), CoordT(_, _, ir @ InterfaceTT(_))) => ir
       })
     vassert(abstractInterfaces.size <= 1)
     abstractInterfaces.headOption
