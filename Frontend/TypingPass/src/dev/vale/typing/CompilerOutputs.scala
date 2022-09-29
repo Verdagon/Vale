@@ -75,7 +75,6 @@ case class CompilerOutputs() {
   private val structTemplateNameToDefinition: mutable.HashMap[FullNameT[IStructTemplateNameT], StructDefinitionT] = mutable.HashMap()
   private val interfaceTemplateNameToDefinition: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], InterfaceDefinitionT] = mutable.HashMap()
 
-  // This is a HashSet to help deduplicate, see CIFBD.
   private val allImpls: mutable.HashMap[FullNameT[IImplTemplateNameT], ImplT] = mutable.HashMap()
   private val subCitizenTemplateToImpls: mutable.HashMap[FullNameT[ICitizenTemplateNameT], Vector[ImplT]] = mutable.HashMap()
   private val superInterfaceTemplateToImpls: mutable.HashMap[FullNameT[IInterfaceTemplateNameT], Vector[ImplT]] = mutable.HashMap()

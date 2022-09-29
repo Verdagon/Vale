@@ -329,22 +329,7 @@ case object SealedT extends ICitizenAttributeT
 case object UserFunctionT extends IFunctionAttributeT // Whether it was written by a human. Mostly for tests right now.
 
 case class FunctionHeaderT(
-  // This one little name field can illuminate much of how the compiler works.
-  // - For ordinary functions, each ordinary FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
-  //   This IFunctionNameT's parameters have the types you'd expect
-  //   This IFunctionNameT will have no templateArgs.
-  // - For generic functions, each generic FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
-  //   This IFunctionNameT's parameters will have some PlaceholderTs or PlaceholderTemplatas in them.
-  //   The templateArgs will all PlaceholderTemplatas.
-  // - Lambdas are where it gets interesting.
-  //   One lambda can manifest multiple FunctionTs/FunctionHeaderTs. For example:
-  //     lam = x => println(x);
-  //     lam(3);
-  //     lam(true);
-  //   This will actually manifest *two* FunctionTs/FunctionHeaderTs:
-  //   - One for line 2, with one parameter (int) and one template arg (int).
-  //   - One for line 3, with one parameter (bool) and one template arg (bool).
-  // See UINIT for more.
+  // This one little name field can illuminate much of how the compiler works, see UINIT.
   fullName: FullNameT[IFunctionNameT],
   attributes: Vector[IFunctionAttributeT],
   params: Vector[ParameterT],
