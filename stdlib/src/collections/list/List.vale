@@ -1,5 +1,4 @@
-import panicutils.*;
-import stringutils.*;
+import stdlib.stringutils.*;
 import stdlib.arrays.*;
 
 #!DeriveStructDrop

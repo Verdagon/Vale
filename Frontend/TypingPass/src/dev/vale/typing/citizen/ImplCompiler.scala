@@ -98,12 +98,6 @@ class ImplCompiler(
         // We include the reachable bounds for the struct rune. Those are bounds that this impl will
         // have to satisfy when it calls the interface.
         Vector(structKindRune.rune))
-    //    val inferences =
-    //      result match {
-    //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
-    //        case Ok(inferences) => inferences
-    //      }
-    //    inferences
     result
   }
 
@@ -163,61 +157,8 @@ class ImplCompiler(
         isRootSolve,
         // We include reachable bounds for the struct so we don't have to re-specify all its bounds in the impl.
         Vector(structKindRune.rune))
-    //    val inferences =
-    //      result match {
-    //        case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(range, e))
-    //        case Ok(inferences) => inferences
-    //      }
-    //    inferences
     result
   }
-
-  //  private def compileImplGivenSubCitizen(
-  //    coutputs: CompilerOutputs,
-  //    placeholderedSubCitizenTT: ICitizenTT,
-  //    implTemplata: ImplTemplata):
-  //  Unit = {
-  //    val subCitizenTemplateFullName =
-  //      TemplataCompiler.getCitizenTemplate(placeholderedSubCitizenTT.fullName)
-  //
-  //    val inferencesFromPlaceholderedSubCitizen =
-  //      solveImpl(
-  //        coutputs,
-  //        Vector(InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(placeholderedSubCitizenTT))),
-  //        implTemplata)
-  //    val parentInterfaceFromPlaceholderedSubCitizen =
-  //      inferencesFromPlaceholderedSubCitizen(implTemplata.impl.interfaceKindRune.rune) match {
-  //        case KindTemplata(interfaceTT @ InterfaceTT(_)) => interfaceTT
-  //        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-  //        case other => throw CompileErrorExceptionT(CantImplNonInterface(implTemplata.impl.range, other))
-  //      }
-  //    val parentInterfaceTemplateFullName =
-  //      TemplataCompiler.getInterfaceTemplate(parentInterfaceFromPlaceholderedSubCitizen.fullName)
-  ////    val parentInterfaceDefinition =
-  ////      coutputs.lookupInterface(parentInterfaceTemplateFullName)
-  ////    val inferencesFromPlaceholderedSuperInterface =
-  ////      solveImpl(
-  ////        coutputs,
-  ////        Vector(InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parentInterfaceDefinition.placeholderedInterface))),
-  ////        implTemplata)
-  ////    val subCitizenFromPlaceholderedParentInterface =
-  ////      inferencesFromPlaceholderedSuperInterface(implTemplata.impl.subCitizenRune.rune) match {
-  ////        case KindTemplata(cit : ICitizenTT) => cit
-  ////        case InterfaceTemplata(_, _) => vcurious() // shouldnt the impl solver produce a kind? or do we have to coerce / resolveInterface?
-  ////        case other => throw CompileErrorExceptionT(NonCitizenCantImpl(implTemplata.impl.range, other))
-  ////      }
-  //
-  //    val implT =
-  //      interner.intern(
-  //        ImplT(
-  //          subCitizenTemplateFullName,
-  ////          parentInterfaceFromPlaceholderedSubCitizen,
-  //          parentInterfaceTemplateFullName))
-  ////          subCitizenFromPlaceholderedParentInterface))
-  //    // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
-  //    coutputs.addImpl(implT)
-  //  }
-  //
 
   // This will just figure out the struct template and interface template,
   // so we can add it to the temputs.
@@ -308,8 +249,6 @@ class ImplCompiler(
     coutputs.declareType(implTemplateFullName)
     coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
     coutputs.declareTypeInnerEnv(implTemplateFullName, implInnerEnv)
-    //          subCitizenFromPlaceholderedParentInterface))
-    // There may be a collision here but it's fine as this call will deduplicate. See CIFBD.
     coutputs.addImpl(implT)
   }
 

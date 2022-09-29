@@ -50,6 +50,7 @@ We're trying to solve `zoo(x)`. `zoo` requires a `func drop(Z)void` but that onl
 So, the callee needs access to the caller's environment.
 
 
+It only needs the caller's environment for bounds, it should not grab an actual function from the caller's environment. Any actual functions need to be grabbed from the environments of the types being passed in.
 
 
 # Only Work with Placeholders From the Root Denizen (OWPFRD)
@@ -60,7 +61,7 @@ Let's say we're in this function:
 struct SomeStruct<X> {
   x X;
 }
-func genFunc<T>() {
+func myFunc<T>(t T) {
   thing = SomeStruct<int>(7);
   z = thing.x;
   println(z);
@@ -71,7 +72,7 @@ The type of `z` is `int`, of course.
 
 `SomeStruct.x` (of the template) is of type SomeStruct$0. We did a substitution to go from SomeStruct$0 to int.
 
-If we don't do that substitution, then a SomeStruct$0 creeps into our `genFunc` and wreaks absolute havoc, because then we're likely confusing it with genFunc's own placeholder, `genFunc$0`.
+If we don't do that substitution, then a `SomeStruct$0` creeps into our `myFunc` and wreaks absolute havoc, because then we're likely confusing it with myFunc's own placeholder, `myFunc$0`.
 
 This is the reason we prefix placeholders with the name of their container (both in FullNameT and here in the docs when talking about them).
 
@@ -108,7 +109,7 @@ struct ListNode<T> {
 
 when we try to resolve the `Opt<ListNode<T>>` it will try to resolve the `ListNode<T>` which runs all these rules _again_, and goes into an infinite loop.
 
-The answer is to only run the innards when compiling the definition, not when we're resolving.
+The answer is to not run the innars' rules when we're resolving. Only run the innards when compiling the definition.
 
 
 # Require Explicit Multiple Upcasting to Indirect Descendants and Ancestors (REMUIDDA)
@@ -163,7 +164,7 @@ So, we need to *not* execute that LiteralSR(N, 5) rule.
 # Using Instantiated Names in Templar (UINIT)
 
 
-This one little name field can illuminate much of how the compiler works.
+This one little name field (FunctionHeaderT.fullName) can illuminate much of how the compiler works.
 
 For ordinary functions, each ordinary FunctionA becomes one ordinary FunctionT/FunctionHeaderT.
 
@@ -189,27 +190,6 @@ lam(true);
  * One for line 3, with one parameter (bool) and one template arg (bool).
 
 We also use this same scheme for the CompilerOutputs, to map names to environments.
-
-# Need Abstract Function's Environment When Resolving Overload (NAFEWRO)
-
-Notice how both the abstract function and the override function have a bound:
-
-```
-abstract func drop<T>(virtual opt Opt<T>)
-where func drop(T)void;
-
-func drop<T>(opt Some<T>)
-where func drop(T)void
-{
-  [x] = opt;
-}
-```
-
-We eventually get to the late stages of the compiler, looking for overrides for that abstract `drop`. When we try to find one via OverloadCompiler, we have trouble evaluating the candidate (the second `drop` there) because there's no way for it to know if there actually exists a drop function.
-
-We need some way to convey the promise from the abstract function down to the override function.
-
-So, when we resolve that override, we include the environment from the abstract function, so the override can find the guarantee that there is a drop for T.
 
 
 # Concept Functions With Generics (CFWG)
@@ -273,216 +253,50 @@ sucks that we need a functor. but honestly, that comes from this weird placehold
 
 
 
-# Require Rune for Function Bound?
+# PlaceholderTemplata, PlaceholderKind, Coords, Kinds (PTPKCK)
 
-In this example:
+When we compile a generic denizen's definition, we conjure up some placeholders.
+
+
+## Basic Case: Integers
+
+Let's say we have a "repeat" function, generic on how many times to repeat:
 
 ```
-func moo(i int, b bool) str { return "hello"; }
-
-exported func main() str
-where func moo(int, bool)str
-{
-  return moo(5, true);
+func repeat<N int>(s str) {
+  foreach _ in 0..N {
+    println(s);
+  }
 }
 ```
 
-It's ambiguous which moo we're referring to. Which one should we use?
+We'll conjure up a `PlaceholderTemplata(repeat$0, IntegerTemplataType)` to serve as our `N`.
 
-We could say that since it's ambiguous, they should stuff it into a rune and then call the rune directly... but this feels like it would be fragile.
 
+Later on in the monomorphizer, we'll see who calls `repeat` with what actual integers, and we'll do the substitution then.
 
 
+Any kind of templata works like this... except for kinds.
 
 
+## More Complicated Case: Kinds and Coords
 
+Let's say we wanted to take in a generic type parameter:
 
+```
+func get<T>(list List<T>, i int) T {
+  result = list.array[i];
+  return result;
+}
+```
 
-Variable SSA vs Final SSA
+In a perfect world, perhaps our locals would contain `ITemplata[CoordTemplataType]`, but alas, they only contain `CoordT`s.
 
-It might be difficult to have parameterized variability.
+To work around that, we make a special kind, `PlaceholderKindT`. If a CoordT contains a `PlaceholderKindT`, then that's the same thing as a "coord placeholder" so to speak.
 
-when we make SSAs, they need to have a variability, right there in the kind.
+At some point, we'll make our locals, members, etc. all contain ITemplatas so we don't need this special kind.
 
-we could have a PlaceholderVariability? and then not allow sets on it.
-
-
-we'll likely run into the same problem with the size. StaticSizedArrayT holds an integer, not really a placeholder.
-
-
-we could have an ITemplata[+ITemplataType] perhaps?
-nope. theres more than just 9 templata types, theyre infinite because pack and template.
-cant constrain something like that.
-well, we can at least constrain on those top 9 types. should be good enough.
-
-
-but wait, we have a problem now. coords need to be able to have placeholder kinds in them.
- * could we make locals contain itemplatas?
- * struct fields too maybe?
- * function parameters?
-anything.
-at this point, theres not much difference between KindT and a Placeholder[KindTemplataType].
-
-the basic problem is that basically templatas can be (and contain) coords and kinds, and kinds can contain templatas now.
-
-well they arent really templatas. theyre Variability|Placeholder, Ownership|Placeholder, Coord|Placeholder. also, structs have a list of templatas already.
-
-we need to associate envs with certain templatas then. wtf?
-
-
-
-# A: PlaceholderKind for kind and coord, PlaceholderOr[ITemplata] for all else
-
-Locals, members, and parameters would need to be this.
-
-perhaps this could be a good stepping stone to full rules?
-
-yes, and coord and kind happen to already kind of do this on their own, which is nice.
-
-this is a good stepping stone to full rules. after this, we:
-
- * replace all of these with IRuneT, and get rid of PlaceholderKind.
- * have a table of values, basically ITemplata. look up that IRuneT in that table. if its not present, its a placeholder. if its there, its a value
-
-
-# B: ITemplata[+T <: ITemplataType]
-
-Locals, members, parameters would need to change to this. everything would.
-
-it could be a stepping stone to full rules. we'd do the same thing as A.
-
-this is just more intensive right now.
-
-
-# C: PlaceholderKind for kind and coord, ITemplata[+T <: ITemplataType] for all else
-
-This is honestly equivalent to A.
-
-Not a fan because there's kind of an overlap, `ITemplata[CoordTemplataType]` and `ITemplata[KindTemplataType]` don't make sense.
-
-
-# All-in on Runes
-
-we could have everything be a rune, and all constants would be in the env.
-in fact, that would make things closer to the rule system.
-thats an interesting thought.
-
-oddly enough, we're already kind of there. post-scout, everything is already runes. presumably iexpression would become a bunch of rules? i suppose it doesnt really need to.
-
-pre-solving would basically just try and figure enough out to resolve all overloads and... what else
-
-
-but itd be nice to not have to embark on this particular journey yet. perhaps there's an easy first step that will unblock regions?
-
-
-
-steps:
- * ??
- * Make structref itemplatas, interfaceref itemplatas, locals, members, parameters, returns all be runes. the current ITemplata will live on in hammer definitely
-
-
-an itemplata should be like a rune, that may or may not have a value assigned.
-so, every itemplata should be either a placeholder or an ITemplataValue or something.
-
-could ITemplataValues have runes? yes.
-
-
-what does an env follow? it seems they can follow placeholders. no, it shouldnt be associated with a particular usage of the type, should be associated with the type itself. in fact, not really the type, but instead the template.
-
-we dont really need the env to follow the placeholder, because those functions will be in scope anyway.
-
-in the future, we would like to resolve overloads with only partial data. so there should be some notion of a coord whose type isnt really known.
-
-sounds like instead of coords flying around we want ITemplata[CoordTemplataType]s flying around.
-
-but when we figure out a rune, wed have to go in and update all the rune itemplatas to be value templatas. that would be annoying. the reason this works for placeholders is that we know they wont be resolved. so we need a table eventually. but perhaps not while we're just doing placeholders.
-
-
-# Hardcode Zero, empty string, Final, mutable?
-
-hardcoding mutable might be weird.
-
-it feels like this will head straight into trouble.
-
-
-# IntTemplata contains Placeholder|int, BoolTemplata contains Placeholder|bool etc.
-
-Just like we're doing with kind and coord and stuff.
-
-perhaps this could be a good stepping stone to full rules?
-
-after this, an ITemplata would basically become an IRuneS. it might point to a rule that has a constant or not. after pre-solving, it might have an inference or not.
-
-this would evolve into IntTemplata becoming IntRuneT, BoolTemplata becoming BoolRuneT, etc.
-
-
-# PlaceholderInt, PlaceholderKind, etc. all subclasses of ITemplata
-
-Locals, members, and parameters would need to be ITemplata
-
-
-# IGenericData: VariableGenericData or LiteralGenericData
-
-Locals, members, and parameters would need to be this.
-
-
-# PlaceholderT kind, ITemplata/PlaceholderTemplata subclasses for everything else?
-
-means locals, members, parameters wouldnt need to do anything different.
-
-but StaticSizedArrayT would need to contain e.g. ITemplata[OwnershipTemplata]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"Tests a templated linked list" test fails
-I think it's because interface Opt<T> is trying to define a drop, even though
-it has #!DeriveInterfaceDrop. Thats cuz this method is called directly, regardless
-of whether the #! thing is there or not.
-We need to make it conditionally run.
-We cant have this as a child entry because then it will be under the defining environment
-of the interface, with all sorts of placeholders and nonsense in it.
-Perhaps we can:
- 1. just run this from Compiler.scala, if the #! thing isnt there.
- 2. make an umbrella environment that has siblings and interface in it, so the interface's
-   placeholder runes dont get into it.
-Why do we even put that declaring environment anywhere?
-Ah, its for overload resolution, so we can see its siblings and parents.
-Well then, we dont have to have the runes in there. Why do we put the runes into an environment?
-Maybe we can just not do that.
-Ok, thats option 3.
- 3. Dont put runes in the environment! The solving is only useful for the definition anyway.
-actually that might not work. the members (and any child functions one day) will need to see
-those runes.
-but you know what, lets run the macros and stuff *before* making that environment, and then
-declare that env into the coutputs. then after that we can make an environment for the members.
-Not sure what we'll do for the functions one day... probably best just syntactically lift them
-out?
-
-
-
-
-
-
-
+Perhaps there's even a way to have everything be just a rune, and all their templatas would actually just be in the env. This would fit well with a world where the entire function is one giant rule solve. It might even help partially evaluate a call *enough* that we can narrow down to one overload, to help figure out the types in the caller too.
 
 
 # Solve First With Predictions, Resolve Later (SFWPRL)
@@ -523,57 +337,6 @@ Later, after the solve, we go back through and do the actual `resolveStruct`/`re
 We do this with functions too. ResolveSR will actually just create a prototype out of thin air. It's only afterward that we actually go and find it. (This is also why ResolveSR needs a return type rune)
 
 
-## Only See Direct Caller's Environment (OSDCE)
-
-Let's say we have these definitions:
-
-```
-interface MyInterface<T>
-where func drop(T)void { }
-
-struct MyStruct<T>
-where func drop(T)void { ... }
-
-impl MyInterface<T> for MyStruct<T>
-where func drop(T)void;
-```
-
-Which expands to something like this:
-
-```
-#!DeriveInterfaceDrop
-interface MyInterface<T>
-where func drop(T)void { }
-
-virtual func drop(self MyInterface<T>);
-
-#!DeriveStructDrop
-struct MyStruct<T>
-where func drop(T)void { ... }
-
-func drop(self MyInterface<T>);
-
-impl MyInterface<T> for MyStruct<T>
-where func drop(T)void;
-```
-
-This tree of steps happens when we compile the itables:
-
- * We're looking for all overrides for the abstract function `func drop(self MyInterface<T>)void`.
-    * We use the environment from it, **which includes a conjured** `where func drop(T)void` bound.
-    * We use a placeholder for `T` (named `drop(MyInterface<T>).$0`, but we'll keep calling it `T`).
-    * We see that `MyStruct` implements it, so we try resolving a function `func drop(MyStruct<T>)void`.
-       * During solving, we conjure a `MyStruct<T>` and postpone its resolving.
-       * We conjure an environment with the conclusions from the solving, **including the conjured** `func drop(MyStruct<T>)void`.
-       * Now after solving, we're actually resolving that `MyStruct<T>`.
-          * During solving, we conjure a `func drop(T)void` and postpone its resolving.
-          * Afer solving, we actually want to resolve that `func drop(T)void`.
-             * Uh oh! We find **two** matching prototypes.
-
-It seems that both of them are conjuring a prototype to use and requiring things.
-
-So, we don't send anything downward.
-
 
 # Solving Then Checking Must Be Different Phases (STCMBDP)
 
@@ -595,57 +358,6 @@ One of those dependencies needs to be changed up.
 
 So, when compiling a denizen, we do all the checking of calls _later_.
 
-
-
-
-
-# Macro-Derived Sibling Functions Often Need All Rules From Original (MDSFONARFO)
-
-Macros can take a denizen and generate new denizens right next to them.
-
-For example, in:
-
-```
-sealed interface Opt<T Ref>
-where func drop(T)void
-{ }
-
-struct Some<T>
-where func drop(T)void
-{ x T; }
-
-impl<T> Opt<T> for Some<T>
-where func drop(T)void;
-```
-
-The implicit InterfaceDropMacro defines a drop function for that interface.
-
-It almost looks like this:
-
-```
-func drop(this Opt<T>) void {
-  [x] = this;
-}
-```
-
-But wait! That doesn't work! There needs to be a `<T>` parameter and there needs to exist a drop for that T, like:
-
-```
-func drop<T>(this Opt<T>) void
-where func drop(T)void {
-  [x] = this;
-}
-```
-
-We can see now that this `drop` function actually takes a _lot_ from the original interface.
-
-It needs:
-
- * Generic parameters
- * Concept functions
- * Rune types
-
-Pretty much everything.
 
 
 # Need Function Inner Env For Resolving Overrides (NFIEFRO)
@@ -670,12 +382,9 @@ So, we need to recall the abstract function's inner environment when we do that 
 
 
 
-## Must Know Runes From Above
+## Must Know Runes From Above (MKRFA)
 
-(MKRFA)
-
-When we start evaluating a function or struct or something, we don\'t
-know the values of its runes.
+When we start evaluating a function or struct or something, we don't know the values of its runes.
 
 For example:
 
@@ -700,8 +409,7 @@ fn moo<T>(x T) Some<T> {
 
 We need to look up that T from the environment.
 
-For that reason, Scout's IEnvironment will track which runes are
-currently known.
+For that reason, Scout's IEnvironment will track which runes are currently known.
 
 **Case 2: Runes from Parent**
 
@@ -732,9 +440,7 @@ If we want to know all children for `MyObserver`, would we count this? It's hard
 For now, we leave that question unanswered, and say that we can never know all children for a specific interface template.
 
 
-# Need Bound Information From Parameters (NBIFP)
-
-(previously NBIFPR)
+# Need Bound Information From Parameters (NBIFP née NBIFPR)
 
 Let's say we have this code:
 
@@ -911,88 +617,6 @@ where func zork(T)void {
 ```
 
 and then we store that `Bork<T>` into a global (or some other object somewhere), and then later retrieve it, we'll have no idea what its `zork` is.
-
-
-
-
-
-
-
-
-
-Are these two separate problems?
-
- - Here we want the call to be able to look into the environment of its parameters to get the bounds. Its the only callsite that doesnt really have them already. we kinda want to gather those protos before executing the callsitefuncSRs. kinda like definitionsiteSRs really.
- - Above, we want the definition to look into the environment of its parameters to get the bounds. for convenience really.
-
-
-its kind of like we have some sort of switch case going on. the match statement is what figures out whether it's a certain type, which comes with some knowledge that certain bounds are met. so, we'll need to do this for match statements too, interesting. well maybe not; we'll check its a valid type in the match statement before dispatching.
-hmm.
-
-the case will check that its an actual valid combination.
-
-this is like having a bound on the outer func, then doing a match, and calling the inner func.
-but also calling the struct. hmm.
-
-
-
-Perhaps instead, it should know this just from looking at `BorkForwarder<Lam>`'s definition and seeing that there must exist one for it somewhere.
-
-(Interesting consequence: if the bound travels with the type, and not through all parent functions, then we can't customize it all the way down. The function needs to be associated with the type itself. At least... where interfaces are involved. There's nothing stopping us from making a custom substruct that does interesting things with the functions we give it. In fact, that's the entire basis of the anonymous substruct feature.)
-
-So, when we are looking for a function involving something, we should look in the environment for every parameter to see if there are any function bounds for that sort of thing.
-
-Don't we already do that?
-
-
-
-could we perhaps grab that information from the structs, but still require it from the functions?
-
-looks like thats what rust does too: https://github.com/rust-lang/rfcs/pull/2089
-
-so, when we get into a generic function, lets grab the bounds from the structs.
-
-when calling from an abstract, we... hmmm..........
-
-we know it meets those bounds because we have an existing ImplT with that StructRef, so it has to work. we just need to bring that knowledge into the "case" so to speak.
-
-
-
-for now, just say it must be associated with the type; must be in the type's module or rather, visible from the type's own environment (so can be in its dependency)
-
-this works well with overrides not needing the override/impl keyword.
-
-how does this work with interfaces? if the subclass has a bound, it must itself make sure its satisfied, cannot rely on the interface.
-
-if the subclass func has a bound, it must be satisfied by the abstract fn or the struct itself or the caller.
-
-if the base class has a bound, maybe we can use it from the subclass?
-
-
-
-
-right now, when we translate an InterfaceTT, we try to instantiate the InterfaceDefinitionT. then we try to monomorphize the function. it doesnt know the function bounds.
-
-when we call an interface function, or even call an interface template, we need to instantiate it. same as how functions work.
-
-to do that, it would be good to pre-resolve any function bounds that the interface needs, such as func drop(T)void.
-
-it might be good idea to put these somewhere else on the side, perhaps cached. seems like a lot of repeated work otherwise.
-
-can do the same thing for function calls with certain arguments, thatd be nice.
-
-when we call a sealed interface function (isEmpty) that has bounds (drop(T)), do we need to monomorphize the functions? yes, probably. or do the edges do that? like upcasting?
-
-
-
-did you know that `Opt<Ship>` and `Opt<Boat>` might have different vtables? one has clone and the other doesnt!
-
-
-
-
-https://doc.rust-lang.org/rust-by-example/generics/where.html
-`where Option<T>: Debug` wow
-
 
 
 
@@ -1252,7 +876,10 @@ The solution is the same: in the monomorphizer, when a function tries to instant
 
 
 
-# WTF Is Going On With Impls (WTFIGOWI)
+# WTF Is Going On With Impls (WIGOWI)
+
+For each impl, the typing phase will identify all the sub citizen's overrides for the interface. It's probably one of the most complex areas of the compiler.
+
 
 Recall:
 
@@ -1263,25 +890,26 @@ abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(
 struct Raza<A, B, C> { ... }
 impl<I, J> ISpaceship<int, I, J> for Raza<I, J>;
 
-func moo<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
+func launch<Y, Z>(self &Raza<Y, Z>, bork int) where exists drop(Y)void { ... }
 ```
 
-Right now we have ISpaceship, moo, and the impl ("ri").
+Right now we have ISpaceship, launch, and the impl ("ri").
 
-We want to locate that moo/Raza override, similarly to the above conceptual
-match-dispatching function:
+We want to locate that launch/Raza override, similarly to this conceptual "dispatcher" function:
 
 ```
-func moo<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+func launch<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
 where exists drop(Y)void {
   self match {
-    raza &Raza<Y, Z> => moo(raza, bork)
+    raza &Raza<Y, Z> => launch(raza, bork)
   }
 }
 ```
 
-The first step is figuring out this function's inner environment, so we can
-later use it to resolve our moo override.
+The first step is figuring out the dispatcher's inner environment, so we can later use it to resolve our `launch` override.
+
+
+## Step 1: Get The Compiled Impl's Interface, In Terms of Dispatcher (GTCII)
 
 Start by compiling the impl, supplying any placeholders for it.
 
@@ -1295,33 +923,48 @@ becomes:
 impl<ri$0, ri$1> ISpaceship<int, ri$0, ri$1> for Raza<ri$0, ri$1>
 ```
 
+Note that we aren't actually doing this in EdgeCompiler, this actually happens when we first compile the impl.
+
+Now that we have it, rephrase the placeholders to be in terms of the dispatcher's case (so instead of `ri$0`, think of it as `dis$0`). So now we have:
+
+```
+ISpaceship<int, dis$0, dis$1>
+```
+
+We'll refer to this as the "dispatcher interface".
+
+
+## Step 2: Compile Dispatcher Function Given Interface (CDFGI)
+
+
 Now, take the original abstract function:
 
 ```
-abstract func moo<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
+abstract func launch<X, Y, Z>(self &ISpaceship<X, Y, Z>, bork X) where exists drop(Y)void;
 ```
 
-and try to compile it given the impl's interface (ISpaceship<int, ri$0, ri$1>)
-as the first parameter. However, rephrase the placeholders to be in terms of the dispatching
-function's case (so instead of ri$0, think of it as case$0)
+and try to compile it given the dispatcher interface (`ISpaceship<int, ri$0, ri$1>`)
+as the first parameter.
 
 ```
-abstract func moo(self ISpaceship<int, case$0, case$1>, bork int) where exists drop(case$0)void;
+abstract func launch(self ISpaceship<int, dis$0, dis$1>, bork int) where exists drop(dis$0)void;
 ```
 
-We rephrased like that because we're conceptually compiling a match's case, from
-which we'll resolve a function. Also, the abstract function has some bounds which are phrased in terms
-of its own placeholders. 
-
-In a way, we compiled it as if X = int, Y = case$0, Z = case$1.
-
-And now we have our inner environment from which we can resolve some overloads.
+We're conceptually compiling a match's case, from which we'll resolve a function. In a way, we compiled it as if `X` = `int`, `Y` = `dis$0`, `Z` = `dis$1`.
 
 
-## Resolving Overrides With Cases (ROWC)
+We did this because:
 
-Our goal now is to figure out the override functions.
-Imagine we have these interfaces and impls:
+ * We wanted that `bork X` to become a `bork int`.
+ * The abstract function had bounds (`drop(T)void`) that we wanted to translate (`drop(dis$0)void`).
+
+
+And now, we have our inner environment from which we can resolve some overloads!
+
+
+## Some More Complex Cases
+
+Our goal now is to figure out the override functions. Imagine we have these interfaces and impls:
 
 ```
 interface ISpaceship<E, F, G> { ... }
@@ -1363,9 +1006,9 @@ func launch<X, Y, Z, ZZ>(self &Milano<X, Y, Z, ZZ>, bork X) where exists drop(X)
 func launch<X>(self &Enterprise<X>, bork X) where exists drop(X)void { ... }
 ```
 
-We need to find those overrides.
+...we need to find those overrides.
 
-To do it, we need to *conceptually* lower these abstract functions to match-dispatching
+To do it, recall that we're *conceptually* lowering these abstract functions to match-dispatching
 functions. We're not actually doing this, just thinking this way. One might be:
 
 ```
@@ -1410,9 +1053,15 @@ The reason we do all this is so we can do those resolves:
 So, the below code does the important parts of the above conceptual functions.
 
 
-## Override Milano Case Needs Additional Generic Params (OMCNAGP)
+## Step 3: Figure Out Dependent And Independent Runes (FODAIR)
 
-Now, how do we handle Milano's case?
+AKA: Override Milano Case Needs Additional Generic Params (OMCNAGP)
+
+Let's do some preparation work so that we can later handle Milano's case.
+
+What's the Milano case?
+
+Recall:
 
 ```
 func launch<X, Y, Z>(virtual self &ISpaceship<X, Y, Z>, bork X)
@@ -1427,15 +1076,172 @@ where exists drop(X)void {
 
 As you can see, it doesn't really fit into this whole match/enum paradigm.
 There could be any number of Milano variants in there... ZZ could be int, or str, or bool,
-or whatever. Luckily there is a solution, described further below. (TODO: inline that here)
+or whatever.
 
 
-The `<ZZ>` is an "independent" generic arg.
+First, we need to figure out what kind of extra runes we'll need, like this `<ZZ>`.
 
-Try and think if there's any times we should generate only one placeholder for an impl that has a bunch of independent generic args.
+To do this, we solve the impl given only the interface part.
+
+So if we have this impl:
+
+```
+impl<I, J, K, ZZ> ISpaceship<I, J, K> for Milano<I, J, K, ZZ>;
+```
+
+then we solve it given just an `ISpaceship<dis$0, dis$1, dis$2>`. We're left with this:
+
+```
+impl<dis$0, dis$1, dis$2, ZZ> ISpaceship<dis$0, dis$1, dis$2> for Milano<dis$0, dis$1, dis$2, ZZ>;
+                          ^
+                          ^--- unknown!
+```
+
+Hence, that `ZZ` is an "independent" rune. The rest, `I` `J` `K` are "dependent" runes.
+
+This doesn't happen in EdgeCompiler, it actually happens in ImplCompiler and we just remember the independences of each rune.
 
 
-## Abstract Function Calls The Dispatcher (AFCTD)
+## Step 4: Figure Out Struct For Case (FOSFC)
+
+
+Now that we know the dispatcher interface and the independent runes, we have enough to figure out the sub citizen for the case (in other words, the "override struct").
+
+For example, in the Milano case:
+
+ * The dispatcher interface is a `ISpaceship<dis$0, dis$1, dis$2>`
+ * The independent runes: `ZZ`.
+
+First, make placeholders for all the independent runes. Here, `ZZ`'s will be `case$3`.
+
+
+Then, feed it into the impl's solver as if we're "calling" the impl.
+
+In the Milano case, we'd end up with a `Milano<dis$0, dis$1, dis$2, case$3>`.
+
+
+
+NOTE TO SELF: we're not bringing in any impl bounds! this might be where we used to do that
+
+
+### Inherit Bounds From Case Struct (IBFCS)
+
+
+In FOSFC, we do a solve to get the case struct. When doing that, we also grab the reachable bounds from that struct.
+
+
+For example, this is a parent interface that has no knowledge or assumptions of
+being droppable:
+
+```
+#!DeriveInterfaceDrop
+sealed interface ILaunchable {
+  func launch(virtual self &ILaunchable) int;
+}
+
+#!DeriveStructDrop
+struct Ship<T>
+where func drop(Lam)void, func __call(&Lam)int {
+  lam Lam;
+}
+
+impl<T> ILaunchable for Ship<T>;
+
+func launch<T>(self &Ship<T>) int {
+  return (self.lam)();
+}
+```
+
+When resolving overrides for it, this is the conceptual case:
+
+```
+func launch(virtual self &ILaunchable) {
+  self match {
+    <ZZ> borky &Ship<ZZ> => bork(fwd)
+  }
+}
+```
+
+However, there's something subtle that's needed. The bork(fwd) call is trying to resolve
+this function:
+
+```
+func launch<T>(self &Ship<T>) int
+```
+
+However, the `Ship<T>` invocation requires that Lam has a `drop`... which nobody
+can guarantee.
+
+But wait! We're taking an *existing* `Ship<T>` there. So we can know that the T already
+supports a drop.
+
+We do this for NBIFPR for parameters and returns and one day for cases inside matches.
+Let's do it here for this conceptual case too.
+
+
+
+
+
+## Step 5: Assemble the Case Environment For Resolving the Override (ACEFRO)
+
+Step 2 gave us the dispatcher interface: `ISpaceship<dis$0, dis$1, dis$2>`
+
+Step 4 gave us the case struct, `Milano<dis$0, dis$1, dis$2, case$3>`.
+
+Now, let's put this information, and all the other information we solved for, into a new environment. This is the "case environment".
+
+It's particularly necessary because it has any bounds that originally came from the abstract function or the case struct.
+
+We'll be using this to resolve an overload later.
+
+
+## Step 6: Use Case Environment to Find Override (UCEFO)
+
+
+Recall the dispatcher function:
+
+```
+func launch<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
+where exists drop(Y)void {
+  self match {
+    raza &Raza<Y, Z> => launch(raza, bork)
+    // other cases unimportant for our purposes
+  }
+}
+```
+
+Now we have the environment for the `=> launch(raza, bork)`!
+
+
+And regarding in the Milano case:
+
+```
+<ZZ> milano &Milano<X, Y, Z, ZZ> => launch(milano, bork)
+```
+
+we also already determined the `ZZ` (we fed in a placeholder, `case$3`).
+
+
+Now let's use this environment to resolve our overload. We look for:
+```
+launch(Raza<ri$0, ri$1>, int)
+```
+and sure enough, we find the override func:
+```
+func launch<P, Q>(self Raza<P, Q>, bork int) where exists drop(P)void;
+```
+
+Instantiating it is the next challenge, we'll do that below.
+
+All this is done from the impl's perspective, the impl is the original calling
+env for all these solves and resolves, and all these placeholders are phrased in
+terms of impl placeholders (eg ri$0).
+
+
+## Step 7: Monomorphization
+
+AKA: Abstract Function Calls The Dispatcher (AFCTD)
+
 
 Let's say we have this abstract func:
 
@@ -1501,176 +1307,13 @@ The call becomes: `dis<str>(&IObs<Opt<str>>, Opt<str>)` with instantiation bound
 
 
 
-## Something
-
-
-We'll solve the impl given the placeholdered super interface.
-So if we have an abstract function:
-
-```
-func launch<T>(virtual a ISpaceship<int, T>);
-```
-
-Imagine this body:
-
-```
-func launch<T, Z>(virtual self &ISpaceship<int, T, Z>) {
-  self match {
-    myShip Serenity<int, T, Z> => launch(myShip)
-    myBike Raza<int, Z, T> => launch(myBike)
-  }
-}
-```
-
-Imagine we're actually compiling it, which means we have placeholders:
-
-```
-func launch<$0, $1>(virtual self &ISpaceship<int, $0, $1>) {
-  self match {
-    myShip &Serenity<int, $0, $1> => launch(myShip)
-    myBike &Raza<int, $1, $0> => launch(myBike)
-  }
-}
-```
-
-Right here, we're trying to resolve an override function, eg `launch(myBike)`.
-First, we need to figure out `Raza<$1, $0>`. That's what this impl solve is
-doing. It's feeding the ISpaceship<$0, $1> into the impl:
-
-```
-impl<T, Z> ISpaceship<T, Z> for Raza<Z, T>;
-```
-
-roughly solving to:
-
-```
-impl<launch$0, launch$1> ISpaceship<launch$0, launch$1> for Raza<launch$1, launch$0>;
-```
-
-to get the `Raza<launch$1, launch$0>`.
-
-
-## Next Step 3
-
-
-
-Recall the match-dispatching function:
-
-```
-func launch<Y, Z>(virtual self &ISpaceship<int, Y, Z>, bork int)
-where exists drop(Y)void {
-  self match {
-    raza &Raza<Y, Z> => launch(raza, bork)
-    // other cases unimportant for our purposes
-  }
-}
-```
-
-Now we have it's inner environment's inferences! We'll construct an IEnvironment below
-containing these. Then we can use this to resolve some overrides.
-
-For the Milano case, we'll add to the inner environment the extra placeholder
-that doesn't correspond to any template argument in the abstract function. It actually
-comes from the impl; any placeholders that cant be figured out from just the incoming interface
-will be added as generic parameters for the case.
-
-```
-<ZZ> milano &Milano<X, Y, Z, ZZ> => launch(milano, bork)
-```
-
-For all ZZ, we're having a Milano case. Later on in the instantiator, we'll loop over all impls and get the ZZ from there.
-
-
-
-
-
-
-This is so we fill the other params' types, like that bork int.
-
-Now, try to resolve an overload with the impl's struct there instead, look for:
-```
-launch(Raza<ri$0, ri$1>, int)
-```
-and sure enough, we find the override func:
-```
-func launch<P, Q>(self Raza<P, Q>, bork int) where exists drop(P)void;
-```
-
-Instantiating it is the next challenge, we'll do that below.
-
-All this is done from the impl's perspective, the impl is the original calling
-env for all these solves and resolves, and all these placeholders are phrased in
-terms of impl placeholders (eg ri$0).
-
-
-
-## WTFBBQ
-
-
-We need this to pull in some bounds knowledge from the override struct.
-
-For example, this is a parent interface that has no knowledge or assumptions of
-being droppable:
-
-```
-#!DeriveInterfaceDrop
-sealed interface ILaunchable {
-  func launch(virtual self &ILaunchable) int;
-}
-
-#!DeriveStructDrop
-struct Ship<T>
-where func drop(Lam)void, func __call(&Lam)int {
-  lam Lam;
-}
-
-impl<T> ILaunchable for Ship<T>;
-
-func launch<T>(self &Ship<T>) int {
-  return (self.lam)();
-}
-```
-
-When resolving overrides for it, this is the conceptual case:
-
-```
-func launch(virtual self &ILaunchable) {
-  self match {
-    <ZZ> borky &Ship<ZZ> => bork(fwd)
-  }
-}
-```
-
-However, there's something subtle that's needed. The bork(fwd) call is trying to resolve
-this function:
-
-```
-func launch<T>(self &Ship<T>) int
-```
-
-However, the `Ship<T>` invocation requires that Lam has a `drop`... which nobody
-can guarantee.
-
-But wait! We're taking an *existing* `Ship<T>` there. So we can know that the T already
-supports a drop.
-
-We do this for NBIFPR for parameters and returns and one day for cases inside matches.
-Let's do it here for this conceptual case too.
-
-
-
-
-
-
-
-
-# Translate Impl Bound Argument Names For Case (TIBANFC)
+### Translate Impl Bound Argument Names For Case (TIBANFC)
 
 When we're compiling the override dispatcher for func len, specifically for its case for MySome:
 
 `odis{impl:98}<^len.odis{impl:98}$0>(&MyOption<^len.odis{impl:98}$0>).case`
 
-we have a DenizenMonomorphizer for it that contains the actual generic arguments and the bound arguments.
+we have a Monomorphizer for it that contains the actual generic arguments and the bound arguments.
 
 It accidentally contained:
 
@@ -1702,7 +1345,6 @@ We used to declare a type's outer environment when we compiled its definition. H
 
 
 So, the solution we chose is to declare the outer environment in structs' pre-compile stage.
-
 
 
 
@@ -1756,33 +1398,124 @@ struct Functor1<P1 Ref, R Ref, F Prot = func(P1)R> imm { }
 And then we should make placeholders for P1 and R, and let the 3rd param's DefinitionCallSR create a prototype using those two. Then things would work.
 
 
-# Compile Impl From Both Directions (CIFBD)
 
-NOTE: Not sure this is true anymore, ever since generics.
+## Only See Direct Caller's Environment (OSDCE)
 
-We previously compiled all impls for a given struct. We did this for each struct.
+Note from later: i think this might be obsolete. i believe we just tiebreak them.
 
-However, this would miss some things. For example, if we had this interface:
-
-```
-sealed interface MySerenityOrRazaUnion { }
-impl Serenity for MySerenityOrRazaUnion { }
-impl Raza for MySerenityOrRazaUnion { }
-```
-
-and it was in some hidden leaf dependency, not seen by Serenity or Raza, then it would be missed.
-
-For this reason, we also compile all impls for a given interface.
-
-This *could* result in collisions. For example:
+Let's say we have these definitions:
 
 ```
-interface MyInterface { }
-struct MyStruct { }
-impl MyStruct for MyInterface { }
+interface MyInterface<T>
+where func drop(T)void { }
+
+struct MyStruct<T>
+where func drop(T)void { ... }
+
+impl MyInterface<T> for MyStruct<T>
+where func drop(T)void;
 ```
 
-Compiling this from both directions will result in the same impl.
+Which expands to something like this:
 
-That's fine, the CompilerOutputs class will deduplicate them.
+```
+#!DeriveInterfaceDrop
+interface MyInterface<T>
+where func drop(T)void { }
 
+virtual func drop(self MyInterface<T>);
+
+#!DeriveStructDrop
+struct MyStruct<T>
+where func drop(T)void { ... }
+
+func drop(self MyInterface<T>);
+
+impl MyInterface<T> for MyStruct<T>
+where func drop(T)void;
+```
+
+This tree of steps happens when we compile the itables:
+
+ * We're looking for all overrides for the abstract function `func drop(self MyInterface<T>)void`.
+    * We use the environment from it, **which includes a conjured** `where func drop(T)void` bound.
+    * We use a placeholder for `T` (named `drop(MyInterface<T>).$0`, but we'll keep calling it `T`).
+    * We see that `MyStruct` implements it, so we try resolving a function `func drop(MyStruct<T>)void`.
+       * During solving, we conjure a `MyStruct<T>` and postpone its resolving.
+       * We conjure an environment with the conclusions from the solving, **including the conjured** `func drop(MyStruct<T>)void`.
+       * Now after solving, we're actually resolving that `MyStruct<T>`.
+          * During solving, we conjure a `func drop(T)void` and postpone its resolving.
+          * Afer solving, we actually want to resolve that `func drop(T)void`.
+             * Uh oh! We find **two** matching prototypes.
+
+It seems that both of them are conjuring a prototype to use and requiring things.
+
+So, we don't send anything downward.
+
+
+# Require Rune for Function Bound?
+
+In this example:
+
+```
+func moo(i int, b bool) str { return "hello"; }
+
+exported func main() str
+where func moo(int, bool)str
+{
+  return moo(5, true);
+}
+```
+
+It's ambiguous which moo we're referring to. Which one should we use?
+
+We could say that since it's ambiguous, they should stuff it into a rune and then call the rune directly... but this feels like it would be fragile.
+
+
+# Macro-Derived Sibling Functions Often Need All Rules From Original (MDSFONARFO)
+
+Macros can take a denizen and generate new denizens right next to them.
+
+For example, in:
+
+```
+sealed interface Opt<T Ref>
+where func drop(T)void
+{ }
+
+struct Some<T>
+where func drop(T)void
+{ x T; }
+
+impl<T> Opt<T> for Some<T>
+where func drop(T)void;
+```
+
+The implicit InterfaceDropMacro defines a drop function for that interface.
+
+It almost looks like this:
+
+```
+func drop(this Opt<T>) void {
+  [x] = this;
+}
+```
+
+But wait! That doesn't work! There needs to be a `<T>` parameter and there needs to exist a drop for that T, like:
+
+```
+func drop<T>(this Opt<T>) void
+where func drop(T)void {
+  [x] = this;
+}
+```
+
+We can see now that this `drop` function actually takes a _lot_ from the original interface.
+
+It needs:
+
+ * Generic parameters
+ * Concept functions
+ * Rune types
+
+Pretty much everything.
