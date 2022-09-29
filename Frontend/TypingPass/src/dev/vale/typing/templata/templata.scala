@@ -96,6 +96,11 @@ sealed trait ITemplata[+T <: ITemplataType]  {
   def tyype: T
 }
 
+case class RegionTemplata(region: RegionT) extends ITemplata[RegionTemplataType] {
+  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+  override def tyype: RegionTemplataType = RegionTemplataType()
+}
+
 case class CoordTemplata(coord: CoordT) extends ITemplata[CoordTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: CoordTemplataType = CoordTemplataType()

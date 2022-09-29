@@ -91,15 +91,6 @@ class ArrayCompiler(
       }
     })
 
-    val resultCoord =
-      CoordT(
-        mutability match {
-          case MutabilityTemplata(MutableT) => OwnT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
-        },
-        ssaMT)
-
     val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
     expr2
   }
@@ -164,15 +155,6 @@ class ArrayCompiler(
             throw CompileErrorExceptionT(UnexpectedArrayElementType(range, expectedElementType, prototype.returnType))
           }
         })
-
-        val resultCoord =
-          CoordT(
-            mutability match {
-              case MutabilityTemplata(MutableT) => OwnT
-              case MutabilityTemplata(ImmutableT) => ShareT
-              case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
-            },
-            rsaMT)
 
         NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
       }
@@ -298,7 +280,8 @@ class ArrayCompiler(
         case PlaceholderTemplata(_, MutabilityTemplataType()) => OwnT
       }
 
-    val ssaCoord = CoordT(ownership, staticSizedArrayType)
+    val region = vimpl()
+    val ssaCoord = CoordT(ownership, region, staticSizedArrayType)
 
     val finalExpr =
       StaticArrayFromValuesTE(
@@ -315,11 +298,14 @@ class ArrayCompiler(
   DestroyStaticSizedArrayIntoFunctionTE = {
     val arrayTT =
       arrTE.result.coord match {
-        case CoordT(_, s @ contentsStaticSizedArrayTT(_, _, _, _)) => s
+        case CoordT(_, region, s @ contentsStaticSizedArrayTT(_, _, _, _)) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
         }
       }
+
+    // doublecheck that region is mutable
+    vimpl()
 
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
@@ -341,11 +327,14 @@ class ArrayCompiler(
   DestroyImmRuntimeSizedArrayTE = {
     val arrayTT =
       arrTE.result.coord match {
-        case CoordT(_, s @ contentsRuntimeSizedArrayTT(_, _)) => s
+        case CoordT(_, region, s @ contentsRuntimeSizedArrayTT(_, _)) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
         }
       }
+
+    // assert that region is mutable
+    vimpl()
 
     arrayTT.mutability match {
       case PlaceholderTemplata(_, MutabilityTemplataType()) => {
@@ -504,7 +493,7 @@ class ArrayCompiler(
     rsa: RuntimeSizedArrayTT
   ): RuntimeSizedArrayLookupTE = {
     val contentsRuntimeSizedArrayTT(mutability, memberType) = rsa
-    if (indexExpr2.result.coord != CoordT(ShareT, IntT(32))) {
+    if (indexExpr2.result.coord.kind != IntT(32)) {
       throw CompileErrorExceptionT(IndexedArrayWithNonInteger(range :: parentRanges, indexExpr2.result.coord))
     }
     val variability =

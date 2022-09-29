@@ -147,6 +147,11 @@ sealed trait IImplNameT extends IInstantiationNameT {
   def template: IImplTemplateNameT
 }
 
+sealed trait IRegionNameT extends INameT
+
+case class RegionNameT(rune: IRuneS) extends IRegionNameT
+case class FunctionDefaultRegionNameT(function: IdT[IFunctionNameT]) extends IRegionNameT
+
 case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
 case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationNameT {
   override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()

@@ -14,7 +14,7 @@ import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferF
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{BadIsaSubKind, BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, ReturnTypeConflict, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, IdT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, RegionNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
@@ -499,7 +499,11 @@ object CompilerErrorHumanizer {
       case PrototypeTemplata(range, prototype) => {
         humanizeName(codeMap, prototype.fullName)
       }
-      case CoordTemplata(CoordT(ownership, kind)) => {
+      case CoordTemplata(CoordT(ownership, region, kind)) => {
+        (region.localName match {
+          case FunctionDefaultRegionNameT(_) => ""
+          case RegionNameT(rune) => "'" + humanizeRune(rune) + " "
+        }) +
         (ownership match {
           case OwnT => ""
           case ShareT => ""

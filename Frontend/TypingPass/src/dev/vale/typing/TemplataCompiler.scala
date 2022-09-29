@@ -4,14 +4,14 @@ import dev.vale.{CodeLocationS, Interner, Keywords, RangeS, vassert, vassertOne,
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
 import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, IdT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, ImplBoundNameT, ImplNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IRegionNameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, IdT, ImplBoundNameT, ImplNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.parsing.ast.ImmutableRuneAttributeP
 import dev.vale.postparsing._
 import dev.vale.typing._
-import dev.vale.typing.ast.{PrototypeT}
+import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.citizen.{IResolveOutcome, ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
 import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectVariability}
 import dev.vale.typing.types._
@@ -95,7 +95,7 @@ object TemplataCompiler {
     implPlaceholder match {
       case PlaceholderTemplata(n, _) => n
       case KindTemplata(PlaceholderT(n)) => n
-      case CoordTemplata(CoordT(_, PlaceholderT(n))) => n
+      case CoordTemplata(CoordT(_, _, PlaceholderT(n))) => n
       case other => vwat(other)
     }
   }
@@ -244,12 +244,18 @@ object TemplataCompiler {
     }).toMap
   }
 
-  def substituteTemplatasInCoord(coutputs: CompilerOutputs, interner: Interner, keywords: Keywords, substitutions: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])], boundArgumentsSource: IBoundArgumentsSource, coord: CoordT):
+  def substituteTemplatasInCoord(
+    coutputs: CompilerOutputs,
+    interner: Interner,
+    keywords: Keywords,
+    substitutions: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
+    boundArgumentsSource: IBoundArgumentsSource,
+    coord: CoordT):
   CoordT = {
-    val CoordT(ownership, kind) = coord
+    val CoordT(ownership, region, kind) = coord
     substituteTemplatasInKind(coutputs, interner, keywords, substitutions, boundArgumentsSource, kind) match {
-      case KindTemplata(kind) => CoordT(ownership, kind)
-      case CoordTemplata(CoordT(innerOwnership, kind)) => {
+      case KindTemplata(kind) => CoordT(ownership, region, kind)
+      case CoordTemplata(CoordT(innerOwnership, innerRegion, kind)) => {
         val resultOwnership =
           (ownership, innerOwnership) match {
             case (ShareT, _) => ShareT
@@ -260,7 +266,7 @@ object TemplataCompiler {
             case (BorrowT, BorrowT) => BorrowT
             case _ => vimpl()
           }
-        CoordT(resultOwnership, kind)
+        CoordT(resultOwnership, vimpl(), kind)
       }
     }
 
@@ -677,7 +683,7 @@ object TemplataCompiler {
     val maybeMentionedKind =
       templata match {
         case KindTemplata(kind) => Some(kind)
-        case CoordTemplata(CoordT(_, kind)) => Some(kind)
+        case CoordTemplata(CoordT(_, _, kind)) => Some(kind)
         case _ => None
       }
     maybeMentionedKind match {
@@ -720,10 +726,15 @@ class TemplataCompiler(
     targetPointerType: CoordT):
   Boolean = {
 
-    val CoordT(targetOwnership, targetType) = targetPointerType;
-    val CoordT(sourceOwnership, sourceType) = sourcePointerType;
+    val CoordT(targetOwnership, targetRegion, targetType) = targetPointerType;
+    val CoordT(sourceOwnership, sourceRegion, sourceType) = sourcePointerType;
 
     // Note the Never case will short-circuit a true, regardless of the other checks (ownership)
+
+    (sourceRegion, targetRegion) match {
+      case (a, b) if a == b =>
+      case other => vimpl(other)
+    }
 
     (sourceType, targetType) match {
       case (NeverT(_), _) => return true
@@ -763,7 +774,7 @@ class TemplataCompiler(
     true
   }
 
-  def pointifyKind(coutputs: CompilerOutputs, kind: KindT, ownershipIfMutable: OwnershipT): CoordT = {
+  def pointifyKind(coutputs: CompilerOutputs, kind: KindT, region: IdT[IRegionNameT], ownershipIfMutable: OwnershipT): CoordT = {
     val mutability = Compiler.getMutability(coutputs, kind)
     val ownership =
       mutability match {
@@ -773,31 +784,31 @@ class TemplataCompiler(
       }
     kind match {
       case a @ contentsRuntimeSizedArrayTT(_, _) => {
-        CoordT(ownership, a)
+        CoordT(ownership, region, a)
       }
       case a @ contentsStaticSizedArrayTT(_, _, _, _) => {
-        CoordT(ownership, a)
+        CoordT(ownership, region, a)
       }
       case s @ StructTT(_) => {
-        CoordT(ownership, s)
+        CoordT(ownership, region, s)
       }
       case i @ InterfaceTT(_) => {
-        CoordT(ownership, i)
+        CoordT(ownership, region, i)
       }
       case VoidT() => {
-        CoordT(ShareT, VoidT())
+        CoordT(ShareT, region, VoidT())
       }
       case i @ IntT(_) => {
-        CoordT(ShareT, i)
+        CoordT(ShareT, region, i)
       }
       case FloatT() => {
-        CoordT(ShareT, FloatT())
+        CoordT(ShareT, region, FloatT())
       }
       case BoolT() => {
-        CoordT(ShareT, BoolT())
+        CoordT(ShareT, region, BoolT())
       }
       case StrT() => {
-        CoordT(ShareT, StrT())
+        CoordT(ShareT, region, StrT())
       }
     }
   }
@@ -892,7 +903,7 @@ class TemplataCompiler(
     results.headOption
   }
 
-  def coerceKindToCoord(coutputs: CompilerOutputs, kind: KindT):
+  def coerceKindToCoord(coutputs: CompilerOutputs, kind: KindT, region: IdT[IRegionNameT]):
   CoordT = {
     val mutability = Compiler.getMutability(coutputs, kind)
     CoordT(
@@ -901,6 +912,7 @@ class TemplataCompiler(
         case MutabilityTemplata(ImmutableT) => ShareT
         case PlaceholderTemplata(fullNameT, tyype) => OwnT
       },
+      region,
       kind)
   }
 
@@ -916,7 +928,8 @@ class TemplataCompiler(
     } else {
       (templata, tyype) match {
         case (KindTemplata(kind), CoordTemplataType()) => {
-          CoordTemplata(coerceKindToCoord(coutputs, kind))
+          val region = vimpl()
+          CoordTemplata(coerceKindToCoord(coutputs, kind, region))
         }
         case (st@StructDefinitionTemplata(declaringEnv, structA), KindTemplataType()) => {
           if (structA.isTemplate) {
@@ -949,7 +962,8 @@ class TemplataCompiler(
               case MutabilityTemplata(ImmutableT) => ShareT
               case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
             }
-          val coerced = CoordTemplata(CoordT(ownership, kind))
+          val region = vimpl()
+          val coerced = CoordTemplata(CoordT(ownership, region, kind))
           (coerced)
         }
         case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
@@ -959,6 +973,7 @@ class TemplataCompiler(
           val kind =
             delegate.resolveInterface(coutputs, env, range, it, Vector.empty).expect().kind
           val mutability = Compiler.getMutability(coutputs, kind)
+          val region = vimpl()
           val coerced =
             CoordTemplata(
               CoordT(
@@ -967,6 +982,7 @@ class TemplataCompiler(
                   case MutabilityTemplata(ImmutableT) => ShareT
                   case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
                 },
+                region,
                 kind))
           (coerced)
         }
@@ -1000,7 +1016,7 @@ class TemplataCompiler(
         case st @ StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
         case it @ InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
         case KindTemplata(c : ICitizenTT) => TemplataCompiler.getCitizenTemplate(c.fullName)
-        case CoordTemplata(CoordT(OwnT | ShareT, c : ICitizenTT)) => TemplataCompiler.getCitizenTemplate(c.fullName)
+        case CoordTemplata(CoordT(OwnT | ShareT, _, c : ICitizenTT)) => TemplataCompiler.getCitizenTemplate(c.fullName)
         case _ => return false
       }
     TemplataCompiler.getCitizenTemplate(actualCitizenRef.fullName) == citizenTemplateFullName
@@ -1057,20 +1073,21 @@ class TemplataCompiler(
       case KindTemplataType() => {
         KindTemplata(placeholderKindT)
       }
-      // TODO: Not sure what to put here when we do regions. We might need to
-      // flood the nearest region annotation downward, and then apply it if it's
-      // a coord or something. Remembering that in every templex would be bothersome
-      // though.
-      // For now, we can manually add them.
-      // So, I guess we could just assume the function's default region here then.
       case CoordTemplataType() => {
+        // TODO: Not sure what to put here when we do regions. We might need to
+        // flood the nearest region annotation downward, and then apply it if it's
+        // a coord or something. Remembering that in every templex would be bothersome
+        // though.
+        // For now, we can manually add them.
+        // So, I guess we could just assume the function's default region here then.
+        val region = vimpl()
         val ownership =
           if (immutable) {
             ShareT
           } else {
             OwnT
           }
-        CoordTemplata(CoordT(ownership, placeholderKindT))
+        CoordTemplata(CoordT(ownership, region, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, runeType)
     }

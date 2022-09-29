@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, IdT, ICitizenNameT, IInterfaceNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -57,7 +57,7 @@ case object YonderT extends LocationT {
 }
 
 
-case class CoordT(ownership: OwnershipT, kind: KindT)  {
+case class CoordT(ownership: OwnershipT, region: IdT[IRegionNameT], kind: KindT)  {
   vpass()
   this match {
     case CoordT(BorrowT,RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(_,RawArrayNameT(MutabilityTemplata(ImmutableT),CoordT(ShareT,IntT(32))))))) => {

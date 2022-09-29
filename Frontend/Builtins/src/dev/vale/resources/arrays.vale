@@ -50,24 +50,6 @@ func len<M, V, S, E>(arr &[#S]<M, V>E) int;
 extern("vale_runtime_sized_array_len")
 func len<M, E>(arr &[]<M>E) int;
 
-extern("vale_static_sized_array_free")
-func __free_replaced<V, S, E>(arr [#S]<imm, V>E)
-where D Prot = func drop(void, E)void;
-
-extern("vale_runtime_sized_array_free")
-func __free_replaced<E>(arr []<imm>E)
-where D Prot = func drop(void, E)void;
-
-
-
-func __free_replaced<V, S, E>(arr [#S]<mut, V>E) {
-  __vbi_panic();
-}
-
-func __free_replaced<E>(arr []<mut>E) {
-  __vbi_panic();
-}
-
 
 
 extern("vale_runtime_sized_array_capacity")

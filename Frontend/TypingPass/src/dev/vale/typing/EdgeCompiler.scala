@@ -214,11 +214,11 @@ class EdgeCompiler(
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
           KindTemplata(PlaceholderT(placeholderFullName))
         }
-        case CoordTemplata(CoordT(ownership, PlaceholderT(originalPlaceholderFullName))) => {
+        case CoordTemplata(CoordT(ownership, region, PlaceholderT(originalPlaceholderFullName))) => {
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-          CoordTemplata(CoordT(ownership, PlaceholderT(placeholderFullName)))
+          CoordTemplata(CoordT(ownership, vimpl(region), PlaceholderT(placeholderFullName)))
         }
         case other => vwat(other)
       }

@@ -68,8 +68,12 @@ class ConvertHelper(
       case _ =>
     }
 
-    val CoordT(targetOwnership, targetType) = targetPointerType;
-    val CoordT(sourceOwnership, sourceType) = sourcePointerType;
+    val CoordT(targetOwnership, targetRegion, targetType) = targetPointerType;
+    val CoordT(sourceOwnership, sourceRegion, sourceType) = sourcePointerType;
+
+    if (targetRegion != sourceRegion) {
+      throw CompileErrorExceptionT(RangedInternalErrorT(range, "Region mismatch!")) // DO NOT SUBMIT
+    }
 
     targetPointerType.kind match {
       case NeverT(_) => vcurious()
