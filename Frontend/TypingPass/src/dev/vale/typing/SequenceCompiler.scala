@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.typing.ast.{ReferenceExpressionTE, TupleTE}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vimpl}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{IEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.names.{CitizenTemplateNameT, IRegionNameT, IdT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -20,16 +20,8 @@ class SequenceCompiler(
   keywords: Keywords,
     structCompiler: StructCompiler,
     templataCompiler: TemplataCompiler) {
-  def makeEmptyTuple(
-    env: IEnvironment,
-    coutputs: CompilerOutputs,
-    parentRanges: List[RangeS]):
-  (ReferenceExpressionTE) = {
-    evaluate(env, coutputs, parentRanges, Vector())
-  }
-
-  def evaluate(
-    env: IEnvironment,
+  def resolveTuple(
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     exprs2: Vector[ReferenceExpressionTE]):
@@ -41,7 +33,7 @@ class SequenceCompiler(
   }
 
   def makeTupleKind(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     types2: Vector[CoordT]):
@@ -60,7 +52,7 @@ class SequenceCompiler(
   }
 
   def makeTupleCoord(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     region: IdT[IRegionNameT],

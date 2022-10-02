@@ -28,7 +28,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
     vassert(params2.exists(_.virtuality == Some(AbstractT())))
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         params2,
@@ -43,7 +43,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
         env,
         coutputs,
         callRange,
-        vassertSome(TemplatasStore.getImpreciseName(interner, env.fullName.localName)),
+        vassertSome(TemplatasStore.getImpreciseName(interner, env.id.localName)),
         Vector(),
         Vector(),
         params2.map(_.tyype),

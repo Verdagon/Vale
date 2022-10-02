@@ -8,7 +8,7 @@ import dev.vale.typing.types._
 import dev.vale._
 import dev.vale.postparsing.{IRuneS, ITemplataType}
 import dev.vale.typing._
-import dev.vale.typing.env.IEnvironment
+import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -31,12 +31,12 @@ case class ImplT(
 
   templata: ImplDefinitionTemplata,
 
-  implOuterEnv: IEnvironment,
+  implOuterEnv: IInDenizenEnvironment,
 
-  instantiatedFullName: IdT[IImplNameT],
-  templateFullName: IdT[IImplTemplateNameT],
+  instantiatedId: IdT[IImplNameT],
+  templateId: IdT[IImplTemplateNameT],
 
-  subCitizenTemplateFullName: IdT[ICitizenTemplateNameT],
+  subCitizenTemplateId: IdT[ICitizenTemplateNameT],
   subCitizen: ICitizenTT,
 
   superInterface: InterfaceTT,
@@ -124,7 +124,7 @@ case class OverrideT(
   //   func add<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
   // as you can see there may be some interesting templatas in there like that Opt<int>, they
   // might not be simple placeholders
-  dispatcherCallFullName: IdT[OverrideDispatcherNameT],
+  dispatcherCallId: IdT[OverrideDispatcherNameT],
 
   implPlaceholderToDispatcherPlaceholder: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
   implPlaceholderToCasePlaceholder: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
@@ -143,7 +143,7 @@ case class OverrideT(
   // impl. After typing pass these will be placeholders, and after instantiator these will be
   // actual real templatas.
   // This will have some placeholders from the impl; this is the impl calling the case, kind of.
-  caseFullName: IdT[OverrideDispatcherCaseNameT],
+  caseId: IdT[OverrideDispatcherCaseNameT],
 
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
@@ -153,7 +153,7 @@ case class OverrideT(
 
 case class EdgeT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  edgeFullName: IdT[IImplNameT],
+  edgeId: IdT[IImplNameT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   subCitizen: ICitizenTT,
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
@@ -171,7 +171,7 @@ case class EdgeT(
       case EdgeT(thatEdgeFullName, thatStruct, thatInterface, _, _, _) => {
         val isSame = subCitizen == thatStruct && superInterface == thatInterface
         if (isSame) {
-          vassert(edgeFullName == thatEdgeFullName)
+          vassert(edgeId == thatEdgeFullName)
         }
         isSame
       }
@@ -191,7 +191,7 @@ case class FunctionDefinitionT(
 }
 
 object getFunctionLastName {
-  def unapply(f: FunctionDefinitionT): Option[IFunctionNameT] = Some(f.header.fullName.localName)
+  def unapply(f: FunctionDefinitionT): Option[IFunctionNameT] = Some(f.header.id.localName)
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
@@ -278,9 +278,9 @@ case class ValidCalleeCandidate(
 // function headers, because functions don't have to specify their return types and
 // it takes a complete typingpass evaluate to deduce a function's return type.
 
-case class SignatureT(fullName: IdT[IFunctionNameT]) {
+case class SignatureT(id: IdT[IFunctionNameT]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def paramTypes: Vector[CoordT] = fullName.localName.parameters
+  def paramTypes: Vector[CoordT] = id.localName.parameters
 }
 
 case class FunctionBannerT(
@@ -326,7 +326,7 @@ case class RegionT(
 
 case class FunctionHeaderT(
   // This one little name field can illuminate much of how the compiler works, see UINIT.
-  fullName: IdT[IFunctionNameT],
+  id: IdT[IFunctionNameT],
   attributes: Vector[IFunctionAttributeT],
   regions: Vector[RegionT],
   params: Vector[ParameterT],
@@ -339,9 +339,9 @@ case class FunctionHeaderT(
     maybeOriginFunctionTemplata match {
       case None =>
       case Some(originFunctionTemplata) => {
-        val templateName = TemplataCompiler.getFunctionTemplate(fullName)
+        val templateName = TemplataCompiler.getFunctionTemplate(id)
         val placeholders =
-          Collector.all(fullName, {
+          Collector.all(id, {
             case PlaceholderT(name) => name
             case PlaceholderTemplata(name, _) => name
           })
@@ -350,7 +350,7 @@ case class FunctionHeaderT(
           placeholders.filter({ case IdT(packageCoord, initSteps, last) =>
             val parentName = IdT(packageCoord, initSteps.init, initSteps.last)
             // Not sure which one it is, this should catch both.
-            parentName == fullName || parentName == templateName
+            parentName == id || parentName == templateName
           })
 
         if (originFunctionTemplata.function.isLambda()) {
@@ -364,7 +364,7 @@ case class FunctionHeaderT(
             // make sure all the placeholders in the parameters exist as template args
             placeholdersOfThisFunction.foreach({
               case placeholderName @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) => {
-                fullName.localName.templateArgs(index) match {
+                id.localName.templateArgs(index) match {
                   case KindTemplata(PlaceholderT(placeholderNameAtIndex)) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
@@ -388,7 +388,7 @@ case class FunctionHeaderT(
   override def equals(obj: Any): Boolean = {
     obj match {
       case FunctionHeaderT(thatName, _, _, _, _, _) => {
-        fullName == thatName
+        id == thatName
       }
       case _ => false
     }
@@ -397,7 +397,7 @@ case class FunctionHeaderT(
   // Make sure there's no duplicate names
   vassert(params.map(_.name).toSet.size == params.size);
 
-  vassert(fullName.localName.parameters == paramTypes)
+  vassert(id.localName.parameters == paramTypes)
 
   def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
   //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
@@ -439,22 +439,22 @@ case class FunctionHeaderT(
 //    }
 //  })
 
-  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunctionTemplata, fullName)
+  def toBanner: FunctionBannerT = FunctionBannerT(maybeOriginFunctionTemplata, id)
   def toPrototype: PrototypeT = {
 //    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
 //    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
 //    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
 //    val newName = FullNameT(fullName.packageCoord, fullName.initSteps, newLastStep)
-    PrototypeT(fullName, returnType)
+    PrototypeT(id, returnType)
   }
   def toSignature: SignatureT = {
     toPrototype.toSignature
   }
 
-  def paramTypes: Vector[CoordT] = fullName.localName.parameters
+  def paramTypes: Vector[CoordT] = id.localName.parameters
 
   def unapply(arg: FunctionHeaderT): Option[(IdT[IFunctionNameT], Vector[ParameterT], CoordT)] = {
-    Some(fullName, params, returnType)
+    Some(id, params, returnType)
   }
 }
 

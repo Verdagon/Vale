@@ -30,7 +30,7 @@ class LockWeakMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,

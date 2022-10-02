@@ -141,7 +141,7 @@ class StructConstructorMacro(
         case VariadicStructMemberT(name, tyype) => vimpl()
       })
 
-    val constructorFullName = env.fullName
+    val constructorFullName = env.id
     vassert(constructorFullName.localName.parameters.size == members.size)
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, coord) })

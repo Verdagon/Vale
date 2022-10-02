@@ -17,7 +17,7 @@ import dev.vale.typing.{ast, _}
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -34,13 +34,13 @@ class StructCompilerCore(
   delegate: IStructCompilerDelegate) {
 
   def compileStruct(
-    outerEnv: IEnvironment,
+    outerEnv: IInDenizenEnvironment,
     structRunesEnv: CitizenEnvironment[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     structA: StructA):
   Unit = {
-    val templateArgs = structRunesEnv.fullName.localName.templateArgs
+    val templateArgs = structRunesEnv.id.localName.templateArgs
     val templateFullNameT = structRunesEnv.templateName
     val templateNameT = templateFullNameT.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
@@ -111,6 +111,7 @@ class StructCompilerCore(
         structRunesEnv,
         templateFullNameT,
         placeholderedFullNameT,
+        vimpl(),
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
@@ -155,7 +156,7 @@ class StructCompilerCore(
         // We need to defer all these functions until after the structs and interfaces are done.
         coutputs.deferEvaluatingFunction(
           DeferredEvaluatingFunction(
-            outerEnv.fullName.addStep(name),
+            outerEnv.id.addStep(name),
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
                 coutputs, parentRanges, FunctionTemplata(outerEnv, functionA), true)
@@ -213,14 +214,13 @@ class StructCompilerCore(
   // }
   // which means we need some way to know what T is.
   def compileInterface(
-    containingEnv: IEnvironment,
-    outerEnv: IEnvironment,
+    outerEnv: IInDenizenEnvironment,
     interfaceRunesEnv: CitizenEnvironment[IInterfaceNameT, IInterfaceTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
-    val templateArgs = interfaceRunesEnv.fullName.localName.templateArgs
+    val templateArgs = interfaceRunesEnv.id.localName.templateArgs
     val templateFullNameT = interfaceRunesEnv.templateName
     val templateNameT = templateFullNameT.localName
     val placeholderedNameT = templateNameT.makeInterfaceName(interner, templateArgs)
@@ -339,7 +339,7 @@ class StructCompilerCore(
   }
 
   private def makeStructMembers(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     members: Vector[IStructMemberS]):
   Vector[IStructMemberT] = {
@@ -347,7 +347,7 @@ class StructCompilerCore(
   }
 
   private def makeStructMember(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     member: IStructMemberS):
   IStructMemberT = {
@@ -409,13 +409,13 @@ class StructCompilerCore(
     val understructTemplateNameT =
       interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
     val understructTemplatedFullNameT =
-      containingFunctionEnv.fullName
+      containingFunctionEnv.id
         .addStep(understructTemplateNameT)
 
     val understructInstantiatedNameT =
       understructTemplateNameT.makeStructName(interner, Vector())
     val understructInstantiatedFullNameT =
-      containingFunctionEnv.fullName.addStep(understructInstantiatedNameT)
+      containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
     coutputs.addInstantiationBounds(understructInstantiatedFullNameT, InstantiationBoundArguments(Map(), Map()))
@@ -434,6 +434,7 @@ class StructCompilerCore(
         containingFunctionEnv,
         understructTemplatedFullNameT,
         understructTemplatedFullNameT,
+        vimpl(),
         TemplatasStore(understructTemplatedFullNameT, Map(), Map())
           .addEntries(
             interner,
@@ -453,6 +454,7 @@ class StructCompilerCore(
         structOuterEnv,
         understructTemplatedFullNameT,
         understructInstantiatedFullNameT,
+        vimpl(),
         TemplatasStore(understructInstantiatedFullNameT, Map(), Map())
           // There are no inferences we'd need to add, because it's a lambda and they don't have
           // any rules or anything.

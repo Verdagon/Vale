@@ -81,7 +81,6 @@ class BodyCompiler(
                 parentRanges,
                 function1.params,
                 params2,
-                vimpl(),
                 bodyS,
                 isDestructor,
                 None) match {
@@ -116,7 +115,6 @@ class BodyCompiler(
                 parentRanges,
                 function1.params,
                 params2,
-                vimpl(),
                 bodyS,
                 isDestructor,
                 Some(explicitRetCoord)) match {
@@ -162,7 +160,6 @@ class BodyCompiler(
     parentRanges: List[RangeS],
     params1: Vector[ParameterS],
     params2: Vector[ParameterT],
-    defaultRegion: IdT[IRegionNameT],
     body1: BodySE,
     isDestructor: Boolean,
     maybeExpectedResultType: Option[CoordT]):
@@ -175,7 +172,7 @@ class BodyCompiler(
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
       delegate.evaluateBlockStatements(
-        coutputs, startingEnv, env, life + 1, parentRanges, defaultRegion, body1.block);
+        coutputs, startingEnv, env, life + 1, parentRanges, startingEnv.defaultRegion, body1.block);
 
     val unconvertedBodyWithoutReturn = Compiler.consecutive(Vector(patternsTE, statementsFromBlock))
 

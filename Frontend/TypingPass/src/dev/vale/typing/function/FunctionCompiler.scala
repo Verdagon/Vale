@@ -19,7 +19,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, IFunctionGenerator, InferCompiler, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
+import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{IRegionNameT, IdT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -122,7 +122,7 @@ class FunctionCompiler(
 
   def evaluateTemplatedLightFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -140,7 +140,7 @@ class FunctionCompiler(
 
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -179,7 +179,7 @@ class FunctionCompiler(
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     argTypes: Vector[CoordT],
@@ -211,7 +211,7 @@ class FunctionCompiler(
   def evaluateGenericLightFunctionParentForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     args: Vector[Option[CoordT]]):
   IEvaluateFunctionResult = {
@@ -225,7 +225,7 @@ class FunctionCompiler(
   def evaluateGenericLightFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     args: Vector[CoordT]):

@@ -14,7 +14,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.types._
 import dev.vale.typing.ast
-import dev.vale.typing.names.FunctionDefaultRegionNameT
+import dev.vale.typing.names.DenizenDefaultRegionNameT
 
 
 class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFunctionBodyMacro {
@@ -32,7 +32,7 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,

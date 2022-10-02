@@ -32,7 +32,7 @@ class LocalHelper(
     life: LocationInFunctionEnvironment,
     coord: CoordT):
   ReferenceLocalVariableT = {
-    val varId = nenv.functionEnvironment.fullName.addStep(interner.intern(TypingPassTemporaryVarNameT(life)))
+    val varId = nenv.functionEnvironment.id.addStep(interner.intern(TypingPassTemporaryVarNameT(life)))
     val rlv = ReferenceLocalVariableT(varId, FinalT, coord)
     nenv.addVariable(rlv)
     rlv

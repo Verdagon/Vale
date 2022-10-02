@@ -34,15 +34,15 @@ class AsSubtypeMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
 
-    val CoordTemplata(CoordT(_, _, targetKind)) = vassertSome(env.fullName.localName.templateArgs.headOption)
-    val CoordT(incomingOwnership, _, _) = vassertSome(env.fullName.localName.parameters.headOption)
+    val CoordTemplata(CoordT(_, _, targetKind)) = vassertSome(env.id.localName.templateArgs.headOption)
+    val CoordT(incomingOwnership, _, _) = vassertSome(env.id.localName.parameters.headOption)
 
     val incomingCoord = paramCoords(0).tyype
     val incomingKind = incomingCoord.kind

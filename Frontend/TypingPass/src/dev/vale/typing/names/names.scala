@@ -150,7 +150,7 @@ sealed trait IImplNameT extends IInstantiationNameT {
 sealed trait IRegionNameT extends INameT
 
 case class RegionNameT(rune: IRuneS) extends IRegionNameT
-case class FunctionDefaultRegionNameT(function: IdT[IFunctionNameT]) extends IRegionNameT
+case class DenizenDefaultRegionNameT() extends IRegionNameT
 
 case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
 case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationNameT {

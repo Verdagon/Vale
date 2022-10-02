@@ -3,7 +3,7 @@ package dev.vale.typing.types
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
-import dev.vale.typing.env.IEnvironment
+import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
@@ -208,7 +208,7 @@ case class InterfaceTT(fullName: IdT[IInterfaceNameT]) extends ICitizenTT with I
 // See ROS.
 // Lowers to an empty struct.
 case class OverloadSetT(
-  env: IEnvironment,
+  env: IInDenizenEnvironment,
   // The name to look for in the environment.
   name: IImpreciseNameS
 ) extends KindT with IInterning {

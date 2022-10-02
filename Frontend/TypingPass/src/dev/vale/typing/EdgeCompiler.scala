@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.RuneUsage
 import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, U, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 import dev.vale.postparsing.{CoordTemplataType, GlobalFunctionFamilyNameS, IImpreciseNameS, IRuneS, ITemplataType, KindTemplataType, ReachablePrototypeRuneS, RuneNameS}
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
-import dev.vale.typing.env.{GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{GeneralEnvironment, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.ImplCompiler
@@ -59,7 +59,7 @@ class EdgeCompiler(
         val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
         val overridingCitizenToFoundFunction =
           overridingImpls.map(overridingImpl => {
-            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateFullName
+            val overridingCitizenTemplateFullName = overridingImpl.subCitizenTemplateId
             val superInterfaceWithSubCitizenPlaceholders = overridingImpl.superInterface
 
 
@@ -81,7 +81,7 @@ class EdgeCompiler(
             vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
             val edge =
               EdgeT(
-                overridingImpl.instantiatedFullName,
+                overridingImpl.instantiatedId,
                 overridingCitizen,
                 overridingImpl.superInterface.fullName,
                 overridingImpl.runeToFuncBound,
@@ -151,7 +151,7 @@ class EdgeCompiler(
   def createOverridePlaceholderMimicking(
     coutputs: CompilerOutputs,
     originalTemplataToMimic: ITemplata[ITemplataType],
-    dispatcherOuterEnv: IEnvironment,
+    dispatcherOuterEnv: IInDenizenEnvironment,
     index: Int):
   ITemplata[ITemplataType] = {
     // Need New Special Placeholders for Abstract Function Override Case (NNSPAFOC)
@@ -193,7 +193,7 @@ class EdgeCompiler(
     val placeholderName =
       interner.intern(PlaceholderNameT(
         interner.intern(PlaceholderTemplateNameT(index))))
-    val placeholderFullName = dispatcherOuterEnv.fullName.addStep(placeholderName)
+    val placeholderFullName = dispatcherOuterEnv.id.addStep(placeholderName)
     // And, because it's new, we need to declare it and its environment.
     val placeholderTemplateFullName =
       TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
@@ -228,8 +228,8 @@ class EdgeCompiler(
   private def lookForOverride(
     coutputs: CompilerOutputs,
     impl: ImplT,
-    interfaceTemplateFullName: IdT[IInterfaceTemplateNameT],
-    subCitizenTemplateFullName: IdT[ICitizenTemplateNameT],
+    interfaceTemplateId: IdT[IInterfaceTemplateNameT],
+    subCitizenTemplateId: IdT[ICitizenTemplateNameT],
     abstractFunctionPrototype: PrototypeT,
     abstractIndex: Int):
   OverrideT = {
@@ -253,7 +253,7 @@ class EdgeCompiler(
       coutputs.getOuterEnvForFunction(abstractFuncTemplateFullName)
 
     val dispatcherTemplateName =
-      interner.intern(OverrideDispatcherTemplateNameT(impl.templateFullName))
+      interner.intern(OverrideDispatcherTemplateNameT(impl.templateId))
     val dispatcherTemplateFullName =
       abstractFuncTemplateFullName.addStep(dispatcherTemplateName)
     val dispatcherOuterEnv =
@@ -279,7 +279,7 @@ class EdgeCompiler(
     // Note that these placeholder indexes might not line up with the ones from the original impl.
     val implPlaceholderToDispatcherPlaceholder =
       U.mapWithIndex[ITemplata[ITemplataType], (IdT[PlaceholderNameT], ITemplata[ITemplataType])](
-        impl.instantiatedFullName.localName.templateArgs.toVector
+        impl.instantiatedId.localName.templateArgs.toVector
         .zip(impl.runeIndexToIndependence)
         .filter({ case (templata, independent) => !independent }) // Only grab dependent runes
         .map({ case (templata, independent) => templata }),
@@ -342,7 +342,7 @@ class EdgeCompiler(
         interner,
         dispatcherOuterEnv,
         dispatcherFullName,
-        dispatcherInnerInferences
+        newEntriesList = dispatcherInnerInferences
           .map({ case (nameS, templata) =>
             interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
           }).toVector)
@@ -354,7 +354,7 @@ class EdgeCompiler(
     val implRuneToImplPlaceholderAndCasePlaceholder =
       U.mapWithIndex[(IRuneS, ITemplata[ITemplataType]), (IRuneS, IdT[PlaceholderNameT], ITemplata[ITemplataType])](
         impl.templata.impl.genericParams.map(_.rune.rune).toVector
-          .zip(impl.instantiatedFullName.localName.templateArgs.toIterable)
+          .zip(impl.instantiatedId.localName.templateArgs.toIterable)
           .zip(impl.runeIndexToIndependence)
           .filter({ case ((rune, templata), independent) => independent }) // Only grab independent runes for the case
           .map({ case ((rune, templata), independent) => rune -> templata }),
@@ -448,11 +448,11 @@ class EdgeCompiler(
       GeneralEnvironment.childOf(
         interner,
         dispatcherInnerEnv,
-        dispatcherInnerEnv.fullName.addStep(
+        dispatcherInnerEnv.id.addStep(
           interner.intern(
             OverrideDispatcherCaseNameT(implRuneToCasePlaceholder.map(_._2)))),
         // See IBFCS, ONBIFS and NBIFP for why we need these bounds in our env here.
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, num) =>
+        newEntriesList = reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, num) =>
           interner.intern(RuneNameT(ReachablePrototypeRuneS(num))) -> TemplataEnvEntry(templata)
         }))
 
@@ -481,8 +481,8 @@ class EdgeCompiler(
         Vector.empty,
         overrideFunctionParamTypes,
         Vector(
-          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), interfaceTemplateFullName),
-          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), subCitizenTemplateFullName)),
+          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), interfaceTemplateId),
+          coutputs.getOuterEnvForType(List(range, impl.templata.impl.range), subCitizenTemplateId)),
         true,
         true) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(List(range, impl.templata.impl.range), e))
@@ -497,7 +497,7 @@ class EdgeCompiler(
       implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds,
       dispatcherRuneToFunctionBound,
       dispatcherRuneToImplBound,
-      dispatcherCaseEnv.fullName,
+      dispatcherCaseEnv.id,
       foundFunction.prototype.prototype)
   }
 

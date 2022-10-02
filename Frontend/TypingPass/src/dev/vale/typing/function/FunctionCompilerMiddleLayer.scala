@@ -7,7 +7,7 @@ import dev.vale.postparsing.patterns.AbstractSP
 import dev.vale.typing.{AbstractMethodOutsideOpenInterface, CompileErrorExceptionT, CompilerOutputs, ConvertHelper, FunctionAlreadyExists, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast, env}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionHeaderT, FunctionDefinitionT, ParameterT, PrototypeT, SealedT, SignatureT}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, ExpressionLookupContext, FunctionEnvironment, IEnvironment, TemplataLookupContext}
+import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, ExpressionLookupContext, FunctionEnvironment, IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, IdT, IFunctionNameT, IFunctionTemplateNameT, NameTranslator, TypingIgnoredParamNameT}
 import dev.vale.typing.templata.CoordTemplata
@@ -62,7 +62,7 @@ class FunctionCompilerMiddleLayer(
 //  }
 
   private def evaluateMaybeVirtuality(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     paramKind: KindT,
@@ -84,7 +84,7 @@ class FunctionCompilerMiddleLayer(
             // with the interface.
             // For example, InterfaceFreeMacro will look at mymod.MyInterface and conjure a
             // mymod.MyInterface.free function.
-            if (env.fullName.steps.init != TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName).steps) {
+            if (env.id.steps.init != TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName).steps) {
               throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS :: parentRanges))
             }
           }
@@ -127,16 +127,16 @@ class FunctionCompilerMiddleLayer(
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.fullName)//, params2)
+    val banner = ast.FunctionBannerT(Some(namedEnv.templata), namedEnv.id)//, params2)
 
     coutputs.lookupFunction(SignatureT(banner.name)) match {
       case Some(FunctionDefinitionT(header, _, _, _)) => {
         PrototypeTemplata(function1.range, header.toPrototype)
       }
       case None => {
-        coutputs.declareFunction(callRange, namedEnv.fullName)
-        coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
-        coutputs.declareFunctionInnerEnv(namedEnv.fullName, runedEnv)
+        coutputs.declareFunction(callRange, namedEnv.id)
+        coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
+        coutputs.declareFunctionInnerEnv(namedEnv.id, runedEnv)
 
         val header =
           core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
@@ -176,7 +176,7 @@ class FunctionCompilerMiddleLayer(
 
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params);
 
-    val functionFullName = assembleName(runedEnv.fullName, runedEnv.templateArgs, paramTypes2)
+    val functionFullName = assembleName(runedEnv.id, runedEnv.templateArgs, paramTypes2)
     val needleSignature = SignatureT(functionFullName)
     coutputs.lookupFunction(needleSignature) match {
       case Some(FunctionDefinitionT(header, _, _, _)) => {
@@ -184,7 +184,7 @@ class FunctionCompilerMiddleLayer(
       }
       case None => {
         coutputs.declareFunction(callRange, functionFullName)
-        coutputs.declareFunctionOuterEnv(outerEnv.fullName, outerEnv)
+        coutputs.declareFunctionOuterEnv(outerEnv.id, outerEnv)
         coutputs.declareFunctionInnerEnv(functionFullName, runedEnv)
 
         val params2 = assembleFunctionParams(runedEnv, coutputs, callRange, function1.params)
@@ -269,7 +269,7 @@ class FunctionCompilerMiddleLayer(
 
 
   private def evaluateFunctionParamTypes(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     params1: Vector[ParameterS]):
   Vector[CoordT] = {
     params1.map(param1 => {
@@ -284,7 +284,7 @@ class FunctionCompilerMiddleLayer(
   }
 
   def assembleFunctionParams(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     params1: Vector[ParameterS]):
@@ -352,7 +352,7 @@ class FunctionCompilerMiddleLayer(
 
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, params2.map(_.tyype), maybeReturnType)
-    val banner = ast.FunctionBannerT(Some(functionTemplata), namedEnv.fullName)//, params2)
+    val banner = ast.FunctionBannerT(Some(functionTemplata), namedEnv.id)//, params2)
     banner
   }
 
@@ -374,7 +374,7 @@ class FunctionCompilerMiddleLayer(
     val paramTypes2 = evaluateFunctionParamTypes(runedEnv, function1.params)
     val maybeReturnType = getMaybeReturnType(runedEnv, function1.maybeRetCoordRune.map(_.rune))
     val namedEnv = makeNamedEnv(runedEnv, paramTypes2, maybeReturnType)
-    val needleSignature = SignatureT(namedEnv.fullName)
+    val needleSignature = SignatureT(namedEnv.id)
 
     //    coutputs.getDeclaredSignatureOrigin(needleSignature) match {
     //      case None => {
@@ -478,6 +478,7 @@ class FunctionCompilerMiddleLayer(
     FunctionEnvironment(
       globalEnv,
       parentEnv,
+      templateName,
       fullName,
       templatas,
       function,

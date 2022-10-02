@@ -11,8 +11,8 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{IRegionNameT, IdT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, SelfNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
@@ -37,7 +37,7 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     region: IdT[IRegionNameT],
     range: List[RangeS],
     rulesA: Vector[IRulexSR],
@@ -219,7 +219,7 @@ class ArrayCompiler(
 
   def evaluateStaticSizedArrayFromValues(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     range: List[RangeS],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
@@ -365,10 +365,14 @@ class ArrayCompiler(
       prototype)
   }
 
-  def compileStaticSizedArray(globalEnv: GlobalEnvironment, coutputs: CompilerOutputs): Unit = {
+  def compileStaticSizedArray(
+    globalEnv: GlobalEnvironment,
+    coutputs: CompilerOutputs):
+  Unit = {
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
+    val defaultRegion = templateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -377,9 +381,11 @@ class ArrayCompiler(
     val arrayOuterEnv =
       CitizenEnvironment(
         globalEnv,
-        PackageEnvironment(globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
+        PackageEnvironment(
+          globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateFullName,
         templateFullName,
+        defaultRegion,
         TemplatasStore(templateFullName, Map(), Map()))
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
@@ -395,7 +401,7 @@ class ArrayCompiler(
 
     val arrayInnerEnv =
       arrayOuterEnv.copy(
-        fullName = fullName,
+        id = fullName,
         templatas = arrayOuterEnv.templatas.copy(templatasStoreName = fullName))
     coutputs.declareTypeInnerEnv(templateFullName, arrayInnerEnv)
   }
@@ -418,10 +424,15 @@ class ArrayCompiler(
             mutability, type2)))))))
   }
 
-  def compileRuntimeSizedArray(globalEnv: GlobalEnvironment, coutputs: CompilerOutputs): Unit = {
+  def compileRuntimeSizedArray(
+    globalEnv: GlobalEnvironment,
+    coutputs: CompilerOutputs):
+  Unit = {
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
+    val defaultRegion =
+      templateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -433,6 +444,7 @@ class ArrayCompiler(
         PackageEnvironment(globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateFullName,
         templateFullName,
+        defaultRegion,
         TemplatasStore(templateFullName, Map(), Map()))
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
@@ -447,7 +459,7 @@ class ArrayCompiler(
 
     val arrayInnerEnv =
       arrayOuterEnv.copy(
-        fullName = fullName,
+        id = fullName,
         templatas = arrayOuterEnv.templatas.copy(templatasStoreName = fullName))
     coutputs.declareTypeInnerEnv(templateFullName, arrayInnerEnv)
   }
