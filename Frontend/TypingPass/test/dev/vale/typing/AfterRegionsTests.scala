@@ -116,7 +116,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("main").header.returnType match {
-      case CoordT(_,StrT()) =>
+      case CoordT(_,_,StrT()) =>
     }
   }
 
@@ -139,7 +139,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     coutputs.lookupFunction("main").header.returnType match {
-      case CoordT(ShareT, BoolT()) =>
+      case CoordT(ShareT, _,BoolT()) =>
     }
 
 //    coutputs.lookupFunction("swap").header.fullName.last.templateArgs.last match {
@@ -169,7 +169,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("bork").header.fullName.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(OwnT, _)) =>
+      case CoordTemplata(CoordT(OwnT, _,_)) =>
     }
   }
 
@@ -198,7 +198,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("genericGetFuel").header.fullName.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
+      case CoordTemplata(CoordT(_,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
     }
   }
 
@@ -259,12 +259,13 @@ class AfterRegionsTests extends FunSuite with Matchers {
     variable.coord match {
       case CoordT(
       OwnT,
+      _,
       StructTT(
       IdT(_,_,
       StructNameT(
       StructTemplateNameT(StrI("MyHashSet")),
       Vector(
-      CoordTemplata(CoordT(ShareT,BoolT())),
+      CoordTemplata(CoordT(ShareT,_,BoolT())),
       IntegerTemplata(5)))))) =>
     }
   }
@@ -283,12 +284,13 @@ class AfterRegionsTests extends FunSuite with Matchers {
     tyype match {
       case CoordT(
       OwnT,
+      _,
       InterfaceTT(
       IdT(_,_,
       InterfaceNameT(
       InterfaceTemplateNameT(StrI("MyInterface")),
       Vector(
-      CoordTemplata(CoordT(ShareT,BoolT())),
+      CoordTemplata(CoordT(ShareT,_,BoolT())),
       IntegerTemplata(5)))))) =>
     }
   }

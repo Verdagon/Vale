@@ -3,7 +3,7 @@ package dev.vale.typing.macros.rsa
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.CompilerOutputs
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, RuntimeSizedArrayCapacityTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE, RuntimeSizedArrayCapacityTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata.{CoordTemplata, MutabilityTemplata}
@@ -14,6 +14,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.types._
 import dev.vale.typing.ast
+import dev.vale.typing.names.FunctionDefaultRegionNameT
 
 
 class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IFunctionBodyMacro {
@@ -31,7 +32,12 @@ class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IF
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
 
 //    val CoordTemplata(elementType) =
 //      vassertSome(

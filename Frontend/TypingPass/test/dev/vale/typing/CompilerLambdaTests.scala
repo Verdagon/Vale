@@ -34,9 +34,10 @@ class CompilerLambdaTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
+    val main = coutputs.lookupLambdaIn("main")
     // Make sure it inferred the param type and return type correctly
-    coutputs.lookupLambdaIn("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
-    coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
+    main.header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
+    main.header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
   }
 
   test("Lambda with one magic arg") {
@@ -49,10 +50,10 @@ class CompilerLambdaTests extends FunSuite with Matchers {
 
     // Make sure it inferred the param type and return type correctly
     Collector.only(coutputs.lookupLambdaIn("main"),
-      { case ParameterT(_, None, CoordT(ShareT, IntT.i32)) => })
+      { case ParameterT(_, None, CoordT(ShareT, _, IntT.i32)) => })
 
     coutputs.lookupLambdaIn("main").header.returnType shouldEqual
-      CoordT(ShareT, IntT.i32)
+      CoordT(ShareT, vimpl(), IntT.i32)
   }
 
   test("Lambda is reused") {
@@ -128,7 +129,7 @@ class CompilerLambdaTests extends FunSuite with Matchers {
     val lambda = coutputs.lookupLambdaIn("main");
 
     // Check that the param type is right
-    Collector.only(lambda, { case ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, IntT.i32)) => {} })
+    Collector.only(lambda, { case ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, _, IntT.i32)) => {} })
     // Check the name is right
     vassert(coutputs.nameIsLambdaIn(lambda.header.fullName, "main"))
 

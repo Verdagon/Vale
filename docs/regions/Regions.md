@@ -106,6 +106,62 @@ int {
 Just don't think of them as generic params. Think of them more like permissions (like c++ const) which are tied to the specific function. It's like the function has its own permissions.
 
 
+# Returning Directly Into A Region (RDIAR)
+
+Take this clone function:
+
+```
+func clone<E>(list &List<E>) List<E>
+where func clone(&E)E {
+  return List<E>(Array<mut, E>(list.len(), { list.get(_).clone() }));
+}
+```
+
+If we're to regionize it, it's unclear how we'd handle that returned `List<E>`.
+
+We have a few options:
+
+ * Require any returned value to be an iso, like `iso List<E>`.
+ * Have it be part of `clone`'s own region, and then implicitly copy/transmigrate it at the end.
+ * Take the "output region" in as a region parameter.
+
+That third one is the most promising. An example:
+
+```
+pure func clone<'o, 'l, E>(list 'l &List<E>) 'o List<E>
+where pure func clone<'e, 'o>('e &E) 'o E 'c {
+  return 'o List<E>(Array<mut, E>(list.len(), { list.get(_).clone() }));
+}
+```
+
+We're taking the output region in as a parameter (`'o`). Now, the caller can specify where they want it to go. This means they can put it into a new region of their choice and then merge it in later.
+
+
+# Inferring Regions For Pure Functions (IRFPF)
+
+Take this clone function:
+
+```
+pure func clone<'o, 'l, E>(list 'l &List<E>) 'o List<E>
+where pure func clone<'e, 'o>('e &E) 'o E 'c {
+  return 'o List<E>(Array<mut, E>(list.len(), { list.get(_).clone() }));
+}
+```
+
+A lot of functions kind of look like this, where they have a region for every parameter (minus perhaps the primitives) and another region for the return.
+
+Let's make that automatic for pure functions. It then becomes:
+
+```
+pure func clone<E>(list &List<E>) List<E>
+where pure func clone(&E)E {
+  return List<E>(Array<mut, E>(list.len(), { list.get(_).clone() }));
+}
+```
+
+We might need some annotations if we want to return a reference to one of the parameters, or something inside them that isn't a generic parameter.
+
+
 # Concept Functions Can Have Regions (CFCHR)
 
 Take this struct:
@@ -139,6 +195,38 @@ where pure func<'x>('x &H, 'x &K)int,
 ```
 
 One would *think* that this means we need generic concept functions. However, we don't, because of RAAGP.
+
+
+# Specifying Regions In Expressions (SRIE)
+
+Let's say we have this ship:
+
+```
+struct Ship { fuel int; }
+```
+
+Making a new region:
+
+```
+region 'a;
+```
+
+Putting something into that new region:
+
+```
+list = 'a List<'a Ship>(0);
+```
+
+The `'a` in front is actually specifying the output region. Without it, it would assume the function's default region.
+
+The `'a` in front won't affect any of the arguments. It's an arbitrary decision, we can change it later.
+
+The `'a` in the `'a Ship` is needed for now. We'll see if we can infer it later.
+
+
+
+
+
 
 
 

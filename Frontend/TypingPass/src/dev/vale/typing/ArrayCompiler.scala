@@ -12,7 +12,7 @@ import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{IdT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, SelfNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT}
+import dev.vale.typing.names.{IRegionNameT, IdT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, SelfNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
@@ -38,6 +38,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: IEnvironment,
+    region: IdT[IRegionNameT],
     range: List[RangeS],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
@@ -91,7 +92,7 @@ class ArrayCompiler(
       }
     })
 
-    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, callableTE, prototype)
+    val expr2 = ast.StaticArrayFromCallableTE(ssaMT, region, callableTE, prototype)
     expr2
   }
 
@@ -99,6 +100,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     callingEnv: NodeEnvironment,
     range: List[RangeS],
+    region: IdT[IRegionNameT],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
@@ -156,7 +158,7 @@ class ArrayCompiler(
           }
         })
 
-        NewImmRuntimeSizedArrayTE(rsaMT, sizeTE, callableTE, prototype)
+        NewImmRuntimeSizedArrayTE(rsaMT, region, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplata(MutableT) => {
         val EvaluateFunctionSuccess(prototype, conclusions) =
@@ -216,17 +218,18 @@ class ArrayCompiler(
   }
 
   def evaluateStaticSizedArrayFromValues(
-      coutputs: CompilerOutputs,
-      callingEnv: IEnvironment,
-      range: List[RangeS],
-      rulesA: Vector[IRulexSR],
-      maybeElementTypeRuneA: Option[IRuneS],
-      sizeRuneA: IRuneS,
-      mutabilityRuneA: IRuneS,
-      variabilityRuneA: IRuneS,
-      exprs2: Vector[ReferenceExpressionTE],
-      verifyConclusions: Boolean):
-   StaticArrayFromValuesTE = {
+    coutputs: CompilerOutputs,
+    callingEnv: IEnvironment,
+    range: List[RangeS],
+    rulesA: Vector[IRulexSR],
+    maybeElementTypeRuneA: Option[IRuneS],
+    sizeRuneA: IRuneS,
+    mutabilityRuneA: IRuneS,
+    variabilityRuneA: IRuneS,
+    exprs2: Vector[ReferenceExpressionTE],
+    region: IdT[IRegionNameT],
+    verifyConclusions: Boolean):
+  StaticArrayFromValuesTE = {
     val runeToType =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
@@ -280,7 +283,6 @@ class ArrayCompiler(
         case PlaceholderTemplata(_, MutabilityTemplataType()) => OwnT
       }
 
-    val region = vimpl()
     val ssaCoord = CoordT(ownership, region, staticSizedArrayType)
 
     val finalExpr =

@@ -1,7 +1,7 @@
 package dev.vale.instantiating
 
 import dev.vale.options.GlobalOptions
-import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
+import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
 import dev.vale.typing.TemplataCompiler.{getTopLevelDenizenFullName, substituteTemplatasInKind}
 import dev.vale.typing.{Hinputs, InstantiationBoundArguments, TemplataCompiler}
@@ -1124,7 +1124,7 @@ class Instantiator(
   }
 
   def translateFunctionHeader(header: FunctionHeaderT): FunctionHeaderT = {
-    val FunctionHeaderT(fullName, attributes, params, returnType, maybeOriginFunctionTemplata) = header
+    val FunctionHeaderT(fullName, attributes, regions, params, returnType, maybeOriginFunctionTemplata) = header
 
     val newFullName = translateFunctionFullName(fullName)
 
@@ -1132,6 +1132,7 @@ class Instantiator(
       FunctionHeaderT(
         newFullName,
         attributes,
+        vregion(regions),
         params.map(translateParameter),
         translateCoord(returnType),
         maybeOriginFunctionTemplata)
@@ -1151,7 +1152,7 @@ class Instantiator(
   FunctionDefinitionT = {
     val FunctionDefinitionT(headerT, _, _, bodyT) = functionT
 
-    val FunctionHeaderT(fullName, attributes, params, returnType, maybeOriginFunctionTemplata) = headerT
+    val FunctionHeaderT(fullName, attributes, regions, params, returnType, maybeOriginFunctionTemplata) = headerT
 
     val newFullName = translateFunctionFullName(fullName)
 
@@ -1252,15 +1253,15 @@ class Instantiator(
         case BlockTE(inner) => BlockTE(translateRefExpr(inner))
         case ReturnTE(inner) => ReturnTE(translateRefExpr(inner))
         case ConsecutorTE(inners) => ConsecutorTE(inners.map(translateRefExpr))
-        case ConstantIntTE(value, bits) => {
-          ConstantIntTE(ITemplata.expectIntegerTemplata(translateTemplata(value)), bits)
+        case ConstantIntTE(value, bits, region) => {
+          ConstantIntTE(ITemplata.expectIntegerTemplata(translateTemplata(value)), bits, vregion(region))
         }
-        case ConstantStrTE(value) => ConstantStrTE(value)
-        case ConstantBoolTE(value) => ConstantBoolTE(value)
-        case ConstantFloatTE(value) => ConstantFloatTE(value)
+        case ConstantStrTE(value, region) => ConstantStrTE(value, vregion(region))
+        case ConstantBoolTE(value, region) => ConstantBoolTE(value, vregion(region))
+        case ConstantFloatTE(value, region) => ConstantFloatTE(value, vregion(region))
         case UnletTE(variable) => UnletTE(translateLocalVariable(variable))
         case DiscardTE(expr) => DiscardTE(translateRefExpr(expr))
-        case VoidLiteralTE() => VoidLiteralTE()
+        case VoidLiteralTE(region) => VoidLiteralTE(vregion(region))
         case FunctionCallTE(prototypeT, args) => {
           val prototype = translatePrototype(prototypeT)
           FunctionCallTE(
@@ -1435,7 +1436,7 @@ class Instantiator(
         case WhileTE(BlockTE(inner)) => {
           WhileTE(BlockTE(translateRefExpr(inner)))
         }
-        case BreakTE() => BreakTE()
+        case BreakTE(region) => BreakTE(vregion(region))
         case LockWeakTE(innerExpr, resultOptBorrowType, someConstructor, noneConstructor, someImplUntranslatedFullName, noneImplUntranslatedFullName) => {
           LockWeakTE(
             translateRefExpr(innerExpr),
@@ -1458,12 +1459,13 @@ class Instantiator(
             translateRefExpr(consumer),
             translatePrototype(consumerMethod))
         }
-        case NewImmRuntimeSizedArrayTE(arrayType, sizeExpr, generator, generatorMethod) => {
+        case NewImmRuntimeSizedArrayTE(arrayType, region, sizeExpr, generator, generatorMethod) => {
           //          val freePrototype = translatePrototype(freePrototypeT)
 
           val result =
             NewImmRuntimeSizedArrayTE(
               translateRuntimeSizedArray(arrayType),
+              vregion(region),
               translateRefExpr(sizeExpr),
               translateRefExpr(generator),
               translatePrototype(generatorMethod))
@@ -1479,12 +1481,13 @@ class Instantiator(
 
           result
         }
-        case StaticArrayFromCallableTE(arrayType, generator, generatorMethod) => {
+        case StaticArrayFromCallableTE(arrayType, region, generator, generatorMethod) => {
           //          val freePrototype = translatePrototype(freePrototypeT)
 
           val result =
             StaticArrayFromCallableTE(
               translateStaticSizedArray(arrayType),
+              vregion(region),
               translateRefExpr(generator),
               translatePrototype(generatorMethod))
 
@@ -1524,9 +1527,10 @@ class Instantiator(
         case DestroyMutRuntimeSizedArrayTE(arrayExpr) => {
           DestroyMutRuntimeSizedArrayTE(translateRefExpr(arrayExpr))
         }
-        case NewMutRuntimeSizedArrayTE(arrayType, capacityExpr) => {
+        case NewMutRuntimeSizedArrayTE(arrayType, region, capacityExpr) => {
           NewMutRuntimeSizedArrayTE(
             translateRuntimeSizedArray(arrayType),
+            vregion(region),
             translateRefExpr(capacityExpr))
         }
         case TupleTE(elements, resultReference) => {
@@ -1685,7 +1689,7 @@ class Instantiator(
   def translateCoord(
     coord: CoordT):
   CoordT = {
-    val CoordT(ownership, kind) = coord
+    val CoordT(ownership, region, kind) = coord
     kind match {
       case PlaceholderT(placeholderFullName @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(_)))) => {
         // Let's get the index'th placeholder from the top level denizen.
@@ -1694,7 +1698,7 @@ class Instantiator(
         // see LHPCTLD.
 
         vassertSome(placeholderFullNameToTemplata.get(placeholderFullName)) match {
-          case CoordTemplata(CoordT(innerOwnership, kind)) => {
+          case CoordTemplata(CoordT(innerOwnership, innerRegion, kind)) => {
             val combinedOwnership =
               (ownership, innerOwnership) match {
                 case (OwnT, OwnT) => OwnT
@@ -1711,9 +1715,9 @@ class Instantiator(
                 case (OwnT, ShareT) => ShareT
                 case other => vwat(other)
               }
-            CoordT(combinedOwnership, kind)
+            CoordT(combinedOwnership, vimpl(), kind)
           }
-          case KindTemplata(kind) => CoordT(ownership, kind)
+          case KindTemplata(kind) => CoordT(ownership, vimpl(), kind)
         }
       }
       case other => {
@@ -1727,7 +1731,7 @@ class Instantiator(
             case (_, ImmutableT) => ShareT
             case (other, MutableT) => other
           }
-        CoordT(newOwnership, translateKind(other))
+        CoordT(newOwnership, vimpl(), translateKind(other))
       }
     }
   }

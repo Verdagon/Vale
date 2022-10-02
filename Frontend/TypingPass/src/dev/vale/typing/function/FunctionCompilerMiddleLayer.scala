@@ -465,8 +465,25 @@ class FunctionCompilerMiddleLayer(
     maybeReturnType: Option[CoordT]):
   FunctionEnvironment = {
     val BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      globalEnv, parentEnv, templateName, templateArgs, templatas, function, variables, isRootCompilingDenizen) = runedEnv
+      globalEnv,
+      parentEnv,
+      templateName,
+      templateArgs,
+      templatas,
+      function,
+      variables,
+      isRootCompilingDenizen,
+      defaultRegion) = runedEnv
     val fullName = assembleName(templateName, templateArgs, paramTypes)
-    FunctionEnvironment(globalEnv, parentEnv, fullName, templatas, function, maybeReturnType, variables, isRootCompilingDenizen)
+    FunctionEnvironment(
+      globalEnv,
+      parentEnv,
+      fullName,
+      templatas,
+      function,
+      maybeReturnType,
+      variables,
+      isRootCompilingDenizen,
+      defaultRegion)
   }
 }

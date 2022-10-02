@@ -51,7 +51,7 @@ class TypeHammer(
       hamuts: HamutsBox,
       coord: CoordT):
   (CoordH[KindHT]) = {
-    val CoordT(ownership, innerType) = coord;
+    val CoordT(ownership, region, innerType) = coord;
     val location = {
       (ownership, innerType) match {
         case (OwnT, _) => YonderH

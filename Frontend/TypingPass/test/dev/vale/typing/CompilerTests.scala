@@ -15,8 +15,8 @@ import dev.vale.Collector.ProgramWithExpect
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
-import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionHeaderT, FunctionDefinitionT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionNameT, FunctionTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -54,7 +54,7 @@ class CompilerTests extends FunSuite with Matchers {
         |exported func main() int { return -3; }
         |""".stripMargin)
     val main = compile.expectCompilerOutputs().lookupFunction("main")
-    Collector.only(main, { case ConstantIntTE(IntegerTemplata(-3), _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(-3), _, _) => true })
   }
 
   test("Simple local") {
@@ -80,7 +80,7 @@ class CompilerTests extends FunSuite with Matchers {
     val main = compile.expectCompilerOutputs().lookupFunction("main")
     main shouldHave {
       case LetNormalTE(
-        ReferenceLocalVariableT(_,_,CoordT(ShareT,NeverT(false))),
+        ReferenceLocalVariableT(_,_,CoordT(ShareT,_,NeverT(false))),
         _) =>
     }
   }
@@ -91,10 +91,10 @@ class CompilerTests extends FunSuite with Matchers {
         |func main(a int) int { return a; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-    Collector.onlyOf(coutputs.lookupFunction("main"), classOf[ParameterT]).tyype == CoordT(ShareT, IntT.i32)
+    Collector.onlyOf(coutputs.lookupFunction("main"), classOf[ParameterT]).tyype == CoordT(ShareT, vimpl(), IntT.i32)
     val lookup = Collector.onlyOf(coutputs.lookupFunction("main"), classOf[LocalLookupTE]);
     lookup.localVariable.id.localName match { case CodeVarNameT(StrI("a")) => }
-    lookup.localVariable.coord match { case CoordT(ShareT, IntT.i32) => }
+    lookup.localVariable.coord match { case CoordT(ShareT, _, IntT.i32) => }
   }
 
   test("Tests adding two numbers") {
@@ -106,14 +106,14 @@ class CompilerTests extends FunSuite with Matchers {
           |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    Collector.only(main, { case ConstantIntTE(IntegerTemplata(2), _) => true })
-    Collector.only(main, { case ConstantIntTE(IntegerTemplata(3), _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(2), _, _) => true })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(3), _, _) => true })
     Collector.only(main, {
       case FunctionCallTE(
         functionName("+"),
         Vector(
-          ConstantIntTE(IntegerTemplata(2), _),
-          ConstantIntTE(IntegerTemplata(3), _))) =>
+          ConstantIntTE(IntegerTemplata(2), _, _),
+          ConstantIntTE(IntegerTemplata(3), _, _))) =>
     })
   }
 
@@ -214,7 +214,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     // Make sure it inferred the param type and return type correctly
-    coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, IntT.i32)
+    coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
   }
 
   test("Test overloads") {
@@ -222,7 +222,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     coutputs.lookupFunction("main").header.returnType shouldEqual
-      CoordT(ShareT, IntT.i32)
+      CoordT(ShareT, vimpl(), IntT.i32)
   }
 
   test("Test readonly UFCS") {
@@ -259,7 +259,7 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
 
-    coutputs.functions.collect({ case x @ functionName("do") => x }).head.header.returnType shouldEqual CoordT(ShareT, IntT.i32)
+    coutputs.functions.collect({ case x @ functionName("do") => x }).head.header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
   }
 
   test("Simple struct") {
@@ -282,7 +282,7 @@ class CompilerTests extends FunSuite with Matchers {
         _,
         false,
         MutabilityTemplata(MutableT),
-        Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT((CoordT(ShareT, IntT.i32))))),
+        Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT((CoordT(ShareT, _,IntT.i32))))),
         false,
         _,
         _) =>
@@ -292,8 +292,9 @@ class CompilerTests extends FunSuite with Matchers {
       case FunctionHeaderT(
         simpleName("MyStruct"),
         _,
-        Vector(ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, IntT.i32))),
-        CoordT(OwnT, StructTT(simpleName("MyStruct"))),
+        _,
+        Vector(ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, _, IntT.i32))),
+        CoordT(OwnT, _,StructTT(simpleName("MyStruct"))),
         _) =>
     })
     val main = coutputs.lookupFunction("main")
@@ -301,7 +302,7 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(
         PrototypeT(simpleName("MyStruct"), _),
-        Vector(ConstantIntTE(IntegerTemplata(7), _))) =>
+        Vector(ConstantIntTE(IntegerTemplata(7), _, _))) =>
     })
   }
 
@@ -437,7 +438,7 @@ class CompilerTests extends FunSuite with Matchers {
         IdT(_,
           Vector(StructTemplateNameT(StrI("MyStruct"))),
           CodeVarNameT(StrI("a"))),
-        CoordT(ShareT,IntT(32)),
+        CoordT(ShareT,_,IntT(32)),
         FinalT) =>
     }
   }
@@ -463,8 +464,8 @@ class CompilerTests extends FunSuite with Matchers {
             FunctionNameT(
               FunctionTemplateNameT(StrI("drop"),_),
               Vector(),
-              Vector(CoordT(OwnT,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
-          CoordT(ShareT,VoidT())), _) =>
+              Vector(CoordT(OwnT,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
+          CoordT(ShareT,_,VoidT())), _) =>
     }
   }
 
@@ -482,9 +483,11 @@ class CompilerTests extends FunSuite with Matchers {
       interner.intern(
         InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
     coutputs.lookupFunction("main").header.params.head.tyype shouldEqual
-        CoordT(BorrowT,
+        CoordT(
+          BorrowT,
+          vimpl(),
           interner.intern(
-            InterfaceTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, IntT.i32)))))))))
+            InterfaceTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, vimpl(), IntT.i32)))))))))
 
     // Can't run it because there's nothing implementing that interface >_>
   }
@@ -497,8 +500,8 @@ class CompilerTests extends FunSuite with Matchers {
     compile.getCompilerOutputs().expectErr() match {
       case BodyResultDoesntMatch(_,
         FunctionNameS(StrI("main"),_),
-        CoordT(ShareT,VoidT()),
-        CoordT(ShareT,IntT(_))) =>
+        CoordT(ShareT,_,VoidT()),
+        CoordT(ShareT,_,IntT(_))) =>
     }
   }
 
@@ -546,11 +549,11 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
     moo.header.returnType match {
-      case CoordT(OwnT,StructTT(simpleName("MyThing"))) =>
+      case CoordT(OwnT,_,StructTT(simpleName("MyThing"))) =>
     }
     val main = coutputs.lookupFunction("main")
     main.header.returnType match {
-      case CoordT(ShareT, VoidT()) =>
+      case CoordT(ShareT, _,VoidT()) =>
     }
   }
 
@@ -579,23 +582,25 @@ class CompilerTests extends FunSuite with Matchers {
           _,
           FunctionNameT(
             FunctionTemplateNameT(StrI("MySome"), _),
-            Vector(CoordTemplata(CoordT(OwnT, PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
-            Vector(CoordT(OwnT,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
+            Vector(CoordTemplata(CoordT(OwnT, _,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
+            Vector(CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
         Vector(),
+        _,
         Vector(
           ParameterT(
             CodeVarNameT(StrI("value")),
             None,
-            CoordT(OwnT,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
+            CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
         CoordT(
           OwnT,
+          _,
           StructTT(
             IdT(_,
               _,
               StructNameT(
                 StructTemplateNameT(StrI("MySome")),
                 Vector(
-                  CoordTemplata(CoordT(OwnT, PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))))))),
+                  CoordTemplata(CoordT(OwnT, _, PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))))))),
         Some(_)) =>
     }
 
@@ -610,11 +615,11 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
 
-    Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(IdT(_,_,CodeVarNameT(StrI("x"))),FinalT,CoordT(OwnT,InterfaceTT(simpleName("MyInterface")))), _) => })
+    Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(IdT(_,_,CodeVarNameT(StrI("x"))),FinalT,CoordT(OwnT,_,InterfaceTT(simpleName("MyInterface")))), _) => })
 
     val upcast = Collector.onlyOf(main, classOf[UpcastTE])
-    upcast.result.coord match { case CoordT(OwnT,InterfaceTT(IdT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("MyInterface")), Vector())))) => vassert(x.isTest) }
-    upcast.innerExpr.result.coord match { case CoordT(OwnT,StructTT(IdT(x, Vector(), StructNameT(StructTemplateNameT(StrI("MyStruct")), Vector())))) => vassert(x.isTest) }
+    upcast.result.coord match { case CoordT(OwnT,_,InterfaceTT(IdT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("MyInterface")), Vector())))) => vassert(x.isTest) }
+    upcast.innerExpr.result.coord match { case CoordT(OwnT,_,StructTT(IdT(x, Vector(), StructNameT(StructTemplateNameT(StrI("MyStruct")), Vector())))) => vassert(x.isTest) }
   }
 
   test("Tests calling a virtual function") {
@@ -658,7 +663,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
-      case f @ FunctionCallTE(PrototypeT(simpleName("doCivicDance"),CoordT(ShareT,IntT.i32)), _) => {
+      case f @ FunctionCallTE(PrototypeT(simpleName("doCivicDance"),CoordT(ShareT,_,IntT.i32)), _) => {
 //        vassert(f.callable.paramTypes == Vector(Coord(Borrow,InterfaceRef2(simpleName("Car")))))
       }
     })
@@ -705,8 +710,8 @@ class CompilerTests extends FunSuite with Matchers {
 
     Collector.only(main, {
       case ReferenceMemberLookupTE(_,
-        SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,StructTT(_)))),BorrowT),
-        IdT(_, Vector(StructTemplateNameT(StrI("Vec3i"))),CodeVarNameT(StrI("x"))),CoordT(ShareT,IntT.i32),FinalT) =>
+        SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,_,StructTT(_)))),BorrowT),
+        IdT(_, Vector(StructTemplateNameT(StrI("Vec3i"))),CodeVarNameT(StrI("x"))),CoordT(ShareT,_,IntT.i32),FinalT) =>
     })
   }
 
@@ -845,7 +850,7 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     val destructorCalls =
       Collector.all(main, {
-        case fpc @ FunctionCallTE(PrototypeT(IdT(_,Vector(StructTemplateNameT(StrI("Marine"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))))),_),_) => fpc
+        case fpc @ FunctionCallTE(PrototypeT(IdT(_,Vector(StructTemplateNameT(StrI("Marine"))),FunctionNameT(FunctionTemplateNameT(StrI("drop"),_),Vector(),Vector(CoordT(OwnT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))))),_),_) => fpc
       })
     destructorCalls.size shouldEqual 2
   }
@@ -972,8 +977,8 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.all(main, { case ReturnTE(_) => }).size shouldEqual 2
-    Collector.only(main, { case ConstantIntTE(IntegerTemplata(7), _) => })
-    Collector.only(main, { case ConstantIntTE(IntegerTemplata(9), _) => })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(7), _, _) => })
+    Collector.only(main, { case ConstantIntTE(IntegerTemplata(9), _, _) => })
   }
 
   test("Zero method anonymous interface") {
@@ -1195,16 +1200,20 @@ class CompilerTests extends FunSuite with Matchers {
   test("Humanize errors") {
     val interner = new Interner()
     val keywords = new Keywords(interner)
+    val testPackageCoord = PackageCoordinate.TEST_TLD(interner, keywords)
     val tz = List(RangeS.testZero(interner))
+    val tzCodeLoc = CodeLocationS.testZero(interner)
+    val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
+    val region = IdT(testPackageCoord, Vector(), FunctionDefaultRegionNameT(funcName))
 
     val fireflyKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
-    val fireflyCoord = CoordT(OwnT,fireflyKind)
+    val fireflyCoord = CoordT(OwnT,region,fireflyKind)
     val serenityKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Serenity")), Vector())))
-    val serenityCoord = CoordT(OwnT,serenityKind)
+    val serenityCoord = CoordT(OwnT,region,serenityKind)
     val ispaceshipKind = InterfaceTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), Vector())))
-    val ispaceshipCoord = CoordT(OwnT,ispaceshipKind)
+    val ispaceshipCoord = CoordT(OwnT,region,ispaceshipKind)
     val unrelatedKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
-    val unrelatedCoord = CoordT(OwnT,unrelatedKind)
+    val unrelatedCoord = CoordT(OwnT,region,unrelatedKind)
     val fireflyTemplateName = IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)))
     val fireflySignature = ast.SignatureT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector(), Vector(fireflyCoord)))))
     val fireflyExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
@@ -1362,7 +1371,7 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
     compile.getCompilerOutputs() match {
       case Err(ArrayElementsHaveDifferentTypes(_, types)) => {
-        types shouldEqual Set(CoordT(ShareT, IntT.i32), CoordT(ShareT, BoolT()))
+        types shouldEqual Set(CoordT(ShareT, vimpl(), IntT.i32), CoordT(ShareT, vimpl(), BoolT()))
       }
     }
   }
@@ -1485,7 +1494,7 @@ class CompilerTests extends FunSuite with Matchers {
         fff.rejectedCalleeToReason.size shouldEqual 1
         val reason = fff.rejectedCalleeToReason.head._2
         reason match {
-          case InferFailure(FailedCompilerSolve(_,_,RuleError(OwnershipDidntMatch(CoordT(OwnT,_),BorrowT)))) =>
+          case InferFailure(FailedCompilerSolve(_,_,RuleError(OwnershipDidntMatch(CoordT(OwnT,_,_),BorrowT)))) =>
           //          case SpecificParamDoesntSend(0, _, _) =>
           case other => vfail(other)
         }
@@ -1532,12 +1541,13 @@ class CompilerTests extends FunSuite with Matchers {
     tyype match {
       case CoordT(
       OwnT,
+      _,
       StructTT(
       IdT(_,_,
       StructNameT(
       StructTemplateNameT(StrI("MyHashSet")),
       Vector(
-      CoordTemplata(CoordT(ShareT,BoolT())),
+      CoordTemplata(CoordT(ShareT,_,BoolT())),
       IntegerTemplata(5)))))) =>
     }
   }
@@ -1796,16 +1806,17 @@ class CompilerTests extends FunSuite with Matchers {
         }
 
       asPrototypeTemplateArgs match {
-        case Vector(CoordTemplata(CoordT(OwnT, StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))), CoordTemplata(CoordT(OwnT,   InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))) =>
+        case Vector(CoordTemplata(CoordT(OwnT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))), CoordTemplata(CoordT(OwnT,_,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))) =>
       }
 
       asPrototypeParams match {
-        case Vector(CoordT(BorrowT,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector()))))) =>
+        case Vector(CoordT(BorrowT,_,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector()))))) =>
       }
 
       asPrototypeReturn match {
         case CoordT(
         OwnT,
+        _,
         InterfaceTT(
         IdT(
         _,
@@ -1813,12 +1824,12 @@ class CompilerTests extends FunSuite with Matchers {
         InterfaceNameT(
         InterfaceTemplateNameT(StrI("Result")),
         Vector(
-        CoordTemplata(CoordT(BorrowT,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))),
-        CoordTemplata(CoordT(BorrowT,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))))))) =>
+        CoordTemplata(CoordT(BorrowT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Raza")),Vector()))))),
+        CoordTemplata(CoordT(BorrowT,_,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))))))))) =>
       }
 
       asArg.result.coord match {
-        case CoordT(BorrowT,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))) =>
+        case CoordT(BorrowT,_,InterfaceTT(IdT(_,Vector(),InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector())))) =>
       }
     }
 
@@ -1826,13 +1837,13 @@ class CompilerTests extends FunSuite with Matchers {
       val asFunc =
         vassertOne(
           coutputs.functions.filter({
-            case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _)))), _, _, _, _), _, _, _) => true
+            case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _, _)))), _, _, _, _, _), _, _, _) => true
             case _ => false
           }))
       val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _, _, _, _) => as })
       val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor, _, _, _) = as
       sourceExpr.result.coord match {
-        case CoordT(BorrowT,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
+        case CoordT(BorrowT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
         //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
       }
       targetSubtype.kind match {
@@ -1843,6 +1854,7 @@ class CompilerTests extends FunSuite with Matchers {
         resultOptType match {
           case CoordT(
           OwnT,
+          _,
           InterfaceTT(
           IdT(
           _, Vector(),
@@ -1855,6 +1867,7 @@ class CompilerTests extends FunSuite with Matchers {
         case CoordTemplata(
         CoordT(
         BorrowT,
+        _,
         PlaceholderT(
         IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
       }
@@ -1862,6 +1875,7 @@ class CompilerTests extends FunSuite with Matchers {
         case CoordTemplata(
         CoordT(
         BorrowT,
+        _,
         PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1)))))) =>
       }
       vassert(okConstructor.paramTypes.head == targetSubtype)

@@ -2,7 +2,7 @@ package dev.vale.typing.macros.citizen
 
 import dev.vale.highertyping._
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{CallSR, CoerceToCoordSR, CoordComponentsSR, EqualsSR, IRulexSR, LookupSR, RuneUsage}
+import dev.vale.postparsing.rules._
 import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
@@ -143,22 +143,34 @@ class StructDropMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val bodyEnv = FunctionEnvironmentBox(env)
 
+    val structType = params2.head.tyype
     val structTT =
       params2.head.tyype.kind match {
         case structTT @ StructTT(_) => structTT
         case other => vwat(other)
       }
     val structDef = coutputs.lookupStruct(structTT)
-    val structOwnership =
-      structDef.mutability match {
-        case MutabilityTemplata(MutableT) => OwnT
-        case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
-      }
-    val structType = CoordT(structOwnership, structTT)
+//    val structOwnership =
+//      structDef.mutability match {
+//        case MutabilityTemplata(MutableT) => OwnT
+//        case MutabilityTemplata(ImmutableT) => ShareT
+//        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
+//      }
+//    val structType = CoordT(structOwnership, structTT)
+    structType match {
+      case CoordT(structOwnership, _, structTT) =>
+      case _ => vwat()
+    }
 
-    val ret = CoordT(ShareT, VoidT())
-    val header = ast.FunctionHeaderT(env.fullName, Vector.empty, params2, ret, Some(env.templata))
+    val ret = CoordT(ShareT, vimpl(), VoidT())
+    val header =
+      ast.FunctionHeaderT(
+        env.fullName,
+        Vector.empty,
+        vimpl(),
+        params2,
+        ret,
+        Some(env.templata))
 
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
@@ -199,7 +211,7 @@ class StructDropMacro(
                     }))
               }
             },
-            ReturnTE(VoidLiteralTE()))))
+            ReturnTE(VoidLiteralTE(vimpl())))))
     (header, body)
   }
 }

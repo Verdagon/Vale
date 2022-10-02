@@ -331,7 +331,7 @@ class AfterRegionsIntegrationTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main");
-    main.header.returnType shouldEqual CoordT(ShareT, IntT.i32)
+    main.header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }
 }

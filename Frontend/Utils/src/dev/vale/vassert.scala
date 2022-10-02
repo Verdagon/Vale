@@ -129,3 +129,11 @@ object vimpl {
     vimpl()
   }
 }
+
+// this is mainly a passthrough, and marks something that needs to be implemented or doublechecked
+// for region support
+object vregion {
+  def apply[T](obj: T): T = {
+    obj
+  }
+}

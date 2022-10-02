@@ -566,10 +566,12 @@ class Compiler(
         startingNenv: NodeEnvironment,
         nenv: NodeEnvironmentBox,
         life: LocationInFunctionEnvironment,
-      ranges: List[RangeS],
+        ranges: List[RangeS],
+        region: IdT[IRegionNameT],
         exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
-      expressionCompiler.evaluateBlockStatements(coutputs, startingNenv, nenv, life, ranges, exprs)
+      expressionCompiler.evaluateBlockStatements(
+        coutputs, startingNenv, nenv, life, ranges, region, exprs)
     }
 
     override def translatePatternList(
@@ -1277,7 +1279,7 @@ object Compiler {
 
         val withoutInitVoids =
           flattened.init
-            .filter({ case VoidLiteralTE() => false case _ => true }) :+
+            .filter({ case VoidLiteralTE(_) => false case _ => true }) :+
             flattened.last
 
         withoutInitVoids match {

@@ -2,7 +2,7 @@ package dev.vale.typing.macros.ssa
 
 import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, FunctionEnvironmentBox}
 import dev.vale.typing.{ArrayCompiler, CompilerOutputs}
 import dev.vale.typing.macros.IFunctionBodyMacro
@@ -10,6 +10,7 @@ import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.ast
+import dev.vale.typing.names.FunctionDefaultRegionNameT
 
 class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_static_sized_array_drop_into
@@ -25,7 +26,13 @@ class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
-      FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+      FunctionHeaderT(
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
     val fate = FunctionEnvironmentBox(env)
     val body =

@@ -25,7 +25,13 @@ class RSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
-      FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+      FunctionHeaderT(
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
     val fate = FunctionEnvironmentBox(env)
     val body =
       BlockTE(

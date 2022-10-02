@@ -5,7 +5,7 @@ import dev.vale.{Accumulator, CodeLocationS, Interner, Keywords, PackageCoordina
 import dev.vale.parsing.ast.{BorrowP, FinalP, OwnP, UseP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
 import dev.vale.postparsing.{SealedS, _}
-import dev.vale.postparsing.rules.{AugmentSR, CallSR, CallSiteCoordIsaSR, CallSiteFuncSR, CoerceToCoordSR, CoordComponentsSR, DefinitionCoordIsaSR, DefinitionFuncSR, EqualsSR, Equivalencies, IRulexSR, IsConcreteSR, IsInterfaceSR, IsStructSR, KindComponentsSR, LiteralSR, LookupSR, OneOfSR, PackSR, PrototypeComponentsSR, RefListCompoundMutabilitySR, ResolveSR, RuleScout, RuneParentEnvLookupSR, RuneUsage, RuntimeSizedArraySR, StaticSizedArraySR}
+import dev.vale.postparsing.rules._
 import dev.vale.typing.{OverloadResolver, TypingPassOptions}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{FunctionEnvEntry, IEnvEntry, ImplEnvEntry, StructEnvEntry}
@@ -153,7 +153,7 @@ class AnonymousInterfaceMacro(
           RuneUsage(b, func(suuper)))
       }
       case KindComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, mutabilityRune)) => KindComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(mutabilityRune)))
-      case CoordComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, ownershipRune), RuneUsage(c, kindRune)) => CoordComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(ownershipRune)), RuneUsage(c, func(kindRune)))
+      case CoordComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(aa, regionRune), RuneUsage(b, ownershipRune), RuneUsage(c, kindRune)) => CoordComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(aa, func(regionRune)), RuneUsage(b, func(ownershipRune)), RuneUsage(c, func(kindRune)))
       case PrototypeComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, paramsRune), RuneUsage(c, returnRune)) => PrototypeComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(paramsRune)), RuneUsage(c, func(returnRune)))
       case ResolveSR(range, RuneUsage(a, resultRune), name, RuneUsage(b, paramsListRune), RuneUsage(c, returnRune)) => ResolveSR(range, RuneUsage(a, func(resultRune)), name, RuneUsage(b, func(paramsListRune)), RuneUsage(c, func(returnRune)))
       case CallSiteFuncSR(range, RuneUsage(a, resultRune), name, RuneUsage(b, paramsListRune), RuneUsage(c, returnRune)) => CallSiteFuncSR(range, RuneUsage(a, func(resultRune)), name, RuneUsage(b, func(paramsListRune)), RuneUsage(c, func(returnRune)))
@@ -427,6 +427,7 @@ class AnonymousInterfaceMacro(
       CoordComponentsSR(
         abstractParamRange,
         abstractParamCoordRune,
+        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, selfOwnershipRune),
         RuneUsage(abstractParamRange, interfaceRune))
 
@@ -449,6 +450,7 @@ class AnonymousInterfaceMacro(
       CoordComponentsSR(
         abstractParamRange,
         RuneUsage(abstractParamRange, selfCoordRune),
+        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, selfOwnershipRune),
         RuneUsage(abstractParamRange, selfKindRune))
     rules.add(assemblingStructRule)

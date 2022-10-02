@@ -18,7 +18,7 @@ import dev.vale.solver.{CompleteSolve, FailedSolve, IncompleteSolve}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
-import dev.vale.typing.names.{IdT, FunctionNameT, FunctionTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{FunctionNameT, FunctionTemplateNameT, IRegionNameT, IdT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, ReachablePrototypeNameT, RuneNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -87,7 +87,12 @@ class FunctionCompilerSolvingLayer(
       }
 
     val runedEnv =
-      addRunedDataToNearEnv(outerEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas, reachableBounds)
+      addRunedDataToNearEnv(
+        outerEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferredTemplatas,
+        vimpl(),
+        reachableBounds)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
@@ -132,13 +137,17 @@ class FunctionCompilerSolvingLayer(
         false,
         Vector()
       ) match {
-        case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
+        case Err(e) => return EvaluateFunctionFailure(InferFailure(e))
         case Ok(i) => (i)
       }
 
     val runedEnv =
       addRunedDataToNearEnv(
-        declaringEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas, reachableBounds)
+        declaringEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferredTemplatas,
+        vimpl(),
+        reachableBounds)
 
     val prototype =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
@@ -192,7 +201,13 @@ class FunctionCompilerSolvingLayer(
     }
 
     // See FunctionCompiler doc for what outer/runes/inner envs are.
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBounds)
+    val runedEnv =
+      addRunedDataToNearEnv(
+        nearEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferences,
+        vimpl(),
+        reachableBounds)
 
     val prototypeTemplata =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
@@ -233,6 +248,7 @@ class FunctionCompilerSolvingLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]],
+    defaultRegion: IdT[IRegionNameT],
     reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplata]
     // I suspect we'll eventually need some impl bounds here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
@@ -249,7 +265,15 @@ class FunctionCompilerSolvingLayer(
           .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
-      globalEnv, parentEnv, fullName, identifyingTemplatas, newEntries, function, variables, isRootCompilingDenizen)
+      globalEnv,
+      parentEnv,
+      fullName,
+      identifyingTemplatas,
+      newEntries,
+      function,
+      variables,
+      isRootCompilingDenizen,
+      defaultRegion)
   }
 
   // We would want only the prototype instead of the entire header if, for example,
@@ -300,7 +324,13 @@ class FunctionCompilerSolvingLayer(
         case Ok(i) => (i)
       }
 
-    val runedEnv = addRunedDataToNearEnv(outerEnv, function.genericParameters.map(_.rune.rune), inferredTemplatas, reachableBounds)
+    val runedEnv =
+      addRunedDataToNearEnv(
+        outerEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferredTemplatas,
+        vimpl(),
+        reachableBounds)
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -385,7 +415,13 @@ class FunctionCompilerSolvingLayer(
         true,
         true,
         Vector())
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBounds)
+    val runedEnv =
+      addRunedDataToNearEnv(
+        nearEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferences,
+        vimpl(),
+        reachableBounds)
 
     val prototype =
       middleLayer.getGenericFunctionPrototypeFromCall(
@@ -474,7 +510,13 @@ class FunctionCompilerSolvingLayer(
         true,
         // This is so we can automatically grab the bounds from parameters, see NBIFP.
         paramRunes)
-    val runedEnv = addRunedDataToNearEnv(nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBoundsFromParamsAndReturn)
+    val runedEnv =
+      addRunedDataToNearEnv(
+        nearEnv,
+        function.genericParameters.map(_.rune.rune),
+        inferences,
+        vimpl(),
+        reachableBoundsFromParamsAndReturn)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
@@ -485,7 +527,7 @@ class FunctionCompilerSolvingLayer(
     // coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
 
     header.fullName match {
-      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("keys"),_),Vector(_),Vector(CoordT(BorrowT,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(_)))))))) => {
+      case IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("keys"),_),Vector(_),Vector(CoordT(BorrowT,_,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("HashMap")),Vector(_)))))))) => {
         vpass()
       }
       case _ =>

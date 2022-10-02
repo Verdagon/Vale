@@ -176,8 +176,8 @@ object PostParserErrorHumanizer {
       case KindComponentsSR(range, kindRune, mutabilityRune) => {
         humanizeRune(kindRune.rune) + " = Kind[" + humanizeRune(mutabilityRune.rune) + "]"
       }
-      case CoordComponentsSR(range, resultRune, ownershipRune, kindRune) => {
-        humanizeRune(resultRune.rune) + " = Ref[" + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(kindRune.rune) + "]"
+      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
+        humanizeRune(resultRune.rune) + " = Ref[" + humanizeRune(regionRune.rune) + ", " + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(kindRune.rune) + "]"
       }
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => {
         humanizeRune(resultRune.rune) + " = Prot[" + humanizeRune(paramsRune.rune) + ", " + humanizeRune(returnRune.rune) + "]"
