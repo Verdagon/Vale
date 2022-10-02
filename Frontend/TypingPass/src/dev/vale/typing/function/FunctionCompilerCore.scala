@@ -5,10 +5,10 @@ import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassert
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunctionBody, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
-import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionHeaderT, FunctionDefinitionT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
+import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionDefinitionT, FunctionHeaderT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{ExternFunctionNameT, IdT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, NameTranslator, RuneNameT}
+import dev.vale.typing.names.{ExternFunctionNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -39,9 +39,11 @@ class FunctionCompilerCore(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
       parentRanges: List[RangeS],
+      region: IdT[IRegionNameT],
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
-      delegate.evaluateBlockStatements(coutputs, startingNenv, nenv, life, parentRanges, exprs)
+      delegate.evaluateBlockStatements(
+        coutputs, startingNenv, nenv, life, parentRanges, region, exprs)
     }
 
     override def translatePatternList(
@@ -273,7 +275,14 @@ class FunctionCompilerCore(
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       returnCoord: CoordT) = {
-    val header = FunctionHeaderT(fullEnv.fullName, attributesT, paramsT, returnCoord, Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));
+    val header =
+      FunctionHeaderT(
+        fullEnv.fullName,
+        attributesT,
+        Vector(RegionT(FunctionDefaultRegionNameT(fullEnv.fullName), true)),
+        paramsT,
+        returnCoord,
+        Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));
     coutputs.declareFunctionReturnType(header.toSignature, returnCoord)
     header
   }
@@ -348,6 +357,7 @@ class FunctionCompilerCore(
           ast.FunctionHeaderT(
             fullName,
             Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
+            Vector(vimpl()),
             params2,
             returnType2,
             maybeOrigin)

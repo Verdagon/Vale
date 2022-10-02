@@ -6,10 +6,10 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.parsing.ast.INameDeclarationP
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing._
-import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, ConvertHelper, CouldntConvertForReturnT, RangedInternalErrorT, Compiler, TypingPassOptions, TemplataCompiler, CompilerOutputs, ast}
+import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForReturnT, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox}
-import dev.vale.typing.names.NameTranslator
+import dev.vale.typing.names.{IRegionNameT, IdT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -29,6 +29,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    region: IdT[IRegionNameT],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -74,7 +75,16 @@ class BodyCompiler(
         case None => {
           val (body2, returns) =
             evaluateFunctionBody(
-                funcOuterEnv, coutputs, life, parentRanges, function1.params, params2, bodyS, isDestructor, None) match {
+                funcOuterEnv,
+                coutputs,
+                life,
+                parentRanges,
+                function1.params,
+                params2,
+                vimpl(),
+                bodyS,
+                isDestructor,
+                None) match {
               case Err(ResultTypeMismatchError(expectedType, actualType)) => {
                 throw CompileErrorExceptionT(BodyResultDoesntMatch(function1.range :: parentRanges, function1.name, expectedType, actualType))
 
@@ -106,6 +116,7 @@ class BodyCompiler(
                 parentRanges,
                 function1.params,
                 params2,
+                vimpl(),
                 bodyS,
                 isDestructor,
                 Some(explicitRetCoord)) match {
@@ -115,15 +126,23 @@ class BodyCompiler(
               case Ok((body, returns)) => (body, returns)
             }
 
-          if (returns == Set(explicitRetCoord)) {
-            // Let it through, it returns the expected type.
-          } else if (returns == Set(CoordT(ShareT, NeverT(false)))) {
-            // Let it through, it returns a never but we expect something else, that's fine
-          } else if (returns == Set() && body2.result.kind == NeverT(false)) {
-            // Let it through, it doesn't return anything yet it results in a never, which means
-            // we called panic or something from inside.
-          } else {
-            throw CompileErrorExceptionT(CouldntConvertForReturnT(bodyS.range :: parentRanges, explicitRetCoord, returns.head))
+
+          (returns.headOption, body2.result.kind) match {
+            case (Some(x), _) if x == explicitRetCoord => {
+              // Let it through, it returns the expected type.
+            }
+            case (Some(CoordT(ShareT, _, NeverT(false))), _) => {
+              // Let it through, it returns a never but we expect something else, that's fine
+            }
+            case (None, NeverT(false)) => {
+              // Let it through, it doesn't return anything yet it results in a never, which means
+              // we called panic or something from inside.
+            }
+            case _ => {
+              throw CompileErrorExceptionT(
+                CouldntConvertForReturnT(
+                  bodyS.range :: parentRanges, explicitRetCoord, returns.head))
+            }
           }
 
           (None, body2)
@@ -143,6 +162,7 @@ class BodyCompiler(
     parentRanges: List[RangeS],
     params1: Vector[ParameterS],
     params2: Vector[ParameterT],
+    defaultRegion: IdT[IRegionNameT],
     body1: BodySE,
     isDestructor: Boolean,
     maybeExpectedResultType: Option[CoordT]):
@@ -154,7 +174,8 @@ class BodyCompiler(
       evaluateLets(env, coutputs, life + 0, body1.range :: parentRanges, params1, params2);
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
-      delegate.evaluateBlockStatements(coutputs, startingEnv, env, life + 1, parentRanges, body1.block);
+      delegate.evaluateBlockStatements(
+        coutputs, startingEnv, env, life + 1, parentRanges, defaultRegion, body1.block);
 
     val unconvertedBodyWithoutReturn = Compiler.consecutive(Vector(patternsTE, statementsFromBlock))
 
@@ -186,9 +207,20 @@ class BodyCompiler(
     // If we already had a ret, then the above will add a Never to the returns, but that's fine, it will be filtered
     // out below.
 
+
+    // val returns =
+    //   if (returnsMaybeWithNever.size > 1 && returnsMaybeWithNever.contains(CoordT(ShareT, NeverT(false)))) {
+    //     returnsMaybeWithNever - CoordT(ShareT, NeverT(false))
+    //   } else {
+    //     returnsMaybeWithNever
+    //   }
+
     val returns =
-      if (returnsMaybeWithNever.size > 1 && returnsMaybeWithNever.contains(CoordT(ShareT, NeverT(false)))) {
-        returnsMaybeWithNever - CoordT(ShareT, NeverT(false))
+      if (returnsMaybeWithNever.size > 1) {
+        returnsMaybeWithNever.filter({
+          case CoordT(ShareT, _, NeverT(false)) => false
+          case _ => true
+        })
       } else {
         returnsMaybeWithNever
       }

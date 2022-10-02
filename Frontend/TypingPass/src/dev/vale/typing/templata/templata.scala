@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IEnvironment
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, InterfaceTemplateNameT, PlaceholderNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IRegionNameT, IdT, InterfaceTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
 import dev.vale.highertyping._
@@ -96,7 +96,7 @@ sealed trait ITemplata[+T <: ITemplataType]  {
   def tyype: T
 }
 
-case class RegionTemplata(region: RegionT) extends ITemplata[RegionTemplataType] {
+case class RegionTemplata(region: IdT[IRegionNameT]) extends ITemplata[RegionTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: RegionTemplataType = RegionTemplataType()
 }

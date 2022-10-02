@@ -38,21 +38,21 @@ class ExpressionHammer(
       expr2: ExpressionT
   ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
     expr2 match {
-      case ConstantIntTE(numTemplata, bits) => {
+      case ConstantIntTE(numTemplata, bits, region) => {
         val num = Conversions.evaluateIntegerTemplata(numTemplata)
         (ConstantIntH(num, bits), Vector.empty)
       }
-      case VoidLiteralTE() => {
+      case VoidLiteralTE(region) => {
         val constructH = ConstantVoidH()
         (constructH, Vector.empty)
       }
-      case ConstantStrTE(value) => {
+      case ConstantStrTE(value, region) => {
         (ConstantStrH(value), Vector.empty)
       }
-      case ConstantFloatTE(value) => {
+      case ConstantFloatTE(value, region) => {
         (ConstantF64H(value), Vector.empty)
       }
-      case ConstantBoolTE(value) => {
+      case ConstantBoolTE(value, region) => {
         (ConstantBoolH(value), Vector.empty)
       }
       case let2 @ LetNormalTE(_, _) => {
@@ -347,21 +347,21 @@ class ExpressionHammer(
         (access, Vector.empty)
       }
 
-      case nmrsaTE @ NewMutRuntimeSizedArrayTE(_, _) => {
+      case nmrsaTE @ NewMutRuntimeSizedArrayTE(_, _, _) => {
         val access =
           translateNewMutRuntimeSizedArray(
             hinputs, hamuts, currentFunctionHeader, locals, nmrsaTE)
         (access, Vector.empty)
       }
 
-      case nirsaTE @ NewImmRuntimeSizedArrayTE(_, _, _, _) => {
+      case nirsaTE @ NewImmRuntimeSizedArrayTE(_, _, _, _, _) => {
         val access =
           translateNewImmRuntimeSizedArray(
             hinputs, hamuts, currentFunctionHeader, locals, nirsaTE)
         (access, Vector.empty)
       }
 
-      case ca2 @ StaticArrayFromCallableTE(_, _, _) => {
+      case ca2 @ StaticArrayFromCallableTE(_, _, _, _) => {
         val access =
           translateStaticArrayFromCallable(
             hinputs, hamuts, currentFunctionHeader, locals, ca2)
@@ -595,7 +595,7 @@ class ExpressionHammer(
         (expr, Vector.empty)
       }
 
-      case BreakTE() => {
+      case BreakTE(region) => {
         (BreakH(), Vector.empty)
       }
 
@@ -782,7 +782,7 @@ class ExpressionHammer(
     locals: LocalsBox,
     constructArray2: NewMutRuntimeSizedArrayTE):
   (ExpressionH[KindHT]) = {
-    val NewMutRuntimeSizedArrayTE(arrayType2, capacityExpr2) = constructArray2;
+    val NewMutRuntimeSizedArrayTE(arrayType2, region, capacityExpr2) = constructArray2;
 
     val (capacityRegisterId, capacityDeferreds) =
       translate(
@@ -814,7 +814,7 @@ class ExpressionHammer(
     locals: LocalsBox,
     constructArray2: NewImmRuntimeSizedArrayTE):
   (ExpressionH[KindHT]) = {
-    val NewImmRuntimeSizedArrayTE(arrayType2, sizeExpr2, generatorExpr2, generatorMethod) = constructArray2;
+    val NewImmRuntimeSizedArrayTE(arrayType2, region, sizeExpr2, generatorExpr2, generatorMethod) = constructArray2;
 
     val (sizeRegisterId, sizeDeferreds) =
       translate(
@@ -856,7 +856,7 @@ class ExpressionHammer(
     locals: LocalsBox,
     exprTE: StaticArrayFromCallableTE):
   (ExpressionH[KindHT]) = {
-    val StaticArrayFromCallableTE(arrayType2, generatorExpr2, generatorMethod) = exprTE;
+    val StaticArrayFromCallableTE(arrayType2, region, generatorExpr2, generatorMethod) = exprTE;
 
     val (generatorRegisterId, generatorDeferreds) =
       translate(
@@ -1076,7 +1076,7 @@ class ExpressionHammer(
     }
 
 //    val virtualParamIndex = superFunctionHeader.getVirtualIndex.get
-    val CoordT(_, interfaceTT @ InterfaceTT(_)) =
+    val CoordT(_, _, interfaceTT @ InterfaceTT(_)) =
       superFunctionPrototype.paramTypes(virtualParamIndex)
     val (interfaceRefH) =
       structHammer.translateInterface(hinputs, hamuts, interfaceTT)

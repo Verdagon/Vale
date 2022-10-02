@@ -68,15 +68,16 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         runeToExplicitType.put(rune.rune, translateType(tyype))
         tyype match {
           case CoordTypePR => {
-            if (componentsP.size != 2) {
-              vfail("Ref rule should have two components! Found: " + componentsP.size)
+            if (componentsP.size != 3) {
+              vfail("Ref rule should have three components! Found: " + componentsP.size)
             }
-            val Vector(ownershipRuneS, kindRuneS) =
+            val Vector(regionRuneS, ownershipRuneS, kindRuneS) =
               translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
             builder +=
               CoordComponentsSR(
                 PostParser.evalRange(env.file, range),
                 rune,
+                regionRuneS,
                 ownershipRuneS,
                 kindRuneS)
           }
@@ -238,7 +239,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     runeToKindEquivalentRunes.getOrElseUpdate(runeB, mutable.HashSet()) += runeA
   }
   rules.foreach({
-    case CoordComponentsSR(_, resultRune, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
+    case CoordComponentsSR(_, resultRune, _, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
     case KindComponentsSR(_, resultRune, _) =>
     case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
     case CallSR(range, resultRune, templateRune, args) =>

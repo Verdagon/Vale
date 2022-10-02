@@ -3,7 +3,7 @@ package dev.vale.typing.macros.rsa
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CompilerOutputs, ast}
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, NewMutRuntimeSizedArrayTE, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, NewMutRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
@@ -13,6 +13,7 @@ import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
+import dev.vale.typing.names.FunctionDefaultRegionNameT
 import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.typing.types.RuntimeSizedArrayTT
 
@@ -37,7 +38,12 @@ class RSAMutableNewMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val CoordTemplata(elementType) =
@@ -58,6 +64,7 @@ class RSAMutableNewMacro(
         ReturnTE(
           NewMutRuntimeSizedArrayTE(
             arrayTT,
+            vimpl(),
             ArgLookupTE(0, paramCoords(0).tyype))))
 //            freePrototype)))
     (header, body)

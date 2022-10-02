@@ -20,10 +20,9 @@ import dev.vale.typing.{CompilerOutputs, ConvertHelper, IFunctionGenerator, Infe
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
-import dev.vale.typing.names.{LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
+import dev.vale.typing.names.{IRegionNameT, IdT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.typing.names.LambdaCitizenNameT
 
 import scala.collection.immutable.{List, Set}
 
@@ -36,6 +35,7 @@ trait IFunctionCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     ranges: List[RangeS],
+    region: IdT[IRegionNameT],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -267,24 +267,24 @@ class FunctionCompiler(
     name: IVarNameS) = {
     val (variability2, memberType) =
       env.getVariable(nameTranslator.translateVarNameStep(name)).get match {
-        case ReferenceLocalVariableT(_, variability, reference) => {
+        case ReferenceLocalVariableT(_, variability, coord@CoordT(ownership, region, kind)) => {
           // See "Captured own is borrow" test for why we do this
           val tyype =
-            reference.ownership match {
-              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, reference.kind))
-              case BorrowT | ShareT => ReferenceMemberTypeT(reference)
+            ownership match {
+              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, region, kind))
+              case BorrowT | ShareT => ReferenceMemberTypeT(coord)
             }
           (variability, tyype)
         }
         case AddressibleLocalVariableT(_, variability, reference) => {
           (variability, AddressMemberTypeT(reference))
         }
-        case ReferenceClosureVariableT(_, _, variability, reference) => {
+        case ReferenceClosureVariableT(_, _, variability, coord@CoordT(ownership, region, kind)) => {
           // See "Captured own is borrow" test for why we do this
           val tyype =
-            reference.ownership match {
-              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, reference.kind))
-              case BorrowT | ShareT => ReferenceMemberTypeT(reference)
+            ownership match {
+              case OwnT => ReferenceMemberTypeT(CoordT(BorrowT, region, kind))
+              case BorrowT | ShareT => ReferenceMemberTypeT(coord)
             }
           (variability, tyype)
         }

@@ -238,7 +238,8 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(OwnT, expectedContainerKind) = inputExpr.result.coord
+    val CoordT(OwnT, expectedRegion, expectedContainerKind) = inputExpr.result.coord
+    vimpl(expectedRegion)
     expectedContainerKind match {
       case StructTT(_) => {
         // Example:
@@ -326,7 +327,7 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals.map(_.id) == liveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(expectedContainerOwnership, expectedContainerKind) = expectedContainerCoord
+    val CoordT(expectedContainerOwnership, expectedRegion, expectedContainerKind) = expectedContainerCoord
 
     listOfMaybeDestructureMemberPatterns match {
       case Nil => afterDestructureSuccessContinuation(coutputs, nenv, life + 0, liveCaptureLocals)
@@ -396,7 +397,8 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(_, structTT @ StructTT(_)) = inputStructExpr.result.coord
+    val CoordT(_, region, structTT @ StructTT(_)) = inputStructExpr.result.coord
+    vimpl(region)
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
@@ -526,6 +528,6 @@ class PatternCompiler(
       containerAlias: ReferenceExpressionTE,
       index: Int): StaticSizedArrayLookupTE = {
     arrayCompiler.lookupInStaticSizedArray(
-      range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32), staticSizedArrayT)
+      range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32, vimpl()), staticSizedArrayT)
   }
 }

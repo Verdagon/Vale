@@ -3,13 +3,14 @@ package dev.vale.typing.macros.ssa
 import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConsecutorTE, ConstantIntTE, DiscardTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConsecutorTE, ConstantIntTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.types.StaticSizedArrayTT
 import dev.vale.typing.ast
+import dev.vale.typing.names.FunctionDefaultRegionNameT
 
 
 class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
@@ -26,12 +27,22 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
-      FunctionHeaderT(env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+      FunctionHeaderT(
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
     val len =
       header.paramTypes match {
         case Vector(CoordT(_, _, contentsStaticSizedArrayTT(size, _, _, _))) => size
-        case _ => throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "SSALenMacro received non-SSA param: " + header.paramTypes))
+        case _ => {
+          throw CompileErrorExceptionT(
+            RangedInternalErrorT(
+              callRange, "SSALenMacro received non-SSA param: " + header.paramTypes))
+        }
       }
     val body =
       BlockTE(
@@ -39,7 +50,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
           Vector(
             DiscardTE(ArgLookupTE(0, paramCoords(0).tyype)),
             ReturnTE(
-              ConstantIntTE(len, 32)))))
+              ConstantIntTE(len, 32, vimpl())))))
     (header, body)
   }
 }

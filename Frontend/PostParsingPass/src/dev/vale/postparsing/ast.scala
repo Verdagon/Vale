@@ -242,20 +242,20 @@ case class GenericParameterDefaultS(
 
 // Underlying class for all XYZFunctionS types
 case class FunctionS(
-    range: RangeS,
-    name: IFunctionDeclarationNameS,
-    attributes: Vector[IFunctionAttributeS],
+  range: RangeS,
+  name: IFunctionDeclarationNameS,
+  attributes: Vector[IFunctionAttributeS],
 
-    genericParams: Vector[GenericParameterS],
-    runeToPredictedType: Map[IRuneS, ITemplataType],
+  genericParams: Vector[GenericParameterS],
+  runeToPredictedType: Map[IRuneS, ITemplataType],
 
-    params: Vector[ParameterS],
+  params: Vector[ParameterS],
 
-    // We need to leave it an option to signal that the compiler can infer the return type.
-    maybeRetCoordRune: Option[RuneUsage],
+  // We need to leave it an option to signal that the compiler can infer the return type.
+  maybeRetCoordRune: Option[RuneUsage],
 
-    rules: Vector[IRulexSR],
-    body: IBodyS
+  rules: Vector[IRulexSR],
+  body: IBodyS
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()

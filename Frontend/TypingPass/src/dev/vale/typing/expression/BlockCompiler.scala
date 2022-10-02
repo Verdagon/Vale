@@ -3,17 +3,16 @@ package dev.vale.typing.expression
 //import dev.vale.astronomer.{BlockSE, IExpressionSE}
 import dev.vale.RangeS
 import dev.vale.postparsing._
-import dev.vale.typing.{TypingPassOptions, CompilerOutputs}
+import dev.vale.typing.{CompilerOutputs, TypingPassOptions}
 import dev.vale.typing.ast.{BlockTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
 import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox}
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.names.{IdT, IVarNameT}
+import dev.vale.typing.names.{IRegionNameT, IVarNameT, IdT, TypingPassBlockResultVarNameT}
 import dev.vale.typing.types.CoordT
 import dev.vale.postparsing.ExpressionScout
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import dev.vale.typing.names.TypingPassBlockResultVarNameT
 import dev.vale.typing.types._
 import dev.vale.RangeS
 
@@ -25,6 +24,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    region: IdT[IRegionNameT],
     expr1: IExpressionSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -58,6 +58,7 @@ class BlockCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    region: IdT[IRegionNameT],
     block1: BlockSE):
   (BlockTE, Set[IdT[IVarNameT]], Set[CoordT]) = {
     val nenv = NodeEnvironmentBox(parentFate.makeChildNodeEnvironment(block1, life))
@@ -65,7 +66,7 @@ class BlockCompiler(
 
     val (expressionsWithResult, returnsFromExprs) =
       evaluateBlockStatements(
-        coutputs, startingNenv, nenv, parentRanges, life, block1)
+        coutputs, startingNenv, nenv, parentRanges, life, region, block1)
 
     val block2 = BlockTE(expressionsWithResult)
 
@@ -80,10 +81,12 @@ class BlockCompiler(
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
     life: LocationInFunctionEnvironment,
+    region: IdT[IRegionNameT],
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedRootExpression, returnsFromExprs) =
-      delegate.evaluateAndCoerceToReferenceExpression(coutputs, nenv, life + 0, parentRanges, blockSE.expr);
+      delegate.evaluateAndCoerceToReferenceExpression(
+        coutputs, nenv, life + 0, parentRanges, region, blockSE.expr);
 
     val unneveredUnresultifiedUndestructedExpressions =
       unneveredUnresultifiedUndestructedRootExpression

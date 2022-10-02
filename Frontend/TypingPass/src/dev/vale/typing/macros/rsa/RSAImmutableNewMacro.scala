@@ -3,7 +3,7 @@ package dev.vale.typing.macros.rsa
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerErrorHumanizer, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, ast}
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
@@ -13,6 +13,7 @@ import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
+import dev.vale.typing.names.FunctionDefaultRegionNameT
 import dev.vale.typing.templata.PrototypeTemplata
 import dev.vale.typing.types._
 
@@ -38,7 +39,12 @@ class RSAImmutableNewMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName, Vector.empty, paramCoords, maybeRetCoord.get, Some(env.templata))
+        env.fullName,
+        Vector.empty,
+        Vector(vimpl()), // should we get these handed in
+        paramCoords,
+        maybeRetCoord.get,
+        Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
     val CoordTemplata(elementType) =
@@ -52,25 +58,13 @@ class RSAImmutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-//    val PrototypeTemplata(generatorRange, generatorFullName, generatorReturnCoord) =
-//      vassertSome(
-//        env.lookupNearestWithImpreciseName(
-//          interner.intern(RuneNameS(CodeRuneS(keywords.F))), Set(TemplataLookupContext)))
-
-//    val variability =
-//      mutability match {
-//        case PlaceholderTemplata(fullNameT, tyype) => vimpl()
-//        case MutabilityTemplata(ImmutableT) => FinalT
-//        case MutabilityTemplata(MutableT) => VaryingT
-//      }
-
     val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability)
 
     val generatorArgCoord =
       paramCoords(1).tyype match {
-        case CoordT(ShareT, kind) => CoordT(ShareT, kind)
-        case CoordT(BorrowT, kind) => CoordT(BorrowT, kind)
-        case CoordT(OwnT, kind) => vwat() // shouldnt happen, signature takes in an &
+        case c @ CoordT(ShareT, _, _) => c
+        case c @ CoordT(BorrowT, _, _) => c
+        case CoordT(OwnT, _, _) => vwat() // shouldnt happen, signature takes in an &
       }
 
     val generatorPrototype =
@@ -81,7 +75,7 @@ class RSAImmutableNewMacro(
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
         Vector(),
-        Vector(generatorArgCoord, CoordT(ShareT, IntT(32))),
+        Vector(generatorArgCoord, CoordT(ShareT, vimpl(), IntT(32))),
         Vector(),
         false,
         true) match {
@@ -99,6 +93,7 @@ class RSAImmutableNewMacro(
         ReturnTE(
           NewImmRuntimeSizedArrayTE(
             arrayTT,
+            vimpl(),
             sizeTE,
             generatorTE,
             generatorPrototype.prototype.prototype)))

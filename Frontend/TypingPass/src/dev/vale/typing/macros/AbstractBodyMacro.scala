@@ -30,6 +30,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
       FunctionHeaderT(
         env.fullName,
         Vector.empty,
+        Vector(vimpl()), // should we get these handed in
         params2,
         returnReferenceType2,
         originFunction.map(FunctionTemplata(env.parentEnv, _)))
