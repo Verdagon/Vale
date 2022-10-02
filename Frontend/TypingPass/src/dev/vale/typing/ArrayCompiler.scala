@@ -208,7 +208,7 @@ class ArrayCompiler(
               UnexpectedArrayElementType(range, expectedElementType, prototype.prototype.returnType))
           }
         })
-        vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
         val callTE =
           FunctionCallTE(prototype.prototype, Vector(sizeTE) ++ maybeCallableTE)
         callTE

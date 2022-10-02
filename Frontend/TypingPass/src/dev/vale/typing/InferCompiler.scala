@@ -443,7 +443,7 @@ class InferCompiler(
         case x @ IsParent(_, _, _) => x
       }
 
-    Ok(Some((vassertSome(resultRune).rune, implSuccess.implFullName)))
+    Ok(Some((vassertSome(resultRune).rune, implSuccess.implId)))
   }
 
   // Returns None for any call that we don't even have params for,

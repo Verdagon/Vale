@@ -172,33 +172,33 @@ case class RuntimeSizedArrayTT(
 
 object ICitizenTT {
   def unapply(self: ICitizenTT): Option[IdT[ICitizenNameT]] = {
-    Some(self.fullName)
+    Some(self.id)
   }
 }
 
 // Structs, interfaces, and placeholders
 sealed trait ISubKindTT extends KindT {
-  def fullName: IdT[ISubKindNameT]
+  def id: IdT[ISubKindNameT]
 }
 // Interfaces and placeholders
 sealed trait ISuperKindTT extends KindT {
-  def fullName: IdT[ISuperKindNameT]
+  def id: IdT[ISuperKindNameT]
 }
 
 sealed trait ICitizenTT extends ISubKindTT with IInterning {
-  def fullName: IdT[ICitizenNameT]
+  def id: IdT[ICitizenNameT]
 }
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
-case class StructTT(fullName: IdT[IStructNameT]) extends ICitizenTT {
-  (fullName.initSteps.lastOption, fullName.localName) match {
+case class StructTT(id: IdT[IStructNameT]) extends ICitizenTT {
+  (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameT(_)), StructNameT(_, _)) => vfail()
     case _ =>
   }
 }
 
-case class InterfaceTT(fullName: IdT[IInterfaceNameT]) extends ICitizenTT with ISuperKindTT {
-  (fullName.initSteps.lastOption, fullName.localName) match {
+case class InterfaceTT(id: IdT[IInterfaceNameT]) extends ICitizenTT with ISuperKindTT {
+  (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameT(_)), InterfaceNameT(_, _)) => vfail()
     case _ =>
   }
@@ -216,4 +216,4 @@ case class OverloadSetT(
 
 }
 
-case class PlaceholderT(fullName: IdT[PlaceholderNameT]) extends ISubKindTT with ISuperKindTT
+case class PlaceholderT(id: IdT[PlaceholderNameT]) extends ISubKindTT with ISuperKindTT

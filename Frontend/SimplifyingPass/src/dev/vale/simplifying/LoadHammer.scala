@@ -170,7 +170,7 @@ class LoadHammer(
 //        case PackTT(_, sr) => sr
       }
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.id.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 =
       structDefT.members(memberIndex) match {
@@ -213,7 +213,7 @@ class LoadHammer(
           LetHammer.BOX_MEMBER_INDEX,
           boxedTypeH,
           loadResultType,
-          nameHammer.addStep(hamuts, boxStructRefH.fullName, keywords.BOX_MEMBER_NAME.str))
+          nameHammer.addStep(hamuts, boxStructRefH.id, keywords.BOX_MEMBER_NAME.str))
     (loadedNodeH, structDeferreds)
   }
 
@@ -297,7 +297,7 @@ class LoadHammer(
           LetHammer.BOX_MEMBER_INDEX,
           localTypeH,
           loadResultType,
-          nameHammer.addStep(hamuts, boxStructRefH.fullName, keywords.BOX_MEMBER_NAME.str))
+          nameHammer.addStep(hamuts, boxStructRefH.id, keywords.BOX_MEMBER_NAME.str))
     (loadedNode, Vector.empty)
   }
 
@@ -377,7 +377,7 @@ class LoadHammer(
 //        case PackTT(_, sr) => sr
       }
     val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.id.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 =
       structDefT.members(memberIndex) match {

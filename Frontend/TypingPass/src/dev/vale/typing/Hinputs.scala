@@ -50,15 +50,15 @@ case class Hinputs(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
   def lookupStruct(structId: IdT[IStructNameT]): StructDefinitionT = {
-    vassertSome(structs.find(_.instantiatedCitizen.fullName == structId))
+    vassertSome(structs.find(_.instantiatedCitizen.id == structId))
   }
 
   def lookupInterface(interfaceId: IdT[IInterfaceNameT]): InterfaceDefinitionT = {
-    vassertSome(interfaces.find(_.instantiatedCitizen.fullName == interfaceId))
+    vassertSome(interfaces.find(_.instantiatedCitizen.id == interfaceId))
   }
 
-  def lookupEdge(implFullName: IdT[IImplNameT]): EdgeT = {
-    vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implFullName))
+  def lookupEdge(implId: IdT[IImplNameT]): EdgeT = {
+    vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
   def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArguments = {
@@ -69,8 +69,8 @@ case class Hinputs(
     vassertSome(structs.find(_.templateName == structTemplateId))
   }
 
-  def lookupInterfaceByTemplateFullName(interfaceTemplateFullName: IdT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
-    vassertSome(interfaces.find(_.templateName == interfaceTemplateFullName))
+  def lookupInterfaceByTemplateFullName(interfaceTemplateId: IdT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
+    vassertSome(interfaces.find(_.templateName == interfaceTemplateId))
   }
 
   def lookupCitizenByTemplateFullName(interfaceTemplateId: IdT[ICitizenTemplateNameT]): CitizenDefinitionT = {

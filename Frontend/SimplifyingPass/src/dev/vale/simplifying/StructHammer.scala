@@ -31,7 +31,7 @@ class StructHammer(
       interfaceTT: InterfaceTT):
   Vector[InterfaceMethodH] = {
 
-    val edgeBlueprint = vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.fullName))
+    val edgeBlueprint = vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.id))
 
     val methodsH =
       edgeBlueprint.superFamilyRootHeaders.map({ case (superFamilyPrototype, virtualParamIndex) =>
@@ -51,11 +51,11 @@ class StructHammer(
     hamuts.interfaceTToInterfaceH.get(interfaceTT) match {
       case Some(structRefH) => structRefH
       case None => {
-        val fullNameH = nameHammer.translateFullName(hinputs, hamuts, interfaceTT.fullName)
+        val fullNameH = nameHammer.translateFullName(hinputs, hamuts, interfaceTT.id)
         // This is the only place besides InterfaceDefinitionH that can make a InterfaceRefH
         val temporaryInterfaceRefH = InterfaceHT(fullNameH);
         hamuts.forwardDeclareInterface(interfaceTT, temporaryInterfaceRefH)
-        val interfaceDefT = hinputs.lookupInterface(interfaceTT.fullName);
+        val interfaceDefT = hinputs.lookupInterface(interfaceTT.id);
 
 
         val methodsH = translateInterfaceMethods(hinputs, hamuts, interfaceTT)
@@ -101,13 +101,13 @@ class StructHammer(
     hamuts.structTToStructH.get(structTT) match {
       case Some(structRefH) => structRefH
       case None => {
-        val (fullNameH) = nameHammer.translateFullName(hinputs, hamuts, structTT.fullName)
+        val (fullNameH) = nameHammer.translateFullName(hinputs, hamuts, structTT.id)
         // This is the only place besides StructDefinitionH that can make a StructRefH
         val temporaryStructRefH = StructHT(fullNameH);
         hamuts.forwardDeclareStruct(structTT, temporaryStructRefH)
-        val structDefT = hinputs.lookupStruct(structTT.fullName);
+        val structDefT = hinputs.lookupStruct(structTT.id);
         val (membersH) =
-          translateMembers(hinputs, hamuts, structDefT.instantiatedCitizen.fullName, structDefT.members)
+          translateMembers(hinputs, hamuts, structDefT.instantiatedCitizen.id, structDefT.members)
 
         val (edgesH) = translateEdgesForStruct(hinputs, hamuts, temporaryStructRefH, structTT)
 
@@ -184,7 +184,7 @@ class StructHammer(
           interner.intern(StructTemplateNameT(keywords.BOX_HUMAN_NAME)),
           Vector(CoordTemplata(type2)))))
     val boxFullNameH = nameHammer.translateFullName(hinputs, hamuts, boxFullName2)
-    hamuts.structDefs.find(_.fullName == boxFullNameH) match {
+    hamuts.structDefs.find(_.id == boxFullNameH) match {
       case Some(structDefH) => (structDefH.getRef)
       case None => {
         val temporaryStructRefH = StructHT(boxFullNameH);
@@ -196,7 +196,7 @@ class StructHammer(
 
         val memberH =
           StructMemberH(
-            nameHammer.addStep(hamuts, temporaryStructRefH.fullName, keywords.BOX_MEMBER_NAME.str),
+            nameHammer.addStep(hamuts, temporaryStructRefH.id, keywords.BOX_MEMBER_NAME.str),
             Conversions.evaluateVariability(actualVariability), typeH)
 
         val structDefH =
@@ -218,7 +218,7 @@ class StructHammer(
       structRefH: StructHT,
       structTT: StructTT):
   (Vector[EdgeH]) = {
-    val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.subCitizen.fullName == structTT.fullName)
+    val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.subCitizen.id == structTT.id)
     translateEdgesForStruct(hinputs, hamuts, structRefH, edges2.toVector)
   }
 
@@ -238,11 +238,11 @@ class StructHammer(
     val interfacePrototypesH = translateInterfaceMethods(hinputs, hamuts, interfaceTT)
 
     val prototypesH =
-      vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.fullName))
+      vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.id))
         .superFamilyRootHeaders.map({
         case (superFamilyPrototype, virtualParamIndex) =>
           val overridePrototypeT =
-            vassertSome(edge2.abstractFuncToOverrideFunc.get(superFamilyPrototype.fullName))
+            vassertSome(edge2.abstractFuncToOverrideFunc.get(superFamilyPrototype.id))
           val overridePrototypeH = translatePrototype(hinputs, hamuts, overridePrototypeT.overridePrototype)
           overridePrototypeH
       })
@@ -252,10 +252,10 @@ class StructHammer(
   }
 
   def lookupStruct(hinputs: Hinputs, hamuts: HamutsBox, structTT: StructTT): StructDefinitionT = {
-    hinputs.lookupStruct(structTT.fullName)
+    hinputs.lookupStruct(structTT.id)
   }
 
   def lookupInterface(hinputs: Hinputs, hamuts: HamutsBox, interfaceTT: InterfaceTT): InterfaceDefinitionT = {
-    hinputs.lookupInterface(interfaceTT.fullName)
+    hinputs.lookupInterface(interfaceTT.id)
   }
 }

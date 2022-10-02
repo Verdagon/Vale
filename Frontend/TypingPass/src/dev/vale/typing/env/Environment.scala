@@ -287,7 +287,7 @@ case class TemplatasStore(
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)
             // but also CodeNameS("moo").
             getImpreciseName(interner, key).toList.map(_ -> value) ++
-              getImpreciseName(interner, prototype.fullName.localName).map(_ -> value) ++
+              getImpreciseName(interner, prototype.id.localName).map(_ -> value) ++
               List(interner.intern(PrototypeNameS()) -> value)
           }
           case (key, entry @ ImplEnvEntry(implA)) => {

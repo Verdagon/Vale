@@ -962,8 +962,8 @@ class CompilerRuleSolver(
                     if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
-                    argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    vassert(argRunes.size == interface.id.localName.templateArgs.size)
+                    argRunes.zip(interface.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -972,8 +972,8 @@ class CompilerRuleSolver(
                     if (!delegate.kindIsFromTemplate(state, interface, it)) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    vassert(argRunes.size == interface.fullName.localName.templateArgs.size)
-                    argRunes.zip(interface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    vassert(argRunes.size == interface.id.localName.templateArgs.size)
+                    argRunes.zip(interface.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -987,7 +987,7 @@ class CompilerRuleSolver(
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    argRunes.zip(instantiationInterface.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -996,7 +996,7 @@ class CompilerRuleSolver(
                     if (templateInterface != instantiationInterface) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    argRunes.zip(instantiationInterface.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    argRunes.zip(instantiationInterface.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -1010,8 +1010,8 @@ class CompilerRuleSolver(
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
-                    vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
-                    argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    vassert(argRunes.size == struct.id.localName.templateArgs.size)
+                    argRunes.zip(struct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -1020,8 +1020,8 @@ class CompilerRuleSolver(
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
-                    vassert(argRunes.size == struct.fullName.localName.templateArgs.size)
-                    argRunes.zip(struct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    vassert(argRunes.size == struct.id.localName.templateArgs.size)
+                    argRunes.zip(struct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -1035,7 +1035,7 @@ class CompilerRuleSolver(
                     if (structTT != instantiationStruct) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    argRunes.zip(instantiationStruct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
@@ -1044,7 +1044,7 @@ class CompilerRuleSolver(
                     if (structTT != instantiationStruct) {
                       return Err(CallResultWasntExpectedType(it, result))
                     }
-                    argRunes.zip(instantiationStruct.fullName.localName.templateArgs).foreach({ case (rune, templateArg) =>
+                    argRunes.zip(instantiationStruct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
                       stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())

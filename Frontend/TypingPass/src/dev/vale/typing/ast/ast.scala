@@ -253,7 +253,7 @@ case class ValidPrototypeTemplataCalleeCandidate(
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
   override def range: Option[RangeS] = Some(prototype.declarationRange)
-  override def paramTypes: Vector[CoordT] = prototype.prototype.fullName.localName.parameters.toVector
+  override def paramTypes: Vector[CoordT] = prototype.prototype.id.localName.parameters.toVector
 }
 case class ValidCalleeCandidate(
   banner: FunctionHeaderT,
@@ -459,9 +459,9 @@ case class FunctionHeaderT(
 }
 
 case class PrototypeT(
-    fullName: IdT[IFunctionNameT],
+    id: IdT[IFunctionNameT],
     returnType: CoordT) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def paramTypes: Vector[CoordT] = fullName.localName.parameters
-  def toSignature: SignatureT = SignatureT(fullName)
+  def paramTypes: Vector[CoordT] = id.localName.parameters
+  def toSignature: SignatureT = SignatureT(id)
 }

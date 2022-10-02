@@ -404,7 +404,7 @@ class PatternCompiler(
 
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
-        interner, keywords, structTT.fullName,
+        interner, keywords, structTT.id,
         // We're receiving something of this type, so it should supply its own bounds.
         InheritBoundsFromTypeItself)
 
@@ -504,12 +504,12 @@ class PatternCompiler(
       TemplataCompiler.getPlaceholderSubstituter(
         interner,
         keywords,
-        structTT.fullName,
+        structTT.id,
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
           structDefT.runeToFunctionBound,
           structDefT.runeToImplBound,
-          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
+          vassertSome(coutputs.getInstantiationBounds(structTT.id))))
         .substituteForCoord(coutputs, unsubstitutedMemberCoord)
 
     ReferenceMemberLookupTE(

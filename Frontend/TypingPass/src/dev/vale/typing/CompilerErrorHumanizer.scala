@@ -373,7 +373,7 @@ object CompilerErrorHumanizer {
         "Can't get components of placeholder."
       }
       case ReturnTypeConflict(_, expectedReturnType, actualPrototype) => {
-        "Found function: " + humanizeName(codeMap, actualPrototype.fullName) + " which returns " + humanizeTemplata(codeMap, CoordTemplata(actualPrototype.returnType)) + " but expected return type of " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType))
+        "Found function: " + humanizeName(codeMap, actualPrototype.id) + " which returns " + humanizeTemplata(codeMap, CoordTemplata(actualPrototype.returnType)) + " but expected return type of " + humanizeTemplata(codeMap, CoordTemplata(expectedReturnType))
       }
       case CantShareMutable(kind) => {
         "Can't share a mutable kind: " + humanizeTemplata(codeMap, KindTemplata(kind))
@@ -497,7 +497,7 @@ object CompilerErrorHumanizer {
         }
       }
       case PrototypeTemplata(range, prototype) => {
-        humanizeName(codeMap, prototype.fullName)
+        humanizeName(codeMap, prototype.id)
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region.localName match {

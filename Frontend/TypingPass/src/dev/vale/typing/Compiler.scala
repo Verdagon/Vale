@@ -170,7 +170,7 @@ class Compiler(
             case ImplDefinitionTemplata(_,_) =>
             case CoordListTemplata(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
             case PrototypeTemplata(_, prototype) => {
-              getPlaceholdersInFullName(accum, prototype.fullName)
+              getPlaceholdersInFullName(accum, prototype.id)
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
             }
@@ -401,7 +401,7 @@ class Compiler(
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(result.fullName, InstantiationBoundArguments(Map(), Map()))
+          state.addInstantiationBounds(result.id, InstantiationBoundArguments(Map(), Map()))
 
           result
         }
@@ -1198,7 +1198,7 @@ class Compiler(
 
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
-                interner, keywords, sr.fullName,
+                interner, keywords, sr.id,
                 InheritBoundsFromTypeItself)
 
             structDef.members.foreach({

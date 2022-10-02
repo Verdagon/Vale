@@ -130,28 +130,28 @@ case class NeverHT(fromBreak: Boolean) extends KindHT {
 
 case class InterfaceHT(
   // Unique identifier for the interface.
-  fullName: IdH
+  id: IdH
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = fullName.packageCoordinate
+  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
 }
 
 case class StructHT(
   // Unique identifier for the interface.
-  fullName: IdH
+  id: IdH
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = fullName.packageCoordinate
+  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
 }
 
 // An array whose size is known at compile time, and therefore doesn't need to
 // carry around its size at runtime.
 case class StaticSizedArrayHT(
   // This is useful for naming the Midas struct that wraps this array and its ref count.
-  name: IdH,
+  id: IdH,
 ) extends KindHT {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = name.packageCoordinate
+  override def packageCoord(interner: Interner, keywords: Keywords): PackageCoordinate = id.packageCoordinate
 }
 
 // An array whose size is known at compile time, and therefore doesn't need to

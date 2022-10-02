@@ -75,7 +75,7 @@ class CallCompiler(
           argsExprs2.map(a => a.result.coord),
           exact = true)
 
-        vassert(coutputs.getInstantiationBounds(prototype.prototype.prototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.prototype.prototype.id).nonEmpty)
         (ast.FunctionCallTE(prototype.prototype.prototype, argsExprs2))
       }
       case other => {
@@ -165,7 +165,7 @@ class CallCompiler(
 
     checkTypes(coutputs, env, range, resolved.prototype.prototype.paramTypes, argTypes, exact = true)
 
-    vassert(coutputs.getInstantiationBounds(resolved.prototype.prototype.fullName).nonEmpty)
+    vassert(coutputs.getInstantiationBounds(resolved.prototype.prototype.id).nonEmpty)
     val resultingExpr2 = FunctionCallTE(resolved.prototype.prototype, actualArgsExprs2);
 
     (resultingExpr2)

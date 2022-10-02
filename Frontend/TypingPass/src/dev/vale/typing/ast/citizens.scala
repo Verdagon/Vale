@@ -29,7 +29,7 @@ case class StructDefinitionT(
   runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
 ) extends CitizenDefinitionT {
   override def genericParamTypes: Vector[ITemplataType] = {
-    instantiatedCitizen.fullName.localName.templateArgs.map(_.tyype)
+    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
   }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -117,7 +117,7 @@ case class InterfaceDefinitionT(
   internalMethods: Vector[(PrototypeT, Int)]
 ) extends CitizenDefinitionT  {
   override def genericParamTypes: Vector[ITemplataType] = {
-    instantiatedCitizen.fullName.localName.templateArgs.map(_.tyype)
+    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
   }
 
   override def instantiatedCitizen: ICitizenTT = instantiatedInterface

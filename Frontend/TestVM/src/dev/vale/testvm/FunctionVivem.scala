@@ -50,7 +50,7 @@ object FunctionVivem {
 
   def getExternFunction(programH: ProgramH, ref: PrototypeH): (AdapterForExterns, Vector[ReferenceV]) => ReferenceV = {
 
-    ref.fullName.toFullString()
+    ref.id.toFullString()
       // The tests have a mode where they can interpret the builtins as separate packages, instead
       // of pulling it all in as one giant namespace. In that case, it prefixes things such as
       // v::builtins::arith. We can add other prefixes here too as needed.
@@ -102,7 +102,7 @@ object FunctionVivem {
       case """::F("__vbi_modI64",[],[R(@,<,i(64)),R(@,<,i(64))])""" => VivemExterns.modI64
       case """::F("TruncateI64ToI32",[],[R(@,<,i(64))])""" => VivemExterns.truncateI64ToI32
 
-      case _ => vimpl(ref.fullName.toFullString())
+      case _ => vimpl(ref.id.toFullString())
     }
   }
 }

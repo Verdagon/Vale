@@ -244,7 +244,7 @@ case class PlaceholderNameT(template: PlaceholderTemplateNameT) extends ISubKind
 
 // See NNSPAFOC.
 case class OverrideDispatcherTemplateNameT(
-  implFullName: IdT[IImplTemplateNameT]
+  implId: IdT[IImplTemplateNameT]
 ) extends IFunctionTemplateNameT {
   override def makeFunctionName(
     interner: Interner,
