@@ -14,7 +14,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{FailedSolve, IncompleteSolve, RuleError, SolverConflict, Step}
 import dev.vale.typing.ast.{ConstantIntTE, FunctionCallTE, KindExportT, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{ITypingPassSolverError, KindIsNotConcrete, SendingNonCitizen}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata._
@@ -63,7 +63,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val bork = coutputs.lookupFunction("bork")
 
     // Only identifying template arg coord should be of PlaceholderT(0)
-    bork.header.fullName.localName.templateArgs match {
+    bork.header.id.localName.templateArgs match {
       case Vector(CoordTemplata(CoordT(OwnT,_,PlaceholderT(IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(0)))))))
       =>
     }
@@ -126,7 +126,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("bork")
-    main.header.fullName.localName.templateArgs match {
+    main.header.id.localName.templateArgs match {
       case Vector(PlaceholderTemplata(_, IntegerTemplataType())) =>
     }
   }
@@ -201,8 +201,9 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val tz = List(RangeS.testZero(interner))
     val testPackageCoord = PackageCoordinate.TEST_TLD(interner, keywords)
     val tzCodeLoc = CodeLocationS.testZero(interner)
+    val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val region = IdT(testPackageCoord, Vector(), FunctionDefaultRegionNameT(funcName))
+    val region = funcTemplateName.addStep(interner.intern(DenizenDefaultRegionNameT()))
 
 
     val fireflyKind = StructTT(IdT(testPackageCoord, Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
@@ -581,7 +582,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("bork").header.fullName.localName.templateArgs.last shouldEqual CoordTemplata(CoordT(ShareT, vimpl(), IntT(32)))
+    coutputs.lookupFunction("bork").header.id.localName.templateArgs.last shouldEqual CoordTemplata(CoordT(ShareT, vimpl(), IntT(32)))
   }
 
   test("Can destructure and assemble static sized array") {
@@ -604,7 +605,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     val swap = coutputs.lookupFunction("swap")
-    swap.header.fullName.localName.templateArgs.last match {
+    swap.header.id.localName.templateArgs.last match {
       case CoordTemplata(CoordT(OwnT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
     }
 

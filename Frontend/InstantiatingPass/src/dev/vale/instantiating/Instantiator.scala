@@ -62,15 +62,15 @@ class InstantiatedOutputs() {
   val newFunctions: mutable.Queue[(PrototypeT, InstantiationBoundArguments, Option[DenizenBoundToDenizenCallerBoundArg])] = mutable.Queue()
 
   def addMethodToVTable(
-    implFullName: IdT[IImplNameT],
-    superInterfaceFullName: IdT[IInterfaceNameT],
+    implId: IdT[IImplNameT],
+    superInterfaceId: IdT[IInterfaceNameT],
     abstractFuncPrototype: PrototypeT,
     overrride: OverrideT
   ) = {
     val map =
       interfaceToImplToAbstractPrototypeToOverride
-        .getOrElseUpdate(superInterfaceFullName, mutable.HashMap())
-        .getOrElseUpdate(implFullName, mutable.HashMap())
+        .getOrElseUpdate(superInterfaceId, mutable.HashMap())
+        .getOrElseUpdate(implId, mutable.HashMap())
     vassert(!map.contains(abstractFuncPrototype))
     map.put(abstractFuncPrototype, overrride)
   }
@@ -292,19 +292,19 @@ object Instantiator {
     keywords: Keywords,
     hinputs: Hinputs,
     monouts: InstantiatedOutputs,
-    structFullName: IdT[IStructNameT],
+    structId: IdT[IStructNameT],
     instantiationBoundArgs: InstantiationBoundArguments):
   Unit = {
     if (opts.sanityCheck) {
-      vassert(Collector.all(structFullName, { case PlaceholderNameT(_) => }).isEmpty)
+      vassert(Collector.all(structId, { case PlaceholderNameT(_) => }).isEmpty)
     }
 
-    val structTemplate = TemplataCompiler.getStructTemplate(structFullName)
+    val structTemplate = TemplataCompiler.getStructTemplate(structId)
 
-    val structDefT = findStruct(hinputs, structFullName)
+    val structDefT = findStruct(hinputs, structId)
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(structFullName)
+      getTopLevelDenizenFullName(structId)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
 
@@ -328,7 +328,7 @@ object Instantiator {
         hinputs,
         monouts,
         structTemplate,
-        structFullName,
+        structId,
         topLevelDenizenPlaceholderIndexToTemplata.toVector.zipWithIndex.map({ case (templateArg, index) =>
           val placeholderName =
             topLevelDenizenTemplateFullName
@@ -337,7 +337,7 @@ object Instantiator {
         }).toMap,
         denizenBoundToDenizenCallerSuppliedThing)
 
-    instantiator.translateStructDefinition(structFullName, structDefT)
+    instantiator.translateStructDefinition(structId, structDefT)
   }
 
   private def findStruct(hinputs: Hinputs, structFullName: IdT[IStructNameT]) = {
@@ -349,12 +349,12 @@ object Instantiator {
         }))
   }
 
-  private def findInterface(hinputs: Hinputs, interfaceFullName: IdT[IInterfaceNameT]) = {
+  private def findInterface(hinputs: Hinputs, interfaceId: IdT[IInterfaceNameT]) = {
     vassertOne(
       hinputs.interfaces
         .filter(interfaceT => {
           TemplataCompiler.getSuperTemplate(interfaceT.instantiatedCitizen.fullName) ==
-            TemplataCompiler.getSuperTemplate(interfaceFullName)
+            TemplataCompiler.getSuperTemplate(interfaceId)
         }))
   }
 
@@ -374,7 +374,7 @@ object Instantiator {
     val funcT =
       vassertOne(
         hinputs.functions.filter(func => {
-          TemplataCompiler.getFunctionTemplate(func.header.fullName) == funcTemplateNameT
+          TemplataCompiler.getFunctionTemplate(func.header.id) == funcTemplateNameT
         }))
 
     val abstractFuncInstantiator =
@@ -413,17 +413,17 @@ object Instantiator {
     keywords: Keywords,
     hinputs: Hinputs,
     monouts: InstantiatedOutputs,
-    implFullName: IdT[IImplNameT],
+    implId: IdT[IImplNameT],
     abstractFuncPrototype: PrototypeT):
   Unit = {
     //    val superInterfaceFullName: FullNameT[IInterfaceNameT],
 
-    val implTemplateFullName = TemplataCompiler.getImplTemplate(implFullName)
+    val implTemplateFullName = TemplataCompiler.getImplTemplate(implId)
     val implDefinitionT =
       vassertOne(
         hinputs.interfaceToSubCitizenToEdge
           .flatMap(_._2.values)
-          .filter(edge => TemplataCompiler.getImplTemplate(edge.edgeFullName) == implTemplateFullName))
+          .filter(edge => TemplataCompiler.getImplTemplate(edge.edgeId) == implTemplateFullName))
 
     val superInterfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(implDefinitionT.superInterface)
     val superInterfaceDefinitionT = hinputs.lookupInterfaceByTemplateFullName(superInterfaceTemplateFullName)
@@ -436,8 +436,8 @@ object Instantiator {
     val abstractFuncPlaceholderedNameT =
       vassertSome(
         hinputs.functions
-          .find(func => TemplataCompiler.getFunctionTemplate(func.header.fullName) == abstractFuncTemplateName))
-        .header.fullName
+          .find(func => TemplataCompiler.getFunctionTemplate(func.header.id) == abstractFuncTemplateName))
+        .header.id
 
     val edgeT =
       vassertSome(
@@ -462,7 +462,7 @@ object Instantiator {
     val dispatcherRuneToCallerSuppliedImpl = abstractFunctionRuneToCallerSuppliedInstantiationBoundArgs.runeToImplBoundArg
 
     val edgeInstantiator =
-      vassertSome(monouts.impls.get(implFullName))._4
+      vassertSome(monouts.impls.get(implId))._4
 
     val dispatcherPlaceholderFullNameToSuppliedTemplata =
       dispatcherFullNameT.localName.templateArgs
@@ -473,7 +473,7 @@ object Instantiator {
             vassertSome(
               implPlaceholderToDispatcherPlaceholder.find(_._2 == dispatcherPlaceholderTemplata))._1
           val IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) = implPlaceholder
-          val templata = implFullName.localName.templateArgs(index)
+          val templata = implId.localName.templateArgs(index)
           dispatcherPlaceholderFullName -> templata
         })
 
@@ -511,7 +511,7 @@ object Instantiator {
             vassertSome(
               implPlaceholderToCasePlaceholder.find(_._2 == casePlaceholderTemplata))._1
           val IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) = implPlaceholder
-          val templata = implFullName.localName.templateArgs(index)
+          val templata = implId.localName.templateArgs(index)
           casePlaceholderFullName -> templata
           //          // templata is the value from the edge that's doing the overriding. It comes from the impl.
           //          val dispatcherCasePlaceholderFullName =
@@ -596,12 +596,12 @@ object Instantiator {
 
     val overridePrototype = caseInstantiator.translatePrototype(overridePrototypeT)
 
-    val superInterfaceFullName = vassertSome(monouts.impls.get(implFullName))._2
+    val superInterfaceFullName = vassertSome(monouts.impls.get(implId))._2
 
     val overrride =
       OverrideT(
         dispatcherFullNameT, Vector(), Vector(), Map(), Map(), Map(), dispatcherCaseFullNameT, overridePrototype)
-    monouts.addMethodToVTable(implFullName, superInterfaceFullName, abstractFuncPrototype, overrride)
+    monouts.addMethodToVTable(implId, superInterfaceFullName, abstractFuncPrototype, overrride)
   }
 
   def translateImpl(
@@ -610,22 +610,22 @@ object Instantiator {
     keywords: Keywords,
     hinputs: Hinputs,
     monouts: InstantiatedOutputs,
-    implFullName: IdT[IImplNameT],
+    implId: IdT[IImplNameT],
     instantiationBoundsForUnsubstitutedImpl: InstantiationBoundArguments):
   Unit = {
-    val implTemplateFullName = TemplataCompiler.getImplTemplate(implFullName)
+    val implTemplateFullName = TemplataCompiler.getImplTemplate(implId)
     val implDefinition =
       vassertOne(
         hinputs.interfaceToSubCitizenToEdge
           .flatMap(_._2.values)
           .filter(edge => {
-            TemplataCompiler.getImplTemplate(edge.edgeFullName) == implTemplateFullName
+            TemplataCompiler.getImplTemplate(edge.edgeId) == implTemplateFullName
           }))
 
 
     val subCitizenT = implDefinition.subCitizen
     val subCitizenM =
-      implFullName.localName match {
+      implId.localName match {
         case ImplNameT(template, templateArgs, subCitizen) => subCitizen
         case AnonymousSubstructImplNameT(template, templateArgs, subCitizen) => subCitizen
         case other => vimpl(other)
@@ -658,12 +658,12 @@ object Instantiator {
         hinputs,
         monouts,
         implTemplateFullName,
-        implFullName,
-        implFullName.localName.templateArgs.toVector.zipWithIndex.map({ case (templateArg, index) =>
+        implId,
+        implId.localName.templateArgs.toVector.zipWithIndex.map({ case (templateArg, index) =>
           implTemplateFullName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(index))))) -> templateArg
         }).toMap,
         denizenBoundToDenizenCallerSuppliedThing)
-    instantiator.translateImplDefinition(implFullName, implDefinition)
+    instantiator.translateImplDefinition(implId, implDefinition)
 
 
     //    val (subCitizenFullName, superInterfaceFullName, implBoundToImplCallerSuppliedPrototype) = vassertSome(monouts.impls.get(implFullName))
@@ -714,7 +714,7 @@ object Instantiator {
     val funcT =
       vassertOne(
         hinputs.functions
-          .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.fullName) == desiredFuncSuperTemplateName))
+          .filter(funcT => TemplataCompiler.getSuperTemplate(funcT.header.id) == desiredFuncSuperTemplateName))
 
 
     val denizenBoundToDenizenCallerSuppliedThingFromDenizenItself =
@@ -1039,26 +1039,26 @@ class Instantiator(
   }
 
   def translateStructDefinition(
-    newFullName: IdT[IStructNameT],
+    newId: IdT[IStructNameT],
     structDefT: StructDefinitionT):
   Unit = {
     val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutabilityT, members, isClosure, _, _) = structDefT
 
     if (opts.sanityCheck) {
-      vassert(Collector.all(newFullName, { case PlaceholderNameT(_) => }).isEmpty)
+      vassert(Collector.all(newId, { case PlaceholderNameT(_) => }).isEmpty)
     }
 
     val mutability = expectMutabilityTemplata(translateTemplata(mutabilityT)).mutability
 
-    if (monouts.startedStructs.contains(newFullName)) {
+    if (monouts.startedStructs.contains(newId)) {
       return
     }
-    monouts.startedStructs.put(newFullName, (mutability, this.denizenBoundToDenizenCallerSuppliedThing))
+    monouts.startedStructs.put(newId, (mutability, this.denizenBoundToDenizenCallerSuppliedThing))
 
     val result =
       StructDefinitionT(
         templateName,
-        interner.intern(StructTT(newFullName)),
+        interner.intern(StructTT(newId)),
         attributes,
         weakable,
         MutabilityTemplata(mutability),
@@ -1067,7 +1067,7 @@ class Instantiator(
         Map(),
         Map())
 
-    vassert(result.instantiatedCitizen.fullName == newFullName)
+    vassert(result.instantiatedCitizen.fullName == newId)
 
     monouts.structs.put(result.instantiatedCitizen.fullName, result)
 
@@ -1164,7 +1164,7 @@ class Instantiator(
     val newHeader = translateFunctionHeader(headerT)
 
     val result = FunctionDefinitionT(newHeader, Map(), Map(), translateRefExpr(bodyT))
-    monouts.functions.put(result.header.fullName, result)
+    monouts.functions.put(result.header.id, result)
     result
   }
 
@@ -1567,9 +1567,9 @@ class Instantiator(
   }
 
   def translateVarFullName(
-    fullName: IdT[IVarNameT]):
+    id: IdT[IVarNameT]):
   IdT[IVarNameT] = {
-    val IdT(module, steps, last) = fullName
+    val IdT(module, steps, last) = id
     val result =
       IdT(
         module,
@@ -1638,10 +1638,10 @@ class Instantiator(
   }
 
   def translateCitizenFullName(
-    fullName: IdT[ICitizenNameT],
+    id: IdT[ICitizenNameT],
     instantiationBoundArgs: InstantiationBoundArguments):
   IdT[ICitizenNameT] = {
-    fullName match {
+    id match {
       case IdT(module, steps, last : IStructNameT) => {
         translateStructFullName(IdT(module, steps, last), instantiationBoundArgs)
       }
@@ -1681,7 +1681,7 @@ class Instantiator(
   }
 
   def translateFullName(
-    fullName: IdT[INameT]):
+    id: IdT[INameT]):
   IdT[INameT] = {
     vimpl()
   }
@@ -2083,10 +2083,10 @@ class Instantiator(
   }
 
   def translateImplDefinition(
-    implFullName: IdT[IImplNameT],
+    implId: IdT[IImplNameT],
     implDefinition: EdgeT):
   Unit = {
-    if (monouts.impls.contains(implFullName)) {
+    if (monouts.impls.contains(implId)) {
       return
     }
 
@@ -2098,17 +2098,17 @@ class Instantiator(
       translateInterfaceFullName(
         implDefinition.superInterface,
         translateBoundArgsForCallee(hinputs.getInstantiationBoundArgs(implDefinition.superInterface)))
-    monouts.impls.put(implFullName, (citizen, superInterface, denizenBoundToDenizenCallerSuppliedThing, this))
+    monouts.impls.put(implId, (citizen, superInterface, denizenBoundToDenizenCallerSuppliedThing, this))
 
     vassertSome(monouts.interfaceToImplToAbstractPrototypeToOverride.get(superInterface))
-      .put(implFullName, mutable.HashMap())
-    vassertSome(monouts.interfaceToImpls.get(superInterface)).add(implFullName)
+      .put(implId, mutable.HashMap())
+    vassertSome(monouts.interfaceToImpls.get(superInterface)).add(implId)
 
 
     vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(superInterface))
       .foreach({ case (abstractFuncPrototype, virtualIndex) =>
         Instantiator.translateOverride(
-          opts, interner, keywords, hinputs, monouts, implFullName, abstractFuncPrototype)
+          opts, interner, keywords, hinputs, monouts, implId, abstractFuncPrototype)
       })
   }
 }

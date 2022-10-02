@@ -168,7 +168,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("bork").header.fullName.localName.templateArgs.last match {
+    coutputs.lookupFunction("bork").header.id.localName.templateArgs.last match {
       case CoordTemplata(CoordT(OwnT, _,_)) =>
     }
   }
@@ -197,7 +197,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("genericGetFuel").header.fullName.localName.templateArgs.last match {
+    coutputs.lookupFunction("genericGetFuel").header.id.localName.templateArgs.last match {
       case CoordTemplata(CoordT(_,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
     }
   }
@@ -224,7 +224,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
 
     val lambdaFuncs =
       coutputs.functions.filter(func => {
-        func.header.fullName.localName.template match {
+        func.header.id.localName.template match {
           case FunctionTemplateNameT(StrI("__call"), _) => true
           case _ => false
         }

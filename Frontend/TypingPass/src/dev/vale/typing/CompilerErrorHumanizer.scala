@@ -14,7 +14,7 @@ import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferF
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{BadIsaSubKind, BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, ReturnTypeConflict, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, IdT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, RegionNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
@@ -451,7 +451,7 @@ object CompilerErrorHumanizer {
   def humanizeCandidate(codeMap: FileCoordinateMap[String], candidate: ICalleeCandidate) = {
     candidate match {
       case HeaderCalleeCandidate(header) => {
-        humanizeName(codeMap, header.fullName)
+        humanizeName(codeMap, header.id)
       }
       case PrototypeTemplataCalleeCandidate(range, prototypeT) => {
         val begin = lineBegin(codeMap, range.begin)
@@ -501,7 +501,7 @@ object CompilerErrorHumanizer {
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region.localName match {
-          case FunctionDefaultRegionNameT(_) => ""
+          case DenizenDefaultRegionNameT() => "'def"
           case RegionNameT(rune) => "'" + humanizeRune(rune) + " "
         }) +
         (ownership match {
@@ -624,6 +624,6 @@ object CompilerErrorHumanizer {
   }
 
   def humanizeSignature(codeMap: FileCoordinateMap[String], signature: SignatureT): String = {
-    humanizeName(codeMap, signature.fullName)
+    humanizeName(codeMap, signature.id)
   }
 }

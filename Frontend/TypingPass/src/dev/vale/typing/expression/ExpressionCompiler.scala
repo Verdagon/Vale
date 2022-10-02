@@ -10,7 +10,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal, CantMutateFinalElement, CantMutateFinalMember, CantReconcileBranchesResults, CantUnstackifyOutsideLocalFromInsideWhile, CantUseUnstackifiedLocal, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForMutateT, CouldntConvertForReturnT, CouldntFindIdentifierToLoadT, CouldntFindMemberT, HigherTypingInferError, IfConditionIsntBoolean, InferCompiler, OverloadResolver, RangedInternalErrorT, SequenceCompiler, TemplataCompiler, TypingPassOptions, ast, templata}
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE, BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE, ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, MutateTE, PrototypeT, ReferenceExpressionTE, ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, StructCompiler}
-import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, ExpressionLookupContext, FunctionEnvironment, IEnvironment, ILocalVariableT, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataEnvEntry, TemplataLookupContext}
+import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, ExpressionLookupContext, FunctionEnvironment, IInDenizenEnvironment, ILocalVariableT, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.highertyping._
 import dev.vale.parsing._
@@ -35,7 +35,7 @@ case class TookWeakRefOfNonWeakableError() extends Throwable { val hash = runtim
 trait IExpressionCompilerDelegate {
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -44,7 +44,7 @@ trait IExpressionCompilerDelegate {
 
   def evaluateGenericFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -411,7 +411,7 @@ class ExpressionCompiler(
           val paramCoordRune = nenv.function.params(index).pattern.coordRune.get
           val paramCoordTemplata = vassertOne(nenv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(paramCoordRune.rune)), Set(TemplataLookupContext)))
           val CoordTemplata(paramCoord) = paramCoordTemplata
-          vassert(nenv.functionEnvironment.fullName.localName.parameters(index) == paramCoord)
+          vassert(nenv.functionEnvironment.id.localName.parameters(index) == paramCoord)
           (ArgLookupTE(index, paramCoord), Set())
         }
         case FunctionCallSE(range, OutsideLoadSE(_, rules, name, maybeTemplateArgs, callableTargetOwnership), argsExprs1) => {
@@ -774,7 +774,7 @@ class ExpressionCompiler(
               coutputs, nenv, life + 0, parentRanges, nenv.defaultRegion, elements1);
 
           // would we need a sequence templata? probably right?
-          val expr2 = sequenceCompiler.evaluate(nenv.snapshot, coutputs, parentRanges, exprs2)
+          val expr2 = sequenceCompiler.resolveTuple(nenv.snapshot, coutputs, parentRanges, exprs2)
           (expr2, returnsFromElements)
         }
         case StaticArrayFromValuesSE(range, rules, maybeElementTypeRuneA, mutabilityRune, variabilityRune, sizeRuneA, elements1) => {
@@ -1565,7 +1565,7 @@ class ExpressionCompiler(
   }
 
   private def newGlobalFunctionGroupExpression(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     region: IdT[IRegionNameT],
     name: IImpreciseNameS):
@@ -1601,7 +1601,7 @@ class ExpressionCompiler(
   ): ReferenceExpressionTE = {
     patternCompiler.translatePatternList(
       coutputs, nenv, life, parentRanges, patterns1, patternInputExprs2,
-      (coutputs, nenv, liveCaptureLocals) => VoidLiteralTE(vimpl()))
+      (coutputs, nenv, liveCaptureLocals) => VoidLiteralTE(nenv.defaultRegion))
   }
 
   def astronomizeLambda(

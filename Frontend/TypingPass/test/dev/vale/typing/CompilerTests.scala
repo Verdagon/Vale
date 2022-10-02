@@ -16,7 +16,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -1203,8 +1203,9 @@ class CompilerTests extends FunSuite with Matchers {
     val testPackageCoord = PackageCoordinate.TEST_TLD(interner, keywords)
     val tz = List(RangeS.testZero(interner))
     val tzCodeLoc = CodeLocationS.testZero(interner)
+    val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val region = IdT(testPackageCoord, Vector(), FunctionDefaultRegionNameT(funcName))
+    val region = funcTemplateName.addStep(interner.intern(DenizenDefaultRegionNameT()))
 
     val fireflyKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
@@ -1286,7 +1287,7 @@ class CompilerTests extends FunSuite with Matchers {
         CodeVarNameT(StrI("firefly"))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
-      FunctionAlreadyExists(tz.head, tz.head, fireflySignature.fullName))
+      FunctionAlreadyExists(tz.head, tz.head, fireflySignature.id))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantMutateFinalMember(

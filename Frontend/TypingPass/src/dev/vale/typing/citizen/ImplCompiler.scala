@@ -44,7 +44,7 @@ class ImplCompiler(
   def solveImplForCall(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
     isRootSolve: Boolean,
@@ -64,7 +64,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(nameTranslator.translateImplName(name))
+      parentEnv.id.addStep(nameTranslator.translateImplName(name))
 
     val outerEnv =
       CitizenEnvironment(
@@ -72,6 +72,7 @@ class ImplCompiler(
         parentEnv,
         implTemplateFullName,
         implTemplateFullName,
+        vimpl(),
         TemplatasStore(implTemplateFullName, Map(), Map()))
 
     // Remember, impls can have rules too, such as:
@@ -104,7 +105,7 @@ class ImplCompiler(
   private def solveImplForDefine(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
     verifyConclusions: Boolean,
@@ -124,7 +125,7 @@ class ImplCompiler(
     ) = impl
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(nameTranslator.translateImplName(name))
+      parentEnv.id.addStep(nameTranslator.translateImplName(name))
 
     val outerEnv =
       CitizenEnvironment(
@@ -132,6 +133,7 @@ class ImplCompiler(
         parentEnv,
         implTemplateFullName,
         implTemplateFullName,
+        vimpl(),
         TemplatasStore(implTemplateFullName, Map(), Map()))
 
     // Remember, impls can have rules too, such as:
@@ -166,7 +168,7 @@ class ImplCompiler(
     val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
 
     val implTemplateFullName =
-      parentEnv.fullName.addStep(
+      parentEnv.id.addStep(
         nameTranslator.translateImplName(implA.name))
 
     val implOuterEnv =
@@ -175,13 +177,20 @@ class ImplCompiler(
         parentEnv,
         implTemplateFullName,
         implTemplateFullName,
+        vimpl(),
         TemplatasStore(implTemplateFullName, Map(), Map()))
 
     val implPlaceholders =
       implA.genericParams.zipWithIndex.map({ case (rune, index) =>
         val placeholder =
           templataCompiler.createPlaceholder(
-            coutputs, implOuterEnv, implTemplateFullName, rune, index, implA.runeToType, true)
+            coutputs,
+            implOuterEnv,
+            implTemplateFullName,
+            rune,
+            index,
+            implA.runeToType,
+            true)
         InitialKnown(rune.rune, placeholder)
       })
 
@@ -218,7 +227,7 @@ class ImplCompiler(
         interner,
         implOuterEnv,
         instantiatedFullName,
-        reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, index) =>
+        newEntriesList = reachableBoundsFromSubCitizen.zipWithIndex.map({ case (templata, index) =>
           interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(templata)
         }).toVector ++
         inferences.map({ case (nameS, templata) =>
@@ -255,7 +264,7 @@ class ImplCompiler(
   def calculateRunesIndependence(
     coutputs: CompilerOutputs,
     implTemplata: ImplDefinitionTemplata,
-    implOuterEnv: IEnvironment,
+    implOuterEnv: IInDenizenEnvironment,
     interface: InterfaceTT,
   ): Vector[Boolean] = {
 
@@ -463,7 +472,7 @@ class ImplCompiler(
   def isDescendant(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     kind: ISubKindTT,
     verifyConclusions: Boolean):
   Boolean = {
@@ -473,7 +482,7 @@ class ImplCompiler(
   def getImplDescendantGivenParent(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     implTemplata: ImplDefinitionTemplata,
     parent: InterfaceTT,
     verifyConclusions: Boolean,
@@ -497,7 +506,7 @@ class ImplCompiler(
   def getImplParentGivenSubCitizen(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     implTemplata: ImplDefinitionTemplata,
     child: ICitizenTT,
     verifyConclusions: Boolean):
@@ -524,7 +533,7 @@ class ImplCompiler(
   def getParents(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     subKind: ISubKindTT,
     verifyConclusions: Boolean):
   Vector[ISuperKindTT] = {
@@ -583,7 +592,7 @@ class ImplCompiler(
 
   def isParent(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
     subKindTT: ISubKindTT,
     superKindTT: ISuperKindTT):
@@ -653,7 +662,7 @@ class ImplCompiler(
         val templateArgs =
           implTemplata.impl.genericParams.map(_.rune.rune).map(conclusions)
         val implTemplateFullName =
-          implTemplata.env.fullName.addStep(
+          implTemplata.env.id.addStep(
             nameTranslator.translateImplName(implTemplata.impl.name))
         val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs, subKindTT.expectCitizen())
         coutputs.addInstantiationBounds(instantiatedFullName, runeToSuppliedFunction)

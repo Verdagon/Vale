@@ -10,7 +10,7 @@ import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
 import dev.vale.typing.ast
-import dev.vale.typing.names.FunctionDefaultRegionNameT
+import dev.vale.typing.names.DenizenDefaultRegionNameT
 
 class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.vale_static_sized_array_drop_into
@@ -27,7 +27,7 @@ class SSADropIntoMacro(keywords: Keywords, arrayCompiler: ArrayCompiler) extends
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,

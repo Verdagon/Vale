@@ -10,7 +10,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.types.StaticSizedArrayTT
 import dev.vale.typing.ast
-import dev.vale.typing.names.FunctionDefaultRegionNameT
+import dev.vale.typing.names.DenizenDefaultRegionNameT
 
 
 class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
@@ -28,7 +28,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,

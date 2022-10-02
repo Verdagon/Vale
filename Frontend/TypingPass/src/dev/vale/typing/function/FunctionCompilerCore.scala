@@ -8,7 +8,7 @@ import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, 
 import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionDefinitionT, FunctionHeaderT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{ExternFunctionNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
+import dev.vale.typing.names.{ExternFunctionNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -71,14 +71,14 @@ class FunctionCompilerCore(
 //    opts.debugOut("Evaluating function " + fullEnv.fullName)
 
 //    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
-    val functionTemplateName = fullEnv.fullName
+    val functionTemplateName = fullEnv.id
 
     val life = LocationInFunctionEnvironment(Vector())
 
     val isDestructor =
       params2.nonEmpty &&
         params2.head.tyype.ownership == OwnT &&
-        (fullEnv.fullName.localName match {
+        (fullEnv.id.localName match {
           case FunctionNameT(humanName, _, _) if humanName == keywords.drop => true
           case _ => false
         })
@@ -86,7 +86,7 @@ class FunctionCompilerCore(
     val maybeExport =
       fullEnv.function.attributes.collectFirst { case e@ExportS(_) => e }
 
-    val signature2 = SignatureT(fullEnv.fullName);
+    val signature2 = SignatureT(fullEnv.id);
     val maybeRetTemplata =
       fullEnv.function.maybeRetCoordRune match {
         case None => (None)
@@ -142,7 +142,7 @@ class FunctionCompilerCore(
           val header =
             makeExternFunction(
               coutputs,
-              fullEnv.fullName,
+              fullEnv.id,
               fullEnv.function.range,
               translateFunctionAttributes(fullEnv.function.attributes),
               params2,
@@ -216,7 +216,7 @@ class FunctionCompilerCore(
       case None =>
       case Some(exportPackageCoord) => {
         val exportedName =
-          fullEnv.fullName.localName match {
+          fullEnv.id.localName match {
             case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
@@ -251,7 +251,7 @@ class FunctionCompilerCore(
       params2: Vector[ParameterT]):
   (PrototypeT) = {
     getFunctionPrototypeInnerForCall(
-      fullEnv, fullEnv.fullName)
+      fullEnv, fullEnv.id)
   }
 
   def getFunctionPrototypeInnerForCall(
@@ -277,9 +277,9 @@ class FunctionCompilerCore(
       returnCoord: CoordT) = {
     val header =
       FunctionHeaderT(
-        fullEnv.fullName,
+        fullEnv.id,
         attributesT,
-        Vector(RegionT(FunctionDefaultRegionNameT(fullEnv.fullName), true)),
+        Vector(RegionT(DenizenDefaultRegionNameT(), true)),
         paramsT,
         returnCoord,
         Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));

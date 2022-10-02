@@ -13,7 +13,7 @@ import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.names.FunctionDefaultRegionNameT
+import dev.vale.typing.names.DenizenDefaultRegionNameT
 import dev.vale.typing.templata.PrototypeTemplata
 import dev.vale.typing.types._
 
@@ -39,7 +39,7 @@ class RSAImmutableNewMacro(
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val header =
       FunctionHeaderT(
-        env.fullName,
+        env.id,
         Vector.empty,
         Vector(vimpl()), // should we get these handed in
         paramCoords,

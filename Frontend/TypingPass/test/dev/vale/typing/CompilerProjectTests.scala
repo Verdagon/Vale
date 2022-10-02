@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, RangeS, StrI, Tests, vassert, vassertSome, vimpl}
 import dev.vale.typing.ast.SignatureT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -24,7 +24,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("main")), mainLoc))
     val mainName = interner.intern(FunctionNameT(mainTemplateName, Vector(), Vector()))
     val fullName = IdT(packageCoord, Vector(), mainName)
-    vassertSome(coutputs.functions.headOption).header.fullName shouldEqual fullName
+    vassertSome(coutputs.functions.headOption).header.id shouldEqual fullName
   }
 
   test("Lambda has correct name") {
@@ -40,8 +40,10 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 0)
     val mainTemplateName = interner.intern(FunctionTemplateNameT(interner.intern(StrI("main")), mainLoc))
     val mainName = interner.intern(FunctionNameT(mainTemplateName, Vector(), Vector()))
+    val mainTemplateFullName = IdT(packageCoord, Vector(), mainTemplateName)
     val mainFullName = IdT(packageCoord, Vector(), mainName)
-    val region = IdT(packageCoord, Vector(), FunctionDefaultRegionNameT(mainFullName))
+    val region = mainTemplateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    vimpl() // fulln to id
 
     val lambdaLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 23)
     val lambdaCitizenTemplateName = interner.intern(LambdaCitizenTemplateNameT(lambdaLoc))
@@ -55,7 +57,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
       IdT(packageCoord, Vector(mainName, lambdaCitizenTemplateName), lambdaFuncName)
 
     val lamFunc = coutputs.lookupLambdaIn("main")
-    lamFunc.header.fullName shouldEqual lambdaFuncFullName
+    lamFunc.header.id shouldEqual lambdaFuncFullName
   }
 
   test("Struct has correct name") {

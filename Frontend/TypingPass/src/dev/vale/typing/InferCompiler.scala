@@ -9,10 +9,10 @@ import dev.vale.postparsing._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.citizen.{IResolveOutcome, IsParent, IsParentResult, IsntParent, ResolveFailure, ResolveSuccess}
-import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, IInDenizenEnvironment, ILookupContext, IVariableT, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntFindImpl, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError, ReturnTypeConflict}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IdT, IImplNameT, INameT, ITemplateNameT, ImplNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IImplNameT, INameT, ITemplateNameT, IdT, ImplNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
 import dev.vale.typing.templata.{CoordListTemplata, CoordTemplata, ITemplata, InterfaceDefinitionTemplata, KindTemplata, PrototypeTemplata, RuntimeSizedArrayTemplateTemplata, StructDefinitionTemplata}
 import dev.vale.typing.types.{CoordT, ICitizenTT, ISubKindTT, ISuperKindTT, InterfaceTT, KindT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
@@ -59,7 +59,7 @@ case class FailedCompilerSolve(
 case class InferEnv(
   // This is the only one that matters when checking template instantiations.
   // This is also the one that the placeholders come from.
-  originalCallingEnv: IEnvironment,
+  originalCallingEnv: IInDenizenEnvironment,
 
   parentRanges: List[RangeS],
 
@@ -81,7 +81,7 @@ case class InitialKnown(
 
 trait IInferCompilerDelegate {
   def resolveStruct(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
     templata: StructDefinitionTemplata,
@@ -90,7 +90,7 @@ trait IInferCompilerDelegate {
   IResolveOutcome[StructTT]
 
   def resolveInterface(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
     templata: InterfaceDefinitionTemplata,
@@ -113,7 +113,7 @@ trait IInferCompilerDelegate {
   RuntimeSizedArrayTT
 
   def resolveFunction(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     range: List[RangeS],
     name: StrI,
@@ -122,7 +122,7 @@ trait IInferCompilerDelegate {
   Result[EvaluateFunctionSuccess, FindFunctionFailure]
 
   def resolveImpl(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     range: List[RangeS],
     subKind: ISubKindTT,
@@ -292,8 +292,8 @@ class InferCompiler(
         GeneralEnvironment.childOf(
           interner,
           envs.originalCallingEnv,
-          envs.originalCallingEnv.fullName,
-          conclusions
+          envs.originalCallingEnv.id,
+          newEntriesList = conclusions
             .map({ case (nameS, templata) =>
               interner.intern(RuneNameT((nameS))) -> TemplataEnvEntry(templata)
             }).toVector ++
@@ -309,9 +309,9 @@ class InferCompiler(
         GeneralEnvironment.childOf(
           interner,
           envs.originalCallingEnv,
-          envs.originalCallingEnv.fullName,
+          envs.originalCallingEnv.id,
           // These are the bounds we pulled in from the parameters, return type, impl sub citizen, etc.
-          reachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
+          newEntriesList = reachableBounds.zipWithIndex.map({ case (reachableBound, index) =>
             interner.intern(ReachablePrototypeNameT(index)) -> TemplataEnvEntry(reachableBound)
           }).toVector)
 
@@ -321,7 +321,7 @@ class InferCompiler(
   }
 
   private def checkTemplateInstantiationsForEnv(
-    env: IEnvironment, // See CSSNCE
+    env: IInDenizenEnvironment, // See CSSNCE
     state: CompilerOutputs,
     ranges: List[RangeS],
     rules: Vector[IRulexSR],
@@ -378,7 +378,7 @@ class InferCompiler(
   // Returns None for any call that we don't even have params for,
   // like in the case of an incomplete solve.
   def checkFunctionCall(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     ranges: List[RangeS],
     c: ResolveSR,
@@ -414,7 +414,7 @@ class InferCompiler(
   // Returns None for any call that we don't even have params for,
   // like in the case of an incomplete solve.
   def checkImpl(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     ranges: List[RangeS],
     c: CallSiteCoordIsaSR,
@@ -449,7 +449,7 @@ class InferCompiler(
   // Returns None for any call that we don't even have params for,
   // like in the case of an incomplete solve.
   def checkTemplateCall(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     ranges: List[RangeS],
     c: CallSR,

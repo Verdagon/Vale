@@ -945,7 +945,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           "FunctionTemplata",
           None,
           Vector(
-            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.fullName)),
+            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.id)),
             VonMember(
               "function",
               vonifyName(nameHammer.translateFullName(hinputs, hamuts, ft.getTemplateName())))))
@@ -955,7 +955,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           "StructTemplata",
           None,
           Vector(
-            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.fullName)),
+            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.id)),
             vimpl()))
 //            VonMember("structName", translateName(hinputs, hamuts, nameTranslator.translateCitizenName(st.originStruct.name)))))
       }
@@ -964,7 +964,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           "InterfaceTemplata",
           None,
           Vector(
-            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.fullName)),
+            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.id)),
             VonMember("interfaceName", translateName(hinputs, hamuts, it.getTemplateName()))))
       }
       case it @ ImplDefinitionTemplata(env, impl) => {
@@ -972,13 +972,13 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           "ExternFunctionTemplata",
           None,
           Vector(
-            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.fullName)),
+            VonMember("envName", vonifyTypingPassName(hinputs, hamuts, env.id)),
             vimpl(),
             vimpl()))
 //            VonMember("subCitizenHumanName", translateName(hinputs, hamuts, nameTranslator.translateNameStep(impl.name))),
 //            VonMember("location", vonifyCodeLocation2(nameTranslator.translateCodeLocation(impl.name.codeLocation)))))
       }
-      case ExternFunctionTemplata(header) => VonObject("ExternFunctionTemplata", None, Vector(VonMember("name", vonifyTypingPassName(hinputs, hamuts, header.fullName))))
+      case ExternFunctionTemplata(header) => VonObject("ExternFunctionTemplata", None, Vector(VonMember("name", vonifyTypingPassName(hinputs, hamuts, header.id))))
       case OwnershipTemplata(ownership) => VonObject("OwnershipTemplata", None, Vector(VonMember("ownership", vonifyOwnership(Conversions.evaluateOwnership(ownership)))))
       case VariabilityTemplata(variability) => VonObject("VariabilityTemplata", None, Vector(VonMember("variability", vonifyVariability(Conversions.evaluateVariability(variability)))))
       case MutabilityTemplata(mutability) => VonObject("MutabilityTemplata", None, Vector(VonMember("mutability", vonifyMutability(Conversions.evaluateMutability(mutability)))))

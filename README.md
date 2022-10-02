@@ -45,10 +45,8 @@ For an overview of the project structure, see [Compiler Overview](compiler-overv
 
  * [Arthur Weagel](https://github.com/aweagel)
  * [Geomitron](https://github.com/Geomitron)
- * [Chiuzon](https://github.com/chiuzon)
  * [Joseph Jaoudi (linkmonitor)](https://github.com/linkmonitor)
  * [Luke Puchner-Hardman (lupuchard)](https://github.com/lupuchard)
- * [Jonathan Zielinski (tootoobeepbeep)](https://github.com/tootoobeepbeep)
  * [Tim Stack (tstack)](https://github.com/tstack)
  * [Alon Zakai (kripken)](https://github.com/kripken)
  * [Alec Newman (rovaughn)](https://github.com/rovaughn)

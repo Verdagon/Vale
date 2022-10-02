@@ -3,7 +3,7 @@ package dev.vale.typing.templata
 import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
-import dev.vale.typing.env.IEnvironment
+import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IRegionNameT, IdT, InterfaceTemplateNameT, PlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
@@ -145,7 +145,7 @@ case class FunctionTemplata(
   // structs and interfaces. See NTKPRR for more.
   function: FunctionA
 ) extends ITemplata[TemplateTemplataType] {
-  vassert(outerEnv.fullName.packageCoord == function.name.packageCoordinate)
+  vassert(outerEnv.id.packageCoord == function.name.packageCoordinate)
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -168,7 +168,7 @@ case class FunctionTemplata(
   // This assertion is helpful now, but will false-positive trip when someone
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
-  (outerEnv.fullName.localName, function.name) match {
+  (outerEnv.id.localName, function.name) match {
     case (FunctionNameT(envFunctionName, _, _), FunctionNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
@@ -180,7 +180,7 @@ case class FunctionTemplata(
 //    outerEnv.fullName.addStep(nameTranslator.translateFunctionNameToTemplateName(function.name))
   }
 
-  def debugString: String = outerEnv.fullName + ":" + function.name
+  def debugString: String = outerEnv.id + ":" + function.name
 }
 
 case class StructDefinitionTemplata(
@@ -195,7 +195,7 @@ case class StructDefinitionTemplata(
 ) extends CitizenDefinitionTemplata {
   override def originCitizen: CitizenA = originStruct
 
-  vassert(declaringEnv.fullName.packageCoord == originStruct.name.range.file.packageCoordinate)
+  vassert(declaringEnv.id.packageCoord == originStruct.name.range.file.packageCoordinate)
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: TemplateTemplataType = {
@@ -214,12 +214,12 @@ case class StructDefinitionTemplata(
   // This assertion is helpful now, but will false-positive trip when someone
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
-  (declaringEnv.fullName.localName, originStruct.name) match {
+  (declaringEnv.id.localName, originStruct.name) match {
     case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
 
-  def debugString: String = declaringEnv.fullName + ":" + originStruct.name
+  def debugString: String = declaringEnv.id + ":" + originStruct.name
 }
 
 sealed trait IContainer
@@ -253,7 +253,7 @@ case class InterfaceDefinitionTemplata(
 ) extends CitizenDefinitionTemplata {
   override def originCitizen: CitizenA = originInterface
 
-  vassert(declaringEnv.fullName.packageCoord == originInterface.name.range.file.packageCoordinate)
+  vassert(declaringEnv.id.packageCoord == originInterface.name.range.file.packageCoordinate)
 
   vpass()
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
@@ -270,7 +270,7 @@ case class InterfaceDefinitionTemplata(
   // This assertion is helpful now, but will false-positive trip when someone
   // tries to make an interface with the same name as its containing. At that point,
   // feel free to remove this assertion.
-  (declaringEnv.fullName.localName, originInterface.name) match {
+  (declaringEnv.id.localName, originInterface.name) match {
     case (CitizenNameT(envFunctionName, _), TopLevelCitizenDeclarationNameS(sourceName, _)) => vassert(envFunctionName != sourceName)
     case _ =>
   }
@@ -281,7 +281,7 @@ case class InterfaceDefinitionTemplata(
     InterfaceTemplateNameT(originInterface.name.name)//, nameTranslator.translateCodeLocation(originInterface.name.range.begin))
   }
 
-  def debugString: String = declaringEnv.fullName + ":" + originInterface.name
+  def debugString: String = declaringEnv.id + ":" + originInterface.name
 }
 
 case class ImplDefinitionTemplata(

@@ -17,7 +17,7 @@ import OverloadResolver.FindFunctionFailure
 import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
-import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
+import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IInDenizenEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
@@ -86,7 +86,7 @@ class Compiler(
       new ITemplataCompilerDelegate {
         override def isParent(
           coutputs: CompilerOutputs,
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           parentRanges: List[RangeS],
           subKindTT: ISubKindTT,
           superKindTT: ISuperKindTT):
@@ -96,7 +96,7 @@ class Compiler(
 
         override def resolveStruct(
           coutputs: CompilerOutputs,
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           callRange: List[RangeS],
           structTemplata: StructDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
@@ -107,7 +107,7 @@ class Compiler(
 
         override def resolveInterface(
             coutputs: CompilerOutputs,
-            callingEnv: IEnvironment, // See CSSNCE
+            callingEnv: IInDenizenEnvironment, // See CSSNCE
             callRange: List[RangeS],
             interfaceTemplata: InterfaceDefinitionTemplata,
             uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
@@ -117,7 +117,7 @@ class Compiler(
         }
 
         override def resolveStaticSizedArrayKind(
-            env: IEnvironment,
+            env: IInDenizenEnvironment,
             coutputs: CompilerOutputs,
             mutability: ITemplata[MutabilityTemplataType],
             variability: ITemplata[VariabilityTemplataType],
@@ -128,7 +128,7 @@ class Compiler(
         }
 
         override def resolveRuntimeSizedArrayKind(
-            env: IEnvironment,
+            env: IInDenizenEnvironment,
             state: CompilerOutputs,
             element: CoordT,
             arrayMutability: ITemplata[MutabilityTemplataType]):
@@ -143,10 +143,10 @@ class Compiler(
       keywords,
       nameTranslator,
       new IInfererDelegate {
-        def getPlaceholdersInFullName(accum: Accumulator[IdT[INameT]], fullName: IdT[INameT]): Unit = {
-          fullName.localName match {
-            case PlaceholderNameT(_) => accum.add(fullName)
-            case PlaceholderTemplateNameT(_) => accum.add(fullName)
+        def getPlaceholdersInFullName(accum: Accumulator[IdT[INameT]], id: IdT[INameT]): Unit = {
+          id.localName match {
+            case PlaceholderNameT(_) => accum.add(id)
+            case PlaceholderTemplateNameT(_) => accum.add(id)
             case _ =>
           }
         }
@@ -215,7 +215,7 @@ class Compiler(
           if (accum.elementsReversed.nonEmpty) {
             val rootDenizenEnv = env.originalCallingEnv.rootCompilingDenizenEnv
             val originalCallingEnvTemplateName =
-              rootDenizenEnv.fullName match {
+              rootDenizenEnv.id match {
                 case IdT(packageCoord, initSteps, x: ITemplateNameT) => {
                   IdT(packageCoord, initSteps, x)
                 }
@@ -376,7 +376,7 @@ class Compiler(
           PrototypeTemplata(
             functionRange,
             PrototypeT(
-              envs.selfEnv.fullName.addStep(
+              envs.selfEnv.id.addStep(
                 interner.intern(
                   FunctionNameT(
                     interner.intern(FunctionTemplateNameT(name, functionRange.begin)),
@@ -395,7 +395,7 @@ class Compiler(
         PrototypeT = {
           val result =
             PrototypeT(
-              envs.selfEnv.fullName.addStep(
+              envs.selfEnv.id.addStep(
                 interner.intern(FunctionBoundNameT(
                   interner.intern(FunctionBoundTemplateNameT(name, range.begin)), Vector(), coords))),
               returnType)
@@ -409,7 +409,7 @@ class Compiler(
         override def assembleImpl(env: InferEnv, range: RangeS, subKind: KindT, superKind: KindT): IsaTemplata = {
           IsaTemplata(
             range,
-            env.selfEnv.fullName.addStep(
+            env.selfEnv.id.addStep(
               interner.intern(
                 ImplBoundNameT(
                   interner.intern(ImplBoundTemplateNameT(range.begin)),
@@ -420,7 +420,7 @@ class Compiler(
       },
       new IInferCompilerDelegate {
         override def resolveInterface(
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
           templata: InterfaceDefinitionTemplata,
@@ -432,7 +432,7 @@ class Compiler(
         }
 
         override def resolveStruct(
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
           templata: StructDefinitionTemplata,
@@ -444,7 +444,7 @@ class Compiler(
         }
 
         override def resolveFunction(
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           range: List[RangeS],
           name: StrI,
@@ -473,7 +473,7 @@ class Compiler(
         }
 
         override def resolveImpl(
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           range: List[RangeS],
           subKind: ISubKindTT,
@@ -488,7 +488,7 @@ class Compiler(
       new IConvertHelperDelegate {
         override def isParent(
           coutputs: CompilerOutputs,
-          callingEnv: IEnvironment,
+          callingEnv: IInDenizenEnvironment,
           parentRanges: List[RangeS],
           descendantCitizenRef: ISubKindTT,
           ancestorInterfaceRef: ISuperKindTT):
@@ -541,10 +541,10 @@ class Compiler(
 //        }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
+          env: IInDenizenEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Vector[IRuneS],
-          args: Vector[CoordT], extraEnvsToLookIn: Vector[IEnvironment], exact: Boolean, verifyConclusions: Boolean):
+          args: Vector[CoordT], extraEnvsToLookIn: Vector[IInDenizenEnvironment], exact: Boolean, verifyConclusions: Boolean):
         EvaluateFunctionSuccess = {
           overloadResolver.findFunction(env, coutputs, callRange, functionName,
             explicitTemplateArgRulesS,
@@ -641,7 +641,7 @@ class Compiler(
       new IExpressionCompilerDelegate {
         override def evaluateTemplatedFunctionFromCallForPrototype(
             coutputs: CompilerOutputs,
-            callingEnv: IEnvironment, // See CSSNCE
+            callingEnv: IInDenizenEnvironment, // See CSSNCE
             callRange: List[RangeS],
             functionTemplata: FunctionTemplata,
             explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -653,7 +653,7 @@ class Compiler(
 
         override def evaluateGenericFunctionFromCallForPrototype(
           coutputs: CompilerOutputs,
-          callingEnv: IEnvironment, // See CSSNCE
+          callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
           functionTemplata: FunctionTemplata,
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -896,7 +896,7 @@ class Compiler(
 
             val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(env, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
+                InferEnv(vimpl(env), List(range), vimpl(env)), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {
@@ -1080,7 +1080,7 @@ class Compiler(
             coutputs.getKindExterns,
             coutputs.getFunctionExterns)
 
-        vassert(reachableFunctions.toVector.map(_.header.fullName).distinct.size == reachableFunctions.toVector.map(_.header.fullName).size)
+        vassert(reachableFunctions.toVector.map(_.header.id).distinct.size == reachableFunctions.toVector.map(_.header.id).size)
 
         Ok(hinputs)
       })

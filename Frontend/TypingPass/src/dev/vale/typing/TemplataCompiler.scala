@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.{CodeLocationS, Interner, Keywords, RangeS, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing.rules.{EqualsSR, IRulexSR, RuneUsage}
 import dev.vale.postparsing._
-import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{FunctionEnvironment, GeneralEnvironment, IEnvironment, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ExportNameT, ExportTemplateNameT, FunctionBoundNameT, FunctionNameT, FunctionTemplateNameT, ICitizenNameT, ICitizenTemplateNameT, IFunctionNameT, IFunctionTemplateNameT, IImplNameT, IImplTemplateNameT, IInstantiationNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IRegionNameT, IStructNameT, IStructTemplateNameT, ISubKindNameT, ISubKindTemplateNameT, ISuperKindNameT, ISuperKindTemplateNameT, ITemplateNameT, IdT, ImplBoundNameT, ImplNameT, InterfaceNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT, RawArrayNameT, RuneNameT, RuntimeSizedArrayNameT, StaticSizedArrayNameT, StructNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -33,7 +33,7 @@ trait ITemplataCompilerDelegate {
 
   def isParent(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
     subKindTT: ISubKindTT,
     superKindTT: ISuperKindTT):
@@ -41,7 +41,7 @@ trait ITemplataCompilerDelegate {
 
   def resolveStruct(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
@@ -49,7 +49,7 @@ trait ITemplataCompilerDelegate {
 
   def resolveInterface(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
@@ -58,7 +58,7 @@ trait ITemplataCompilerDelegate {
   IResolveOutcome[InterfaceTT]
 
   def resolveStaticSizedArrayKind(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     mutability: ITemplata[MutabilityTemplataType],
     variability: ITemplata[VariabilityTemplataType],
@@ -66,7 +66,7 @@ trait ITemplataCompilerDelegate {
     type2: CoordT):
   StaticSizedArrayTT
 
-  def resolveRuntimeSizedArrayKind(env: IEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
+  def resolveRuntimeSizedArrayKind(env: IInDenizenEnvironment, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT
 }
 
 object TemplataCompiler {
@@ -131,16 +131,16 @@ object TemplataCompiler {
       }))
   }
 
-  def getFunctionTemplate(fullName: IdT[IFunctionNameT]): IdT[IFunctionTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getFunctionTemplate(id: IdT[IFunctionNameT]): IdT[IFunctionTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getCitizenTemplate(fullName: IdT[ICitizenNameT]): IdT[ICitizenTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getCitizenTemplate(id: IdT[ICitizenNameT]): IdT[ICitizenTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
@@ -154,72 +154,72 @@ object TemplataCompiler {
     }
   }
 
-  def getSuperTemplate(fullName: IdT[INameT]): IdT[INameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getSuperTemplate(id: IdT[INameT]): IdT[INameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       getNameTemplate(last))
   }
 
-  def getTemplate(fullName: IdT[IInstantiationNameT]): IdT[ITemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getTemplate(id: IdT[IInstantiationNameT]): IdT[ITemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getSubKindTemplate(fullName: IdT[ISubKindNameT]): IdT[ISubKindTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getSubKindTemplate(id: IdT[ISubKindNameT]): IdT[ISubKindTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getSuperKindTemplate(fullName: IdT[ISuperKindNameT]): IdT[ISuperKindTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getSuperKindTemplate(id: IdT[ISuperKindNameT]): IdT[ISuperKindTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getStructTemplate(fullName: IdT[IStructNameT]): IdT[IStructTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getStructTemplate(id: IdT[IStructNameT]): IdT[IStructTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getInterfaceTemplate(fullName: IdT[IInterfaceNameT]): IdT[IInterfaceTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getInterfaceTemplate(id: IdT[IInterfaceNameT]): IdT[IInterfaceTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getExportTemplate(fullName: IdT[ExportNameT]): IdT[ExportTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getExportTemplate(id: IdT[ExportNameT]): IdT[ExportTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getImplTemplate(fullName: IdT[IImplNameT]): IdT[IImplTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getImplTemplate(id: IdT[IImplNameT]): IdT[IImplTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
       last.template)
   }
 
-  def getPlaceholderTemplate(fullName: IdT[PlaceholderNameT]): IdT[PlaceholderTemplateNameT] = {
-    val IdT(packageCoord, initSteps, last) = fullName
+  def getPlaceholderTemplate(id: IdT[PlaceholderNameT]): IdT[PlaceholderTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
       initSteps,//.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
@@ -443,9 +443,9 @@ object TemplataCompiler {
     keywords: Keywords,
     substitutions: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
     boundArgumentsSource: IBoundArgumentsSource,
-    implFullName: IdT[IImplNameT]):
+    implId: IdT[IImplNameT]):
   IdT[IImplNameT] = {
-    val IdT(packageCoord, initSteps, last) = implFullName
+    val IdT(packageCoord, initSteps, last) = implId
     val newImplFullName =
       IdT(
         packageCoord,
@@ -460,7 +460,7 @@ object TemplataCompiler {
           case other => vimpl(other)
         })
 
-    val instantiationBoundArgs = vassertSome(coutputs.getInstantiationBounds(implFullName))
+    val instantiationBoundArgs = vassertSome(coutputs.getInstantiationBounds(implId))
     // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
       newImplFullName,
@@ -720,7 +720,7 @@ class TemplataCompiler(
 
   def isTypeConvertible(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
     sourcePointerType: CoordT,
     targetPointerType: CoordT):
@@ -829,7 +829,7 @@ class TemplataCompiler(
 
   def evaluateInterfaceTemplata(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     template: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
@@ -918,7 +918,7 @@ class TemplataCompiler(
 
   def coerce(
     coutputs: CompilerOutputs,
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     range: List[RangeS],
     templata: ITemplata[ITemplataType],
     tyype: ITemplataType):
@@ -928,8 +928,7 @@ class TemplataCompiler(
     } else {
       (templata, tyype) match {
         case (KindTemplata(kind), CoordTemplataType()) => {
-          val region = vimpl()
-          CoordTemplata(coerceKindToCoord(coutputs, kind, region))
+          CoordTemplata(coerceKindToCoord(coutputs, kind, env.defaultRegion))
         }
         case (st@StructDefinitionTemplata(declaringEnv, structA), KindTemplataType()) => {
           if (structA.isTemplate) {
@@ -995,12 +994,12 @@ class TemplataCompiler(
 
   def resolveStructTemplate(structTemplata: StructDefinitionTemplata): IdT[IStructTemplateNameT] = {
     val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
-    declaringEnv.fullName.addStep(nameTranslator.translateStructName(structA.name))
+    declaringEnv.id.addStep(nameTranslator.translateStructName(structA.name))
   }
 
   def resolveInterfaceTemplate(interfaceTemplata: InterfaceDefinitionTemplata): IdT[IInterfaceTemplateNameT] = {
     val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
-    declaringEnv.fullName.addStep(nameTranslator.translateInterfaceName(interfaceA.name))
+    declaringEnv.id.addStep(nameTranslator.translateInterfaceName(interfaceA.name))
   }
 
   def resolveCitizenTemplate(citizenTemplata: CitizenDefinitionTemplata): IdT[ICitizenTemplateNameT] = {
@@ -1024,7 +1023,7 @@ class TemplataCompiler(
 
   def createPlaceholder(
     coutputs: CompilerOutputs,
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     namePrefix: IdT[INameT],
     genericParam: GenericParameterS,
     index: Int,
@@ -1043,7 +1042,7 @@ class TemplataCompiler(
 
   def createPlaceholderInner(
     coutputs: CompilerOutputs,
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     namePrefix: IdT[INameT],
     index: Int,
     runeType: ITemplataType,
@@ -1080,14 +1079,8 @@ class TemplataCompiler(
         // though.
         // For now, we can manually add them.
         // So, I guess we could just assume the function's default region here then.
-        val region = vimpl()
-        val ownership =
-          if (immutable) {
-            ShareT
-          } else {
-            OwnT
-          }
-        CoordTemplata(CoordT(ownership, region, placeholderKindT))
+        val ownership = if (immutable) ShareT else OwnT
+        CoordTemplata(CoordT(ownership, env.defaultRegion, placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, runeType)
     }

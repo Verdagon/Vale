@@ -13,7 +13,7 @@ import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.FailedSolve
 import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
-import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IEnvironment, IEnvironmentBox, TemplataLookupContext}
+import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IInDenizenEnvironment, IDenizenEnvironmentBox, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, IdT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT}
@@ -82,14 +82,14 @@ class OverloadResolver(
   val runeTypeSolver = new RuneTypeSolver(interner)
 
   def findFunction(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
     args: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
     verifyConclusions: Boolean):
   Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
@@ -117,7 +117,7 @@ class OverloadResolver(
 
   private def paramsMatch(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
     desiredParams: Vector[CoordT],
     candidateParams: Vector[CoordT],
@@ -148,16 +148,16 @@ class OverloadResolver(
 
   case class SearchedEnvironment(
     needle: IImpreciseNameS,
-    environment: IEnvironment,
+    environment: IInDenizenEnvironment,
     matchingTemplatas: Vector[ITemplata[ITemplataType]])
 
   private def getCandidateBanners(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     functionName: IImpreciseNameS,
     paramFilters: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     searchedEnvs: Accumulator[SearchedEnvironment],
     results: Accumulator[ICalleeCandidate]):
   Unit = {
@@ -169,7 +169,7 @@ class OverloadResolver(
   }
 
   private def getCandidateBannersInner(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     range: List[RangeS],
     functionName: IImpreciseNameS,
@@ -208,7 +208,7 @@ class OverloadResolver(
   }
 
   private def attemptCandidateBanner(
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     explicitTemplateArgRulesS: Vector[IRulexSR],
@@ -440,7 +440,7 @@ class OverloadResolver(
 
   // Gets all the environments for all the arguments.
   private def getParamEnvironments(coutputs: CompilerOutputs, range: List[RangeS], paramFilters: Vector[CoordT]):
-  Vector[IEnvironment] = {
+  Vector[IInDenizenEnvironment] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
         case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.fullName)))
@@ -459,14 +459,14 @@ class OverloadResolver(
   // might need to take a list of these, same length as the arg types... or combine
   // them somehow.
   def findPotentialFunction(
-    env: IEnvironment,
+    env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
     args: Vector[CoordT],
-    extraEnvsToLookIn: Vector[IEnvironment],
+    extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
     verifyConclusions: Boolean):
   Result[IValidCalleeCandidate, FindFunctionFailure] = {
@@ -501,7 +501,7 @@ class OverloadResolver(
   // - Some(param to needs-conversion)
   private def getBannerParamScores(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
     candidate: IValidCalleeCandidate,
     argTypes: Vector[CoordT]):
@@ -526,7 +526,7 @@ class OverloadResolver(
 
   private def narrowDownCallableOverloads(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     callRange: List[RangeS],
     unfilteredBanners: Iterable[IValidCalleeCandidate],
     argTypes: Vector[CoordT]):
@@ -649,7 +649,7 @@ class OverloadResolver(
   }
 
   def stampPotentialFunctionForBanner(
-    callingEnv: IEnvironmentBox,
+    callingEnv: IDenizenEnvironmentBox,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
@@ -676,7 +676,7 @@ class OverloadResolver(
 
   private def stampPotentialFunctionForPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment, // See CSSNCE
+    callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
     args: Vector[CoordT],
@@ -721,7 +721,7 @@ class OverloadResolver(
 
   def getArrayGeneratorPrototype(
     coutputs: CompilerOutputs,
-    callingEnv: IEnvironment,
+    callingEnv: IInDenizenEnvironment,
     range: List[RangeS],
     callableTE: ReferenceExpressionTE,
     verifyConclusions: Boolean):

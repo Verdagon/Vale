@@ -9,7 +9,7 @@ import dev.vale.postparsing.PostParser
 import OverloadResolver.{FindFunctionFailure, WrongNumberOfArguments}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{ConstantIntTE, LocalLookupTE, MutateTE, ReferenceMemberLookupTE, SignatureT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata._
@@ -243,8 +243,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val keywords = new Keywords(interner)
     val testPackageCoord = PackageCoordinate.TEST_TLD(interner, keywords)
     val tzCodeLoc = CodeLocationS.testZero(interner)
+    val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val region = IdT(testPackageCoord, Vector(), FunctionDefaultRegionNameT(funcName))
+    val region = funcTemplateName.addStep(interner.intern(DenizenDefaultRegionNameT()))
     val fireflyKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
     val serenityKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))))
