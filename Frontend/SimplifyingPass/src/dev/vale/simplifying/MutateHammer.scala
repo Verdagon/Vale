@@ -134,8 +134,8 @@ class MutateHammer(
 //        case TupleTT(_, sr) => sr
 //        case PackTT(_, sr) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT.fullName)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.fullName.addStep(member.name) == memberName)
+    val structDefT = hinputs.lookupStruct(structTT.id)
+    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.id.addStep(member.name) == memberName)
     vassert(memberIndex >= 0)
     val member2 =
       structDefT.members(memberIndex) match {
@@ -177,7 +177,7 @@ class MutateHammer(
           loadBoxNode.expectStructAccess(),
           LetHammer.BOX_MEMBER_INDEX,
           sourceExprResultLine,
-          nameHammer.addStep(hamuts, boxStructRefH.fullName, keywords.BOX_MEMBER_NAME.str))
+          nameHammer.addStep(hamuts, boxStructRefH.id, keywords.BOX_MEMBER_NAME.str))
     (storeNode, destinationDeferreds)
   }
 
@@ -197,7 +197,7 @@ class MutateHammer(
       structExpr2.result.coord.kind match {
         case sr @ StructTT(_) => sr
       }
-    val structDefT = hinputs.lookupStruct(structTT.fullName)
+    val structDefT = hinputs.lookupStruct(structTT.id)
     val memberIndex =
       structDefT.members
         .indexWhere(member => structDefT.templateName.addStep(member.name) == memberName)
@@ -247,7 +247,7 @@ class MutateHammer(
           loadBoxNode.expectStructAccess(),
           LetHammer.BOX_MEMBER_INDEX,
           sourceExprResultLine,
-          nameHammer.addStep(hamuts, boxStructRefH.fullName, keywords.BOX_MEMBER_NAME.str))
+          nameHammer.addStep(hamuts, boxStructRefH.id, keywords.BOX_MEMBER_NAME.str))
     (storeNode, Vector.empty)
   }
 

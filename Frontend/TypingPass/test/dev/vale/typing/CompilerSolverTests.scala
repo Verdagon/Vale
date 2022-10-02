@@ -445,7 +445,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     main.body shouldHave {
       case FunctionCallTE(prototype, Vector(_, _)) => {
-        prototype.fullName.localName.templateArgs.head match {
+        prototype.id.localName.templateArgs.head match {
           case CoordTemplata(CoordT(_, _, InterfaceTT(_))) =>
         }
       }
@@ -614,7 +614,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
       Collector.only(main, {
         case call @ FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("swap"), _), _, _)), _), _) => call
       })
-    call.callable.fullName.localName.templateArgs.last match {
+    call.callable.id.localName.templateArgs.last match {
       case CoordTemplata(CoordT(ShareT, _,IntT(32))) =>
     }
   }

@@ -125,13 +125,13 @@ class StructConstructorMacro(
       TemplataCompiler.getPlaceholderSubstituter(
         interner,
         keywords,
-        structTT.fullName,
+        structTT.id,
         // We only know about this struct from the return type, we don't get to inherit any of its
         // bounds or guarantees from. Satisfy them from our environment instead.
         UseBoundsFromContainer(
           definition.runeToFunctionBound,
           definition.runeToImplBound,
-          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
+          vassertSome(coutputs.getInstantiationBounds(structTT.id))))
     val members =
       definition.members.map({
         case NormalStructMemberT(name, _, ReferenceMemberTypeT(tyype)) => {
@@ -153,7 +153,7 @@ class StructConstructorMacro(
         UseBoundsFromContainer(
           definition.runeToFunctionBound,
           definition.runeToImplBound,
-          vassertSome(coutputs.getInstantiationBounds(structTT.fullName))))
+          vassertSome(coutputs.getInstantiationBounds(structTT.id))))
     val constructorReturnOwnership =
       mutability match {
         case MutabilityTemplata(MutableT) => OwnT

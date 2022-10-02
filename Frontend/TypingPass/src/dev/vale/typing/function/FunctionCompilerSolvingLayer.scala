@@ -101,7 +101,7 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateFunctionForHeader(
         outerEnv, runedEnv, coutputs, callRange, function)
 
-    coutputs.addInstantiationBounds(header.toPrototype.fullName, runeToFunctionBound)
+    coutputs.addInstantiationBounds(header.toPrototype.id, runeToFunctionBound)
     EvaluateFunctionSuccess(
       PrototypeTemplata(function.range, header.toPrototype),
       inferredTemplatas)
@@ -158,7 +158,7 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         declaringEnv, runedEnv, coutputs, callRange, function)
 
-    coutputs.addInstantiationBounds(prototype.prototype.fullName, runeToFunctionBound)
+    coutputs.addInstantiationBounds(prototype.prototype.id, runeToFunctionBound)
 
     EvaluateFunctionSuccess(prototype, inferredTemplatas)
   }
@@ -218,7 +218,7 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
         nearEnv, runedEnv, coutputs, callRange, function)
 
-    coutputs.addInstantiationBounds(prototypeTemplata.prototype.fullName, runeToFunctionBound)
+    coutputs.addInstantiationBounds(prototypeTemplata.prototype.id, runeToFunctionBound)
     EvaluateFunctionSuccess(prototypeTemplata, inferences)
   }
 
@@ -346,7 +346,7 @@ class FunctionCompilerSolvingLayer(
       middleLayer.getGenericFunctionPrototypeFromCall(
         runedEnv, coutputs, callRange, function)
 
-    coutputs.addInstantiationBounds(prototype.fullName, runeToFunctionBound)
+    coutputs.addInstantiationBounds(prototype.id, runeToFunctionBound)
 
     EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferredTemplatas)
   }

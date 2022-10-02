@@ -346,8 +346,8 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
-      impl.subCitizen.fullName == structDef.instantiatedCitizen.fullName &&
-        impl.superInterface == interfaceDef.instantiatedCitizen.fullName
+      impl.subCitizen.id == structDef.instantiatedCitizen.id &&
+        impl.superInterface == interfaceDef.instantiatedCitizen.id
     }))
   }
 
@@ -377,8 +377,8 @@ class CompilerTests extends FunSuite with Matchers {
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
-      impl.subCitizen.fullName == structDef.instantiatedCitizen.fullName &&
-        impl.superInterface == interfaceDef.instantiatedCitizen.fullName
+      impl.subCitizen.id == structDef.instantiatedCitizen.id &&
+        impl.superInterface == interfaceDef.instantiatedCitizen.id
     }))
   }
 
@@ -651,8 +651,8 @@ class CompilerTests extends FunSuite with Matchers {
     up.result.coord.kind match { case InterfaceTT(IdT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("Car")), Vector()))) => vassert(x.isTest) }
 
     val impl = coutputs.lookupEdge(implName)
-    vassert(impl.subCitizen.fullName == up.innerExpr.result.coord.kind.expectCitizen().fullName)
-    vassert(impl.superInterface == up.result.coord.kind.expectCitizen().fullName)
+    vassert(impl.subCitizen.id == up.innerExpr.result.coord.kind.expectCitizen().id)
+    vassert(impl.superInterface == up.result.coord.kind.expectCitizen().id)
 
 //    freePrototype.fullName.last.parameters.head shouldEqual up.result.reference
   }
@@ -1447,7 +1447,7 @@ class CompilerTests extends FunSuite with Matchers {
       coutputs.lookupStructByTemplateName(
         interner.intern(StructTemplateNameT(interner.intern(StrI("MySome")))))
 
-    coutputs.lookupImpl(struct.instantiatedCitizen.fullName, interface.instantiatedInterface.fullName)
+    coutputs.lookupImpl(struct.instantiatedCitizen.id, interface.instantiatedInterface.id)
   }
 
   test("Report when imm contains varying member") {

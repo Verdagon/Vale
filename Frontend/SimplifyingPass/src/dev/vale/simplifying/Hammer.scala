@@ -17,7 +17,7 @@ import scala.collection.immutable.List
 case class FunctionRefH(prototype: PrototypeH) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   //  def functionType = prototype.functionType
-  def fullName = prototype.fullName
+  def fullName = prototype.id
 }
 
 case class LocalsBox(var inner: Locals) {
@@ -241,9 +241,9 @@ class Hammer(interner: Interner, keywords: Keywords) {
 //      vassert(immDestructorPrototypeH.params.head.kind == kindH)
 //    })
 
-    val packageToInterfaceDefs = hamuts.interfaceTToInterfaceDefH.groupBy(_._1.fullName.packageCoord)
-    val packageToStructDefs = hamuts.structDefs.groupBy(_.fullName.packageCoordinate)
-    val packageToFunctionDefs = hamuts.functionDefs.groupBy(_._1.fullName.packageCoord).mapValues(_.values.toVector)
+    val packageToInterfaceDefs = hamuts.interfaceTToInterfaceDefH.groupBy(_._1.id.packageCoord)
+    val packageToStructDefs = hamuts.structDefs.groupBy(_.id.packageCoordinate)
+    val packageToFunctionDefs = hamuts.functionDefs.groupBy(_._1.id.packageCoord).mapValues(_.values.toVector)
     val packageToStaticSizedArrays = hamuts.staticSizedArrays.values.toVector.groupBy(_.name.packageCoordinate)
     val packageToRuntimeSizedArrays = hamuts.runtimeSizedArrays.values.toVector.groupBy(_.name.packageCoordinate)
 //    val packageToImmDestructorPrototypes = immDestructorPrototypesH.groupBy(_._1.packageCoord(interner, keywords))

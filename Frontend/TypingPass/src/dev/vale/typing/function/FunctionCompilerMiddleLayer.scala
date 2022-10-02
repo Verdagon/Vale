@@ -79,12 +79,12 @@ class FunctionCompilerMiddleLayer(
         // Open (non-sealed) interfaces can't have abstract methods defined outside the interface.
         // See https://github.com/ValeLang/Vale/issues/374
         if (!isInternalMethod) {
-          if (!coutputs.lookupSealed(TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName))) {
+          if (!coutputs.lookupSealed(TemplataCompiler.getInterfaceTemplate(interfaceTT.id))) {
             // Macros can put e.g. functions inside an interface by prefixing the function name
             // with the interface.
             // For example, InterfaceFreeMacro will look at mymod.MyInterface and conjure a
             // mymod.MyInterface.free function.
-            if (env.id.steps.init != TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName).steps) {
+            if (env.id.steps.init != TemplataCompiler.getInterfaceTemplate(interfaceTT.id).steps) {
               throw CompileErrorExceptionT(AbstractMethodOutsideOpenInterface(rangeS :: parentRanges))
             }
           }

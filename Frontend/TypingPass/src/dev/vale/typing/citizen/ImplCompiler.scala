@@ -25,7 +25,7 @@ sealed trait IsParentResult
 case class IsParent(
   templata: ITemplata[ImplTemplataType],
   conclusions: Map[IRuneS, ITemplata[ITemplataType]],
-  implFullName: IdT[IImplNameT]
+  implId: IdT[IImplNameT]
 ) extends IsParentResult
 case class IsntParent(
   candidates: Vector[IIncompleteOrFailedCompilerSolve]
@@ -207,7 +207,7 @@ class ImplCompiler(
         case _ => vwat()
       }
     val subCitizenTemplateFullName =
-      TemplataCompiler.getCitizenTemplate(subCitizen.fullName)
+      TemplataCompiler.getCitizenTemplate(subCitizen.id)
 
     val superInterface =
       inferences.get(implA.interfaceKindRune.rune) match {
@@ -216,7 +216,7 @@ class ImplCompiler(
         case Some(other) => throw CompileErrorExceptionT(CantImplNonInterface(List(implA.range), other))
       }
     val superInterfaceTemplateFullName =
-      TemplataCompiler.getInterfaceTemplate(superInterface.fullName)
+      TemplataCompiler.getInterfaceTemplate(superInterface.id)
 
 
     val templateArgs = implA.genericParams.map(_.rune.rune).map(inferences)
@@ -517,7 +517,7 @@ class ImplCompiler(
     val childEnv =
       coutputs.getOuterEnvForType(
         parentRanges,
-        TemplataCompiler.getCitizenTemplate(child.fullName))
+        TemplataCompiler.getCitizenTemplate(child.id))
     val CompleteCompilerSolve(_, conclusions, _, _) =
       solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
@@ -537,7 +537,7 @@ class ImplCompiler(
     subKind: ISubKindTT,
     verifyConclusions: Boolean):
   Vector[ISuperKindTT] = {
-    val subKindFullName = subKind.fullName
+    val subKindFullName = subKind.id
     val subKindTemplateName = TemplataCompiler.getSubKindTemplate(subKindFullName)
     val subKindEnv = coutputs.getOuterEnvForType(parentRanges, subKindTemplateName)
     val subKindImpreciseName =
@@ -598,12 +598,12 @@ class ImplCompiler(
     superKindTT: ISuperKindTT):
   IsParentResult = {
     val superKindImpreciseName =
-      TemplatasStore.getImpreciseName(interner, superKindTT.fullName.localName) match {
+      TemplatasStore.getImpreciseName(interner, superKindTT.id.localName) match {
         case None => return IsntParent(Vector())
         case Some(n) => n
       }
     val subKindImpreciseName =
-      TemplatasStore.getImpreciseName(interner, subKindTT.fullName.localName) match {
+      TemplatasStore.getImpreciseName(interner, subKindTT.id.localName) match {
         case None => return IsntParent(Vector())
         case Some(n) => n
       }
@@ -612,10 +612,10 @@ class ImplCompiler(
 
     val subKindEnv =
       coutputs.getOuterEnvForType(
-        parentRanges, TemplataCompiler.getSubKindTemplate(subKindTT.fullName))
+        parentRanges, TemplataCompiler.getSubKindTemplate(subKindTT.id))
     val superKindEnv =
       coutputs.getOuterEnvForType(
-        parentRanges, TemplataCompiler.getSuperKindTemplate(superKindTT.fullName))
+        parentRanges, TemplataCompiler.getSuperKindTemplate(superKindTT.id))
 
     val matching =
       callingEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++

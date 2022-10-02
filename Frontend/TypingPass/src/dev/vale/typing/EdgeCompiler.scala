@@ -53,7 +53,7 @@ class EdgeCompiler(
         val interfacePlaceholderedFullName = interfaceEdgeBlueprint.interface
         val interfaceTemplateFullName = TemplataCompiler.getInterfaceTemplate(interfacePlaceholderedFullName)
         val interfaceFullName =
-          coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.fullName
+          coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.id
         val interfaceDefinition = coutputs.lookupInterface(interfaceTemplateFullName)
 //        val interfacePlaceholderedCitizen = interfaceDefinition.placeholderedInterface
         val overridingImpls = coutputs.getChildImplsForSuperInterfaceTemplate(interfaceTemplateFullName)
@@ -73,22 +73,22 @@ class EdgeCompiler(
                     overridingCitizenTemplateFullName,
                     abstractFunctionPrototype,
                     abstractIndex)
-                abstractFunctionPrototype.fullName -> overrride
+                abstractFunctionPrototype.id -> overrride
               })
             val overridingCitizen = overridingImpl.subCitizen
-            vassert(coutputs.getInstantiationBounds(overridingCitizen.fullName).nonEmpty)
-            val superInterfaceFullName = overridingImpl.superInterface.fullName
+            vassert(coutputs.getInstantiationBounds(overridingCitizen.id).nonEmpty)
+            val superInterfaceFullName = overridingImpl.superInterface.id
             vassert(coutputs.getInstantiationBounds(superInterfaceFullName).nonEmpty)
             val edge =
               EdgeT(
                 overridingImpl.instantiatedId,
                 overridingCitizen,
-                overridingImpl.superInterface.fullName,
+                overridingImpl.superInterface.id,
                 overridingImpl.runeToFuncBound,
                 overridingImpl.runeToImplBound,
                 foundFunctions.toMap)
             val overridingCitizenDef = coutputs.lookupCitizen(overridingCitizenTemplateFullName)
-            overridingCitizenDef.instantiatedCitizen.fullName -> edge
+            overridingCitizenDef.instantiatedCitizen.id -> edge
           }).toMap
         interfaceFullName -> overridingCitizenToFoundFunction
       }).toMap
@@ -102,7 +102,7 @@ class EdgeCompiler(
           case None => Vector.empty
           case Some(abstractInterface) => {
             val abstractInterfaceTemplate =
-              TemplataCompiler.getInterfaceTemplate(abstractInterface.fullName)
+              TemplataCompiler.getInterfaceTemplate(abstractInterface.id)
             Vector(abstractInterfaceTemplate -> function)
           }
         }
@@ -141,7 +141,7 @@ class EdgeCompiler(
       abstractFunctionHeadersByInterfaceTemplateFullName
         .map({ case (interfaceTemplateFullName, functionHeaders2) =>
           InterfaceEdgeBlueprint(
-            coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.fullName,
+            coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.id,
             // This is where they're given order and get an implied index
             functionHeaders2.toVector)
         })
@@ -234,7 +234,7 @@ class EdgeCompiler(
     abstractIndex: Int):
   OverrideT = {
     val abstractFuncTemplateFullName =
-      TemplataCompiler.getFunctionTemplate(abstractFunctionPrototype.fullName)
+      TemplataCompiler.getFunctionTemplate(abstractFunctionPrototype.id)
     val abstractFunctionParamUnsubstitutedTypes = abstractFunctionPrototype.paramTypes
     vassert(abstractIndex >= 0)
     val abstractParamUnsubstitutedType = abstractFunctionParamUnsubstitutedTypes(abstractIndex)
@@ -443,7 +443,7 @@ class EdgeCompiler(
     // because that will get the original declaration's inner env.
     // We want an environment with the above inferences instead.
     val overrideImpreciseName =
-      vassertSome(TemplatasStore.getImpreciseName(interner, abstractFunctionPrototype.fullName.localName))
+      vassertSome(TemplatasStore.getImpreciseName(interner, abstractFunctionPrototype.id.localName))
     val dispatcherCaseEnv =
       GeneralEnvironment.childOf(
         interner,
@@ -488,7 +488,7 @@ class EdgeCompiler(
         case Err(e) => throw CompileErrorExceptionT(CouldntFindOverrideT(List(range, impl.templata.impl.range), e))
         case Ok(x) => x
       }
-    vassert(coutputs.getInstantiationBounds(foundFunction.prototype.prototype.fullName).nonEmpty)
+    vassert(coutputs.getInstantiationBounds(foundFunction.prototype.prototype.id).nonEmpty)
 
     OverrideT(
       dispatcherFullName,

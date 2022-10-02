@@ -336,7 +336,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
 
   def snapshot: NodeEnvironment = nodeEnvironment
   def defaultRegion: IdT[IRegionNameT] = nodeEnvironment.defaultRegion
-  def fullName: IdT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.id
+  def id: IdT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.id
   def node: IExpressionSE = nodeEnvironment.node
   def maybeReturnType: Option[CoordT] = nodeEnvironment.parentFunctionEnv.maybeReturnType
   def globalEnv: GlobalEnvironment = nodeEnvironment.globalEnv

@@ -312,7 +312,7 @@ object StructCompiler {
   ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
     val transformer =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.fullName, boundArgumentsSource)
+      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.id, boundArgumentsSource)
     val result = transformer.substituteForTemplata(coutputs, definition.mutability)
     ITemplata.expectMutability(result)
   }

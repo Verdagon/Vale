@@ -185,12 +185,12 @@ class OverloadResolver(
           overloadsEnv, coutputs, range, nameInOverloadsEnv, searchedEnvs, results)
       }
       case KindTemplata(sr@StructTT(_)) => {
-        val structEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.fullName))
+        val structEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.id))
         getCandidateBannersInner(
           structEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
       case KindTemplata(sr@InterfaceTT(_)) => {
-        val interfaceEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(sr.fullName))
+        val interfaceEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(sr.id))
         getCandidateBannersInner(
           interfaceEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
@@ -198,7 +198,7 @@ class OverloadResolver(
         results.add(HeaderCalleeCandidate(header))
       }
       case PrototypeTemplata(declarationRange, prototype) => {
-        vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
         results.add(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
       }
       case ft@FunctionTemplata(_, _) => {
@@ -315,7 +315,7 @@ class OverloadResolver(
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
-                                vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
+                                vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
                                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
                               }
                             }
@@ -330,7 +330,7 @@ class OverloadResolver(
                             paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
-                                vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
+                                vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
                                 Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
                               }
                             }
@@ -354,7 +354,7 @@ class OverloadResolver(
                   paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
                     case Err(reason) => Err(reason)
                     case Ok(_) => {
-                      vassert(coutputs.getInstantiationBounds(banner.prototype.fullName).nonEmpty)
+                      vassert(coutputs.getInstantiationBounds(banner.prototype.id).nonEmpty)
                       Ok(ValidPrototypeTemplataCalleeCandidate(banner))
                     }
                   }
@@ -372,7 +372,7 @@ class OverloadResolver(
               case (EvaluateFunctionSuccess(prototypeTemplata, conclusions)) => {
                 paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototypeTemplata.prototype.paramTypes, exact) match {
                   case Ok(_) => {
-                    vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.fullName).nonEmpty)
+                    vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.id).nonEmpty)
                     Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototypeTemplata))
                   }
                   case Err(reason) => Err(reason)
@@ -388,7 +388,7 @@ class OverloadResolver(
               case (EvaluateFunctionSuccess(prototypeTemplata, conclusions)) => {
                 paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototypeTemplata.prototype.paramTypes, exact) match {
                   case Ok(_) => {
-                    vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.fullName).nonEmpty)
+                    vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.id).nonEmpty)
                     Ok(ValidPrototypeTemplataCalleeCandidate(prototypeTemplata))
                   }
                   case Err(reason) => Err(reason)
@@ -408,14 +408,14 @@ class OverloadResolver(
       }
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
         // We get here if we're considering a function that's being passed in as a bound.
-        vcurious(prototype.fullName.localName.templateArgs.isEmpty)
+        vcurious(prototype.id.localName.templateArgs.isEmpty)
         val substituter =
           TemplataCompiler.getPlaceholderSubstituter(
-            interner, keywords, prototype.fullName,
+            interner, keywords, prototype.id,
             // These types are phrased in terms of the calling denizen already, so we can grab their
             // bounds.
             InheritBoundsFromTypeItself)
-        val params = prototype.fullName.localName.parameters.map(paramType => {
+        val params = prototype.id.localName.parameters.map(paramType => {
           substituter.substituteForCoord(coutputs, paramType)
         })
         paramsMatch(coutputs, callingEnv, callRange, paramFilters, params, exact) match {
@@ -429,7 +429,7 @@ class OverloadResolver(
             // so we just supply an empty map here.
             val bounds = Map[IRuneS, PrototypeTemplata]()
 
-            vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
+            vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
             Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, prototype)))
           }
           case Err(fff) => Err(fff)
@@ -443,8 +443,8 @@ class OverloadResolver(
   Vector[IInDenizenEnvironment] = {
     paramFilters.flatMap({ case tyype =>
       (tyype.kind match {
-        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.fullName)))
-        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(ir.fullName)))
+        case sr @ StructTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.id)))
+        case ir @ InterfaceTT(_) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(ir.id)))
         case PlaceholderT(fullName) => Vector(coutputs.getOuterEnvForType(range, TemplataCompiler.getPlaceholderTemplate(fullName)))
         case _ => Vector.empty
       })
@@ -668,7 +668,7 @@ class OverloadResolver(
 //        }
       }
       case ValidHeaderCalleeCandidate(header) => {
-        vassert(coutputs.getInstantiationBounds(header.toPrototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
         PrototypeTemplata(vassertSome(header.maybeOriginFunctionTemplata).function.range, header.toPrototype)
       }
     }
@@ -709,11 +709,11 @@ class OverloadResolver(
       }
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
-        vassert(coutputs.getInstantiationBounds(header.toPrototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
         EvaluateFunctionSuccess(PrototypeTemplata(declarationRange, header.toPrototype), Map())
       }
       case ValidPrototypeTemplataCalleeCandidate(prototype) => {
-        vassert(coutputs.getInstantiationBounds(prototype.prototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
         EvaluateFunctionSuccess(prototype, Map())
       }
     }

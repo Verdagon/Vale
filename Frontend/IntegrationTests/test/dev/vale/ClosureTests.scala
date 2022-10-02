@@ -138,8 +138,8 @@ class ClosureTests extends FunSuite with Matchers {
     val closuredVarsStructDef =
       vassertSome(
         coutputs.structs.find(structDef => {
-          TemplataCompiler.getTemplate(structDef.instantiatedCitizen.fullName) ==
-            TemplataCompiler.getTemplate(closuredVarsStructTT.fullName)
+          TemplataCompiler.getTemplate(structDef.instantiatedCitizen.id) ==
+            TemplataCompiler.getTemplate(closuredVarsStructTT.id)
         }))
 
     val expectedMembers =
@@ -198,7 +198,7 @@ class ClosureTests extends FunSuite with Matchers {
     // The struct should have an int x in it.
     val closure = coutputs.lookupLambdaIn("main")
     val closureStruct = closure.header.params.head.tyype.kind.expectStruct()
-    val closureStructDef = coutputs.lookupStruct(closureStruct.fullName)
+    val closureStructDef = coutputs.lookupStruct(closureStruct.id)
     val expectedMembers = Vector(NormalStructMemberT(interner.intern(CodeVarNameT(interner.intern(StrI("x")))), VaryingT, AddressMemberTypeT(CoordT(ShareT, vimpl(), IntT.i32))));
     closureStructDef.members shouldEqual expectedMembers
 
@@ -243,7 +243,7 @@ class ClosureTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val closureStruct =
       coutputs.structs.find(struct => {
-        struct.instantiatedCitizen.fullName.localName match {
+        struct.instantiatedCitizen.id.localName match {
           case LambdaCitizenNameT(_) => true
           case _ => false
         }

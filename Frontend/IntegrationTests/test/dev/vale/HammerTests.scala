@@ -23,7 +23,7 @@ class HammerTests extends FunSuite with Matchers {
 
     val testPackage = hamuts.lookupPackage(PackageCoordinate.TEST_TLD(compile.interner, compile.keywords))
     vassert(testPackage.getAllUserFunctions.size == 1)
-    testPackage.getAllUserFunctions.head.prototype.fullName.toFullString() shouldEqual """test::F("main")"""
+    testPackage.getAllUserFunctions.head.prototype.id.toFullString() shouldEqual """test::F("main")"""
   }
 
 //  // Make sure a ListNode struct made it out
@@ -59,14 +59,14 @@ class HammerTests extends FunSuite with Matchers {
     val packageH = compile.getHamuts().lookupPackage(PackageCoordinate.TEST_TLD(compile.interner, compile.keywords))
     vassertSome(
       packageH.interfaces.find(interface => {
-        interface.fullName.toFullString() == """test::C(CT("MyOption"),[TR(R(@,<,i(32)))])"""
+        interface.id.toFullString() == """test::C(CT("MyOption"),[TR(R(@,<,i(32)))])"""
       }))
 
-    val mySome = packageH.structs.find(_.fullName.toFullString() == """test::C(CT("MySome"),[TR(R(@,<,i(32)))])""").get;
+    val mySome = packageH.structs.find(_.id.toFullString() == """test::C(CT("MySome"),[TR(R(@,<,i(32)))])""").get;
     vassert(mySome.members.size == 1);
     vassert(mySome.members.head.tyype == CoordH[IntHT](ShareH, InlineH, IntHT.i32))
 
-    val myNone = packageH.structs.find(_.fullName.toFullString() == """test::C(CT("MyNone"),[TR(R(@,<,i(32)))])""").get;
+    val myNone = packageH.structs.find(_.id.toFullString() == """test::C(CT("MyNone"),[TR(R(@,<,i(32)))])""").get;
     vassert(myNone.members.isEmpty);
   }
 

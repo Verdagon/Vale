@@ -110,7 +110,7 @@ case class Hamuts(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
   vassert(functionDefs.values.map(_.fullName).toVector.distinct.size == functionDefs.values.size)
-  vassert(structDefs.map(_.fullName).distinct.size == structDefs.size)
+  vassert(structDefs.map(_.id).distinct.size == structDefs.size)
   vassert(runtimeSizedArrays.values.map(_.name).toVector.distinct.size == runtimeSizedArrays.size)
 
   def forwardDeclareStruct(structTT: StructTT, structRefH: StructHT): Hamuts = {
@@ -152,7 +152,7 @@ case class Hamuts(
   }
 
   def addStructOriginatingFromHammer(structDefH: StructDefinitionH): Hamuts = {
-    vassert(!structDefs.exists(_.fullName == structDefH.fullName))
+    vassert(!structDefs.exists(_.id == structDefH.id))
 
     Hamuts(
       humanNameToFullNameToId,

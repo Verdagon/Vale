@@ -220,7 +220,7 @@ class FunctionCompilerCore(
             case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
             case _ => vfail("Can't export something that doesn't have a human readable name!")
           }
-        coutputs.addInstantiationBounds(header.toPrototype.fullName, InstantiationBoundArguments(Map(), Map()))
+        coutputs.addInstantiationBounds(header.toPrototype.id, InstantiationBoundArguments(Map(), Map()))
         coutputs.addFunctionExport(
           fullEnv.function.range,
           header.toPrototype,
@@ -256,7 +256,7 @@ class FunctionCompilerCore(
 
   def getFunctionPrototypeInnerForCall(
     fullEnv: FunctionEnvironment,
-    fullName: IdT[IFunctionNameT]):
+    id: IdT[IFunctionNameT]):
   PrototypeT = {
     val retCoordRune = vassertSome(fullEnv.function.maybeRetCoordRune)
     val returnCoord =
@@ -266,7 +266,7 @@ class FunctionCompilerCore(
         case Some(CoordTemplata(retCoord)) => retCoord
         case other => vwat(other)
       }
-    PrototypeT(fullName, returnCoord)
+    PrototypeT(id, returnCoord)
   }
 
   def finalizeHeader(
@@ -344,28 +344,28 @@ class FunctionCompilerCore(
 
   def makeExternFunction(
       coutputs: CompilerOutputs,
-      fullName: IdT[IFunctionNameT],
+      id: IdT[IFunctionNameT],
       range: RangeS,
       attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],
       returnType2: CoordT,
       maybeOrigin: Option[FunctionTemplata]):
   (FunctionHeaderT) = {
-    fullName.localName match {
+    id.localName match {
       case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {
         val header =
           ast.FunctionHeaderT(
-            fullName,
+            id,
             Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
             Vector(vimpl()),
             params2,
             returnType2,
             maybeOrigin)
 
-        val externFullName = IdT(fullName.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
+        val externFullName = IdT(id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFullName, header.returnType)
-        coutputs.addFunctionExtern(range, externPrototype, fullName.packageCoord, humanName)
-        coutputs.addInstantiationBounds(externPrototype.fullName, InstantiationBoundArguments(Map(), Map()))
+        coutputs.addFunctionExtern(range, externPrototype, id.packageCoord, humanName)
+        coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArguments(Map(), Map()))
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })

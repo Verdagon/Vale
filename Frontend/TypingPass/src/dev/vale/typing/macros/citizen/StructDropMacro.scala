@@ -186,7 +186,7 @@ class StructDropMacro(
                     case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {
                       val substituter =
                         TemplataCompiler.getPlaceholderSubstituter(
-                          interner, keywords, structTT.fullName,
+                          interner, keywords, structTT.id,
                           // We received an instance of this type, so we can use the bounds from it.
                           InheritBoundsFromTypeItself)
                       val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)

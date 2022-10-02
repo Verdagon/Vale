@@ -377,7 +377,7 @@ case class CompilerOutputs() {
   }
 
   def addFunctionExport(range: RangeS, function: PrototypeT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
-    vassert(getInstantiationBounds(function.fullName).nonEmpty)
+    vassert(getInstantiationBounds(function.id).nonEmpty)
     functionExports += FunctionExportT(range, function, packageCoord, exportedName)
   }
 
@@ -444,13 +444,13 @@ case class CompilerOutputs() {
   }
 
   def lookupStruct(structTT: StructTT): StructDefinitionT = {
-    lookupStruct(TemplataCompiler.getStructTemplate(structTT.fullName))
+    lookupStruct(TemplataCompiler.getStructTemplate(structTT.id))
   }
   def lookupStruct(templateName: IdT[IStructTemplateNameT]): StructDefinitionT = {
     vassertSome(structTemplateNameToDefinition.get(templateName))
   }
   def lookupInterface(interfaceTT: InterfaceTT): InterfaceDefinitionT = {
-    lookupInterface(TemplataCompiler.getInterfaceTemplate(interfaceTT.fullName))
+    lookupInterface(TemplataCompiler.getInterfaceTemplate(interfaceTT.id))
   }
   def lookupInterface(templateName: IdT[IInterfaceTemplateNameT]): InterfaceDefinitionT = {
     vassertSome(interfaceTemplateNameToDefinition.get(templateName))

@@ -437,12 +437,12 @@ class FunctionCompilerClosureOrLightLayer(
     val closureStructDef = coutputs.lookupStruct(closureStructRef);
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
-        interner, keywords, closureStructRef.fullName,
+        interner, keywords, closureStructRef.id,
         // This is a parameter, so we can grab bounds from it.
         InheritBoundsFromTypeItself)
     val variables =
       closureStructDef.members.map(member => {
-        val variableFullName = closureStructDef.instantiatedCitizen.fullName.addStep(member.name)
+        val variableFullName = closureStructDef.instantiatedCitizen.id.addStep(member.name)
         member match {
           case NormalStructMemberT(name, variability, ReferenceMemberTypeT(reference)) => {
             ReferenceClosureVariableT(
@@ -457,7 +457,7 @@ class FunctionCompilerClosureOrLightLayer(
       })
     val entries =
       Vector[(INameT, IEnvEntry)](
-        closureStructRef.fullName.localName ->
+        closureStructRef.id.localName ->
           TemplataEnvEntry(KindTemplata(closureStructRef)))
     (variables, entries)
   }

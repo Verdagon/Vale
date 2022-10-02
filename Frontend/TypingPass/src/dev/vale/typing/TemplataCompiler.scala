@@ -71,24 +71,24 @@ trait ITemplataCompilerDelegate {
 
 object TemplataCompiler {
   def getTopLevelDenizenFullName(
-    fullName: IdT[INameT],
+    id: IdT[INameT],
   ): IdT[IInstantiationNameT] = {
     // That said, some things are namespaced inside templates. If we have a `struct Marine` then we'll
     // also have a func drop within its namespace; we'll have a free function instance under a Marine
     // struct template. We want to grab the instance.
     val index =
-    fullName.steps.indexWhere({
+    id.steps.indexWhere({
       case x : IInstantiationNameT => true
       case _ => false
     })
     vassert(index >= 0)
-    val initSteps = fullName.steps.slice(0, index)
+    val initSteps = id.steps.slice(0, index)
     val lastStep =
-      fullName.steps(index) match {
+      id.steps(index) match {
         case x : IInstantiationNameT => x
         case _ => vwat()
       }
-    IdT(fullName.packageCoord, initSteps, lastStep)
+    IdT(id.packageCoord, initSteps, lastStep)
   }
 
   def getPlaceholderTemplataFullName(implPlaceholder: ITemplata[ITemplataType]) = {
@@ -355,9 +355,9 @@ object TemplataCompiler {
             })))
     // See SBITAFD, we need to register bounds for these new instantiations.
     val instantiationBoundArgs =
-      vassertSome(coutputs.getInstantiationBounds(structTT.fullName))
+      vassertSome(coutputs.getInstantiationBounds(structTT.id))
     coutputs.addInstantiationBounds(
-      newStruct.fullName,
+      newStruct.id,
       translateInstantiationBounds(
         coutputs, interner, keywords, substitutions, boundArgumentsSource, instantiationBoundArgs))
     newStruct
@@ -412,7 +412,7 @@ object TemplataCompiler {
           })
         InstantiationBoundArguments(
           instantiationBoundArgs.runeToFunctionBoundArg.mapValues(funcBoundArg => {
-            funcBoundArg.fullName match {
+            funcBoundArg.id match {
               case IdT(packageCoord, initSteps, fbn@FunctionBoundNameT(_, _, _)) => {
                 vassertSome(containerFuncBoundToBoundArg.get(IdT(packageCoord, initSteps, fbn)))
               }
@@ -506,9 +506,9 @@ object TemplataCompiler {
             })))
     // See SBITAFD, we need to register bounds for these new instantiations.
     val instantiationBoundArgs =
-      vassertSome(coutputs.getInstantiationBounds(interfaceTT.fullName))
+      vassertSome(coutputs.getInstantiationBounds(interfaceTT.id))
     coutputs.addInstantiationBounds(
-      newInterface.fullName,
+      newInterface.id,
       translateInstantiationBounds(coutputs, interner, keywords, substitutions, boundArgumentsSource, instantiationBoundArgs))
     newInterface
   }
@@ -553,14 +553,14 @@ object TemplataCompiler {
     val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
     val prototype = PrototypeT(IdT(packageCoord, initSteps, substitutedFuncName), substitutedReturnType)
 
-    prototype.fullName.localName match {
+    prototype.id.localName match {
       case FunctionBoundNameT(template, templateArgs, parameters) => {
         // It's a function bound, it has no function bounds of its own.
-        coutputs.addInstantiationBounds(prototype.fullName, InstantiationBoundArguments(Map(), Map()))
+        coutputs.addInstantiationBounds(prototype.id, InstantiationBoundArguments(Map(), Map()))
       }
       case _ => {
         // Not really sure if we're supposed to add bounds or something here.
-        vassert(coutputs.getInstantiationBounds(prototype.fullName).nonEmpty)
+        vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
       }
     }
 
@@ -1014,11 +1014,11 @@ class TemplataCompiler(
       expectedCitizenTemplata match {
         case st @ StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
         case it @ InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
-        case KindTemplata(c : ICitizenTT) => TemplataCompiler.getCitizenTemplate(c.fullName)
-        case CoordTemplata(CoordT(OwnT | ShareT, _, c : ICitizenTT)) => TemplataCompiler.getCitizenTemplate(c.fullName)
+        case KindTemplata(c : ICitizenTT) => TemplataCompiler.getCitizenTemplate(c.id)
+        case CoordTemplata(CoordT(OwnT | ShareT, _, c : ICitizenTT)) => TemplataCompiler.getCitizenTemplate(c.id)
         case _ => return false
       }
-    TemplataCompiler.getCitizenTemplate(actualCitizenRef.fullName) == citizenTemplateFullName
+    TemplataCompiler.getCitizenTemplate(actualCitizenRef.id) == citizenTemplateFullName
   }
 
   def createPlaceholder(

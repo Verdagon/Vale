@@ -557,7 +557,7 @@ class Heap(in_vivemDout: PrintStream) {
       case StrV(value) => vivemDout.print(value)
       case FloatV(value) => vivemDout.print(value)
       case StructInstanceV(structH, Some(members)) => {
-        vivemDout.print(structH.fullName + "{" + members.map("o" + _.allocId.num).mkString(", ") + "}")
+        vivemDout.print(structH.id + "{" + members.map("o" + _.allocId.num).mkString(", ") + "}")
       }
       case ArrayInstanceV(typeH, memberTypeH, capacity, elements) => vivemDout.print("array:" + capacity + ":" + memberTypeH + "{" + elements.map("o" + _.allocId.num).mkString(", ") + "}")
     }
@@ -769,7 +769,7 @@ class Heap(in_vivemDout: PrintStream) {
       case StructInstanceV(structH, Some(members)) => {
         vassert(members.size == structH.members.size)
         von.VonObject(
-          structH.fullName.toString,
+          structH.id.toString,
           None,
           structH.members.zip(members).zipWithIndex.map({ case ((memberH, memberV), index) =>
             VonMember(vimpl(memberH.name.toString), toVon(memberV))

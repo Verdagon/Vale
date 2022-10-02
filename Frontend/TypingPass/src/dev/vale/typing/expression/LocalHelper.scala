@@ -117,7 +117,7 @@ class LocalHelper(
     val mutable = Compiler.getMutability(coutputs, referenceType2.kind)
     val addressible = LocalHelper.determineIfLocalIsAddressible(mutable, localVariableA)
 
-    val fullVarName = nenv.fullName.addStep(varId)
+    val fullVarName = nenv.id.addStep(varId)
     val localVar =
       if (addressible) {
         AddressibleLocalVariableT(fullVarName, variability, referenceType2)
