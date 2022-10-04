@@ -3,7 +3,7 @@ package dev.vale.typing
 //import dev.vale.astronomer.{GlobalFunctionFamilyNameS, INameS, INameA, ImmConcreteDestructorImpreciseNameA, ImmConcreteDestructorNameA, ImmInterfaceDestructorImpreciseNameS}
 //import dev.vale.astronomer.VirtualFreeImpreciseNameS
 import dev.vale.postparsing.rules.RuneUsage
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, U, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, StrI, U, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
 import dev.vale.postparsing.{CoordTemplataType, GlobalFunctionFamilyNameS, IImpreciseNameS, IRuneS, ITemplataType, KindTemplataType, ReachablePrototypeRuneS, RuneNameS}
 import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
 import dev.vale.typing.env.{GeneralEnvironment, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
@@ -150,6 +150,7 @@ class EdgeCompiler(
 
   def createOverridePlaceholderMimicking(
     coutputs: CompilerOutputs,
+    implToDispatcherRegionSubstitutions: Vector[(IdT[IRegionNameT], IdT[IRegionNameT])],
     originalTemplataToMimic: ITemplata[ITemplataType],
     dispatcherOuterEnv: IInDenizenEnvironment,
     index: Int):
@@ -218,7 +219,16 @@ class EdgeCompiler(
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-          CoordTemplata(CoordT(ownership, vimpl(region), PlaceholderT(placeholderFullName)))
+
+          // We're replacing the impl region with the dispatcher region here
+          region.initSteps.last match {
+            case x : IImplTemplateNameT =>
+            case _ => vcurious()
+          }
+          val newRegion =
+            vassertOne(implToDispatcherRegionSubstitutions.filter(_._1 == region))._2
+
+          CoordTemplata(CoordT(ownership, newRegion, PlaceholderT(placeholderFullName)))
         }
         case other => vwat(other)
       }
@@ -233,7 +243,7 @@ class EdgeCompiler(
     abstractFunctionPrototype: PrototypeT,
     abstractIndex: Int):
   OverrideT = {
-    val abstractFuncTemplateFullName =
+    val abstractFuncTemplateId =
       TemplataCompiler.getFunctionTemplate(abstractFunctionPrototype.id)
     val abstractFunctionParamUnsubstitutedTypes = abstractFunctionPrototype.paramTypes
     vassert(abstractIndex >= 0)
@@ -250,17 +260,19 @@ class EdgeCompiler(
     val originFunctionTemplata = vassertSome(maybeOriginFunctionTemplata)
 
     val abstractFuncOuterEnv =
-      coutputs.getOuterEnvForFunction(abstractFuncTemplateFullName)
+      coutputs.getOuterEnvForFunction(abstractFuncTemplateId)
 
     val dispatcherTemplateName =
       interner.intern(OverrideDispatcherTemplateNameT(impl.templateId))
-    val dispatcherTemplateFullName =
-      abstractFuncTemplateFullName.addStep(dispatcherTemplateName)
+    val dispatcherTemplateId =
+      abstractFuncTemplateId.addStep(dispatcherTemplateName)
+    val dispatcherTemplateDefaultRegion =
+      TemplataCompiler.getDenizenDefaultRegionId(interner, dispatcherTemplateId)
     val dispatcherOuterEnv =
       GeneralEnvironment.childOf(
         interner,
         abstractFuncOuterEnv,
-        dispatcherTemplateFullName)
+        dispatcherTemplateId)
 
     // Step 1: Get The Compiled Impl's Interface, see GTCII.
 
@@ -271,6 +283,12 @@ class EdgeCompiler(
     // - We need to do the abstract function from the abstract function's environment
     // - We need to do at least the override resolve from the abstract function's environment
     //   (or something under it) so that we can have the bounds that come from the abstract function.
+
+    // See TRWGM
+    val implToDispatcherRegionSubstitutions =
+      Vector((
+        TemplataCompiler.getDenizenDefaultRegionId(interner, impl.templateId),
+        dispatcherTemplateDefaultRegion))
 
     // This is a straight mapping from the impl placeholders to the new dispatcher placeholders.
     // This might have some placeholders that won't actually be part of the dispatcher generic args,
@@ -290,7 +308,7 @@ class EdgeCompiler(
 
           val dispatcherPlaceholder =
             createOverridePlaceholderMimicking(
-              coutputs, implPlaceholder, dispatcherOuterEnv, dispatcherPlaceholderIndex)
+              coutputs, implToDispatcherRegionSubstitutions, implPlaceholder, dispatcherOuterEnv, dispatcherPlaceholderIndex)
           (implPlaceholderFullName, dispatcherPlaceholder)
         })
     val dispatcherPlaceholders = implPlaceholderToDispatcherPlaceholder.map(_._2)
@@ -302,6 +320,7 @@ class EdgeCompiler(
           interner,
           keywords,
           implPlaceholderToDispatcherPlaceholder,
+          implToDispatcherRegionSubstitutions,
           // The dispatcher is receiving these types as parameters, so it can bring in bounds from
           // them.
           InheritBoundsFromTypeItself,
@@ -334,8 +353,8 @@ class EdgeCompiler(
       originFunctionTemplata.function.params.map(_.pattern.coordRune).map(vassertSome(_)).map(_.rune)
         .map(rune => expectCoordTemplata(dispatcherInnerInferences(rune)).coord)
     val dispatcherFullName =
-      dispatcherTemplateFullName.copy(localName =
-        dispatcherTemplateFullName.localName.makeFunctionName(interner, keywords, dispatcherPlaceholders.toVector, dispatcherParams))
+      dispatcherTemplateId.copy(localName =
+        dispatcherTemplateId.localName.makeFunctionName(interner, keywords, dispatcherPlaceholders.toVector, dispatcherParams))
 
     val dispatcherInnerEnv =
       GeneralEnvironment.childOf(
@@ -360,7 +379,13 @@ class EdgeCompiler(
           .map({ case ((rune, templata), independent) => rune -> templata }),
         { case (index, (rune, implPlaceholderTemplata)) =>
           val implPlaceholderFullName = TemplataCompiler.getPlaceholderTemplataFullName(implPlaceholderTemplata)
-          val casePlaceholder = createOverridePlaceholderMimicking(coutputs, implPlaceholderTemplata, dispatcherInnerEnv, index)
+          val casePlaceholder =
+            createOverridePlaceholderMimicking(
+              coutputs,
+              implToDispatcherRegionSubstitutions,
+              implPlaceholderTemplata,
+              dispatcherInnerEnv,
+              index)
           (rune, implPlaceholderFullName, casePlaceholder)
         })
     val implRuneToCasePlaceholder =
@@ -386,6 +411,7 @@ class EdgeCompiler(
                 interner,
                 keywords,
                 implPlaceholderToDispatcherPlaceholder ++ implPlaceholderToCasePlaceholder,
+                implToDispatcherRegionSubstitutions,
                 // These are bounds we're bringing in from the sub citizen.
                 InheritBoundsFromTypeItself,
                 funcBoundFullName)

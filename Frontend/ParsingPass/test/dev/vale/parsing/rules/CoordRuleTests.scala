@@ -26,16 +26,16 @@ class CoordRuleTests extends FunSuite with Matchers with Collector with TestPars
   }
 
   test("Coord with destructure only") {
-    compile("Ref[_, _]") shouldHave {
+    compile("Ref[_, _, _]") shouldHave {
       case ComponentsPR(_,CoordTypePR,Vector(TemplexPR(AnonymousRunePT(_)), TemplexPR(AnonymousRunePT(_)))) =>
     }
   }
 
   test("Coord with rune and destructure") {
-    compile("T = Ref[_, _]") shouldHave {
+    compile("T = Ref[_, _, _]") shouldHave {
       case ComponentsPR(_,CoordTypePR,Vector(TemplexPR(AnonymousRunePT(_)), TemplexPR(AnonymousRunePT(_)))) =>
     }
-    compile("T = Ref[own, _]") shouldHave {
+    compile("T = Ref[own, _, _]") shouldHave {
         case ComponentsPR(_,
           CoordTypePR,
           Vector(TemplexPR(OwnershipPT(_,OwnP)), TemplexPR(AnonymousRunePT(_)))) =>
@@ -60,7 +60,7 @@ class CoordRuleTests extends FunSuite with Matchers with Collector with TestPars
   }
 
   test("Coord with Int in kind rule") {
-    compile("Ref[_, int]") shouldHave {
+    compile("Ref[_, _, int]") shouldHave {
       case ComponentsPR(_,
           CoordTypePR,
           Vector(TemplexPR(AnonymousRunePT(_)), TemplexPR(NameOrRunePT(NameP(_, StrI("int")))))) =>
@@ -70,7 +70,7 @@ class CoordRuleTests extends FunSuite with Matchers with Collector with TestPars
   }
 
   test("Coord with specific Kind rule") {
-    compile("Ref[_, Kind[mut]]") shouldHave {
+    compile("Ref[_, _, Kind[mut]]") shouldHave {
       case ComponentsPR(_,
           CoordTypePR,
           Vector(
@@ -89,7 +89,7 @@ class CoordRuleTests extends FunSuite with Matchers with Collector with TestPars
   }
 
   test("Coord with destructure and value") {
-    compile("Ref[_, _] = int") shouldHave {
+    compile("Ref[_, _, _] = int") shouldHave {
       case EqualsPR(_,
           ComponentsPR(_,CoordTypePR,Vector(TemplexPR(AnonymousRunePT(_)), TemplexPR(AnonymousRunePT(_)))),
           TemplexPR(NameOrRunePT(NameP(_, StrI("int"))))) =>

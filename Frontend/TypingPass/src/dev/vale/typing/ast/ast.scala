@@ -40,7 +40,7 @@ case class ImplT(
   subCitizen: ICitizenTT,
 
   superInterface: InterfaceTT,
-  superInterfaceTemplateName: IdT[IInterfaceTemplateNameT],
+  superInterfaceTemplateId: IdT[IInterfaceTemplateNameT],
 
   // This is similar to FunctionT.runeToFuncBound
   runeToFuncBound: Map[IRuneS, IdT[FunctionBoundNameT]],

@@ -501,7 +501,7 @@ object CompilerErrorHumanizer {
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region.localName match {
-          case DenizenDefaultRegionNameT() => "'def"
+          case DenizenDefaultRegionNameT() => "def'"
           case RegionNameT(rune) => "'" + humanizeRune(rune) + " "
         }) +
         (ownership match {

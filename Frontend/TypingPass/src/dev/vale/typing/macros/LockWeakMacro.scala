@@ -32,7 +32,7 @@ class LockWeakMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(vimpl()), // should we get these handed in
+        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))

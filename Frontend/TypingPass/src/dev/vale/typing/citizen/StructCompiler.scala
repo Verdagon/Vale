@@ -7,7 +7,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.{CompilerOutputs, IIncompleteOrFailedCompilerSolve, InferCompiler, TypingPassOptions, _}
-import dev.vale.typing.names.{IdT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IStructTemplateNameT, ITemplateNameT, NameTranslator, PackageTopLevelNameT}
+import dev.vale.typing.names.{DenizenDefaultRegionNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceTemplateNameT, IRegionNameT, IStructTemplateNameT, ITemplateNameT, IdT, NameTranslator, PackageTopLevelNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -101,15 +101,16 @@ class StructCompiler(
   Unit = {
     val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
 
-    val structTemplateFullName = templataCompiler.resolveStructTemplate(structTemplata)
+    val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, structTemplateId)
 
-    coutputs.declareType(structTemplateFullName)
+    coutputs.declareType(structTemplateId)
 
     structA.maybePredictedMutability match {
       case None =>
       case Some(predictedMutability) => {
         coutputs.declareTypeMutability(
-          structTemplateFullName,
+          structTemplateId,
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }
     }
@@ -119,20 +120,20 @@ class StructCompiler(
       CitizenEnvironment(
         declaringEnv.globalEnv,
         declaringEnv,
-        structTemplateFullName,
-        structTemplateFullName,
-        vimpl(),
-        TemplatasStore(structTemplateFullName, Map(), Map())
+        structTemplateId,
+        structTemplateId,
+        defaultRegion,
+        TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
             // Merge in any things from the global environment that say they're part of this
             // structs's namespace (see IMRFDI and CODME).
             // StructFreeMacro will put a free function here.
             declaringEnv.globalEnv.nameToTopLevelEnvironment
-              .get(structTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+              .get(structTemplateId.addStep(interner.intern(PackageTopLevelNameT())))
               .toVector
               .flatMap(_.entriesByNameT)))
-    coutputs.declareTypeOuterEnv(structTemplateFullName, outerEnv)
+    coutputs.declareTypeOuterEnv(structTemplateId, outerEnv)
   }
 
   def precompileInterface(
@@ -141,15 +142,16 @@ class StructCompiler(
   Unit = {
     val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
 
-    val interfaceTemplateFullName = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
+    val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, interfaceTemplateId)
 
-    coutputs.declareType(interfaceTemplateFullName)
+    coutputs.declareType(interfaceTemplateId)
 
     interfaceA.maybePredictedMutability match {
       case None =>
       case Some(predictedMutability) => {
         coutputs.declareTypeMutability(
-          interfaceTemplateFullName,
+          interfaceTemplateId,
           MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
       }
     }
@@ -157,7 +159,7 @@ class StructCompiler(
     // We do this here because we might compile a virtual function somewhere before we compile the interface.
     // The virtual function will need to know if the type is sealed to know whether it's allowed to be
     // virtual on this interface.
-    coutputs.declareTypeSealed(interfaceTemplateFullName, interfaceA.attributes.contains(SealedS))
+    coutputs.declareTypeSealed(interfaceTemplateId, interfaceA.attributes.contains(SealedS))
 
 
     // We declare the interface's outer environment this early because of MDATOEF.
@@ -165,10 +167,10 @@ class StructCompiler(
       CitizenEnvironment(
         declaringEnv.globalEnv,
         declaringEnv,
-        interfaceTemplateFullName,
-        interfaceTemplateFullName,
-        vimpl(),
-        TemplatasStore(interfaceTemplateFullName, Map(), Map())
+        interfaceTemplateId,
+        interfaceTemplateId,
+        defaultRegion,
+        TemplatasStore(interfaceTemplateId, Map(), Map())
           .addEntries(
             interner,
             // TODO: Take those internal methods that were defined inside the interface, and move them to
@@ -181,10 +183,10 @@ class StructCompiler(
               // Merge in any things from the global environment that say they're part of this
               // interface's namespace (see IMRFDI and CODME).
               declaringEnv.globalEnv.nameToTopLevelEnvironment
-                .get(interfaceTemplateFullName.addStep(interner.intern(PackageTopLevelNameT())))
+                .get(interfaceTemplateId.addStep(interner.intern(PackageTopLevelNameT())))
                 .toVector
                 .flatMap(_.entriesByNameT)))
-    coutputs.declareTypeOuterEnv(interfaceTemplateFullName, outerEnv)
+    coutputs.declareTypeOuterEnv(interfaceTemplateId, outerEnv)
   }
 
   def compileStruct(
@@ -307,12 +309,16 @@ object StructCompiler {
     interner: Interner,
     keywords: Keywords,
     coutputs: CompilerOutputs,
+    region: IdT[IRegionNameT],
     structTT: StructTT,
     boundArgumentsSource: IBoundArgumentsSource):
   ITemplata[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT)
     val transformer =
-      TemplataCompiler.getPlaceholderSubstituter(interner, keywords, structTT.id, boundArgumentsSource)
+      TemplataCompiler.getPlaceholderSubstituter(
+        interner, keywords, structTT.id,
+        Vector((definition.defaultRegion, region)),
+        boundArgumentsSource)
     val result = transformer.substituteForTemplata(coutputs, definition.mutability)
     ITemplata.expectMutability(result)
   }

@@ -40,7 +40,7 @@ class RSAMutableNewMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(vimpl()), // should we get these handed in
+        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
@@ -64,7 +64,7 @@ class RSAMutableNewMacro(
         ReturnTE(
           NewMutRuntimeSizedArrayTE(
             arrayTT,
-            vimpl(),
+            vassertSome(maybeRetCoord).region,
             ArgLookupTE(0, paramCoords(0).tyype))))
 //            freePrototype)))
     (header, body)

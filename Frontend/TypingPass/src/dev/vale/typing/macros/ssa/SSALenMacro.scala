@@ -30,7 +30,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(vimpl()), // should we get these handed in
+        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
@@ -50,7 +50,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
           Vector(
             DiscardTE(ArgLookupTE(0, paramCoords(0).tyype)),
             ReturnTE(
-              ConstantIntTE(len, 32, vimpl())))))
+              ConstantIntTE(len, 32, env.defaultRegion)))))
     (header, body)
   }
 }

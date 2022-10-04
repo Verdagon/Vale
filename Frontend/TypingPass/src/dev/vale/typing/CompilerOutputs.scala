@@ -361,8 +361,8 @@ case class CompilerOutputs() {
       impl.subCitizenTemplateId,
       subCitizenTemplateToImpls.getOrElse(impl.subCitizenTemplateId, Vector()) :+ impl)
     superInterfaceTemplateToImpls.put(
-      impl.superInterfaceTemplateName,
-      superInterfaceTemplateToImpls.getOrElse(impl.superInterfaceTemplateName, Vector()) :+ impl)
+      impl.superInterfaceTemplateId,
+      superInterfaceTemplateToImpls.getOrElse(impl.superInterfaceTemplateId, Vector()) :+ impl)
   }
 
   def getParentImplsForSubCitizenTemplate(subCitizenTemplate: IdT[ICitizenTemplateNameT]): Vector[ImplT] = {

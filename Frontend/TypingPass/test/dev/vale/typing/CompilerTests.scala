@@ -91,7 +91,7 @@ class CompilerTests extends FunSuite with Matchers {
         |func main(a int) int { return a; }
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
-    Collector.onlyOf(coutputs.lookupFunction("main"), classOf[ParameterT]).tyype == CoordT(ShareT, vimpl(), IntT.i32)
+    Collector.only(coutputs.lookupFunction("main"), { case ParameterT(_, _, CoordT(ShareT, _, IntT.i32)) => })
     val lookup = Collector.onlyOf(coutputs.lookupFunction("main"), classOf[LocalLookupTE]);
     lookup.localVariable.id.localName match { case CodeVarNameT(StrI("a")) => }
     lookup.localVariable.coord match { case CoordT(ShareT, _, IntT.i32) => }
@@ -214,15 +214,18 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
 
     // Make sure it inferred the param type and return type correctly
-    coutputs.lookupFunction("main").header.returnType shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
+    coutputs.lookupFunction("main").header.returnType match {
+      case CoordT(ShareT, _, IntT.i32) =>
+    }
   }
 
   test("Test overloads") {
     val compile = CompilerTestCompilation.test(Tests.loadExpected("programs/functions/overloads.vale"))
     val coutputs = compile.expectCompilerOutputs()
 
-    coutputs.lookupFunction("main").header.returnType shouldEqual
-      CoordT(ShareT, vimpl(), IntT.i32)
+    coutputs.lookupFunction("main").header.returnType match {
+      case CoordT(ShareT, _, IntT.i32) =>
+    }
   }
 
   test("Test readonly UFCS") {
@@ -279,6 +282,7 @@ class CompilerTests extends FunSuite with Matchers {
       case StructDefinitionT(
         simpleName("MyStruct"),
         StructTT(simpleName("MyStruct")),
+        _,
         _,
         false,
         MutabilityTemplata(MutableT),
@@ -337,12 +341,12 @@ class CompilerTests extends FunSuite with Matchers {
 
     val interfaceDef =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, Vector()) => id
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, _, false, MutabilityTemplata(MutableT), _, _, Vector()) => id
       }))
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
@@ -365,7 +369,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val (interfaceDef, methods) =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, methods) => (id, methods)
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, _, false, MutabilityTemplata(MutableT), _, _, methods) => (id, methods)
       }))
     vassertSome(methods.collectFirst({
       case (f @ PrototypeT(simpleName("bork"), _), _) => f
@@ -373,7 +377,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
@@ -482,12 +486,12 @@ class CompilerTests extends FunSuite with Matchers {
     coutputs.lookupInterfaceByTemplateName(
       interner.intern(
         InterfaceTemplateNameT(interner.intern(StrI("MyOption")))))
-    coutputs.lookupFunction("main").header.params.head.tyype shouldEqual
-        CoordT(
+    coutputs.lookupFunction("main").header.params.head.tyype match {
+      case CoordT(
           BorrowT,
-          vimpl(),
-          interner.intern(
-            InterfaceTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(InterfaceNameT(interner.intern(InterfaceTemplateNameT(interner.intern(StrI("MyOption")))), Vector(CoordTemplata(CoordT(ShareT, vimpl(), IntT.i32)))))))))
+          _,
+          InterfaceTT(IdT(_, _, InterfaceNameT(InterfaceTemplateNameT(StrI("MyOption")), Vector(CoordTemplata(CoordT(ShareT, _, IntT.i32))))))) =>
+    }
 
     // Can't run it because there's nothing implementing that interface >_>
   }

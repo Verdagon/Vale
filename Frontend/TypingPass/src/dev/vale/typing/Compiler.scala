@@ -165,6 +165,7 @@ class Compiler(
             case VariabilityTemplata(_) =>
             case OwnershipTemplata(_) =>
             case MutabilityTemplata(_) =>
+            case RegionTemplata(_) =>
             case InterfaceDefinitionTemplata(_,_) =>
             case StructDefinitionTemplata(_,_) =>
             case ImplDefinitionTemplata(_,_) =>
@@ -894,9 +895,19 @@ class Compiler(
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
+            val exportTemplateName = ExportTemplateNameT(range.begin)
+            val exportTemplateId = env.id.addStep(exportTemplateName)
+            val exportName = ExportNameT(exportTemplateName)
+            val exportId = env.id.addStep(exportName)
+            val regionId = TemplataCompiler.getDenizenDefaultRegionId(interner, exportTemplateId)
+
+            val exportEnv =
+              ExportEnvironment(
+                globalEnv, env, exportId, regionId, TemplatasStore(exportId, Map(), Map()))
+
             val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(vimpl(env), List(range), vimpl(env)), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
+                InferEnv(exportEnv, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {
@@ -1199,6 +1210,7 @@ class Compiler(
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
                 interner, keywords, sr.id,
+                Vector(),
                 InheritBoundsFromTypeItself)
 
             structDef.members.foreach({

@@ -322,8 +322,8 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |exported struct MyStruct { }
         |exported func main() X
         |where
-        |  MyStruct = Ref[O Ownership, K Kind],
-        |  X Ref = Ref[borrow, K]
+        |  MyStruct = Ref[O Ownership, R Region, K Kind],
+        |  X Ref = Ref[borrow, R, K]
         |{
         |  return &MyStruct();
         |}

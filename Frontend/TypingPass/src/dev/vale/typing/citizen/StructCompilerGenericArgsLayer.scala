@@ -57,7 +57,7 @@ class StructCompilerGenericArgsLayer(
       // Check if its a valid use of this template
       val CompleteCompilerSolve(_, inferences, runeToFunctionBound, Vector()) =
         inferCompiler.solve(
-          InferEnv(originalCallingEnv, callRange, vimpl(declaringEnv)),
+          InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
           structA.headerRuneToType,
@@ -120,7 +120,7 @@ class StructCompilerGenericArgsLayer(
       // just to populate any generic parameter default values.
       val CompleteCompilerSolve(_, inferences, _, Vector()) =
         inferCompiler.solveExpectComplete(
-          InferEnv(originalCallingEnv, callRange, vimpl(declaringEnv)),
+          InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
           runeToTypeForPrediction,
@@ -183,7 +183,7 @@ class StructCompilerGenericArgsLayer(
       // just to populate any generic parameter default values.
       val CompleteCompilerSolve(_, inferences, _, Vector()) =
         inferCompiler.solveExpectComplete(
-          InferEnv(originalCallingEnv, callRange, vimpl(declaringEnv)),
+          InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
           runeToTypeForPrediction,
@@ -239,7 +239,7 @@ class StructCompilerGenericArgsLayer(
       // This checks to make sure it's a valid use of this template.
       val CompleteCompilerSolve(_, inferences, runeToFunctionBound, Vector()) =
         inferCompiler.solve(
-          InferEnv(originalCallingEnv, callRange, vimpl(declaringEnv)),
+          InferEnv(originalCallingEnv, callRange, declaringEnv),
           coutputs,
           callSiteRules,
           interfaceA.runeToType,
@@ -277,7 +277,8 @@ class StructCompilerGenericArgsLayer(
       val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.id.addStep(structTemplateName)
-      val defaultRegion = vimpl()
+      val defaultRegion =
+        TemplataCompiler.getDenizenDefaultRegionId(interner, structTemplateFullName)
 
       // We declare the struct's outer environment in the precompile stage instead of here because
       // of MDATOEF.
@@ -360,7 +361,7 @@ class StructCompilerGenericArgsLayer(
           outerEnv,
           structTemplateFullName,
           fullName,
-          vimpl(),
+          defaultRegion,
           TemplatasStore(fullName, Map(), Map())
             .addEntries(
               interner,
@@ -383,7 +384,8 @@ class StructCompilerGenericArgsLayer(
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.id.addStep(interfaceTemplateName)
 
-      val defaultRegion = interfaceTemplateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
+      val defaultRegion =
+        TemplataCompiler.getDenizenDefaultRegionId(interner, interfaceTemplateFullName)
 
       // We declare the interface's outer environment in the precompile stage instead of here because
       // of MDATOEF.

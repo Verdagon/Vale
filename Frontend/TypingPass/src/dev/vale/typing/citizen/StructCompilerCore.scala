@@ -18,7 +18,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, DenizenDefaultRegionNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -41,10 +41,11 @@ class StructCompilerCore(
     structA: StructA):
   Unit = {
     val templateArgs = structRunesEnv.id.localName.templateArgs
-    val templateFullNameT = structRunesEnv.templateName
-    val templateNameT = templateFullNameT.localName
+    val templateId = structRunesEnv.templateId
+    val templateNameT = templateId.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
-    val placeholderedFullNameT = templateFullNameT.copy(localName = placeholderedNameT)
+    val placeholderedFullNameT = templateId.copy(localName = placeholderedNameT)
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateId)
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
@@ -109,9 +110,9 @@ class StructCompilerCore(
       CitizenEnvironment(
         structRunesEnv.globalEnv,
         structRunesEnv,
-        templateFullNameT,
+        templateId,
         placeholderedFullNameT,
-        vimpl(),
+        defaultRegion,
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
@@ -170,8 +171,9 @@ class StructCompilerCore(
 
     val structDefT =
       StructDefinitionT(
-        templateFullNameT,
+        templateId,
         placeholderedStructTT,
+        defaultRegion,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
         mutability,
@@ -221,7 +223,7 @@ class StructCompilerCore(
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
     val templateArgs = interfaceRunesEnv.id.localName.templateArgs
-    val templateFullNameT = interfaceRunesEnv.templateName
+    val templateFullNameT = interfaceRunesEnv.templateId
     val templateNameT = templateFullNameT.localName
     val placeholderedNameT = templateNameT.makeInterfaceName(interner, templateArgs)
     val placeholderedFullNameT = templateFullNameT.copy(localName = placeholderedNameT)
@@ -239,59 +241,12 @@ class StructCompilerCore(
     val maybeExport =
       interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
 
-
     val mutability =
       ITemplata.expectMutability(
         vassertSome(
           interfaceRunesEnv.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(interfaceA.mutabilityRune.rune)),
             Set(TemplataLookupContext))))
-
-//    val defaultCalledMacros =
-//      Vector(
-//        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceDrop),
-//        MacroCallS(interfaceA.range, CallMacroP, keywords.DeriveInterfaceFree))
-//    val macrosToCall =
-//      interfaceA.attributes.foldLeft(defaultCalledMacros)({
-//        case (macrosToCall, mc @ MacroCallS(_, CallMacroP, _)) => macrosToCall :+ mc
-//        case (macrosToCall, MacroCallS(_, DontCallMacroP, macroName)) => macrosToCall.filter(_.macroName != macroName)
-//        case (macrosToCall, _) => macrosToCall
-//      })
-
-//    val envEntriesFromMacros =
-//      macrosToCall.flatMap({ case MacroCallS(range, CallMacroP, macroName) =>
-//        val maacro =
-//          interfaceRunesEnv.globalEnv.nameToInterfaceDefinedMacro.get(macroName) match {
-//            case None => {
-//              throw CompileErrorExceptionT(RangedInternalErrorT(range :: parentRanges, "Macro not found: " + macroName))
-//            }
-//            case Some(m) => m
-//          }
-//        val newEntriesList = maacro.getInterfaceSiblingEntries(placeholderedFullNameT, interfaceA)
-//        val newEntries =
-//          newEntriesList.map({ case (entryName, value) =>
-//            vcurious(placeholderedFullNameT.steps.size + 1 == entryName.steps.size)
-//            val last = entryName.last
-//            last -> value
-//          })
-//        newEntries
-//      })
-//
-//    val interfaceInnerEnv =
-//      CitizenEnvironment(
-//        interfaceRunesEnv.globalEnv,
-//        interfaceRunesEnv,
-//        templateFullNameT,
-//        placeholderedFullNameT,
-//        TemplatasStore(placeholderedFullNameT, Map(), Map())
-//          .addEntries(interner, envEntriesFromMacros)
-//          .addEntries(
-//            interner,
-//            interfaceA.genericParameters.zip(interfaceRunesEnv.fullName.last.templateArgs)
-//              .map({ case (genericParam, templata) => (interner.intern(RuneNameT(genericParam.rune.rune)), TemplataEnvEntry(templata)) }))
-//          .addEntries(
-//            interner,
-//            Vector(interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(placeholderedInterfaceTT)))))
 
     val internalMethods =
       outerEnv.templatas.entriesByNameT.collect({
@@ -310,7 +265,8 @@ class StructCompilerCore(
       InterfaceDefinitionT(
         templateFullNameT,
         placeholderedInterfaceTT,
-        interner.intern(placeholderedInterfaceTT),
+        placeholderedInterfaceTT,
+        outerEnv.defaultRegion,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
@@ -408,18 +364,19 @@ class StructCompilerCore(
 
     val understructTemplateNameT =
       interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(functionA.range.begin)))
-    val understructTemplatedFullNameT =
+    val understructTemplatedId =
       containingFunctionEnv.id
         .addStep(understructTemplateNameT)
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, understructTemplatedId)
 
     val understructInstantiatedNameT =
       understructTemplateNameT.makeStructName(interner, Vector())
-    val understructInstantiatedFullNameT =
+    val understructInstantiatedId =
       containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructInstantiatedFullNameT, InstantiationBoundArguments(Map(), Map()))
-    val understructStructTT = interner.intern(StructTT(understructInstantiatedFullNameT))
+    coutputs.addInstantiationBounds(understructInstantiatedId, InstantiationBoundArguments(Map(), Map()))
+    val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val dropFuncNameT =
       interner.intern(FunctionTemplateNameT(keywords.drop, functionA.range.begin))
@@ -432,10 +389,10 @@ class StructCompilerCore(
       CitizenEnvironment(
         containingFunctionEnv.globalEnv,
         containingFunctionEnv,
-        understructTemplatedFullNameT,
-        understructTemplatedFullNameT,
-        vimpl(),
-        TemplatasStore(understructTemplatedFullNameT, Map(), Map())
+        understructTemplatedId,
+        understructTemplatedId,
+        defaultRegion,
+        TemplatasStore(understructTemplatedId, Map(), Map())
           .addEntries(
             interner,
             Vector(
@@ -452,10 +409,10 @@ class StructCompilerCore(
       CitizenEnvironment(
         structOuterEnv.globalEnv,
         structOuterEnv,
-        understructTemplatedFullNameT,
-        understructInstantiatedFullNameT,
-        vimpl(),
-        TemplatasStore(understructInstantiatedFullNameT, Map(), Map())
+        understructTemplatedId,
+        understructInstantiatedId,
+        defaultRegion,
+        TemplatasStore(understructInstantiatedId, Map(), Map())
           // There are no inferences we'd need to add, because it's a lambda and they don't have
           // any rules or anything.
           .addEntries(interner, Vector()))
@@ -464,15 +421,16 @@ class StructCompilerCore(
     // if it's not a template).
     val functionTemplata = FunctionTemplata(structInnerEnv, functionA)
 
-    coutputs.declareType(understructTemplatedFullNameT)
-    coutputs.declareTypeOuterEnv(understructTemplatedFullNameT, structOuterEnv)
-    coutputs.declareTypeInnerEnv(understructTemplatedFullNameT, structInnerEnv)
-    coutputs.declareTypeMutability(understructTemplatedFullNameT, MutabilityTemplata(mutability))
+    coutputs.declareType(understructTemplatedId)
+    coutputs.declareTypeOuterEnv(understructTemplatedId, structOuterEnv)
+    coutputs.declareTypeInnerEnv(understructTemplatedId, structInnerEnv)
+    coutputs.declareTypeMutability(understructTemplatedId, MutabilityTemplata(mutability))
 
     val closureStructDefinition =
       StructDefinitionT(
-        understructTemplatedFullNameT,
+        understructTemplatedId,
         understructStructTT,
+        defaultRegion,
         Vector.empty,
         false,
         MutabilityTemplata(mutability),

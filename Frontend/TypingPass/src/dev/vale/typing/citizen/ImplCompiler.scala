@@ -63,17 +63,10 @@ class ImplCompiler(
       superInterfaceImpreciseName
     ) = impl
 
-    val implTemplateFullName =
+    val implTemplateId =
       parentEnv.id.addStep(nameTranslator.translateImplName(name))
 
-    val outerEnv =
-      CitizenEnvironment(
-        parentEnv.globalEnv,
-        parentEnv,
-        implTemplateFullName,
-        implTemplateFullName,
-        vimpl(),
-        TemplatasStore(implTemplateFullName, Map(), Map()))
+    val outerEnv = coutputs.getOuterEnvForType(parentRanges, implTemplateId)
 
     // Remember, impls can have rules too, such as:
     //   impl<T> Opt<T> for Some<T> where func drop(T)void;
@@ -124,17 +117,10 @@ class ImplCompiler(
     superInterfaceImpreciseName
     ) = impl
 
-    val implTemplateFullName =
+    val implTemplateId =
       parentEnv.id.addStep(nameTranslator.translateImplName(name))
 
-    val outerEnv =
-      CitizenEnvironment(
-        parentEnv.globalEnv,
-        parentEnv,
-        implTemplateFullName,
-        implTemplateFullName,
-        vimpl(),
-        TemplatasStore(implTemplateFullName, Map(), Map()))
+    val outerEnv = coutputs.getOuterEnvForType(List(range), implTemplateId)
 
     // Remember, impls can have rules too, such as:
     //   impl<T> Opt<T> for Some<T> where func drop(T)void;
@@ -167,18 +153,21 @@ class ImplCompiler(
   def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplDefinitionTemplata): Unit = {
     val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
 
-    val implTemplateFullName =
+    val implTemplateId =
       parentEnv.id.addStep(
         nameTranslator.translateImplName(implA.name))
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, implTemplateId)
 
     val implOuterEnv =
       CitizenEnvironment(
         parentEnv.globalEnv,
         parentEnv,
-        implTemplateFullName,
-        implTemplateFullName,
-        vimpl(),
-        TemplatasStore(implTemplateFullName, Map(), Map()))
+        implTemplateId,
+        implTemplateId,
+        defaultRegion,
+        TemplatasStore(implTemplateId, Map(), Map()))
+    coutputs.declareType(implTemplateId)
+    coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)
 
     val implPlaceholders =
       implA.genericParams.zipWithIndex.map({ case (rune, index) =>
@@ -186,7 +175,7 @@ class ImplCompiler(
           templataCompiler.createPlaceholder(
             coutputs,
             implOuterEnv,
-            implTemplateFullName,
+            implTemplateId,
             rune,
             index,
             implA.runeToType,
@@ -220,7 +209,7 @@ class ImplCompiler(
 
 
     val templateArgs = implA.genericParams.map(_.rune.rune).map(inferences)
-    val instantiatedFullName = assembleImplName(implTemplateFullName, templateArgs, subCitizen)
+    val instantiatedFullName = assembleImplName(implTemplateId, templateArgs, subCitizen)
 
     val implInnerEnv =
       GeneralEnvironment.childOf(
@@ -246,7 +235,7 @@ class ImplCompiler(
           implTemplata,
           implOuterEnv,
           instantiatedFullName,
-          implTemplateFullName,
+          implTemplateId,
           subCitizenTemplateFullName,
           subCitizen,
           superInterface,
@@ -255,9 +244,7 @@ class ImplCompiler(
           runeToNeededImplBound,
           runeIndexToIndependence.toVector,
           reachableBoundsFromSubCitizen.map(_.prototype)))
-    coutputs.declareType(implTemplateFullName)
-    coutputs.declareTypeOuterEnv(implTemplateFullName, implOuterEnv)
-    coutputs.declareTypeInnerEnv(implTemplateFullName, implInnerEnv)
+    coutputs.declareTypeInnerEnv(implTemplateId, implInnerEnv)
     coutputs.addImpl(implT)
   }
 

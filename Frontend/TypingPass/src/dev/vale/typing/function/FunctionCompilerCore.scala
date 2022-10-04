@@ -142,7 +142,7 @@ class FunctionCompilerCore(
           val header =
             makeExternFunction(
               coutputs,
-              fullEnv.id,
+              fullEnv,
               fullEnv.function.range,
               translateFunctionAttributes(fullEnv.function.attributes),
               params2,
@@ -344,27 +344,27 @@ class FunctionCompilerCore(
 
   def makeExternFunction(
       coutputs: CompilerOutputs,
-      id: IdT[IFunctionNameT],
+      env: FunctionEnvironment,
       range: RangeS,
       attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],
       returnType2: CoordT,
       maybeOrigin: Option[FunctionTemplata]):
   (FunctionHeaderT) = {
-    id.localName match {
+    env.id.localName match {
       case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {
         val header =
           ast.FunctionHeaderT(
-            id,
+            env.id,
             Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
-            Vector(vimpl()),
+            Vector(RegionT(env.defaultRegion.localName, true)),
             params2,
             returnType2,
             maybeOrigin)
 
-        val externFullName = IdT(id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
+        val externFullName = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFullName, header.returnType)
-        coutputs.addFunctionExtern(range, externPrototype, id.packageCoord, humanName)
+        coutputs.addFunctionExtern(range, externPrototype, env.id.packageCoord, humanName)
         coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArguments(Map(), Map()))
 
         val argLookups =

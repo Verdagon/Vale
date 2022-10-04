@@ -2,7 +2,7 @@ package dev.vale.typing.ast
 
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType}
 import dev.vale.typing.TemplataCompiler
-import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, IdT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IStructNameT, IStructTemplateNameT, IVarNameT, ImplBoundNameT, StructNameT}
+import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IRegionNameT, IStructNameT, IStructTemplateNameT, IVarNameT, IdT, ImplBoundNameT, StructNameT}
 import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
@@ -14,12 +14,14 @@ trait CitizenDefinitionT {
   def templateName: IdT[ICitizenTemplateNameT]
   def genericParamTypes: Vector[ITemplataType]
   def instantiatedCitizen: ICitizenTT
+  def defaultRegion: IdT[IRegionNameT]
 }
 
 case class StructDefinitionT(
   templateName: IdT[IStructTemplateNameT],
   // In typing pass, this will have placeholders. Monomorphizing will give it a real name.
   instantiatedCitizen: StructTT,
+  defaultRegion: IdT[IRegionNameT],
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
@@ -106,6 +108,7 @@ case class InterfaceDefinitionT(
   templateName: IdT[IInterfaceTemplateNameT],
   instantiatedInterface: InterfaceTT,
   ref: InterfaceTT,
+  defaultRegion: IdT[IRegionNameT],
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],

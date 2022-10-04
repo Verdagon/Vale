@@ -177,30 +177,41 @@ E {
     panic("Can't remove, index out of bounds!");
   }
 
-  temp Opt<E> = Some<E>(list.array.pop()); // 0 
-  i = list.len() - 1;
+  // live
+  arr = list.arr; // 1 check
+
+  temp Opt<E> = Some<E>(arr.pop()); // 1 check, HGM: 0
+  i = arr.len() - 1; // 1 check, HGM: 0
   while i >= removeAtIndex {
-    (set temp = Some(set list.array[i] = (set temp = None<E>()).get())).expect_none();
+    // O(n) checks for the arr[i]
+    // HGM: 0, but O(n) if we move the elements and theyre lockable.
+    (set temp = Some(set arr[i] = (set temp = None<E>()).get())).expect_none();
     set i = i - 1;
   }
 
   return (temp).get();
 }
 
-func indexOf<E>(list &List<E>, element &E) Opt<int>
+pure func indexOf<l', o', E>(
+  list l'&List<E>,
+  element &E)
+o'Opt<int>
 where func ==(&E, &E)bool {
   i = 0;
-  l = len(&list);
+  l = len(&list); // 0 checks
   while i < l {
-    if list.get(i) == element {
-      return Some(i);
+    if list.get(i) == element { // 0 checks
+      return o'Some(i);
     }
     set i = i + 1;
   }
-  return None<int>();
+  return o'None<int>();
 }
 
-func indexWhere<E, F>(list &List<E>, func F) Opt<int>
+pure func indexWhere<E, F>(
+  list &List<E>,
+  func F)
+Opt<int>
 where func(&F, &E)bool, func drop(F)void {
   i = 0;
   l = len(&list);

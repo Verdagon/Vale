@@ -229,7 +229,10 @@ class InferCompiler(
           val reachableBounds =
             includeReachableBoundsForRunes
               .map(conclusions)
-              .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
+              .flatMap(conc => {
+                TemplataCompiler.getReachableBounds(
+                  interner, keywords, state, envs.originalCallingEnv.defaultRegion, conc)
+              })
           val runeToFunctionBound =
             if (verifyConclusions) {
               checkTemplateInstantiations(envs, state, invocationRange, rules.toVector, conclusions, reachableBounds, isRootSolve) match {
@@ -405,6 +408,9 @@ class InferCompiler(
       }
 
     if (funcSuccess.prototype.prototype.returnType != returnCoord) {
+      strt here
+      // it seems the lambda __call is returning something from the lambda default region, and
+      // we expect it to return something in our own region.
       return Err(RuleError(ReturnTypeConflict(range :: ranges, returnCoord, funcSuccess.prototype.prototype)))
     }
 

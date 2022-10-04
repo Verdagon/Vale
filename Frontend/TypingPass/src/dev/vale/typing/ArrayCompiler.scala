@@ -306,9 +306,6 @@ class ArrayCompiler(
         }
       }
 
-    // doublecheck that region is mutable
-    vimpl()
-
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
         coutputs, fate, range, callableTE, arrayTT.elementType, true)
@@ -372,7 +369,7 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
-    val defaultRegion = templateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateFullName)
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -431,8 +428,7 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
-    val defaultRegion =
-      templateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateFullName)
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment

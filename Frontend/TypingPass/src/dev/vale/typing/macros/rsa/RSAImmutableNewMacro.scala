@@ -41,7 +41,7 @@ class RSAImmutableNewMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(vimpl()), // should we get these handed in
+        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
@@ -75,7 +75,7 @@ class RSAImmutableNewMacro(
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
         Vector(),
-        Vector(generatorArgCoord, CoordT(ShareT, vimpl(), IntT(32))),
+        Vector(generatorArgCoord, CoordT(ShareT, env.defaultRegion, IntT(32))),
         Vector(),
         false,
         true) match {
@@ -93,7 +93,7 @@ class RSAImmutableNewMacro(
         ReturnTE(
           NewImmRuntimeSizedArrayTE(
             arrayTT,
-            vimpl(),
+            vassertSome(maybeRetCoord).region,
             sizeTE,
             generatorTE,
             generatorPrototype.prototype.prototype)))
