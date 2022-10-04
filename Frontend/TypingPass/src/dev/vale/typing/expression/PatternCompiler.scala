@@ -8,7 +8,7 @@ import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, Compile
 import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
 import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntry}
 import dev.vale.typing.function.DestructorCompiler
-import dev.vale.typing.names.RuneNameT
+import dev.vale.typing.names.{IRegionNameT, IdT, RuneNameT}
 import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -238,9 +238,9 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(OwnT, expectedRegion, expectedContainerKind) = inputExpr.result.coord
-    vimpl(expectedRegion)
-    expectedContainerKind match {
+    val CoordT(OwnT, sourceRegion, sourceKind) = inputExpr.result.coord
+
+    sourceKind match {
       case StructTT(_) => {
         // Example:
         //   struct Marine { bork: Bork; }
@@ -347,6 +347,7 @@ class PatternCompiler(
                 coutputs,
                 nenv.snapshot,
                 headMaybeDestructureMemberPattern.range,
+                expectedRegion,
                 containerAliasingExprTE,
                 structTT,
                 memberIndex)
@@ -397,14 +398,15 @@ class PatternCompiler(
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.id) == initialLiveCaptureLocals.map(_.id).distinct)
 
-    val CoordT(_, region, structTT @ StructTT(_)) = inputStructExpr.result.coord
-    vimpl(region)
+    val CoordT(_, sourceRegion, structTT @ StructTT(_)) = inputStructExpr.result.coord
+
     val structDefT = coutputs.lookupStruct(structTT)
     // We don't pattern match against closure structs.
 
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords, structTT.id,
+        Vector((structDefT.defaultRegion, sourceRegion)),
         // We're receiving something of this type, so it should supply its own bounds.
         InheritBoundsFromTypeItself)
 
@@ -486,6 +488,7 @@ class PatternCompiler(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironment,
     loadRange: RangeS,
+    region: IdT[IRegionNameT],
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
     index: Int):
@@ -505,6 +508,7 @@ class PatternCompiler(
         interner,
         keywords,
         structTT.id,
+        Vector((structDefT.defaultRegion, region)),
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
           structDefT.runeToFunctionBound,

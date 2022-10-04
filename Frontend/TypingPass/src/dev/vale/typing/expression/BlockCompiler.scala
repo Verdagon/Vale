@@ -34,6 +34,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     life: LocationInFunctionEnvironment,
+    region: IdT[IRegionNameT],
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
   ReferenceExpressionTE
 }
@@ -114,8 +115,14 @@ class BlockCompiler(
 //      }
 
     val newExpr =
-          delegate.dropSince(
-            coutputs, startingNenv, nenv, RangeS(blockSE.range.end, blockSE.range.end) :: parentRanges, life, unresultifiedUndestructedExpressions)
+      delegate.dropSince(
+        coutputs,
+        startingNenv,
+        nenv,
+        RangeS(blockSE.range.end, blockSE.range.end) :: parentRanges,
+        life,
+        region,
+        unresultifiedUndestructedExpressions)
 
     (newExpr, returnsFromExprs)
   }

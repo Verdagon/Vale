@@ -410,7 +410,8 @@ class FunctionCompilerClosureOrLightLayer(
     templateId: IdT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val defaultRegion = templateId.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    val defaultRegion =
+      TemplataCompiler.getDenizenDefaultRegionId(interner, templateId)
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,
       outerEnv,
@@ -438,6 +439,7 @@ class FunctionCompilerClosureOrLightLayer(
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords, closureStructRef.id,
+        vimpl(),
         // This is a parameter, so we can grab bounds from it.
         InheritBoundsFromTypeItself)
     val variables =

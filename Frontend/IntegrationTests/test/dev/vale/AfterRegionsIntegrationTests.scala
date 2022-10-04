@@ -118,9 +118,10 @@ class AfterRegionsIntegrationTests extends FunSuite with Matchers {
       """
         |func upcast<SuperKind Kind, SubType Ref>(left SubType) SuperType
         |where O Ownership,
+        |  R Region,
         |  SubKind Kind,
-        |  SuperType Ref = Ref[O, SuperKind],
-        |  SubType Ref = Ref[O, SubKind],
+        |  SuperType Ref = Ref[O, R, SuperKind],
+        |  SubType Ref = Ref[O, R, SubKind],
         |  implements(SubType, SuperType)
         |{
         |  left

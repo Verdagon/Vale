@@ -3,15 +3,15 @@ package dev.vale.typing.macros.citizen
 import dev.vale.highertyping._
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
 import dev.vale.postparsing.rules._
-import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vimpl, vwat}
+import dev.vale.{Accumulator, Interner, Keywords, RangeS, StrI, vassertSome, vimpl, vwat}
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, DestroyTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE, UnletTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, FunctionEnvironmentBox, ReferenceLocalVariableT}
-import dev.vale.typing.{Compiler, CompilerOutputs, OverloadResolver, TemplataCompiler, InheritBoundsFromTypeItself, ast, env}
+import dev.vale.typing.{Compiler, CompilerOutputs, InheritBoundsFromTypeItself, OverloadResolver, TemplataCompiler, ast, env}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.macros.{IFunctionBodyMacro, IOnStructDefinedMacro}
-import dev.vale.typing.names.{IdT, INameT, NameTranslator}
+import dev.vale.typing.names.{INameT, IdT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
@@ -162,12 +162,12 @@ class StructDropMacro(
       case _ => vwat()
     }
 
-    val ret = CoordT(ShareT, vimpl(), VoidT())
+    val ret = vassertSome(maybeRetCoord)
     val header =
       ast.FunctionHeaderT(
         env.id,
         Vector.empty,
-        vimpl(),
+        Vector(RegionT(env.defaultRegion.localName, true)),
         params2,
         ret,
         Some(env.templata))
@@ -187,6 +187,7 @@ class StructDropMacro(
                       val substituter =
                         TemplataCompiler.getPlaceholderSubstituter(
                           interner, keywords, structTT.id,
+                          Vector((structDef.defaultRegion, env.defaultRegion)),
                           // We received an instance of this type, so we can use the bounds from it.
                           InheritBoundsFromTypeItself)
                       val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)
@@ -211,7 +212,7 @@ class StructDropMacro(
                     }))
               }
             },
-            ReturnTE(VoidLiteralTE(vimpl())))))
+            ReturnTE(VoidLiteralTE(ret.region)))))
     (header, body)
   }
 }

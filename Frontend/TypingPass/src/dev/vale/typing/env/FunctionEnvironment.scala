@@ -34,24 +34,23 @@ case class BuildingFunctionEnvironmentWithClosureds(
     return id.equals(obj.asInstanceOf[IInDenizenEnvironment].id)
   }
 
-  override def rootCompilingDenizenEnv: IInDenizenEnvironment = vimpl()
-  //  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
-//    if (isRootCompilingDenizen) {
-//      this
-//    } else {
-//      parentEnv match {
-//        case PackageEnvironment(_, _, _) => vwat()
-//        case _ => {
-//          parentEnv match {
-//            case parentInDenizenEnv : IInDenizenEnvironment => {
-//              parentInDenizenEnv.rootCompilingDenizenEnv
-//            }
-//            case _ => vwat()
-//          }
-//        }
-//      }
-//    }
-//  }
+  override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
+    if (isRootCompilingDenizen) {
+      this
+    } else {
+      parentEnv match {
+        case PackageEnvironment(_, _, _) => vwat()
+        case _ => {
+          parentEnv match {
+            case parentInDenizenEnv : IInDenizenEnvironment => {
+              parentInDenizenEnv.rootCompilingDenizenEnv
+            }
+            case _ => vwat()
+          }
+        }
+      }
+    }
+  }
 
   private[env] override def lookupWithNameInner(
 

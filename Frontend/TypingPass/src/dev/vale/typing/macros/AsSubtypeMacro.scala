@@ -36,7 +36,7 @@ class AsSubtypeMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(vimpl()), // should we get these handed in
+        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
@@ -50,10 +50,10 @@ class AsSubtypeMacro(
     // Because we dont yet put borrows in structs
 //    val resultOwnership = incomingCoord.ownership
     val resultOwnership = incomingOwnership
-    val successCoord = CoordT(resultOwnership, vimpl(), targetKind)
-    val failCoord = CoordT(resultOwnership, vimpl(), incomingKind)
+    val successCoord = CoordT(resultOwnership, env.defaultRegion, targetKind)
+    val failCoord = CoordT(resultOwnership, env.defaultRegion, incomingKind)
     val (resultCoord, okConstructor, okResultImpl, errConstructor, errResultImpl) =
-      expressionCompiler.getResult(coutputs, env, callRange, successCoord, failCoord)
+      expressionCompiler.getResult(coutputs, env, callRange, env.defaultRegion, successCoord, failCoord)
     if (resultCoord != vassertSome(maybeRetCoord)) {
       throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Bad result coord:\n" + resultCoord + "\nand\n" + vassertSome(maybeRetCoord)))
     }

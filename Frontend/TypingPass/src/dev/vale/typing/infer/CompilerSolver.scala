@@ -46,6 +46,7 @@ case class SendingNonCitizen(kind: KindT) extends ITypingPassSolverError {
 }
 case class CantCheckPlaceholder(range: List[RangeS]) extends ITypingPassSolverError
 case class ReceivingDifferentOwnerships(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
+case class ReceivingDifferentRegions(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class SendingNonIdenticalKinds(sendCoord: CoordT, receiveCoord: CoordT) extends ITypingPassSolverError
 case class NoCommonAncestors(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class LookupFailed(name: IImpreciseNameS) extends ITypingPassSolverError
@@ -58,7 +59,9 @@ case class IsaFailed(sub: KindT, suuper: KindT) extends ITypingPassSolverError
 case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: List[RangeS], name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: List[RangeS]) extends ITypingPassSolverError
-case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT) extends ITypingPassSolverError
+case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT) extends ITypingPassSolverError {
+  vpass()
+}
 
 trait IInfererDelegate {
 //  def lookupMemberTypes(
@@ -382,7 +385,7 @@ class CompilerRuleSolver(
                   if resultRune.rune == receiver => {
                   types.CoordT(
                     Conversions.evaluateOwnership(ownership),
-                    vimpl(),
+                    vregion(env.originalCallingEnv.defaultRegion),
                     receiverInstantiationKind)
                 }
               }) ++
@@ -396,7 +399,13 @@ class CompilerRuleSolver(
                   case Vector(ownership) => ownership
                   case _ => return Err(RuleError(ReceivingDifferentOwnerships(senderConclusions)))
                 }
-              Some(receiver -> CoordTemplata(types.CoordT(ownership, vimpl(), receiverInstantiationKind)))
+              val region =
+                possibleCoords.map(_.region).distinct match {
+                  case Vector() => vwat()
+                  case Vector(region) => region
+                  case _ => return Err(RuleError(ReceivingDifferentRegions(senderConclusions)))
+                }
+              Some(receiver -> CoordTemplata(types.CoordT(ownership, region, receiverInstantiationKind)))
             } else {
               // Just conclude a kind, which will coerce to an owning coord, and hope it's right.
               Some(receiver -> templata.KindTemplata(receiverInstantiationKind))

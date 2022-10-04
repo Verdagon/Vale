@@ -72,7 +72,7 @@ class PostParsingRuleTests extends FunSuite with Matchers {
       compile(
         """
           |func main<T>(a T)
-          |where T = Ref[O, K], O Ownership, K Kind {}
+          |where T = Ref[O, R, K], O Ownership, R Region, K Kind {}
           |""".stripMargin, interner)
     val main = program.lookupFunction("main")
 

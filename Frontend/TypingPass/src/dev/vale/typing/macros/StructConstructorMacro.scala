@@ -126,6 +126,7 @@ class StructConstructorMacro(
         interner,
         keywords,
         structTT.id,
+        Vector((definition.defaultRegion, env.defaultRegion)),
         // We only know about this struct from the return type, we don't get to inherit any of its
         // bounds or guarantees from. Satisfy them from our environment instead.
         UseBoundsFromContainer(
@@ -145,29 +146,29 @@ class StructConstructorMacro(
     vassert(constructorFullName.localName.parameters.size == members.size)
     val constructorParams =
       members.map({ case (name, coord) => ParameterT(name, None, coord) })
-    val mutability =
-      StructCompiler.getMutability(
-        interner, keywords, coutputs, structTT,
-        // Not entirely sure if this is right, but it's consistent with using it for the return kind
-        // and its the more conservative option so we'll go with it for now.
-        UseBoundsFromContainer(
-          definition.runeToFunctionBound,
-          definition.runeToImplBound,
-          vassertSome(coutputs.getInstantiationBounds(structTT.id))))
-    val constructorReturnOwnership =
-      mutability match {
-        case MutabilityTemplata(MutableT) => OwnT
-        case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
-      }
-    val constructorReturnType = CoordT(constructorReturnOwnership, vimpl(), structTT)
+//    val mutability =
+//      StructCompiler.getMutability(
+//        interner, keywords, coutputs, structTT,
+//        // Not entirely sure if this is right, but it's consistent with using it for the return kind
+//        // and its the more conservative option so we'll go with it for now.
+//        UseBoundsFromContainer(
+//          definition.runeToFunctionBound,
+//          definition.runeToImplBound,
+//          vassertSome(coutputs.getInstantiationBounds(structTT.id))))
+//    val constructorReturnOwnership =
+//      mutability match {
+//        case MutabilityTemplata(MutableT) => OwnT
+//        case MutabilityTemplata(ImmutableT) => ShareT
+//        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => OwnT
+//      }
+    val constructorReturnType = vassertSome(maybeRetCoord)
 
     // not virtual because how could a constructor be virtual
     val header =
       ast.FunctionHeaderT(
         constructorFullName,
         Vector.empty,
-        vimpl(),
+        Vector(RegionT(env.defaultRegion.localName, true)),
         constructorParams,
         constructorReturnType,
         Some(env.templata))

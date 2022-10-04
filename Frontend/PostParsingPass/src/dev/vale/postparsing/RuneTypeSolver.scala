@@ -123,7 +123,7 @@ class RuneTypeSolver(interner: Interner) {
       }
       case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
         stepState.concludeRune(List(range), resultRune.rune, CoordTemplataType())
-        stepState.concludeRune(List(range), regionRune.rune, OwnershipTemplataType())
+        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         stepState.concludeRune(List(range), ownershipRune.rune, OwnershipTemplataType())
         stepState.concludeRune(List(range), kindRune.rune, KindTemplataType())
         Ok(())

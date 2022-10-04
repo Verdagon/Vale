@@ -150,6 +150,7 @@ object TemplatasStore {
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
           case PrototypeTemplata(_, _) => true
+          case RegionTemplata(_) => contexts.contains(TemplataLookupContext)
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
           case StructDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
@@ -423,7 +424,7 @@ case class PackageEnvironment[+T <: INameT](
 case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
-  templateName: IdT[Y],
+  templateId: IdT[Y],
   id: IdT[T],
   defaultRegion: IdT[IRegionNameT],
   templatas: TemplatasStore
@@ -503,6 +504,34 @@ object GeneralEnvironment {
       maybeDefaultRegion.getOrElse(parentEnv.defaultRegion),
       new TemplatasStore(newName, Map(), Map())
         .addEntries(interner, newEntriesList))
+  }
+}
+
+case class ExportEnvironment(
+  globalEnv: GlobalEnvironment,
+  parentEnv: PackageEnvironment[INameT],
+  id: IdT[ExportNameT],
+  defaultRegion: IdT[IRegionNameT],
+  templatas: TemplatasStore
+) extends IInDenizenEnvironment {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
+
+  override def lookupWithNameInner(
+    name: INameT,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplata[ITemplataType]] = {
+    EnvironmentHelper.lookupWithNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+  }
+
+  override def lookupWithImpreciseNameInner(
+    name: IImpreciseNameS,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplata[ITemplataType]] = {
+    EnvironmentHelper.lookupWithImpreciseNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
 }
 
