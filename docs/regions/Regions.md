@@ -137,7 +137,7 @@ To do this, we can either:
  * Look up the name of the region from inside the struct.
  * Make it deterministic, so we can always determine a struct's default region id.
 
-We go with the latter; the function TemplataCompiler.getDefaultRegionId will tell us the region id for any template.
+We go with the latter; the function TemplataCompiler.getDefaultRegionId will tell us the region id for any template. Search TRWGM for some instances of this.
 
 
 
