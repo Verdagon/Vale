@@ -1,3 +1,4 @@
+Builds upon [HGM V22](HGMv22.md)'s option A.
 
 # HGM V22's Problem
 
@@ -41,6 +42,3 @@ And then we can have `live` references to it.
 If the object already has a generation (such as if it's a stack allocation, heap allocation, or array element, inline varying struct with owning ref, inline enum) this won't cost us anything. It will otherwise cost us some space for some inline structs though, which is unfortunate.
 
 This could fit pretty well though. It's pretty likely that most tethering will happen on arrays (for ECS) and on top level denizens (in OO) so it might work out well.
-
-
-
