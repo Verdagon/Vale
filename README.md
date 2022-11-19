@@ -44,6 +44,7 @@ For an overview of the project structure, see [Compiler Overview](compiler-overv
 # Thank you to all of our sponsors!
 
  * [Arthur Weagel](https://github.com/aweagel)
+ * [Radek Miček](https://github.com/radekm)
  * [Geomitron](https://github.com/Geomitron)
  * [Joseph Jaoudi (linkmonitor)](https://github.com/linkmonitor)
  * [Luke Puchner-Hardman (lupuchard)](https://github.com/lupuchard)
