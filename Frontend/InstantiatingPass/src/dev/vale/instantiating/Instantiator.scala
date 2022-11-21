@@ -173,9 +173,9 @@ object Instantiator {
 
     val interfaces =
       monouts.interfacesWithoutMethods.values.map(interface => {
-        val InterfaceDefinitionT(templateName, instantiatedInterface, ref, attributes, weakable, mutability, _, _, _) = interface
+        val InterfaceDefinitionT(templateName, instantiatedInterface, ref, defaultRegion, attributes, weakable, mutability, _, _, _) = interface
         InterfaceDefinitionT(
-          templateName, instantiatedInterface, ref, attributes, weakable, mutability, Map(), Map(),
+          templateName, instantiatedInterface, ref, vregion(defaultRegion), attributes, weakable, mutability, Map(), Map(),
           vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interface.ref.id)).toVector)
       })
 
@@ -1042,7 +1042,7 @@ class Instantiator(
     newId: IdT[IStructNameT],
     structDefT: StructDefinitionT):
   Unit = {
-    val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutabilityT, members, isClosure, _, _) = structDefT
+    val StructDefinitionT(templateName, instantiatedCitizen, attributes, defaultRegion, weakable, mutabilityT, members, isClosure, _, _) = structDefT
 
     if (opts.sanityCheck) {
       vassert(Collector.all(newId, { case PlaceholderNameT(_) => }).isEmpty)
@@ -1060,6 +1060,7 @@ class Instantiator(
         templateName,
         interner.intern(StructTT(newId)),
         attributes,
+        vregion(defaultRegion),
         weakable,
         MutabilityTemplata(mutability),
         members.map(translateStructMember),
@@ -1082,7 +1083,7 @@ class Instantiator(
     newId: IdT[IInterfaceNameT],
     interfaceDefT: InterfaceDefinitionT):
   Unit = {
-    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
+    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, defaultRegion, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
 
     val mutability = expectMutabilityTemplata(translateTemplata(mutabilityT)).mutability
 
@@ -1098,6 +1099,7 @@ class Instantiator(
         templateName,
         newInterfaceTT,
         newInterfaceTT,
+        vregion(defaultRegion),
         attributes,
         weakable,
         MutabilityTemplata(mutability),

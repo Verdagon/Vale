@@ -408,9 +408,8 @@ class InferCompiler(
       }
 
     if (funcSuccess.prototype.prototype.returnType != returnCoord) {
-      strt here
       // it seems the lambda __call is returning something from the lambda default region, and
-      // we expect it to return something in our own region.
+      // we expect it to return something in our own region. DO NOT SUBMIT
       return Err(RuleError(ReturnTypeConflict(range :: ranges, returnCoord, funcSuccess.prototype.prototype)))
     }
 

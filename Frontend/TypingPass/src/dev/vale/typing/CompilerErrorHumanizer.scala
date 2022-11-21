@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl}
+import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
@@ -19,7 +19,6 @@ import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types.CoordT
-import dev.vale.RangeS
 import dev.vale.typing.citizen.ResolveFailure
 
 object CompilerErrorHumanizer {
@@ -501,7 +500,12 @@ object CompilerErrorHumanizer {
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region.localName match {
-          case DenizenDefaultRegionNameT() => "def'"
+          case DenizenDefaultRegionNameT() => {
+            region.initSteps.last match {
+              case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
+              case _ => vwat()
+            }
+          }
           case RegionNameT(rune) => "'" + humanizeRune(rune) + " "
         }) +
         (ownership match {

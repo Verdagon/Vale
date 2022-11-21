@@ -1,7 +1,4 @@
 
-
-how do we do this?
-
 # Basic Regions (BASREG)
 
 ## The Challenge
@@ -271,7 +268,7 @@ a function can independently move things around. it has a different region than 
 It's not entirely clear whether this is needed. We'll see if it comes into play. I wonder if this is kind of like the region of the stack frame?
 
 
-# Are Regions Actually Generic Parameters? (ARAGP)
+## Are Regions Actually Generic Parameters? (ARAGP)
 
 
 Take this function:
@@ -300,6 +297,34 @@ struct HashMap<K Ref imm, V, H, E, s'> where ... s' {
 
 then the caller can just hand in the `s'` and it will affect the `size` and `arr` inside.
 
+
+
+It also makes overload resolution easier.
+
+Let's say we have a function taking a region param:
+
+```
+func myFunc<r'>(x &r'MyStruct) { ... }
+```
+
+and we call it from foo:
+
+```
+func foo() {
+  a = MyStruct(...);
+  myFunc(&a);
+}
+```
+
+`foo` isn't just handing in a `&MyStruct`, it's actually handing in a `&foo'MyStruct`. But when we hand it into the overload resolution, it will have a conflict because of course, `r'` isn't `foo'`.
+
+But it does work if we think of `r'` as a generic parameter, a rune. In that case, `r'` could totally be `foo'`.
+
+## Default Region is a Generic Parameter (DRIAGP)
+
+From ARAGP, we saw that every region is a generic parameter, because overload resolution needs to equate the incoming `foo'` to the receiving `r'`. This is also the case with the implicit default region, so the implicit default region also needs to be a generic parameter.
+
+This is also why we need generics. Since its a generic parameter, the old system would have monomorphized every function according to every root (exported, iow) function.
 
 
 
