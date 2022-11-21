@@ -213,7 +213,7 @@ class OverloadResolver(
     callRange: List[RangeS],
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    paramFilters: Vector[CoordT],
+    args: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean,
     verifyConclusions: Boolean):
@@ -309,10 +309,10 @@ class OverloadResolver(
                       if (ft.function.isLambda()) {
                         // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                         functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                          coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters) match {
+                          coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, args) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(prototype, conclusions)) => {
-                            paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
+                            paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
                                 vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
@@ -324,10 +324,10 @@ class OverloadResolver(
                       } else {
                         // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                          coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, paramFilters) match {
+                          coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, args) match {
                           case (EvaluateFunctionFailure(reason)) => Err(reason)
                           case (EvaluateFunctionSuccess(prototype, conclusions)) => {
-                            paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototype.prototype.paramTypes, exact) match {
+                            paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
                               case Err(rejectionReason) => Err(rejectionReason)
                               case Ok(()) => {
                                 vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
@@ -346,12 +346,12 @@ class OverloadResolver(
               // So it's not a template, but it's a template in context. We'll still need to
               // feed it into the inferer.
               functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs, callingEnv, callRange, ft, Vector.empty, paramFilters) match {
+                coutputs, callingEnv, callRange, ft, Vector.empty, args) match {
                 case (EvaluateFunctionFailure(reason)) => {
                   Err(reason)
                 }
                 case (EvaluateFunctionSuccess(banner, conclusions)) => {
-                  paramsMatch(coutputs, callingEnv, callRange, paramFilters, banner.prototype.paramTypes, exact) match {
+                  paramsMatch(coutputs, callingEnv, callRange, args, banner.prototype.paramTypes, exact) match {
                     case Err(reason) => Err(reason)
                     case Ok(_) => {
                       vassert(coutputs.getInstantiationBounds(banner.prototype.id).nonEmpty)
@@ -365,12 +365,12 @@ class OverloadResolver(
         } else {
           if (ft.function.isLambda()) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs, callRange, callingEnv, ft, Vector(), paramFilters, verifyConclusions) match {
+                coutputs, callRange, callingEnv, ft, Vector(), args, verifyConclusions) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
               case (EvaluateFunctionSuccess(prototypeTemplata, conclusions)) => {
-                paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototypeTemplata.prototype.paramTypes, exact) match {
+                paramsMatch(coutputs, callingEnv, callRange, args, prototypeTemplata.prototype.paramTypes, exact) match {
                   case Ok(_) => {
                     vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.id).nonEmpty)
                     Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototypeTemplata))
@@ -381,12 +381,12 @@ class OverloadResolver(
             }
           } else {
             functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-              coutputs, callRange, callingEnv, ft, Vector(), paramFilters) match {
+              coutputs, callRange, callingEnv, ft, Vector(), args) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
               case (EvaluateFunctionSuccess(prototypeTemplata, conclusions)) => {
-                paramsMatch(coutputs, callingEnv, callRange, paramFilters, prototypeTemplata.prototype.paramTypes, exact) match {
+                paramsMatch(coutputs, callingEnv, callRange, args, prototypeTemplata.prototype.paramTypes, exact) match {
                   case Ok(_) => {
                     vassert(coutputs.getInstantiationBounds(prototypeTemplata.prototype.id).nonEmpty)
                     Ok(ValidPrototypeTemplataCalleeCandidate(prototypeTemplata))
@@ -399,7 +399,7 @@ class OverloadResolver(
         }
       }
       case HeaderCalleeCandidate(header) => {
-        paramsMatch(coutputs, callingEnv, callRange, paramFilters, header.paramTypes, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, args, header.paramTypes, exact) match {
           case Ok(_) => {
             Ok(ValidHeaderCalleeCandidate(header))
           }
@@ -421,7 +421,7 @@ class OverloadResolver(
         val params = prototype.id.localName.parameters.map(paramType => {
           substituter.substituteForCoord(coutputs, paramType)
         })
-        paramsMatch(coutputs, callingEnv, callRange, paramFilters, params, exact) match {
+        paramsMatch(coutputs, callingEnv, callRange, args, params, exact) match {
           case Ok(_) => {
             // This can be for example:
             //   func bork<T>(a T) where func drop(T)void {
