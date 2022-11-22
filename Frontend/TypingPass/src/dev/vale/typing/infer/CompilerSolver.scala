@@ -8,7 +8,7 @@ import dev.vale.postparsing._
 import dev.vale.solver.{CompleteSolve, FailedSolve, ISolveRule, ISolverError, ISolverOutcome, ISolverState, IStepState, IncompleteSolve, RuleError, Solver, SolverConflict}
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, IFunctionNameT, IImplNameT, INameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IdT}
 import dev.vale.typing.templata.{Conversions, CoordTemplata, PlaceholderTemplata, _}
 import dev.vale.typing.types._
 import dev.vale._
@@ -16,6 +16,7 @@ import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.citizen.{IsntParent, ResolveFailure}
+import dev.vale.typing.templata.ITemplata.{expectMutability, expectRegionTemplata}
 import dev.vale.typing.{CompilerOutputs, InferEnv, templata, types}
 import dev.vale.typing.types._
 
@@ -188,7 +189,7 @@ class CompilerSolver(
           case IsStructSR(range, rune) => Vector(rune)
           case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
           case LiteralSR(range, rune, literal) => Vector(rune)
-          case AugmentSR(range, resultRune, ownership, innerRune) => Vector(resultRune, innerRune)
+          case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune) ++ region.toVector
           case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //          case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
           case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
@@ -234,7 +235,7 @@ class CompilerSolver(
       case IsStructSR(range, rune) => Vector(Vector(rune.rune))
       case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector(coordRune.rune), Vector(kindRune.rune))
       case LiteralSR(range, rune, literal) => Vector(Vector())
-      case AugmentSR(range, resultRune, ownership, innerRune) => Vector(Vector(innerRune.rune), Vector(resultRune.rune))
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector(innerRune.rune) ++ region.map(_.rune), Vector(resultRune.rune))
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
       case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
       // See SAIRFU, this will replace itself with other rules.
@@ -381,10 +382,10 @@ class CompilerRuleSolver(
 
             val possibleCoords =
               unsolvedRules.collect({
-                case AugmentSR(range, resultRune, ownership, innerRune)
+                case AugmentSR(range, resultRune, ownership, region, innerRune)
                   if resultRune.rune == receiver => {
                   types.CoordT(
-                    Conversions.evaluateOwnership(ownership),
+                    Conversions.evaluateOwnership(vregion(vassertSome(ownership))),
                     vregion(env.originalCallingEnv.defaultRegion),
                     receiverInstantiationKind)
                 }
@@ -806,17 +807,23 @@ class CompilerRuleSolver(
         // This rule does nothing, it was actually preprocessed.
         Ok(())
       }
-      case AugmentSR(range, resultRune, augmentOwnership, innerRune) => {
+      case AugmentSR(range, resultRune, maybeAugmentOwnership, maybeAugmentRegion, innerRune) => {
+        val augmentOwnership = vregion(vassertSome(maybeAugmentOwnership))
         stepState.getConclusion(innerRune.rune) match {
           case Some(CoordTemplata(initialCoord)) => {
+            val augmentRegionRune = vregion(vassertSome(maybeAugmentRegion))
+            val augmentRegion =
+              expectRegionTemplata(vassertSome(stepState.getConclusion(augmentRegionRune.rune)))
             val newCoord =
               delegate.getMutability(state, initialCoord.kind) match {
                 case PlaceholderTemplata(_, MutabilityTemplataType()) => {
                   if (augmentOwnership == ShareP) {
                     return Err(CantSharePlaceholder(initialCoord.kind))
                   }
-                  initialCoord
-                    .copy(ownership = Conversions.evaluateOwnership(augmentOwnership))
+                  CoordT(
+                    Conversions.evaluateOwnership(augmentOwnership),
+                    augmentRegion,
+                    initialCoord.kind)
                 }
                 case MutabilityTemplata(MutableT) => {
                   if (augmentOwnership == ShareP) {
@@ -841,7 +848,10 @@ class CompilerRuleSolver(
                   if (initialCoord.ownership != Conversions.evaluateOwnership(augmentOwnership)) {
                     return Err(OwnershipDidntMatch(initialCoord, Conversions.evaluateOwnership(augmentOwnership)))
                   }
-                  initialCoord.copy(ownership = OwnT)
+                  CoordT(
+                    OwnT,
+                    PlaceholderTemplata(env.originalCallingEnv.defaultRegion, RegionTemplataType()),
+                    initialCoord.kind)
                 }
                 case MutabilityTemplata(ImmutableT) => initialCoord
               }

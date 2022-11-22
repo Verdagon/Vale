@@ -280,6 +280,7 @@ class FunctionCompilerCore(
       FunctionHeaderT(
         fullEnv.id,
         attributesT,
+        vimpl(),
         paramsT,
         returnCoord,
         Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));

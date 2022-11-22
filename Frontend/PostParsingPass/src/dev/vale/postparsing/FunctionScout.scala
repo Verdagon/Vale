@@ -349,8 +349,8 @@ class FunctionScout(
       AugmentSR(
         closureParamRange,
         closureParamTypeRune,
-        BorrowP,
-        RuneUsage(closureParamRange, defaultRegionRune),
+        Some(BorrowP),
+        Some(RuneUsage(closureParamRange, defaultRegionRune)),
         closureStructRune)
 
     val closureParamS =
