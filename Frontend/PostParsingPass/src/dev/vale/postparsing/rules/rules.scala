@@ -223,6 +223,7 @@ case class AugmentSR(
   range: RangeS,
   resultRune: RuneUsage,
   ownership: OwnershipP,
+  region: RuneUsage,
   innerRune: RuneUsage
 ) extends IRulexSR {
   vpass()

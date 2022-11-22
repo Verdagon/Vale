@@ -2,11 +2,10 @@ package dev.vale.highlighter
 
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast
-import dev.vale.parsing.ast.{AbstractAttributeP, AugmentPE, BinaryCallPE, BlockPE, BraceCallPE, CallPT, ConsecutorPE, ConstantBoolPE, ConstantIntPE, ConstantStrPE, ConstructArrayPE, ConstructingMemberNameDeclarationP, DestructPE, DestructureP, DotPE, EachPE, ExportAsP, ExportAttributeP, ExternAttributeP, FileP, FunctionCallPE, FunctionHeaderP, FunctionP, FunctionReturnP, IAttributeP, IExpressionPE, INameDeclarationP, IRulexPR, IStructContent, ITemplexPT, GenericParametersP, IfPE, ImplP, ImportP, IndexPE, InlinePT, IntPT, InterfaceP, InterpretedPT, IterableNameDeclarationP, IterationOptionNameDeclarationP, IteratorNameDeclarationP, LambdaPE, LetPE, LocalNameDeclarationP, LookupNameP, LookupPE, MagicParamLookupPE, MethodCallPE, MutabilityPT, MutatePE, NameOrRunePT, NameP, NormalStructMemberP, NotPE, PackPE, ParamsP, PatternPP, PureAttributeP, RegionRunePT, ReturnPE, RuntimeSizedArrayPT, RuntimeSizedP, ShortcallPE, StaticSizedArrayPT, StaticSizedP, StrInterpolatePE, StructMembersP, StructMethodP, StructP, SubExpressionPE, TemplateArgsP, TemplateRulesP, TopLevelExportAsP, TopLevelFunctionP, TopLevelImplP, TopLevelImportP, TopLevelInterfaceP, TopLevelStructP, TuplePE, UnitP, VoidPE, WhilePE}
-import dev.vale.{vcurious, vimpl}
+import dev.vale.parsing.ast.{AbstractAttributeP, AugmentPE, BinaryCallPE, BlockPE, BraceCallPE, CallPT, ConsecutorPE, ConstantBoolPE, ConstantIntPE, ConstantStrPE, ConstructArrayPE, ConstructingMemberNameDeclarationP, DestructPE, DestructureP, DotPE, EachPE, ExportAsP, ExportAttributeP, ExternAttributeP, FileP, FunctionCallPE, FunctionHeaderP, FunctionP, FunctionReturnP, GenericParametersP, IAttributeP, IExpressionPE, INameDeclarationP, IRulexPR, IStructContent, ITemplexPT, IfPE, ImplP, ImportP, IndexPE, InlinePT, IntPT, InterfaceP, InterpretedPT, IterableNameDeclarationP, IterationOptionNameDeclarationP, IteratorNameDeclarationP, LambdaPE, LetPE, LocalNameDeclarationP, LookupNameP, LookupPE, MagicParamLookupPE, MethodCallPE, MutabilityPT, MutatePE, NameOrRunePT, NameP, NormalStructMemberP, NotPE, PackPE, ParamsP, PatternPP, PureAttributeP, RegionRunePT, ReturnPE, RuntimeSizedArrayPT, RuntimeSizedP, ShortcallPE, StaticSizedArrayPT, StaticSizedP, StrInterpolatePE, StructMembersP, StructMethodP, StructP, SubExpressionPE, TemplateArgsP, TemplateRulesP, TopLevelExportAsP, TopLevelFunctionP, TopLevelImplP, TopLevelImportP, TopLevelInterfaceP, TopLevelStructP, TuplePE, UnitP, VoidPE, WhilePE}
+import dev.vale.{vassert, vcurious, vimpl}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
-import dev.vale.vimpl
 
 sealed trait IClass
 case object Prog extends IClass
@@ -19,6 +18,7 @@ case object Fn extends IClass
 case object Struct extends IClass
 case object Break extends IClass
 case object FnName extends IClass
+case object Region extends IClass
 case object StructName extends IClass
 case object Membs extends IClass
 case object Point extends IClass
@@ -64,6 +64,7 @@ case object MagicParam extends IClass
 case object TplArgs extends IClass
 case object Comment extends IClass
 case object Mutability extends IClass
+case object Interpreted extends IClass
 case object Ownership extends IClass
 case object Match extends IClass
 case object EqualsRule extends IClass
@@ -189,7 +190,7 @@ object Spanner {
   }
 
   def forFunction(function: FunctionP): Span = {
-    val FunctionP(range, FunctionHeaderP(_, maybeName, attributes, maybeUserSpecifiedIdentifyingRunes, maybeTemplateRulesP, params, ret), body) = function
+    val FunctionP(range, FunctionHeaderP(_, maybeName, attributes, maybeUserSpecifiedIdentifyingRunes, maybeTemplateRulesP, params, ret, defaultRegion), body) = function
 
     makeSpan(
       Fn,
@@ -200,6 +201,7 @@ object Spanner {
       maybeTemplateRulesP.toVector.map(forTemplateRules) ++
       params.toVector.map(forParams) ++
       Vector(forFunctionReturn(ret)) ++
+      defaultRegion.toVector.map(n => makeSpan(Region, n.range)) ++
       body.toVector.map(forBlock))
   }
 
@@ -220,7 +222,8 @@ object Spanner {
           range,
           Vector.empty)
       }
-      case LambdaPE(captures, FunctionP(range, FunctionHeaderP(_, None, _, _, maybeTemplateRulesP, params, _), body)) => {
+      case LambdaPE(captures, FunctionP(range, FunctionHeaderP(_, None, _, _, maybeTemplateRulesP, params, _, defaultRegion), body)) => {
+        vassert(defaultRegion.isEmpty)
         makeSpan(
           Lambda,
           range,
@@ -452,8 +455,14 @@ object Spanner {
       case InlinePT(range, inner) => {
         makeSpan(Inl, range, Vector(forTemplex(inner)))
       }
-      case InterpretedPT(range, ownership, inner) => {
-        makeSpan(Ownership, range, Vector(forTemplex(inner)))
+      case InterpretedPT(range, maybeOwnership, maybeRegion, inner) => {
+        makeSpan(
+          Interpreted,
+          range,
+          Vector[Span]() ++
+          maybeOwnership.toVector.map(x => forTemplex(x)) ++
+          maybeRegion.toVector.map(forTemplex) ++
+          Vector(forTemplex(inner)))
       }
       case RuntimeSizedArrayPT(range, mutability, element) => {
         makeSpan(

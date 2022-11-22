@@ -270,16 +270,16 @@ class FunctionCompilerCore(
   }
 
   def finalizeHeader(
-      fullEnv: FunctionEnvironment,
-      coutputs: CompilerOutputs,
-      attributesT: Vector[IFunctionAttributeT],
-      paramsT: Vector[ParameterT],
-      returnCoord: CoordT) = {
+    fullEnv: FunctionEnvironment,
+    coutputs: CompilerOutputs,
+    attributesT: Vector[IFunctionAttributeT],
+    paramsT: Vector[ParameterT],
+    returnCoord: CoordT):
+  FunctionHeaderT = {
     val header =
       FunctionHeaderT(
         fullEnv.id,
         attributesT,
-        Vector(RegionT(DenizenDefaultRegionNameT(), true)),
         paramsT,
         returnCoord,
         Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));

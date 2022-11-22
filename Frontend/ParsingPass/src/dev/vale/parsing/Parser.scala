@@ -528,7 +528,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
   Result[FunctionP, IParseError] = {
     Profiler.frame(() => {
       val FunctionL(funcRangeL, headerL, maybeBodyL) = functionL
-      val FunctionHeaderL(headerRangeL, nameL, attributesL, maybeIdentifyingRunesL, maybeTemplateRulesL, paramsL, returnL) = headerL
+      val FunctionHeaderL(headerRangeL, nameL, attributesL, maybeIdentifyingRunesL, maybeTemplateRulesL, paramsL, returnL, maybeDefaultRegionL) = headerL
       val FunctionReturnL(returnRangeL, maybeInferRetL, maybeReturnTypeL) = returnL
 
       val maybeIdentifyingRunes =
@@ -588,6 +588,18 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           }
         })
 
+      val maybeDefaultRegionP =
+        maybeDefaultRegionL.map(defaultRegionScramble => {
+          val defaultRegionIter =
+            new ScrambleIterator(
+              defaultRegionScramble, 0, defaultRegionScramble.elements.length)
+          templexParser.parseRegion(defaultRegionIter) match {
+            case Err(cpe) => return Err(cpe)
+            case Ok(None) => return Err(RangedInternalErrorP(defaultRegionScramble.range.begin, "Invalid region marker."))
+            case Ok(Some(WordLE(range, str))) => NameP(range, str)
+          }
+        })
+
       val header =
         FunctionHeaderP(
           headerL.range,
@@ -596,19 +608,12 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           maybeIdentifyingRunes,
           maybeTemplateRulesP,
           Some(paramsP),
-          FunctionReturnP(
-            returnRangeL, maybeInferRetL, maybeReturnTypeP))
+          FunctionReturnP(returnRangeL, maybeInferRetL, maybeReturnTypeP),
+          maybeDefaultRegionP)
 
       val bodyP =
         maybeBodyL.map(bodyL => {
-          val FunctionBodyL(maybeDefaultRegionL, blockL) = bodyL
-          val maybeDefaultRegionP =
-            maybeDefaultRegionL.map(defaultRegionL => {
-              templexParser.parseRegion(defaultRegionL) match {
-                case Err(cpe) => return Err(cpe)
-                case Ok(x) => x
-              }
-            })
+          val FunctionBodyL(blockL) = bodyL
           val statementsP =
             expressionParser.parseBlock(blockL) match {
               case Err(err) => return Err(err)

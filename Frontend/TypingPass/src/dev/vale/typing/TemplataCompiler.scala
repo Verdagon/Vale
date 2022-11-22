@@ -81,11 +81,6 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
-  def getDenizenDefaultRegionId(interner: Interner, templateId: IdT[ITemplateNameT]):
-  IdT[DenizenDefaultRegionNameT] = {
-    templateId.addStep(interner.intern(DenizenDefaultRegionNameT()))
-  }
-
   def getTopLevelDenizenFullName(
     id: IdT[INameT],
   ): IdT[IInstantiationNameT] = {
@@ -1032,7 +1027,7 @@ object TemplataCompiler {
         val citizenTemplateId = TemplataCompiler.getCitizenTemplate(fullName)
         // See TRWGM, we need this region id to do the below substitution.
         val citizenDefaultRegion =
-          TemplataCompiler.getDenizenDefaultRegionId(interner, citizenTemplateId)
+          vimpl()
         val substituter =
           TemplataCompiler.getPlaceholderSubstituter(
             interner, keywords, fullName,

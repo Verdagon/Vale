@@ -84,7 +84,7 @@ case class FunctionL(
   body: Option[FunctionBodyL]) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
 case class FunctionBodyL(
-  defaultRegion: Option[INodeLE],
+//  defaultRegion: Option[ScrambleLE],
   body: CurliedLE
 ) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
@@ -97,7 +97,8 @@ case class FunctionHeaderL(
   templateRules: Option[ScrambleLE],
 
   params: ParendLE,
-  ret: FunctionReturnL
+  ret: FunctionReturnL,
+  defaultRegion: Option[ScrambleLE],
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }

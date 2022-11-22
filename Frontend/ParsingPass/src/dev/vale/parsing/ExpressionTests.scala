@@ -206,7 +206,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
             FunctionHeaderP(_,
               None,Vector(),None,None,
               Some(ParamsP(_,Vector(PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None,None)))),
-              FunctionReturnP(_,None,None)),
+              FunctionReturnP(_,None,None),
+              None),
             Some(BlockPE(_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
   }
@@ -219,7 +220,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
             FunctionHeaderP(_,
               None,Vector(),None,None,
               Some(ParamsP(_,Vector(PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None,None)))),
-              FunctionReturnP(_,None,None)),
+              FunctionReturnP(_,None,None),
+              None),
             Some(BlockPE(_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
   }
@@ -232,7 +234,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
             FunctionHeaderP(_,
               None,Vector(),None,None,
               Some(ParamsP(_,Vector(PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),Some(NameOrRunePT(NameP(_,StrI("int")))),None,None)))),
-            _),
+              _,
+              None),
           _)) =>
       }
   }
@@ -244,7 +247,7 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
           None,
           FunctionP(_,
             FunctionHeaderP(_,
-              None,Vector(),None,None,None,FunctionReturnP(_,None,None)),
+              None,Vector(),None,None,None,FunctionReturnP(_,None,None), None),
               Some(BlockPE(_,MagicParamLookupPE(_))))) =>
       }
   }
@@ -262,7 +265,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
                   Vector(
                     PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None,None),
                     PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("y")))),None,None,None)))),
-              FunctionReturnP(_,None,None)),Some(BlockPE(_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
+              FunctionReturnP(_,None,None),None),
+            Some(BlockPE(_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
   }
 
@@ -285,7 +289,8 @@ class ExpressionTests extends FunSuite with Collector with TestParseUtils {
                             PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("x")))),None,None,None),
                             PatternPP(_,None,Some(LocalNameDeclarationP(NameP(_,StrI("y")))),None,None,None)))),
                       None)))),
-              FunctionReturnP(_,None,None)),
+              FunctionReturnP(_,None,None),
+              None),
             Some(BlockPE(_,LookupPE(LookupNameP(NameP(_,StrI("x"))),None))))) =>
       }
   }

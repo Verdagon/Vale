@@ -45,7 +45,7 @@ class StructCompilerCore(
     val templateNameT = templateId.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
     val placeholderedFullNameT = templateId.copy(localName = placeholderedNameT)
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateId)
+    val defaultRegion = vimpl()
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
@@ -367,7 +367,7 @@ class StructCompilerCore(
     val understructTemplatedId =
       containingFunctionEnv.id
         .addStep(understructTemplateNameT)
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, understructTemplatedId)
+    val defaultRegion = vimpl()
 
     val understructInstantiatedNameT =
       understructTemplateNameT.makeStructName(interner, Vector())

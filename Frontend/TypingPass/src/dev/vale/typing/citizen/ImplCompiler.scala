@@ -156,7 +156,7 @@ class ImplCompiler(
     val implTemplateId =
       parentEnv.id.addStep(
         nameTranslator.translateImplName(implA.name))
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, implTemplateId)
+    val defaultRegion = vimpl()
 
     val implOuterEnv =
       CitizenEnvironment(

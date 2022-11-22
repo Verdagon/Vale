@@ -376,20 +376,11 @@ class Lexer(interner: Interner, keywords: Keywords) {
 
     val headerEnd = iter.getPos()
 
-    val maybeBody =
+    val (maybeDefaultRegion, maybeBody) =
       if (iter.trySkip(';')) {
-        None
+        (None, None)
       } else {
-        val maybeDefaultRegion =
-          if (iter.trySkipCompleteWord("region")) {
-            Some(
-              lexNode(iter, true, false) match {
-                case Err(e) => return Err(e)
-                case Ok(x) => x
-              })
-          } else {
-            None
-          }
+        val maybeDefaultRegion = lexRegion(iter)
 
         val body =
           lexCurlied(iter, false) match {
@@ -398,7 +389,7 @@ class Lexer(interner: Interner, keywords: Keywords) {
             case Ok(None) => return Err(BadFunctionBodyError(iter.getPos()))
           }
 
-        Some(FunctionBodyL(maybeDefaultRegion, body))
+        (maybeDefaultRegion, Some(FunctionBodyL(body)))
       }
 
     val end = iter.getPos()
@@ -411,7 +402,8 @@ class Lexer(interner: Interner, keywords: Keywords) {
         maybeGenericArgs,
         maybeRules,
         params,
-        maybeReturn)
+        maybeReturn,
+        maybeDefaultRegion)
     val func = FunctionL(RangeL(begin, end), header, maybeBody)
     Ok(Some(func))
   }
@@ -1030,6 +1022,31 @@ class Lexer(interner: Interner, keywords: Keywords) {
     } else {
       Some(WordLE(RangeL(begin, end), interner.intern(StrI(word))))
     }
+  }
+
+  def lexRegion(originalIter: LexingIterator): Option[ScrambleLE] = {
+    val begin = originalIter.getPos()
+
+    val tentativeIter = originalIter.clone()
+
+    val name =
+      lexIdentifier(tentativeIter) match {
+        case None => return None
+        case Some(x) => x
+      }
+
+    val symbolBegin = tentativeIter.getPos()
+    if (!tentativeIter.trySkip('\'')) {
+      return None
+    }
+    val symbolEnd = tentativeIter.getPos()
+
+    originalIter.skipTo(tentativeIter.getPos())
+    val end = originalIter.getPos()
+
+    val symbolL = SymbolLE(RangeL(symbolBegin, symbolEnd), '\'')
+    val scramble = ScrambleLE(RangeL(begin, end), Vector(name, symbolL))
+    return Some(scramble)
   }
 
 //

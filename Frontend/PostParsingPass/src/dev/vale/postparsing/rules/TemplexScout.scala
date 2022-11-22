@@ -1,7 +1,7 @@
 package dev.vale.postparsing.rules
 
 import dev.vale.lexing.RangeL
-import dev.vale.parsing.ast.{AnonymousRunePT, BoolPT, BorrowP, BorrowPT, CallPT, FunctionPT, ITemplexPT, InlinePT, IntPT, InterpretedPT, LocationPT, MutabilityPT, MutableP, NameOrRunePT, NameP, OwnershipPT, PackPT, FuncPT, RegionRunePT, RuntimeSizedArrayPT, StaticSizedArrayPT, StringPT, TuplePT, VariabilityPT}
+import dev.vale.parsing.ast._
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI}
 import dev.vale.postparsing._
 import dev.vale.parsing.ast._
@@ -102,12 +102,6 @@ class TemplexScout(
               val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
               val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP)
               ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, ownership, innerRuneS)
-              resultRuneS
-            }
-            case BorrowPT(range, innerP) => {
-              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
-              val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP)
-              ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, BorrowP, innerRuneS)
               resultRuneS
             }
             case CallPT(range, template, args) => {

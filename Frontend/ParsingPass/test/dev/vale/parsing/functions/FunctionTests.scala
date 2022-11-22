@@ -12,12 +12,12 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   test("Simple function") {
     vassertOne(compileFileExpect("""func main() { }""").denizens) match {
       case TopLevelFunctionP(
-      FunctionP(_,
-      FunctionHeaderP(_,
-      Some(NameP(_,StrI("main"))),
-      Vector(),None,None,Some(ParamsP(_,Vector())),
-      FunctionReturnP(_,None,None)),
-      Some(BlockPE(_,VoidPE(_))))) =>
+        FunctionP(_,
+          FunctionHeaderP(_,
+            Some(NameP(_,StrI("main"))),
+            Vector(),None,None,Some(ParamsP(_,Vector())),
+            FunctionReturnP(_,None,None)),
+          Some(BlockPE(_,VoidPE(_))))) =>
     }
   }
 
