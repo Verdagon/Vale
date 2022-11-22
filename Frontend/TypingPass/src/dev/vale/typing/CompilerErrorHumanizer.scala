@@ -504,6 +504,7 @@ object CompilerErrorHumanizer {
             start here
             // this is why we want the rune in the PlaceholderTemplateNameT
 
+            
             id.initSteps.last match {
               case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
               case _ => vwat()
