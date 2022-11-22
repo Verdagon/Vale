@@ -209,6 +209,7 @@ case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
     interner.intern(StaticSizedArrayNameT(this, size, variability, RawArrayNameT(mutability, elementType)))
   }
 }
+
 case class StaticSizedArrayNameT(
   template: StaticSizedArrayTemplateNameT,
   size: ITemplata[IntegerTemplataType],

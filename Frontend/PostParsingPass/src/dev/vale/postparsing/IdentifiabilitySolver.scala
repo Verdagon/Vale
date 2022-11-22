@@ -35,7 +35,7 @@ object IdentifiabilitySolver {
         case IsStructSR(range, rune) => Vector(rune)
         case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
-        case AugmentSR(range, resultRune, ownership, innerRune) => Vector(resultRune, innerRune)
+        case AugmentSR(range, resultRune, maybeOwnership, maybeRegion, innerRune) => Vector(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members

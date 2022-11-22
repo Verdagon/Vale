@@ -369,7 +369,7 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateFullName)
+    val defaultRegion = vimpl()
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -428,7 +428,7 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, templateFullName)
+    val defaultRegion = vimpl()
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment

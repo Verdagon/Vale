@@ -138,6 +138,8 @@ case class LetImplicitRuneS(lid: LocationInDenizen) extends IRuneS {  }
 case class MagicParamRuneS(lid: LocationInDenizen) extends IRuneS {  }
 case class MemberRuneS(memberIndex: Int) extends IRuneS
 
+case class DefaultRegionRuneS() extends IRuneS
+
 // Used to type the templex handed to the size part of the static sized array expressions
 case class ArraySizeImplicitRuneS() extends IRuneS {  }
 // Used to type the templex handed to the mutability part of the static sized array expressions

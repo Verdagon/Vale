@@ -228,7 +228,7 @@ object ParserVonifier {
   }
 
   def vonifyFunctionHeader(thing: FunctionHeaderP): VonObject = {
-    val FunctionHeaderP(range, name, attributes, maybeUserSpecifiedIdentifyingRunes, templateRules, params, FunctionReturnP(retRange, inferRet, retType)) = thing
+    val FunctionHeaderP(range, name, attributes, maybeUserSpecifiedIdentifyingRunes, templateRules, params, FunctionReturnP(retRange, inferRet, retType), maybeDefaultRegion) = thing
     VonObject(
       "FunctionHeader",
       None,
@@ -247,7 +247,8 @@ object ParserVonifier {
             Vector(
               VonMember("range", vonifyRange(retRange)),
               VonMember("inferRet", vonifyOptional(inferRet, vonifyRange)),
-              VonMember("retType", vonifyOptional(retType, vonifyTemplex)))))))
+              VonMember("retType", vonifyOptional(retType, vonifyTemplex))))),
+        VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyName))))
   }
 
   def vonifyParams(thing: ParamsP): VonObject = {
@@ -538,13 +539,8 @@ object ParserVonifier {
 
   def vonifyTemplex(thing: ITemplexPT): VonObject = {
     thing match {
-      case RegionRunePT(range, name) => {
-        VonObject(
-          "RegionRuneT",
-          None,
-          Vector(
-            VonMember("range", vonifyRange(range)),
-            VonMember("name", vonifyName(name))))
+      case r @ RegionRunePT(range, name) => {
+        vonifyRegionRune(r)
       }
       case AnonymousRunePT(range) => {
         VonObject(
@@ -617,13 +613,14 @@ object ParserVonifier {
           Vector(
             VonMember("rune", vonifyName(rune))))
       }
-      case InterpretedPT(range, ownership, inner) => {
+      case InterpretedPT(range, maybeOwnership, maybeRegion, inner) => {
         VonObject(
           "InterpretedT",
           None,
           Vector(
             VonMember("range", vonifyRange(range)),
-            VonMember("ownership", vonifyOwnership(ownership)),
+            VonMember("maybeOwnership", vonifyOptional(maybeOwnership, vonifyTemplex)),
+            VonMember("maybeRegion", vonifyOptional(maybeRegion, vonifyRegionRune)),
             VonMember("inner", vonifyTemplex(inner))))
       }
       case OwnershipPT(range, ownership) => {
@@ -653,14 +650,6 @@ object ParserVonifier {
             VonMember("range", vonifyRange(range)),
             VonMember("mutability", vonifyTemplex(mutability)),
             VonMember("element", vonifyTemplex(element))))
-      }
-      case BorrowPT(range, inner) => {
-        VonObject(
-          "BorrowT",
-          None,
-          Vector(
-            VonMember("range", vonifyRange(range)),
-            VonMember("inner", vonifyTemplex(inner))))
       }
       case FunctionPT(range, mutability, parameters, returnType) => {
         VonObject(
@@ -725,6 +714,18 @@ object ParserVonifier {
             VonMember("variability", vonifyVariability(variability))))
       }
     }
+  }
+
+  private def vonifyRegionRune(
+    r: RegionRunePT
+  ) = {
+    val RegionRunePT(range, name) = r
+    VonObject(
+      "RegionRuneT",
+      None,
+      Vector(
+        VonMember("range", vonifyRange(range)),
+        VonMember("name", vonifyName(name))))
   }
 
   def vonifyMutability(thing: MutabilityP): IVonData = {

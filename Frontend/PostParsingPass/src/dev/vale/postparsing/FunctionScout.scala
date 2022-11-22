@@ -42,16 +42,17 @@ class FunctionScout(
 
   def scoutTopLevelFunction(file: FileCoordinate, functionP: FunctionP): FunctionS = {
     val FunctionP(
-    range,
-    FunctionHeaderP(_,
-    Some(NameP(originalNameRange, originalCodeName)),
-    attributes,
-    maybeGenericParametersP,
-    templateRulesP,
-    paramsP,
-    FunctionReturnP(retRange, maybeInferRet, maybeRetType)),
-    maybeBody0
-    ) = functionP
+      range,
+      FunctionHeaderP(_,
+        Some(NameP(originalNameRange, originalCodeName)),
+        attributes,
+        maybeGenericParametersP,
+        templateRulesP,
+        paramsP,
+        FunctionReturnP(retRange, maybeInferRet, maybeRetType),
+        maybeDefaultRegion),
+        maybeBody0
+      ) = functionP
 
     val rangeS = PostParser.evalRange(file, retRange)
     val codeLocation = PostParser.evalPos(file, range.begin)
@@ -237,7 +238,9 @@ class FunctionScout(
     lambdaFunction0: FunctionP):
   (FunctionS, VariableUses) = {
     val FunctionP(range, headerP, Some(body0)) = lambdaFunction0
-    val FunctionHeaderP(_, _, attrsP, maybeGenericParametersP, None, paramsP, returnP) = headerP
+    val FunctionHeaderP(_, _, attrsP, maybeGenericParametersP, None, paramsP, returnP, maybeDefaultRegionP) = headerP
+    vassert(maybeDefaultRegionP.isEmpty)
+    val defaultRegionRune = DefaultRegionRuneS()
     val FunctionReturnP(retRange, maybeInferRet, maybeRetType) = returnP
     val file = parentStackFrame.file
 
@@ -347,6 +350,7 @@ class FunctionScout(
         closureParamRange,
         closureParamTypeRune,
         BorrowP,
+        RuneUsage(closureParamRange, defaultRegionRune),
         closureStructRune)
 
     val closureParamS =
@@ -383,7 +387,13 @@ class FunctionScout(
         // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
         magicParams.map(param => {
           GenericParameterS(param.pattern.range, vassertSome(param.pattern.coordRune), Vector(), None)
-        })
+        }) ++
+        Vector(
+          GenericParameterS(
+            RangeS(codeLocation, codeLocation),
+            RuneUsage(RangeS(codeLocation, codeLocation), defaultRegionRune),
+            Vector(),
+            None))
 
     // Lambdas identifying runes are determined by their magic params.
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
@@ -525,7 +535,8 @@ class FunctionScout(
     interfaceRuneToExplicitType: Map[IRuneS, ITemplataType],
     functionP: FunctionP): FunctionS = {
     val FunctionP(range, headerP, None) = functionP;
-    val FunctionHeaderP(_, Some(NameP(_, codeName)), attrsP, maybeGenericParametersP, templateRulesP, maybeParamsP, returnP) = headerP
+    val FunctionHeaderP(_, Some(NameP(_, codeName)), attrsP, maybeGenericParametersP, templateRulesP, maybeParamsP, returnP, defaultRegion) = headerP
+    vimpl(defaultRegion)
     val FunctionReturnP(retRange, maybeInferRet, maybeRetType) = returnP
     val file = interfaceEnv.file
     val rangeS = PostParser.evalRange(interfaceEnv.file, range)

@@ -1544,12 +1544,12 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         case (Some(CurliedLE(range, contents)), _, _) => {
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           // Don't iter.advance() because we still need to parse this later
-          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn)
+          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn, None)
         }
         case (Some(CurliedLE(range, contents)), _, _) => {
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           // Don't iter.advance() because we still need to parse this later
-          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn)
+          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn, None)
         }
         case (Some(WordLE(paramRange, paramName)), Some(SymbolLE(eqRange, '=')), Some(SymbolLE(gtRange, '>'))) => {
           if (eqRange.end != gtRange.begin) {
@@ -1562,7 +1562,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           val params = ParamsP(paramRange, Vector(param))
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           val range = RangeL(begin, iter.getPrevEndPos())
-          FunctionHeaderP(range, None, Vector(), None, None, Some(params), retuurn)
+          FunctionHeaderP(range, None, Vector(), None, None, Some(params), retuurn, None)
         }
         case (Some(ParendLE(paramsRange, paramsContents)), Some(SymbolLE(eqRange, '=')), Some(SymbolLE(gtRange, '>'))) => {
           if (eqRange.end != gtRange.begin) {
@@ -1584,7 +1584,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
                 }).toVector)
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           val range = RangeL(begin, iter.getPrevEndPos())
-          FunctionHeaderP(range, None, Vector(), None, None, Some(paramsP), retuurn)
+          FunctionHeaderP(range, None, Vector(), None, None, Some(paramsP), retuurn, None)
         }
         case (_, _, _) => return Ok(None)
       }

@@ -277,8 +277,7 @@ class StructCompilerGenericArgsLayer(
       val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.id.addStep(structTemplateName)
-      val defaultRegion =
-        TemplataCompiler.getDenizenDefaultRegionId(interner, structTemplateFullName)
+      val defaultRegion = vimpl()
 
       // We declare the struct's outer environment in the precompile stage instead of here because
       // of MDATOEF.
@@ -384,8 +383,7 @@ class StructCompilerGenericArgsLayer(
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.id.addStep(interfaceTemplateName)
 
-      val defaultRegion =
-        TemplataCompiler.getDenizenDefaultRegionId(interner, interfaceTemplateFullName)
+      val defaultRegion = vimpl()
 
       // We declare the interface's outer environment in the precompile stage instead of here because
       // of MDATOEF.

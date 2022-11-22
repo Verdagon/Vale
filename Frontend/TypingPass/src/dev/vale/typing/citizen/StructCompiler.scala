@@ -102,7 +102,7 @@ class StructCompiler(
     val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
 
     val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, structTemplateId)
+    val defaultRegion = vimpl()
 
     coutputs.declareType(structTemplateId)
 
@@ -143,7 +143,7 @@ class StructCompiler(
     val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
 
     val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
-    val defaultRegion = TemplataCompiler.getDenizenDefaultRegionId(interner, interfaceTemplateId)
+    val defaultRegion = vimpl()
 
     coutputs.declareType(interfaceTemplateId)
 

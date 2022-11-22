@@ -267,7 +267,7 @@ class EdgeCompiler(
     val dispatcherTemplateId =
       abstractFuncTemplateId.addStep(dispatcherTemplateName)
     val dispatcherTemplateDefaultRegion =
-      TemplataCompiler.getDenizenDefaultRegionId(interner, dispatcherTemplateId)
+      vimpl()
     val dispatcherOuterEnv =
       GeneralEnvironment.childOf(
         interner,
@@ -287,7 +287,7 @@ class EdgeCompiler(
     // See TRWGM
     val implToDispatcherRegionSubstitutions =
       Vector((
-        TemplataCompiler.getDenizenDefaultRegionId(interner, impl.templateId),
+        vimpl(),
         dispatcherTemplateDefaultRegion))
 
     // This is a straight mapping from the impl placeholders to the new dispatcher placeholders.

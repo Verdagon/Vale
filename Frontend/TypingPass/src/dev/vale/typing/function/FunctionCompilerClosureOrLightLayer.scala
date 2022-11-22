@@ -410,8 +410,7 @@ class FunctionCompilerClosureOrLightLayer(
     templateId: IdT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val defaultRegion =
-      TemplataCompiler.getDenizenDefaultRegionId(interner, templateId)
+    val defaultRegion = vimpl()
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,
       outerEnv,

@@ -14,7 +14,7 @@ case class AnonymousRunePT(range: RangeL) extends ITemplexPT {
   vpass()
 }
 case class BoolPT(range: RangeL, value: Boolean) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class BorrowPT(range: RangeL, inner: ITemplexPT) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+//case class BorrowPT(range: RangeL, inner: ITemplexPT) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class PointPT(range: RangeL, inner: ITemplexPT) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 // This is for example func(Int)Bool, func:imm(Int, Int)Str, func:mut()(Str, Bool)
 // It's shorthand for IFunction:(mut, (Int), Bool), IFunction:(mut, (Int, Int), Str), IFunction:(mut, (), (Str, Bool))
@@ -33,9 +33,11 @@ case class NameOrRunePT(name: NameP) extends ITemplexPT {
   vassert(name.str.str != "_")
 }
 //case class NullablePT(range: Range, inner: ITemplexPT) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class InterpretedPT(range: RangeL, ownership: OwnershipP, inner: ITemplexPT) extends ITemplexPT {
+case class InterpretedPT(range: RangeL, maybeOwnership: Option[OwnershipPT], maybeRegion: Option[RegionRunePT], inner: ITemplexPT) extends ITemplexPT {
   override def equals(obj: Any): Boolean = vcurious();
   override def hashCode(): Int = vcurious()
+
+  vassert(maybeOwnership.nonEmpty || maybeRegion.nonEmpty)
 }
 case class OwnershipPT(range: RangeL, ownership: OwnershipP) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class PackPT(range: RangeL, members: Vector[ITemplexPT]) extends ITemplexPT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

@@ -2,7 +2,7 @@
 
 package dev.vale.parsing.ast
 
-import dev.vale.lexing.RangeL
+import dev.vale.lexing.{RangeL, WordLE}
 import dev.vale.{FileCoordinate, StrI, vassert, vcurious, vpass}
 
 // Something that exists in the source code. An Option[UnitP] is better than a boolean
@@ -157,7 +157,8 @@ case class FunctionHeaderP(
   templateRules: Option[TemplateRulesP],
 
   params: Option[ParamsP],
-  ret: FunctionReturnP
+  ret: FunctionReturnP,
+  defaultRegion: Option[NameP],
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }

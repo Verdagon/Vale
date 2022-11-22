@@ -899,7 +899,7 @@ class Compiler(
             val exportTemplateId = env.id.addStep(exportTemplateName)
             val exportName = ExportNameT(exportTemplateName)
             val exportId = env.id.addStep(exportName)
-            val regionId = TemplataCompiler.getDenizenDefaultRegionId(interner, exportTemplateId)
+            val regionId = vimpl()
 
             val exportEnv =
               ExportEnvironment(

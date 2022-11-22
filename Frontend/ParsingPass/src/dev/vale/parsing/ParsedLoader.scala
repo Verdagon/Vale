@@ -198,7 +198,8 @@ class ParsedLoader(interner: Interner) {
       loadOptionalObject(getObjectField(jobj, "maybeUserSpecifiedIdentifyingRunes"), loadIdentifyingRunes),
       loadOptionalObject(getObjectField(jobj, "templateRules"), loadTemplateRules),
       loadOptionalObject(getObjectField(jobj, "params"), loadParams),
-      loadFunctionReturn(getObjectField(jobj, "return")))
+      loadFunctionReturn(getObjectField(jobj, "return")),
+      loadOptionalObject(getObjectField(jobj, "maybeRegion"), loadName))
   }
 
   def loadFileCoord(jobj: JObject): FileCoordinate = {
@@ -762,19 +763,16 @@ class ParsedLoader(interner: Interner) {
           loadRange(getObjectField(jobj, "range")))
       }
       case "RegionRuneT" => {
-        RegionRunePT(
-          loadRange(getObjectField(jobj, "range")),
-          loadName(getObjectField(jobj, "name")))
+        loadRegionRune(jobj)
       }
       case "OwnershipT" => {
-        OwnershipPT(
-          loadRange(getObjectField(jobj, "range")),
-          loadOwnership(getObjectField(jobj, "ownership")))
+        loadOwnershipPT(jobj)
       }
       case "InterpretedT" => {
         InterpretedPT(
           loadRange(getObjectField(jobj, "range")),
-          loadOwnership(getObjectField(jobj, "ownership")),
+          loadOptionalObject(getObjectField(jobj, "maybeOwnership"), loadOwnershipPT),
+          loadOptionalObject(getObjectField(jobj, "maybeRegion"), loadRegionRune),
           loadTemplex(getObjectField(jobj, "inner")))
       }
       case "CallT" => {
@@ -807,11 +805,6 @@ class ParsedLoader(interner: Interner) {
           loadTemplex(getObjectField(jobj, "mutability")),
           loadTemplex(getObjectField(jobj, "element")))
       }
-      case "BorrowT" => {
-        BorrowPT(
-          loadRange(getObjectField(jobj, "range")),
-          loadTemplex(getObjectField(jobj, "inner")))
-      }
       case "InlineT" => {
         InlinePT(
           loadRange(getObjectField(jobj, "range")),
@@ -827,6 +820,18 @@ class ParsedLoader(interner: Interner) {
       }
       case x => vimpl(x.toString)
     }
+  }
+
+  private def loadOwnershipPT(jobj: JObject) = {
+    OwnershipPT(
+      loadRange(getObjectField(jobj, "range")),
+      loadOwnership(getObjectField(jobj, "ownership")))
+  }
+
+  private def loadRegionRune(jobj: JObject) = {
+    RegionRunePT(
+      loadRange(getObjectField(jobj, "range")),
+      loadName(getObjectField(jobj, "name")))
   }
 
   def loadIdentifyingRunes(jobj: JObject): GenericParametersP = {
