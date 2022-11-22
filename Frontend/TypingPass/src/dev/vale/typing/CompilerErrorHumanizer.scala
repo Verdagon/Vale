@@ -500,18 +500,20 @@ object CompilerErrorHumanizer {
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region match {
-          case PlaceholderTemplata(id @ IdT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(DefaultRegionRuneS()))), tyype) => {
-            start here
-            // this is why we want the rune in the PlaceholderTemplateNameT
-
-            
-            id.initSteps.last match {
-              case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
-              case _ => vwat()
-            }
-          }
           case PlaceholderTemplata(id @ IdT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(rune))), tyype) => {
-            "'" + humanizeRune(rune) + " "
+            rune match {
+              case DefaultRegionRuneS() => {
+                id.initSteps.last match {
+                  case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
+                  case _ => vwat()
+                }
+              }
+              case _ => {
+                start here
+                  // this is why we want the rune in the PlaceholderTemplateNameT
+                humanizeRune(rune) + "'"
+              }
+            }
           }
         }) +
         (ownership match {
