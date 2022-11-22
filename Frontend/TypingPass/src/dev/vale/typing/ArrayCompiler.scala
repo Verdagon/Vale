@@ -227,7 +227,7 @@ class ArrayCompiler(
     mutabilityRuneA: IRuneS,
     variabilityRuneA: IRuneS,
     exprs2: Vector[ReferenceExpressionTE],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     verifyConclusions: Boolean):
   StaticArrayFromValuesTE = {
     val runeToType =
@@ -271,9 +271,9 @@ class ArrayCompiler(
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRuneA)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRuneA)))
 
-        if (size != exprs2.size) {
-          throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
-        }
+    if (size != exprs2.size) {
+      throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
+    }
 
     val staticSizedArrayType = resolveStaticSizedArray(mutability, variability, IntegerTemplata(exprs2.size), memberType)
     val ownership =

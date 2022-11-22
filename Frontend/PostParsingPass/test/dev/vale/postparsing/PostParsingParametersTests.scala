@@ -59,7 +59,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
 
     val tCoordRuneFromRules =
       main.rules shouldHave {
-        case AugmentSR(_, tcr, BorrowP, RuneUsage(_, CodeRuneS(StrI("T")))) => tcr
+        case AugmentSR(_, tcr, Some(BorrowP), None, RuneUsage(_, CodeRuneS(StrI("T")))) => tcr
       }
 
     tCoordRuneFromParams shouldEqual tCoordRuneFromRules.rune

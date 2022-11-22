@@ -195,7 +195,7 @@ object PostParserErrorHumanizer {
       case CallSR(range, resultRune, templateRune, argRunes) => humanizeRune(resultRune.rune) + " = " + humanizeRune(templateRune.rune) + "<" + argRunes.map(_.rune).map(humanizeRune).mkString(", ") + ">"
       case LookupSR(range, rune, name) => humanizeRune(rune.rune) + " = " + humanizeImpreciseName(name)
       case LiteralSR(range, rune, literal) => humanizeRune(rune.rune) + " = " + humanizeLiteral(literal)
-      case AugmentSR(range, resultRune, ownership, innerRune) => humanizeRune(resultRune.rune) + " = " + humanizeOwnership(ownership) + humanizeRune(innerRune.rune)
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => humanizeRune(resultRune.rune) + " = " + ownership.map(humanizeOwnership).getOrElse("") + region.map(humanizeRegion).getOrElse("") + humanizeRune(innerRune.rune)
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)
       case RuneParentEnvLookupSR(range, rune) => "inherit " + humanizeRune(rune.rune)
       case PackSR(range, resultRune, members) => humanizeRune(resultRune.rune) + " = (" + members.map(x => humanizeRune(x.rune)).mkString(", ") + ")"
@@ -250,5 +250,9 @@ object PostParserErrorHumanizer {
       case BorrowP => "&"
       case WeakP => "&&"
     }
+  }
+
+  def humanizeRegion(r: RuneUsage) = {
+    vimpl()
   }
 }

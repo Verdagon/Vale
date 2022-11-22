@@ -246,7 +246,7 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) =>
     case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) =>
     case CoordSendSR(range, senderRune, receiverRune) =>
-    case AugmentSR(range, resultRune, ownership, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
+    case AugmentSR(range, resultRune, ownership, region, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
     case LiteralSR(range, rune, literal) =>
     case LookupSR(range, rune, name) =>
     case CoerceToCoordSR(range, coordRune, kindRune) => markKindEquivalent(coordRune.rune, kindRune.rune)

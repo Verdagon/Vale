@@ -222,8 +222,8 @@ case class RuneParentEnvLookupSR(
 case class AugmentSR(
   range: RangeS,
   resultRune: RuneUsage,
-  ownership: OwnershipP,
-  region: RuneUsage,
+  ownership: Option[OwnershipP],
+  region: Option[RuneUsage],
   innerRune: RuneUsage
 ) extends IRulexSR {
   vpass()

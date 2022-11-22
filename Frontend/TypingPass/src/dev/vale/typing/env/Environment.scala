@@ -95,7 +95,7 @@ trait IInDenizenEnvironment extends IEnvironment {
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
 
-  def defaultRegion: IdT[IRegionNameT]
+  def defaultRegion: IdT[PlaceholderNameT]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {

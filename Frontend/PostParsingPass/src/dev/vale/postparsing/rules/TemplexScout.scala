@@ -98,10 +98,19 @@ class TemplexScout(
                 addLookupRule(lidb.child(), ruleBuilder, evalRange(range), valueSR)
               }
             }
-            case InterpretedPT(range, ownership, innerP) => {
-              val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
+            case InterpretedPT(range, ownership, region, innerP) => {
+              val rangeS = evalRange(range)
+              val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, innerP)
-              ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, ownership, innerRuneS)
+              val maybeRune =
+                region.map(runeName => {
+                  val rune = CodeRuneS(runeName.name.str)
+                  if (!env.allDeclaredRunes().contains(rune)) {
+                    throw CompileErrorExceptionS(UnknownRegionError(rangeS, rune.name.str))
+                  }
+                  rules.RuneUsage(evalRange(range), rune)
+                })
+              ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, ownership.map(_.ownership), maybeRune, innerRuneS)
               resultRuneS
             }
             case CallPT(range, template, args) => {

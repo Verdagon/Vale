@@ -27,6 +27,7 @@ case class UnimplementedExpression(range: RangeS, expressionName: String) extend
 case class CouldntFindVarToMutateS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class StatementAfterReturnS(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ForgotSetKeywordError(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class UnknownRegionError(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CantUseThatLocalName(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExternHasBody(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CantInitializeIndividualElementsOfRuntimeSizedArray(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
@@ -176,7 +177,7 @@ object PostParser {
       //      case NullablePT(_, inner) => getHumanName(inner)
       case InlinePT(_, inner) => getHumanName(interner, inner)
       //      case PermissionedPT(_, permission, inner) => getHumanName(inner)
-      case InterpretedPT(_, ownership, inner) => getHumanName(interner, inner)
+      case InterpretedPT(_, ownership, region, inner) => getHumanName(interner, inner)
       case AnonymousRunePT(_) => vwat()
       case NameOrRunePT(NameP(_, name)) => interner.intern(CodeNameS(name))
       case CallPT(_, template, args) => getHumanName(interner, template)
@@ -311,14 +312,14 @@ class PostParser(
     val ImplP(range, maybeGenericParametersP, maybeTemplateRulesP, maybeStruct, interface, attributes) = impl0
 
     interface match {
-      case InterpretedPT(range, _, _) => {
+      case InterpretedPT(range, _, _, _) => {
         throw CompileErrorExceptionS(CantOwnershipInterfaceInImpl(PostParser.evalRange(file, range)))
       }
       case _ =>
     }
 
     maybeStruct match {
-      case Some(InterpretedPT(range, _, _)) => {
+      case Some(InterpretedPT(range, _, _, _)) => {
         throw CompileErrorExceptionS(CantOwnershipStructInImpl(PostParser.evalRange(file, range)))
       }
       case _ =>

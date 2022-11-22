@@ -14,6 +14,9 @@ case class IdentifiabilitySolveError(range: List[RangeS], failedSolve: IIncomple
 
 sealed trait IIdentifiabilityRuleError
 
+// Identifiability is whether the denizen has enough identifying runes to uniquely identify all its
+// instantiations. It's only used as a check, and will throw an error if there's a rune that can't
+// be derived from the identifying runes.
 object IdentifiabilitySolver {
   def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val sanityCheck =
@@ -83,7 +86,7 @@ object IdentifiabilitySolver {
       case IsStructSR(range, rune) => Vector(Vector())
       case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector())
       case LiteralSR(range, rune, literal) => Vector(Vector())
-      case AugmentSR(range, resultRune, ownership, innerRune) => Vector(Vector())
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector())
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
       case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
 //      case ManualSequenceSR(range, resultRune, elements) => Vector(Vector(resultRune.rune))
@@ -217,7 +220,7 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, rune.rune, true)
         Ok(())
       }
-      case AugmentSR(range, resultRune, ownership, innerRune) => {
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => {
         stepState.concludeRune(range :: callRange, resultRune.rune, true)
         stepState.concludeRune(range :: callRange, innerRune.rune, true)
         Ok(())

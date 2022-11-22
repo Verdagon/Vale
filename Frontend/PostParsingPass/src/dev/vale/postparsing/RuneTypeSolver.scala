@@ -36,7 +36,7 @@ class RuneTypeSolver(interner: Interner) {
         case IsStructSR(range, rune) => Vector(rune)
         case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
-        case AugmentSR(range, resultRune, ownership, innerRune) => Vector(resultRune, innerRune)
+        case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune, returnTypeRune) ++ parameters
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
@@ -98,7 +98,7 @@ class RuneTypeSolver(interner: Interner) {
       case IsStructSR(range, rune) => Vector(Vector())
       case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector())
       case LiteralSR(range, rune, literal) => Vector(Vector())
-      case AugmentSR(range, resultRune, ownership, innerRune) => Vector(Vector())
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector())
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune))
       case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune))
 //      case ManualSequenceSR(range, resultRune, elements) => Vector(Vector(resultRune.rune))
@@ -252,7 +252,7 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), rune.rune, KindTemplataType())
         Ok(())
       }
-      case AugmentSR(range, resultRune, ownership, innerRune) => {
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => {
         stepState.concludeRune(List(range), resultRune.rune, CoordTemplataType())
         stepState.concludeRune(List(range), innerRune.rune, CoordTemplataType())
         Ok(())

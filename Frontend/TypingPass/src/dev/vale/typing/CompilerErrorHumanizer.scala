@@ -499,14 +499,19 @@ object CompilerErrorHumanizer {
         humanizeName(codeMap, prototype.id)
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
-        (region.localName match {
-          case DenizenDefaultRegionNameT() => {
-            region.initSteps.last match {
+        (region match {
+          case PlaceholderTemplata(id @ IdT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(DefaultRegionRuneS()))), tyype) => {
+            start here
+            // this is why we want the rune in the PlaceholderTemplateNameT
+
+            id.initSteps.last match {
               case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
               case _ => vwat()
             }
           }
-          case RegionNameT(rune) => "'" + humanizeRune(rune) + " "
+          case PlaceholderTemplata(id @ IdT(packageCoord, initSteps, PlaceholderNameT(PlaceholderTemplateNameT(rune))), tyype) => {
+            "'" + humanizeRune(rune) + " "
+          }
         }) +
         (ownership match {
           case OwnT => ""

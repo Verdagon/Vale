@@ -90,6 +90,14 @@ object ITemplata {
       case _ => vfail()
     }
   }
+
+  def expectRegionTemplata(templata: ITemplata[ITemplataType]): ITemplata[RegionTemplataType] = {
+    templata match {
+      case t @ RegionTemplata(_) => t
+      case _ => vfail()
+    }
+  }
+
 }
 
 sealed trait ITemplata[+T <: ITemplataType]  {
