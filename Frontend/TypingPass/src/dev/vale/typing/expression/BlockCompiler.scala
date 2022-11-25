@@ -15,6 +15,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.types._
 import dev.vale.RangeS
+import dev.vale.typing.templata.ITemplata
 
 import scala.collection.immutable.{List, Set}
 
@@ -24,7 +25,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     expr1: IExpressionSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -34,7 +35,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     life: LocationInFunctionEnvironment,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
   ReferenceExpressionTE
 }
@@ -59,7 +60,7 @@ class BlockCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     block1: BlockSE):
   (BlockTE, Set[IdT[IVarNameT]], Set[CoordT]) = {
     val nenv = NodeEnvironmentBox(parentFate.makeChildNodeEnvironment(block1, life))
@@ -82,7 +83,7 @@ class BlockCompiler(
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
     life: LocationInFunctionEnvironment,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedRootExpression, returnsFromExprs) =

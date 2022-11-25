@@ -36,7 +36,7 @@ class AsSubtypeMacro(
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(RegionT(env.defaultRegion.localName, true)),
+//        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))

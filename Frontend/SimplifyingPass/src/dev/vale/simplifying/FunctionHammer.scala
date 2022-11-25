@@ -41,7 +41,7 @@ class FunctionHammer(
       case Some(functionRefH) => functionRefH
       case None => {
         val FunctionDefinitionT(
-            header @ FunctionHeaderT(humanName, attrs2, regions, params2, returnType2, _),
+            header @ FunctionHeaderT(humanName, attrs2, params2, returnType2, _),
             _,
             _,
             body) = function2;

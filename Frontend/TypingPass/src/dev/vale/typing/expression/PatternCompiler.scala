@@ -400,13 +400,14 @@ class PatternCompiler(
 
     val CoordT(_, sourceRegion, structTT @ StructTT(_)) = inputStructExpr.result.coord
 
-    val structDefT = coutputs.lookupStruct(structTT)
+    val structDefT = coutputs.lookupStruct(structTT.id)
+
     // We don't pattern match against closure structs.
 
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords, structTT.id,
-        Vector((structDefT.defaultRegion, sourceRegion)),
+//        Vector((structDefT.defaultRegion, sourceRegion)),
         // We're receiving something of this type, so it should supply its own bounds.
         InheritBoundsFromTypeItself)
 
@@ -488,12 +489,12 @@ class PatternCompiler(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironment,
     loadRange: RangeS,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
     index: Int):
   ReferenceMemberLookupTE = {
-    val structDefT = coutputs.lookupStruct(structTT)
+    val structDefT = coutputs.lookupStruct(structTT.id)
 
     val member = structDefT.members(index)
 
@@ -508,7 +509,7 @@ class PatternCompiler(
         interner,
         keywords,
         structTT.id,
-        Vector((structDefT.defaultRegion, region)),
+//        Vector((structDefT.defaultRegion, region)),
         // Use the bounds that we supplied to the struct
         UseBoundsFromContainer(
           structDefT.runeToFunctionBound,

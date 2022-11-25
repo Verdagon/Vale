@@ -19,7 +19,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
   id: IdT[IFunctionTemplateNameT],
-  defaultRegion: IdT[IRegionNameT],
+  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT],
@@ -82,7 +82,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   function: FunctionA,
   variables: Vector[IVariableT],
   isRootCompilingDenizen: Boolean,
-  defaultRegion: IdT[IRegionNameT],
+  defaultRegion: ITemplata[RegionTemplataType],
 ) extends IInDenizenEnvironment {
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
@@ -146,7 +146,7 @@ case class NodeEnvironment(
   // This can refer to vars in parent blocks, see UCRTVPE.
   unstackifiedLocals: Set[IdT[IVarNameT]],
 
-  defaultRegion: IdT[IRegionNameT]
+  defaultRegion: ITemplata[RegionTemplataType]
 ) extends IInDenizenEnvironment {
   vassert(declaredLocals.map(_.id) == declaredLocals.map(_.id).distinct)
 
@@ -334,7 +334,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
   def snapshot: NodeEnvironment = nodeEnvironment
-  def defaultRegion: IdT[IRegionNameT] = nodeEnvironment.defaultRegion
+  def defaultRegion: ITemplata[RegionTemplataType] = nodeEnvironment.defaultRegion
   def id: IdT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.id
   def node: IExpressionSE = nodeEnvironment.node
   def maybeReturnType: Option[CoordT] = nodeEnvironment.parentFunctionEnv.maybeReturnType
@@ -431,7 +431,7 @@ case class FunctionEnvironment(
 
   isRootCompilingDenizen: Boolean,
 
-  defaultRegion: IdT[IRegionNameT]
+  defaultRegion: ITemplata[RegionTemplataType]
 
   // Eventually we might have a list of imported environments here, pointing at the
   // environments in the global environment.
@@ -561,7 +561,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
 
-  override def defaultRegion: IdT[IRegionNameT] = functionEnvironment.defaultRegion
+  override def defaultRegion: ITemplata[RegionTemplataType] = functionEnvironment.defaultRegion
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
   override def templatas: TemplatasStore = functionEnvironment.templatas
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = functionEnvironment.rootCompilingDenizenEnv

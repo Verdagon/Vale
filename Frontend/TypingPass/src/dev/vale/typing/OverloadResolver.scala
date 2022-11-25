@@ -412,9 +412,9 @@ class OverloadResolver(
         val substituter =
           TemplataCompiler.getPlaceholderSubstituter(
             interner, keywords, prototype.id,
-            // This is a bound function, and they don't have generic parameters of their own,
-            // they're phrased in terms of the containing function. see CFCHR.
-            Vector(),
+//            // This is a bound function, and they don't have generic parameters of their own,
+//            // they're phrased in terms of the containing function. see CFCHR.
+//            Vector(),
             // These types are phrased in terms of the calling denizen already, so we can grab their
             // bounds.
             InheritBoundsFromTypeItself)

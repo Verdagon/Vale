@@ -87,12 +87,12 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
   // Adds a step to the name.
   def addStep(
     hamuts: HamutsBox,
-    id: IdH,
+    fullName: IdH,
     s: String):
   IdH = {
-    val newNameParts = id.parts :+ VonStr(s)
-    val id = hamuts.getNameId(s, id.packageCoordinate, newNameParts)
-    IdH(s, id, id.packageCoordinate, newNameParts)
+    val newNameParts = fullName.parts :+ VonStr(s)
+    val id = hamuts.getNameId(s, fullName.packageCoordinate, newNameParts)
+    IdH(s, id, fullName.packageCoordinate, newNameParts)
   }
 }
 

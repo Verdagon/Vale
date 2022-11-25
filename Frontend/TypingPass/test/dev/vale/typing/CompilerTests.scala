@@ -69,22 +69,6 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(main.header.returnType.kind == IntT(32))
   }
 
-  test("Tests panic return type") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.panic.*;
-        |exported func main() int {
-        |  x = { __vbi_panic() }();
-        |}
-        """.stripMargin)
-    val main = compile.expectCompilerOutputs().lookupFunction("main")
-    main shouldHave {
-      case LetNormalTE(
-        ReferenceLocalVariableT(_,_,CoordT(ShareT,_,NeverT(false))),
-        _) =>
-    }
-  }
-
   test("Taking an argument and returning it") {
     val compile = CompilerTestCompilation.test(
       """
@@ -295,7 +279,6 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.all(coutputs.lookupFunction("MyStruct"), {
       case FunctionHeaderT(
         simpleName("MyStruct"),
-        _,
         _,
         Vector(ParameterT(CodeVarNameT(StrI("a")), None, CoordT(ShareT, _, IntT.i32))),
         CoordT(OwnT, _,StructTT(simpleName("MyStruct"))),
@@ -586,15 +569,14 @@ class CompilerTests extends FunSuite with Matchers {
           _,
           FunctionNameT(
             FunctionTemplateNameT(StrI("MySome"), _),
-            Vector(CoordTemplata(CoordT(OwnT, _,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
-            Vector(CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0)))))))),
+            Vector(CoordTemplata(CoordT(OwnT, _,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0, _))))))),
+            Vector(CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))))),
         Vector(),
-        _,
         Vector(
           ParameterT(
             CodeVarNameT(StrI("value")),
             None,
-            CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))),
+            CoordT(OwnT,_,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0, _))))))),
         CoordT(
           OwnT,
           _,
@@ -604,7 +586,7 @@ class CompilerTests extends FunSuite with Matchers {
               StructNameT(
                 StructTemplateNameT(StrI("MySome")),
                 Vector(
-                  CoordTemplata(CoordT(OwnT, _, PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0))))))))))),
+                  CoordTemplata(CoordT(OwnT, _, PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0, _))))))))))),
         Some(_)) =>
     }
 
@@ -1209,7 +1191,8 @@ class CompilerTests extends FunSuite with Matchers {
     val tzCodeLoc = CodeLocationS.testZero(interner)
     val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val region = funcTemplateName.addStep(interner.intern(DenizenDefaultRegionNameT()))
+    val regionName = funcTemplateName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+    val region = PlaceholderTemplata(regionName, RegionTemplataType())
 
     val fireflyKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
@@ -1842,17 +1825,17 @@ class CompilerTests extends FunSuite with Matchers {
       val asFunc =
         vassertOne(
           coutputs.functions.filter({
-            case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _, _)))), _, _, _, _, _), _, _, _) => true
+            case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _, _)))), _, _, _, _), _, _, _) => true
             case _ => false
           }))
       val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _, _, _, _) => as })
       val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor, _, _, _) = as
       sourceExpr.result.coord match {
-        case CoordT(BorrowT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1))))) =>
+        case CoordT(BorrowT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1, _))))) =>
         //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
       }
       targetSubtype.kind match {
-        case PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))) =>
+        case PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, _)))) =>
         case StructTT(IdT(_, Vector(), StructNameT(StructTemplateNameT(StrI("Raza")), Vector()))) =>
       }
       val (firstGenericArg, secondGenericArg) =
@@ -1874,14 +1857,14 @@ class CompilerTests extends FunSuite with Matchers {
         BorrowT,
         _,
         PlaceholderT(
-        IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0)))))) =>
+        IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))) =>
       }
       secondGenericArg match {
         case CoordTemplata(
         CoordT(
         BorrowT,
         _,
-        PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1)))))) =>
+        PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1, _)))))) =>
       }
       vassert(okConstructor.paramTypes.head == targetSubtype)
       vassert(errConstructor.paramTypes.head == sourceExpr.result.coord)
@@ -1903,4 +1886,21 @@ class CompilerTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
+
+  test("Tests panic return type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.panic.*;
+        |exported func main() int {
+        |  x = { __vbi_panic() }();
+        |}
+        """.stripMargin)
+    val main = compile.expectCompilerOutputs().lookupFunction("main")
+    main shouldHave {
+      case LetNormalTE(
+      ReferenceLocalVariableT(_,_,CoordT(ShareT,_,NeverT(false))),
+      _) =>
+    }
+  }
+
 }

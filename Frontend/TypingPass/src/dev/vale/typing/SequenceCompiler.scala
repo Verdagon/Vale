@@ -1,5 +1,6 @@
 package dev.vale.typing
 
+import dev.vale.postparsing.RegionTemplataType
 import dev.vale.typing.ast.{ReferenceExpressionTE, TupleTE}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vimpl}
 import dev.vale.typing.citizen.StructCompiler
@@ -55,7 +56,7 @@ class SequenceCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     types2: Vector[CoordT]):
   CoordT = {
     templataCompiler.coerceKindToCoord(

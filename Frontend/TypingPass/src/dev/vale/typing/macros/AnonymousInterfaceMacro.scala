@@ -164,7 +164,7 @@ class AnonymousInterfaceMacro(
       case IsStructSR(range, RuneUsage(a, rune)) => IsStructSR(range, RuneUsage(a, func(rune)))
       case CoerceToCoordSR(range, RuneUsage(a, coordRune), RuneUsage(b, kindRune)) => CoerceToCoordSR(range, RuneUsage(a, func(coordRune)), RuneUsage(b, func(kindRune)))
       case LiteralSR(range, RuneUsage(a, rune), literal) => LiteralSR(range, RuneUsage(a, func(rune)), literal)
-      case AugmentSR(range, RuneUsage(a, resultRune), ownership, RuneUsage(b, innerRune)) => AugmentSR(range, RuneUsage(a, func(resultRune)), ownership, RuneUsage(b, func(innerRune)))
+      case AugmentSR(range, RuneUsage(a, resultRune), ownership, region, RuneUsage(b, innerRune)) => AugmentSR(range, RuneUsage(a, func(resultRune)), ownership, region.map({ case RuneUsage(c, rune) => RuneUsage(c, func(rune)) }), RuneUsage(b, func(innerRune)))
       case CallSR(range, RuneUsage(a, resultRune), RuneUsage(b, templateRune), args) => CallSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(templateRune)), args.map({ case RuneUsage(c, rune) => RuneUsage(c, func(rune)) }))
       case PackSR(range, RuneUsage(a, resultRune), members) => PackSR(range, RuneUsage(a, resultRune), members.map({ case RuneUsage(c, rune) => RuneUsage(c, func(rune)) }))
       case StaticSizedArraySR(range, RuneUsage(a, resultRune), RuneUsage(b, mutabilityRune), RuneUsage(c, variabilityRune), RuneUsage(d, sizeRune), RuneUsage(e, elementRune)) => StaticSizedArraySR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(mutabilityRune)), RuneUsage(c, func(variabilityRune)), RuneUsage(d, func(sizeRune)), RuneUsage(e, func(elementRune)))
@@ -237,7 +237,7 @@ class AnonymousInterfaceMacro(
           AnonymousSubstructMethodSelfBorrowCoordRuneS(interfaceA.name, internalMethod.name)
         runeToType += selfBorrowCoordRuneS -> CoordTemplataType()
         rulesBuilder.add(
-          AugmentSR(internalMethod.range, RuneUsage(internalMethod.range, selfBorrowCoordRuneS), BorrowP, memberRune))
+          AugmentSR(internalMethod.range, RuneUsage(internalMethod.range, selfBorrowCoordRuneS), Some(BorrowP), None, memberRune))
 
         val paramRunes =
           internalMethod.params.map(_.pattern).map({
@@ -279,7 +279,7 @@ class AnonymousInterfaceMacro(
             inheritedMethodRune(interfaceA, internalMethod,
               vassertOne(
                 internalMethod.rules.collect({
-                  case AugmentSR(_, resultRune, ownership, innerRune) if resultRune.rune == originalInterfaceCoordRune => {
+                  case AugmentSR(_, resultRune, ownership, region, innerRune) if resultRune.rune == originalInterfaceCoordRune => {
                     innerRune.rune
                   }
                 }))))
@@ -326,7 +326,7 @@ class AnonymousInterfaceMacro(
           AnonymousSubstructMethodSelfOwnCoordRuneS(interfaceA.name, internalMethod.name)
         runeToType += selfOwnCoordRuneS -> CoordTemplataType()
         rulesBuilder.add(
-          AugmentSR(internalMethod.range, RuneUsage(internalMethod.range, selfOwnCoordRuneS), OwnP, memberRune))
+          AugmentSR(internalMethod.range, RuneUsage(internalMethod.range, selfOwnCoordRuneS), Some(OwnP), None, memberRune))
 
         val dropParamsListRune =
           RuneUsage(internalMethod.range, AnonymousSubstructDropBoundParamsListRuneS(interfaceA.name, internalMethod.name))

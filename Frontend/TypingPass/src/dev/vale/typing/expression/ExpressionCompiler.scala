@@ -130,7 +130,7 @@ class ExpressionCompiler(
         nenv: NodeEnvironmentBox,
         life: LocationInFunctionEnvironment,
         parentRanges: List[RangeS],
-        region: IdT[IRegionNameT],
+        region: ITemplata[RegionTemplataType],
         expr1: IExpressionSE
       ):
       (ReferenceExpressionTE, Set[CoordT]) = {
@@ -144,7 +144,7 @@ class ExpressionCompiler(
         nenv: NodeEnvironmentBox,
         range: List[RangeS],
         life: LocationInFunctionEnvironment,
-        region: IdT[IRegionNameT],
+        region: ITemplata[RegionTemplataType],
         unresultifiedUndestructedExpressions: ReferenceExpressionTE
       ):
       ReferenceExpressionTE = {
@@ -158,7 +158,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     exprs1: Vector[IExpressionSE]
   ):
   (Vector[ReferenceExpressionTE], Set[CoordT]) = {
@@ -174,7 +174,7 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     name: IVarNameT,
     targetOwnership: LoadAsP
   ):
@@ -226,9 +226,8 @@ class ExpressionCompiler(
               loadRange,
               ReferenceLocalVariableT(name2, FinalT, closuredVarsStructRefRef)))
 
-        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
-        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.id.addStep(
-          member.name) == id))
+        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef.id)
+        vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.id.addStep(member.name) == id))
 
         val index = closuredVarsStructDef.members.indexWhere(_.name == id.localName)
         //        val ownershipInClosureStruct = closuredVarsStructDef.members(index).tyype
@@ -299,7 +298,7 @@ class ExpressionCompiler(
             LocalLookupTE(
               ranges.head,
               ReferenceLocalVariableT(closureParamVarName2, FinalT, closuredVarsStructRefRef)))
-        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
+        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef.id)
 
         vassert(closuredVarsStructRef.id.steps == id.steps.init)
 
@@ -319,7 +318,7 @@ class ExpressionCompiler(
             case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
           }
         val closuredVarsStructRefCoord = CoordT(ownership, vimpl(), closuredVarsStructRef)
-        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef)
+        val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef.id)
 
         vassert(closuredVarsStructDef.members.map(_.name).contains(varName.localName))
 
@@ -345,15 +344,15 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     closureStructRef: StructTT
   ):
   (ReferenceExpressionTE) = {
-    val closureStructDef = coutputs.lookupStruct(closureStructRef);
+    val closureStructDef = coutputs.lookupStruct(closureStructRef.id);
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
-        interner, keywords, closureStructRef.id,
-        Vector((closureStructDef.defaultRegion, region)),
+        interner, keywords,
+        closureStructRef.id,
         InheritBoundsFromTypeItself)
     // Note, this is where the unordered closuredNames set becomes ordered.
     val lookupExpressions2 =
@@ -411,7 +410,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     expr1: IExpressionSE
   ):
   (ReferenceExpressionTE, Set[CoordT]) = {
@@ -446,7 +445,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     expr1: IExpressionSE
   ):
   (AddressExpressionTE, Set[CoordT]) = {
@@ -469,7 +468,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     expr1: IExpressionSE
   ):
   (ExpressionT, Set[CoordT]) = {
@@ -875,7 +874,7 @@ class ExpressionCompiler(
           val expr2 =
             containerExpr2.result.coord.kind match {
               case structTT@StructTT(_) => {
-                val structDef = coutputs.lookupStruct(structTT)
+                val structDef = coutputs.lookupStruct(structTT.id)
                 val (structMember, memberIndex) =
                   structDef.getMemberAndIndex(memberName) match {
                     case None => {
@@ -889,8 +888,8 @@ class ExpressionCompiler(
                 val unsubstitutedMemberType = structMember.tyype.expectReferenceMember().reference;
                 val memberType =
                   TemplataCompiler.getPlaceholderSubstituter(
-                    interner, keywords, structTT.id,
-                    Vector((structDef.defaultRegion, region)),
+                    interner, keywords,
+                    structTT.id,
                     // Use the bounds that we supplied to the struct
                     UseBoundsFromContainer(
                       structDef.runeToFunctionBound,
@@ -1501,11 +1500,11 @@ class ExpressionCompiler(
           val destroy2 =
             innerExpr2.kind match {
               case structTT@StructTT(_) => {
-                val structDef = coutputs.lookupStruct(structTT)
+                val structDef = coutputs.lookupStruct(structTT.id)
                 val substituter =
                   TemplataCompiler.getPlaceholderSubstituter(
-                    interner, keywords, structTT.id,
-                    vimpl(),
+                    interner, keywords,
+                    structTT.id,
                     // This type is already phrased in terms of our placeholders, so it can use the
                     // bounds it already has.
                     InheritBoundsFromTypeItself)
@@ -1780,7 +1779,7 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: FunctionEnvironment,
     range: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     containedSuccessCoord: CoordT,
     containedFailCoord: CoordT
   ):
@@ -1876,8 +1875,8 @@ class ExpressionCompiler(
 
   def weakAlias(coutputs: CompilerOutputs, expr: ReferenceExpressionTE): ReferenceExpressionTE = {
     expr.kind match {
-      case sr@StructTT(_) => {
-        val structDef = coutputs.lookupStruct(sr)
+      case sr @ StructTT(_) => {
+        val structDef = coutputs.lookupStruct(sr.id)
         vcheck(structDef.weakable, TookWeakRefOfNonWeakableError)
       }
       case ir@InterfaceTT(_) => {
@@ -1936,7 +1935,7 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     name: IFunctionDeclarationNameS,
     functionS: FunctionS
   ):
@@ -1975,7 +1974,7 @@ class ExpressionCompiler(
   private def newGlobalFunctionGroupExpression(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     name: IImpreciseNameS
   ):
   ReferenceExpressionTE = {
@@ -1993,7 +1992,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     block: BlockSE
   ):
   (ReferenceExpressionTE, Set[CoordT]) = {
@@ -2084,7 +2083,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     life: LocationInFunctionEnvironment,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     exprTE: ReferenceExpressionTE
   ):
   ReferenceExpressionTE = {

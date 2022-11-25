@@ -6,7 +6,7 @@ import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunction
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType}
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata}
@@ -274,7 +274,7 @@ case class ReturnTE(
   }
 }
 
-case class BreakTE(region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class BreakTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, NeverT(true)))
 }
@@ -409,27 +409,27 @@ case class AsSubtypeTE(
   override def result = ReferenceResultT(resultResultType)
 }
 
-case class VoidLiteralTE(region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class VoidLiteralTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, VoidT()))
 }
 
-case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int, region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, IntT(bits)))
 }
 
-case class ConstantBoolTE(value: Boolean, region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class ConstantBoolTE(value: Boolean, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, BoolT()))
 }
 
-case class ConstantStrTE(value: String, region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class ConstantStrTE(value: String, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, StrT()))
 }
 
-case class ConstantFloatTE(value: Double, region: IdT[IRegionNameT]) extends ReferenceExpressionTE {
+case class ConstantFloatTE(value: Double, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, FloatT()))
 }
@@ -598,7 +598,7 @@ case class ConstructTE(
 // it's up to later stages to replace that with an actual index
 case class NewMutRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
-  region: IdT[IRegionNameT],
+  region: ITemplata[RegionTemplataType],
   capacityExpr: ReferenceExpressionTE,
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -617,7 +617,7 @@ case class NewMutRuntimeSizedArrayTE(
 
 case class StaticArrayFromCallableTE(
   arrayType: StaticSizedArrayTT,
-  region: IdT[IRegionNameT],
+  region: ITemplata[RegionTemplataType],
   generator: ReferenceExpressionTE,
   generatorMethod: PrototypeT,
 ) extends ReferenceExpressionTE {
@@ -813,7 +813,7 @@ case class DestroyImmRuntimeSizedArrayTE(
 // it's up to later stages to replace that with an actual index
 case class NewImmRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
-  region: IdT[IRegionNameT],
+  region: ITemplata[RegionTemplataType],
   sizeExpr: ReferenceExpressionTE,
   generator: ReferenceExpressionTE,
   generatorMethod: PrototypeT,

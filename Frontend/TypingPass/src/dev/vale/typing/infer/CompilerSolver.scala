@@ -850,7 +850,7 @@ class CompilerRuleSolver(
                   }
                   CoordT(
                     OwnT,
-                    PlaceholderTemplata(env.originalCallingEnv.defaultRegion, RegionTemplataType()),
+                    env.originalCallingEnv.defaultRegion,
                     initialCoord.kind)
                 }
                 case MutabilityTemplata(ImmutableT) => initialCoord

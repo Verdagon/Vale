@@ -231,7 +231,7 @@ class InferCompiler(
               .map(conclusions)
               .flatMap(conc => {
                 TemplataCompiler.getReachableBounds(
-                  interner, keywords, state, envs.originalCallingEnv.defaultRegion, conc)
+                  interner, keywords, state, /*envs.originalCallingEnv.defaultRegion,*/ conc)
               })
           val runeToFunctionBound =
             if (verifyConclusions) {
