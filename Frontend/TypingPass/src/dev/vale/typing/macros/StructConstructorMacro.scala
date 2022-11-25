@@ -120,13 +120,13 @@ class StructConstructorMacro(
     maybeRetCoord: Option[CoordT]):
   (FunctionHeaderT, ReferenceExpressionTE) = {
     val Some(CoordT(_, _, structTT @ StructTT(_))) = maybeRetCoord
-    val definition = coutputs.lookupStruct(structTT)
+    val definition = coutputs.lookupStruct(structTT.id)
     val placeholderSubstituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner,
         keywords,
         structTT.id,
-        Vector((definition.defaultRegion, env.defaultRegion)),
+//        Vector((definition.defaultRegion, env.defaultRegion)),
         // We only know about this struct from the return type, we don't get to inherit any of its
         // bounds or guarantees from. Satisfy them from our environment instead.
         UseBoundsFromContainer(
@@ -168,7 +168,7 @@ class StructConstructorMacro(
       ast.FunctionHeaderT(
         constructorFullName,
         Vector.empty,
-        Vector(RegionT(env.defaultRegion.localName, true)),
+//        Vector(RegionT(env.defaultRegion.localName, true)),
         constructorParams,
         constructorReturnType,
         Some(env.templata))

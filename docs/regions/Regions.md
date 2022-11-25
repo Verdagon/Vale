@@ -320,9 +320,17 @@ func foo() {
 
 But it does work if we think of `r'` as a generic parameter, a rune. In that case, `r'` could totally be `foo'`.
 
+
 ## Default Region is a Generic Parameter (DRIAGP)
 
-From ARAGP, we saw that every region is a generic parameter, because overload resolution needs to equate the incoming `foo'` to the receiving `r'`. This is also the case with the implicit default region, so the implicit default region also needs to be a generic parameter.
+From ARAGP, we saw that every region is a generic parameter, because overload resolution needs to equate the incoming `foo'` to the receiving `r'`.
+
+
+This is also the case with the implicit default region (`moo'`), because `bork<bork', z'>` might be called from `func moo<moo', a'>` like `bork<a', moo'>`. We need to have `bork'` as a generic parameter so that where `moo` calls `bork`, it can specify what region (`a'`) is fed in as `bork`'s default region.
+
+
+We do this even for functions that _only_ have a default region, so that we're consistent.
+
 
 This is also why we need generics. Since its a generic parameter, the old system would have monomorphized every function according to every root (exported, iow) function.
 

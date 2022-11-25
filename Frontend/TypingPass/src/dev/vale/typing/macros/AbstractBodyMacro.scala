@@ -30,7 +30,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
       FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(RegionT(env.defaultRegion.localName, true)),
+        //Vector(RegionT(env.defaultRegion.localName, true)),
         params2,
         returnReferenceType2,
         originFunction.map(FunctionTemplata(env.parentEnv, _)))

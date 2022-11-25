@@ -104,7 +104,7 @@ sealed trait ITemplata[+T <: ITemplataType]  {
   def tyype: T
 }
 
-case class RegionTemplata(region: IdT[IRegionNameT]) extends ITemplata[RegionTemplataType] {
+case class RegionTemplata(region: ITemplata[RegionTemplataType]) extends ITemplata[RegionTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: RegionTemplataType = RegionTemplataType()
 }

@@ -46,23 +46,24 @@ class CompilerRegionTests extends FunSuite with Matchers {
         |  [] = a;
         |}
       """.stripMargin)
+
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
       case FunctionCallTE(
         PrototypeT(
-          IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_),Vector(),Vector(CoordT(BorrowT,IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),DenizenDefaultRegionNameT()),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
-          CoordT(ShareT,IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),DenizenDefaultRegionNameT()),VoidT())),
+          IdT(_,Vector(),FunctionNameT(FunctionTemplateNameT(StrI("myFunc"),_),Vector(),Vector(CoordT(BorrowT,PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS()))), RegionTemplataType()),StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
+          CoordT(ShareT, PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS()))), RegionTemplataType()),VoidT())),
         Vector(arg)) => {
         arg.result.coord.region match {
-          case IdT(_, Vector(FunctionTemplateNameT(StrI("main"), _)), DenizenDefaultRegionNameT()) =>
+          case PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS()))), RegionTemplataType()) =>
         }
       }
     })
 
     val myFunc = coutputs.lookupFunction("myFunc")
     myFunc.header.params.head.tyype.region match {
-      case IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),DenizenDefaultRegionNameT()) =>
+      case PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS()))), RegionTemplataType()) =>
     }
   }
 }

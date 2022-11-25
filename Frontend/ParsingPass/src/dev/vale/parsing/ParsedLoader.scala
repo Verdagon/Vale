@@ -199,7 +199,7 @@ class ParsedLoader(interner: Interner) {
       loadOptionalObject(getObjectField(jobj, "templateRules"), loadTemplateRules),
       loadOptionalObject(getObjectField(jobj, "params"), loadParams),
       loadFunctionReturn(getObjectField(jobj, "return")),
-      loadOptionalObject(getObjectField(jobj, "maybeRegion"), loadName))
+      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadName))
   }
 
   def loadFileCoord(jobj: JObject): FileCoordinate = {

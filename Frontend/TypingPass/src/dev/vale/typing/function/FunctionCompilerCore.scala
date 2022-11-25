@@ -39,7 +39,7 @@ class FunctionCompilerCore(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
       parentRanges: List[RangeS],
-      region: IdT[IRegionNameT],
+      region: ITemplata[RegionTemplataType],
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       delegate.evaluateBlockStatements(
@@ -280,7 +280,7 @@ class FunctionCompilerCore(
       FunctionHeaderT(
         fullEnv.id,
         attributesT,
-        vimpl(),
+//        vimpl(),
         paramsT,
         returnCoord,
         Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));
@@ -358,7 +358,7 @@ class FunctionCompilerCore(
           ast.FunctionHeaderT(
             env.id,
             Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
-            Vector(RegionT(env.defaultRegion.localName, true)),
+//            Vector(RegionT(env.defaultRegion.localName, true)),
             params2,
             returnType2,
             maybeOrigin)

@@ -143,10 +143,10 @@ class Compiler(
       keywords,
       nameTranslator,
       new IInfererDelegate {
-        def getPlaceholdersInFullName(accum: Accumulator[IdT[INameT]], id: IdT[INameT]): Unit = {
-          id.localName match {
-            case PlaceholderNameT(_) => accum.add(id)
-            case PlaceholderTemplateNameT(_) => accum.add(id)
+        def getPlaceholdersInFullName(accum: Accumulator[IdT[INameT]], fullName: IdT[INameT]): Unit = {
+          fullName.localName match {
+            case PlaceholderNameT(_) => accum.add(fullName)
+            case PlaceholderTemplateNameT(_, _) => accum.add(fullName)
             case _ =>
           }
         }
@@ -362,7 +362,7 @@ class Compiler(
         }
 
         override def structIsClosure(state: CompilerOutputs, structTT: StructTT): Boolean = {
-            val structDef = state.lookupStruct(structTT)
+            val structDef = state.lookupStruct(structTT.id)
             structDef.isClosure
         }
 
@@ -568,7 +568,7 @@ class Compiler(
         nenv: NodeEnvironmentBox,
         life: LocationInFunctionEnvironment,
         ranges: List[RangeS],
-        region: IdT[IRegionNameT],
+        region: ITemplata[RegionTemplataType],
         exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       expressionCompiler.evaluateBlockStatements(
@@ -1205,12 +1205,13 @@ class Compiler(
       exportedKindToExport.foreach({ case (exportedKind, (kind, export)) =>
         exportedKind match {
           case sr@StructTT(_) => {
-            val structDef = coutputs.lookupStruct(sr)
+            val structDef = coutputs.lookupStruct(sr.id)
 
             val substituter =
               TemplataCompiler.getPlaceholderSubstituter(
-                interner, keywords, sr.id,
-                Vector(),
+                interner,
+                keywords,
+                sr.id,
                 InheritBoundsFromTypeItself)
 
             structDef.members.foreach({

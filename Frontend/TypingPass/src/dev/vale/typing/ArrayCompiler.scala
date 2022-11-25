@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.parsing.ast.MutableP
-import dev.vale.postparsing._
+import dev.vale.postparsing.{TemplateTemplataType, _}
 import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
@@ -38,7 +38,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment,
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     range: List[RangeS],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
@@ -100,7 +100,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     callingEnv: NodeEnvironment,
     range: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     rulesA: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
@@ -369,7 +369,9 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
-    val defaultRegion = vimpl()
+    val defaultRegionName =
+      templateFullName.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
+    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -387,12 +389,23 @@ class ArrayCompiler(
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
 
+    val TemplateTemplataType(types, _) = StaticSizedArrayTemplateTemplata().tyype
+    val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType()) = types
+    val sizePlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType(), false, true)
+    val mutabilityPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType(), false, true)
+    val variabilityPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType(), false, true)
+    val elementPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
     val placeholders =
-      StaticSizedArrayTemplateTemplata().tyype.paramTypes.zipWithIndex
-        .map({ case (tyype, index) =>
-          templataCompiler.createPlaceholderInner(
-            coutputs, arrayOuterEnv, templateFullName, index, tyype, false, true)
-        })
+      Vector(sizePlaceholder, mutabilityPlaceholder, variabilityPlaceholder, elementPlaceholder)
+
     val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
     vassert(TemplataCompiler.getTemplate(fullName) == templateFullName)
 
@@ -428,7 +441,9 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
-    val defaultRegion = vimpl()
+    val defaultRegionName =
+      templateFullName.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
+    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -445,12 +460,19 @@ class ArrayCompiler(
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
 
+
+
+    val TemplateTemplataType(types, _) = RuntimeSizedArrayTemplateTemplata().tyype
+    val Vector(MutabilityTemplataType(), CoordTemplataType()) = types
+    val mutabilityPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType(), false, true)
+    val elementPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
     val placeholders =
-      RuntimeSizedArrayTemplateTemplata().tyype.paramTypes.zipWithIndex
-        .map({ case (tyype, index) =>
-          templataCompiler.createPlaceholderInner(
-            coutputs, arrayOuterEnv, templateFullName, index, tyype, false, true)
-        })
+      Vector(mutabilityPlaceholder, elementPlaceholder)
+
     val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
 
     val arrayInnerEnv =

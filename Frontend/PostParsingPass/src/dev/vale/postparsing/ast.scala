@@ -257,8 +257,11 @@ case class FunctionS(
   rules: Vector[IRulexSR],
   body: IBodyS
 ) {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
+
+  // Every function needs a region generic parameter
+  vassert(genericParams.nonEmpty)
+  start here // add them in scout i think. see DRIAGP.
 
   body match {
     case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => {
@@ -276,6 +279,8 @@ case class FunctionS(
       }
     }
   }
+
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   def isLight(): Boolean = {
     body match {

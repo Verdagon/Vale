@@ -328,7 +328,7 @@ case class FunctionHeaderT(
   // This one little name field can illuminate much of how the compiler works, see UINIT.
   id: IdT[IFunctionNameT],
   attributes: Vector[IFunctionAttributeT],
-  regions: Vector[RegionT],
+//  regions: Vector[RegionT],
   params: Vector[ParameterT],
   returnType: CoordT,
   maybeOriginFunctionTemplata: Option[FunctionTemplata]) {
@@ -363,7 +363,7 @@ case class FunctionHeaderT(
           } else {
             // make sure all the placeholders in the parameters exist as template args
             placeholdersOfThisFunction.foreach({
-              case placeholderName @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index))) => {
+              case placeholderName @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index, rune))) => {
                 id.localName.templateArgs(index) match {
                   case KindTemplata(PlaceholderT(placeholderNameAtIndex)) => {
                     vassert(placeholderName == placeholderNameAtIndex)
@@ -387,7 +387,7 @@ case class FunctionHeaderT(
 
   override def equals(obj: Any): Boolean = {
     obj match {
-      case FunctionHeaderT(thatName, _, _, _, _, _) => {
+      case FunctionHeaderT(thatName, _, _, _, _) => {
         id == thatName
       }
       case _ => false

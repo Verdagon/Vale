@@ -29,7 +29,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 

@@ -22,7 +22,7 @@ cd Vale
 
 ```sh
 git clone --single-branch --branch master https://github.com/ValeLang/Vale
-Vale/install-compiler-prereqs-mac.sh ~/BootstrappingValeCompiler
+Vale/scripts/mac/install-compiler-prereqs.sh ~/BootstrappingValeCompiler
 source ~/.zshrc
 cd Vale
 ./scripts/mac/build-compiler.sh ~/BootstrappingValeCompiler --test=all ./scripts/VERSION
@@ -49,7 +49,7 @@ One *must* build LLVM from source, because [the Windows LLVM release is broken](
 
 ### Build LLVM
 
-If you want to skip this, you can download and extract [this file](https://github.com/Verdagon/LLVM13WinMinimal/releases/download/v1.1/llvm-project-llvmorg-13.0.1.zip) to `C:\llvm`. **Disclaimer**: Download at your own risk; we made this .zip file by building it, stripping it down, and merging the include files to fix the problems with the [regular LLVM windows release](https://bugs.llvm.org/show_bug.cgi?id=28677).
+If you want to skip this, you can download and extract [this file](https://github.com/Verdagon/LLVMWinMinimal/releases/download/14.0.6.0/llvm-project-llvmorg-14.0.6.zip) to `C:\llvm`. **Disclaimer**: Download at your own risk; we made this .zip file by building it, stripping it down, and merging the include files to fix the problems with the [regular LLVM windows release](https://bugs.llvm.org/show_bug.cgi?id=28677).
 
 Ensure your machine (or VM) has sufficient resources: 5 cores, 10gb ram, 200gb disk. You'll be building all of LLVM, which is quite resource intensive.
 

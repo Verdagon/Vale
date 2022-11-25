@@ -95,7 +95,7 @@ trait IInDenizenEnvironment extends IEnvironment {
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
 
-  def defaultRegion: IdT[PlaceholderNameT]
+  def defaultRegion: ITemplata[RegionTemplataType]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -213,7 +213,7 @@ object TemplatasStore {
         vwat()
       }
 //      case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
-      case PlaceholderNameT(PlaceholderTemplateNameT(index)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
+      case PlaceholderNameT(PlaceholderTemplateNameT(index, rune)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
       case ReachablePrototypeNameT(num) => None
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
@@ -426,7 +426,7 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
   parentEnv: IEnvironment,
   templateId: IdT[Y],
   id: IdT[T],
-  defaultRegion: IdT[IRegionNameT],
+  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   vassert(templatas.templatasStoreName == id)
@@ -494,7 +494,7 @@ object GeneralEnvironment {
     parentEnv: IInDenizenEnvironment,
     newName: IdT[Y],
     // None means just inherit it from the parent environment.
-    maybeDefaultRegion: Option[IdT[IRegionNameT]] = None,
+    maybeDefaultRegion: Option[ITemplata[RegionTemplataType]] = None,
     newEntriesList: Vector[(INameT, IEnvEntry)] = Vector()):
   GeneralEnvironment[Y] = {
     GeneralEnvironment(
@@ -511,7 +511,7 @@ case class ExportEnvironment(
   globalEnv: GlobalEnvironment,
   parentEnv: PackageEnvironment[INameT],
   id: IdT[ExportNameT],
-  defaultRegion: IdT[IRegionNameT],
+  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
@@ -539,7 +539,7 @@ case class GeneralEnvironment[+T <: INameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IInDenizenEnvironment,
   id: IdT[T],
-  defaultRegion: IdT[IRegionNameT],
+  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def equals(obj: Any): Boolean = vcurious();

@@ -57,7 +57,12 @@ case object YonderT extends LocationT {
 }
 
 
-case class CoordT(ownership: OwnershipT, region: ITemplata[RegionTemplataType], kind: KindT)  {
+case class CoordT(
+  ownership: OwnershipT,
+  // Usually these will just be placeholders, but one day we might want to say e.g. host'
+  region: ITemplata[RegionTemplataType],
+  kind: KindT)  {
+
   vpass()
   this match {
     case CoordT(BorrowT,_,RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(_,RawArrayNameT(MutabilityTemplata(ImmutableT),CoordT(ShareT,_,IntT(32))))))) => {

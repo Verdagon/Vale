@@ -149,7 +149,7 @@ class StructDropMacro(
         case structTT @ StructTT(_) => structTT
         case other => vwat(other)
       }
-    val structDef = coutputs.lookupStruct(structTT)
+    val structDef = coutputs.lookupStruct(structTT.id)
 //    val structOwnership =
 //      structDef.mutability match {
 //        case MutabilityTemplata(MutableT) => OwnT
@@ -167,7 +167,7 @@ class StructDropMacro(
       ast.FunctionHeaderT(
         env.id,
         Vector.empty,
-        Vector(RegionT(env.defaultRegion.localName, true)),
+//        Vector(RegionT(env.defaultRegion.localName, true)),
         params2,
         ret,
         Some(env.templata))
@@ -187,7 +187,7 @@ class StructDropMacro(
                       val substituter =
                         TemplataCompiler.getPlaceholderSubstituter(
                           interner, keywords, structTT.id,
-                          Vector((structDef.defaultRegion, env.defaultRegion)),
+//                          Vector((structDef.defaultRegion, env.defaultRegion)),
                           // We received an instance of this type, so we can use the bounds from it.
                           InheritBoundsFromTypeItself)
                       val reference = substituter.substituteForCoord(coutputs, unsubstitutedReference)

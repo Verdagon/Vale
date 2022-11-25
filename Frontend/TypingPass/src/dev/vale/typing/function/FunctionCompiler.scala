@@ -35,7 +35,7 @@ trait IFunctionCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     ranges: List[RangeS],
-    region: IdT[IRegionNameT],
+    region: ITemplata[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 

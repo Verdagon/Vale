@@ -14,7 +14,7 @@ import FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{AddressibleClosureVariableT, BuildingFunctionEnvironmentWithClosureds, IEnvEntry, IInDenizenEnvironment, IVariableT, ReferenceClosureVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, TemplataCompiler, TypingPassOptions, env}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, DenizenDefaultRegionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, IdT, NameTranslator}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, DenizenDefaultRegionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, IdT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -410,7 +410,9 @@ class FunctionCompilerClosureOrLightLayer(
     templateId: IdT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val defaultRegion = vimpl()
+    val defaultRegionName =
+      templateId.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
+    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,
       outerEnv,
@@ -434,11 +436,11 @@ class FunctionCompilerClosureOrLightLayer(
 
   private def makeClosureVariablesAndEntries(coutputs: CompilerOutputs, closureStructRef: StructTT):
   (Vector[IVariableT], Vector[(INameT, IEnvEntry)]) = {
-    val closureStructDef = coutputs.lookupStruct(closureStructRef);
+    val closureStructDef = coutputs.lookupStruct(closureStructRef.id);
     val substituter =
       TemplataCompiler.getPlaceholderSubstituter(
         interner, keywords, closureStructRef.id,
-        vimpl(),
+//        vimpl(),
         // This is a parameter, so we can grab bounds from it.
         InheritBoundsFromTypeItself)
     val variables =
