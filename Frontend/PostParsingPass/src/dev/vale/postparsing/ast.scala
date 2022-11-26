@@ -233,6 +233,7 @@ case class GenericParameterS(
 
 sealed trait IRuneAttributeS
 case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS
+case class ReadWriteRuneAttributeS(range: RangeS) extends IRuneAttributeS
 
 case class GenericParameterDefaultS(
   // One day, when we want more rules in here, we might need to have a runeToType map

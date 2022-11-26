@@ -271,6 +271,7 @@ class ParsedLoader(interner: Interner) {
   def loadBlock(jobj: JObject): BlockPE = {
     BlockPE(
       loadRange(getObjectField(jobj, "range")),
+      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadRegionRune),
       loadExpression(getObjectField(jobj, "inner")))
   }
 
@@ -762,9 +763,7 @@ class ParsedLoader(interner: Interner) {
           loadRange(getObjectField(jobj, "range")))
       }
       case "RegionRuneT" => {
-        RegionRunePT(
-          loadRange(getObjectField(jobj, "range")),
-          loadName(getObjectField(jobj, "name")))
+        loadRegionRune(jobj)
       }
       case "OwnershipT" => {
         OwnershipPT(
@@ -827,6 +826,12 @@ class ParsedLoader(interner: Interner) {
       }
       case x => vimpl(x.toString)
     }
+  }
+
+  private def loadRegionRune(jobj: JObject) = {
+    RegionRunePT(
+      loadRange(getObjectField(jobj, "range")),
+      loadName(getObjectField(jobj, "name")))
   }
 
   def loadIdentifyingRunes(jobj: JObject): GenericParametersP = {
