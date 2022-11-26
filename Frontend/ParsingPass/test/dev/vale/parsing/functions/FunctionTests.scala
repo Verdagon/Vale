@@ -107,7 +107,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   }
 
   test("Pure and default region") {
-    compileDenizen("""pure func findNearbyUnits() 'i int 'i { }""").getOrDie() match {
+    compileDenizen("""pure func findNearbyUnits() i'int i'{ }""").getOrDie() match {
       case TopLevelFunctionP(FunctionP(_,
         FunctionHeaderP(_,
           Some(NameP(_, StrI("findNearbyUnits"))),
@@ -120,14 +120,14 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
   }
 
   test("Attribute after return") {
-    compileDenizen("abstract func sum() Int;").getOrDie() match {
+    compileDenizen("abstract func sum() int;").getOrDie() match {
       case TopLevelFunctionP(FunctionP(_,
         FunctionHeaderP(_,
           Some(NameP(_, StrI("sum"))),
           Vector(AbstractAttributeP(_)),
           None,
           None, Some(ParamsP(_,Vector())),
-          FunctionReturnP(_, None, Some(NameOrRunePT(NameP(_, StrI("Int"))))), _),
+          FunctionReturnP(_, None, Some(NameOrRunePT(NameP(_, StrI("int"))))), _),
         None)) =>
     }
   }

@@ -30,6 +30,15 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     }
   }
 
+  test("Every function gets region generic param") {
+    val program1 = compile("func moo() int { 3 }")
+
+    val moo = program1.lookupFunction("moo")
+    moo.genericParams match {
+      case null =>
+    }
+  }
+
   // See: User Must Specify Enough Identifying Runes (UMSEIR)
   test("Test UMSEIR") {
     // This should work, its fine that the _ is there because we can always figure out what
