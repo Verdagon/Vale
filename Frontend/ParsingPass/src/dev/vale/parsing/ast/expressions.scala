@@ -297,7 +297,7 @@ case class LambdaPE(
   override def producesResult(): Boolean = true
 }
 
-case class BlockPE(range: RangeL, inner: IExpressionPE) extends IExpressionPE {
+case class BlockPE(range: RangeL, maybeDefaultRegion: Option[RegionRunePT], inner: IExpressionPE) extends IExpressionPE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious();
   override def needsSemicolonBeforeNextStatement: Boolean = false
   override def producesResult(): Boolean = inner.producesResult()

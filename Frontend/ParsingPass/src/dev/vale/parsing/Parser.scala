@@ -606,7 +606,8 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
             maybeDefaultRegionL.map(defaultRegionL => {
               templexParser.parseRegion(defaultRegionL) match {
                 case Err(cpe) => return Err(cpe)
-                case Ok(x) => x
+                case Ok(None) => vwat()
+                case Ok(Some(x)) => x
               }
             })
           val statementsP =
@@ -614,7 +615,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               case Err(err) => return Err(err)
               case Ok(result) => result
             }
-          BlockPE(blockL.range, statementsP)
+          BlockPE(blockL.range, maybeDefaultRegionP, statementsP)
         })
 
       Ok(FunctionP(funcRangeL, header, bodyP))

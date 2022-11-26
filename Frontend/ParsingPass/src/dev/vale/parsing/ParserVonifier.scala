@@ -538,13 +538,8 @@ object ParserVonifier {
 
   def vonifyTemplex(thing: ITemplexPT): VonObject = {
     thing match {
-      case RegionRunePT(range, name) => {
-        VonObject(
-          "RegionRuneT",
-          None,
-          Vector(
-            VonMember("range", vonifyRange(range)),
-            VonMember("name", vonifyName(name))))
+      case r @ RegionRunePT(_, _) => {
+        vonifyRegionRune(r)
       }
       case AnonymousRunePT(range) => {
         VonObject(
@@ -727,6 +722,16 @@ object ParserVonifier {
     }
   }
 
+  private def vonifyRegionRune(regionRune: RegionRunePT): VonObject = {
+    val RegionRunePT(range, name) = regionRune
+    VonObject(
+      "RegionRuneT",
+      None,
+      Vector(
+        VonMember("range", vonifyRange(range)),
+        VonMember("name", vonifyName(name))))
+  }
+
   def vonifyMutability(thing: MutabilityP): IVonData = {
     thing match {
       case MutableP => VonObject("Mutable", None, Vector())
@@ -760,12 +765,13 @@ object ParserVonifier {
   }
 
   def vonifyBlock(thing: BlockPE): VonObject = {
-    val BlockPE(range, inner) = thing
+    val BlockPE(range, maybeDefaultRegion, inner) = thing
     VonObject(
       "Block",
       None,
       Vector(
         VonMember("range", vonifyRange(range)),
+        VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyRegionRune)),
         VonMember("inner", vonifyExpression(inner))))
   }
 
@@ -1028,7 +1034,7 @@ object ParserVonifier {
             VonMember("left", vonifyExpression(left)),
             VonMember("right", vonifyExpression(right))))
       }
-      case b @ BlockPE(_, _) => {
+      case b @ BlockPE(_, _, _) => {
         vonifyBlock(b)
       }
       case c @ ConsecutorPE(_) => {
