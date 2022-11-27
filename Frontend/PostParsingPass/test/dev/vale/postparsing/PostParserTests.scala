@@ -35,7 +35,11 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     val moo = program1.lookupFunction("moo")
     moo.genericParams match {
-      case null =>
+      case Vector(
+        GenericParameterS(_,
+          RuneUsage(_,DefaultRegionRuneS()),
+          Vector(ReadWriteRuneAttributeS(_)),
+          None)) =>
     }
   }
 
@@ -100,7 +104,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     lambda.genericParams match {
       case Vector(
         GenericParameterS(_, RuneUsage(_, MagicParamRuneS(mp1)), _, None),
-        GenericParameterS(_, RuneUsage(_, MagicParamRuneS(mp2)), _, None)) => {
+        GenericParameterS(_, RuneUsage(_, MagicParamRuneS(mp2)), _, None),
+        _) => {
         vassert(mp1 != mp2)
       }
     }
@@ -166,14 +171,28 @@ class PostParserTests extends FunSuite with Matchers with Collector {
   }
 
   test("Pure regioned function") {
-    val program1 = compile("pure func main<'r>(ship 'r &Spaceship) 't { }")
-    val main = program1.lookupFunction("main")
-    vassert(main.genericParams.isEmpty)
+    val program1 = compile("pure func moo<r'>(ship &r'Spaceship) { }")
+    val moo = program1.lookupFunction("moo")
 
-    // We just want to make sure its not a region rune.
-    // Implicit rune is fine, it does that when there's no return.
-    main.maybeRetCoordRune match {
-      case Some(RuneUsage(_, ImplicitRuneS(_))) =>
+    moo.genericParams match {
+      case Vector(
+        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),Vector(),None),
+        GenericParameterS(_, RuneUsage(_,DefaultRegionRuneS()), Vector(ReadWriteRuneAttributeS(_)), None)) =>
+    }
+  }
+
+  test("Pure regioned function with explicit self region") {
+    val program1 = compile("pure func moo<r', t' rw>(ship &r'Spaceship) t'{ }")
+    val moo = program1.lookupFunction("moo")
+
+    moo.genericParams match {
+//      case Vector(
+//        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),Vector(),None),
+//        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("t"))),Vector(),None),
+//        GenericParameterS(_,RuneUsage(_,DefaultRegionRuneS()),Vector(ReadWriteRuneAttributeS(_)),None)) (of class scala.collection.immutable.Vector)
+      case Vector(
+        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))),Vector(),None),
+        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), Vector(ReadWriteRuneAttributeS(_)), None)) =>
     }
   }
 

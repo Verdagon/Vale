@@ -100,6 +100,8 @@ case class FunctionHeaderL(
   ret: FunctionReturnL,
   defaultRegion: Option[ScrambleLE],
 ) {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 

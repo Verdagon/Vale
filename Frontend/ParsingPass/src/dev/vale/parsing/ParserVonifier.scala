@@ -228,7 +228,7 @@ object ParserVonifier {
   }
 
   def vonifyFunctionHeader(thing: FunctionHeaderP): VonObject = {
-    val FunctionHeaderP(range, name, attributes, maybeUserSpecifiedIdentifyingRunes, templateRules, params, FunctionReturnP(retRange, inferRet, retType), maybeDefaultRegion) = thing
+    val FunctionHeaderP(range, name, attributes, maybeUserSpecifiedIdentifyingRunes, templateRules, params, FunctionReturnP(retRange, inferRet, retType)) = thing
     VonObject(
       "FunctionHeader",
       None,
@@ -247,8 +247,8 @@ object ParserVonifier {
             Vector(
               VonMember("range", vonifyRange(retRange)),
               VonMember("inferRet", vonifyOptional(inferRet, vonifyRange)),
-              VonMember("retType", vonifyOptional(retType, vonifyTemplex))))),
-        VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyName))))
+              VonMember("retType", vonifyOptional(retType, vonifyTemplex)))))))
+//        VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyName))))
   }
 
   def vonifyParams(thing: ParamsP): VonObject = {
@@ -539,7 +539,7 @@ object ParserVonifier {
 
   def vonifyTemplex(thing: ITemplexPT): VonObject = {
     thing match {
-      case r @ RegionRunePT(range, name) => {
+      case r @ RegionRunePT(_, _) => {
         vonifyRegionRune(r)
       }
       case AnonymousRunePT(range) => {
@@ -716,10 +716,8 @@ object ParserVonifier {
     }
   }
 
-  private def vonifyRegionRune(
-    r: RegionRunePT
-  ) = {
-    val RegionRunePT(range, name) = r
+  private def vonifyRegionRune(regionRune: RegionRunePT): VonObject = {
+    val RegionRunePT(range, name) = regionRune
     VonObject(
       "RegionRuneT",
       None,
@@ -761,12 +759,13 @@ object ParserVonifier {
   }
 
   def vonifyBlock(thing: BlockPE): VonObject = {
-    val BlockPE(range, inner) = thing
+    val BlockPE(range, maybeDefaultRegion, inner) = thing
     VonObject(
       "Block",
       None,
       Vector(
         VonMember("range", vonifyRange(range)),
+        VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyRegionRune)),
         VonMember("inner", vonifyExpression(inner))))
   }
 
@@ -1029,7 +1028,7 @@ object ParserVonifier {
             VonMember("left", vonifyExpression(left)),
             VonMember("right", vonifyExpression(right))))
       }
-      case b @ BlockPE(_, _) => {
+      case b @ BlockPE(_, _, _) => {
         vonifyBlock(b)
       }
       case c @ ConsecutorPE(_) => {

@@ -251,7 +251,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         ast.WhilePE(
           RangeL(whileBegin, iter.getPrevEndPos()),
           condition,
-          BlockPE(body.range, body))))
+          BlockPE(body.range, None, body))))
   }
 
   private def parseForeach(
@@ -321,7 +321,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           pattern,
           inRange,
           iterableExpr,
-          ast.BlockPE(RangeL(bodyBegin, iter.getPrevEndPos()), body))))
+          ast.BlockPE(RangeL(bodyBegin, iter.getPrevEndPos()), None, body))))
   }
 
   private def parseIfLadder(iter: ScrambleIterator): Result[Option[IfPE], IParseError] = {
@@ -369,14 +369,19 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           }
 
         val elseEnd = iter.getPos()
-        Some(ast.BlockPE(RangeL(elseBegin, elseEnd), elseBody))
+        Some(ast.BlockPE(RangeL(elseBegin, elseEnd), None, elseBody))
       } else {
         None
       }
 
     val finalElse: BlockPE =
       maybeElseBlock match {
-        case None => BlockPE(RangeL(iter.getPrevEndPos(), iter.getPrevEndPos()), VoidPE(RangeL(iter.getPrevEndPos(), iter.getPrevEndPos())))
+        case None => {
+          BlockPE(
+            RangeL(iter.getPrevEndPos(), iter.getPrevEndPos()),
+            None,
+            VoidPE(RangeL(iter.getPrevEndPos(), iter.getPrevEndPos())))
+        }
         case Some(block) => block
       }
     val rootElseBlock =
@@ -390,6 +395,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           //   }
           BlockPE(
             RangeL(condBlock.range.begin, thenBlock.range.end),
+            None,
             IfPE(
               RangeL(condBlock.range.begin, thenBlock.range.end),
               condBlock, thenBlock, elseBlock))
@@ -511,7 +517,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     Ok(
       (
         conditionPE,
-        ast.BlockPE(body.range, body)))
+        ast.BlockPE(body.range, None, body)))
   }
 
   def parseBlock(blockL: CurliedLE): Result[IExpressionPE, IParseError] = {
@@ -603,7 +609,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }
       }
 
-    Ok(Some(ast.BlockPE(RangeL(begin, iter.getPrevEndPos()), contents)))
+    Ok(Some(ast.BlockPE(RangeL(begin, iter.getPrevEndPos()), None, contents)))
   }
 
   private def parseDestruct(
@@ -1544,12 +1550,12 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         case (Some(CurliedLE(range, contents)), _, _) => {
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           // Don't iter.advance() because we still need to parse this later
-          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn, None)
+          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn)
         }
         case (Some(CurliedLE(range, contents)), _, _) => {
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           // Don't iter.advance() because we still need to parse this later
-          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn, None)
+          FunctionHeaderP(range, None, Vector(), None, None, None, retuurn)
         }
         case (Some(WordLE(paramRange, paramName)), Some(SymbolLE(eqRange, '=')), Some(SymbolLE(gtRange, '>'))) => {
           if (eqRange.end != gtRange.begin) {
@@ -1562,7 +1568,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           val params = ParamsP(paramRange, Vector(param))
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           val range = RangeL(begin, iter.getPrevEndPos())
-          FunctionHeaderP(range, None, Vector(), None, None, Some(params), retuurn, None)
+          FunctionHeaderP(range, None, Vector(), None, None, Some(params), retuurn)
         }
         case (Some(ParendLE(paramsRange, paramsContents)), Some(SymbolLE(eqRange, '=')), Some(SymbolLE(gtRange, '>'))) => {
           if (eqRange.end != gtRange.begin) {
@@ -1584,7 +1590,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
                 }).toVector)
           val retuurn = FunctionReturnP(RangeL(iter.getPos(), iter.getPos()), None, None)
           val range = RangeL(begin, iter.getPrevEndPos())
-          FunctionHeaderP(range, None, Vector(), None, None, Some(paramsP), retuurn, None)
+          FunctionHeaderP(range, None, Vector(), None, None, Some(paramsP), retuurn)
         }
         case (_, _, _) => return Ok(None)
       }
@@ -1598,12 +1604,22 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
               case Err(err) => return Err(err)
               case Ok(result) => result
             }
-          BlockPE(blockL.range, statementsP)
+          BlockPE(
+            blockL.range,
+            // Would we ever want a lambda with a different default region?
+            None,
+            statementsP)
         }
         case Some(_) => {
           parseExpression(iter, false) match {
             case Err(err) => return Err(err)
-            case Ok(result) => BlockPE(result.range, result)
+            case Ok(result) => {
+              BlockPE(
+                result.range,
+                // Would we ever want a lambda with a different default region?
+                None,
+                result)
+            }
           }
         }
         case _ => vwat()
@@ -1753,13 +1769,13 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
             AndPE(
               RangeL(leftOperand.range.begin, leftOperand.range.end),
               leftOperand,
-              BlockPE(rightOperand.range, rightOperand))
+              BlockPE(rightOperand.range, None, rightOperand))
           }
           case s if s == keywords.or => {
             OrPE(
               RangeL(leftOperand.range.begin, leftOperand.range.end),
               leftOperand,
-              BlockPE(rightOperand.range, rightOperand))
+              BlockPE(rightOperand.range, None, rightOperand))
           }
           case _ => {
             BinaryCallPE(

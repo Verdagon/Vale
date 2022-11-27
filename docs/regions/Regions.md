@@ -336,7 +336,22 @@ This is also why we need generics. Since its a generic parameter, the old system
 
 
 
-## Old Thoughts
+# Every Function Receives a Mutable Region (EFRMR)
+
+Also known as the default region.
+
+Pure functions just receive one that is guaranteed to contain none of the parameters.
+
+When someone names their body's default region, they're really just naming the incoming mutable region.
+
+Every function receives a mutable region, so we don't even really need to mention it in the signature. 
+
+Unless... we want to give the caller control over which region to use.
+
+Interface method: I guess in that case they'll hand that in as a particular region parameter, and then it's up to the implementation/override to switch to using that as their default region.
+
+
+# Old Thoughts
 
 (Not relevant any more)
 

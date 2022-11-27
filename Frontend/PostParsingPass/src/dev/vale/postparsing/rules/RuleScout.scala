@@ -208,6 +208,7 @@ object RuleScout {
       case CoordTypePR => CoordTemplataType()
       case CoordListTypePR => PackTemplataType(CoordTemplataType())
       case KindTypePR => KindTemplataType()
+      case RegionTypePR => RegionTemplataType()
     }
   }
 

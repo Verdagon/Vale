@@ -75,7 +75,8 @@ class ExpressionScout(
     initialLocals: VariableDeclarations,
     blockPE: BlockPE):
   (BlockSE, VariableUses, VariableUses) = {
-    val BlockPE(range, inner) = blockPE
+    val BlockPE(range, maybeNewDefaultRegion, inner) = blockPE
+    vassert(maybeNewDefaultRegion.isEmpty)
     newBlock(
       parentStackFrame.parentEnv,
       Some(parentStackFrame),
@@ -546,7 +547,8 @@ class ExpressionScout(
 
           (stackFrame1, NormalResult(result), selfUses, childUses)
         }
-        case b @ BlockPE(_, _) => {
+        case b @ BlockPE(_, maybeNewDefaultRegion, _) => {
+          vassert(maybeNewDefaultRegion.isEmpty)
           val (resultSE, selfUses, childUses) =
             scoutBlock(stackFrame0, lidb.child(), noDeclarations, b)
           (stackFrame0, NormalResult(resultSE), selfUses, childUses)
