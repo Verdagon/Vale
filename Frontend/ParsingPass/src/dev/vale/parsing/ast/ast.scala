@@ -157,8 +157,7 @@ case class FunctionHeaderP(
   templateRules: Option[TemplateRulesP],
 
   params: Option[ParamsP],
-  ret: FunctionReturnP,
-  defaultRegion: Option[NameP],
+  ret: FunctionReturnP
 ) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }

@@ -136,7 +136,8 @@ case class InterfaceS(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   internalMethods.foreach(internalMethod => {
-    vassert(genericParams == internalMethod.genericParams)
+    // .init because every method has a default region as the last region param.
+    vassert(genericParams == internalMethod.genericParams.init)
   })
 
 }
@@ -233,6 +234,7 @@ case class GenericParameterS(
 
 sealed trait IRuneAttributeS
 case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS
+case class ReadWriteRuneAttributeS(range: RangeS) extends IRuneAttributeS
 
 case class GenericParameterDefaultS(
   // One day, when we want more rules in here, we might need to have a runeToType map
@@ -259,9 +261,8 @@ case class FunctionS(
 ) {
   vpass()
 
-  // Every function needs a region generic parameter
+  // Every function needs a region generic parameter, see DRIAGP.
   vassert(genericParams.nonEmpty)
-  start here // add them in scout i think. see DRIAGP.
 
   body match {
     case ExternBodyS | AbstractBodyS | GeneratedBodyS(_) => {

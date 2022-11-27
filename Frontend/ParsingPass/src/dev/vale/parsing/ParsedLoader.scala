@@ -198,8 +198,8 @@ class ParsedLoader(interner: Interner) {
       loadOptionalObject(getObjectField(jobj, "maybeUserSpecifiedIdentifyingRunes"), loadIdentifyingRunes),
       loadOptionalObject(getObjectField(jobj, "templateRules"), loadTemplateRules),
       loadOptionalObject(getObjectField(jobj, "params"), loadParams),
-      loadFunctionReturn(getObjectField(jobj, "return")),
-      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadName))
+      loadFunctionReturn(getObjectField(jobj, "return")))
+//      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadName))
   }
 
   def loadFileCoord(jobj: JObject): FileCoordinate = {
@@ -272,6 +272,7 @@ class ParsedLoader(interner: Interner) {
   def loadBlock(jobj: JObject): BlockPE = {
     BlockPE(
       loadRange(getObjectField(jobj, "range")),
+      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadRegionRune),
       loadExpression(getObjectField(jobj, "inner")))
   }
 
