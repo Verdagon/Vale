@@ -252,7 +252,7 @@ class PatternCompiler(
         translateDestroyStructInnerAndMaybeContinue(
           coutputs, nenv, life + 0, parentRanges, initialLiveCaptureLocals, listOfMaybeDestructureMemberPatterns, inputExpr, afterDestructureSuccessContinuation)
       }
-      case staticSizedArrayT @ contentsStaticSizedArrayTT(sizeTemplata, _, _, elementType) => {
+      case staticSizedArrayT @ contentsStaticSizedArrayTT(sizeTemplata, _, _, elementType, _) => {
         val size =
           sizeTemplata match {
             case PlaceholderTemplata(_, IntegerTemplataType()) => {
@@ -279,7 +279,7 @@ class PatternCompiler(
             coutputs, nenv, life + 4, parentRanges, liveCaptureLocals, elementLocals.toList, listOfMaybeDestructureMemberPatterns.toList, afterDestructureSuccessContinuation)
         Compiler.consecutive(Vector(destroyTE, lets))
       }
-      case rsa @ contentsRuntimeSizedArrayTT(_, _) => {
+      case rsa @ contentsRuntimeSizedArrayTT(_, _, _) => {
         if (listOfMaybeDestructureMemberPatterns.nonEmpty) {
           throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Can only destruct RSA with zero destructure targets."))
         }
@@ -352,7 +352,7 @@ class PatternCompiler(
                 structTT,
                 memberIndex)
             }
-            case staticSizedArrayT@contentsStaticSizedArrayTT(size, _, _, elementType) => {
+            case staticSizedArrayT@contentsStaticSizedArrayTT(size, _, _, elementType, _) => {
               loadFromStaticSizedArray(headMaybeDestructureMemberPattern.range, staticSizedArrayT, expectedContainerCoord, expectedContainerOwnership, containerAliasingExprTE, memberIndex)
             }
             case other => {

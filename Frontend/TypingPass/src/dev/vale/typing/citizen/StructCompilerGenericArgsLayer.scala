@@ -360,7 +360,6 @@ class StructCompilerGenericArgsLayer(
           outerEnv,
           structTemplateFullName,
           fullName,
-          defaultRegion,
           TemplatasStore(fullName, Map(), Map())
             .addEntries(
               interner,
@@ -461,7 +460,6 @@ class StructCompilerGenericArgsLayer(
           outerEnv,
           interfaceTemplateFullName,
           fullName,
-          defaultRegion,
           TemplatasStore(fullName, Map(), Map())
             .addEntries(
               interner,

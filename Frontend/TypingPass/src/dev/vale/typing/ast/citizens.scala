@@ -3,6 +3,7 @@ package dev.vale.typing.ast
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType, RegionTemplataType}
 import dev.vale.typing.TemplataCompiler
 import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IRegionNameT, IStructNameT, IStructTemplateNameT, IVarNameT, IdT, ImplBoundNameT, StructNameT}
+import dev.vale.typing.templata.ITemplata.expectRegionTemplata
 import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
@@ -21,7 +22,6 @@ case class StructDefinitionT(
   templateName: IdT[IStructTemplateNameT],
   // In typing pass, this will have placeholders. Monomorphizing will give it a real name.
   instantiatedCitizen: StructTT,
-  defaultRegion: ITemplata[RegionTemplataType],
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
@@ -30,6 +30,14 @@ case class StructDefinitionT(
   runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
 ) extends CitizenDefinitionT {
+  def defaultRegion: PlaceholderTemplata[RegionTemplataType] = {
+    instantiatedCitizen.id.localName.templateArgs.last match {
+      case PlaceholderTemplata(fullNameT, RegionTemplataType()) =>  {
+        PlaceholderTemplata(fullNameT, RegionTemplataType())
+      }
+    }
+  }
+
   override def genericParamTypes: Vector[ITemplataType] = {
     instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
   }
@@ -108,7 +116,6 @@ case class InterfaceDefinitionT(
   templateName: IdT[IInterfaceTemplateNameT],
   instantiatedInterface: InterfaceTT,
   ref: InterfaceTT,
-  defaultRegion: ITemplata[RegionTemplataType],
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
   mutability: ITemplata[MutabilityTemplataType],
@@ -118,7 +125,15 @@ case class InterfaceDefinitionT(
   // Note from later: Though, sometimes macros add functions into the inside.
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[(PrototypeT, Int)]
-) extends CitizenDefinitionT  {
+) extends CitizenDefinitionT {
+  def defaultRegion: PlaceholderTemplata[RegionTemplataType] = {
+    instantiatedInterface.id.localName.templateArgs.last match {
+      case PlaceholderTemplata(fullNameT, RegionTemplataType()) =>  {
+        PlaceholderTemplata(fullNameT, RegionTemplataType())
+      }
+    }
+  }
+
   override def genericParamTypes: Vector[ITemplataType] = {
     instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
   }
