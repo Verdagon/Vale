@@ -181,16 +181,15 @@ object Spanner {
   }
 
   def forFunctionReturn(p: FunctionReturnP): Span = {
-    val FunctionReturnP(range, maybeInferRet, maybeRetType) = p
+    val FunctionReturnP(range, maybeRetType) = p
     makeSpan(
       Ret,
       range,
-      maybeInferRet.toVector.map({ case r @ RangeL(_, _) => makeSpan(Ret, r, Vector.empty) }) ++
       maybeRetType.toVector.map(forTemplex))
   }
 
   def forFunction(function: FunctionP): Span = {
-    val FunctionP(range, FunctionHeaderP(_, maybeName, attributes, maybeUserSpecifiedIdentifyingRunes, maybeTemplateRulesP, params, ret, defaultRegion), body) = function
+    val FunctionP(range, FunctionHeaderP(_, maybeName, attributes, maybeUserSpecifiedIdentifyingRunes, maybeTemplateRulesP, params, ret), body) = function
 
     makeSpan(
       Fn,
@@ -201,13 +200,15 @@ object Spanner {
       maybeTemplateRulesP.toVector.map(forTemplateRules) ++
       params.toVector.map(forParams) ++
       Vector(forFunctionReturn(ret)) ++
-      defaultRegion.toVector.map(n => makeSpan(Region, n.range)) ++
       body.toVector.map(forBlock))
   }
 
   def forBlock(b: BlockPE): Span = {
-    val BlockPE(range, inner) = b
-    makeSpan(Block, range, Vector(forExpression(inner)))
+    val BlockPE(range, maybeDefaultRegion, inner) = b
+    makeSpan(
+      Block, range,
+      maybeDefaultRegion.toVector.map(n => makeSpan(Region, n.range)) ++
+      Vector(forExpression(inner)))
   }
 
   def forExpression(e: IExpressionPE): Span = {
@@ -222,8 +223,7 @@ object Spanner {
           range,
           Vector.empty)
       }
-      case LambdaPE(captures, FunctionP(range, FunctionHeaderP(_, None, _, _, maybeTemplateRulesP, params, _, defaultRegion), body)) => {
-        vassert(defaultRegion.isEmpty)
+      case LambdaPE(captures, FunctionP(range, FunctionHeaderP(_, None, _, _, maybeTemplateRulesP, params, _), body)) => {
         makeSpan(
           Lambda,
           range,
@@ -347,11 +347,8 @@ object Spanner {
       case ReturnPE(range, expr) => {
         makeSpan(Ret, range, Vector(forExpression(expr)))
       }
-      case BlockPE(range, inner) => {
-        makeSpan(
-          Block,
-          range,
-          Vector(forExpression(inner)))
+      case b @ BlockPE(_, _, _) => {
+        forBlock(b)
       }
 //      case MatchPE(range, condExpr, lambdas) => {
 //        makeSpan(
