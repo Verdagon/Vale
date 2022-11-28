@@ -21,6 +21,13 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     }
   }
 
+  private def compileForError(code: String): ICompileErrorS = {
+    PostParserTestCompilation.test(code).getScoutput() match {
+      case Err(e) => e
+      case Ok(t) => vfail("Successfully compiled!\n" + t.toString)
+    }
+  }
+
   test("Simple rune rule") {
     val program1 = compile("""func main<T>(moo T) { }""")
     val main = program1.lookupFunction("main")
@@ -29,7 +36,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     vassert(main.runeToPredictedType.size == 2)
 
     main.genericParams match {
-      case Vector(GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), _, None)) =>
+      case Vector(GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), _, None), _) =>
     }
   }
 
@@ -85,11 +92,11 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
   }
 
   test("Regioned pure function") {
-    val bork = compile("pure func main<'r>(ship 'r &Spaceship) 't { }")
+    val bork = compile("pure func main<r', t'>(ship &r'Spaceship) t'{ }")
 
     val main = bork.lookupFunction("main")
     // We dont support regions yet, so scout should filter them out.
-    main.genericParams.size shouldEqual 0
+    main.genericParams.size shouldEqual 2
   }
 
   test("Test param-less lambda identifying runes") {
@@ -99,10 +106,9 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    // We dont support regions yet, so scout should filter them out.
-    main.genericParams.size shouldEqual 0
+    main.genericParams.size shouldEqual 1 // only the default region
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.genericParams.size shouldEqual 0
+    lambda.function.genericParams.size shouldEqual 1 // only the default region
   }
 
   test("Test one-param lambda identifying runes") {
@@ -112,10 +118,15 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
         |""".stripMargin)
 
     val main = bork.lookupFunction("main")
-    // We dont support regions yet, so scout should filter them out.
-    main.genericParams.size shouldEqual 0
+    main.genericParams.size shouldEqual 1 // Only the default region
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    lambda.function.genericParams.size shouldEqual 1
+    lambda.function.genericParams.size shouldEqual 2 // default region plus the magic param
+  }
+
+  test("Report that default region must be mentioned in generic params") {
+    compileForError("pure func main<r'>(ship &r'Spaceship) t'{ }") match {
+      case CouldntFindRuneS(range, "t") =>
+    }
   }
 
 }

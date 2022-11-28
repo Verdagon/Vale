@@ -20,6 +20,7 @@ object PostParserErrorHumanizer {
         case UnknownRuleFunctionS(range, name) => ": Unknown rule function name: "+ name
         case UnknownRegionError(range, name) => ": Unknown region: " + name
         case UnimplementedExpression(range, expressionName) => s": ${expressionName} not supported yet.\n"
+        case CouldntFindRuneS(range, name) => ": Couldn't find generic parameter \"" + name + "\".\n"
         case CouldntFindVarToMutateS(range, name) => s": No variable named ${name}. Try declaring it above, like `${name} = 42;`\n"
         case CantOwnershipInterfaceInImpl(range) => s": Can only impl a plain interface, remove symbol."
         case CantOwnershipStructInImpl(range) => s": Only a plain struct/interface can be in an impl, remove symbol."
@@ -178,7 +179,7 @@ object PostParserErrorHumanizer {
         humanizeRune(kindRune.rune) + " = Kind[" + humanizeRune(mutabilityRune.rune) + "]"
       }
       case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
-        humanizeRune(resultRune.rune) + " = Ref[" + humanizeRune(regionRune.rune) + ", " + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(kindRune.rune) + "]"
+        humanizeRune(resultRune.rune) + " = Ref[" + humanizeRune(ownershipRune.rune) + ", " + humanizeRune(regionRune.rune) + ", " + humanizeRune(kindRune.rune) + "]"
       }
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => {
         humanizeRune(resultRune.rune) + " = Prot[" + humanizeRune(paramsRune.rune) + ", " + humanizeRune(returnRune.rune) + "]"

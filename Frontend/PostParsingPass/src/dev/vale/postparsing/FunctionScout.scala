@@ -313,8 +313,12 @@ class FunctionScout(
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), attrs, None)
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
-        case Some(x) => {
-          (evalRange(file, x.range), CodeRuneS(x.name.str), None)
+        case Some(RegionRunePT(regionRange, regionName)) => {
+          val rune = CodeRuneS(regionName.str)
+          if (!functionEnv.allDeclaredRunes().contains(rune)) {
+            throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
+          }
+          (evalRange(file, regionRange), rune, None)
         }
       }
 

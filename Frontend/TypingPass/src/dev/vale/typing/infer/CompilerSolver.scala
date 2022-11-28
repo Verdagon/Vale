@@ -178,7 +178,7 @@ class CompilerSolver(
           case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
           case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toVector ++ Vector(sub, suuper)
           case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
-          case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(resultRune, regionRune, ownershipRune, kindRune)
+          case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(resultRune, ownershipRune, regionRune, kindRune)
           case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(resultRune, paramsRune, returnRune)
           case DefinitionFuncSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
           case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
@@ -222,7 +222,7 @@ class CompilerSolver(
       }
       case PackSR(range, resultRune, members) => Vector(Vector(resultRune.rune), members.map(_.rune))
       case KindComponentsSR(range, kindRune, mutabilityRune) => Vector(Vector(kindRune.rune))
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(Vector(resultRune.rune), Vector(regionRune.rune, ownershipRune.rune, kindRune.rune))
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(Vector(resultRune.rune), Vector(ownershipRune.rune, regionRune.rune, kindRune.rune))
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(Vector(resultRune.rune))
       case CallSiteFuncSR(range, resultRune, name, paramListRune, returnRune) => Vector(Vector(resultRune.rune))
       // Definition doesn't need the placeholder to be present, it's what populates the placeholder.
@@ -546,7 +546,7 @@ class CompilerRuleSolver(
         stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
         Ok(())
       }
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => {
         stepState.getConclusion(resultRune.rune) match {
           case None => {
             val OwnershipTemplata(ownership) = vassertSome(stepState.getConclusion(ownershipRune.rune))

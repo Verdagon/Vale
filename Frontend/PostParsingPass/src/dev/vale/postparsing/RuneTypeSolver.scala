@@ -25,7 +25,7 @@ class RuneTypeSolver(interner: Interner) {
         case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
         case CallSiteCoordIsaSR(range, result, sub, suuper) => result.toVector ++ Vector(sub, suuper)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
-        case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(resultRune, regionRune, ownershipRune, kindRune)
+        case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(resultRune, ownershipRune, regionRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(resultRune, paramsRune, returnRune)
         case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
         case CallSiteFuncSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
@@ -87,7 +87,7 @@ class RuneTypeSolver(interner: Interner) {
       case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => Vector(Vector())
       case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => Vector(Vector())
       case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(Vector())
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(Vector())
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(Vector())
       case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(Vector())
       case ResolveSR(range, resultRune, nameRune, paramsListRune, returnRune) => Vector(Vector())
       case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) => Vector(Vector())
@@ -121,10 +121,10 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), mutabilityRune.rune, MutabilityTemplataType())
         Ok(())
       }
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => {
         stepState.concludeRune(List(range), resultRune.rune, CoordTemplataType())
-        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         stepState.concludeRune(List(range), ownershipRune.rune, OwnershipTemplataType())
+        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         stepState.concludeRune(List(range), kindRune.rune, KindTemplataType())
         Ok(())
       }
