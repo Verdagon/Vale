@@ -112,7 +112,6 @@ class StructCompilerCore(
         structRunesEnv,
         templateId,
         placeholderedFullNameT,
-        defaultRegion,
         TemplatasStore(placeholderedFullNameT, Map(), Map())
           .addEntries(interner, envEntriesFromMacros))
 
@@ -260,6 +259,11 @@ class StructCompilerCore(
 
     val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(interfaceRunesEnv.templatas)
     val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(interfaceRunesEnv.templatas)
+
+    start here
+    // currently uprooting and getting rid of all notions of default regions in the templar.
+    // the scout perhaps should fill them all in so its all explicit.
+    // here, we should get it from the InterfaceDefA and perhaps also the last generic arg.
 
     val interfaceDef2 =
       InterfaceDefinitionT(

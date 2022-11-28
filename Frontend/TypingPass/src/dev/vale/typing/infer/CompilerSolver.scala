@@ -776,8 +776,6 @@ class CompilerRuleSolver(
         }
       }
       case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => {
-        start here, add that region to the def
-        
         stepState.getConclusion(kindRune.rune) match {
           case None => {
             val CoordTemplata(coord) = vassertSome(stepState.getConclusion(coordRune.rune))

@@ -122,7 +122,6 @@ class StructCompiler(
         declaringEnv,
         structTemplateId,
         structTemplateId,
-        defaultRegion,
         TemplatasStore(structTemplateId, Map(), Map())
           .addEntries(
             interner,
@@ -169,7 +168,6 @@ class StructCompiler(
         declaringEnv,
         interfaceTemplateId,
         interfaceTemplateId,
-        defaultRegion,
         TemplatasStore(interfaceTemplateId, Map(), Map())
           .addEntries(
             interner,
