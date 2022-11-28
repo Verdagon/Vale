@@ -164,7 +164,6 @@ class ImplCompiler(
         parentEnv,
         implTemplateId,
         implTemplateId,
-        defaultRegion,
         TemplatasStore(implTemplateId, Map(), Map()))
     coutputs.declareType(implTemplateId)
     coutputs.declareTypeOuterEnv(implTemplateId, implOuterEnv)

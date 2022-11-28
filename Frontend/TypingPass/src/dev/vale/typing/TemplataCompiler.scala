@@ -1031,7 +1031,8 @@ class TemplataCompiler(
     env: IInDenizenEnvironment,
     range: List[RangeS],
     templata: ITemplata[ITemplataType],
-    tyype: ITemplataType
+    tyype: ITemplataType,
+    region: ITemplata[RegionTemplataType]
   ):
   (ITemplata[ITemplataType]) = {
     if (templata.tyype == tyype) {
@@ -1039,7 +1040,7 @@ class TemplataCompiler(
     } else {
       (templata, tyype) match {
         case (KindTemplata(kind), CoordTemplataType()) => {
-          CoordTemplata(coerceKindToCoord(coutputs, kind, env.defaultRegion))
+          CoordTemplata(coerceKindToCoord(coutputs, kind, region))
         }
         case (st@StructDefinitionTemplata(declaringEnv, structA), KindTemplataType()) => {
           if (structA.isTemplate) {
@@ -1072,7 +1073,7 @@ class TemplataCompiler(
               case MutabilityTemplata(ImmutableT) => ShareT
               case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
             }
-          val coerced = CoordTemplata(CoordT(ownership, env.defaultRegion, kind))
+          val coerced = CoordTemplata(CoordT(ownership, region, kind))
           (coerced)
         }
         case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
@@ -1090,7 +1091,7 @@ class TemplataCompiler(
                   case MutabilityTemplata(ImmutableT) => ShareT
                   case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
                 },
-                env.defaultRegion,
+                region,
                 kind))
           (coerced)
         }
@@ -1202,7 +1203,7 @@ class TemplataCompiler(
         // For now, we can manually add them.
         // So, I guess we could just assume the function's default region here then.
         val ownership = if (immutable) ShareT else OwnT
-        CoordTemplata(CoordT(ownership, env.defaultRegion, placeholderKindT))
+        CoordTemplata(CoordT(ownership, vimpl(), placeholderKindT))
       }
       case _ => PlaceholderTemplata(placeholderFullName, runeType)
     }

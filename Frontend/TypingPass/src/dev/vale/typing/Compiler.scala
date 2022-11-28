@@ -293,8 +293,15 @@ class Compiler(
           }
         }
 
-        def coerce(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType] = {
-          templataCompiler.coerce(state, envs.originalCallingEnv, range, templata, toType)
+        def coerce(
+          envs: InferEnv,
+          state: CompilerOutputs,
+          range: List[RangeS],
+          toType: ITemplataType,
+          templata: ITemplata[ITemplataType],
+          region: ITemplata[RegionTemplataType]):
+        ITemplata[ITemplataType] = {
+          templataCompiler.coerce(state, envs.originalCallingEnv, range, templata, toType, region)
         }
 
         override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {

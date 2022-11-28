@@ -160,9 +160,11 @@ case class IsStructSR(
   override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
+// TODO: Get rid of this in favor of just CoordComponentsSR.
 case class CoerceToCoordSR(
   range: RangeS,
   coordRune: RuneUsage,
+  regionRune: RuneUsage,
   kindRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
