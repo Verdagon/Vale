@@ -13,7 +13,7 @@ import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, SignatureT}
 import dev.vale.typing.citizen.{IResolveOutcome, ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
-import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectVariability}
+import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectRegion, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -330,7 +330,7 @@ object TemplataCompiler {
       case RuntimeSizedArrayTT(IdT(
       packageCoord,
       initSteps,
-      RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType)))) => {
+      RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType, region)))) => {
         KindTemplata(
           interner.intern(RuntimeSizedArrayTT(
             IdT(
@@ -340,7 +340,8 @@ object TemplataCompiler {
                 template,
                 interner.intern(RawArrayNameT(
                   expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
-                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType)))))))))
+                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
+                  expectRegion(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, region))))))))))
       }
       case StaticSizedArrayTT(IdT(
       packageCoord,
@@ -349,7 +350,7 @@ object TemplataCompiler {
       template,
       size,
       variability,
-      RawArrayNameT(mutability, elementType)))) => {
+      RawArrayNameT(mutability, elementType, region)))) => {
         KindTemplata(
           interner.intern(StaticSizedArrayTT(
             IdT(
@@ -361,7 +362,8 @@ object TemplataCompiler {
                 expectVariability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, variability)),
                 interner.intern(RawArrayNameT(
                   expectMutability(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, mutability)),
-                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType)))))))))
+                  substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
+                  expectRegion(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, region))))))))))
       }
       case p @ PlaceholderT(id @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index, rune)))) => {
         if (id.initFullName(interner) == needleTemplateName) {
@@ -946,27 +948,6 @@ class TemplataCompiler(
   //      coerce(coutputs, callRange, KindTemplata(uncoercedTemplata), expectedType)
   //    (templata)
   //  }
-
-  def evaluateInterfaceTemplata(
-    coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment, // See CSSNCE
-    callRange: List[RangeS],
-    template: InterfaceDefinitionTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]],
-    expectedType: ITemplataType
-  ):
-  (ITemplata[ITemplataType]) = {
-    val uncoercedTemplata =
-      delegate.resolveInterface(
-        coutputs,
-        callingEnv,
-        callRange,
-        template,
-        templateArgs).expect().kind
-    val templata =
-      coerce(coutputs, callingEnv, callRange, KindTemplata(uncoercedTemplata), expectedType)
-    (templata)
-  }
 
   //  def evaluateBuiltinTemplateTemplata(
   //    env: IEnvironment,

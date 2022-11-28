@@ -308,6 +308,7 @@ class FunctionScout(
         case None => {
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
           val rune = DefaultRegionRuneS()
+          runeToExplicitType.put(rune, RegionTemplataType())
           val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), attrs, None)

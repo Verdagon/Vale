@@ -151,6 +151,7 @@ object PostParserErrorHumanizer {
       case AnonymousSubstructMethodSelfOwnCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".ownself"
       case AnonymousSubstructMethodSelfBorrowCoordRuneS(interface, method) => "$" + humanizeName(interface) + ".anon." + humanizeName(method) + ".borrowself"
       case AnonymousSubstructVoidRuneS() => "anon.void"
+      case DefaultRegionRuneS() => "def"
       case other => vimpl(other)
     }
   }

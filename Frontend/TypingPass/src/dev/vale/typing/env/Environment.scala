@@ -95,7 +95,7 @@ trait IInDenizenEnvironment extends IEnvironment {
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
 
-  def defaultRegion: ITemplata[RegionTemplataType]
+//  def defaultRegion: ITemplata[RegionTemplataType]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -426,7 +426,6 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
   parentEnv: IEnvironment,
   templateId: IdT[Y],
   id: IdT[T],
-  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   vassert(templatas.templatasStoreName == id)
@@ -501,7 +500,7 @@ object GeneralEnvironment {
       parentEnv.globalEnv,
       parentEnv,
       newName,
-      maybeDefaultRegion.getOrElse(parentEnv.defaultRegion),
+//      maybeDefaultRegion.getOrElse(parentEnv.defaultRegion),
       new TemplatasStore(newName, Map(), Map())
         .addEntries(interner, newEntriesList))
   }
@@ -539,7 +538,7 @@ case class GeneralEnvironment[+T <: INameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IInDenizenEnvironment,
   id: IdT[T],
-  defaultRegion: ITemplata[RegionTemplataType],
+//  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def equals(obj: Any): Boolean = vcurious();

@@ -83,7 +83,7 @@ class ArrayCompiler(
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRune)))
     val prototype = overloadResolver.getArrayGeneratorPrototype(coutputs, callingEnv, range, callableTE, true)
-    val ssaMT = resolveStaticSizedArray(mutability, variability, size, prototype.returnType)
+    val ssaMT = resolveStaticSizedArray(mutability, variability, size, prototype.returnType, region)
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
@@ -149,7 +149,7 @@ class ArrayCompiler(
         val prototype =
           overloadResolver.getArrayGeneratorPrototype(
             coutputs, callingEnv, range, callableTE, true)
-        val rsaMT = resolveRuntimeSizedArray(prototype.returnType, mutability)
+        val rsaMT = resolveRuntimeSizedArray(prototype.returnType, mutability, region)
 
         maybeElementTypeRune.foreach(elementTypeRuneA => {
           val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
@@ -191,7 +191,7 @@ class ArrayCompiler(
 
         val elementType =
           prototype.prototype.returnType.kind match {
-            case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType)))) => {
+            case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, elementType, _)))) => {
               if (mutability != MutabilityTemplata(MutableT)) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(range, "Array function returned wrong mutability!"))
               }
@@ -275,7 +275,7 @@ class ArrayCompiler(
       throw CompileErrorExceptionT(InitializedWrongNumberOfElements(range, size, exprs2.size))
     }
 
-    val staticSizedArrayType = resolveStaticSizedArray(mutability, variability, IntegerTemplata(exprs2.size), memberType)
+    val staticSizedArrayType = resolveStaticSizedArray(mutability, variability, IntegerTemplata(exprs2.size), memberType, region)
     val ownership =
       staticSizedArrayType.mutability match {
         case MutabilityTemplata(MutableT) => OwnT
@@ -369,9 +369,6 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(StaticSizedArrayTemplateNameT()))
-    val defaultRegionName =
-      templateFullName.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
-    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment
@@ -384,13 +381,12 @@ class ArrayCompiler(
           globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateFullName,
         templateFullName,
-        defaultRegion,
         TemplatasStore(templateFullName, Map(), Map()))
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
 
     val TemplateTemplataType(types, _) = StaticSizedArrayTemplateTemplata().tyype
-    val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType()) = types
+    val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val sizePlaceholder =
       templataCompiler.createPlaceholderInner(
         coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType(), false, true)
@@ -403,8 +399,17 @@ class ArrayCompiler(
     val elementPlaceholder =
       templataCompiler.createPlaceholderInner(
         coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
+    val regionPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), RegionTemplataType(), false, true)
+
     val placeholders =
-      Vector(sizePlaceholder, mutabilityPlaceholder, variabilityPlaceholder, elementPlaceholder)
+      Vector(
+        sizePlaceholder,
+        mutabilityPlaceholder,
+        variabilityPlaceholder,
+        elementPlaceholder,
+        regionPlaceholder)
 
     val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
     vassert(TemplataCompiler.getTemplate(fullName) == templateFullName)
@@ -420,7 +425,8 @@ class ArrayCompiler(
     mutability: ITemplata[MutabilityTemplataType],
     variability: ITemplata[VariabilityTemplataType],
     size: ITemplata[IntegerTemplataType],
-    type2: CoordT):
+    type2: CoordT,
+    region: ITemplata[RegionTemplataType]):
   (StaticSizedArrayTT) = {
     interner.intern(StaticSizedArrayTT(
       IdT(
@@ -430,8 +436,7 @@ class ArrayCompiler(
           interner.intern(StaticSizedArrayTemplateNameT()),
           size,
           variability,
-          interner.intern(RawArrayNameT(
-            mutability, type2)))))))
+          interner.intern(RawArrayNameT(mutability, type2, region)))))))
   }
 
   def compileRuntimeSizedArray(
@@ -442,7 +447,10 @@ class ArrayCompiler(
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
     val defaultRegionName =
-      templateFullName.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
+      vimpl()
+//      templateFullName.addStep(
+//        interner.intern(PlaceholderNameT(
+//          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
     val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
@@ -455,7 +463,6 @@ class ArrayCompiler(
         PackageEnvironment(globalEnv, templateFullName, globalEnv.nameToTopLevelEnvironment.values.toVector),
         templateFullName,
         templateFullName,
-        defaultRegion,
         TemplatasStore(templateFullName, Map(), Map()))
     coutputs.declareType(templateFullName)
     coutputs.declareTypeOuterEnv(templateFullName, arrayOuterEnv)
@@ -463,15 +470,18 @@ class ArrayCompiler(
 
 
     val TemplateTemplataType(types, _) = RuntimeSizedArrayTemplateTemplata().tyype
-    val Vector(MutabilityTemplataType(), CoordTemplataType()) = types
+    val Vector(MutabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val mutabilityPlaceholder =
       templataCompiler.createPlaceholderInner(
         coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType(), false, true)
     val elementPlaceholder =
       templataCompiler.createPlaceholderInner(
         coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
+    val regionPlaceholder =
+      templataCompiler.createPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), RegionTemplataType(), false, true)
     val placeholders =
-      Vector(mutabilityPlaceholder, elementPlaceholder)
+      Vector(mutabilityPlaceholder, elementPlaceholder, regionPlaceholder)
 
     val fullName = templateFullName.copy(localName = templateFullName.localName.makeCitizenName(interner, placeholders))
 
@@ -482,7 +492,10 @@ class ArrayCompiler(
     coutputs.declareTypeInnerEnv(templateFullName, arrayInnerEnv)
   }
 
-  def resolveRuntimeSizedArray(type2: CoordT, mutability: ITemplata[MutabilityTemplataType]):
+  def resolveRuntimeSizedArray(
+    type2: CoordT,
+    mutability: ITemplata[MutabilityTemplataType],
+    region: ITemplata[RegionTemplataType]):
   (RuntimeSizedArrayTT) = {
     interner.intern(RuntimeSizedArrayTT(
       IdT(
@@ -490,8 +503,7 @@ class ArrayCompiler(
         Vector(),
         interner.intern(RuntimeSizedArrayNameT(
           interner.intern(RuntimeSizedArrayTemplateNameT()),
-          interner.intern(RawArrayNameT(
-            mutability, type2)))))))
+          interner.intern(RawArrayNameT(mutability, type2, region)))))))
   }
 
   private def getArraySize(templatas: Map[IRuneS, ITemplata[ITemplataType]], sizeRuneA: IRuneS): Int = {
