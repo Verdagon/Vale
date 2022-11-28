@@ -25,7 +25,7 @@ object IdentifiabilitySolver {
         case RuneParentEnvLookupSR(range, rune) => Vector(rune)
         case EqualsSR(range, left, right) => Vector(left, right)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
-        case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(resultRune, regionRune, ownershipRune, kindRune)
+        case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(resultRune, ownershipRune, regionRune, kindRune)
         case PrototypeComponentsSR(range, resultRune, paramsRune, returnRune) => Vector(resultRune, paramsRune, returnRune)
         case ResolveSR(range, resultRune, name, paramsListRune, returnRune) => Vector(resultRune, paramsListRune, returnRune)
         case CallSiteFuncSR(range, prototypeRune, name, paramsListRune, returnRune) => Vector(prototypeRune, paramsListRune, returnRune)
@@ -75,7 +75,7 @@ object IdentifiabilitySolver {
       case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) => Vector(Vector())
       case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) => Vector(Vector())
       case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(Vector())
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => Vector(Vector())
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => Vector(Vector())
       case PrototypeComponentsSR(range, resultRune, ownershipRune, kindRune) => Vector(Vector())
       case ResolveSR(range, resultRune, nameRune, paramsListRune, returnRune) => Vector(Vector())
       case CallSiteFuncSR(range, resultRune, nameRune, paramsListRune, returnRune) => Vector(Vector())
@@ -110,10 +110,10 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
         Ok(())
       }
-      case CoordComponentsSR(range, resultRune, regionRune, ownershipRune, kindRune) => {
+      case CoordComponentsSR(range, resultRune, ownershipRune, regionRune, kindRune) => {
         stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         stepState.concludeRune(range :: callRange, ownershipRune.rune, true)
+        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         stepState.concludeRune(range :: callRange, kindRune.rune, true)
         Ok(())
       }

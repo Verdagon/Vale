@@ -153,7 +153,7 @@ class AnonymousInterfaceMacro(
           RuneUsage(b, func(suuper)))
       }
       case KindComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, mutabilityRune)) => KindComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(mutabilityRune)))
-      case CoordComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(aa, regionRune), RuneUsage(b, ownershipRune), RuneUsage(c, kindRune)) => CoordComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(aa, func(regionRune)), RuneUsage(b, func(ownershipRune)), RuneUsage(c, func(kindRune)))
+      case CoordComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, ownershipRune), RuneUsage(aa, regionRune), RuneUsage(c, kindRune)) => CoordComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(aa, func(regionRune)), RuneUsage(b, func(ownershipRune)), RuneUsage(c, func(kindRune)))
       case PrototypeComponentsSR(range, RuneUsage(a, resultRune), RuneUsage(b, paramsRune), RuneUsage(c, returnRune)) => PrototypeComponentsSR(range, RuneUsage(a, func(resultRune)), RuneUsage(b, func(paramsRune)), RuneUsage(c, func(returnRune)))
       case ResolveSR(range, RuneUsage(a, resultRune), name, RuneUsage(b, paramsListRune), RuneUsage(c, returnRune)) => ResolveSR(range, RuneUsage(a, func(resultRune)), name, RuneUsage(b, func(paramsListRune)), RuneUsage(c, func(returnRune)))
       case CallSiteFuncSR(range, RuneUsage(a, resultRune), name, RuneUsage(b, paramsListRune), RuneUsage(c, returnRune)) => CallSiteFuncSR(range, RuneUsage(a, func(resultRune)), name, RuneUsage(b, func(paramsListRune)), RuneUsage(c, func(returnRune)))
@@ -427,8 +427,8 @@ class AnonymousInterfaceMacro(
       CoordComponentsSR(
         abstractParamRange,
         abstractParamCoordRune,
-        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, selfOwnershipRune),
+        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, interfaceRune))
 
     rules.add(destructuringInterfaceRule)
@@ -450,8 +450,8 @@ class AnonymousInterfaceMacro(
       CoordComponentsSR(
         abstractParamRange,
         RuneUsage(abstractParamRange, selfCoordRune),
-        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, selfOwnershipRune),
+        RuneUsage(abstractParamRange, vimpl()),
         RuneUsage(abstractParamRange, selfKindRune))
     rules.add(assemblingStructRule)
 

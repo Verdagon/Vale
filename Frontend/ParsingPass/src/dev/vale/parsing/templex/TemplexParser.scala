@@ -709,6 +709,9 @@ class TemplexParser(interner: Interner, keywords: Keywords) {
       case Some(WordLE(_, w)) if w == keywords.Kind => {
         iter.advance(); Ok(Some(KindTypePR))
       }
+      case Some(WordLE(_, w)) if w == keywords.Region => {
+        iter.advance(); Ok(Some(RegionTypePR))
+      }
       case Some(WordLE(_, w)) if w == keywords.Prot => {
         iter.advance(); Ok(Some(PrototypeTypePR))
       }

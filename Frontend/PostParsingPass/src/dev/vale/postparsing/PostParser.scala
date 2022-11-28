@@ -25,6 +25,7 @@ sealed trait ICompileErrorS { def range: RangeS }
 case class UnknownRuleFunctionS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class UnimplementedExpression(range: RangeS, expressionName: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class CouldntFindVarToMutateS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class CouldntFindRuneS(range: RangeS, name: String) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class StatementAfterReturnS(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ForgotSetKeywordError(range: RangeS) extends ICompileErrorS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class UnknownRegionError(range: RangeS, name: String) extends ICompileErrorS {
@@ -254,7 +255,8 @@ object PostParser {
     val attributesS =
       attributesP.flatMap({
         case ImmutableRuneAttributeP(rangeP) => Some(ImmutableRuneAttributeS(evalRange(env.file, rangeP)))
-        case _ => None
+        case ReadWriteRegionRuneAttributeP(rangeP) => Some(ReadWriteRuneAttributeS(evalRange(env.file, rangeP)))
+        case _ => vimpl()
       })
 
     GenericParameterS(

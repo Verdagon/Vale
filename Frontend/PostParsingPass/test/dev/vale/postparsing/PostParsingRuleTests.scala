@@ -11,8 +11,9 @@ import scala.collection.immutable.List
 
 class PostParsingRuleTests extends FunSuite with Matchers {
   private def compile(code: String, interner: Interner = new Interner()): ProgramS = {
-    PostParserTestCompilation.test(code, interner).getScoutput() match {
-      case Err(e) => vfail(PostParserErrorHumanizer.humanize(FileCoordinateMap.test(interner, code), e))
+    val compile = PostParserTestCompilation.test(code, interner)
+    compile.getScoutput() match {
+      case Err(e) => vfail(PostParserErrorHumanizer.humanize(compile.getCodeMap().getOrDie(), e))
       case Ok(t) => t.expectOne()
     }
   }
@@ -78,6 +79,7 @@ class PostParsingRuleTests extends FunSuite with Matchers {
 
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("T"))))) shouldEqual CoordTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("O"))))) shouldEqual OwnershipTemplataType()
+    vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("R"))))) shouldEqual RegionTemplataType()
     vassertSome(main.runeToPredictedType.get(CodeRuneS(interner.intern(StrI("K"))))) shouldEqual KindTemplataType()
   }
 

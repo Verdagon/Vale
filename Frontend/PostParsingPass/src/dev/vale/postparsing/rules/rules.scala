@@ -73,12 +73,12 @@ case class KindComponentsSR(
 case class CoordComponentsSR(
   range: RangeS,
   resultRune: RuneUsage,
-  regionRune: RuneUsage,
   ownershipRune: RuneUsage,
+  regionRune: RuneUsage,
   kindRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, regionRune, ownershipRune, kindRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, ownershipRune, regionRune, kindRune)
 }
 
 case class PrototypeComponentsSR(
