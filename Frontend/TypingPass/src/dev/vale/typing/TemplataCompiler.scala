@@ -845,8 +845,8 @@ class TemplataCompiler(
             BoolT() |
             StrT() |
             FloatT() |
-            contentsRuntimeSizedArrayTT(_, _) |
-            contentsStaticSizedArrayTT(_, _, _, _), _) => {
+            contentsRuntimeSizedArrayTT(_, _, _) |
+            contentsStaticSizedArrayTT(_, _, _, _, _), _) => {
         return false
       }
       case (_, VoidT() |
@@ -854,8 +854,8 @@ class TemplataCompiler(
                BoolT() |
                StrT() |
                FloatT() |
-               contentsRuntimeSizedArrayTT(_, _) |
-               contentsStaticSizedArrayTT(_, _, _, _)) => {
+               contentsRuntimeSizedArrayTT(_, _, _) |
+               contentsStaticSizedArrayTT(_, _, _, _, _)) => {
         return false
       }
       case (_, StructTT(_)) => return false
@@ -905,10 +905,10 @@ class TemplataCompiler(
         case MutabilityTemplata(ImmutableT) => ShareT
       }
     kind match {
-      case a@contentsRuntimeSizedArrayTT(_, _) => {
+      case a@contentsRuntimeSizedArrayTT(_, _, _) => {
         CoordT(ownership, region, a)
       }
-      case a@contentsStaticSizedArrayTT(_, _, _, _) => {
+      case a@contentsStaticSizedArrayTT(_, _, _, _, _) => {
         CoordT(ownership, region, a)
       }
       case s@StructTT(_) => {

@@ -79,7 +79,14 @@ trait IInfererDelegate {
 
   def lookupTemplataImprecise(env: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplata[ITemplataType]]
 
-  def coerce(env: InferEnv, state: CompilerOutputs, range: List[RangeS], toType: ITemplataType, templata: ITemplata[ITemplataType]): ITemplata[ITemplataType]
+  def coerce(
+    env: InferEnv,
+    state: CompilerOutputs,
+    range: List[RangeS],
+    toType: ITemplataType,
+    templata: ITemplata[ITemplataType],
+    region: ITemplata[RegionTemplataType]):
+  ITemplata[ITemplataType]
 
   def isDescendant(env: InferEnv, state: CompilerOutputs, kind: KindT): Boolean
   def isAncestor(env: InferEnv, state: CompilerOutputs, kind: KindT): Boolean
@@ -187,7 +194,7 @@ class CompilerSolver(
           case IsConcreteSR(range, rune) => Vector(rune)
           case IsInterfaceSR(range, rune) => Vector(rune)
           case IsStructSR(range, rune) => Vector(rune)
-          case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
+          case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
           case LiteralSR(range, rune, literal) => Vector(rune)
           case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune) ++ region.toVector
           case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
@@ -233,7 +240,7 @@ class CompilerSolver(
       case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
       case IsInterfaceSR(range, rune) => Vector(Vector(rune.rune))
       case IsStructSR(range, rune) => Vector(Vector(rune.rune))
-      case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector(coordRune.rune), Vector(kindRune.rune))
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector(coordRune.rune), Vector(regionRune.rune), Vector(kindRune.rune))
       case LiteralSR(range, rune, literal) => Vector(Vector())
       case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector(innerRune.rune) ++ region.map(_.rune), Vector(resultRune.rune))
       case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
@@ -385,8 +392,8 @@ class CompilerRuleSolver(
                 case AugmentSR(range, resultRune, ownership, region, innerRune)
                   if resultRune.rune == receiver => {
                   types.CoordT(
-                    Conversions.evaluateOwnership(vregion(vassertSome(ownership))),
-                    vregion(env.originalCallingEnv.defaultRegion),
+                    Conversions.evaluateOwnership(vassertSome(ownership)),
+                    vimpl(region),//vregion(env.originalCallingEnv.defaultRegion),
                     receiverInstantiationKind)
                 }
               }) ++
@@ -521,6 +528,11 @@ class CompilerRuleSolver(
             rangeS,
             vassertSome(runeToType.get(rune)),
             conclusion)
+
+        strt here
+        // we cant get the region in the above coerce. lets take out coercing, and do better things
+        // in astronomer.
+
         vassert(coerced.tyype == vassertSome(runeToType.get(rune)))
         stepState.concludeRune[ErrType](rangeS, rune, coerced)
       }

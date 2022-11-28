@@ -193,15 +193,17 @@ class Compiler(
             case VoidT() =>
             case NeverT(_) =>
             case StrT() =>
-            case contentsRuntimeSizedArrayTT(mutability, elementType) => {
+            case contentsRuntimeSizedArrayTT(mutability, elementType, selfRegion) => {
               getPlaceholdersInTemplata(accum, mutability)
               getPlaceholdersInKind(accum, elementType.kind)
+              getPlaceholdersInTemplata(accum, selfRegion)
             }
-            case contentsStaticSizedArrayTT(size, mutability, variability, elementType) => {
+            case contentsStaticSizedArrayTT(size, mutability, variability, elementType, selfRegion) => {
               getPlaceholdersInTemplata(accum, size)
               getPlaceholdersInTemplata(accum, mutability)
               getPlaceholdersInTemplata(accum, variability)
               getPlaceholdersInKind(accum, elementType.kind)
+              getPlaceholdersInTemplata(accum, selfRegion)
             }
             case StructTT(IdT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
             case InterfaceTT(IdT(_,_,name)) => name.templateArgs.foreach(getPlaceholdersInTemplata(accum, _))
@@ -258,10 +260,10 @@ class Compiler(
         Boolean = {
           kind match {
             case p @ PlaceholderT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, p, false)
-            case contentsRuntimeSizedArrayTT(_, _) => false
+            case contentsRuntimeSizedArrayTT(_, _, _) => false
             case OverloadSetT(_, _) => false
             case NeverT(fromBreak) => true
-            case contentsStaticSizedArrayTT(_, _, _, _) => false
+            case contentsStaticSizedArrayTT(_, _, _, _, _) => false
             case s @ StructTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, s, false)
             case i @ InterfaceTT(_) => implCompiler.isDescendant(coutputs, envs.parentRanges, envs.originalCallingEnv, i, false)
             case IntT(_) | BoolT() | FloatT() | StrT() | VoidT() => false
@@ -361,8 +363,8 @@ class Compiler(
         Boolean = {
           actualCitizenRef match {
             case s : ICitizenTT => templataCompiler.citizenIsFromTemplate(s, expectedCitizenTemplata)
-            case contentsRuntimeSizedArrayTT(_, _) => (expectedCitizenTemplata == RuntimeSizedArrayTemplateTemplata())
-            case contentsStaticSizedArrayTT(_, _, _, _) => (expectedCitizenTemplata == StaticSizedArrayTemplateTemplata())
+            case contentsRuntimeSizedArrayTT(_, _, _) => (expectedCitizenTemplata == RuntimeSizedArrayTemplateTemplata())
+            case contentsStaticSizedArrayTT(_, _, _, _, _) => (expectedCitizenTemplata == StaticSizedArrayTemplateTemplata())
             case _ => false
           }
         }
@@ -1267,14 +1269,14 @@ class Compiler(
               }
             })
           }
-          case contentsStaticSizedArrayTT(_, mutability, _, CoordT(_, _, elementKind)) => {
+          case contentsStaticSizedArrayTT(_, mutability, _, CoordT(_, _, elementKind), selfRegion) => {
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
                   List(export.range), packageCoord, exportedKind, elementKind))
             }
           }
-          case contentsRuntimeSizedArrayTT(mutability, CoordT(_, _, elementKind)) => {
+          case contentsRuntimeSizedArrayTT(mutability, CoordT(_, _, elementKind), selfRegion) => {
             if (mutability == MutabilityTemplata(ImmutableT) && !Compiler.isPrimitive(elementKind) && !exportedKindToExport.contains(elementKind)) {
               throw CompileErrorExceptionT(
                 vale.typing.ExportedImmutableKindDependedOnNonExportedKind(
@@ -1346,8 +1348,8 @@ object Compiler {
       case PlaceholderT(_) => false
       case StructTT(_) => false
       case InterfaceTT(_) => false
-      case contentsStaticSizedArrayTT(_, _, _, _) => false
-      case contentsRuntimeSizedArrayTT(_, _) => false
+      case contentsStaticSizedArrayTT(_, _, _, _, _) => false
+      case contentsRuntimeSizedArrayTT(_, _, _) => false
     }
   }
 
@@ -1366,8 +1368,8 @@ object Compiler {
       case BoolT() => MutabilityTemplata(ImmutableT)
       case StrT() => MutabilityTemplata(ImmutableT)
       case VoidT() => MutabilityTemplata(ImmutableT)
-      case contentsRuntimeSizedArrayTT(mutability, _) => mutability
-      case contentsStaticSizedArrayTT(_, mutability, _, _) => mutability
+      case contentsRuntimeSizedArrayTT(mutability, _, _) => mutability
+      case contentsStaticSizedArrayTT(_, mutability, _, _, _) => mutability
       case sr @ StructTT(name) => coutputs.lookupMutability(TemplataCompiler.getStructTemplate(name))
       case ir @ InterfaceTT(name) => coutputs.lookupMutability(TemplataCompiler.getInterfaceTemplate(name))
 //      case PackTT(_, sr) => coutputs.lookupMutability(sr)

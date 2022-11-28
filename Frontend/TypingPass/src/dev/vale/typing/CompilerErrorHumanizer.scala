@@ -534,12 +534,14 @@ object CompilerErrorHumanizer {
           case OverloadSetT(_, name) => "(overloads: " + PostParserErrorHumanizer.humanizeImpreciseName(name) + ")"
           case InterfaceTT(name) => humanizeName(codeMap, name)
           case StructTT(name) => humanizeName(codeMap, name)
-          case contentsRuntimeSizedArrayTT(mutability, elementType) => {
+          case contentsRuntimeSizedArrayTT(mutability, elementType, region) => {
+            humanizeTemplata(codeMap, region) + "'" +
             "Array<" +
               humanizeTemplata(codeMap, mutability) + ", " +
               humanizeTemplata(codeMap, CoordTemplata(elementType)) + ">"
           }
-          case contentsStaticSizedArrayTT(size, mutability, variability, elementType) => {
+          case contentsStaticSizedArrayTT(size, mutability, variability, elementType, region) => {
+            humanizeTemplata(codeMap, region) + "'" +
             "StaticArray<" +
               humanizeTemplata(codeMap, size) + ", " +
               humanizeTemplata(codeMap, mutability) + ", " +

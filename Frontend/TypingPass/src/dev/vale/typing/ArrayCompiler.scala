@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, StrI, vassert, vassertOne, vassertSome, vimpl, vregion}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
@@ -300,7 +300,7 @@ class ArrayCompiler(
   DestroyStaticSizedArrayIntoFunctionTE = {
     val arrayTT =
       arrTE.result.coord match {
-        case CoordT(_, region, s @ contentsStaticSizedArrayTT(_, _, _, _)) => s
+        case CoordT(_, region, s @ contentsStaticSizedArrayTT(_, _, _, _, _)) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
         }
@@ -326,7 +326,7 @@ class ArrayCompiler(
   DestroyImmRuntimeSizedArrayTE = {
     val arrayTT =
       arrTE.result.coord match {
-        case CoordT(_, region, s @ contentsRuntimeSizedArrayTT(_, _)) => s
+        case CoordT(_, region, s @ contentsRuntimeSizedArrayTT(_, _, _)) => s
         case other => {
           throw CompileErrorExceptionT(RangedInternalErrorT(range, "Destroying a non-array with a callable! Destroying: " + other))
         }
@@ -520,7 +520,8 @@ class ArrayCompiler(
       containerExpr2: ReferenceExpressionTE,
       indexExpr2: ReferenceExpressionTE,
       at: StaticSizedArrayTT) = {
-    val contentsStaticSizedArrayTT(size, mutability, variabilityTemplata, memberType) = at
+    val contentsStaticSizedArrayTT(size, mutability, variabilityTemplata, memberType, selfRegion) = at
+    vregion(selfRegion)
     val variability =
       variabilityTemplata match {
         case PlaceholderTemplata(_, _) => FinalT
@@ -536,7 +537,8 @@ class ArrayCompiler(
     indexExpr2: ReferenceExpressionTE,
     rsa: RuntimeSizedArrayTT
   ): RuntimeSizedArrayLookupTE = {
-    val contentsRuntimeSizedArrayTT(mutability, memberType) = rsa
+    val contentsRuntimeSizedArrayTT(mutability, memberType, selfRegion) = rsa
+    vregion(selfRegion)
     if (indexExpr2.result.coord.kind != IntT(32)) {
       throw CompileErrorExceptionT(IndexedArrayWithNonInteger(range :: parentRanges, indexExpr2.result.coord))
     }

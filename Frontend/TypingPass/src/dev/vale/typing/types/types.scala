@@ -147,11 +147,12 @@ case class FloatT() extends KindT {
 
 object contentsStaticSizedArrayTT {
   def unapply(ssa: StaticSizedArrayTT):
-  Option[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT)] = {
-    val IdT(_, _, StaticSizedArrayNameT(_, size, variability, RawArrayNameT(mutability, coord))) = ssa.name
-    Some((size, mutability, variability, coord))
+  Option[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT, ITemplata[RegionTemplataType])] = {
+    val IdT(_, _, StaticSizedArrayNameT(_, size, variability, RawArrayNameT(mutability, coord, selfRegion))) = ssa.name
+    Some((size, mutability, variability, coord, selfRegion))
   }
 }
+
 case class StaticSizedArrayTT(
   name: IdT[StaticSizedArrayNameT]
 ) extends KindT with IInterning {
@@ -163,9 +164,10 @@ case class StaticSizedArrayTT(
 }
 
 object contentsRuntimeSizedArrayTT {
-  def unapply(rsa: RuntimeSizedArrayTT): Option[(ITemplata[MutabilityTemplataType], CoordT)] = {
-    val IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, coord))) = rsa.name
-    Some((mutability, coord))
+  def unapply(rsa: RuntimeSizedArrayTT):
+  Option[(ITemplata[MutabilityTemplataType], CoordT, ITemplata[RegionTemplataType])] = {
+    val IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, coord, selfRegion))) = rsa.name
+    Some((mutability, coord, selfRegion))
   }
 }
 case class RuntimeSizedArrayTT(

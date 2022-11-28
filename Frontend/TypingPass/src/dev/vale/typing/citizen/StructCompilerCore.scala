@@ -22,7 +22,7 @@ import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, Citizen
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.ITemplata.expectMutabilityTemplata
+import dev.vale.typing.templata.ITemplata.{expectMutabilityTemplata, expectRegionTemplata}
 
 import scala.collection.immutable.List
 
@@ -45,7 +45,6 @@ class StructCompilerCore(
     val templateNameT = templateId.localName
     val placeholderedNameT = templateNameT.makeStructName(interner, templateArgs)
     val placeholderedFullNameT = templateId.copy(localName = placeholderedNameT)
-    val defaultRegion = vimpl()
 
     // Usually when we make a StructTT we put the instantiation bounds into the coutputs,
     // but this isn't really an instantiation, so we don't here.
@@ -172,7 +171,6 @@ class StructCompilerCore(
       StructDefinitionT(
         templateId,
         placeholderedStructTT,
-        defaultRegion,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         structA.weakable,
         mutability,
@@ -260,17 +258,11 @@ class StructCompilerCore(
     val runeToFunctionBound = TemplataCompiler.assembleRuneToFunctionBound(interfaceRunesEnv.templatas)
     val runeToImplBound = TemplataCompiler.assembleRuneToImplBound(interfaceRunesEnv.templatas)
 
-    start here
-    // currently uprooting and getting rid of all notions of default regions in the templar.
-    // the scout perhaps should fill them all in so its all explicit.
-    // here, we should get it from the InterfaceDefA and perhaps also the last generic arg.
-
     val interfaceDef2 =
       InterfaceDefinitionT(
         templateFullNameT,
         placeholderedInterfaceTT,
         placeholderedInterfaceTT,
-        outerEnv.defaultRegion,
         translateCitizenAttributes(attributesWithoutExportOrMacros),
         interfaceA.weakable,
         mutability,
@@ -395,7 +387,6 @@ class StructCompilerCore(
         containingFunctionEnv,
         understructTemplatedId,
         understructTemplatedId,
-        defaultRegion,
         TemplatasStore(understructTemplatedId, Map(), Map())
           .addEntries(
             interner,
@@ -415,7 +406,6 @@ class StructCompilerCore(
         structOuterEnv,
         understructTemplatedId,
         understructInstantiatedId,
-        defaultRegion,
         TemplatasStore(understructInstantiatedId, Map(), Map())
           // There are no inferences we'd need to add, because it's a lambda and they don't have
           // any rules or anything.
@@ -434,7 +424,6 @@ class StructCompilerCore(
       StructDefinitionT(
         understructTemplatedId,
         understructStructTT,
-        defaultRegion,
         Vector.empty,
         false,
         MutabilityTemplata(mutability),

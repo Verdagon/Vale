@@ -818,7 +818,7 @@ class ExpressionCompiler(
 
           val exprTemplata =
             containerExpr2.result.coord.kind match {
-              case rsa@contentsRuntimeSizedArrayTT(_, _) => {
+              case rsa@contentsRuntimeSizedArrayTT(_, _, _) => {
                 arrayCompiler.lookupInUnknownSizedArray(
                   parentRanges,
                   range,
@@ -826,7 +826,7 @@ class ExpressionCompiler(
                   indexExpr2,
                   rsa)
               }
-              case at@contentsStaticSizedArrayTT(_, _, _, _) => {
+              case at@contentsStaticSizedArrayTT(_, _, _, _, _) => {
                 arrayCompiler.lookupInStaticSizedArray(range, containerExpr2, indexExpr2, at)
               }
               //              case at@StructTT(FullNameT(ProgramT.topLevelName, Vector(),
@@ -904,7 +904,7 @@ class ExpressionCompiler(
                 ast.ReferenceMemberLookupTE(
                   range, containerExpr2, memberFullName, memberType, structMember.variability)
               }
-              case as@contentsStaticSizedArrayTT(_, _, _, _) => {
+              case as@contentsStaticSizedArrayTT(_, _, _, _, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInStaticSizedArray(
                     range,
@@ -917,7 +917,7 @@ class ExpressionCompiler(
                     "Sequence has no member named " + memberNameStr))
                 }
               }
-              case at@contentsRuntimeSizedArrayTT(_, _) => {
+              case at@contentsRuntimeSizedArrayTT(_, _, _) => {
                 if (memberNameStr.str.forall(Character.isDigit)) {
                   arrayCompiler.lookupInUnknownSizedArray(
                     parentRanges, range, containerExpr2,
