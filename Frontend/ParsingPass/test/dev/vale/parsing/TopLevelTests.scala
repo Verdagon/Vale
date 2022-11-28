@@ -1,8 +1,7 @@
 package dev.vale.parsing
 
-import dev.vale.{Collector, Interner, StrI, vassertOne}
-import dev.vale.parsing.ast.{BlockPE, ExportAsP, FileP, FunctionP, ImportP, NameOrRunePT, NameP, TopLevelExportAsP, TopLevelFunctionP, TopLevelImportP, TopLevelStructP, VoidPE}
-import dev.vale.parsing.ast.BlockPE
+import dev.vale.{Collector, Interner, StrI, vassertOne, vassertSome}
+import dev.vale.parsing.ast.{BlockPE, CallPT, ExportAsP, FileP, FunctionP, ImportP, NameOrRunePT, NameP, RegionRunePT, TopLevelExportAsP, TopLevelFunctionP, TopLevelImportP, TopLevelStructP, VoidPE}
 import dev.vale.lexing.{BadStartOfStatementError, IParseError, Lexer, UnrecognizedDenizenError}
 import dev.vale.options.GlobalOptions
 import org.scalatest.{FunSuite, Matchers}
@@ -181,10 +180,13 @@ class TopLevelTests extends FunSuite with Matchers with Collector with TestParse
   test("Return with region generics") {
     val program = compile(
       """
-        |func strongestDesire() IDesire<'r, 'i> { }
+        |func strongestDesire() IDesire<r', i'> { }
         |""".stripMargin)
-    program.denizens(0) match {
-      case TopLevelFunctionP(func) =>
+    val func = program.lookupFunction("strongestDesire")
+    vassertSome(func.header.ret.retType) match {
+      case CallPT(_,
+        NameOrRunePT(NameP(_,StrI("IDesire"))),
+        Vector(RegionRunePT(_,NameP(_,StrI("r"))), RegionRunePT(_,NameP(_,StrI("i"))))) =>
     }
   }
 
