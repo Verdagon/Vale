@@ -775,7 +775,9 @@ class CompilerRuleSolver(
           case _ => vwat() // Should be impossible, all template rules are type checked
         }
       }
-      case CoerceToCoordSR(range, coordRune, kindRune) => {
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => {
+        start here, add that region to the def
+        
         stepState.getConclusion(kindRune.rune) match {
           case None => {
             val CoordTemplata(coord) = vassertSome(stepState.getConclusion(coordRune.rune))
@@ -783,7 +785,8 @@ class CompilerRuleSolver(
             Ok(())
           }
           case Some(kind) => {
-            val coerced = delegate.coerce(env, state, range :: env.parentRanges, CoordTemplataType(), kind)
+            val RegionTemplata(region) = vassertSome(stepState.getConclusion(regionRune.rune))
+            val coerced = delegate.coerce(env, state, range :: env.parentRanges, CoordTemplataType(), region, kind)
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, coordRune.rune, coerced)
             Ok(())
           }

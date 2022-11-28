@@ -24,6 +24,14 @@ object ITemplata {
     }
   }
 
+  def expectRegion(templata: ITemplata[ITemplataType]): ITemplata[RegionTemplataType] = {
+    templata match {
+      case t @ RegionTemplata(_) => t
+      case PlaceholderTemplata(fullNameT, RegionTemplataType()) => PlaceholderTemplata(fullNameT, RegionTemplataType())
+      case _ => vfail()
+    }
+  }
+
   def expectVariability(templata: ITemplata[ITemplataType]): ITemplata[VariabilityTemplataType] = {
     templata match {
       case t @ VariabilityTemplata(_) => t

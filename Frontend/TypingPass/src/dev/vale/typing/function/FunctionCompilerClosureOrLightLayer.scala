@@ -410,8 +410,10 @@ class FunctionCompilerClosureOrLightLayer(
     templateId: IdT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val defaultRegionName =
-      templateId.addStep(PlaceholderNameT(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))
+    val defaultRegionName = vimpl()
+//      templateId.addStep(
+//        interner.intern(PlaceholderNameT(
+//          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
     val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,

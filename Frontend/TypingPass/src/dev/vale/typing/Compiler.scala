@@ -117,23 +117,25 @@ class Compiler(
         }
 
         override def resolveStaticSizedArrayKind(
-            env: IInDenizenEnvironment,
-            coutputs: CompilerOutputs,
-            mutability: ITemplata[MutabilityTemplataType],
-            variability: ITemplata[VariabilityTemplataType],
-            size: ITemplata[IntegerTemplataType],
-            type2: CoordT
-        ): StaticSizedArrayTT = {
-          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2)
+          env: IInDenizenEnvironment,
+          coutputs: CompilerOutputs,
+          mutability: ITemplata[MutabilityTemplataType],
+          variability: ITemplata[VariabilityTemplataType],
+          size: ITemplata[IntegerTemplataType],
+          type2: CoordT,
+          region: ITemplata[RegionTemplataType]):
+        StaticSizedArrayTT = {
+          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2, region)
         }
 
         override def resolveRuntimeSizedArrayKind(
-            env: IInDenizenEnvironment,
-            state: CompilerOutputs,
-            element: CoordT,
-            arrayMutability: ITemplata[MutabilityTemplataType]):
+          env: IInDenizenEnvironment,
+          state: CompilerOutputs,
+          element: CoordT,
+          arrayMutability: ITemplata[MutabilityTemplataType],
+          region: ITemplata[RegionTemplataType]):
         RuntimeSizedArrayTT = {
-          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
+          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
         }
       })
   val inferCompiler: InferCompiler =
@@ -300,15 +302,29 @@ class Compiler(
         }
 
         override def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType] = {
-            Compiler.getMutability(state, kind)
+          Compiler.getMutability(state, kind)
         }
 
-        override def predictStaticSizedArrayKind(envs: InferEnv, state: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): (StaticSizedArrayTT) = {
-            arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element)
+        override def predictStaticSizedArrayKind(
+          envs: InferEnv,
+          state: CompilerOutputs,
+          mutability: ITemplata[MutabilityTemplataType],
+          variability: ITemplata[VariabilityTemplataType],
+          size: ITemplata[IntegerTemplataType],
+          element: CoordT,
+          region: ITemplata[RegionTemplataType]):
+        StaticSizedArrayTT = {
+          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element, region)
         }
 
-        override def predictRuntimeSizedArrayKind(envs: InferEnv, state: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
-            arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
+        override def predictRuntimeSizedArrayKind(
+          envs: InferEnv,
+          state: CompilerOutputs,
+          element: CoordT,
+          arrayMutability: ITemplata[MutabilityTemplataType],
+          region: ITemplata[RegionTemplataType]):
+        RuntimeSizedArrayTT = {
+            arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
         }
 
         override def predictInterface(
@@ -465,12 +481,24 @@ class Compiler(
             verifyConclusions)
         }
 
-        override def resolveStaticSizedArrayKind(coutputs: CompilerOutputs, mutability: ITemplata[MutabilityTemplataType], variability: ITemplata[VariabilityTemplataType], size: ITemplata[IntegerTemplataType], element: CoordT): StaticSizedArrayTT = {
-          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element)
+        override def resolveStaticSizedArrayKind(
+          coutputs: CompilerOutputs,
+          mutability: ITemplata[MutabilityTemplataType],
+          variability: ITemplata[VariabilityTemplataType],
+          size: ITemplata[IntegerTemplataType],
+          element: CoordT,
+          region: ITemplata[RegionTemplataType]):
+        StaticSizedArrayTT = {
+          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element, region)
         }
 
-        override def resolveRuntimeSizedArrayKind(coutputs: CompilerOutputs, element: CoordT, arrayMutability: ITemplata[MutabilityTemplataType]): RuntimeSizedArrayTT = {
-          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability)
+        override def resolveRuntimeSizedArrayKind(
+          coutputs: CompilerOutputs,
+          element: CoordT,
+          arrayMutability: ITemplata[MutabilityTemplataType],
+          region: ITemplata[RegionTemplataType]):
+        RuntimeSizedArrayTT = {
+          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
         }
 
         override def resolveImpl(

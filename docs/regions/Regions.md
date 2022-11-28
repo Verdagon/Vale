@@ -268,7 +268,7 @@ a function can independently move things around. it has a different region than 
 It's not entirely clear whether this is needed. We'll see if it comes into play. I wonder if this is kind of like the region of the stack frame?
 
 
-## Are Regions Actually Generic Parameters? (ARAGP)
+## In Functions, Are Regions Actually Generic Parameters? (IFARAGP)
 
 
 Take this function:
@@ -323,13 +323,53 @@ But it does work if we think of `r'` as a generic parameter, a rune. In that cas
 
 ## Default Region is a Generic Parameter (DRIAGP)
 
-From ARAGP, we saw that every region is a generic parameter, because overload resolution needs to equate the incoming `foo'` to the receiving `r'`.
+From IFARAGP, we saw that every region is a generic parameter, because overload resolution needs to equate the incoming `foo'` to the receiving `r'`.
 
 
-This is also the case with the implicit default region (`moo'`), because `bork<bork', z'>` might be called from `func moo<moo', a'>` like `bork<a', moo'>`. We need to have `bork'` as a generic parameter so that where `moo` calls `bork`, it can specify what region (`a'`) is fed in as `bork`'s default region.
+This is also the case with the implicit default region (`moo'`), because `bork<bork', z'>` might be called from `func moo<moo', a'>` like `bork<a', moo'>`. We need to have `bork'` as a generic parameter so that where `moo` calls `bork`, it can specify what region (`a'`) is fed in as `bork`'s default region. But... this is theoretically possible if its not a region generic parameter, it's just specified in the coord instead.
 
 
-We do this even for functions that _only_ have a default region, so that we're consistent.
+Is there any unique benefit to having it as the coord?
+Perhaps that it can be transmuted easily?
+For example, when we convert a bump'Thing<myimm'whatever> from a struct containing raw refs to one containing real refs... x'Thing<myimm'whatever>. theyre legit different. they contain different data. theres no such thing as just casting them.
+
+We *could* think of them as the same data, just that the generations are nulled out beforehand and then populated afterward...
+
+
+a regular struct pointing at things in its own region will always be full generational refs.
+a struct, generic, pointing at things in a different immutable region will have raw refs.
+a struct, generic, pointing at things in a different *mutable* region will have gen refs.
+
+it really doesnt matter what region the struct is. its contents depends on whether it points at things in a different region.
+
+interestingly, that might change depending on the containing function.
+
+take `pure func find<T>(self &List<T>, thing &T)`.
+expand to `pure func find<t', T, me'>(self &me'List<t'T>, thing &t'T) me'Opt<&t'T>`
+
+if t' is mutable, then that `me'Opt<&t'T>` will contain a gen reference.
+if t' is immutable, then that `me'Opt<&t'T>` will contain a raw reference.
+
+t' starts immutable. we're in a pure function after all.
+
+but then, that `t'` becomes mutable again, and we need to fill in those references. so it flips to the other one.
+
+the things that come out of a pure function are guaranteed to be iso, so we _can_ copy, if we want... we'd have to map all contained references.
+
+what if theyre in an arena? we'll need to copy em out anyway.
+actually, maybe not. we know whether the callee region is in a specific custom region. if it is we copy. if we handed in our own, we just do the refreshing of the generations.
+we could do a runtime test. if theyre different, but theyre both malloc, we can call mimalloc merge or something.
+
+as tricky as this is, i think this is actually orthogonal to whether its considered a generic param or not. if it did affect things, it would be that we can transmute from contains-raw to contains-gen. that suggests theyre the same type in the end.
+
+but perhaps we can just _always_ type-erase regions away in structs. seems like they should always have generations.
+
+
+
+ region ref to a Splork containing refs to other things in the Splorks region, that Splork is different than a mut region ref to a Splork containing refs to some other imm region.
+
+
+Whatever we do, we should do it also for functions that _only_ have a default region, so that we're consistent.
 
 
 This is also why we need generics. Since its a generic parameter, the old system would have monomorphized every function according to every root (exported, iow) function.

@@ -1,13 +1,13 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
 import dev.vale.typing.templata.ITemplata
 import dev.vale.typing.types._
 import dev.vale.typing.templata.CoordTemplata
-import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectInteger, expectMutability, expectVariability}
+import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectInteger, expectMutability, expectRegionTemplata, expectVariability}
 import dev.vale.typing.types._
 
 // Scout's/Astronomer's name parts correspond to where they are in the source code,
@@ -195,18 +195,23 @@ case class ImplBoundNameT(
 case class LetNameT(codeLocation: CodeLocationS) extends INameT
 case class ExportAsNameT(codeLocation: CodeLocationS) extends INameT
 
-case class RawArrayNameT(mutability: ITemplata[MutabilityTemplataType], elementType: CoordT) extends INameT
+case class RawArrayNameT(
+  mutability: ITemplata[MutabilityTemplataType],
+  elementType: CoordT,
+  selfRegion: ITemplata[RegionTemplataType]
+) extends INameT
 
 case class ReachablePrototypeNameT(num: Int) extends INameT
 
 case class StaticSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
   override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameT = {
-    vassert(templateArgs.size == 4)
+    vassert(templateArgs.size == 5)
     val size = expectInteger(templateArgs(0))
     val mutability = expectMutability(templateArgs(1))
     val variability = expectVariability(templateArgs(2))
     val elementType = expectCoordTemplata(templateArgs(3)).coord
-    interner.intern(StaticSizedArrayNameT(this, size, variability, RawArrayNameT(mutability, elementType)))
+    val selfRegion = expectRegionTemplata(templateArgs(4))
+    interner.intern(StaticSizedArrayNameT(this, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))
   }
 }
 
@@ -225,7 +230,8 @@ case class RuntimeSizedArrayTemplateNameT() extends ICitizenTemplateNameT {
     vassert(templateArgs.size == 2)
     val mutability = expectMutability(templateArgs(0))
     val elementType = expectCoordTemplata(templateArgs(1)).coord
-    interner.intern(RuntimeSizedArrayNameT(this, RawArrayNameT(mutability, elementType)))
+    val region = expectRegionTemplata(templateArgs(2))
+    interner.intern(RuntimeSizedArrayNameT(this, RawArrayNameT(mutability, elementType, region)))
   }
 }
 
