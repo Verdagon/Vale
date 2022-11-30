@@ -9,7 +9,7 @@ void {
   drop_into(intermediate, &{ to.push(_); });
 }
 
-func migrate<E, N, V>(
+func migrate<E, N Int, V Variability>(
   from [#N]<mut, V>E, // live
   to &[]<mut>E) // live
 void {

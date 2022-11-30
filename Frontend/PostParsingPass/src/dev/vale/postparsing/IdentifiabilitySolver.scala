@@ -36,14 +36,14 @@ object IdentifiabilitySolver {
         case IsConcreteSR(range, rune) => Vector(rune)
         case IsInterfaceSR(range, rune) => Vector(rune)
         case IsStructSR(range, rune) => Vector(rune)
-        case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
+        case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
         case AugmentSR(range, resultRune, maybeOwnership, maybeRegion, innerRune) => Vector(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
-        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
-        case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(resultRune, mutabilityRune, elementRune)
+//        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
+//        case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(resultRune, mutabilityRune, elementRune)
 //        case ManualSequenceSR(range, resultRune, elements) => Vector(resultRune) ++ elements
         case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(resultRune, coordListRune)
 //        case CoordListSR(range, resultRune, elements) => Vector(resultRune) ++ elements
@@ -84,11 +84,12 @@ object IdentifiabilitySolver {
       case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
       case IsInterfaceSR(range, rune) => Vector(Vector())
       case IsStructSR(range, rune) => Vector(Vector())
-      case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector())
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector())
       case LiteralSR(range, rune, literal) => Vector(Vector())
       case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector())
-      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
-      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
+//      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
+//      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
+
 //      case ManualSequenceSR(range, resultRune, elements) => Vector(Vector(resultRune.rune))
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(Vector())
         // solverState.addPuzzle(ruleIndex, Vector(senderRune, receiverRune))
@@ -190,8 +191,9 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, coordListRune.rune, true)
         Ok(())
       }
-      case CoerceToCoordSR(range, coordRune, kindRune) => {
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => {
         stepState.concludeRune(range :: callRange, kindRune.rune, true)
+        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         stepState.concludeRune(range :: callRange, coordRune.rune, true)
         Ok(())
       }
@@ -230,20 +232,20 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, resultRune.rune, true)
         Ok(())
       }
-      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
-        stepState.concludeRune(range :: callRange, variabilityRune.rune, true)
-        stepState.concludeRune(range :: callRange, sizeRune.rune, true)
-        stepState.concludeRune(range :: callRange, elementRune.rune, true)
-        Ok(())
-      }
-      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => {
-        stepState.concludeRune(range :: callRange, resultRune.rune, true)
-        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
-        stepState.concludeRune(range :: callRange, elementRune.rune, true)
-        Ok(())
-      }
+//      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
+//        stepState.concludeRune(range :: callRange, resultRune.rune, true)
+//        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
+//        stepState.concludeRune(range :: callRange, variabilityRune.rune, true)
+//        stepState.concludeRune(range :: callRange, sizeRune.rune, true)
+//        stepState.concludeRune(range :: callRange, elementRune.rune, true)
+//        Ok(())
+//      }
+//      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => {
+//        stepState.concludeRune(range :: callRange, resultRune.rune, true)
+//        stepState.concludeRune(range :: callRange, mutabilityRune.rune, true)
+//        stepState.concludeRune(range :: callRange, elementRune.rune, true)
+//        Ok(())
+//      }
     }
   }
 

@@ -62,22 +62,24 @@ trait ITemplataCompilerDelegate {
   ):
   IResolveOutcome[InterfaceTT]
 
-  def resolveStaticSizedArrayKind(
-    env: IInDenizenEnvironment,
-    coutputs: CompilerOutputs,
-    mutability: ITemplata[MutabilityTemplataType],
-    variability: ITemplata[VariabilityTemplataType],
-    size: ITemplata[IntegerTemplataType],
-    type2: CoordT
-  ):
-  StaticSizedArrayTT
-
-  def resolveRuntimeSizedArrayKind(
-    env: IInDenizenEnvironment,
-    state: CompilerOutputs,
-    element: CoordT,
-    arrayMutability: ITemplata[MutabilityTemplataType]
-  ): RuntimeSizedArrayTT
+//  def resolveStaticSizedArrayKind(
+//    env: IInDenizenEnvironment,
+//    coutputs: CompilerOutputs,
+//    mutability: ITemplata[MutabilityTemplataType],
+//    variability: ITemplata[VariabilityTemplataType],
+//    size: ITemplata[IntegerTemplataType],
+//    type2: CoordT,
+//    region: ITemplata[RegionTemplataType]
+//  ):
+//  StaticSizedArrayTT
+//
+//  def resolveRuntimeSizedArrayKind(
+//    env: IInDenizenEnvironment,
+//    state: CompilerOutputs,
+//    element: CoordT,
+//    arrayMutability: ITemplata[MutabilityTemplataType],
+//    region: ITemplata[RegionTemplataType]
+//  ): RuntimeSizedArrayTT
 }
 
 object TemplataCompiler {
@@ -949,40 +951,6 @@ class TemplataCompiler(
   //    (templata)
   //  }
 
-  //  def evaluateBuiltinTemplateTemplata(
-  //    env: IEnvironment,
-  //    coutputs: CompilerOutputs,
-  //    range: List[RangeS],
-  //    template: RuntimeSizedArrayTemplateTemplata,
-  //    templateArgs: Vector[ITemplata[ITemplataType]],
-  //    expectedType: ITemplataType):
-  //  (ITemplata[ITemplataType]) = {
-  //    val Vector(m, CoordTemplata(elementType)) = templateArgs
-  //    val mutability = ITemplata.expectMutability(m)
-  //    val arrayKindTemplata = delegate.getRuntimeSizedArrayKind(env, coutputs, elementType,
-  //    mutability)
-  //    val templata =
-  //      coerce(coutputs, callingEnv, range, KindTemplata(arrayKindTemplata), expectedType)
-  //    (templata)
-  //  }
-
-  //  def getStaticSizedArrayKind(
-  //    env: IEnvironment,
-  //    coutputs: CompilerOutputs,
-  //    callRange: List[RangeS],
-  //    mutability: ITemplata[MutabilityTemplataType],
-  //    variability: ITemplata[VariabilityTemplataType],
-  //    size: ITemplata[IntegerTemplataType],
-  //    element: CoordT,
-  //    expectedType: ITemplataType):
-  //  (ITemplata[ITemplataType]) = {
-  //    val uncoercedTemplata =
-  //      delegate.getStaticSizedArrayKind(env, coutputs, mutability, variability, size, element)
-  //    val templata =
-  //      coerce(coutputs, callingEnv, callRange, KindTemplata(uncoercedTemplata), expectedType)
-  //    (templata)
-  //  }
-
   def lookupTemplata(
     env: IEnvironment,
     coutputs: CompilerOutputs,
@@ -1026,39 +994,23 @@ class TemplataCompiler(
       kind)
   }
 
-  def coerce(
+  def coerceToCoord(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironment,
     range: List[RangeS],
     templata: ITemplata[ITemplataType],
-    tyype: ITemplataType,
-    region: ITemplata[RegionTemplataType]
-  ):
+    region: ITemplata[RegionTemplataType]):
   (ITemplata[ITemplataType]) = {
-    if (templata.tyype == tyype) {
+    if (templata.tyype == CoordTemplataType()) {
+      vcurious()
       templata
     } else {
-      (templata, tyype) match {
-        case (KindTemplata(kind), CoordTemplataType()) => {
+      templata match {
+        case KindTemplata(kind) => {
           CoordTemplata(coerceKindToCoord(coutputs, kind, region))
         }
-        case (st@StructDefinitionTemplata(declaringEnv, structA), KindTemplataType()) => {
-          if (structA.isTemplate) {
-            vfail("Can't coerce " + structA.name + " to be a kind, is a template!")
-          }
-          val kind =
-            delegate.resolveStruct(coutputs, env, range, st, Vector.empty).expect().kind
-          (KindTemplata(kind))
-        }
-        case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), KindTemplataType()) => {
-          if (interfaceA.isTemplate) {
-            vfail("Can't coerce " + interfaceA.name + " to be a kind, is a template!")
-          }
-          val kind =
-            delegate.resolveInterface(coutputs, env, range, it, Vector.empty).expect().kind
-          (KindTemplata(kind))
-        }
-        case (st@StructDefinitionTemplata(declaringEnv, structA), CoordTemplataType()) => {
+        case st@StructDefinitionTemplata(declaringEnv, structA) => {
+          vcurious()
           if (structA.isTemplate) {
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
@@ -1076,7 +1028,7 @@ class TemplataCompiler(
           val coerced = CoordTemplata(CoordT(ownership, region, kind))
           (coerced)
         }
-        case (it@InterfaceDefinitionTemplata(declaringEnv, interfaceA), CoordTemplataType()) => {
+        case it@InterfaceDefinitionTemplata(declaringEnv, interfaceA) => {
           if (interfaceA.isTemplate) {
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
@@ -1096,7 +1048,7 @@ class TemplataCompiler(
           (coerced)
         }
         case _ => {
-          vfail("Can't coerce a " + templata.tyype + " to be a " + tyype)
+          vfail("Can't coerce a " + templata.tyype + " to be a coord!")
         }
       }
     }

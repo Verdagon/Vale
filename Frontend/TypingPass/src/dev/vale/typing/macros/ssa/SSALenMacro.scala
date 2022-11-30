@@ -37,7 +37,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
     val len =
       header.paramTypes match {
-        case Vector(CoordT(_, _, contentsStaticSizedArrayTT(size, _, _, _))) => size
+        case Vector(CoordT(_, _, contentsStaticSizedArrayTT(size, _, _, _, _))) => size
         case _ => {
           throw CompileErrorExceptionT(
             RangedInternalErrorT(

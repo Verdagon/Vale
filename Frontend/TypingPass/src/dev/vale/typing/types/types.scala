@@ -64,12 +64,6 @@ case class CoordT(
   kind: KindT)  {
 
   vpass()
-  this match {
-    case CoordT(BorrowT,_,RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(_,RawArrayNameT(MutabilityTemplata(ImmutableT),CoordT(ShareT,_,IntT(32))))))) => {
-      vpass()
-    }
-    case _ =>
-  }
 
   kind match {
     case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) => {

@@ -267,7 +267,6 @@ class CompilerTests extends FunSuite with Matchers {
         simpleName("MyStruct"),
         StructTT(simpleName("MyStruct")),
         _,
-        _,
         false,
         MutabilityTemplata(MutableT),
         Vector(NormalStructMemberT(CodeVarNameT(StrI("a")), FinalT, ReferenceMemberTypeT((CoordT(ShareT, _,IntT.i32))))),
@@ -324,12 +323,12 @@ class CompilerTests extends FunSuite with Matchers {
 
     val interfaceDef =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, _, false, MutabilityTemplata(MutableT), _, _, Vector()) => id
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, Vector()) => id
       }))
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.flatMap(_._2.values).exists(impl => {
@@ -352,7 +351,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val (interfaceDef, methods) =
       vassertOne(coutputs.interfaces.collectFirst({
-        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, _, false, MutabilityTemplata(MutableT), _, _, methods) => (id, methods)
+        case id @ InterfaceDefinitionT(simpleName("MyInterface"), _, _, _, false, MutabilityTemplata(MutableT), _, _, methods) => (id, methods)
       }))
     vassertSome(methods.collectFirst({
       case (f @ PrototypeT(simpleName("bork"), _), _) => f
@@ -360,7 +359,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val structDef =
       vassertOne(coutputs.structs.collectFirst({
-        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
+        case sd @ StructDefinitionT(simpleName("MyStruct"), _, _, false, MutabilityTemplata(MutableT), _, false, _, _) => sd
       }))
 
     vassert(coutputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).exists(impl => {
@@ -1502,8 +1501,9 @@ class CompilerTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _) => }
+    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _, _) => }
   }
+
 
   test("Tests calling an abstract function") {
     val compile = CompilerTestCompilation.test(

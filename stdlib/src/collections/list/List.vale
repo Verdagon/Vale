@@ -14,6 +14,7 @@ func List<E>() List<E> {
   List<E>(0)
 }
 
+<<<<<<< HEAD
 func List<'s rw, E, V, N>(
   source_arr 's [#N]<mut, V>E) // HGM: live
 'o List<E> {
@@ -32,6 +33,16 @@ pure func List<'r imm, 'o rw, E Ref imm, V, N>(
 'o List<E> {
   list_arr = Array<mut, E>(source_arr.len());
 
+=======
+func List<E, V Variability, N Int>(arr [#N]<mut, V>E) List<E> {
+  list = List<E>(arr.len());
+  migrate(arr, &list.array);
+  return list;
+}
+
+func List<E Ref imm, V Variability, N Int>(arr [#N]<imm, V>E) List<E> {
+  list = List<E>(arr.len());
+>>>>>>> master
   i = 0;
   while i < source_arr.len() {
     list_arr.push(source_arr[i]); // No overhead, source_arr is pure
