@@ -561,7 +561,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
   def function: FunctionA = functionEnvironment.function
   def maybeReturnType: Option[CoordT] = functionEnvironment.maybeReturnType
 
-  override def defaultRegion: ITemplata[RegionTemplataType] = functionEnvironment.defaultRegion
+//  override def defaultRegion: ITemplata[RegionTemplataType] = functionEnvironment.defaultRegion
   override def globalEnv: GlobalEnvironment = functionEnvironment.globalEnv
   override def templatas: TemplatasStore = functionEnvironment.templatas
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = functionEnvironment.rootCompilingDenizenEnv

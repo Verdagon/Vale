@@ -182,7 +182,12 @@ class CompilerMutateTests extends FunSuite with Matchers {
     compile.getCompilerOutputs() match {
       case Err(CantMutateFinalElement(_, arrRef2)) => {
         arrRef2.kind match {
-          case contentsStaticSizedArrayTT(IntegerTemplata(10),MutabilityTemplata(ImmutableT),VariabilityTemplata(FinalT),CoordT(ShareT,_,IntT(_))) =>
+          case contentsStaticSizedArrayTT(
+            IntegerTemplata(10),
+            MutabilityTemplata(ImmutableT),
+            VariabilityTemplata(FinalT),
+            CoordT(ShareT,_,IntT(_)),
+            _) =>
         }
       }
     }

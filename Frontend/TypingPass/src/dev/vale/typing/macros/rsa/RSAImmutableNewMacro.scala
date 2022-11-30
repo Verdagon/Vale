@@ -58,7 +58,7 @@ class RSAImmutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability)
+    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, vimpl())
 
     val generatorArgCoord =
       paramCoords(1).tyype match {

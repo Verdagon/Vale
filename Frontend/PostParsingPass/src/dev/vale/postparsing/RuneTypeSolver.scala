@@ -34,14 +34,14 @@ class RuneTypeSolver(interner: Interner) {
         case IsConcreteSR(range, rune) => Vector(rune)
         case IsInterfaceSR(range, rune) => Vector(rune)
         case IsStructSR(range, rune) => Vector(rune)
-        case CoerceToCoordSR(range, coordRune, kindRune) => Vector(coordRune, kindRune)
+        case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
         case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune)
         case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune, returnTypeRune) ++ parameters
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
-        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
-        case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(resultRune, mutabilityRune, elementRune)
+//        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
+//        case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(resultRune, mutabilityRune, elementRune)
 //        case ManualSequenceSR(range, resultRune, elements) => Vector(resultRune) ++ elements
         case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(resultRune, coordListRune)
 //        case CoordListSR(range, resultRune, elements) => Vector(resultRune) ++ elements
@@ -96,11 +96,11 @@ class RuneTypeSolver(interner: Interner) {
       case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
       case IsInterfaceSR(range, rune) => Vector(Vector())
       case IsStructSR(range, rune) => Vector(Vector())
-      case CoerceToCoordSR(range, coordRune, kindRune) => Vector(Vector())
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector())
       case LiteralSR(range, rune, literal) => Vector(Vector())
       case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector())
-      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune))
-      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune))
+//      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune))
+//      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune))
 //      case ManualSequenceSR(range, resultRune, elements) => Vector(Vector(resultRune.rune))
       case RefListCompoundMutabilitySR(range, resultRune, coordListRune) => Vector(Vector())
         // solverState.addPuzzle(ruleIndex, Vector(senderRune, receiverRune))
@@ -215,9 +215,10 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), coordListRune.rune, PackTemplataType(CoordTemplataType()))
         Ok(())
       }
-      case CoerceToCoordSR(range, coordRune, kindRune) => {
-        stepState.concludeRune(List(range), kindRune.rune, KindTemplataType())
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => {
         stepState.concludeRune(List(range), coordRune.rune, CoordTemplataType())
+        stepState.concludeRune(List(range), regionRune.rune, CoordTemplataType())
+        stepState.concludeRune(List(range), kindRune.rune, KindTemplataType())
         Ok(())
       }
       case LiteralSR(range, rune, literal) => {
@@ -262,18 +263,18 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), resultRune.rune, PackTemplataType(CoordTemplataType()))
         Ok(())
       }
-      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
-        stepState.concludeRune(List(range), mutabilityRune.rune, MutabilityTemplataType())
-        stepState.concludeRune(List(range), variabilityRune.rune, VariabilityTemplataType())
-        stepState.concludeRune(List(range), sizeRune.rune, IntegerTemplataType())
-        stepState.concludeRune(List(range), elementRune.rune, CoordTemplataType())
-        Ok(())
-      }
-      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => {
-        stepState.concludeRune(List(range), mutabilityRune.rune, MutabilityTemplataType())
-        stepState.concludeRune(List(range), elementRune.rune, CoordTemplataType())
-        Ok(())
-      }
+//      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => {
+//        stepState.concludeRune(List(range), mutabilityRune.rune, MutabilityTemplataType())
+//        stepState.concludeRune(List(range), variabilityRune.rune, VariabilityTemplataType())
+//        stepState.concludeRune(List(range), sizeRune.rune, IntegerTemplataType())
+//        stepState.concludeRune(List(range), elementRune.rune, CoordTemplataType())
+//        Ok(())
+//      }
+//      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => {
+//        stepState.concludeRune(List(range), mutabilityRune.rune, MutabilityTemplataType())
+//        stepState.concludeRune(List(range), elementRune.rune, CoordTemplataType())
+//        Ok(())
+//      }
     }
   }
 

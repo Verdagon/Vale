@@ -150,7 +150,7 @@ class FunctionScout(
 
 
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    val runeToExplicitType = mutable.HashMap[IRuneS, ITemplataType]()
+    val runeToExplicitType = mutable.ArrayBuffer[(IRuneS, ITemplataType)]()
 
     maybeParent match {
       case FunctionNoParent() => {
@@ -216,7 +216,7 @@ class FunctionScout(
         case a @ AtomSP(_, _, _, Some(_), _) => a //(a, None)
         case AtomSP(range, name, virtuality, None, destructure) => {
           val rune = rules.RuneUsage(range, ImplicitRuneS(lidb.child().consume()))
-          runeToExplicitType.put(rune.rune, CoordTemplataType())
+          runeToExplicitType += ((rune.rune, CoordTemplataType()))
           val newParam = patterns.AtomSP(range, name, virtuality, Some(rune), destructure)
           newParam
 //          (newParam, Some(rune))
@@ -283,7 +283,7 @@ class FunctionScout(
         }
       }
 
-    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType.put(retCoordRune.rune, CoordTemplataType()))
+    maybeRetCoordRune.foreach(retCoordRune => runeToExplicitType += ((retCoordRune.rune, CoordTemplataType())))
 
     maybeParent match {
       case FunctionNoParent() =>
@@ -308,10 +308,10 @@ class FunctionScout(
         case None => {
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
           val rune = DefaultRegionRuneS()
-          runeToExplicitType.put(rune, RegionTemplataType())
+          runeToExplicitType += ((rune, RegionTemplataType()))
           val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
           val implicitRegionGenericParam =
-            GenericParameterS(regionRange, RuneUsage(regionRange, rune), attrs, None)
+            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), attrs, None)
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, regionName)) => {
@@ -384,16 +384,22 @@ class FunctionScout(
                 throw CompileErrorExceptionS(
                   RangedInternalErrorS(rangeS, "Cant have a lambda with _ and params"))
               }
+
               val closureParamS =
-                createClosureParam(range, funcName, lidb, ruleBuilder, parentStackFrame)
+                createClosureParam(range, funcName, lidb, ruleBuilder, runeToExplicitType, parentStackFrame)
               val magicParams =
                 createMagicParameters(lidb, lambdaMagicParamNames, runeToExplicitType)
+
               val extraGenericParamsFromBodyS =
                 // Lambdas identifying runes are determined by their magic params.
                 // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
                 magicParams.map(param => {
                   GenericParameterS(
-                    param.pattern.range, vassertSome(param.pattern.coordRune), Vector(), None)
+                    param.pattern.range,
+                    vassertSome(param.pattern.coordRune),
+                    CoordTemplataType(),
+                    Vector(),
+                    None)
                 })
               (extraGenericParamsFromBodyS, Some(closureParamS), magicParams)
             }
@@ -442,13 +448,15 @@ class FunctionScout(
       postParser.predictRuneTypes(
         rangeS,
         userSpecifiedIdentifyingRunes.map(_.rune),
-        runeToExplicitType.toMap,
+        runeToExplicitType,
         rulesArray)
 
     postParser.checkIdentifiability(
       rangeS,
       genericParametersS.map(_.rune.rune),
       rulesArray)
+
+    val tyype = TemplateTemplataType(genericParametersS.map(_.tyype), FunctionTemplataType())
 
     val functionS =
       FunctionS(
@@ -457,6 +465,7 @@ class FunctionScout(
         funcAttrsS,
         genericParametersS,
         runeToPredictedType,
+        tyype,
         totalParamsS,
         maybeRetCoordRune,
         rulesArray,
@@ -469,22 +478,29 @@ class FunctionScout(
     funcName: IFunctionDeclarationNameS,
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
+    runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
     parentStackFrame: StackFrame):
   ParameterS = {
     val closureParamName = interner.intern(ClosureParamNameS())
     val closureParamPos = PostParser.evalPos(parentStackFrame.file, range.begin)
     val closureParamRange = RangeS(closureParamPos, closureParamPos)
-    val closureStructRune = rules.RuneUsage(
-      closureParamRange,
-      ImplicitRuneS(lidb.child().consume()))
+
+    val closureStructKindRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
+    runeToExplicitType += ((closureStructKindRune.rune, KindTemplataType()))
     val closureStructName =
       interner.intern(LambdaStructDeclarationNameS(
-        funcName match { case x@LambdaDeclarationNameS(_) => x }))
+        funcName match { case x @ LambdaDeclarationNameS(_) => x }))
     ruleBuilder +=
-      LookupSR(closureParamRange, closureStructRune, closureStructName.getImpreciseName(interner))
+      LookupSR(closureParamRange, closureStructKindRune, closureStructName.getImpreciseName(interner))
+
+    val closureStructCoordRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
+    runeToExplicitType += ((closureStructCoordRune.rune, CoordTemplataType()))
+    ruleBuilder +=
+      CoerceToCoordSR(closureParamRange, closureStructCoordRune, vimpl(), closureStructKindRune)
+
     val closureParamTypeRune =
       rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
-    ruleBuilder += AugmentSR(closureParamRange, closureParamTypeRune, Some(BorrowP), None, closureStructRune)
+    ruleBuilder += AugmentSR(closureParamRange, closureParamTypeRune, Some(BorrowP), None, closureStructCoordRune)
 
     val capture = CaptureS(closureParamName)
     val closurePattern =
@@ -495,14 +511,14 @@ class FunctionScout(
   private def createMagicParameters(
     lidb: LocationInDenizenBuilder,
     lambdaMagicParamNames: Vector[MagicParamNameS],
-    runeToExplicitType: mutable.HashMap[IRuneS, ITemplataType]):
+    runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)]):
   Vector[ParameterS] = {
     lambdaMagicParamNames.map({
       case mpn@MagicParamNameS(codeLocation) => {
         val magicParamRange = vale.RangeS(codeLocation, codeLocation)
         val magicParamRune =
           rules.RuneUsage(magicParamRange, MagicParamRuneS(lidb.child().consume()))
-        runeToExplicitType.put(magicParamRune.rune, CoordTemplataType())
+        runeToExplicitType += ((magicParamRune.rune, CoordTemplataType()))
         val paramS =
           ParameterS(
             AtomSP(

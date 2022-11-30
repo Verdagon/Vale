@@ -116,27 +116,28 @@ class Compiler(
             coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
         }
 
-        override def resolveStaticSizedArrayKind(
-          env: IInDenizenEnvironment,
-          coutputs: CompilerOutputs,
-          mutability: ITemplata[MutabilityTemplataType],
-          variability: ITemplata[VariabilityTemplataType],
-          size: ITemplata[IntegerTemplataType],
-          type2: CoordT,
-          region: ITemplata[RegionTemplataType]):
-        StaticSizedArrayTT = {
-          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2, region)
-        }
-
-        override def resolveRuntimeSizedArrayKind(
-          env: IInDenizenEnvironment,
-          state: CompilerOutputs,
-          element: CoordT,
-          arrayMutability: ITemplata[MutabilityTemplataType],
-          region: ITemplata[RegionTemplataType]):
-        RuntimeSizedArrayTT = {
-          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
-        }
+//        override def resolveStaticSizedArrayKind(
+//          env: IInDenizenEnvironment,
+//          coutputs: CompilerOutputs,
+//          mutability: ITemplata[MutabilityTemplataType],
+//          variability: ITemplata[VariabilityTemplataType],
+//          size: ITemplata[IntegerTemplataType],
+//          type2: CoordT,
+//          region: ITemplata[RegionTemplataType]):
+//        StaticSizedArrayTT = {
+//          arrayCompiler.resolveStaticSizedArray(mutability, variability, size, type2, region)
+//        }
+//
+//
+//        override def resolveRuntimeSizedArrayKind(
+//          env: IInDenizenEnvironment,
+//          state: CompilerOutputs,
+//          element: CoordT,
+//          arrayMutability: ITemplata[MutabilityTemplataType],
+//          region: ITemplata[RegionTemplataType]):
+//        RuntimeSizedArrayTT = {
+//          arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
+//        }
       })
   val inferCompiler: InferCompiler =
     new InferCompiler(
@@ -295,15 +296,14 @@ class Compiler(
           }
         }
 
-        def coerce(
+        def coerceToCoord(
           envs: InferEnv,
           state: CompilerOutputs,
           range: List[RangeS],
-          toType: ITemplataType,
           templata: ITemplata[ITemplataType],
           region: ITemplata[RegionTemplataType]):
         ITemplata[ITemplataType] = {
-          templataCompiler.coerce(state, envs.originalCallingEnv, range, templata, toType, region)
+          templataCompiler.coerceToCoord(state, envs.originalCallingEnv, range, templata, region)
         }
 
         override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
@@ -833,6 +833,7 @@ class Compiler(
                 interner.intern(PrimitiveNameT(keywords.int)) -> TemplataEnvEntry(KindTemplata(IntT.i32)),
                 interner.intern(PrimitiveNameT(keywords.i64)) -> TemplataEnvEntry(KindTemplata(IntT.i64)),
                 interner.intern(PrimitiveNameT(keywords.Array)) -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()),
+                interner.intern(PrimitiveNameT(keywords.StaticArray)) -> TemplataEnvEntry(StaticSizedArrayTemplateTemplata()),
                 interner.intern(PrimitiveNameT(keywords.bool)) -> TemplataEnvEntry(KindTemplata(BoolT())),
                 interner.intern(PrimitiveNameT(keywords.float)) -> TemplataEnvEntry(KindTemplata(FloatT())),
                 interner.intern(PrimitiveNameT(keywords.__Never)) -> TemplataEnvEntry(KindTemplata(NeverT(false))),

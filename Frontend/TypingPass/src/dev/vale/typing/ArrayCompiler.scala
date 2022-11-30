@@ -10,8 +10,9 @@ import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, 
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
+import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
@@ -21,6 +22,8 @@ import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
 import scala.collection.immutable.{List, Set}
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class ArrayCompiler(
     opts: TypingPassOptions,
@@ -40,7 +43,7 @@ class ArrayCompiler(
     callingEnv: IInDenizenEnvironment,
     region: ITemplata[RegionTemplataType],
     range: List[RangeS],
-    rulesA: Vector[IRulexSR],
+    rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
     sizeRuneA: IRuneS,
     mutabilityRune: IRuneS,
@@ -52,26 +55,39 @@ class ArrayCompiler(
 //      interner.intern(PackageCoordinate(keywords.emptyString, Vector.empty))
 //    val declaringEnv =
 //      PackageEnvironment.makeTopLevelEnvironment(callingEnv.globalEnv, builtinNamespaceCoord)
-    val runeToType =
+    val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
         (nameS: IImpreciseNameS) => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
-        rulesA,
+        rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
         Map()) match {
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
+
+    val runeAToType =
+      mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
+    // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
+    // loose. We intentionally ignored the types of the things they're looking up, so we could know
+    // what types we *expect* them to be, so we could coerce.
+    // That coercion is good, but lets make it more explicit.
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    explicifyLookups(
+      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    val rulesA = ruleBuilder.toVector
+
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, range, callingEnv),
         coutputs,
         rulesA,
-        runeToType,
+        runeAToType.toMap,
         range,
         Vector(),
         Vector(),
@@ -101,21 +117,21 @@ class ArrayCompiler(
     callingEnv: NodeEnvironment,
     range: List[RangeS],
     region: ITemplata[RegionTemplataType],
-    rulesA: Vector[IRulexSR],
+    rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
     mutabilityRune: IRuneS,
     sizeTE: ReferenceExpressionTE,
     maybeCallableTE: Option[ReferenceExpressionTE],
     verifyConclusions: Boolean):
   ReferenceExpressionTE = {
-    val runeToType =
+    val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
         nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
-        rulesA,
+        rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
         Map(mutabilityRune -> MutabilityTemplataType()) ++
@@ -123,9 +139,22 @@ class ArrayCompiler(
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(range, e))
       }
+
+    val runeAToType =
+      mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
+    // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
+    // loose. We intentionally ignored the types of the things they're looking up, so we could know
+    // what types we *expect* them to be, so we could coerce.
+    // That coercion is good, but lets make it more explicit.
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    explicifyLookups(
+      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    val rulesA = ruleBuilder.toVector
+
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Vector())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeAToType.toMap, range, Vector(), Vector(), true, true, Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -218,26 +247,26 @@ class ArrayCompiler(
   }
 
   def evaluateStaticSizedArrayFromValues(
-    coutputs: CompilerOutputs,
-    callingEnv: IInDenizenEnvironment,
-    range: List[RangeS],
-    rulesA: Vector[IRulexSR],
-    maybeElementTypeRuneA: Option[IRuneS],
-    sizeRuneA: IRuneS,
-    mutabilityRuneA: IRuneS,
-    variabilityRuneA: IRuneS,
-    exprs2: Vector[ReferenceExpressionTE],
+      coutputs: CompilerOutputs,
+      callingEnv: IInDenizenEnvironment,
+      range: List[RangeS],
+      rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
+      maybeElementTypeRuneA: Option[IRuneS],
+      sizeRuneA: IRuneS,
+      mutabilityRuneA: IRuneS,
+      variabilityRuneA: IRuneS,
+      exprs2: Vector[ReferenceExpressionTE],
     region: ITemplata[RegionTemplataType],
-    verifyConclusions: Boolean):
-  StaticArrayFromValuesTE = {
-    val runeToType =
+      verifyConclusions: Boolean):
+   StaticArrayFromValuesTE = {
+    val runeAToTypeWithImplicitlyCoercingLookupsS =
       runeTypeSolver.solve(
         opts.globalOptions.sanityCheck,
         opts.globalOptions.useOptimizedSolver,
         nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype,
         range,
         false,
-        rulesA,
+        rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
         Map[IRuneS, ITemplataType](
@@ -257,9 +286,21 @@ class ArrayCompiler(
     }
     val memberType = memberTypes.head
 
+    val runeAToType =
+      mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
+    // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
+    // loose. We intentionally ignored the types of the things they're looking up, so we could know
+    // what types we *expect* them to be, so we could coerce.
+    // That coercion is good, but lets make it more explicit.
+    val ruleBuilder = ArrayBuffer[IRulexSR]()
+    explicifyLookups(
+      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
+      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    val rulesA = ruleBuilder.toVector
+
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeToType, range, Vector(), Vector(), true, true, Vector())
+        InferEnv(callingEnv, range, callingEnv), coutputs, rulesA, runeAToType.toMap, range, Vector(), Vector(), true, true, Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
