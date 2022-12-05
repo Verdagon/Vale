@@ -71,6 +71,7 @@ case class StructP(
   mutability: Option[ITemplexPT],
   identifyingRunes: Option[GenericParametersP],
   templateRules: Option[TemplateRulesP],
+  maybeDefaultRegionRuneP: Option[RegionRunePT],
   bodyRange: RangeL,
   members: StructMembersP) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
@@ -98,6 +99,7 @@ case class InterfaceP(
   mutability: Option[ITemplexPT],
   maybeIdentifyingRunes: Option[GenericParametersP],
   templateRules: Option[TemplateRulesP],
+  maybeDefaultRegionRuneP: Option[RegionRunePT],
   bodyRange: RangeL,
   members: Vector[FunctionP]) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 

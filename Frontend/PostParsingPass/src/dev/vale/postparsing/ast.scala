@@ -158,11 +158,13 @@ case class ImplS(
 }
 
 case class ExportAsS(
-    range: RangeS,
-    rules: Vector[IRulexSR],
-    exportName: ExportAsNameS,
-    rune: RuneUsage,
-    exportedName: StrI) {
+  range: RangeS,
+  rules: Vector[IRulexSR],
+  regionGenericParam: GenericParameterS,
+  defaultRegionRune: IRuneS,
+  exportName: ExportAsNameS,
+  rune: RuneUsage,
+  exportedName: StrI) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 

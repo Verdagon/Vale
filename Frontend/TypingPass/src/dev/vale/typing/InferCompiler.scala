@@ -334,7 +334,7 @@ class InferCompiler(
   Result[Option[InstantiationBoundArguments], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
     // Check all template calls
     rules.foreach({
-      case r@CallSR(_, _, _, _) => {
+      case r@MaybeCoercingCallSR(_, _, _, _, _) => {
         checkTemplateCall(env, state, ranges, r, conclusions) match {
           case Ok(()) =>
           case Err(e) => return Err(RuleError(CouldntResolveKind(e)))
@@ -459,11 +459,11 @@ class InferCompiler(
     callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     ranges: List[RangeS],
-    c: CallSR,
+    c: MaybeCoercingCallSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, ResolveFailure[KindT]] = {
 //  Result[Option[(IRuneS, PrototypeTemplata)], ISolverError[IRuneS, ITemplata[ITemplataType], ITypingPassSolverError]] = {
-    val CallSR(range, resultRune, templateRune, argRunes) = c
+    val MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, argRunes) = c
 
     // If it was an incomplete solve, then just skip.
     val template =

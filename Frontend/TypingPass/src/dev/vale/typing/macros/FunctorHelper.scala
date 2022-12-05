@@ -1,6 +1,6 @@
 package dev.vale.typing.macros
 
-import dev.vale.postparsing.rules.LookupSR
+import dev.vale.postparsing.rules.MaybeCoercingLookupSR
 import dev.vale.postparsing.{CodeNameS, FunctorPrototypeRuneNameS}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vfail, vimpl, vwat}
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntEvaluateFunction, OverloadResolver}

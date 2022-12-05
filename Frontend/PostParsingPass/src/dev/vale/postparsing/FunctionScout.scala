@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.postparsing.rules.{AugmentSR, IRulexSR, LookupSR, RuleScout, RuneUsage, TemplexScout}
+import dev.vale.postparsing.rules.{AugmentSR, IRulexSR, MaybeCoercingLookupSR, RuleScout, RuneUsage, TemplexScout}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import PostParser.{evalRange, noDeclarations, noVariableUses}
@@ -152,6 +152,26 @@ class FunctionScout(
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     val runeToExplicitType = mutable.ArrayBuffer[(IRuneS, ITemplataType)]()
 
+    val (defaultRegionRuneRangeS, defaultRegionRuneS, maybeRegionGenericParam) =
+      maybeBody0.flatMap(_.maybeDefaultRegion) match {
+        case None => {
+          val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
+          val rune = DefaultRegionRuneS()
+          runeToExplicitType += ((rune, RegionTemplataType()))
+          val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
+          val implicitRegionGenericParam =
+            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), attrs, None)
+          (regionRange, rune, Some(implicitRegionGenericParam))
+        }
+        case Some(RegionRunePT(regionRange, regionName)) => {
+          val rune = CodeRuneS(regionName.str)
+          if (!functionEnv.allDeclaredRunes().contains(rune)) {
+            throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
+          }
+          (evalRange(file, regionRange), rune, None)
+        }
+      }
+
     maybeParent match {
       case FunctionNoParent() => {
         ruleScout.translateRulexes(
@@ -159,6 +179,7 @@ class FunctionScout(
           lidb.child(),
           ruleBuilder,
           runeToExplicitType,
+          defaultRegionRuneS,
           templateRulesP.toVector.flatMap(_.rules))
       }
       case ParentFunction(_) => {
@@ -172,20 +193,20 @@ class FunctionScout(
           lidb.child(),
           ruleBuilder,
           runeToExplicitType,
+          defaultRegionRuneS,
           templateRulesP.toVector.flatMap(_.rules))
       }
     }
-
 
     val functionUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, g, r)
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
 
     val myStackFrameWithoutParams =
-      StackFrame(file, funcName, functionEnv, None, noDeclarations)
+      StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, noDeclarations)
 
     val paramPatternsP =
       maybeParamsP.toVector.flatMap(_.patterns).map(pattern => {
@@ -263,7 +284,12 @@ class FunctionScout(
               // If nothing's present, assume void
               val rangeS = PostParser.evalRange(file, retRange)
               val rune = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-              ruleBuilder += LookupSR(rangeS, rune, interner.intern(CodeNameS(keywords.void)))
+              ruleBuilder +=
+                MaybeCoercingLookupSR(
+                  rangeS,
+                  rune,
+                  RuneUsage(RangeS(retRangeS.begin, retRangeS.begin), defaultRegionRuneS),
+                  interner.intern(CodeNameS(keywords.void)))
               Some(rune)
             }
           }
@@ -279,6 +305,7 @@ class FunctionScout(
             PostParser.evalRange(myStackFrameWithoutParams.file, retRange),
             ruleBuilder,
             runeToExplicitType,
+            defaultRegionRuneS,
             Some(retTypePT))
         }
       }
@@ -302,26 +329,6 @@ class FunctionScout(
         case ParentFunction(_) => Vector()
         case ParentInterface(_, interfaceGenericParams, _, _) => interfaceGenericParams
       })
-
-    val (defaultRegionRuneRangeS, implicitDefaultRegionRune, maybeImplicitRegionGenericParam) =
-      maybeBody0.flatMap(_.maybeDefaultRegion) match {
-        case None => {
-          val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
-          val rune = DefaultRegionRuneS()
-          runeToExplicitType += ((rune, RegionTemplataType()))
-          val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
-          val implicitRegionGenericParam =
-            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), attrs, None)
-          (regionRange, rune, Some(implicitRegionGenericParam))
-        }
-        case Some(RegionRunePT(regionRange, regionName)) => {
-          val rune = CodeRuneS(regionName.str)
-          if (!functionEnv.allDeclaredRunes().contains(rune)) {
-            throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
-          }
-          (evalRange(file, regionRange), rune, None)
-        }
-      }
 
     val (maybeBody1, variableUses, extraGenericParamsFromBodyS, maybeClosureParam, magicParams) =
       if (maybeParent match { case ParentInterface(_, _, _, _) => true case _ => false }) {
@@ -362,6 +369,7 @@ class FunctionScout(
             functionEnv,
             parentStackFrame,
             lidb.child(),
+            defaultRegionRuneS,
             bodyP,
             // We hand these into scoutBody instead of assembling a StackFrame on our own
             // because we want StackFrame's to be made in one place, where we can centralize the
@@ -413,7 +421,7 @@ class FunctionScout(
       extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS ++
-        maybeImplicitRegionGenericParam
+        maybeRegionGenericParam
 
     val unfilteredRulesArray = ruleBuilder.toVector
 
@@ -485,18 +493,20 @@ class FunctionScout(
     val closureParamPos = PostParser.evalPos(parentStackFrame.file, range.begin)
     val closureParamRange = RangeS(closureParamPos, closureParamPos)
 
+    val regionRune = vimpl()
+
     val closureStructKindRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
     runeToExplicitType += ((closureStructKindRune.rune, KindTemplataType()))
     val closureStructName =
       interner.intern(LambdaStructDeclarationNameS(
         funcName match { case x @ LambdaDeclarationNameS(_) => x }))
     ruleBuilder +=
-      LookupSR(closureParamRange, closureStructKindRune, closureStructName.getImpreciseName(interner))
+      MaybeCoercingLookupSR(closureParamRange, closureStructKindRune, regionRune, closureStructName.getImpreciseName(interner))
 
     val closureStructCoordRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
     runeToExplicitType += ((closureStructCoordRune.rune, CoordTemplataType()))
     ruleBuilder +=
-      CoerceToCoordSR(closureParamRange, closureStructCoordRune, vimpl(), closureStructKindRune)
+      CoerceToCoordSR(closureParamRange, closureStructCoordRune, regionRune, closureStructKindRune)
 
     val closureParamTypeRune =
       rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
@@ -546,6 +556,7 @@ class FunctionScout(
     // This might be the block containing the lambda that we're evaluating now.
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
+    contextRegion: IRuneS,
     body0: BlockPE,
     initialDeclarations: VariableDeclarations):
   (BodySE, VariableUses, Vector[MagicParamNameS]) = {
@@ -561,6 +572,7 @@ class FunctionScout(
       parentStackFrame,
       lidb.child(),
       PostParser.evalRange(functionBodyEnv.file, body0.range),
+      contextRegion,
       initialDeclarations,
       (stackFrame1, lidb) => {
         expressionScout.scoutExpressionAndCoerce(

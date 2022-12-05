@@ -21,7 +21,7 @@ object IdentifiabilitySolver {
   def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val sanityCheck =
       rule match {
-        case LookupSR(range, rune, literal) => Vector(rune)
+        case MaybeCoercingLookupSR(range, rune, region, literal) => Vector(rune) :+ region
         case RuneParentEnvLookupSR(range, rune) => Vector(rune)
         case EqualsSR(range, left, right) => Vector(left, right)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
@@ -39,7 +39,7 @@ object IdentifiabilitySolver {
         case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
         case AugmentSR(range, resultRune, maybeOwnership, maybeRegion, innerRune) => Vector(resultRune, innerRune)
-        case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
+        case MaybeCoercingCallSR(range, resultRune, defaultRegionRune, templateRune, args) => Vector(resultRune, defaultRegionRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
 //        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
@@ -56,17 +56,17 @@ object IdentifiabilitySolver {
   def getPuzzles(rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
-      case LookupSR(range, rune, _) => Vector(Vector())
+      case MaybeCoercingLookupSR(range, rune, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => {
         // This Vector() literally means nothing can solve this puzzle.
         // It needs to be passed in via identifying rune.
         Vector()
       }
-      case CallSR(range, resultRune, templateRune, args) => {
+      case MaybeCoercingCallSR(range, resultRune, region, templateRune, args) => {
         // We can't determine the template from the result and args because we might be coercing its
         // returned kind to a coord. So we need the template.
         // We can't determine the return type because we don't know whether we're coercing or not.
-        Vector(Vector(resultRune.rune, templateRune.rune), Vector(templateRune.rune) ++ args.map(_.rune))
+        Vector(Vector(resultRune.rune, region.rune, templateRune.rune), Vector(templateRune.rune) ++ args.map(_.rune))
       }
       case PackSR(range, resultRune, members) => {
         // Packs are always lists of coords
@@ -124,8 +124,9 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, returnRune.rune, true)
         Ok(())
       }
-      case CallSR(range, resultRune, templateRune, argRunes) => {
+      case MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, argRunes) => {
         stepState.concludeRune(range :: callRange, resultRune.rune, true)
+        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         stepState.concludeRune(range :: callRange, templateRune.rune, true)
         argRunes.map(_.rune).foreach({ case argRune =>
           stepState.concludeRune(range :: callRange, argRune, true)
@@ -201,8 +202,9 @@ object IdentifiabilitySolver {
         stepState.concludeRune(range :: callRange, rune.rune, true)
         Ok(())
       }
-      case LookupSR(range, rune, name) => {
+      case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
         stepState.concludeRune(range :: callRange, rune.rune, true)
+        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
@@ -218,8 +220,9 @@ object IdentifiabilitySolver {
 //        }
         Ok(())
       }
-      case LookupSR(range, rune, name) => {
+      case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
         stepState.concludeRune(range :: callRange, rune.rune, true)
+        stepState.concludeRune(range :: callRange, regionRune.rune, true)
         Ok(())
       }
       case AugmentSR(range, resultRune, ownership, region, innerRune) => {

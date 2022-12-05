@@ -93,12 +93,13 @@ object Spanner {
   }
 
   def forInterface(i: InterfaceP): Span = {
-    val InterfaceP(range, name, attributes, mutability, maybeIdentifyingRunes, maybeTemplateRulesP, _, members) = i
+    val InterfaceP(range, name, attributes, mutability, maybeIdentifyingRunes, maybeTemplateRulesP, maybeDefaultRegionRuneP, _, members) = i
 
     makeSpan(
       Interface,
       range,
       Vector(makeSpan(StructName, name.range, Vector.empty)) ++
+      maybeDefaultRegionRuneP.map(defaultRegionRuneP => makeSpan(Region, defaultRegionRuneP.range, Vector.empty)) ++
       members.map(forFunction))
   }
 
@@ -129,7 +130,7 @@ object Spanner {
   }
 
   def forStruct(struct: StructP): Span = {
-    val StructP(range, NameP(nameRange, _), _, _, maybeIdentifyingRunesP, maybeTemplateRulesP, _, StructMembersP(membersRange, members)) = struct
+    val StructP(range, NameP(nameRange, _), _, _, maybeIdentifyingRunesP, maybeTemplateRulesP, maybeDefaultRegionRuneP, _, StructMembersP(membersRange, members)) = struct
 
     makeSpan(
       Struct,
@@ -137,6 +138,7 @@ object Spanner {
       Vector(makeSpan(StructName, nameRange, Vector.empty)) ++
       maybeIdentifyingRunesP.toVector.map(forIdentifyingRunes) ++
       maybeTemplateRulesP.toVector.map(forTemplateRules) ++
+      maybeDefaultRegionRuneP.map(defaultRegionRuneP => makeSpan(Region, defaultRegionRuneP.range, Vector.empty)) ++
       Vector(
         makeSpan(
           Membs,

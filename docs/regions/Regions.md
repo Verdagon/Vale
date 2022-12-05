@@ -360,13 +360,16 @@ what if theyre in an arena? we'll need to copy em out anyway.
 actually, maybe not. we know whether the callee region is in a specific custom region. if it is we copy. if we handed in our own, we just do the refreshing of the generations.
 we could do a runtime test. if theyre different, but theyre both malloc, we can call mimalloc merge or something.
 
-as tricky as this is, i think this is actually orthogonal to whether its considered a generic param or not. if it did affect things, it would be that we can transmute from contains-raw to contains-gen. that suggests theyre the same type in the end.
+as tricky as this is, i think this is actually orthogonal to whether its considered a generic param or not. if it did affect things, it would be that we can transmute from contains-raw to contains-gen. that suggests theyre the same type in the end. but thats an optional optimization, kind of. should it really dictate how the frontend works?
 
 but perhaps we can just _always_ type-erase regions away in structs. seems like they should always have generations.
 
+if we're going to be type-erasing/merging away the differences between instantiations with different regions, then this line of thinking is moot. we still dont really know whether to have it as a generic parameter.
+
+lets just have it for now.
 
 
- region ref to a Splork containing refs to other things in the Splorks region, that Splork is different than a mut region ref to a Splork containing refs to some other imm region.
+
 
 
 Whatever we do, we should do it also for functions that _only_ have a default region, so that we're consistent.
@@ -562,6 +565,49 @@ list = List<a'Ship, 'g, a'>(&myArr);
 ```
 
 but it's rather tedious as we had to specify that second generic parameter (`g'`) along the way to get to that last one.
+
+
+# Looking Up Coords From Outside (LUCFO)
+
+The LookupSR rule usually looks up things like struct generics like `MyStruct<Ship>` or const generic things like integers and booleans. Theoretically coords too, for example if we typedef `&Ship` to `ShipRef` or something.
+
+However, if we look up a coord, we'll be bringing in that coord's region, which likely doesnt make sense in the context of this function.
+
+Two options:
+
+ * Don't allow looking up coords from outside.
+ * Assume they only have one region: the default one. Map that to the default region of where the LookupSR is.
+
+Let's do the latter. Note that itll require LookupSRs to know what region they're loading into.
+
+
+# Lookups Need To Know Their Region (LNTKTR)
+
+Let's say we have a `MyStruct<T Ref>` and some other function `foo` mentions a `MyStruct<OtherStruct<Ship>>`. In post-parsing, `foo` doesn't yet know that the `T` is a Ref, so it doesn't know whether `OtherStruct<Ship>`'s kind will be coerced to a coord. That information comes later, in the higher typing or typing pass.
+
+When we get there, if `T` is indeed a coord (which it is here), the higher typing or typing pass will need to know what region to bring it into. But how?
+
+Two options:
+
+ * Know about the ambient/default region in the higher typing / typing pass.
+ * Include that information in the CallSR (or LookupSR in the case of looking up a kind).
+
+We'll go with the latter, because we're trying to make all the regions very explicit and not ambient in the later phases.
+
+It alos helps with LUCFO.
+
+## Ignore Call and Lookup Regions in Typing Pass (ICLRTP)
+
+This _does_ make CallSR and LookupSR a little awkward, because those classes are reused in later stages and they still remember their region that late. This might be a reason to make a strongly-typed rule AST again (see STRAST).
+
+
+# Regions Apply Deeply To Generic Call Args (RADTGCA)
+
+If we have a generic call with a region like `x'List<Ship>`, then that `x'` applies deeply, as if we wrote `x'List<x'Ship>`.
+
+Whenever we're doing post-parsing to figure out the region for everything, we keep track of the nearest containing region, like the `x'` above. This is known as the "context region" there.
+
+
 
 
 # Simplifying Regions in Monomorphizer

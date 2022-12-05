@@ -148,3 +148,17 @@ maybe we can do this:
  * right before we add it to the overload index?
  * during the templar solver? (probably not, needless)
 
+
+# Strongly Typed Rule AST (STRAST)
+
+We currently have a rule AST that is weakly typed (LookupSR, etc). The higher-typing phase will figure out the types for each rune and put them into a separate runeToType map.
+
+We used to have a strongly typed version (LookupAR, etc). We could go back to that. IIRC, we removed it because we have to manually assemble those in a few places (such as macros) and it was _really_ tedious and verbose and we often had problems when we mistyped some.
+
+Perhaps we should go back to that.
+
+Reasons for:
+
+ * 
+
+

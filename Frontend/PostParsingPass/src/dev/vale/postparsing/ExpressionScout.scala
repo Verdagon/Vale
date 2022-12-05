@@ -75,13 +75,24 @@ class ExpressionScout(
     initialLocals: VariableDeclarations,
     blockPE: BlockPE):
   (BlockSE, VariableUses, VariableUses) = {
-    val BlockPE(range, maybeNewDefaultRegion, inner) = blockPE
+    val BlockPE(rangeP, maybeNewDefaultRegion, inner) = blockPE
+    val rangeS = PostParser.evalRange(parentStackFrame.file, rangeP)
     vassert(maybeNewDefaultRegion.isEmpty)
     newBlock(
       parentStackFrame.parentEnv,
       Some(parentStackFrame),
       lidb.child(),
-      PostParser.evalRange(parentStackFrame.file, range),
+      rangeS,
+      maybeNewDefaultRegion match {
+        case None => parentStackFrame.contextRegion
+        case Some(RegionRunePT(range, name)) => {
+          val regionRuneS = CodeRuneS(name.str)
+          if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
+            throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, name.str.str))
+          }
+          regionRuneS
+        }
+      },
       initialLocals,
       (stackFrame1, lidb) => {
         val (stackFrame2, exprSE, selfUses, childUses) =
@@ -106,6 +117,7 @@ class ExpressionScout(
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,
+    contextRegion: IRuneS,
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,
@@ -113,7 +125,7 @@ class ExpressionScout(
     scoutContents: (StackFrame, LocationInDenizenBuilder) => (StackFrame, IExpressionSE, VariableUses, VariableUses)):
   (BlockSE, VariableUses, VariableUses) = {
     val initialStackFrame =
-      StackFrame(functionBodyEnv.file, functionBodyEnv.name, functionBodyEnv, parentStackFrame, initialLocals)
+      StackFrame(functionBodyEnv.file, functionBodyEnv.name, functionBodyEnv, parentStackFrame, contextRegion, initialLocals)
 //    val rangeS = evalRange(functionBodyEnv.file, blockPE.range)
 //
 //    val (stackFrameBeforeExtrasAndConstructing, exprsWithoutExtrasWithoutConstructingWithoutVoidS, selfUsesBeforeExtrasAndConstructing, childUsesBeforeExtrasAndConstructing) =
@@ -458,7 +470,7 @@ class ExpressionScout(
           val maybeTypeRuneS =
             maybeTypePT.map(typePT => {
               templexScout.translateTemplex(
-                stackFrame0.parentEnv, lidb.child(), ruleBuilder, typePT)
+                stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, typePT)
             })
           val mutabilityRuneS =
             maybeMutabilityPT match {
@@ -469,7 +481,7 @@ class ExpressionScout(
               }
               case Some(mutabilityPT) => {
                 templexScout.translateTemplex(
-                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, mutabilityPT)
+                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, mutabilityPT)
               }
             }
           val variabilityRuneS =
@@ -481,7 +493,7 @@ class ExpressionScout(
               }
               case Some(variabilityPT) => {
                 templexScout.translateTemplex(
-                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, variabilityPT)
+                  stackFrame0.parentEnv, lidb.child(), ruleBuilder, stackFrame0.contextRegion, variabilityPT)
               }
             }
 
@@ -512,6 +524,7 @@ class ExpressionScout(
                           stackFrame0.parentEnv,
                           lidb.child(),
                           ruleBuilder,
+                          stackFrame0.contextRegion,
                           sizePT))
                     }
                   }
@@ -624,6 +637,7 @@ class ExpressionScout(
               Some(stackFrame0),
               lidb.child(),
               evalRange(range),
+              stackFrame0.contextRegion,
               noDeclarations,
               (stackFrame1, lidb) => {
                 val (stackFrame2, condSE, condUses, condChildUses) =
@@ -699,7 +713,7 @@ class ExpressionScout(
           val runeToExplicitType = mutable.ArrayBuffer[(IRuneS, ITemplataType)]()
 
           ruleScout.translateRulexes(
-            stackFrame0.parentEnv, lidb.child(), ruleBuilder, runeToExplicitType, Vector())
+            stackFrame0.parentEnv, lidb.child(), ruleBuilder, runeToExplicitType, stackFrame1.contextRegion, Vector())
 
           val patternS =
             patternScout.translatePattern(
@@ -822,7 +836,7 @@ class ExpressionScout(
             maybeTemplateArgs.map(templateArgs => {
               templateArgs.map(templateArgPT => {
                 templexScout.translateTemplex(
-                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, templateArgPT)
+                  stackFramePE.parentEnv, lidb.child(), ruleBuilder, stackFramePE.contextRegion, templateArgPT)
               })
             })
           val load = vale.postparsing.OutsideLoadSE(range, ruleBuilder.toVector, interner.intern(CodeNameS(name)), maybeTemplateArgRunes, loadAsP)
