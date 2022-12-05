@@ -52,7 +52,7 @@ object HigherTypingPass {
     // Only two rules' results can be coerced: LookupSR and CallSR.
     // Let's look for those and rewrite them to put an explicit coercion in there.
     allRulesWithImplicitlyCoercingLookupsS.foreach({
-      case rule @ CallSR(range, resultRune, templateRune, args) => {
+      case rule @ MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, args) => {
         val expectedType = vassertSome(runeAToType.get(resultRune.rune))
         val actualType =
           vassertSome(runeAToType.get(templateRune.rune)) match {
@@ -66,13 +66,13 @@ object HigherTypingPass {
           case (KindTemplataType(), CoordTemplataType()) => {
             val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
             runeAToType.put(kindRune.rune, KindTemplataType())
-            ruleBuilder += CallSR(range, kindRune, templateRune, args)
-            ruleBuilder += CoerceToCoordSR(range, resultRune, vimpl(), kindRune)
+            ruleBuilder += MaybeCoercingCallSR(range, kindRune, regionRune, templateRune, args)
+            ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
           }
           case _ => vimpl()
         }
       }
-      case rule@LookupSR(range, resultRune, name) => {
+      case rule@MaybeCoercingLookupSR(range, resultRune, regionRune, name) => {
         val expectedType = vassertSome(runeAToType.get(resultRune.rune))
         val actualType = env(range, name)
         (actualType, expectedType) match {
@@ -82,23 +82,23 @@ object HigherTypingPass {
           case (KindTemplataType(), CoordTemplataType()) => {
             val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
             runeAToType.put(kindRune.rune, KindTemplataType())
-            ruleBuilder += LookupSR(range, kindRune, name)
-            ruleBuilder += CoerceToCoordSR(range, resultRune, vimpl(), kindRune)
+            ruleBuilder += MaybeCoercingLookupSR(range, kindRune, regionRune, name)
+            ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
           }
           case (ttt @ TemplateTemplataType(_, KindTemplataType()), KindTemplataType()) => {
             val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
             runeAToType.put(templateRune.rune, ttt)
-            ruleBuilder += LookupSR(range, templateRune, name)
-            ruleBuilder += CallSR(range, resultRune, templateRune, Vector())
+            ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
+            ruleBuilder += MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, Vector())
           }
           case (ttt @ TemplateTemplataType(_, KindTemplataType()), CoordTemplataType()) => {
             val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
             val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
             runeAToType.put(templateRune.rune, ttt)
             runeAToType.put(kindRune.rune, KindTemplataType())
-            ruleBuilder += LookupSR(range, templateRune, name)
-            ruleBuilder += CallSR(range, kindRune, templateRune, Vector())
-            ruleBuilder += CoerceToCoordSR(range, resultRune, vimpl(), kindRune)
+            ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
+            ruleBuilder += MaybeCoercingCallSR(range, kindRune, regionRune, templateRune, Vector())
+            ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
           }
           case _ => {
             throw CompileErrorExceptionA(
@@ -395,7 +395,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   }
 
   def translateExport(astrouts: Astrouts,  env: Environment, exportS: ExportAsS): ExportAsA = {
-    val ExportAsS(rangeS, rulesWithImplicitlyCoercingLookupsS, exportName, rune, exportedName) = exportS
+    val ExportAsS(rangeS, rulesWithImplicitlyCoercingLookupsS, regionGenericParam, regionRune, exportName, rune, exportedName) = exportS
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(

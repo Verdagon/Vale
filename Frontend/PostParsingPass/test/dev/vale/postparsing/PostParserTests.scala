@@ -4,7 +4,7 @@ import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, StrI, vassert,
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.{FinalP, LoadAsBorrowP, MutableP, UseP}
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{LiteralSR, LookupSR, MutabilityLiteralSL, RuneUsage}
+import dev.vale.postparsing.rules.{LiteralSR, MaybeCoercingLookupSR, MutabilityLiteralSL, RuneUsage}
 import dev.vale.solver.IncompleteSolve
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -86,7 +86,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
       case LiteralSR(_, r, MutabilityLiteralSL(MutableP)) => vassert(r == imoo.mutabilityRune)
     }
     imoo.memberRules shouldHave {
-      case LookupSR(_, m, CodeNameS(StrI("int"))) => vassert(m == imoo.members(0).typeRune)
+      case MaybeCoercingLookupSR(_, m, _, CodeNameS(StrI("int"))) => vassert(m == imoo.members(0).typeRune)
     }
     imoo.members match {
       case Vector(NormalStructMemberS(_, StrI("x"), FinalP, _)) =>
@@ -145,10 +145,10 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     val program1 = compile("impl IMoo for Moo;")
     val impl = program1.impls.head
     impl.rules shouldHave {
-      case LookupSR(_, r, CodeNameS(StrI("Moo"))) => vassert(r == impl.structKindRune)
+      case MaybeCoercingLookupSR(_, r, _, CodeNameS(StrI("Moo"))) => vassert(r == impl.structKindRune)
     }
     impl.rules shouldHave {
-      case LookupSR(_, r, CodeNameS(StrI("IMoo"))) => vassert(r == impl.interfaceKindRune)
+      case MaybeCoercingLookupSR(_, r, _, CodeNameS(StrI("IMoo"))) => vassert(r == impl.interfaceKindRune)
     }
   }
 

@@ -17,6 +17,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
     // This just scopes the iterable's expression so its things dont outlive the foreach block.
     expressionScout.newBlock(
       stackFrame0.parentEnv, Some(stackFrame0), lidb.child(), PostParser.evalRange(stackFrame0.file, rangeP),
+      stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
         val (stackFrame2, bodySE, selfUses, childUses) =
@@ -38,6 +39,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
   (BlockSE, VariableUses, VariableUses) = {
     expressionScout.newBlock(
       stackFrame0.parentEnv, Some(stackFrame0), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+      stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
         val (stackFrame2, letIterableSE, letIterableSelfUses, letIterableChildUses) =
@@ -66,11 +68,13 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         val (loopSE, loopBodySelfUses, loopBodyChildUses) =
           expressionScout.newBlock(
             stackFrame3.parentEnv, Some(stackFrame3), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+            stackFrame3.contextRegion,
             noDeclarations,
             (stackFrame4, lidb) => {
               val (loopBodySE, loopBodySelfUses, lookBodyChildUses) =
                 expressionScout.newBlock(
                   stackFrame4.parentEnv, Some(stackFrame4), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+                  stackFrame4.contextRegion,
                   noDeclarations,
                   (stackFrame5, lidb) => {
                     scoutEachBody(expressionScout, stackFrame5, lidb, range, inKeywordRange, entryPatternPP, body)
@@ -139,7 +143,9 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         (stackFrame1, lidb) => {
           val (thenSE, thenUses, thenChildUses) =
             expressionScout.newBlock(
-              stackFrame1.parentEnv, Some(stackFrame1), lidb.child(), PostParser.evalRange(stackFrame0.file, range), noDeclarations,
+              stackFrame1.parentEnv, Some(stackFrame1), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+              stackFrame1.contextRegion,
+              noDeclarations,
               (stackFrame2, lidb) => {
                 val (stackFrame3, lookupSE, lookupSelfUses, lookupChildUses) =
                   expressionScout.scoutExpressionAndCoerce(
@@ -201,17 +207,23 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
     body: BlockPE):
   (BlockSE, VariableUses, VariableUses) = {
     expressionScout.newBlock(
-      stackFrame0.parentEnv, Some(stackFrame0), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+      stackFrame0.parentEnv, Some(stackFrame0), lidb.child(),
+      PostParser.evalRange(stackFrame0.file, range),
+      stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
         val (loopSE, loopBodySelfUses, loopBodyChildUses) =
           expressionScout.newBlock(
-            stackFrame1.parentEnv, Some(stackFrame1), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+            stackFrame1.parentEnv, Some(stackFrame1), lidb.child(),
+            PostParser.evalRange(stackFrame0.file, range),
+            stackFrame1.contextRegion,
             noDeclarations,
             (stackFrame4, lidb) => {
               val (loopBodySE, loopBodySelfUses, lookBodyChildUses) =
                 expressionScout.newBlock(
-                  stackFrame4.parentEnv, Some(stackFrame4), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+                  stackFrame4.parentEnv, Some(stackFrame4), lidb.child(),
+                  PostParser.evalRange(stackFrame0.file, range),
+                  stackFrame4.contextRegion,
                   noDeclarations,
                   (stackFrame5, lidb) => {
                     scoutWhileBody(expressionScout, stackFrame5, lidb, range, conditionPE, body)
@@ -252,7 +264,9 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         (stackFrame3, _) => {
           val (thenSE, thenUses, thenChildUses) =
             expressionScout.newBlock(
-              stackFrame3.parentEnv, Some(stackFrame3), lidb.child(), PostParser.evalRange(stackFrame0.file, range), noDeclarations,
+              stackFrame3.parentEnv, Some(stackFrame3), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+              stackFrame3.contextRegion,
+              noDeclarations,
               (stackFrame4, lidb) => {
                 val breakSE = postparsing.BreakSE(PostParser.evalRange(stackFrame4.file, range))
                 (stackFrame4, breakSE, noVariableUses, noVariableUses)

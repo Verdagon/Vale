@@ -173,6 +173,7 @@ class ParsedLoader(interner: Interner) {
       loadOptionalObject(getObjectField(jobj, "mutability"), loadTemplex),
       loadOptionalObject(getObjectField(jobj, "identifyingRunes"), loadIdentifyingRunes),
       loadOptionalObject(getObjectField(jobj, "templateRules"), loadTemplateRules),
+      loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadRegionRune),
       loadRange(getObjectField(jobj, "bodyRange")),
       loadStructMembers(getObjectField(jobj, "members")))
   }
@@ -186,6 +187,7 @@ class ParsedLoader(interner: Interner) {
       loadOptionalObject(getObjectField(denizen, "mutability"), loadTemplex),
       loadOptionalObject(getObjectField(denizen, "maybeIdentifyingRunes"), loadIdentifyingRunes),
       loadOptionalObject(getObjectField(denizen, "templateRules"), loadTemplateRules),
+      loadOptionalObject(getObjectField(denizen, "maybeDefaultRegion"), loadRegionRune),
       loadRange(getObjectField(denizen, "bodyRange")),
       getArrayField(denizen, "members").map(expectObject).map(loadFunction))
   }

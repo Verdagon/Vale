@@ -19,7 +19,7 @@ class RuneTypeSolver(interner: Interner) {
   def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val sanityCheck: Vector[RuneUsage] =
       rule match {
-        case LookupSR(range, rune, literal) => Vector(rune)
+        case MaybeCoercingLookupSR(range, rune, contextRegionRune, literal) => Vector(rune, contextRegionRune)
         case RuneParentEnvLookupSR(range, rune) => Vector(rune)
         case EqualsSR(range, left, right) => Vector(left, right)
         case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
@@ -37,7 +37,7 @@ class RuneTypeSolver(interner: Interner) {
         case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
         case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune)
-        case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
+        case MaybeCoercingCallSR(range, resultRune, contextRegionRune, templateRune, args) => Vector(resultRune, contextRegionRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune, returnTypeRune) ++ parameters
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
 //        case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
@@ -54,7 +54,7 @@ class RuneTypeSolver(interner: Interner) {
   def getPuzzles(predicting: Boolean, rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
-      case LookupSR(range, rune, _) => {
+      case MaybeCoercingLookupSR(range, rune, _, _) => {
         if (predicting) {
           // This Vector() literally means nothing can solve this puzzle.
           // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
@@ -74,7 +74,7 @@ class RuneTypeSolver(interner: Interner) {
           Vector(Vector(rune.rune))
         }
       }
-      case CallSR(range, resultRune, templateRune, args) => {
+      case MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, args) => {
         // We can't determine the template from the result and args because we might be coercing its
         // returned kind to a coord. So we need the template.
         // We can't determine the return type because we don't know whether we're coercing or not.
@@ -134,7 +134,8 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), returnRune.rune, CoordTemplataType())
         Ok(())
       }
-      case CallSR(range, resultRune, templateRune, argRunes) => {
+      case MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, argRunes) => {
+        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         vassertSome(stepState.getConclusion(templateRune.rune)) match {
           case TemplateTemplataType(paramTypes, returnType) => {
             argRunes.map(_.rune).zip(paramTypes).foreach({ case (argRune, paramType) =>
@@ -225,7 +226,8 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), rune.rune, literal.getType())
         Ok(())
       }
-      case LookupSR(range, rune, name) => {
+      case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
+        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         (env(name), vassertSome(stepState.getConclusion(rune.rune))) match {
           case (KindTemplataType(), CoordTemplataType()) =>
           case (TemplateTemplataType(Vector(), KindTemplataType()), CoordTemplataType()) =>
@@ -249,7 +251,8 @@ class RuneTypeSolver(interner: Interner) {
         }
         Ok(())
       }
-      case LookupSR(range, rune, name) => {
+      case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
+        stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         stepState.concludeRune(List(range), rune.rune, KindTemplataType())
         Ok(())
       }
@@ -298,7 +301,7 @@ class RuneTypeSolver(interner: Interner) {
         } else {
           // Calculate what types we can beforehand, see KVCIE.
           rules.flatMap({
-            case LookupSR(range, rune, name) => {
+            case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
               env(name) match {
                 // We don't know whether we'll interpret this kind as a coord.
                 case KindTemplataType() => List()

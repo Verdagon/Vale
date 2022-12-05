@@ -189,6 +189,19 @@ case class LiteralSR(
   override def runeUsages: Vector[RuneUsage] = Vector(rune)
 }
 
+case class MaybeCoercingLookupSR(
+  range: RangeS,
+  rune: RuneUsage,
+  // The region to use *if* we're coercing this lookup to a coord, see LNTKTR.
+  contextRegionRune: RuneUsage,
+  name: IImpreciseNameS
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+  override def runeUsages: Vector[RuneUsage] = Vector(rune, contextRegionRune)
+}
+
+// A rule that looks up something that's not a Kind, so it doesn't need a default region.
 case class LookupSR(
   range: RangeS,
   rune: RuneUsage,
@@ -197,6 +210,28 @@ case class LookupSR(
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
   override def runeUsages: Vector[RuneUsage] = Vector(rune)
+}
+
+case class MaybeCoercingCallSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  // The region to use *if* we're coercing this call result to a coord, see LNTKTR.
+  contextRegionRune: RuneUsage,
+  templateRune: RuneUsage,
+  args: Vector[RuneUsage]
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, contextRegionRune, templateRune) ++ args
+}
+
+case class CallSR(
+  range: RangeS,
+  resultRune: RuneUsage,
+  templateRune: RuneUsage,
+  args: Vector[RuneUsage]
+) extends IRulexSR {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, templateRune) ++ args
 }
 
 case class IndexListSR(
@@ -231,22 +266,6 @@ case class AugmentSR(
   vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(resultRune, innerRune)
-}
-
-case class CallSR(
-  range: RangeS,
-  resultRune: RuneUsage,
-  templateRune: RuneUsage,
-  args: Vector[RuneUsage]
-) extends IRulexSR {
-  this match {
-    case CallSR(_,RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(6, 1, 1, 2, 1)))),RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(6, 1, 1, 2, 2)))),Vector(RuneUsage(_,CodeRuneS(StrI("S"))), RuneUsage(_,CodeRuneS(StrI("M"))), RuneUsage(_,CodeRuneS(StrI("V"))), RuneUsage(_,CodeRuneS(StrI("E"))))) => {
-      vpass()
-    }
-    case _ =>
-  }
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, templateRune) ++ args
 }
 
 case class PackSR(

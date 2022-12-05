@@ -21,9 +21,10 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
+    contextRegion: IRuneS,
     rulesP: Vector[IRulexPR]):
   Vector[RuneUsage] = {
-    rulesP.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, _))
+    rulesP.map(translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, _))
   }
 
   def translateRulex(
@@ -31,6 +32,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
     lidb: LocationInDenizenBuilder,
     builder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
+    contextRegion: IRuneS,
     rulex: IRulexPR):
   RuneUsage = {
     val evalRange = (range: RangeL) => PostParser.evalRange(env.file, range)
@@ -41,8 +43,8 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         builder +=
           rules.EqualsSR(
             evalRange(range),
-            translateRulex(env, lidb.child(), builder, runeToExplicitType, leftP),
-            translateRulex(env, lidb.child(), builder, runeToExplicitType, rightP))
+            translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, leftP),
+            translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, rightP))
         rules.RuneUsage(evalRange(range), rune)
       }
       case OrPR(range, possibilitiesP) => {
@@ -72,7 +74,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
               vfail("Ref rule should have three components! Found: " + componentsP.size)
             }
             val Vector(ownershipRuneS, regionRuneS, kindRuneS) =
-              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
+              translateRulexes(env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)
             builder +=
               CoordComponentsSR(
                 PostParser.evalRange(env.file, range),
@@ -86,7 +88,8 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
               vfail("Kind rule should have one component! Found: " + componentsP.size)
             }
             val Vector(mutabilityRuneS) =
-              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
+              translateRulexes(
+                env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)
             builder +=
               KindComponentsSR(
                 PostParser.evalRange(env.file, range),
@@ -98,7 +101,8 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
               vfail("Prot rule should have two components! Found: " + componentsP.size)
             }
             val Vector(paramsRuneS, returnRuneS) =
-              translateRulexes(env, lidb.child(), builder, runeToExplicitType, componentsP)
+              translateRulexes(
+                env, lidb.child(), builder, runeToExplicitType, contextRegion, componentsP)
             builder +=
               PrototypeComponentsSR(
                 PostParser.evalRange(env.file, range),
@@ -122,11 +126,13 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         runeToExplicitType += ((rune, translateType(tyype)))
         rules.RuneUsage(evalRange(range), rune)
       }
-      case TemplexPR(templex) => templexScout.translateTemplex(env, lidb.child(), builder, templex)
+      case TemplexPR(templex) => {
+        templexScout.translateTemplex(env, lidb.child(), builder, contextRegion, templex)
+      }
       case BuiltinCallPR(range, name, args) => {
         if (name.str == keywords.IS_INTERFACE) {
           vassert(args.length == 1)
-          val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)
+          val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, args.head)
 
   //        val resultRune = ImplicitRuneS(lidb.child().consume())
           builder += IsInterfaceSR(evalRange(range), argRune)
@@ -137,9 +143,9 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         } else if (name.str == keywords.IMPLEMENTS) {
           vassert(args.length == 2)
           val Vector(structRule, interfaceRule) = args
-          val structRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, structRule)
+          val structRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, structRule)
           runeToExplicitType += ((structRune.rune, CoordTemplataType()))
-          val interfaceRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, interfaceRule)
+          val interfaceRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, interfaceRule)
           runeToExplicitType += ((interfaceRune.rune, CoordTemplataType()))
 
           val resultRuneS = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
@@ -153,7 +159,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
           rules.RuneUsage(evalRange(range), structRune.rune)
         } else if (name.str == keywords.REF_LIST_COMPOUND_MUTABILITY) {
           vassert(args.length == 1)
-          val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, args.head)
+          val argRune = translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, args.head)
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
           builder += RefListCompoundMutabilitySR(evalRange(range), resultRune, argRune)
@@ -164,7 +170,7 @@ class RuleScout(interner: Interner, keywords: Keywords, templexScout: TemplexSco
         } else if (name.str == keywords.Refs) {
           val argRunes =
             args.map(arg => {
-              translateRulex(env, lidb.child(), builder, runeToExplicitType, arg)
+              translateRulex(env, lidb.child(), builder, runeToExplicitType, contextRegion, arg)
             })
 
           val resultRune = rules.RuneUsage(evalRange(range), ImplicitRuneS(lidb.child().consume()))
@@ -218,13 +224,13 @@ object RuleScout {
     val structKindEquivalentRunes = equivalencies.getKindEquivalentRunes(rune)
     val templateRunes =
       rulesS.collect({
-        case CallSR(_, resultRune, templateRune, _)
+        case MaybeCoercingCallSR(_, resultRune, _, templateRune, _)
           if structKindEquivalentRunes.contains(resultRune.rune) => templateRune.rune
       })
     val runesToLookFor = structKindEquivalentRunes ++ templateRunes
     val templateNames =
       rulesS.collect({
-        case LookupSR(_, rune, name) if runesToLookFor.contains(rune.rune) => name
+        case MaybeCoercingLookupSR(_, rune, _, name) if runesToLookFor.contains(rune.rune) => name
       })
     vassert(templateNames.nonEmpty)
     vcurious(templateNames.size == 1)
@@ -243,13 +249,13 @@ class Equivalencies(rules: IndexedSeq[IRulexSR]) {
     case CoordComponentsSR(_, resultRune, _, _, kindRune) => markKindEquivalent(resultRune.rune, kindRune.rune)
     case KindComponentsSR(_, resultRune, _) =>
     case EqualsSR(_, left, right) => markKindEquivalent(left.rune, right.rune)
-    case CallSR(range, resultRune, templateRune, args) =>
+    case MaybeCoercingCallSR(range, resultRune, _, templateRune, args) =>
     case CallSiteCoordIsaSR(range, resultRune, subRune, superRune) =>
     case DefinitionCoordIsaSR(range, resultRune, subRune, superRune) =>
     case CoordSendSR(range, senderRune, receiverRune) =>
     case AugmentSR(range, resultRune, ownership, region, innerRune) => markKindEquivalent(resultRune.rune, innerRune.rune)
     case LiteralSR(range, rune, literal) =>
-    case LookupSR(range, rune, name) =>
+    case MaybeCoercingLookupSR(range, rune, _, name) =>
     case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => markKindEquivalent(coordRune.rune, kindRune.rune)
 //    case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) =>
 //    case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) =>

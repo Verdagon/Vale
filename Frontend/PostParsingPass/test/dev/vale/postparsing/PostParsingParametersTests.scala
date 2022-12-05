@@ -4,7 +4,7 @@ import dev.vale.{Collector, Err, FileCoordinateMap, Interner, Ok, StrI, vassert,
 import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.BorrowP
 import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
-import dev.vale.postparsing.rules.{AugmentSR, LookupSR, RuneUsage}
+import dev.vale.postparsing.rules.{AugmentSR, MaybeCoercingLookupSR, RuneUsage}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing.patterns.AtomSP
@@ -90,7 +90,7 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
       }
 
     main.rules shouldHave {
-      case LookupSR(_, pr, CodeNameS(StrI("int"))) => vassert(pr.rune == paramRune)
+      case MaybeCoercingLookupSR(_, pr, _, CodeNameS(StrI("int"))) => vassert(pr.rune == paramRune)
     }
   }
 

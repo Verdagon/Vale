@@ -216,6 +216,8 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               }
             }).toVector)
 
+      val maybeDefaultRegionP = vregion(None)
+
       val struct =
         StructP(
           structRange,
@@ -224,6 +226,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           maybeMutabilityP,
           maybeIdentifyingRunes,
           maybeTemplateRulesP,
+          maybeDefaultRegionP,
           contentsL.range,
           membersP)
       Ok(struct)
@@ -291,6 +294,8 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               }
             })
 
+      val maybeDefaultRegionP = vregion(None)
+
       val interface =
         InterfaceP(
           interfaceRange,
@@ -299,6 +304,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
           maybeMutabilityP,
           maybeIdentifyingRunes,
           maybeTemplateRulesP,
+          maybeDefaultRegionP,
           bodyRange,
           membersP.toVector)
       Ok(interface)

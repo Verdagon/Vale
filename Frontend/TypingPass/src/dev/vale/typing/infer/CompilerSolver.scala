@@ -186,8 +186,7 @@ class CompilerSolver(
     if (globalOptions.sanityCheck) {
       val sanityChecked: Vector[RuneUsage] =
         rule match {
-          case LookupSR(range, rune, literal) => Vector(rune)
-          case LookupSR(range, rune, literal) => Vector(rune)
+          case MaybeCoercingLookupSR(range, rune, regionRune, literal) => Vector(rune, regionRune)
           case RuneParentEnvLookupSR(range, rune) => Vector(rune)
           case EqualsSR(range, left, right) => Vector(left, right)
           case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
@@ -205,7 +204,7 @@ class CompilerSolver(
           case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
           case LiteralSR(range, rune, literal) => Vector(rune)
           case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune) ++ region.toVector
-          case CallSR(range, resultRune, templateRune, args) => Vector(resultRune, templateRune) ++ args
+          case MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, args) => Vector(resultRune, regionRune, templateRune) ++ args
 //          case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
           case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
 //          case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune)
@@ -223,9 +222,9 @@ class CompilerSolver(
   def getPuzzles(rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       // This means we can solve this puzzle and dont need anything to do it.
-      case LookupSR(range, _, _) => Vector(Vector())
+      case MaybeCoercingLookupSR(range, _, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
-      case CallSR(range, resultRune, templateRune, args) => {
+      case MaybeCoercingCallSR(range, resultRune, _, templateRune, args) => {
         Vector(
           Vector(templateRune.rune) ++ args.map(_.rune),
           // Do we really need to do
@@ -369,7 +368,7 @@ class CompilerRuleSolver(
               case CallSiteCoordIsaSR(range, _, s, r) if r.rune == receiver => s.rune
             }))
         val callRules =
-          unsolvedRules.collect({ case z @ CallSR(range, r, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
+          unsolvedRules.collect({ case z @ MaybeCoercingCallSR(range, r, _, _, _) if equivalencies.getKindEquivalentRunes(r.rune).contains(receiver) => z })
         val senderConclusions =
           runesSendingToThisReceiver
             .flatMap(senderRune => solverState.getConclusion(senderRune).map(senderRune -> _))
@@ -818,7 +817,7 @@ class CompilerRuleSolver(
         stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templata)
         Ok(())
       }
-      case LookupSR(range, rune, name) => {
+      case MaybeCoercingLookupSR(range, rune, _, name) => {
         val result =
           delegate.lookupTemplataImprecise(env, state, range :: env.parentRanges, name) match {
             case None => return Err(LookupFailed(name))
@@ -974,7 +973,7 @@ class CompilerRuleSolver(
         }
         Ok(())
       }
-      case CallSR(range, resultRune, templateRune, argRunes) => {
+      case MaybeCoercingCallSR(range, resultRune, _, templateRune, argRunes) => {
         stepState.getConclusion(resultRune.rune) match {
           case Some(result) => {
             val template = vassertSome(stepState.getConclusion(templateRune.rune))

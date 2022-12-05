@@ -386,7 +386,7 @@ class FunctionTests extends FunSuite with Collector with TestParseUtils {
         |""".stripMargin) shouldHave {
       case TopLevelInterfaceP(
         InterfaceP(_,
-          NameP(_,StrI("IMoo")),Vector(),None,None,None,_,
+          NameP(_,StrI("IMoo")),Vector(),None,None,None,_,_,
           Vector(
             FunctionP(_,
               FunctionHeaderP(_,

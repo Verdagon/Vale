@@ -70,6 +70,7 @@ class PatternScout(
             lidb.child(),
             PostParser.evalRange(stackFrame.file, range),
             ruleBuilder,
+            stackFrame.contextRegion,
             maybeTypeP)
         runeToExplicitType += ((runeS.rune, CoordTemplataType()))
         runeS
