@@ -405,6 +405,8 @@ case class AsSubtypeTE(
     okImplName: IdT[IImplNameT],
     errImplName: IdT[IImplNameT],
 ) extends ReferenceExpressionTE {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(resultResultType)
 }

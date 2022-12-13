@@ -321,7 +321,6 @@ class OverloadResolver(
                         val explicitlySpecifiedTemplateArgTemplatas =
                           explicitTemplateArgRunesS.map(explicitRuneSToTemplata)
 
-//<<<<<<< HEAD
 ////                  val callEnv =
 ////                    GeneralEnvironment.childOf(
 ////                      interner, callingEnv, callingEnv.fullName.addStep(CallEnvNameT()))
