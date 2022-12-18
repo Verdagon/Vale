@@ -609,6 +609,48 @@ Whenever we're doing post-parsing to figure out the region for everything, we ke
 
 
 
+# Making New Regions For Generic Coords (MNRFGC)
+
+When we have a generic coord, like `func tork<K, V>(self &Splork<K, V>)`, that coord needs a region.
+
+There are two options:
+
+ * Assume it's in the default region (tork').
+ * Associate a separate generic region for it.
+
+The first one is rather restricting, and means that by default we won't be able to give separate-regioned data to it.
+
+The second one means that we can't hand them to functions that expect objects of the same region, like `where func bork(k Ship, v Missile)` does. However, we can't call that anyway; the only functions we can hand a `T` to are in the form of function bounds, like `where func bork(k K, v V)`. We can call that with `K` and `V` no matter what regions they're in, and it's up to the caller to figure out what `K` and `V` and `bork` are and whether `K` and `V` are in the same region and whether `bork` expects things of the same region. In other words, the concern of whether things are in the same region is completely irrelevant to `tork`'s definition.
+
+So, there are no downsides to the second one. We'll go with that.
+
+An interesting question then arises: if we have an incoming coord `T`, what region is it in?
+
+ * It's irrelevant. If we have a PlaceholderTemplata(, Coord), then there's no need (or way) to specify a region there.
+ * We can create an implicit region generic param: `func tork<K', V', K'K, V'V>(self &Splork<K, V>)`.
+
+However, we can't do the first one because then we can't represent `&T`. And if we try, and put it into a coord, what region does it get?
+
+So we need to do the second one.
+
+We'll create these implicit region parameters in the post-parser, which is also where we create the default region right now. We'll also remember enough in the generic param to associate `T` with the `T'` that was implicitly created for it (in fact that's what the above `K'K` notation is trying to convey).
+
+
+# Regions Exponential Code Size Explosion, and Mitigations (RECSEM)
+
+As part of MNRFGC, we're making a lot of implicit readonly regions. This could mean a bit more codesize, as we stamp every function is stamped 2^R times, where R is the number of readonly regions.
+
+This is particularly a problem because we monomorphize interface methods eagerly. `abstract func york<K', V', K'K, V'V>(self &Splork<K, V>) where func bork(k K, v V)`, might eagerly monomorphize mutabilities for `K'` and `V'`.
+
+Fortunately, this isn't quite a codesize _explosion_. Even if we have a complex function where R=4, it'll be stamped 16 times, but if it only calls `mork<M>(M)` and `gork<G>(G)`, it's not like `mork` and `gork` are each stamped 16 times. Nay, they're stamped twice each. So really, this 2^R is only a local thing, because at the instantiator stage, a region is only a boolean.
+
+More fortunately, many of these monomorphs also happen to be identical after stamping. Why? Because the main difference between an immutable monomorph and a mutable monomorph is in how they dereference the `T`. And `T`s can never be dereferenced! They're generic. Though, this only holds if there are no function bounds (or trait bounds) like `func zork<K, V>(self &Splork<K, V>) where func bork(k K, v V)`. `zork`'s caller might be an immutable monomorph that expects `zork` to call an immutable monomorph of `bork`. Though, when that happens, we only monomorphize 2^Cr, where Cr = number of regions we're called with.
+
+So the problem seems to be in this situation: an abstract function that has generics and function bounds.
+
+
+Perhaps if we need to reduce codesize, we _could_ use polymorph tricks, handing in a function pointer or an entire vtable pointer.
+
 
 # Simplifying Regions in Monomorphizer
 
