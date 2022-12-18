@@ -1791,13 +1791,13 @@ class CompilerTests extends FunSuite with Matchers {
     val asFunc =
       vassertOne(
         coutputs.functions.filter({
-          case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _)))), _, _, _, _), _, _, _) => true
+          case FunctionDefinitionT(FunctionHeaderT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("as"), _), _, Vector(CoordT(BorrowT, _, _)))), _, _, _, _), _, _, _) => true
           case _ => false
         }))
     val as = Collector.only(asFunc, { case as@AsSubtypeTE(_, _, _, _, _, _, _, _) => as })
     val AsSubtypeTE(sourceExpr, targetSubtype, resultOptType, okConstructor, errConstructor, _, _, _) = as
     sourceExpr.result.coord match {
-      case CoordT(BorrowT,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1, _))))) =>
+      case CoordT(BorrowT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1, _))))) =>
       //case CoordT(BorrowT, InterfaceTT(FullNameT(_, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")), Vector())))) =>
     }
     targetSubtype.kind match {
@@ -1808,6 +1808,7 @@ class CompilerTests extends FunSuite with Matchers {
       resultOptType match {
         case CoordT(
         OwnT,
+        _,
         InterfaceTT(
         IdT(
         _, Vector(),
@@ -1820,6 +1821,7 @@ class CompilerTests extends FunSuite with Matchers {
       case CoordTemplata(
       CoordT(
       BorrowT,
+      _,
       PlaceholderT(
       IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))) =>
     }
@@ -1827,6 +1829,7 @@ class CompilerTests extends FunSuite with Matchers {
       case CoordTemplata(
       CoordT(
       BorrowT,
+      _,
       PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("as"),_)),PlaceholderNameT(PlaceholderTemplateNameT(1, _)))))) =>
     }
     vassert(okConstructor.paramTypes.head == targetSubtype)

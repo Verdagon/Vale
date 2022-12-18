@@ -159,6 +159,10 @@ Perhaps we should go back to that.
 
 Reasons for:
 
- * 
+ * See LNTKTR, there's information in some of these classes that's only used up until the higher typing phase.
+
+Reasons against:
+
+ * We'd have to type them out in macros again. Perhaps macros can just generate 
 
 

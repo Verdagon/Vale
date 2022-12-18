@@ -1168,6 +1168,7 @@ class TemplataCompiler(
         // though.
         // For now, we can manually add them.
         // So, I guess we could just assume the function's default region here then.
+        // See MNRFGC
         val ownership = if (immutable) ShareT else OwnT
         CoordTemplata(CoordT(ownership, vimpl(), placeholderKindT))
       }
