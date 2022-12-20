@@ -39,6 +39,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
         GenericParameterS(_,
           RuneUsage(_,DefaultRegionRuneS()),
           RegionTemplataType(),
+          None,
           Vector(ReadWriteRuneAttributeS(_)),
           None)) =>
     }
@@ -104,10 +105,19 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_, MagicParamRuneS(mp1)), _, _, None),
-        GenericParameterS(_, RuneUsage(_, MagicParamRuneS(mp2)), _, _, None),
+        // See MNRFGC for why this implicit region param is here
+        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp1a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
+        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordTemplataType(), Some(RuneUsage(_, ImplicitRegionRuneS(mp1c))), _, None),
+        // See MNRFGC for why this implicit region param is here
+        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp2a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
+        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordTemplataType(), Some(RuneUsage(_, ImplicitRegionRuneS(mp2c))), _, None),
         _) => {
-        vassert(mp1 != mp2)
+        vassert(mp1a != mp2a) // Two different runes
+
+        vassert(mp1a == mp1b)
+        vassert(mp1a == mp1c)
+        vassert(mp2a == mp2b)
+        vassert(mp2a == mp2c)
       }
     }
   }
@@ -177,8 +187,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 
     moo.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("r"))), RegionTemplataType(), Vector(),None),
-        GenericParameterS(_, RuneUsage(_,DefaultRegionRuneS()), RegionTemplataType(), Vector(ReadWriteRuneAttributeS(_)), None)) =>
+        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("r"))), RegionTemplataType(), None, Vector(), None),
+        GenericParameterS(_, RuneUsage(_,DefaultRegionRuneS()), RegionTemplataType(), None, Vector(ReadWriteRuneAttributeS(_)), None)) =>
     }
   }
 
@@ -192,8 +202,8 @@ class PostParserTests extends FunSuite with Matchers with Collector {
 //        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("t"))),Vector(),None),
 //        GenericParameterS(_,RuneUsage(_,DefaultRegionRuneS()),Vector(ReadWriteRuneAttributeS(_)),None)) (of class scala.collection.immutable.Vector)
       case Vector(
-        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))), RegionTemplataType(), Vector(),None),
-        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), RegionTemplataType(), Vector(ReadWriteRuneAttributeS(_)), None)) =>
+        GenericParameterS(_,RuneUsage(_,CodeRuneS(StrI("r"))), RegionTemplataType(), None, Vector(),None),
+        GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("t"))), RegionTemplataType(), None, Vector(ReadWriteRuneAttributeS(_)), None)) =>
     }
   }
 

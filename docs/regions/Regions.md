@@ -635,6 +635,31 @@ So we need to do the second one.
 
 We'll create these implicit region parameters in the post-parser, which is also where we create the default region right now. We'll also remember enough in the generic param to associate `T` with the `T'` that was implicitly created for it (in fact that's what the above `K'K` notation is trying to convey).
 
+These are added to the end, see IRRAE.
+
+
+# Implicit Region Runes are Added to the End (IRRAE)
+
+We add a new region rune because of MNRFGC.
+
+For example, `func moo<T, Y>(a T, b Y)` might become. `func moo<t'T, y'Y, t', y'>(a T, b Y)`
+
+We have three options for where to put that region param in the list:
+
+ 1. Like the above, add them all to the end.
+ 2. Add it to the beginning, like `func moo<t', y', t'T, y'Y>`. Rust does this.
+ 3. Add each before its coord rune: `func moo<t', t'T, y', y'Y>`.
+ 4. Add each after its coord rune: `func moo<t'T, t', y'Y, y'>`.
+
+2, 3, and 4 require that if we say something like `moo<int, bool>` then we do some fanciness to figure out that the caller is trying to specify something other than generic arguments 0 and 1.
+
+The only one that acts intuitively is option 1. If a user specifies `moo<int, bool>` then the arguments they think they're specifying line up with the definition's actual generic parameters.
+
+So, we'll go with option 1.
+
+That also makes the implementation easier, nice bonus.
+
+
 
 # Regions Exponential Code Size Explosion, and Mitigations (RECSEM)
 

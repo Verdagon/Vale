@@ -168,7 +168,7 @@ case class CoerceToCoordSR(
   kindRune: RuneUsage
 ) extends IRulexSR {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Vector[RuneUsage] = Vector(coordRune, kindRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(coordRune, regionRune, kindRune)
 }
 
 case class RefListCompoundMutabilitySR(

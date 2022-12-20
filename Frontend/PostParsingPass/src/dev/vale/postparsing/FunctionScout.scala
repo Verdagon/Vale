@@ -98,7 +98,7 @@ class FunctionScout(
 
     val userSpecifiedIdentifyingRunes =
       genericParametersP
-        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _) =>
+        .map({ case GenericParameterP(_, NameP(range, identifyingRuneName), _, _, _, _) =>
           rules.RuneUsage(rangeS, CodeRuneS(identifyingRuneName))
         })
 
@@ -160,7 +160,8 @@ class FunctionScout(
           runeToExplicitType += ((rune, RegionTemplataType()))
           val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
           val implicitRegionGenericParam =
-            GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), attrs, None)
+            GenericParameterS(
+              regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), None, attrs, None)
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, regionName)) => {
@@ -198,12 +199,15 @@ class FunctionScout(
       }
     }
 
-    val functionUserSpecifiedGenericParametersS =
+    // We'll add the implicit runes to the end, see IRRAE.
+    val (userSpecifiedRunesImplicitRegionRunesUnflattenedS, functionUserSpecifiedGenericParametersS) =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
+        .unzip
+    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     val myStackFrameWithoutParams =
       StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, noDeclarations)
@@ -393,21 +397,50 @@ class FunctionScout(
                   RangedInternalErrorS(rangeS, "Cant have a lambda with _ and params"))
               }
 
+
+              val closureStructKindRune = ImplicitRuneS(lidb.child().consume())
+              val closureStructRegionRune =
+                ImplicitRegionRuneS(closureStructKindRune)
+              val closureStructCoordRune = ImplicitRuneS(lidb.child().consume())
               val closureParamS =
-                createClosureParam(range, funcName, lidb, ruleBuilder, runeToExplicitType, parentStackFrame)
+                createClosureParam(
+                  range,
+                  funcName,
+                  lidb,
+                  ruleBuilder,
+                  runeToExplicitType,
+                  parentStackFrame,
+                  closureStructRegionRune,
+                  closureStructKindRune,
+                  closureStructCoordRune)
+
               val magicParams =
                 createMagicParameters(lidb, lambdaMagicParamNames, runeToExplicitType)
 
               val extraGenericParamsFromBodyS =
                 // Lambdas identifying runes are determined by their magic params.
                 // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
-                magicParams.map(param => {
-                  GenericParameterS(
-                    param.pattern.range,
-                    vassertSome(param.pattern.coordRune),
-                    CoordTemplataType(),
-                    Vector(),
-                    None)
+                magicParams.flatMap(param => {
+                  val coordRune = vassertSome(param.pattern.coordRune)
+                  val implicitRegionRune =
+                    RuneUsage(
+                      param.pattern.range,
+                      ImplicitRegionRuneS(vassertSome(param.pattern.coordRune).rune))
+                  List(
+                    GenericParameterS(
+                      param.pattern.range,
+                      implicitRegionRune,
+                      RegionTemplataType(),
+                      None,
+                      Vector(),
+                      None),
+                    GenericParameterS(
+                      param.pattern.range,
+                      coordRune,
+                      CoordTemplataType(),
+                      Some(implicitRegionRune),
+                      Vector(),
+                      None))
                 })
               (extraGenericParamsFromBodyS, Some(closureParamS), magicParams)
             }
@@ -421,7 +454,8 @@ class FunctionScout(
       extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS ++
-        maybeRegionGenericParam
+        maybeRegionGenericParam ++
+        userSpecifiedRunesImplicitRegionRunesS
 
     val unfilteredRulesArray = ruleBuilder.toVector
 
@@ -487,30 +521,42 @@ class FunctionScout(
     lidb: LocationInDenizenBuilder,
     ruleBuilder: ArrayBuffer[IRulexSR],
     runeToExplicitType: mutable.ArrayBuffer[(IRuneS, ITemplataType)],
-    parentStackFrame: StackFrame):
+    parentStackFrame: StackFrame,
+    closureStructRegionRune: IRuneS,
+    closureStructKindRune: IRuneS,
+    closureStructCoordRune: IRuneS):
   ParameterS = {
     val closureParamName = interner.intern(ClosureParamNameS())
     val closureParamPos = PostParser.evalPos(parentStackFrame.file, range.begin)
     val closureParamRange = RangeS(closureParamPos, closureParamPos)
 
-    val regionRune = vimpl()
-
-    val closureStructKindRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
-    runeToExplicitType += ((closureStructKindRune.rune, KindTemplataType()))
+    runeToExplicitType += ((closureStructKindRune, KindTemplataType()))
     val closureStructName =
       interner.intern(LambdaStructDeclarationNameS(
         funcName match { case x @ LambdaDeclarationNameS(_) => x }))
     ruleBuilder +=
-      MaybeCoercingLookupSR(closureParamRange, closureStructKindRune, regionRune, closureStructName.getImpreciseName(interner))
+      LookupSR(
+        closureParamRange,
+        rules.RuneUsage(closureParamRange, closureStructKindRune),
+        closureStructName.getImpreciseName(interner))
 
-    val closureStructCoordRune = rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
-    runeToExplicitType += ((closureStructCoordRune.rune, CoordTemplataType()))
+    runeToExplicitType += ((closureStructCoordRune, CoordTemplataType()))
     ruleBuilder +=
-      CoerceToCoordSR(closureParamRange, closureStructCoordRune, regionRune, closureStructKindRune)
+      CoerceToCoordSR(
+        closureParamRange,
+        RuneUsage(closureParamRange, closureStructCoordRune),
+        RuneUsage(closureParamRange, closureStructRegionRune),
+        RuneUsage(closureParamRange, closureStructKindRune))
 
     val closureParamTypeRune =
       rules.RuneUsage(closureParamRange, ImplicitRuneS(lidb.child().consume()))
-    ruleBuilder += AugmentSR(closureParamRange, closureParamTypeRune, Some(BorrowP), None, closureStructCoordRune)
+    ruleBuilder +=
+      AugmentSR(
+        closureParamRange,
+        closureParamTypeRune,
+        Some(BorrowP),
+        None,
+        RuneUsage(closureParamRange, closureStructCoordRune))
 
     val capture = CaptureS(closureParamName)
     val closurePattern =

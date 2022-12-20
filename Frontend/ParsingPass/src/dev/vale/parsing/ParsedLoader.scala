@@ -846,6 +846,7 @@ class ParsedLoader(interner: Interner) {
       loadRange(getObjectField(jobj, "range")),
       loadName(getObjectField(jobj, "name")),
       loadOptionalObject(getObjectField(jobj, "maybeType"), loadGenericParameterType),
+      loadOptionalObject(getObjectField(jobj, "maybeCoordRegion"), loadRegionRune),
       getArrayField(jobj, "attributes").map(expectObject).map(loadRuneAttribute),
       loadOptionalObject(getObjectField(jobj, "maybeDefault"), loadTemplex))
   }
