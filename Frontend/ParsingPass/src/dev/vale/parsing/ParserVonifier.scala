@@ -516,7 +516,7 @@ object ParserVonifier {
   }
 
   def vonifyGenericParameter(thing: GenericParameterP): VonObject = {
-    val GenericParameterP(range, name, maybeType, attributes, maybeDefault) = thing
+    val GenericParameterP(range, name, maybeType, maybeCoordRegion, attributes, maybeDefault) = thing
     VonObject(
       "IdentifyingRune",
       None,
@@ -524,6 +524,7 @@ object ParserVonifier {
         VonMember("range", vonifyRange(range)),
         VonMember("name", vonifyName(name)),
         VonMember("maybeType", vonifyOptional(maybeType, vonifyGenericParameterType)),
+        VonMember("maybeCoordRegion", vonifyOptional(maybeCoordRegion, vonifyRegionRune)),
         VonMember("attributes", VonArray(None, attributes.map(vonifyRuneAttribute).toVector)),
         VonMember("maybeDefault", vonifyOptional(maybeDefault, vonifyTemplex))))
   }

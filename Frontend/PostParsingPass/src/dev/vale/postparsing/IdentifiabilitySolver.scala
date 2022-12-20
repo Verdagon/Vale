@@ -21,7 +21,8 @@ object IdentifiabilitySolver {
   def getRunes(rule: IRulexSR): Vector[IRuneS] = {
     val sanityCheck =
       rule match {
-        case MaybeCoercingLookupSR(range, rune, region, literal) => Vector(rune) :+ region
+        case MaybeCoercingLookupSR(range, rune, region, literal) => Vector(rune, region)
+        case LookupSR(range, rune, literal) => Vector(rune)
         case RuneParentEnvLookupSR(range, rune) => Vector(rune)
         case EqualsSR(range, left, right) => Vector(left, right)
         case KindComponentsSR(range, resultRune, mutabilityRune) => Vector(resultRune, mutabilityRune)
@@ -57,6 +58,7 @@ object IdentifiabilitySolver {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
       case MaybeCoercingLookupSR(range, rune, _, _) => Vector(Vector())
+      case LookupSR(range, rune, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => {
         // This Vector() literally means nothing can solve this puzzle.
         // It needs to be passed in via identifying rune.
@@ -199,6 +201,10 @@ object IdentifiabilitySolver {
         Ok(())
       }
       case LiteralSR(range, rune, literal) => {
+        stepState.concludeRune(range :: callRange, rune.rune, true)
+        Ok(())
+      }
+      case LookupSR(range, rune, name) => {
         stepState.concludeRune(range :: callRange, rune.rune, true)
         Ok(())
       }

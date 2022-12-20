@@ -233,8 +233,19 @@ case class GenericParameterS(
   range: RangeS,
   rune: RuneUsage,
   tyype: ITemplataType,
+  coordRegion: Option[RuneUsage],
   attributes: Vector[IRuneAttributeS],
-  default: Option[GenericParameterDefaultS])
+  default: Option[GenericParameterDefaultS]) {
+
+  tyype match {
+    case CoordTemplataType() => {
+      vassert(coordRegion.nonEmpty)
+    }
+    case _ => {
+      vassert(coordRegion.isEmpty)
+    }
+  }
+}
 
 sealed trait IRuneAttributeS
 case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS

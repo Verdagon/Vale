@@ -125,6 +125,7 @@ case class GenericParameterP(
   range: RangeL,
   name: NameP,
   maybeType: Option[GenericParameterTypeP],
+  coordRegion: Option[RegionRunePT],
   attributes: Vector[IRuneAttributeP],
   maybeDefault: Option[ITemplexPT]
 ) { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }

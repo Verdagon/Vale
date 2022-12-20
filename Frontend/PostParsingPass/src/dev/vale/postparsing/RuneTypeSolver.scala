@@ -20,6 +20,7 @@ class RuneTypeSolver(interner: Interner) {
     val sanityCheck: Vector[RuneUsage] =
       rule match {
         case MaybeCoercingLookupSR(range, rune, contextRegionRune, literal) => Vector(rune, contextRegionRune)
+        case LookupSR(range, rune, literal) => Vector(rune)
         case RuneParentEnvLookupSR(range, rune) => Vector(rune)
         case EqualsSR(range, left, right) => Vector(left, right)
         case DefinitionCoordIsaSR(range, result, sub, suuper) => Vector(result, sub, suuper)
@@ -54,6 +55,16 @@ class RuneTypeSolver(interner: Interner) {
   def getPuzzles(predicting: Boolean, rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
+      case LookupSR(range, rune, _) => {
+        if (predicting) {
+          // This Vector() literally means nothing can solve this puzzle.
+          // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
+          Vector()
+        } else {
+          // We need to know the type beforehand, because we don't know if we'll be coercing or not.
+          Vector(Vector(rune.rune))
+        }
+      }
       case MaybeCoercingLookupSR(range, rune, _, _) => {
         if (predicting) {
           // This Vector() literally means nothing can solve this puzzle.

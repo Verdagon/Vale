@@ -5,7 +5,7 @@ import dev.vale.parsing.ast._
 import dev.vale.parsing.templex.TemplexParser
 import dev.vale._
 import dev.vale.lexing._
-import dev.vale.parsing.Parser.parseRegion
+import dev.vale.parsing.Parser.{parsePrefixingRegion, parseRegion}
 import dev.vale.parsing.ast._
 import dev.vale.von.{JsonSyntax, VonPrinter}
 
@@ -23,6 +23,12 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
   private[parsing] def parseGenericParameter(iter: ScrambleIterator):
   Result[GenericParameterP, IParseError] = {
     val range = iter.range
+
+    val maybeCoordRegion =
+      parsePrefixingRegion(iter) match {
+        case Err(x) => return Err(x)
+        case Ok(maybeRegion) => maybeRegion
+      }
 
     val (name, maybeType, attributes) =
       parseRegion(iter) match {
@@ -86,7 +92,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
         None
       }
 
-    Ok(GenericParameterP(range, NameP(name.range, name.str), maybeType, attributes, maybeDefaultPT))
+    Ok(GenericParameterP(range, NameP(name.range, name.str), maybeType, maybeCoordRegion, attributes, maybeDefaultPT))
   }
 
   private[parsing] def parseIdentifyingRunes(node: AngledLE):
@@ -775,6 +781,29 @@ class ParserCompilation(
 }
 
 object Parser {
+  // A prefixing region is one that appears before something else to modify it, like t'T.
+  def parsePrefixingRegion(originalIter: ScrambleIterator): Result[Option[RegionRunePT], IParseError] = {
+    val tentativeIter = originalIter.clone()
+
+    val region =
+      parseRegion(tentativeIter) match {
+        case Err(x) => return Err(x)
+        case Ok(Some(region)) => {
+          tentativeIter.peek() match {
+            case Some(next) if next.range.begin == region.range.end => {
+              region
+            }
+            case _ => return Ok(None)
+          }
+        }
+        case _ => return Ok(None)
+      }
+
+    originalIter.skipTo(tentativeIter)
+
+    Ok(Some(region))
+  }
+
   def parseRegion(originalIter: ScrambleIterator): Result[Option[RegionRunePT], IParseError] = {
     val tentativeIter = originalIter.clone()
 
@@ -790,6 +819,7 @@ object Parser {
 
     originalIter.skipTo(tentativeIter)
 
-    return Ok(Some(RegionRunePT(regionRune.range, NameP(regionRune.range, regionRune.str))))
+    val range = RangeL(regionRune.range.begin, tentativeIter.getPrevEndPos())
+    return Ok(Some(RegionRunePT(range, NameP(regionRune.range, regionRune.str))))
   }
 }
