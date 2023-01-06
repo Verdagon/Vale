@@ -20,6 +20,7 @@ import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFu
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names._
+import dev.vale.typing.templata.ITemplata.expectRegion
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -96,6 +97,7 @@ class FunctionCompilerSolvingLayer(
         outerEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
+        function.defaultRegionRune,
         reachableBounds)
 
     val header =
@@ -153,6 +155,7 @@ class FunctionCompilerSolvingLayer(
         declaringEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
+        function.defaultRegionRune,
         reachableBounds)
 
     val prototype =
@@ -213,6 +216,7 @@ class FunctionCompilerSolvingLayer(
         nearEnv,
         function.genericParameters.map(_.rune.rune),
         inferences,
+        function.defaultRegionRune,
         reachableBounds)
 
     val prototypeTemplata =
@@ -256,11 +260,12 @@ class FunctionCompilerSolvingLayer(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     identifyingRunes: Vector[IRuneS],
     templatasByRune: Map[IRuneS, ITemplata[ITemplataType]],
+    defaultRegionRune: IRuneS,
     reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplata]
     // I suspect we'll eventually need some impl bounds here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(
-    globalEnv, parentEnv, fullName, defaultRegion, templatas,
+    globalEnv, parentEnv, fullName, templatas,
     function, variables, isRootCompilingDenizen) = nearEnv
 
     val identifyingTemplatas = identifyingRunes.map(templatasByRune)
@@ -274,6 +279,8 @@ class FunctionCompilerSolvingLayer(
           }) ++
           templatasByRune.toVector
             .map({ case (k, v) => (interner.intern(RuneNameT(k)), TemplataEnvEntry(v)) }))
+
+    val defaultRegion = expectRegion(vassertSome(templatasByRune.get(defaultRegionRune)))
 
     BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
       globalEnv,
@@ -341,6 +348,7 @@ class FunctionCompilerSolvingLayer(
         outerEnv,
         function.genericParameters.map(_.rune.rune),
         inferredTemplatas,
+        function.defaultRegionRune,
         reachableBounds)
 
     val prototype =
@@ -455,6 +463,7 @@ class FunctionCompilerSolvingLayer(
         nearEnv,
         function.genericParameters.map(_.rune.rune),
         inferences,
+        function.defaultRegionRune,
         reachableBounds)
 
     val prototype =
@@ -523,7 +532,7 @@ class FunctionCompilerSolvingLayer(
 
     val runedEnv =
       addRunedDataToNearEnv(
-        nearEnv, function.genericParameters.map(_.rune.rune), inferences, reachableBoundsFromParamsAndReturn)
+        nearEnv, function.genericParameters.map(_.rune.rune), inferences, function.defaultRegionRune, reachableBoundsFromParamsAndReturn)
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(

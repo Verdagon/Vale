@@ -126,8 +126,8 @@ case class OverrideT(
   // might not be simple placeholders
   dispatcherCallId: IdT[OverrideDispatcherNameT],
 
-  implPlaceholderToDispatcherPlaceholder: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
-  implPlaceholderToCasePlaceholder: Vector[(IdT[PlaceholderNameT], ITemplata[ITemplataType])],
+  implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplata[ITemplataType])],
+  implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplata[ITemplataType])],
 
   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   // TIBANFC.
@@ -342,7 +342,7 @@ case class FunctionHeaderT(
         val templateName = TemplataCompiler.getFunctionTemplate(id)
         val placeholders =
           Collector.all(id, {
-            case PlaceholderT(name) => name
+            case KindPlaceholderT(name) => name
             case PlaceholderTemplata(name, _) => name
           })
         // Filter out any placeholders that came from the parent, in case this is a lambda function.
@@ -363,15 +363,20 @@ case class FunctionHeaderT(
           } else {
             // make sure all the placeholders in the parameters exist as template args
             placeholdersOfThisFunction.foreach({
-              case placeholderName @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index, rune))) => {
+              case placeholderName @ IdT(_, _, NonKindPlaceholderNameT(index, rune)) => {
                 id.localName.templateArgs(index) match {
-                  case KindTemplata(PlaceholderT(placeholderNameAtIndex)) => {
-                    vassert(placeholderName == placeholderNameAtIndex)
-                  }
-                  case CoordTemplata(CoordT(_, _, PlaceholderT(placeholderNameAtIndex))) => {
-                    vassert(placeholderName == placeholderNameAtIndex)
-                  }
                   case PlaceholderTemplata(placeholderNameAtIndex, _) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case _ => vfail()
+                }
+              }
+              case placeholderName @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) => {
+                id.localName.templateArgs(index) match {
+                  case KindTemplata(KindPlaceholderT(placeholderNameAtIndex)) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case CoordTemplata(CoordT(_, _, KindPlaceholderT(placeholderNameAtIndex))) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
                   case _ => vfail()

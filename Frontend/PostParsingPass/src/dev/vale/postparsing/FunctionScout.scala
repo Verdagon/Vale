@@ -510,6 +510,7 @@ class FunctionScout(
         tyype,
         totalParamsS,
         maybeRetCoordRune,
+        defaultRegionRuneS,
         rulesArray,
         maybeBody1)
     (functionS, variableUses)

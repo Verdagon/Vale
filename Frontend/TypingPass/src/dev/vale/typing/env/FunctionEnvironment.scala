@@ -19,7 +19,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
   globalEnv: GlobalEnvironment,
   parentEnv: IEnvironment,
   id: IdT[IFunctionTemplateNameT],
-  defaultRegion: ITemplata[RegionTemplataType],
+//  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore,
   function: FunctionA,
   variables: Vector[IVariableT],
@@ -530,7 +530,7 @@ case class FunctionEnvironment(
       life,
       TemplatasStore(id, Map(), Map()),
       declaredLocals, // See WTHPFE.
-      unstackifiedLocals, // See WTHPFE.
+      unstackifiedLocals, // See WTHPFE
       defaultRegion)
   }
 

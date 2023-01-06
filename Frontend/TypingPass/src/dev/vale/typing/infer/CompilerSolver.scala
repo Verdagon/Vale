@@ -16,7 +16,7 @@ import dev.vale.postparsing.ArgumentRuneS
 import dev.vale.postparsing.rules._
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.citizen.{IsntParent, ResolveFailure}
-import dev.vale.typing.templata.ITemplata.{expectMutability, expectRegionTemplata}
+import dev.vale.typing.templata.ITemplata.{expectMutability, expectRegion, expectRegionTemplata}
 import dev.vale.typing.{CompilerOutputs, InferEnv, templata, types}
 import dev.vale.typing.types._
 
@@ -247,7 +247,7 @@ class CompilerSolver(
       case IsConcreteSR(range, rune) => Vector(Vector(rune.rune))
       case IsInterfaceSR(range, rune) => Vector(Vector(rune.rune))
       case IsStructSR(range, rune) => Vector(Vector(rune.rune))
-      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector(coordRune.rune), Vector(regionRune.rune), Vector(kindRune.rune))
+      case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector(coordRune.rune), Vector(kindRune.rune, regionRune.rune))
       case LiteralSR(range, rune, literal) => Vector(Vector())
       case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector(innerRune.rune) ++ region.map(_.rune), Vector(resultRune.rune))
 //      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
@@ -575,7 +575,7 @@ class CompilerRuleSolver(
           case None => {
             val OwnershipTemplata(ownership) = vassertSome(stepState.getConclusion(ownershipRune.rune))
             val KindTemplata(kind) = vassertSome(stepState.getConclusion(kindRune.rune))
-            val RegionTemplata(region) = vassertSome(stepState.getConclusion(regionRune.rune))
+            val region = expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))
             val newCoord = CoordT(ownership, region, kind)
             stepState.concludeRune[ITypingPassSolverError](
               range :: env.parentRanges, resultRune.rune, CoordTemplata(newCoord))
@@ -822,7 +822,7 @@ class CompilerRuleSolver(
             }
           }
           case Some(kind) => {
-            val RegionTemplata(region) = vassertSome(stepState.getConclusion(regionRune.rune))
+            val region = expectRegion(vassertSome(stepState.getConclusion(regionRune.rune)))
             val coerced = delegate.coerceToCoord(env, state, range :: env.parentRanges, kind, region)
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, coordRune.rune, coerced)
             Ok(())

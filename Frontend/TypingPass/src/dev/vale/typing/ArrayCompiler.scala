@@ -487,12 +487,12 @@ class ArrayCompiler(
     val builtinPackage = PackageCoordinate.BUILTIN(interner, keywords)
     val templateFullName =
       IdT(builtinPackage, Vector.empty, interner.intern(RuntimeSizedArrayTemplateNameT()))
-    val defaultRegionName =
-      vimpl()
-//      templateFullName.addStep(
-//        interner.intern(PlaceholderNameT(
-//          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
-    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
+//    val defaultRegionName =
+//      vimpl()
+////      templateFullName.addStep(
+////        interner.intern(PlaceholderNameT(
+////          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+//    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
 
     // We declare the function into the environment that we use to compile the
     // struct, so that those who use the struct can reach into its environment

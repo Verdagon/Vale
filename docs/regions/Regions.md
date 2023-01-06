@@ -626,14 +626,82 @@ So, there are no downsides to the second one. We'll go with that.
 
 An interesting question then arises: if we have an incoming coord `T`, what region is it in?
 
- * It's irrelevant. If we have a PlaceholderTemplata(, Coord), then there's no need (or way) to specify a region there.
- * We can create an implicit region generic param: `func tork<K', V', K'K, V'V>(self &Splork<K, V>)`.
 
-However, we can't do the first one because then we can't represent `&T`. And if we try, and put it into a coord, what region does it get?
+### A: Irrelevant
 
-So we need to do the second one.
+It's irrelevant. If we have a PlaceholderTemplata(, Coord), then there's no need (or way) to specify a region there.
 
-We'll create these implicit region parameters in the post-parser, which is also where we create the default region right now. We'll also remember enough in the generic param to associate `T` with the `T'` that was implicitly created for it (in fact that's what the above `K'K` notation is trying to convey).
+However, with this approach, we then can't represent `&T`. And if we try, and put it into a coord, what region does it get?
+
+
+### B: Implicit Separate Region Generic Param
+
+Create an implicit region generic param: `func tork<K', V', K'K, V'V>(self &Splork<K, V>)`.
+
+We tried this for a bit, but it led to some complications. For example, if we had an interface:
+
+```
+interface IFoo<T> {
+  func zork(self, val T);
+  func kork(self, val T);
+}
+```
+
+then the anonymous substruct became:
+
+```
+struct IFooAnonymousSubstruct<T'T, Z'Z, K'K, T', Z', K'> {
+  zork Z;
+  kork K;
+}
+```
+
+and it seemed rather complex to know what order those generic params should come in. See IRRAE, though it didn't address anonymous substructs.
+
+
+#### Implicit Region Runes are Added to the End (IRRAE)
+
+(This is obsolete, we now have implicit region variables, not implicit region params)
+
+We add a new region rune because of MNRFGC.
+
+For example, `func moo<T, Y>(a T, b Y)` might become. `func moo<t'T, y'Y, t', y'>(a T, b Y)`
+
+We have three options for where to put that region param in the list:
+
+ 1. Like the above, add them all to the end.
+ 2. Add it to the beginning, like `func moo<t', y', t'T, y'Y>`. Rust does this.
+ 3. Add each before its coord rune: `func moo<t', t'T, y', y'Y>`.
+ 4. Add each after its coord rune: `func moo<t'T, t', y'Y, y'>`.
+
+2, 3, and 4 require that if we say something like `moo<int, bool>` then we do some fanciness to figure out that the caller is trying to specify something other than generic arguments 0 and 1.
+
+The only one that acts intuitively is option 1. If a user specifies `moo<int, bool>` then the arguments they think they're specifying line up with the definition's actual generic parameters.
+
+So, we'll go with option 1.
+
+That also makes the implementation easier, nice bonus.
+
+
+### C: Implicit Region Variable
+
+We can create an implicit region variable: `func tork<K'K, V'V>(self &Splork<K, V>) where K' Region, V' Region`.
+
+It does mean that we have to have some special logic when we fill in placeholders; when we want to make a placeholder for a coord, we'll make a placeholder for its region too.
+
+
+### D: Treat Like Kind
+
+This is inspired by (and possibly equivalent to?) option C.
+
+Recall how when we want to make a placeholder for a coord, we actually just make a placeholder for the underlying kind, and conjure up an own coord to it.
+
+When we want to make a placeholder for a kind, we can similarly make a placeholder for the underlying region as well.
+
+
+### Conclusion
+
+We'll go with D for now.
 
 These are added to the end, see IRRAE.
 
@@ -675,6 +743,34 @@ So the problem seems to be in this situation: an abstract function that has gene
 
 
 Perhaps if we need to reduce codesize, we _could_ use polymorph tricks, handing in a function pointer or an entire vtable pointer.
+
+
+# Regions Specified in Post Parsing (RSPP)
+
+We had a choice, between an ExpressionCompiler.evaluate parameter named contextRegion, or have the region explicitly specified in every expression given to the typing pass.
+
+### A: Context Region Parameter
+
+To the user, there's the notion of a context region, a region that is applied to any following expressions. The typing pass can also think of it this way, such as by ExpressionCompiler.evaluate() taking in a parameter named contextRegion.
+
+When evalute() sees an expression, its result will by default be of the contextRegion.
+
+To make a result in a different region, we'd use a specific AST node (AugmentSE) and it would change the contextRegion to that region.
+
+### B: Every AST Node Specifies its Result Region
+
+Every AST node, like ConstantIntSE, CallSE, etc. will specify its region.
+
+We'll probably fill this in in the post-parsing stage.
+
+### Conclusion: A
+
+We might want to infer different regions depending on the type, which only the typing pass has. For example, if it's a migratory data, like some sort of atomically refcounted thing, we might want it in the atomically refcounted region. Same with primitives like integers.
+
+Because of that, we'll go with A for now.
+
+
+
 
 
 # Simplifying Regions in Monomorphizer

@@ -83,7 +83,7 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
-  def getTopLevelDenizenFullName(
+  def getTopLevelDenizenId(
     id: IdT[INameT],
   ): IdT[IInstantiationNameT] = {
     // That said, some things are namespaced inside templates. If we have a `struct Marine` then
@@ -106,11 +106,11 @@ object TemplataCompiler {
     IdT(id.packageCoord, initSteps, lastStep)
   }
 
-  def getPlaceholderTemplataFullName(implPlaceholder: ITemplata[ITemplataType]) = {
+  def getPlaceholderTemplataId(implPlaceholder: ITemplata[ITemplataType]) = {
     implPlaceholder match {
       case PlaceholderTemplata(n, _) => n
-      case KindTemplata(PlaceholderT(n)) => n
-      case CoordTemplata(CoordT(_, _, PlaceholderT(n))) => n
+      case KindTemplata(KindPlaceholderT(n)) => n
+      case CoordTemplata(CoordT(_, _, KindPlaceholderT(n))) => n
       case other => vwat(other)
     }
   }
@@ -244,7 +244,7 @@ object TemplataCompiler {
       last.template)
   }
 
-  def getPlaceholderTemplate(id: IdT[PlaceholderNameT]): IdT[PlaceholderTemplateNameT] = {
+  def getPlaceholderTemplate(id: IdT[KindPlaceholderNameT]): IdT[KindPlaceholderTemplateNameT] = {
     val IdT(packageCoord, initSteps, last) = id
     IdT(
       packageCoord,
@@ -367,7 +367,7 @@ object TemplataCompiler {
                   substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, elementType),
                   expectRegion(substituteTemplatasInTemplata(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, region))))))))))
       }
-      case p @ PlaceholderT(id @ IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(index, rune)))) => {
+      case p @ KindPlaceholderT(id @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune)))) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -494,7 +494,7 @@ object TemplataCompiler {
               }
               case _ => {
                 // Not sure if this call is really necessary...
-                substituteTemplatasInImplFullName(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
+                substituteTemplatasInImplId(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
               }
             }
           }))
@@ -502,7 +502,7 @@ object TemplataCompiler {
     }
   }
 
-  def substituteTemplatasInImplFullName(
+  def substituteTemplatasInImplId(
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
@@ -513,7 +513,7 @@ object TemplataCompiler {
   ):
   IdT[IImplNameT] = {
     val IdT(packageCoord, initSteps, last) = implId
-    val newImplFullName =
+    val newImplId =
       IdT(
         packageCoord,
         initSteps,
@@ -530,10 +530,10 @@ object TemplataCompiler {
     val instantiationBoundArgs = vassertSome(coutputs.getInstantiationBounds(implId))
     // See SBITAFD, we need to register bounds for these new instantiations.
     coutputs.addInstantiationBounds(
-      newImplFullName,
+      newImplId,
       translateInstantiationBounds(
         coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, instantiationBoundArgs))
-    newImplFullName
+    newImplId
   }
 
   def substituteTemplatasInBounds(
@@ -552,7 +552,7 @@ object TemplataCompiler {
         substituteTemplatasInPrototype(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, funcBoundArg)
       }),
       runeToImplBoundArg.mapValues(implBoundArg => {
-        substituteTemplatasInImplFullName(
+        substituteTemplatasInImplId(
           coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, implBoundArg)
       }))
   }
@@ -601,7 +601,7 @@ object TemplataCompiler {
     templata match {
       case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, c))
       case KindTemplata(k) => substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, k)
-      case PlaceholderTemplata(id @ IdT(_, _, pn @ PlaceholderNameT(PlaceholderTemplateNameT(index, rune))), _) => {
+      case PlaceholderTemplata(id @ IdT(_, _, pn @ KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))), _) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -652,7 +652,7 @@ object TemplataCompiler {
     prototype
   }
 
-  def substituteTemplatasInFunctionBoundFullName(
+  def substituteTemplatasInFunctionBoundId(
     coutputs: CompilerOutputs,
     interner: Interner,
     keywords: Keywords,
@@ -668,12 +668,12 @@ object TemplataCompiler {
     val substitutedParams = funcName.parameters.map((coord: CoordT) => substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, coord))
 //    val substitutedReturnType = substituteTemplatasInCoord(coutputs, interner, keywords, returnType, substitutions)
     val substitutedFuncName = funcName.template.makeFunctionName(interner, keywords, substitutedTemplateArgs, substitutedParams)
-    val newFullName = IdT(packageCoord, initSteps, substitutedFuncName)
+    val newId = IdT(packageCoord, initSteps, substitutedFuncName)
 
     // It's a function bound, it has no function bounds of its own.
-    coutputs.addInstantiationBounds(newFullName, InstantiationBoundArguments(Map(), Map()))
+    coutputs.addInstantiationBounds(newId, InstantiationBoundArguments(Map(), Map()))
 
-    newFullName
+    newId
   }
 
   trait IPlaceholderSubstituter {
@@ -699,14 +699,14 @@ object TemplataCompiler {
   ):
   // The Engine<T> is given later to the IPlaceholderSubstituter
   IPlaceholderSubstituter = {
-    val topLevelDenizenFullName = getTopLevelDenizenFullName(name)
-    val templateArgs = topLevelDenizenFullName.localName.templateArgs
-    val topLevelDenizenTemplateFullName = getTemplate(topLevelDenizenFullName)
+    val topLevelDenizenId = getTopLevelDenizenId(name)
+    val templateArgs = topLevelDenizenId.localName.templateArgs
+    val topLevelDenizenTemplateId = getTemplate(topLevelDenizenId)
 
     TemplataCompiler.getPlaceholderSubstituter(
       interner,
       keywords,
-      topLevelDenizenTemplateFullName,
+      topLevelDenizenTemplateId,
       templateArgs,
 //      regionSubstitutions,
       boundArgumentsSource)
@@ -751,8 +751,8 @@ object TemplataCompiler {
   //  def getTemplataTransformer(interner: Interner, coutputs: CompilerOutputs,
   //  citizenTT: ICitizenTT):
   //  (ITemplata[ITemplataType]) => ITemplata[ITemplataType] = {
-  //    val citizenTemplateFullName = TemplataCompiler.getCitizenTemplate(citizenTT.fullName)
-  //    val citizenTemplateDefinition = coutputs.lookupCitizen(citizenTemplateFullName)
+  //    val citizenTemplateId = TemplataCompiler.getCitizenTemplate(citizenTT.fullName)
+  //    val citizenTemplateDefinition = coutputs.lookupCitizen(citizenTemplateId)
   //    vassert(
   //      citizenTT.fullName.last.templateArgs.size ==
   //        citizenTemplateDefinition.placeholderedCitizen.fullName.last.templateArgs.size)
@@ -1091,7 +1091,7 @@ class TemplataCompiler(
     actualCitizenRef: ICitizenTT,
     expectedCitizenTemplata: ITemplata[ITemplataType]
   ): Boolean = {
-    val citizenTemplateFullName =
+    val citizenTemplateId =
       expectedCitizenTemplata match {
         case st@StructDefinitionTemplata(_, _) => resolveStructTemplate(st)
         case it@InterfaceDefinitionTemplata(_, _) => resolveInterfaceTemplate(it)
@@ -1104,7 +1104,7 @@ class TemplataCompiler(
         }
         case _ => return false
       }
-    TemplataCompiler.getCitizenTemplate(actualCitizenRef.id) == citizenTemplateFullName
+    TemplataCompiler.getCitizenTemplate(actualCitizenRef.id) == citizenTemplateId
   }
 
   def createPlaceholder(
@@ -1138,41 +1138,68 @@ class TemplataCompiler(
     registerWithCompilerOutputs: Boolean
   ):
   ITemplata[ITemplataType] = {
-    val placeholderFullName =
-      namePrefix.addStep(
-        interner.intern(PlaceholderNameT(
-          interner.intern(PlaceholderTemplateNameT(index, rune)))))
-    val placeholderTemplateFullName =
-      TemplataCompiler.getPlaceholderTemplate(placeholderFullName)
-
-    val placeholderKindT = PlaceholderT(placeholderFullName)
-    if (registerWithCompilerOutputs) {
-      coutputs.declareType(placeholderTemplateFullName)
-
-      val mutability = MutabilityTemplata(if (immutable) ImmutableT else MutableT)
-      coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-
-      val placeholderEnv = GeneralEnvironment.childOf(interner, env, placeholderTemplateFullName)
-      coutputs.declareTypeOuterEnv(placeholderTemplateFullName, placeholderEnv)
-      coutputs.declareTypeInnerEnv(placeholderTemplateFullName, placeholderEnv)
-    }
-
     runeType match {
       case KindTemplataType() => {
-        KindTemplata(placeholderKindT)
+        val kindPlaceholderIdT =
+          createKindPlaceholderInner(
+            coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+        val kindPlaceholderKindT = KindPlaceholderT(kindPlaceholderIdT)
+        KindTemplata(kindPlaceholderKindT)
       }
       case CoordTemplataType() => {
-        // TODO: Not sure what to put here when we do regions. We might need to
-        // flood the nearest region annotation downward, and then apply it if it's
-        // a coord or something. Remembering that in every templex would be bothersome
-        // though.
-        // For now, we can manually add them.
-        // So, I guess we could just assume the function's default region here then.
-        // See MNRFGC
+        val regionPlaceholderTemplata =
+         createNonKindPlaceholderInner(namePrefix, index, rune, RegionTemplataType())
+        val kindPlaceholderIdT =
+          createKindPlaceholderInner(
+            coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+        val kindPlaceholderKindT = KindPlaceholderT(kindPlaceholderIdT)
+
         val ownership = if (immutable) ShareT else OwnT
-        CoordTemplata(CoordT(ownership, vimpl(), placeholderKindT))
+        CoordTemplata(CoordT(ownership, regionPlaceholderTemplata, kindPlaceholderKindT))
       }
-      case _ => PlaceholderTemplata(placeholderFullName, runeType)
+      case otherType => {
+        createNonKindPlaceholderInner(namePrefix, index, rune, otherType)
+      }
     }
+  }
+
+  def createKindPlaceholderInner(
+    coutputs: CompilerOutputs,
+    env: IInDenizenEnvironment,
+    namePrefix: IdT[INameT],
+    index: Int,
+    rune: IRuneS,
+    immutable: Boolean,
+    registerWithCompilerOutputs: Boolean):
+  IdT[KindPlaceholderNameT] = {
+    val kindPlaceholderId =
+      namePrefix.addStep(
+        interner.intern(KindPlaceholderNameT(
+          interner.intern(KindPlaceholderTemplateNameT(index, rune)))))
+    val kindPlaceholderTemplateId =
+      TemplataCompiler.getPlaceholderTemplate(kindPlaceholderId)
+
+    if (registerWithCompilerOutputs) {
+      coutputs.declareType(kindPlaceholderTemplateId)
+
+      val mutability = MutabilityTemplata(if (immutable) ImmutableT else MutableT)
+      coutputs.declareTypeMutability(kindPlaceholderTemplateId, mutability)
+
+      val placeholderEnv = GeneralEnvironment.childOf(interner, env, kindPlaceholderTemplateId)
+      coutputs.declareTypeOuterEnv(kindPlaceholderTemplateId, placeholderEnv)
+      coutputs.declareTypeInnerEnv(kindPlaceholderTemplateId, placeholderEnv)
+    }
+
+    kindPlaceholderId
+  }
+
+  def createNonKindPlaceholderInner[T <: ITemplataType](
+    namePrefix: IdT[INameT],
+    index: Int,
+    rune: IRuneS,
+    tyype: T):
+  PlaceholderTemplata[T] = {
+    val idT = namePrefix.addStep(interner.intern(NonKindPlaceholderNameT(index, rune)))
+    PlaceholderTemplata(idT, tyype)
   }
 }

@@ -64,7 +64,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     // Only identifying template arg coord should be of PlaceholderT(0)
     bork.header.id.localName.templateArgs match {
-      case Vector(CoordTemplata(CoordT(OwnT,_,PlaceholderT(IdT(_, _, PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))))
+      case Vector(CoordTemplata(CoordT(OwnT,_,KindPlaceholderT(IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))))
       =>
     }
 
@@ -82,11 +82,11 @@ class CompilerSolverTests extends FunSuite with Matchers {
                 CoordT(
                   OwnT,
                   _,
-                  PlaceholderT(
+                  KindPlaceholderT(
                     IdT(
                       _,
                       Vector(FunctionTemplateNameT(StrI("bork"),_)),
-                      PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))))),
+                      KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))))),
           CoordT(ShareT,_,VoidT())),
         _) =>
     }
@@ -203,7 +203,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val tzCodeLoc = CodeLocationS.testZero(interner)
     val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val regionName = funcTemplateName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+    val regionName = funcTemplateName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
     val region = PlaceholderTemplata(regionName, RegionTemplataType())
 
 
@@ -472,7 +472,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
     moo.header.params.head.tyype match {
-      case CoordT(_, _,InterfaceTT(IdT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, _,PlaceholderT(IdT(_,_,PlaceholderNameT(PlaceholderTemplateNameT(0, _))))))))))) =>
+      case CoordT(_, _,InterfaceTT(IdT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, _,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _))))))))))) =>
     }
     val main = coutputs.lookupFunction("main")
     main.body shouldHave {
@@ -609,7 +609,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     val swap = coutputs.lookupFunction("swap")
     swap.header.id.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(OwnT,_,PlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),PlaceholderNameT(PlaceholderTemplateNameT(0, _)))))) =>
+      case CoordTemplata(CoordT(OwnT,_,KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))) =>
     }
 
     val main = coutputs.lookupFunction("main")

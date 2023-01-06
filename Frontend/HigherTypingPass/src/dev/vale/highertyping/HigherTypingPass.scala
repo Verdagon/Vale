@@ -422,7 +422,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   }
 
   def translateFunction(astrouts: Astrouts, env: Environment, functionS: FunctionS): FunctionA = {
-    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
+    val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, defaultRegion, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(
@@ -448,6 +448,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       runeAToType.toMap ++ env.runeToType,
       paramsS,
       maybeRetCoordRune,
+      defaultRegion,
       ruleBuilder.toVector,
       bodyS)
   }
