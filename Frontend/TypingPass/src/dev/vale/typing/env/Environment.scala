@@ -16,7 +16,7 @@ import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.IOnImplDefinedMacro
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
-import dev.vale.typing.types.{InterfaceTT, PlaceholderT, StructTT}
+import dev.vale.typing.types.{InterfaceTT, KindPlaceholderT, StructTT}
 
 import scala.collection.immutable.{List, Map, Set}
 
@@ -214,7 +214,7 @@ object TemplatasStore {
         vwat()
       }
 //      case LambdaTemplateNameT(codeLocation) => Some(interner.intern(LambdaImpreciseNameS()))
-      case PlaceholderNameT(PlaceholderTemplateNameT(index, rune)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
+      case KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune)) => Some(interner.intern(PlaceholderImpreciseNameS(index)))
       case ReachablePrototypeNameT(num) => None
 //      case AbstractVirtualFreeTemplateNameT(codeLoc) => Some(interner.intern(VirtualFreeImpreciseNameS()))
       case ForwarderFunctionTemplateNameT(inner, index) => getImpreciseName(interner, inner)
@@ -303,13 +303,13 @@ case class TemplatasStore(
               subKind match {
                 case StructTT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
                 case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
-                case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
+                case KindPlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
                 case _ => vwat()
               }
             val superImpreciseName =
               superKind match {
                 case InterfaceTT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
-                case PlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
+                case KindPlaceholderT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
                 case _ => vwat()
               }
             getImpreciseName(interner, key).toList.map(_ -> entry) ++

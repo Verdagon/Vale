@@ -4,7 +4,7 @@ import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinat
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IInDenizenEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, PlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, KindPlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -217,4 +217,6 @@ case class OverloadSetT(
 
 }
 
-case class PlaceholderT(id: IdT[PlaceholderNameT]) extends ISubKindTT with ISuperKindTT
+// At some point it'd be nice to make Coord.kind into a templata so we can directly have a
+// placeholder templata instead of needing this special kind.
+case class KindPlaceholderT(id: IdT[KindPlaceholderNameT]) extends ISubKindTT with ISuperKindTT

@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.postparsing.{DefaultRegionRuneS, RegionTemplataType}
 import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, RangeS, StrI, Tests, vassert, vassertSome, vimpl}
 import dev.vale.typing.ast.SignatureT
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{CoordTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -44,7 +44,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainTemplateFullName = IdT(packageCoord, Vector(), mainTemplateName)
     val mainFullName = IdT(packageCoord, Vector(), mainName)
 //    val region = mainTemplateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
-    val regionName = mainTemplateFullName.addStep(interner.intern(PlaceholderNameT(interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+    val regionName = mainTemplateFullName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
     val region = PlaceholderTemplata(regionName, RegionTemplataType())
     vimpl() // fulln to id
 

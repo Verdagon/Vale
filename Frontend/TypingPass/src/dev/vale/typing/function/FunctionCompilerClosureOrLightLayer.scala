@@ -14,7 +14,7 @@ import FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.{AddressibleClosureVariableT, BuildingFunctionEnvironmentWithClosureds, IEnvEntry, IInDenizenEnvironment, IVariableT, ReferenceClosureVariableT, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, TemplataCompiler, TypingPassOptions, env}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, DenizenDefaultRegionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, IdT, NameTranslator, PlaceholderNameT, PlaceholderTemplateNameT}
+import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, DenizenDefaultRegionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, IdT, NameTranslator, KindPlaceholderNameT, KindPlaceholderTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -97,7 +97,6 @@ class FunctionCompilerClosureOrLightLayer(
         parentEnv.globalEnv,
         parentEnv,
         name,
-        vimpl(),
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
         variables,
@@ -126,7 +125,6 @@ class FunctionCompilerClosureOrLightLayer(
         outerEnv.globalEnv,
         outerEnv,
         name,
-        vimpl(),
         TemplatasStore(name, Map(), Map()).addEntries(interner, entries),
         function,
         variables,
@@ -410,16 +408,16 @@ class FunctionCompilerClosureOrLightLayer(
     templateId: IdT[IFunctionTemplateNameT],
     isRootCompilingDenizen: Boolean
   ): BuildingFunctionEnvironmentWithClosureds = {
-    val defaultRegionName = vimpl()
-//      templateId.addStep(
-//        interner.intern(PlaceholderNameT(
-//          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
-    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
+//    val defaultRegionName = vimpl()
+////      templateId.addStep(
+////        interner.intern(PlaceholderNameT(
+////          interner.intern(PlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+//    val defaultRegion = PlaceholderTemplata(defaultRegionName, RegionTemplataType())
     env.BuildingFunctionEnvironmentWithClosureds(
       outerEnv.globalEnv,
       outerEnv,
       templateId,
-      defaultRegion,
+//      defaultRegion,
       TemplatasStore(templateId, Map(), Map()),
       function,
       Vector.empty,

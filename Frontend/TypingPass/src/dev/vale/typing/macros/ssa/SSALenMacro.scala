@@ -1,6 +1,6 @@
 package dev.vale.typing.macros.ssa
 
-import dev.vale.{Keywords, RangeS, StrI, vimpl}
+import dev.vale.{Keywords, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConsecutorTE, ConstantIntTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
@@ -50,7 +50,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
           Vector(
             DiscardTE(ArgLookupTE(0, paramCoords(0).tyype)),
             ReturnTE(
-              ConstantIntTE(len, 32, env.defaultRegion)))))
+              ConstantIntTE(len, 32, vassertSome(maybeRetCoord).region)))))
     (header, body)
   }
 }

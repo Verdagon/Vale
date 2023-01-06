@@ -193,8 +193,8 @@ class EdgeCompiler(
     // To be consistent, we'll do this for every placeholder, not just the extra one like ZZ.
 
     val placeholderName =
-      interner.intern(PlaceholderNameT(
-        interner.intern(PlaceholderTemplateNameT(index, rune))))
+      interner.intern(KindPlaceholderNameT(
+        interner.intern(KindPlaceholderTemplateNameT(index, rune))))
     val placeholderFullName = dispatcherOuterEnv.id.addStep(placeholderName)
     // And, because it's new, we need to declare it and its environment.
     val placeholderTemplateFullName =
@@ -210,13 +210,13 @@ class EdgeCompiler(
         case PlaceholderTemplata(_, tyype) => {
           PlaceholderTemplata(placeholderFullName, tyype)
         }
-        case KindTemplata(PlaceholderT(originalPlaceholderFullName)) => {
+        case KindTemplata(KindPlaceholderT(originalPlaceholderFullName)) => {
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-          KindTemplata(PlaceholderT(placeholderFullName))
+          KindTemplata(KindPlaceholderT(placeholderFullName))
         }
-        case CoordTemplata(CoordT(ownership, region, PlaceholderT(originalPlaceholderFullName))) => {
+        case CoordTemplata(CoordT(ownership, region, KindPlaceholderT(originalPlaceholderFullName))) => {
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
@@ -229,7 +229,7 @@ class EdgeCompiler(
 //          }
           val newRegion = vimpl()//vassertOne(implToDispatcherRegionSubstitutions.filter(_._1 == region))._2
 
-          CoordTemplata(CoordT(ownership, newRegion, PlaceholderT(placeholderFullName)))
+          CoordTemplata(CoordT(ownership, newRegion, KindPlaceholderT(placeholderFullName)))
         }
         case other => vwat(other)
       }
@@ -297,17 +297,17 @@ class EdgeCompiler(
     // have that ZZ.
     // Note that these placeholder indexes might not line up with the ones from the original impl.
     val implPlaceholderToDispatcherPlaceholder =
-      U.mapWithIndex[ITemplata[ITemplataType], (IdT[PlaceholderNameT], ITemplata[ITemplataType])](
+      U.mapWithIndex[ITemplata[ITemplataType], (IdT[IPlaceholderNameT], ITemplata[ITemplataType])](
         impl.instantiatedId.localName.templateArgs.toVector
         .zip(impl.runeIndexToIndependence)
         .filter({ case (templata, independent) => !independent }) // Only grab dependent runes
         .map({ case (templata, independent) => templata }),
         { case (implPlaceholderIndex, implPlaceholder) =>
-          val implPlaceholderFullName = TemplataCompiler.getPlaceholderTemplataFullName(implPlaceholder)
+          val implPlaceholderFullName = TemplataCompiler.getPlaceholderTemplataId(implPlaceholder)
           // Sanity check we're in an impl template, we're about to replace it with a function template
           implPlaceholderFullName.initSteps.last match { case _: IImplTemplateNameT => case _ => vwat() }
 
-          val implRune = implPlaceholderFullName.localName.template.rune
+          val implRune = implPlaceholderFullName.localName.rune
           val dispatcherRune = DispatcherRuneFromImplS(implRune)
 
           val dispatcherPlaceholder =
@@ -377,7 +377,7 @@ class EdgeCompiler(
     // Step 3: Figure Out Dependent And Independent Runes, see FODAIR.
 
     val implRuneToImplPlaceholderAndCasePlaceholder =
-      U.mapWithIndex[(IRuneS, ITemplata[ITemplataType]), (IRuneS, IdT[PlaceholderNameT], ITemplata[ITemplataType])](
+      U.mapWithIndex[(IRuneS, ITemplata[ITemplataType]), (IRuneS, IdT[IPlaceholderNameT], ITemplata[ITemplataType])](
         impl.templata.impl.genericParams.map(_.rune.rune).toVector
           .zip(impl.instantiatedId.localName.templateArgs.toIterable)
           .zip(impl.runeIndexToIndependence)
@@ -387,7 +387,7 @@ class EdgeCompiler(
           val caseRune = CaseRuneFromImplS(implRune)
 
           val implPlaceholderFullName =
-            TemplataCompiler.getPlaceholderTemplataFullName(implPlaceholderTemplata)
+            TemplataCompiler.getPlaceholderTemplataId(implPlaceholderTemplata)
           val casePlaceholder =
             createOverridePlaceholderMimicking(
               coutputs, implPlaceholderTemplata, dispatcherInnerEnv, index, caseRune)
@@ -411,7 +411,7 @@ class EdgeCompiler(
           case PrototypeT(IdT(packageCoord, initSteps, fb @ FunctionBoundNameT(_, _, _)), _) => {
             val funcBoundFullName = IdT(packageCoord, initSteps, fb)
             val casePlaceholderedReachableFuncBoundFullName =
-              TemplataCompiler.substituteTemplatasInFunctionBoundFullName(
+              TemplataCompiler.substituteTemplatasInFunctionBoundId(
                 coutputs,
                 interner,
                 keywords,
