@@ -331,7 +331,7 @@ This is also the case with the implicit default region (`moo'`), because `bork<b
 
 Is there any unique benefit to having it as the coord?
 Perhaps that it can be transmuted easily?
-For example, when we convert a bump'Thing<myimm'whatever> from a struct containing raw refs to one containing real refs... x'Thing<myimm'whatever>. theyre legit different. they contain different data. theres no such thing as just casting them.
+For example, when we convert a `bump'Thing<myimm'whatever>` from a struct containing raw refs to one containing real refs... `x'Thing<myimm'whatever>`. theyre legit different. they contain different data. theres no such thing as just casting them.
 
 We *could* think of them as the same data, just that the generations are nulled out beforehand and then populated afterward...
 
@@ -376,6 +376,16 @@ Whatever we do, we should do it also for functions that _only_ have a default re
 
 
 This is also why we need generics. Since its a generic parameter, the old system would have monomorphized every function according to every root (exported, iow) function.
+
+
+## Cant Specify Region as Generic Arg (CSRGA)
+
+No particularly strong reason for this, it just seems best to hide DRIAGP from the user.
+
+
+## Default Region is the Only Implicit Generic Parameter (DROIGP)
+
+When we call a struct template and give it args, like `Map<int, str>`, one would think that `int` and `str` are the only arguments we're handing in. There's one hidden one, the struct's region.
 
 
 
@@ -703,10 +713,14 @@ When we want to make a placeholder for a kind, we can similarly make a placehold
 
 We'll go with D for now.
 
+
+
 These are added to the end, see IRRAE.
 
 
 # Implicit Region Runes are Added to the End (IRRAE)
+
+(This is obsolete now, we dont add implicit region runes)
 
 We add a new region rune because of MNRFGC.
 
@@ -719,14 +733,30 @@ We have three options for where to put that region param in the list:
  3. Add each before its coord rune: `func moo<t', t'T, y', y'Y>`.
  4. Add each after its coord rune: `func moo<t'T, t', y'Y, y'>`.
 
-2, 3, and 4 require that if we say something like `moo<int, bool>` then we do some fanciness to figure out that the caller is trying to specify something other than generic arguments 0 and 1.
+2, 3, and 4 require that if we say something like `moo<int, bool>` then we do s
+ome fanciness to figure out that the caller is trying to specify something other
+ than generic arguments 0 and 1.
+
+The only one that acts intuitively is option 1. If a user specifies `moo<int, b`
+
+For example, `func moo<T, Y>(a T, b Y)` might become. `func moo<t'T, y'Y, t', y'>(a T, b Y)`
+
+We have four options for where to put that region param in the list:
+
+ 1. Like the above, add them all to the end.
+ 2. Add it to the beginning, like `func moo<t', y', t'T, y'Y>`. Rust does this.
+ 3. Add each before its coord rune: `func moo<t', t'T, y', y'Y>`.
+ 4. Add each after its coord rune: `func moo<t'T, t', y'Y, y'>`.
+
+2, 3, and 4 require that if we say something like `moo<int, bool>` then we do s
+ome fanciness to figure out that the caller is trying to specify something other
+ than generic arguments 0 and 1.
 
 The only one that acts intuitively is option 1. If a user specifies `moo<int, bool>` then the arguments they think they're specifying line up with the definition's actual generic parameters.
 
 So, we'll go with option 1.
 
 That also makes the implementation easier, nice bonus.
-
 
 
 # Regions Exponential Code Size Explosion, and Mitigations (RECSEM)
@@ -745,7 +775,7 @@ So the problem seems to be in this situation: an abstract function that has gene
 Perhaps if we need to reduce codesize, we _could_ use polymorph tricks, handing in a function pointer or an entire vtable pointer.
 
 
-# Regions Specified in Post Parsing (RSPP)
+# Specify Regions in Post Parsing or Typing (SRPPT)
 
 We had a choice, between an ExpressionCompiler.evaluate parameter named contextRegion, or have the region explicitly specified in every expression given to the typing pass.
 

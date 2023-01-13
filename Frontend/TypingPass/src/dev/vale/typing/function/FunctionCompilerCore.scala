@@ -353,7 +353,18 @@ class FunctionCompilerCore(
       maybeOrigin: Option[FunctionTemplata]):
   (FunctionHeaderT) = {
     env.id.localName match {
-      case FunctionNameT(FunctionTemplateNameT(humanName, _), Vector(), params) => {
+      case FunctionNameT(FunctionTemplateNameT(humanName, _), templateArgs, params) => {
+        // Exports' template args can only be regions
+        val allTemplateArgsAreRegions =
+          templateArgs.forall({
+            case RegionTemplata(_) => true
+            case PlaceholderTemplata(_, RegionTemplataType()) => true
+            case _ => false
+          })
+        if (!allTemplateArgsAreRegions) {
+          throw CompileErrorExceptionT(RangedInternalErrorT(List(range), "Exports' template args can only be regions!"))
+        }
+
         val header =
           ast.FunctionHeaderT(
             env.id,
@@ -381,7 +392,9 @@ class FunctionCompilerCore(
         coutputs.addFunction(function2)
         (header)
       }
-      case _ => throw CompileErrorExceptionT(RangedInternalErrorT(List(range), "Only human-named function can be extern!"))
+      case _ => {
+        throw CompileErrorExceptionT(RangedInternalErrorT(List(range), "Only human-named function can be extern!"))
+      }
     }
   }
 

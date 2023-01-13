@@ -104,8 +104,9 @@ class CompilerTests extends FunSuite with Matchers {
   test("Simple struct read") {
     val compile = CompilerTestCompilation.test(
       """
-        |exported struct Moo { hp int; }
-        |exported func main(moo &Moo) int {
+        |struct Moo { hp int; }
+        |exported func main() int {
+        |  moo = Moo(7);
         |  return moo.hp;
         |}
         |""".stripMargin)
@@ -1209,7 +1210,7 @@ class CompilerTests extends FunSuite with Matchers {
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")
 
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
-      CouldntFindTypeT(tz, "Spaceship")).nonEmpty)
+      CouldntFindTypeT(tz, CodeNameS(interner.intern(StrI("Spaceship"))))).nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         tz,

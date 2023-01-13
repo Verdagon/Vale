@@ -46,6 +46,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
         vassertSome(TemplatasStore.getImpreciseName(interner, env.id.localName)),
         Vector(),
         Vector(),
+        env.defaultRegion,
         params2.map(_.tyype),
         Vector(),
         true,

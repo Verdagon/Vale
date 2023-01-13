@@ -37,14 +37,14 @@ case class ProgramA(
     val matches = interfaces.find(_.name == name)
     vassert(matches.size == 1)
     matches.head match {
-      case i @ InterfaceA(_, _, _, _, _, _, _, _, _, _, _) => i
+      case i @ InterfaceA(_, _, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
   def lookupStruct(name: INameS) = {
     val matches = structs.find(_.name == name)
     vassert(matches.size == 1)
     matches.head match {
-      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _, _, _) => i
+      case i @ StructA(_, _, _, _, _, _, _, _, _, _, _, _, _, _) => i
     }
   }
   def lookupStruct(name: String) = {
@@ -60,27 +60,30 @@ case class ProgramA(
 }
 
 case class StructA(
-    range: RangeS,
-    name: IStructDeclarationNameS,
-    attributes: Vector[ICitizenAttributeS],
-    weakable: Boolean,
-    mutabilityRune: RuneUsage,
+  range: RangeS,
+  name: IStructDeclarationNameS,
+  attributes: Vector[ICitizenAttributeS],
+  weakable: Boolean,
+  mutabilityRune: RuneUsage,
 
-    // This is needed for recursive structures like
-    //   struct ListNode<T> imm where T Ref {
-    //     tail ListNode<T>;
-    //   }
-    maybePredictedMutability: Option[MutabilityP],
-    tyype: ITemplataType,
-    genericParameters: Vector[GenericParameterS],
+  // This is needed for recursive structures like
+  //   struct ListNode<T> imm where T Ref {
+  //     tail ListNode<T>;
+  //   }
+  maybePredictedMutability: Option[MutabilityP],
+  tyype: ITemplataType,
+  genericParameters: Vector[GenericParameterS],
 
-    // These are separated so that these alone can be run during resolving, see SMRASDR.
-    headerRuneToType: Map[IRuneS, ITemplataType],
-    headerRules: Vector[IRulexSR],
-    // These are separated so they can be skipped during resolving, see SMRASDR.
-    membersRuneToType: Map[IRuneS, ITemplataType],
-    memberRules: Vector[IRulexSR],
-    members: Vector[IStructMemberS]
+  // These are separated so that these alone can be run during resolving, see SMRASDR.
+  headerRuneToType: Map[IRuneS, ITemplataType],
+  headerRules: Vector[IRulexSR],
+
+  regionRune: IRuneS,
+
+  // These are separated so they can be skipped during resolving, see SMRASDR.
+  membersRuneToType: Map[IRuneS, ITemplataType],
+  memberRules: Vector[IRulexSR],
+  members: Vector[IStructMemberS]
 ) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;
@@ -145,24 +148,27 @@ case class ExportAsA(
 sealed trait CitizenA
 
 case class InterfaceA(
-    range: RangeS,
-    name: TopLevelInterfaceDeclarationNameS,
-    attributes: Vector[ICitizenAttributeS],
-    weakable: Boolean,
-    mutabilityRune: RuneUsage,
-    // This is needed for recursive structures like
-    //   struct ListNode<T> imm where T Ref {
-    //     tail ListNode<T>;
-    //   }
-    maybePredictedMutability: Option[MutabilityP],
-    tyype: ITemplataType,
+  range: RangeS,
+  name: TopLevelInterfaceDeclarationNameS,
+  attributes: Vector[ICitizenAttributeS],
+  weakable: Boolean,
+  mutabilityRune: RuneUsage,
+  // This is needed for recursive structures like
+  //   struct ListNode<T> imm where T Ref {
+  //     tail ListNode<T>;
+  //   }
+  maybePredictedMutability: Option[MutabilityP],
+  tyype: ITemplataType,
 //    knowableRunes: Set[IRuneS],
-    genericParameters: Vector[GenericParameterS],
+  genericParameters: Vector[GenericParameterS],
 //    localRunes: Set[IRuneS],
-    runeToType: Map[IRuneS, ITemplataType],
+  runeToType: Map[IRuneS, ITemplataType],
   rules: Vector[IRulexSR],
-    // See IMRFDI
-    internalMethods: Vector[FunctionA]
+
+  regionRune: IRuneS,
+
+  // See IMRFDI
+  internalMethods: Vector[FunctionA]
 ) extends CitizenA {
   val hash = range.hashCode() + name.hashCode()
   override def hashCode(): Int = hash;

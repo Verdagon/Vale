@@ -91,6 +91,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
+    contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
@@ -104,6 +105,7 @@ class OverloadResolver(
         functionName,
         explicitTemplateArgRulesS,
         explicitTemplateArgRunesS,
+        contextRegion,
         args,
         extraEnvsToLookIn,
         exact,
@@ -112,7 +114,7 @@ class OverloadResolver(
         case Ok(potentialBanner) => {
           Ok(
             stampPotentialFunctionForPrototype(
-              coutputs, callingEnv, callRange, potentialBanner, args, verifyConclusions))
+              coutputs, callingEnv, callRange, potentialBanner, contextRegion, args, verifyConclusions))
         }
       }
     })
@@ -216,6 +218,7 @@ class OverloadResolver(
     callRange: List[RangeS],
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
+    contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean,
@@ -240,23 +243,31 @@ class OverloadResolver(
                 val explicitTemplateArgRuneToType =
                 explicitTemplateArgRunesS.zip(identifyingRuneTemplataTypes).toMap
 
+
+                val runeTypeSolveEnv =
+                  new IRuneTypeSolverEnv {
+                    override def lookup(range: RangeS, name: IImpreciseNameS):
+                    Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+                      vimpl()
+//                      callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+//                        case Some(x) => x.tyype
+//                        case None => {
+//                          throw CompileErrorExceptionT(
+//                            RangedInternalErrorT(
+//                              callRange,
+//                              "Couldn't find a: " + PostParserErrorHumanizer.humanizeImpreciseName(nameS)))
+//                        }
+//                      }
+                    }
+                  }
+
                 // And now that we know the types that are expected of these template arguments, we can
                 // run these template argument templexes through the solver so it can evaluate them in
                 // context of the current environment and spit out some templatas.
                 runeTypeSolver.solve(
                   opts.globalOptions.sanityCheck,
                   opts.globalOptions.useOptimizedSolver,
-                  (nameS: IImpreciseNameS) => {
-                    callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                      case Some(x) => x.tyype
-                      case None => {
-                        throw CompileErrorExceptionT(
-                          RangedInternalErrorT(
-                            callRange,
-                            "Couldn't find a: " + PostParserErrorHumanizer.humanizeImpreciseName(nameS)))
-                      }
-                    }
-                  },
+                  runeTypeSolveEnv,
                   callRange,
                   false,
                   explicitTemplateArgRulesS,
@@ -270,6 +281,15 @@ class OverloadResolver(
                     // rulesA is the equals rules, but rule typed. Now we'll run them through the solver to get
                     // some actual templatas.
 
+                    val runeTypeSolveEnv =
+                      new IRuneTypeSolverEnv {
+                        override def lookup(range: RangeS, name: IImpreciseNameS):
+                        Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+                          vimpl()
+                          // vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype
+                        }
+                      }
+
                     val runeAToType =
                       mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
                     // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
@@ -278,8 +298,12 @@ class OverloadResolver(
                     // That coercion is good, but lets make it more explicit.
                     val ruleBuilder = ArrayBuffer[IRulexSR]()
                     explicifyLookups(
-                      (range, name) => vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
-                      runeAToType, ruleBuilder, explicitTemplateArgRulesS)
+                      runeTypeSolveEnv,
+                      runeAToType, ruleBuilder, explicitTemplateArgRulesS) match {
+                      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: callRange, name))
+                      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: callRange, name))
+                      case Ok(()) =>
+                    }
                     val rulesWithoutImplicitCoercionsA = ruleBuilder.toVector
 
                     // We preprocess out the rune parent env lookups, see MKRFA.
@@ -304,7 +328,7 @@ class OverloadResolver(
 
                     // We only want to solve the template arg runes
                     inferCompiler.solveComplete(
-                      InferEnv(callingEnv, callRange, declaringEnv),
+                      InferEnv(callingEnv, callRange, declaringEnv, contextRegion),
                       coutputs,
                       rulesWithoutRuneParentEnvLookups,
                       explicitTemplateArgRuneToType ++ runeAToType,
@@ -374,7 +398,7 @@ class OverloadResolver(
                         if (ft.function.isLambda()) {
                           // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                            coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, args) match {
+                            coutputs, callingEnv, callRange, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, contextRegion, args) match {
                             case (EvaluateFunctionFailure(reason)) => Err(reason)
                             case (EvaluateFunctionSuccess(prototype, conclusions)) => {
                               paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
@@ -389,7 +413,7 @@ class OverloadResolver(
                         } else {
                           // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                            coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, args) match {
+                            coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, contextRegion, args) match {
                             case (EvaluateFunctionFailure(reason)) => Err(reason)
                             case (EvaluateFunctionSuccess(prototype, conclusions)) => {
                               paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
@@ -412,7 +436,7 @@ class OverloadResolver(
               // So it's not a template, but it's a template in context. We'll still need to
               // feed it into the inferer.
               functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs, callingEnv, callRange, ft, Vector.empty, args) match {
+                coutputs, callingEnv, callRange, ft, Vector.empty, contextRegion, args) match {
                 case (EvaluateFunctionFailure(reason)) => {
                   Err(reason)
                 }
@@ -431,7 +455,7 @@ class OverloadResolver(
         } else {
           if (ft.function.isLambda()) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs, callRange, callingEnv, ft, Vector(), args, verifyConclusions) match {
+                coutputs, callRange, callingEnv, ft, Vector(), contextRegion, args, verifyConclusions) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
@@ -447,7 +471,7 @@ class OverloadResolver(
             }
           } else {
             functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-              coutputs, callRange, callingEnv, ft, Vector(), args) match {
+              coutputs, callRange, callingEnv, ft, Vector(), contextRegion, args) match {
               case (EvaluateFunctionFailure(reason)) => {
                 Err(reason)
               }
@@ -534,6 +558,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
+    contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
@@ -555,7 +580,7 @@ class OverloadResolver(
       candidates.map(candidate => {
         attemptCandidateBanner(
           env, coutputs, callRange, explicitTemplateArgRulesS,
-          explicitTemplateArgRunesS, args, candidate, exact, verifyConclusions)
+          explicitTemplateArgRunesS, contextRegion, args, candidate, exact, verifyConclusions)
           .mapError(e => (candidate -> e))
       })
     val (successes, failedToReason) = Result.split(attempted)
@@ -728,6 +753,7 @@ class OverloadResolver(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
+    contextRegion: ITemplata[RegionTemplataType],
     verifyConclusions: Boolean):
   (PrototypeTemplata) = {
     potentialBanner match {
@@ -735,7 +761,7 @@ class OverloadResolver(
 //        if (ft.function.isTemplate) {
           val (EvaluateFunctionSuccess(successBanner, conclusions)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForPrototype(
-              coutputs, callingEnv, callRange, ft, Vector.empty, banner.paramTypes);
+              coutputs, callingEnv, callRange, ft, Vector.empty, contextRegion, banner.paramTypes);
           successBanner
 //        } else {
 //          functionCompiler.evaluateOrdinaryFunctionFromNonCallForBanner(
@@ -754,6 +780,7 @@ class OverloadResolver(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     potentialBanner: IValidCalleeCandidate,
+    contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
     verifyConclusions: Boolean):
   EvaluateFunctionSuccess = {
@@ -762,7 +789,7 @@ class OverloadResolver(
         if (ft.function.isLambda()) {
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-                coutputs,callRange, callingEnv, ft, templateArgs, args, verifyConclusions) match {
+                coutputs,callRange, callingEnv, ft, templateArgs, contextRegion, args, verifyConclusions) match {
               case efs @ EvaluateFunctionSuccess(_, _) => efs
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
@@ -774,7 +801,7 @@ class OverloadResolver(
 //          }
         } else {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, ft, templateArgs, args) match {
+            coutputs, callRange, callingEnv, ft, templateArgs, contextRegion, args) match {
             case efs @ EvaluateFunctionSuccess(_, _) => efs
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
@@ -799,6 +826,7 @@ class OverloadResolver(
     callingEnv: IInDenizenEnvironment,
     range: List[RangeS],
     callableTE: ReferenceExpressionTE,
+    contextRegion: ITemplata[RegionTemplataType],
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
@@ -807,7 +835,7 @@ class OverloadResolver(
         callableTE.result.underlyingCoord,
         CoordT(ShareT, vimpl(), IntT.i32))
       findFunction(
-        callingEnv, coutputs, range, funcName, Vector.empty, Vector.empty,
+        callingEnv, coutputs, range, funcName, Vector.empty, Vector.empty, contextRegion,
         paramFilters, Vector.empty, false, verifyConclusions) match {
         case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
         case Ok(x) => x.prototype.prototype
@@ -820,6 +848,7 @@ class OverloadResolver(
     range: List[RangeS],
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
+    contextRegion: ITemplata[RegionTemplataType],
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
@@ -828,7 +857,7 @@ class OverloadResolver(
         callableTE.result.underlyingCoord,
         elementType)
     findFunction(
-      fate.snapshot, coutputs, range, funcName, Vector.empty, Vector.empty, paramFilters, Vector.empty, false, verifyConclusions) match {
+      fate.snapshot, coutputs, range, funcName, Vector.empty, Vector.empty, contextRegion, paramFilters, Vector.empty, false, verifyConclusions) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(range, e))
       case Ok(x) => x.prototype.prototype
     }

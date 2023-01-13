@@ -126,6 +126,7 @@ class FunctionCompiler(
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    contextRegion: ITemplata[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
@@ -134,7 +135,7 @@ class FunctionCompiler(
         declaringEnv,
         coutputs,
         callingEnv, // See CSSNCE
-        callRange, function, alreadySpecifiedTemplateArgs, argTypes)
+        callRange, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
     })
   }
 
@@ -144,6 +145,7 @@ class FunctionCompiler(
     callRange: List[RangeS],
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    contextRegion: ITemplata[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
@@ -153,7 +155,7 @@ class FunctionCompiler(
           declaringEnv,
           coutputs,
           callingEnv, // See CSSNCE
-          callRange, function, alreadySpecifiedTemplateArgs, argTypes)
+          callRange, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
       } else {
         val lambdaCitizenName2 =
           functionTemplata.function.name match {
@@ -169,7 +171,7 @@ class FunctionCompiler(
         val banner =
           closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForBanner(
             declaringEnv, coutputs, callingEnv, callRange, closureStructRef, function,
-            alreadySpecifiedTemplateArgs, argTypes)
+            alreadySpecifiedTemplateArgs, contextRegion, argTypes)
         (banner)
       }
     })
@@ -182,6 +184,7 @@ class FunctionCompiler(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+    contextRegion: ITemplata[RegionTemplataType],
     argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   IEvaluateFunctionResult = {
@@ -189,7 +192,7 @@ class FunctionCompiler(
       val FunctionTemplata(env, function) = functionTemplata
       if (function.isLight()) {
         closureOrLightLayer.evaluateTemplatedLightFunctionFromCallForPrototype2(
-          env, coutputs, callingEnv, callRange, function, explicitTemplateArgs, argTypes, verifyConclusions)
+          env, coutputs, callingEnv, callRange, function, explicitTemplateArgs, contextRegion, argTypes, verifyConclusions)
       } else {
         val lambdaCitizenName2 =
           function.name match {
@@ -202,7 +205,8 @@ class FunctionCompiler(
               lambdaCitizenName2,
               Set(TemplataLookupContext)))
         closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForPrototype(
-          env, coutputs, callingEnv, callRange, closureStructRef, function, explicitTemplateArgs, argTypes, verifyConclusions)
+          env, coutputs, callingEnv, callRange, closureStructRef, function, explicitTemplateArgs,
+          contextRegion, argTypes, verifyConclusions)
       }
     })
 
@@ -228,12 +232,14 @@ class FunctionCompiler(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+    contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT]):
   IEvaluateFunctionResult = {
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
-        env, coutputs, callingEnv, callRange, function, explicitTemplateArgs, args.map(Some(_)))
+        env, coutputs, callingEnv, callRange, function, explicitTemplateArgs,
+        contextRegion, args.map(Some(_)))
     })
   }
 

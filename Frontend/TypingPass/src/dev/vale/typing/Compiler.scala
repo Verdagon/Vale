@@ -99,21 +99,25 @@ class Compiler(
           callingEnv: IInDenizenEnvironment,
           callRange: List[RangeS],
           structTemplata: StructDefinitionTemplata,
-          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+          // Context region is the only implicit generic parameter, see DROIGP.
+          contextRegion: ITemplata[RegionTemplataType]):
         IResolveOutcome[StructTT] = {
           structCompiler.resolveStruct(
-            coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs)
+            coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs, contextRegion)
         }
 
         override def resolveInterface(
-            coutputs: CompilerOutputs,
-            callingEnv: IInDenizenEnvironment, // See CSSNCE
-            callRange: List[RangeS],
-            interfaceTemplata: InterfaceDefinitionTemplata,
-            uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]):
+          coutputs: CompilerOutputs,
+          callingEnv: IInDenizenEnvironment, // See CSSNCE
+          callRange: List[RangeS],
+          interfaceTemplata: InterfaceDefinitionTemplata,
+          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+          // Context region is the only implicit generic parameter, see DROIGP.
+          contextRegion: ITemplata[RegionTemplataType]):
         IResolveOutcome[InterfaceTT] = {
           structCompiler.resolveInterface(
-            coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs)
+            coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
         }
 
 //        override def resolveStaticSizedArrayKind(
@@ -340,20 +344,23 @@ class Compiler(
           env: InferEnv,
           state: CompilerOutputs,
           templata: InterfaceDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]]):
+          templateArgs: Vector[ITemplata[ITemplataType]],
+          // Context region is the only implicit generic parameter, see DROIGP.
+          contextRegion: ITemplata[RegionTemplataType]):
         (KindT) = {
             structCompiler.predictInterface(
-              state, env.originalCallingEnv, env.parentRanges, templata, templateArgs)
+              state, env.originalCallingEnv, env.parentRanges, templata, templateArgs, contextRegion)
         }
 
         override def predictStruct(
           env: InferEnv,
           state: CompilerOutputs,
           templata: StructDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]]):
+          templateArgs: Vector[ITemplata[ITemplataType]],
+          contextRegion: ITemplata[RegionTemplataType]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, env.originalCallingEnv, env.parentRanges, templata, templateArgs)
+            state, env.originalCallingEnv, env.parentRanges, templata, templateArgs, contextRegion)
         }
 
         override def kindIsFromTemplate(
@@ -451,10 +458,12 @@ class Compiler(
           callRange: List[RangeS],
           templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
+          // Context region is the only implicit generic parameter, see DROIGP.
+          contextRegion: ITemplata[RegionTemplataType],
           verifyConclusions: Boolean):
         IResolveOutcome[InterfaceTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
-          structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs)
+          structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs, contextRegion)
         }
 
         override def resolveStruct(
@@ -463,10 +472,12 @@ class Compiler(
           callRange: List[RangeS],
           templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
+          // Context region is the only implicit generic parameter, see DROIGP.
+          contextRegion: ITemplata[RegionTemplataType],
           verifyConclusions: Boolean):
         IResolveOutcome[StructTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
-          structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs)
+          structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs, contextRegion)
         }
 
         override def resolveFunction(
@@ -475,6 +486,7 @@ class Compiler(
           range: List[RangeS],
           name: StrI,
           coords: Vector[CoordT],
+          contextRegion: ITemplata[RegionTemplataType],
           verifyConclusions: Boolean):
         Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
           overloadResolver.findFunction(
@@ -484,6 +496,7 @@ class Compiler(
             interner.intern(CodeNameS(interner.intern(name))),
             Vector.empty,
             Vector.empty,
+            contextRegion,
             coords,
             Vector.empty,
             true,
@@ -556,14 +569,30 @@ class Compiler(
         }
 
         override def scoutExpectedFunctionForPrototype(
-          env: IInDenizenEnvironment, coutputs: CompilerOutputs, callRange: List[RangeS], functionName: IImpreciseNameS,
+          env: IInDenizenEnvironment,
+          coutputs: CompilerOutputs,
+          callRange: List[RangeS],
+          functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Vector[IRuneS],
-          args: Vector[CoordT], extraEnvsToLookIn: Vector[IInDenizenEnvironment], exact: Boolean, verifyConclusions: Boolean):
+          contextRegion: ITemplata[RegionTemplataType],
+          args: Vector[CoordT],
+          extraEnvsToLookIn: Vector[IInDenizenEnvironment],
+          exact: Boolean,
+          verifyConclusions: Boolean):
         EvaluateFunctionSuccess = {
-          overloadResolver.findFunction(env, coutputs, callRange, functionName,
+          overloadResolver.findFunction(
+            env,
+            coutputs,
+            callRange,
+            functionName,
             explicitTemplateArgRulesS,
-            explicitTemplateArgRunesS, args, extraEnvsToLookIn, exact, verifyConclusions) match {
+            explicitTemplateArgRunesS,
+            contextRegion,
+            args,
+            extraEnvsToLookIn,
+            exact,
+            verifyConclusions) match {
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
             case Ok(x) => x
           }
@@ -655,15 +684,16 @@ class Compiler(
       convertHelper,
       new IExpressionCompilerDelegate {
         override def evaluateTemplatedFunctionFromCallForPrototype(
-            coutputs: CompilerOutputs,
-            callingEnv: IInDenizenEnvironment, // See CSSNCE
-            callRange: List[RangeS],
-            functionTemplata: FunctionTemplata,
-            explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-            args: Vector[CoordT]):
+          coutputs: CompilerOutputs,
+          callingEnv: IInDenizenEnvironment, // See CSSNCE
+          callRange: List[RangeS],
+          functionTemplata: FunctionTemplata,
+          explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+          contextRegion: ITemplata[RegionTemplataType],
+          args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args, true)
+            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args, true)
         }
 
         override def evaluateGenericFunctionFromCallForPrototype(
@@ -672,10 +702,11 @@ class Compiler(
           callRange: List[RangeS],
           functionTemplata: FunctionTemplata,
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
+          contextRegion: ITemplata[RegionTemplataType],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, args)
+            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args)
         }
 
         override def evaluateClosureStruct(
@@ -922,7 +953,8 @@ class Compiler(
 
             val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(exportEnv, List(range), env), coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
+                InferEnv(exportEnv, List(range), env, vimpl()),
+                coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
             val kind =
               templataByRune.get(typeRuneT.rune) match {
                 case Some(KindTemplata(kind)) => {

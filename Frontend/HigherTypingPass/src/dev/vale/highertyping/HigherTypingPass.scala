@@ -10,6 +10,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuleScout}
 import dev.vale.postparsing._
 import dev.vale.postparsing.RuneTypeSolver
 import dev.vale.postparsing.rules._
+import dev.vale.solver.RuleError
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -22,9 +23,9 @@ case class Astrouts(
 
 // Environments dont have an AbsoluteName, because an environment can span multiple
 // files.
-case class Environment(
+case class EnvironmentA(
     maybeName: Option[INameS],
-    maybeParentEnv: Option[Environment],
+    maybeParentEnv: Option[EnvironmentA],
     codeMap: PackageCoordinateMap[ProgramS],
     runeToType: Map[IRuneS, ITemplataType]) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -36,19 +37,19 @@ case class Environment(
   val exportsS: Vector[ExportAsS] = codeMap.packageCoordToContents.values.flatMap(_.exports).toVector
   val imports: Vector[ImportS] = codeMap.packageCoordToContents.values.flatMap(_.imports).toVector
 
-  def addRunes(newruneToType: Map[IRuneS, ITemplataType]): Environment = {
-    Environment(maybeName, maybeParentEnv, codeMap, runeToType ++ newruneToType)
+  def addRunes(newruneToType: Map[IRuneS, ITemplataType]): EnvironmentA = {
+    EnvironmentA(maybeName, maybeParentEnv, codeMap, runeToType ++ newruneToType)
   }
 }
 
 object HigherTypingPass {
-
   def explicifyLookups(
-    env: (RangeS, IImpreciseNameS) => ITemplataType,
+    // We take in this instead of an EnvironmentA because the typing pass calls this method too.
+    env: IRuneTypeSolverEnv,
     runeAToType: mutable.HashMap[IRuneS, ITemplataType],
     ruleBuilder: ArrayBuffer[IRulexSR],
     allRulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR]):
-  Unit = {
+  Result[Unit, IRuneTypingLookupFailedError] = {
     // Only two rules' results can be coerced: LookupSR and CallSR.
     // Let's look for those and rewrite them to put an explicit coercion in there.
     allRulesWithImplicitlyCoercingLookupsS.foreach({
@@ -73,42 +74,117 @@ object HigherTypingPass {
         }
       }
       case rule@MaybeCoercingLookupSR(range, resultRune, regionRune, name) => {
-        val expectedType = vassertSome(runeAToType.get(resultRune.rune))
-        val actualType = env(range, name)
-        (actualType, expectedType) match {
-          case (x, y) if x == y => {
-            ruleBuilder += rule
+        val desiredType = vassertSome(runeAToType.get(resultRune.rune))
+        val actualLookupResult =
+          env.lookup(range, name) match {
+            case Err(e) => return Err(e)
+            case Ok(x) => x
           }
-          case (KindTemplataType(), CoordTemplataType()) => {
-            val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
-            runeAToType.put(kindRune.rune, KindTemplataType())
-            ruleBuilder += MaybeCoercingLookupSR(range, kindRune, regionRune, name)
-            ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
+
+        actualLookupResult match {
+          case PrimitiveRuneTypeSolverLookupResult(tyype) => {
+            desiredType match {
+              case CoordTemplataType() => {
+                coerceKindLookupToCoord(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name)
+              }
+              case KindTemplataType() => {
+                ruleBuilder += rule
+              }
+              case _ => vimpl() // DO NOT SUBMIT // return Err(FoundPrimitiveDidntMatchExpectedType(List(range), desiredType, tyype))
+            }
           }
-          case (ttt @ TemplateTemplataType(_, KindTemplataType()), KindTemplataType()) => {
-            val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
-            runeAToType.put(templateRune.rune, ttt)
-            ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
-            ruleBuilder += MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, Vector())
+          case CitizenRuneTypeSolverLookupResult(citizen) => {
+            desiredType match {
+              case KindTemplataType() => {
+                coerceKindTemplateLookupToKind(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, citizen.tyype)
+              }
+              case CoordTemplataType() => {
+                coerceKindTemplateLookupToCoord(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, citizen.tyype)
+              }
+              case _ => vimpl() // DO NOT SUBMIT // return Err(FoundCitizenDidntMatchExpectedType(List(range), desiredType, citizen))
+            }
           }
-          case (ttt @ TemplateTemplataType(_, KindTemplataType()), CoordTemplataType()) => {
-            val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
-            val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
-            runeAToType.put(templateRune.rune, ttt)
-            runeAToType.put(kindRune.rune, KindTemplataType())
-            ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
-            ruleBuilder += MaybeCoercingCallSR(range, kindRune, regionRune, templateRune, Vector())
-            ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
-          }
-          case _ => {
-            throw CompileErrorExceptionA(
-              highertyping.RangedInternalErrorA(
-                range, "Unexpected coercion from " + actualType + " to " + expectedType))
+          case TemplataLookupResult(actualType) => {
+            (actualType, desiredType) match {
+              case (x, y) if x == y => {
+                ruleBuilder += rule
+              }
+              case (KindTemplataType(), CoordTemplataType()) => {
+                coerceKindLookupToCoord(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name)
+              }
+              case (actualTemplateType @ TemplateTemplataType(_, KindTemplataType()), KindTemplataType()) => {
+                coerceKindTemplateLookupToKind(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, actualTemplateType)
+              }
+              case (actualTemplateType @ TemplateTemplataType(_, KindTemplataType()), CoordTemplataType()) => {
+                coerceKindTemplateLookupToCoord(
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, actualTemplateType)
+              }
+              case _ => {
+                throw CompileErrorExceptionA(
+                  highertyping.RangedInternalErrorA(
+                    range, "Unexpected coercion from " + actualType + " to " + desiredType))
+              }
+            }
           }
         }
       }
-      case rule => ruleBuilder += rule
+      case rule => {
+        ruleBuilder += rule
+      }
     })
+    Ok(())
+  }
+
+  private def coerceKindLookupToCoord(
+    runeAToType: mutable.HashMap[IRuneS, ITemplataType],
+    ruleBuilder: ArrayBuffer[IRulexSR],
+    range: RangeS,
+    resultRune: RuneUsage,
+    regionRune: RuneUsage,
+    name: IImpreciseNameS
+  ) = {
+    val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
+    runeAToType.put(kindRune.rune, KindTemplataType())
+    ruleBuilder += MaybeCoercingLookupSR(range, kindRune, regionRune, name)
+    ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
+  }
+
+  private def coerceKindTemplateLookupToKind(
+    runeAToType: mutable.HashMap[IRuneS, ITemplataType],
+    ruleBuilder: ArrayBuffer[IRulexSR],
+    range: RangeS,
+    resultRune: RuneUsage,
+    regionRune: RuneUsage,
+    name: IImpreciseNameS,
+    actualTemplateType: TemplateTemplataType):
+  Unit = {
+    val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
+    runeAToType.put(templateRune.rune, actualTemplateType)
+    ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
+    ruleBuilder += MaybeCoercingCallSR(range, resultRune, regionRune, templateRune, Vector())
+  }
+
+  private def coerceKindTemplateLookupToCoord(
+    runeAToType: mutable.HashMap[IRuneS, ITemplataType],
+    ruleBuilder: ArrayBuffer[IRulexSR],
+    range: RangeS,
+    resultRune: RuneUsage,
+    regionRune: RuneUsage,
+    name: IImpreciseNameS,
+    ttt: TemplateTemplataType):
+  Unit = {
+    val templateRune = RuneUsage(range, ImplicitCoercionTemplateRuneS(range, resultRune.rune))
+    val kindRune = RuneUsage(range, ImplicitCoercionKindRuneS(range, resultRune.rune))
+    runeAToType.put(templateRune.rune, ttt)
+    runeAToType.put(kindRune.rune, KindTemplataType())
+    ruleBuilder += MaybeCoercingLookupSR(range, templateRune, regionRune, name)
+    ruleBuilder += MaybeCoercingCallSR(range, kindRune, regionRune, templateRune, Vector())
+    ruleBuilder += CoerceToCoordSR(range, resultRune, regionRune, kindRune)
   }
 }
 
@@ -140,7 +216,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     }
   }
 
-  def lookupTypes(astrouts: Astrouts, env: Environment, needleImpreciseNameS: IImpreciseNameS): Vector[ITemplataType] = {
+  def lookupTypes(
+    astrouts: Astrouts,
+    env: EnvironmentA,
+    needleImpreciseNameS: IImpreciseNameS):
+  Vector[IRuneTypeSolverLookupResult] = {
     // See MINAAN for what we're doing here.
 
     // When the scout comes across a lambda, it doesn't put the e.g. main:lam1:__Closure struct into
@@ -155,7 +235,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     needleImpreciseNameS match {
       case CodeNameS(nameStr) => {
         primitives.get(nameStr) match {
-          case Some(x) => return Vector(x)
+          case Some(x) => return Vector(PrimitiveRuneTypeSolverLookupResult(x))
           case None =>
         }
       }
@@ -165,7 +245,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     needleImpreciseNameS match {
       case RuneNameS(rune) => {
         env.runeToType.get(rune) match {
-          case Some(tyype) => return Vector(tyype)
+          case Some(tyype) => return Vector(TemplataLookupResult(tyype))
           case None =>
         }
       }
@@ -175,11 +255,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     val nearStructTypes =
       env.structsS
         .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
-        .map(_.tyype)
+        .map(x => CitizenRuneTypeSolverLookupResult(x))
     val nearInterfaceTypes =
       env.interfacesS
         .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
-        .map(_.tyype)
+        .map(x => CitizenRuneTypeSolverLookupResult(x))
     val result = nearStructTypes ++ nearInterfaceTypes
 
     if (result.nonEmpty) {
@@ -192,22 +272,38 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     }
   }
 
-  def lookupType(astrouts: Astrouts,  env: Environment, range: RangeS, name: IImpreciseNameS): ITemplataType = {
+  def lookupType(
+    astrouts: Astrouts,
+    env: EnvironmentA,
+    range: RangeS,
+    name: IImpreciseNameS):
+  Result[IRuneTypeSolverLookupResult, ILookupFailedErrorA] = {
     lookupTypes(astrouts, env, name).distinct match {
-      case Vector() => ErrorReporter.report(CouldntFindTypeA(range, name))
-      case Vector(only) => only
-      case others => {
-        ErrorReporter.report(RangedInternalErrorA(range, "'" + name + "' has multiple types: " + others.mkString(", ")))
-      }
+      case Vector() => Err(CouldntFindTypeA(range, name))
+      case Vector(only) => Ok(only)
+      case others => Err(TooManyMatchingTypesA(range, name))
     }
   }
 
   def translateStruct(
     astrouts: Astrouts,
-    env: Environment,
+    env: EnvironmentA,
     structS: StructS):
   StructA = {
-    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, mutabilityRuneS, maybePredictedMutability, tyype, headerRuneToExplicitType, headerPredictedRuneToType, headerRulesWithImplicitlyCoercingLookupsS, membersRuneToExplicitType, membersPredictedRuneToType, memberRulesWithImplicitlyCoercingLookupsS, members) = structS
+    val StructS(rangeS, nameS, attributesS, weakable, genericParametersS, mutabilityRuneS, maybePredictedMutability, tyype, headerRuneToExplicitType, headerPredictedRuneToType, headerRulesWithImplicitlyCoercingLookupsS, membersRuneToExplicitType, membersPredictedRuneToType, memberRulesWithImplicitlyCoercingLookupsS, defaultRegionRuneS, members) = structS
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
 
     astrouts.codeLocationToStruct.get(rangeS.begin) match {
       case Some(value) => return value
@@ -229,7 +325,13 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     val allRuneToExplicitType = headerRuneToExplicitType ++ membersRuneToExplicitType
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(
-        astrouts, rangeS, genericParametersS.map(_.rune.rune), allRuneToExplicitType, Vector(), allRulesWithImplicitlyCoercingLookupsS, env)
+        astrouts,
+        rangeS,
+        genericParametersS.map(_.rune.rune),
+        allRuneToExplicitType,
+        Vector(),
+        allRulesWithImplicitlyCoercingLookupsS,
+        env)
 
     val runeAToType =
       mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
@@ -240,14 +342,20 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
 
     val headerRulesBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, headerRulesBuilder, headerRulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv, runeAToType, headerRulesBuilder, headerRulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
     val headerRulesExplicitS = headerRulesBuilder.toVector
 
     val memberRulesBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, memberRulesBuilder, memberRulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv, runeAToType, memberRulesBuilder, memberRulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
     val memberRulesExplicitS = memberRulesBuilder.toVector
 
     val runesInHeader: Set[IRuneS] =
@@ -272,6 +380,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         genericParametersS,
         headerRuneAToType,
         headerRulesExplicitS,
+        defaultRegionRuneS,
         membersRuneAToType,
         memberRulesExplicitS,
         members)
@@ -281,14 +390,27 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
 
   def getInterfaceType(
     astrouts: Astrouts,
-    env: Environment,
+    env: EnvironmentA,
     interfaceS: InterfaceS):
   ITemplataType = {
     interfaceS.tyype
   }
 
-  def translateInterface(astrouts: Astrouts,  env: Environment, interfaceS: InterfaceS): InterfaceA = {
-    val InterfaceS(rangeS, nameS, attributesS, weakable, genericParametersS, runeToExplicitType, mutabilityRuneS, maybePredictedMutability, predictedRuneToType, tyype, rulesWithImplicitlyCoercingLookupsS, internalMethodsS) = interfaceS
+  def translateInterface(astrouts: Astrouts,  env: EnvironmentA, interfaceS: InterfaceS): InterfaceA = {
+    val InterfaceS(rangeS, nameS, attributesS, weakable, genericParametersS, runeToExplicitType, mutabilityRuneS, maybePredictedMutability, predictedRuneToType, tyype, rulesWithImplicitlyCoercingLookupsS, defaultRegionRuneS, internalMethodsS) = interfaceS
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
 
     astrouts.codeLocationToInterface.get(rangeS.begin) match {
       case Some(value) => return value
@@ -332,8 +454,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
     explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+      runeTypingEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
 
     val interfaceA =
       highertyping.InterfaceA(
@@ -350,13 +475,27 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
         //        conclusions,
         runeAToType.toMap,
         ruleBuilder.toVector,
+        defaultRegionRuneS,
         internalMethodsA)
     astrouts.codeLocationToInterface.put(rangeS.begin, interfaceA)
     interfaceA
   }
 
-  def translateImpl(astrouts: Astrouts,  env: Environment, implS: ImplS): ImplA = {
+  def translateImpl(astrouts: Astrouts,  env: EnvironmentA, implS: ImplS): ImplA = {
     val ImplS(rangeS, nameS, identifyingRunesS, rulesWithImplicitlyCoercingLookupsS, runeToExplicitType, tyype, structKindRuneS, subCitizenImpreciseName, interfaceKindRuneS, superInterfaceImpreciseName) = implS
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(
@@ -378,9 +517,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     // what types we *expect* them to be, so we could coerce.
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    explicifyLookups(runeTypingEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
 
     highertyping.ImplA(
       rangeS,
@@ -394,8 +535,21 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       superInterfaceImpreciseName)
   }
 
-  def translateExport(astrouts: Astrouts,  env: Environment, exportS: ExportAsS): ExportAsA = {
+  def translateExport(astrouts: Astrouts,  env: EnvironmentA, exportS: ExportAsS): ExportAsA = {
     val ExportAsS(rangeS, rulesWithImplicitlyCoercingLookupsS, regionGenericParam, regionRune, exportName, rune, exportedName) = exportS
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(
@@ -414,15 +568,30 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     // what types we *expect* them to be, so we could coerce.
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    explicifyLookups(runeTypingEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
 
     highertyping.ExportAsA(rangeS, exportedName, ruleBuilder.toVector, runeAToType.toMap, rune)
   }
 
-  def translateFunction(astrouts: Astrouts, env: Environment, functionS: FunctionS): FunctionA = {
+  def translateFunction(astrouts: Astrouts, env: EnvironmentA, functionS: FunctionS): FunctionA = {
     val FunctionS(rangeS, nameS, attributesS, identifyingRunesS, runeToExplicitType, tyype, paramsS, maybeRetCoordRune, defaultRegion, rulesWithImplicitlyCoercingLookupsS, bodyS) = functionS
+
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
 
     val runeAToTypeWithImplicitlyCoercingLookupsS =
       calculateRuneTypes(
@@ -435,9 +604,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     // what types we *expect* them to be, so we could coerce.
     // That coercion is good, but lets make it more explicit.
     val ruleBuilder = ArrayBuffer[IRulexSR]()
-    explicifyLookups(
-      (range, name) => lookupType(astrouts, env, range, name),
-      runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+    explicifyLookups(runeTypingEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+      case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionA(TooManyMatchingTypesA(range, name))
+      case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionA(CouldntFindTypeA(range, name))
+      case Ok(()) =>
+    }
 
     highertyping.FunctionA(
       rangeS,
@@ -460,8 +631,20 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     runeToExplicitType: Map[IRuneS, ITemplataType],
     paramsS: Vector[ParameterS],
     rulesS: Vector[IRulexSR],
-    env: Environment):
+    env: EnvironmentA):
   Map[IRuneS, ITemplataType] = {
+    val runeTypingEnv =
+      new IRuneTypeSolverEnv {
+        override def lookup(
+          range: RangeS,
+          name: IImpreciseNameS
+        ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+          lookupType(astrouts, env, rangeS, name).mapError({
+            case TooManyMatchingTypesA(range, name) => RuneTypingTooManyMatchingTypes(range, name)
+            case CouldntFindTypeA(range, name) => RuneTypingCouldntFindType(range, name)
+          })
+        }
+      }
     val runeSToPreKnownTypeA =
       runeToExplicitType ++
         paramsS.flatMap(_.pattern.coordRune.map(_.rune -> CoordTemplataType())).toMap
@@ -469,7 +652,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       new RuneTypeSolver(interner).solve(
         globalOptions.sanityCheck,
         globalOptions.useOptimizedSolver,
-        (n) => lookupType(astrouts, env, rangeS, n),
+        runeTypingEnv,
         List(rangeS),
         false, rulesS, identifyingRunesS, true, runeSToPreKnownTypeA) match {
         case Ok(t) => t
@@ -484,7 +667,7 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       suppliedFunctions: Vector[FunctionA],
       suppliedInterfaces: Vector[InterfaceA]):
   ProgramA = {
-    val env = Environment(None, None, codeMap, Map())
+    val env = EnvironmentA(None, None, codeMap, Map())
 
     // If something is absence from the map, we haven't started evaluating it yet
     // If there is a None in the map, we started evaluating it

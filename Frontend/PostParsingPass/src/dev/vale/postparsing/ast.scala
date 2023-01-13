@@ -64,6 +64,13 @@ case class ExportS(packageCoordinate: PackageCoordinate) extends IFunctionAttrib
 }
 case object UserFunctionS extends IFunctionAttributeS // Whether it was written by a human. Mostly for tests right now.
 
+sealed trait ICitizenS {
+  def name: ICitizenDeclarationNameS
+  def tyype: TemplateTemplataType
+  def genericParams: Vector[GenericParameterS]
+  def regionRune: IRuneS
+}
+
 case class StructS(
     range: RangeS,
     name: TopLevelStructDeclarationNameS,
@@ -77,7 +84,7 @@ case class StructS(
     //     tail ListNode<T>;
     //   }
     maybePredictedMutability: Option[MutabilityP],
-    tyype: ITemplataType,
+    tyype: TemplateTemplataType,
 
     // These are separated so that these alone can be run during resolving, see SMRASDR.
     headerRuneToExplicitType: Map[IRuneS, ITemplataType],
@@ -88,7 +95,10 @@ case class StructS(
     membersPredictedRuneToType: Map[IRuneS, ITemplataType],
     memberRules: Vector[IRulexSR],
 
-    members: Vector[IStructMemberS]) {
+    regionRune: IRuneS,
+
+    members: Vector[IStructMemberS]
+) extends ICitizenS {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
 //  vassert(isTemplate == identifyingRunes.nonEmpty)
@@ -128,11 +138,15 @@ case class InterfaceS(
   //   }
   maybePredictedMutability: Option[MutabilityP],
   predictedRuneToType: Map[IRuneS, ITemplataType],
-  tyype: ITemplataType,
+  tyype: TemplateTemplataType,
 
   rules: Vector[IRulexSR],
+
+  regionRune: IRuneS,
+
   // See IMRFDI
-  internalMethods: Vector[FunctionS]) {
+  internalMethods: Vector[FunctionS]
+) extends ICitizenS {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   internalMethods.foreach(internalMethod => {
@@ -351,10 +365,29 @@ case class LocationInDenizen(path: Vector[Int]) {
 
 sealed trait IDenizenS
 case class TopLevelFunctionS(function: FunctionS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class TopLevelStructS(struct: StructS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
-case class TopLevelInterfaceS(interface: InterfaceS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class TopLevelImplS(impl: ImplS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class TopLevelExportAsS(export: ExportAsS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class TopLevelImportS(imporrt: ImportS) extends IDenizenS { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+
+object ICitizenDenizenS {
+  def unapply(x: IDenizenS): Option[ICitizenS] = {
+    x match {
+      case TopLevelStructS(s) => Some(s)
+      case TopLevelInterfaceS(i) => Some(i)
+      case _ => None
+    }
+  }
+}
+sealed trait ICitizenDenizenS extends IDenizenS {
+  def citizen: ICitizenS
+}
+case class TopLevelStructS(struct: StructS) extends ICitizenDenizenS {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def citizen: ICitizenS = struct
+}
+case class TopLevelInterfaceS(interface: InterfaceS) extends ICitizenDenizenS {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def citizen: ICitizenS = interface
+}
 
 case class FileS(denizens: Vector[IDenizenS])
