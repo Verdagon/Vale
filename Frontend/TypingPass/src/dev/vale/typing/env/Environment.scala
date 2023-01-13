@@ -95,6 +95,9 @@ trait IInDenizenEnvironment extends IEnvironment {
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
 
+//  // We have this here to convey the default region into the solving process when we're calling
+//  // templates.
+//  // Nevermind, it's better to hand in a contextRegion parameter for cases like x`Moo<int>.
 //  def defaultRegion: ITemplata[RegionTemplataType]
 }
 

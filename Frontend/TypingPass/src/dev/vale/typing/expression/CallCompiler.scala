@@ -35,7 +35,7 @@ class CallCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
-    region: ITemplata[RegionTemplataType],
+    contextRegion: ITemplata[RegionTemplataType],
     callableExpr: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -65,6 +65,7 @@ class CallCompiler(
             functionName,
             explicitTemplateArgRulesS,
             explicitTemplateArgRunesS,
+            contextRegion,
             unconvertedArgsPointerTypes2,
             Vector.empty,
             false,
@@ -97,7 +98,7 @@ class CallCompiler(
           coutputs,
           life,
           range,
-          region,
+          contextRegion,
           callableExpr.result.coord.kind,
           explicitTemplateArgRulesS,
           explicitTemplateArgRunesS,
@@ -127,7 +128,7 @@ class CallCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
-    region: ITemplata[RegionTemplataType],
+    contextRegion: ITemplata[RegionTemplataType],
     kind: KindT,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -145,6 +146,7 @@ class CallCompiler(
             nenv,
             range,
             life,
+            contextRegion,
             givenCallableUnborrowedExpr2,
             BorrowT)
         }
@@ -159,7 +161,7 @@ class CallCompiler(
     //      }
 
     val argsTypes2 = givenArgsExprs2.map(_.result.coord)
-    val closureParamType = CoordT(givenCallableBorrowExpr2.result.coord.ownership, region, kind)
+    val closureParamType = CoordT(givenCallableBorrowExpr2.result.coord.ownership, contextRegion, kind)
     val paramFilters = Vector(closureParamType) ++ argsTypes2
     val resolved =
       overloadCompiler.findFunction(
@@ -169,6 +171,7 @@ class CallCompiler(
         interner.intern(CodeNameS(keywords.underscoresCall)),
         explicitTemplateArgRulesS,
         explicitTemplateArgRunesS,
+        contextRegion,
         paramFilters,
         Vector.empty,
         false,

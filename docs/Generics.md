@@ -331,6 +331,17 @@ This should also help when we switch to regions, where we want to say that two g
 share the same region.
 
 
+### Start Incremental Placeholdering With Default Region (SIPWDR)
+
+Per IRAGP, we solve as much of a struct definition as we can, and then add a placeholder, then do another solve, add another placeholder, and so on.
+
+Solving generally requires the context region, so we can do template calls. But when solving the struct definition, the context region is a placeholder. But even the first placeholder only comes after a solve. But solving needs a placeholder.
+
+Seems like a circular dependency! Easily resolved, though.
+
+Since we know that every denizen has a region generic parameter, we can just toss in the placeholder for that in the beginning.
+
+One day, we might want to say something like `struct Moo host'{ x int; }` or something. At that point this might fall apart and we might not be able to assume a region is a generic parameter. Not sure what we'll do then.
 
 
 # Solve First With Predictions, Resolve Later (SFWPRL)

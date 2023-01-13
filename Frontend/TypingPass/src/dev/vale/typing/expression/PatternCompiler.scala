@@ -3,7 +3,7 @@ package dev.vale.typing.expression
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.parsing.ast.LoadAsBorrowP
 import dev.vale.postparsing._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vfail, vimpl}
+import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassert, vassertSome, vfail, vimpl}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, TypingPassOptions, WrongNumberOfDestructuresError}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
@@ -131,14 +131,26 @@ class PatternCompiler(
             // what types we *expect* them to be, so we could coerce.
             // That coercion is good, but lets make it more explicit.
             val ruleBuilder = ArrayBuffer[IRulexSR]()
+
+            val runeTypeSolveEnv =
+              new IRuneTypeSolverEnv {
+                override def lookup(range: RangeS, name: IImpreciseNameS):
+                Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+                  vimpl()
+                  // (range, name) => vassertSome(nenv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype
+                }
+              }
             explicifyLookups(
-              (range, name) => vassertSome(nenv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype,
-              runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS)
+              runeTypeSolveEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
+              case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))
+              case Err(RuneTypingCouldntFindType(range, name)) => throw CompileErrorExceptionT(CouldntFindTypeT(range :: parentRanges, name))
+              case Ok(()) =>
+            }
             val rulesA = ruleBuilder.toVector
 
             val CompleteCompilerSolve(_, templatasByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(nenv.snapshot, parentRanges, nenv.snapshot),
+                InferEnv(nenv.snapshot, parentRanges, nenv.snapshot, nenv.defaultRegion),
                 coutputs,
                 rulesA,
                 runeAToType.toMap,

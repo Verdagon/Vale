@@ -261,7 +261,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
 
     val tz = List(RangeS.testZero(interner))
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
-      CouldntFindTypeT(tz, "Spaceship")).nonEmpty)
+      CouldntFindTypeT(tz, CodeNameS(interner.intern(StrI("Spaceship"))))).nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CouldntFindFunctionToCallT(
         tz,

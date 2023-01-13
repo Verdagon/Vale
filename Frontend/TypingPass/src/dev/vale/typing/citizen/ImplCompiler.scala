@@ -79,7 +79,8 @@ class ImplCompiler(
         // to evaluate an override.
         callingEnv,
         range :: parentRanges,
-        outerEnv)
+        outerEnv,
+        vimpl())
     val solver =
       inferCompiler.makeSolver(
         envs, coutputs, definitionRules, runeToType, range :: parentRanges, initialKnowns, Vector())
@@ -144,7 +145,8 @@ class ImplCompiler(
           // to evaluate an override.
           callingEnv,
           range :: parentRanges,
-          outerEnv),
+          outerEnv,
+          vimpl()),
         coutputs,
         definitionRules,
         runeToType,

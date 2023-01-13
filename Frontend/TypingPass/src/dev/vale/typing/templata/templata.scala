@@ -99,7 +99,7 @@ object ITemplata {
     }
   }
 
-  def expectRegionTemplata(templata: ITemplata[ITemplataType]): ITemplata[RegionTemplataType] = {
+  def expectRegionTemplata(templata: ITemplata[ITemplataType]): RegionTemplata = {
     templata match {
       case t @ RegionTemplata(_) => t
       case _ => vfail()

@@ -221,7 +221,7 @@ class AnonymousInterfaceMacro(
 
     val structGenericParams =
       interfaceA.genericParameters ++
-        memberRunes.map(mr => GenericParameterS(mr.range, mr, CoordTemplataType(), Vector(), None))
+        memberRunes.map(mr => GenericParameterS(mr.range, mr, CoordTemplataType(), None, Vector(), None))
 
     interfaceA.internalMethods.zip(memberRunes).zipWithIndex.foreach({ case ((internalMethod, memberRune), methodIndex) =>
       val methodRuneToType =
@@ -410,7 +410,7 @@ class AnonymousInterfaceMacro(
     methodIndex: Int):
   FunctionA = {
     val structType = struct.tyype
-    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, methodOriginalRules, body) = method
+    val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, defaultRegionRune, methodOriginalRules, body) = method
 
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
     val genericParams = struct.genericParameters
@@ -528,6 +528,7 @@ class AnonymousInterfaceMacro(
       maybeRetCoordRune.map({ case RuneUsage(range, retCoordRune) =>
         RuneUsage(range, inheritedMethodRune(interface, method, retCoordRune))
       }),
+      defaultRegionRune,
       rules.buildArray().toVector,
       CodeBodyS(
         BodySE(

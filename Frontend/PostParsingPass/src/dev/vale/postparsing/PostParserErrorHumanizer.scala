@@ -172,6 +172,7 @@ object PostParserErrorHumanizer {
       case CoordTemplataType() => "Type"
       case FunctionTemplataType() => "Func"
       case IntegerTemplataType() => "Int"
+      case RegionTemplataType() => "Region"
       case BooleanTemplataType() => "Bool"
       case MutabilityTemplataType() => "Mut"
       case PrototypeTemplataType() => "Prot"

@@ -1,4 +1,6 @@
 
+See [Architecture](Architecture.md) for an overview of the higher typing pass.
+
 
 # Kind vs Coord, Implicit and Explicit (KVCIE)
 

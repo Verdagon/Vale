@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl, vwat}
+import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
@@ -504,7 +504,20 @@ object CompilerErrorHumanizer {
       }
       case CoordTemplata(CoordT(ownership, region, kind)) => {
         (region match {
-          case PlaceholderTemplata(id @ IdT(packageCoord, initSteps, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))), tyype) => {
+          case PlaceholderTemplata(id @ IdT(_, _, NonKindPlaceholderNameT(index, rune)), tyype) => {
+            rune match {
+              case DefaultRegionRuneS() => {
+                id.initSteps.last match {
+                  case t : ITemplateNameT => humanizeName(codeMap, t) + "'"
+                  case _ => vwat()
+                }
+              }
+              case _ => {
+                humanizeRune(rune) + "'"
+              }
+            }
+          }
+          case PlaceholderTemplata(id @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))), tyype) => {
             rune match {
               case DefaultRegionRuneS() => {
                 id.initSteps.last match {
@@ -603,6 +616,7 @@ object CompilerErrorHumanizer {
       }
       case KindPlaceholderNameT(template) => humanizeName(codeMap, template)
       case KindPlaceholderTemplateNameT(index, rune) => humanizeRune(rune)
+      case NonKindPlaceholderNameT(index, rune) => humanizeRune(rune)
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
       case FunctionTemplateNameT(humanName, codeLoc) => humanName.str

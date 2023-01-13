@@ -47,7 +47,9 @@ trait ITemplataCompilerDelegate {
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     structTemplata: StructDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    // Context region is the only implicit generic parameter, see DROIGP.
+    contextRegion: ITemplata[RegionTemplataType]
   ):
   IResolveOutcome[StructTT]
 
@@ -58,7 +60,9 @@ trait ITemplataCompilerDelegate {
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]]
+    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    // Context region is the only implicit generic parameter, see DROIGP.
+    contextRegion: ITemplata[RegionTemplataType]
   ):
   IResolveOutcome[InterfaceTT]
 
@@ -286,10 +290,21 @@ object TemplataCompiler {
     boundArgumentsSource: IBoundArgumentsSource,
     coord: CoordT):
   CoordT = {
-    val CoordT(ownership, region, kind) = coord
+    val CoordT(ownership, originalRegion, kind) = coord
+    val resultRegion =
+      expectRegion(
+        substituteTemplatasInTemplata(
+          coutputs,
+          interner,
+          keywords,
+          needleTemplateName,
+          newSubstitutingTemplatas,
+          boundArgumentsSource,
+          originalRegion))
     substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, kind) match {
-      case KindTemplata(kind) => CoordT(ownership, region, kind)
-      case CoordTemplata(CoordT(innerOwnership, newRegion, kind)) => {
+      case KindTemplata(kind) => CoordT(ownership, resultRegion, kind)
+      case CoordTemplata(CoordT(innerOwnership, innerRegion, kind)) => {
+        vimpl() // Not sure how to reconcile two different regions here
         val resultOwnership =
           (ownership, innerOwnership) match {
             case (ShareT, _) => ShareT
@@ -300,7 +315,7 @@ object TemplataCompiler {
             case (BorrowT, BorrowT) => BorrowT
             case _ => vimpl()
           }
-        CoordT(resultOwnership, newRegion, kind)
+        CoordT(resultOwnership, resultRegion, kind)
       }
     }
 
@@ -602,6 +617,13 @@ object TemplataCompiler {
       case CoordTemplata(c) => CoordTemplata(substituteTemplatasInCoord(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, c))
       case KindTemplata(k) => substituteTemplatasInKind(coutputs, interner, keywords, needleTemplateName, newSubstitutingTemplatas, boundArgumentsSource, k)
       case PlaceholderTemplata(id @ IdT(_, _, pn @ KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))), _) => {
+        if (id.initFullName(interner) == needleTemplateName) {
+          newSubstitutingTemplatas(index)
+        } else {
+          templata
+        }
+      }
+      case PlaceholderTemplata(id @ IdT(_, _, pn @ NonKindPlaceholderNameT(index, rune)), _) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -1029,7 +1051,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + structA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveStruct(coutputs, env, range, st, Vector.empty).expect().kind
+            delegate.resolveStruct(coutputs, env, range, st, Vector.empty, region).expect().kind
           val mutability = Compiler.getMutability(coutputs, kind)
 
           // Default ownership is own for mutables, share for imms
@@ -1047,7 +1069,7 @@ class TemplataCompiler(
             vfail("Can't coerce " + interfaceA.name + " to be a coord, is a template!")
           }
           val kind =
-            delegate.resolveInterface(coutputs, env, range, it, Vector.empty).expect().kind
+            delegate.resolveInterface(coutputs, env, range, it, Vector.empty, region).expect().kind
           val mutability = Compiler.getMutability(coutputs, kind)
           val coerced =
             CoordTemplata(

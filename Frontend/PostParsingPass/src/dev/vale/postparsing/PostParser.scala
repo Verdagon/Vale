@@ -654,7 +654,7 @@ class PostParser(
 
 //    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
-    postparsing.StructS(
+    StructS(
       structRangeS,
       structName,
       attrsS,
@@ -669,6 +669,7 @@ class PostParser(
       membersRuneToExplicitType.toMap,
       membersRuneToPredictedType,
       memberRulesS,
+      defaultRegionRuneS,
       membersS)
   }
 
@@ -701,11 +702,18 @@ class PostParser(
             }
             (rune, vassertOne(explicitTypes))
           })
+      val env =
+        new IRuneTypeSolverEnv {
+          override def lookup(range: RangeS, name: IImpreciseNameS):
+          Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
+            vimpl()
+          }
+        }
       val runeSToLocallyPredictedTypes =
         new RuneTypeSolver(interner).solve(
           globalOptions.sanityCheck,
           globalOptions.useOptimizedSolver,
-          (n) => vimpl(), List(rangeS), true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
+          env, List(rangeS), true, rulesS, identifyingRunesS, false, runeToExplicitType) match {
           case Ok(t) => t
           // This likely cannot happen because we aren't even asking for a complete solve.
           case Err(e) => throw CompileErrorExceptionS(CouldntSolveRulesS(rangeS, e))
@@ -846,6 +854,7 @@ class PostParser(
         tyype,
 //        isTemplate,
         rulesS,
+        defaultRegionRuneS,
 //        runeSToCanonicalRune,
         internalMethodsS)
 
