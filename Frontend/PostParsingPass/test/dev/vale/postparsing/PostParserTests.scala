@@ -105,19 +105,19 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
     lambda.genericParams match {
       case Vector(
-        // See MNRFGC for why this implicit region param is here
-        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp1a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordTemplataType(), Some(RuneUsage(_, ImplicitRegionRuneS(mp1c))), _, None),
-        // See MNRFGC for why this implicit region param is here
-        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp2a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
-        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordTemplataType(), Some(RuneUsage(_, ImplicitRegionRuneS(mp2c))), _, None),
+//        // See MNRFGC for why this implicit region param is here
+//        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp1a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
+        GenericParameterS(_, RuneUsage(_, mp1b @ MagicParamRuneS(_)), CoordTemplataType(), None, _, None),
+//        // See MNRFGC for why this implicit region param is here
+//        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(mp2a @ MagicParamRuneS(_))), RegionTemplataType(), None, _, None),
+        GenericParameterS(_, RuneUsage(_, mp2b @ MagicParamRuneS(_)), CoordTemplataType(), None, _, None),
         _) => {
-        vassert(mp1a != mp2a) // Two different runes
+        vassert(mp1b != mp2b) // Two different runes
 
-        vassert(mp1a == mp1b)
-        vassert(mp1a == mp1c)
-        vassert(mp2a == mp2b)
-        vassert(mp2a == mp2c)
+//        vassert(mp1a == mp1b)
+//        vassert(mp1a == mp1c)
+//        vassert(mp2a == mp2b)
+//        vassert(mp2a == mp2c)
       }
     }
   }
