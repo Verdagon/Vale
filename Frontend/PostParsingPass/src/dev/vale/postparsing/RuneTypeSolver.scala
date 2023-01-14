@@ -19,6 +19,11 @@ case class FoundCitizenDidntMatchExpectedType(
   expectedType: ITemplataType,
   actualType: ICitizenS
 ) extends IRuneTypeRuleError
+case class FoundTemplataDidntMatchExpectedType(
+  range: List[RangeS],
+  expectedType: ITemplataType,
+  actualType: ITemplataType
+) extends IRuneTypeRuleError
 case class FoundPrimitiveDidntMatchExpectedType(
   range: List[RangeS],
   expectedType: ITemplataType,
@@ -281,17 +286,24 @@ class RuneTypeSolver(interner: Interner) {
       }
       case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
         stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
-        val actualType =
+        val actualLookupResult =
           env.lookup(range, name) match {
             case Err(e) => return Err(RuleError(e))
             case Ok(x) => x
           }
         val expectedType = vassertSome(stepState.getConclusion(rune.rune))
-        actualType match {
+        actualLookupResult match {
           case PrimitiveRuneTypeSolverLookupResult(tyype) => {
             expectedType match {
               case CoordTemplataType() | KindTemplataType() => // Either is fine
               case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
+            }
+          }
+          case TemplataLookupResult(actualType) => {
+            (actualType, expectedType) match {
+              case (x, y) if x == y => // Matches, so is fine
+              case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
+              case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
             }
           }
           case CitizenRuneTypeSolverLookupResult(citizen) => {

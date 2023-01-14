@@ -200,14 +200,12 @@ class FunctionScout(
     }
 
     // We'll add the implicit runes to the end, see IRRAE.
-    val (userSpecifiedRunesImplicitRegionRunesUnflattenedS, functionUserSpecifiedGenericParametersS) =
+    val functionUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
-        .unzip
-    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     val myStackFrameWithoutParams =
       StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, noDeclarations)
@@ -422,23 +420,23 @@ class FunctionScout(
                 // See: Lambdas Dont Need Explicit Identifying Runes (LDNEIR)
                 magicParams.flatMap(param => {
                   val coordRune = vassertSome(param.pattern.coordRune)
-                  val implicitRegionRune =
-                    RuneUsage(
-                      param.pattern.range,
-                      ImplicitRegionRuneS(vassertSome(param.pattern.coordRune).rune))
+//                  val implicitRegionRune =
+//                    RuneUsage(
+//                      param.pattern.range,
+//                      ImplicitRegionRuneS(vassertSome(param.pattern.coordRune).rune))
                   List(
-                    GenericParameterS(
-                      param.pattern.range,
-                      implicitRegionRune,
-                      RegionTemplataType(),
-                      None,
-                      Vector(),
-                      None),
+//                    GenericParameterS(
+//                      param.pattern.range,
+//                      implicitRegionRune,
+//                      RegionTemplataType(),
+//                      None,
+//                      Vector(),
+//                      None),
                     GenericParameterS(
                       param.pattern.range,
                       coordRune,
                       CoordTemplataType(),
-                      Some(implicitRegionRune),
+                      None,//Some(implicitRegionRune),
                       Vector(),
                       None))
                 })
@@ -454,8 +452,8 @@ class FunctionScout(
       extraGenericParamsFromParentS ++
         functionUserSpecifiedGenericParametersS ++
         extraGenericParamsFromBodyS ++
-        maybeRegionGenericParam ++
-        userSpecifiedRunesImplicitRegionRunesS
+        maybeRegionGenericParam
+        //++ userSpecifiedRunesImplicitRegionRunesS
 
     val unfilteredRulesArray = ruleBuilder.toVector
 

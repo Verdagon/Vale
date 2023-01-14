@@ -250,7 +250,7 @@ object PostParser {
       paramRuneS: RuneUsage):
   // Returns a possible implicit region generic param (see MNRFGC), and the translated original
   // generic param.
-  (Option[GenericParameterS], GenericParameterS)  = {
+  GenericParameterS  = {
     val GenericParameterP(genericParamRangeP, _, maybeType, maybeCoordRegionP, attributesP, maybeDefault) = genericParamP
     val genericParamRangeS = PostParser.evalRange(env.file, genericParamRangeP)
     val runeS = paramRuneS
@@ -300,25 +300,25 @@ object PostParser {
           resultRune.rune, rulesToLeaveInDefaultArgument.buildArray().toVector)
       })
 
-    val (maybeImplicitRegionGenericParam, maybeCoordRegionS) =
-      (typeS, maybeExplicitCoordRegionS) match {
-        case (CoordTemplataType(), Some(explicitCoordRegionS)) => {
-          (None, Some(explicitCoordRegionS))
-        }
-        case (CoordTemplataType(), None) => {
-          val implicitRegionRune = ImplicitRegionRuneS(runeS.rune)
-          val implicitRegionGenericParam =
-            GenericParameterS(
-              genericParamRangeS, RuneUsage(genericParamRangeS, implicitRegionRune), RegionTemplataType(), None, Vector(), None)
-          (Some(implicitRegionGenericParam), Some(RuneUsage(genericParamRangeS, implicitRegionRune)))
-
-        }
-        case _ => (None, None)
-      }
+//    val (maybeImplicitRegionGenericParam, maybeCoordRegionS) =
+//      (typeS, maybeExplicitCoordRegionS) match {
+//        case (CoordTemplataType(), Some(explicitCoordRegionS)) => {
+//          (None, Some(explicitCoordRegionS))
+//        }
+//        case (CoordTemplataType(), None) => {
+////          val implicitRegionRune = ImplicitRegionRuneS(runeS.rune)
+////          val implicitRegionGenericParam =
+////            GenericParameterS(
+////              genericParamRangeS, RuneUsage(genericParamRangeS, implicitRegionRune), RegionTemplataType(), None, Vector(), None)
+//          (None, Some(RuneUsage(genericParamRangeS, implicitRegionRune)))
+//
+//        }
+//        case _ => (None, None)
+//      }
 
     val genericParamS =
-      GenericParameterS(genericParamRangeS, runeS, typeS, maybeCoordRegionS, attributesS, defaultS)
-    (maybeImplicitRegionGenericParam, genericParamS)
+      GenericParameterS(genericParamRangeS, runeS, typeS, None, attributesS, defaultS)
+    genericParamS
   }
 }
 
@@ -412,14 +412,13 @@ class PostParser(
         .flatMap(_.params)
 
     // We'll add the implicit runes to the end, see IRRAE.
-    val (userSpecifiedRunesImplicitRegionRunesUnflattenedS, userSpecifiedGenericParametersS) =
+    val userSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, implEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
-        .unzip
-    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
+//    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     ruleScout.translateRulexes(implEnv, lidb.child(), ruleBuilder, runeToExplicitType, defaultRegionRuneS, templateRulesP)
 
@@ -462,8 +461,8 @@ class PostParser(
       }
 
     val genericParametersS =
-      userSpecifiedGenericParametersS ++
-        userSpecifiedRunesImplicitRegionRunesS
+      userSpecifiedGenericParametersS
+        //++ userSpecifiedRunesImplicitRegionRunesS
 
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype), KindTemplataType())
 
@@ -584,20 +583,18 @@ class PostParser(
       }
 
 
-    // We'll add the implicit runes to the end, see IRRAE.
-    val (userSpecifiedRunesImplicitRegionRunesUnflattenedS, structUserSpecifiedGenericParametersS) =
+    val structUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, structEnv, lidb.child(), headerRuneToExplicitType, headerRuleBuilder, defaultRegionRuneS, g, r)
         })
-        .unzip
-    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
+//    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     val genericParametersS =
       structUserSpecifiedGenericParametersS ++
-        maybeRegionGenericParam ++
-        userSpecifiedRunesImplicitRegionRunesS
+        maybeRegionGenericParam
+        //++ userSpecifiedRunesImplicitRegionRunesS
 
     ruleScout.translateRulexes(structEnv, lidb.child(), headerRuleBuilder, headerRuneToExplicitType, defaultRegionRuneS, templateRulesP)
 
@@ -792,19 +789,16 @@ class PostParser(
         }
       }
 
-    // We'll add the implicit runes to the end, see IRRAE.
-    val (userSpecifiedRunesImplicitRegionRunesUnflattenedS, interfaceUserSpecifiedGenericParametersS) =
+    val interfaceUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
             templexScout, interfaceEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
         })
-        .unzip
-    val userSpecifiedRunesImplicitRegionRunesS = userSpecifiedRunesImplicitRegionRunesUnflattenedS.flatten
 
     val genericParametersS =
-      interfaceUserSpecifiedGenericParametersS ++
-        userSpecifiedRunesImplicitRegionRunesS
+      interfaceUserSpecifiedGenericParametersS
+      //++ userSpecifiedRunesImplicitRegionRunesS
 
     ruleScout.translateRulexes(interfaceEnv, lidb.child(), ruleBuilder, runeToExplicitType, defaultRegionRuneS, rulesP)
 

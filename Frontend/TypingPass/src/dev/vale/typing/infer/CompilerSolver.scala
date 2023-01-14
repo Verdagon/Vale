@@ -54,6 +54,7 @@ case class LookupFailed(name: IImpreciseNameS) extends ITypingPassSolverError
 case class NoAncestorsSatisfyCall(params: Vector[(IRuneS, CoordT)]) extends ITypingPassSolverError
 case class CantDetermineNarrowestKind(kinds: Set[KindT]) extends ITypingPassSolverError
 case class OwnershipDidntMatch(coord: CoordT, expectedOwnership: OwnershipT) extends ITypingPassSolverError
+case class RegionDidntMatch(coord: CoordT, expectedRegion: ITemplata[RegionTemplataType]) extends ITypingPassSolverError
 case class CallResultWasntExpectedType(expected: ITemplata[ITemplataType], actual: ITemplata[ITemplataType]) extends ITypingPassSolverError {
   vpass()
 }
@@ -888,24 +889,39 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
             Ok(())
           }
           case None => {
-            val CoordTemplata(initialCoord) = vassertSome(stepState.getConclusion(resultRune.rune))
-            val newCoord =
-              delegate.getMutability(state, initialCoord.kind) match {
+            val CoordTemplata(innerCoord) = vassertSome(stepState.getConclusion(resultRune.rune))
+            val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
+
+            maybeAugmentRegionRune match {
+              case Some(augmentRegionRune) => {
+                val augmentRegion = expectRegion(vassertSome(stepState.getConclusion(augmentRegionRune.rune)))
+                if (innerRegion != augmentRegion) {
+                  return Err(OwnershipDidntMatch(innerCoord, Conversions.evaluateOwnership(augmentOwnership)))
+                }
+              }
+              case None => // Do nothing
+            }
+
+            val resultRegion = env.contextRegion
+
+            val resultOwnership =
+              delegate.getMutability(state, innerKind) match {
                 case PlaceholderTemplata(_, _) | MutabilityTemplata(MutableT) => {
                   if (augmentOwnership == ShareP) {
-                    return Err(CantShareMutable(initialCoord.kind))
+                    return Err(CantShareMutable(innerKind))
                   }
-                  if (initialCoord.ownership != Conversions.evaluateOwnership(augmentOwnership)) {
-                    return Err(OwnershipDidntMatch(initialCoord, Conversions.evaluateOwnership(augmentOwnership)))
+                  if (innerOwnership != Conversions.evaluateOwnership(augmentOwnership)) {
+                    return Err(OwnershipDidntMatch(innerCoord, Conversions.evaluateOwnership(augmentOwnership)))
                   }
-                  CoordT(
-                    OwnT,
-                    vimpl(),//env.originalCallingEnv.defaultRegion,
-                    initialCoord.kind)
+                  OwnT
                 }
-                case MutabilityTemplata(ImmutableT) => initialCoord
+                case MutabilityTemplata(ImmutableT) => innerOwnership
               }
-            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, innerRune.rune, CoordTemplata(newCoord))
+            val resultCoord =
+              CoordT(resultOwnership, resultRegion, innerKind)
+
+            stepState.concludeRune[ITypingPassSolverError](
+              range :: env.parentRanges, innerRune.rune, CoordTemplata(resultCoord))
             Ok(())
           }
         }
@@ -1112,10 +1128,43 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
                     if (!delegate.kindIsFromTemplate(state, struct, st)) {
                       return Err(CallResultWasntExpectedType(st, result))
                     }
-                    vassert(argRunes.size == struct.id.localName.templateArgs.size)
-                    argRunes.zip(struct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                    // If we get here, we have the resulting struct, and we're trying to feed it
+                    // backwards through a call to get the arguments it was invoked with.
+
+                    // Let's say the user has a parameter `x Moo`. However, Moo has a default
+                    // generic arg like Moo<moo'>. The user didn't specify it.
+                    // So there will be 1 less argRunes here than the actual template args of the
+                    // incoming result. See DROIGP for more.
+
+                    // So as we're running the result through the call backwards, we're not going to
+                    // receive that last generic arg into anything. We're instead going to make
+                    // sure it matches the default value for that template. In this case, the
+                    // default value is the context region.
+
+                    struct.id.localName.templateArgs.zipWithIndex.foreach({ case (templateArg, index) =>
+                      if (index < argRunes.size) {
+                        // The user specified this argument, so let's match the result's
+                        // corresponding generic arg with the user specified argument here.
+                        val rune = argRunes(index)
+                        stepState.concludeRune[ITypingPassSolverError](
+                          range :: env.parentRanges, rune.rune, templateArg)
+                      } else {
+                        // The user didn't specify this argument, so let's match the result's
+                        // corresponding generic arg with the default here.
+                        val genericParam = st.originStruct.genericParameters(index)
+                        if (genericParam.rune.rune == st.originStruct.regionRune) {
+                          // The default value for the default region is the caller's context region
+                          // so match it against that.
+                          if (templateArg != env.contextRegion) {
+                            return Err(CallResultWasntExpectedType(st, result))
+                          }
+                        } else {
+                          // If we get here, there's an actual default value for it.
+                          vimpl()
+                        }
+                      }
                     })
+
                     Ok(())
                   }
                   case CoordTemplata(CoordT(OwnT | ShareT, _, struct@StructTT(_))) => {
@@ -1124,7 +1173,8 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
                     }
                     vassert(argRunes.size == struct.id.localName.templateArgs.size)
                     argRunes.zip(struct.id.localName.templateArgs).foreach({ case (rune, templateArg) =>
-                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templateArg)
+                      stepState.concludeRune[ITypingPassSolverError](
+                        range :: env.parentRanges, rune.rune, templateArg)
                     })
                     Ok(())
                   }

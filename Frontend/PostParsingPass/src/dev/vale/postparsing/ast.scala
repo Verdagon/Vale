@@ -251,14 +251,7 @@ case class GenericParameterS(
   attributes: Vector[IRuneAttributeS],
   default: Option[GenericParameterDefaultS]) {
 
-  tyype match {
-    case CoordTemplataType() => {
-      vassert(coordRegion.nonEmpty)
-    }
-    case _ => {
-      vassert(coordRegion.isEmpty)
-    }
-  }
+  vassert(coordRegion.isEmpty) // not implemented yet
 }
 
 sealed trait IRuneAttributeS

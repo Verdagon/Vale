@@ -32,16 +32,21 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val program1 = compile("""func main<T>(moo T) { }""")
     val main = program1.lookupFunction("main")
 
-    // Should have T, T's implicit region, and the return rune
+    // Should have T, the default region, and the return rune
     vassert(main.runeToPredictedType.size == 3)
 
     main.genericParams match {
       case Vector(
-        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordTemplataType(), Some(RuneUsage(_, ImplicitRegionRuneS(CodeRuneS(StrI("T"))))), _, None),
+        GenericParameterS(_, RuneUsage(_, CodeRuneS(StrI("T"))), CoordTemplataType(), None, _, None),
         // implicit default region
-        _,
-        // T's implicit region rune, see MNRFGC and IRRAE.
-        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(CodeRuneS(StrI("T")))), RegionTemplataType(), _, _, None)) =>
+        _) =>
+//      case Vector(
+//        GenericParameterS(
+//          RangeS(_:10, _:11),RuneUsage(RangeS(_:0, _:23),CodeRuneS(StrI(T))),CoordTemplataType(),None,Vector(),None),
+//        GenericParameterS(_,RuneUsage(_,DefaultRegionRuneS()),RegionTemplataType(),None,Vector(ReadWriteRuneAttributeS(_)),None))
+
+      //        // T's implicit region rune, see MNRFGC and IRRAE.
+//        GenericParameterS(_, RuneUsage(_, ImplicitRegionRuneS(CodeRuneS(StrI("T")))), RegionTemplataType(), _, _, None)) =>
     }
   }
 
@@ -125,8 +130,8 @@ class PostParsingParametersTests extends FunSuite with Matchers with Collector {
     val main = bork.lookupFunction("main")
     main.genericParams.size shouldEqual 1 // Only the default region
     val lambda = Collector.onlyOf(main.body, classOf[FunctionSE])
-    // magic param + default region + magic param's implicit region
-    lambda.function.genericParams.size shouldEqual 3
+    // magic param + default region
+    lambda.function.genericParams.size shouldEqual 2
   }
 
   test("Report that default region must be mentioned in generic params") {

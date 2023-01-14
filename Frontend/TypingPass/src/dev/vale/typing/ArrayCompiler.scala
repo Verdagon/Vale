@@ -295,8 +295,9 @@ class ArrayCompiler(
           range: RangeS,
           name: IImpreciseNameS
         ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          // nameS => vassertOne(callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext))).tyype
-          vimpl()
+          Ok(
+            TemplataLookupResult(
+              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
         }
       }
 
@@ -341,10 +342,16 @@ class ArrayCompiler(
     }
     val rulesA = ruleBuilder.toVector
 
+    val initialKnowns =
+      Vector(
+        InitialKnown(
+          RuneUsage(vassertSome(parentRanges.headOption), DefaultRegionRuneS()),
+          region))
+
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, parentRanges, callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges, Vector(), Vector(), true, true, Vector())
+        coutputs, rulesA, runeAToType.toMap, parentRanges, initialKnowns, Vector(), true, true, Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
