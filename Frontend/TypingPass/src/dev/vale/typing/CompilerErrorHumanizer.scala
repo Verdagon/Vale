@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, vimpl}
+import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, SourceCodeUtils, vimpl}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
@@ -14,12 +14,11 @@ import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferF
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{BadIsaSubKind, BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, ReturnTypeConflict, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
-import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, AnonymousSubstructTemplateNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, INameT, IVarNameT, IdT, InterfaceTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, PlaceholderNameT, PlaceholderTemplateNameT, StructTemplateNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.templata.Conversions
 import dev.vale.typing.types.CoordT
-import dev.vale.RangeS
 import dev.vale.typing.citizen.ResolveFailure
 
 object CompilerErrorHumanizer {
@@ -134,7 +133,7 @@ object CompilerErrorHumanizer {
           "Array's elements have different types: " + types.mkString(", ")
         }
         case ExportedFunctionDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
-          "Exported function " + signature + " depends on kind " + nonExportedKind + " that wasn't exported from package " + paackage
+          "Exported function:\n" + humanizeSignature(codeMap, signature) + "\ndepends on kind:\n" + humanizeTemplata(codeMap, KindTemplata(nonExportedKind)) + "\nthat wasn't exported from package " + SourceCodeUtils.humanizePackage(paackage)
         }
         case TypeExportedMultipleTimes(range, paackage, exports) => {
           "Type exported multiple times:" + exports.map(export => {
