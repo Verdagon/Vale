@@ -3,14 +3,14 @@ package dev.vale.highertyping
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP, CaptureS}
 import dev.vale.postparsing.rules.RuneUsage
 import dev.vale.postparsing.{CoordTemplataType, GenericParameterS, ParameterS, PostParser, PostParserErrorHumanizer}
-import dev.vale.{CodeLocationS, FileCoordinate, RangeS, vassert}
+import dev.vale.{CodeLocationS, FileCoordinate, RangeS, vassert, vimpl}
 
 class Printer(file: FileCoordinate) {
   val buffer = new StringBuilder()
 
   def pos: CodeLocationS = CodeLocationS(file, buffer.length)
   def +=(s: String): Unit = {
-    buffer += s
+    buffer.append(s)
   }
 }
 
@@ -88,10 +88,14 @@ object HigherTypedPrinter {
           case Some(CaptureS(name)) => PostParserErrorHumanizer.humanizeName(name)
         }
 
+        val newMaybeCoordRune = vimpl()
+        val newDestructure = vimpl()
+
         val paramEnd = printer.pos
 
         ParameterS(AtomSP(RangeS(paramBegin, paramEnd), maybeName, newMaybeVirtuality, newMaybeCoordRune, newDestructure))
       })
 
+    vimpl()
   }
 }
