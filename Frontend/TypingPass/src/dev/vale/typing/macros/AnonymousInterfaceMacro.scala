@@ -397,6 +397,7 @@ class AnonymousInterfaceMacro(
       structGenericParams,
       runeToType.toMap,
       rulesBuilder.buildArray(),
+      vimpl(),
       Map(),
       Vector(),
       members)
