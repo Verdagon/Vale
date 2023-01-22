@@ -737,8 +737,6 @@ class Compiler(
   val ssaLenMacro = new SSALenMacro(keywords)
   val rsaDropMacro = new RSADropIntoMacro(keywords, arrayCompiler)
   val ssaDropMacro = new SSADropIntoMacro(keywords, arrayCompiler)
-//  val rsaFreeMacro = new RSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
-//  val ssaFreeMacro = new SSAFreeMacro(interner, keywords, arrayCompiler, overloadResolver, destructorCompiler)
 //  val ssaLenMacro = new SSALenMacro(keywords)
 //  val implDropMacro = new ImplDropMacro(interner, nameTranslator)
 //  val implFreeMacro = new ImplFreeMacro(interner, keywords, nameTranslator)

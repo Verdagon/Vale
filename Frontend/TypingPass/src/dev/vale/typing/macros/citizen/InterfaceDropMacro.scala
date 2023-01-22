@@ -99,6 +99,7 @@ class InterfaceDropMacro(
               Some(AbstractSP(range(-64002), true)),
               Some(use(-64002, selfCoordRune)), None))),
         Some(use(-64002, voidCoordRune)),
+        vimpl(),
         rules.buildArray().toVector,
         AbstractBodyS)
 
@@ -106,8 +107,4 @@ class InterfaceDropMacro(
       interfaceName.copy(localName = nameTranslator.translateGenericFunctionName(dropFunctionA.name)) ->
         FunctionEnvEntry(dropFunctionA))
   }
-
-//  override def getInterfaceChildEntries(interfaceName: FullNameT[INameT], interfaceA: InterfaceA, mutability: MutabilityT): Vector[(FullNameT[INameT], IEnvEntry)] = {
-//    Vector()
-//  }
 }

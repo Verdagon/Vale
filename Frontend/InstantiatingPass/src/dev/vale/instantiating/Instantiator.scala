@@ -3,7 +3,7 @@ package dev.vale.instantiating
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
-import dev.vale.typing.TemplataCompiler.{getTopLevelDenizenFullName, substituteTemplatasInKind}
+import dev.vale.typing.TemplataCompiler.{substituteTemplatasInKind}
 import dev.vale.typing.{Hinputs, InstantiationBoundArguments, TemplataCompiler}
 import dev.vale.typing.ast.{EdgeT, _}
 import dev.vale.typing.env._
@@ -189,9 +189,9 @@ object Instantiator {
 
     val interfaces =
       monouts.interfacesWithoutMethods.values.map(interface => {
-        val InterfaceDefinitionT(templateName, instantiatedInterface, ref, defaultRegion, attributes, weakable, mutability, _, _, _) = interface
+        val InterfaceDefinitionT(templateName, instantiatedInterface, ref, attributes, weakable, mutability, _, _, _) = interface
         InterfaceDefinitionT(
-          templateName, instantiatedInterface, ref, vregion(defaultRegion), attributes, weakable, mutability, Map(), Map(),
+          templateName, instantiatedInterface, ref, attributes, weakable, mutability, Map(), Map(),
           vassertSome(monouts.interfaceToAbstractFuncToVirtualIndex.get(interface.ref.id)).toVector)
       })
 
@@ -1052,7 +1052,7 @@ class Instantiator(
     newId: IdT[IStructNameT],
     structDefT: StructDefinitionT):
   Unit = {
-    val StructDefinitionT(templateName, instantiatedCitizen, attributes, defaultRegion, weakable, mutabilityT, members, isClosure, _, _) = structDefT
+    val StructDefinitionT(templateName, instantiatedCitizen, attributes, weakable, mutabilityT, members, isClosure, _, _) = structDefT
 
     if (opts.sanityCheck) {
       vassert(Collector.all(newId, { case KindPlaceholderNameT(_) => }).isEmpty)
@@ -1756,10 +1756,10 @@ class Instantiator(
       case InterfaceTT(name) => {
         vassertSome(monouts.startedInterfaces.get(name))._1
       }
-      case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, _)))) => {
+      case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, _, region)))) => {
         expectMutabilityTemplata(mutability).mutability
       }
-      case StaticSizedArrayTT(IdT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(mutability, _)))) => {
+      case StaticSizedArrayTT(IdT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(mutability, _, region)))) => {
         expectMutabilityTemplata(mutability).mutability
       }
       case other => vimpl(other)
