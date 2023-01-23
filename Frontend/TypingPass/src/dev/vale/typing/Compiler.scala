@@ -16,6 +16,7 @@ import dev.vale.highertyping._
 import OverloadResolver.FindFunctionFailure
 import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
+import dev.vale.typing.Compiler.isPrimitive
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IInDenizenEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
@@ -1228,10 +1229,28 @@ class Compiler(
       val exportedKindToExport = packageToKindToExport.getOrElse(funcExport.packageCoordinate, Map())
       (Vector(funcExport.prototype.returnType) ++ funcExport.prototype.paramTypes)
         .foreach(paramType => {
-          if (!Compiler.isPrimitive(paramType.kind) && !exportedKindToExport.contains(paramType.kind)) {
-            throw CompileErrorExceptionT(
-              ExportedFunctionDependedOnNonExportedKind(
-                List(funcExport.range), funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
+          val paramKind = paramType.kind
+          paramKind match {
+            case x if isPrimitive(x) =>
+            case c : ICitizenTT => {
+              val citizenDef = coutputs.lookupCitizen(c)
+              val placeholderedCitizen = citizenDef.instantiatedCitizen
+              if (!exportedKindToExport.contains(placeholderedCitizen)) {
+                throw CompileErrorExceptionT(
+                  ExportedFunctionDependedOnNonExportedKind(
+                    List(funcExport.range), funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
+              }
+            }
+            case RuntimeSizedArrayTT(_) | StaticSizedArrayTT(_) => {
+              vimpl()
+//              val citizenDef = coutputs.lookupCitizen(c)
+//              val placeholderedCitizen = citizenDef.instantiatedCitizen
+//              if (!exportedKindToExport.contains(placeholderedCitizen)) {
+//                throw CompileErrorExceptionT(
+//                  ExportedFunctionDependedOnNonExportedKind(
+//                    List(funcExport.range), funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
+//              }
+            }
           }
         })
     })
