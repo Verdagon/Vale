@@ -86,7 +86,10 @@ case class CouldntFindOverrideT(range: List[RangeS], fff: FindFunctionFailure) e
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 }
-case class ExportedFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
+case class ExportedFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  vpass()
+}
 case class ExternFunctionDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, signature: SignatureT, nonExportedKind: KindT) extends ICompileErrorT { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ExportedImmutableKindDependedOnNonExportedKind(range: List[RangeS], paackage: PackageCoordinate, exportedKind: KindT, nonExportedKind: KindT) extends ICompileErrorT {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

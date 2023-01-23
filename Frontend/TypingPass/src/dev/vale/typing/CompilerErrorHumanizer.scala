@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, StrI, vimpl, vwat}
+import dev.vale.{FileCoordinate, FileCoordinateMap, RangeS, SourceCodeUtils, StrI, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, IIncompleteOrFailedSolve, IncompleteSolve, RuleError, SolverErrorHumanizer}
@@ -133,7 +133,7 @@ object CompilerErrorHumanizer {
           "Array's elements have different types: " + types.mkString(", ")
         }
         case ExportedFunctionDependedOnNonExportedKind(range, paackage, signature, nonExportedKind) => {
-          "Exported function " + signature + " depends on kind " + nonExportedKind + " that wasn't exported from package " + paackage
+          "Exported function:\n" + humanizeSignature(codeMap, signature) + "\ndepends on kind:\n" + humanizeTemplata(codeMap, KindTemplata(nonExportedKind)) + "\nthat wasn't exported from package " + SourceCodeUtils.humanizePackage(paackage)
         }
         case TypeExportedMultipleTimes(range, paackage, exports) => {
           "Type exported multiple times:" + exports.map(export => {
