@@ -4,7 +4,7 @@ package dev.vale.postparsing
 import dev.vale.options.GlobalOptions
 import dev.vale.postparsing.patterns.PatternScout
 import dev.vale.postparsing.rules.{IRulexSR, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout}
-import dev.vale.{Accumulator, CodeLocationS, Err, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, postparsing, vassert, vassertOne, vcurious, vfail, vimpl, vpass, vwat}
+import dev.vale.{Accumulator, CodeLocationS, Err, FileCoordinate, FileCoordinateMap, IPackageResolver, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, postparsing, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vwat}
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
 import PostParser.{determineDenizenType, evalRange}
@@ -266,7 +266,7 @@ object PostParser {
       maybeCoordRegionP match {
         case Some(RegionRunePT(rangeP, name)) => {
           val rangeS = PostParser.evalRange(env.file, rangeP)
-          Some(RuneUsage(rangeS, CodeRuneS(name.str)))
+          Some(RuneUsage(rangeS, CodeRuneS(vassertSome(name).str))) // impl isolates
         }
         case None => None
       }
@@ -574,7 +574,7 @@ class PostParser(
         }
         case Some(RegionRunePT(regionRangeP, regionName)) => {
           val regionRangeS = evalRange(file, regionRangeP)
-          val rune = CodeRuneS(regionName.str)
+          val rune = CodeRuneS(vassertSome(regionName).str) // impl isolates
           if (!structEnv.allDeclaredRunes().contains(rune)) {
             throw CompileErrorExceptionS(CouldntFindRuneS(regionRangeS, rune.name.str))
           }
@@ -781,7 +781,7 @@ class PostParser(
         }
         case Some(RegionRunePT(regionRangeP, regionName)) => {
           val regionRangeS = evalRange(file, regionRangeP)
-          val rune = CodeRuneS(regionName.str)
+          val rune = CodeRuneS(vassertSome(regionName).str) // impl isolates
           if (!interfaceEnv.allDeclaredRunes().contains(rune)) {
             throw CompileErrorExceptionS(CouldntFindRuneS(regionRangeS, rune.name.str))
           }
