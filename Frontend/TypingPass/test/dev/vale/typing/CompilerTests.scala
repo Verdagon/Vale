@@ -237,6 +237,23 @@ class CompilerTests extends FunSuite with Matchers {
     vassert(coutputs.getAllUserFunctions.size == 2)
   }
 
+  test("Test generic param default") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |func bork<N Int = 42>() int { return N; }
+        |exported func main() int { bork() }
+      """.stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+    val callable =
+      Collector.only(main.body, {
+        case FunctionCallTE(callable, _) => callable
+      })
+    callable.fullName.localName match {
+      case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), Vector(IntegerTemplata(42)), _) =>
+    }
+  }
+
   test("Test taking a callable param") {
     val compile = CompilerTestCompilation.test(
       """
