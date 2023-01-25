@@ -165,7 +165,7 @@ class FunctionScout(
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, regionName)) => {
-          val rune = CodeRuneS(regionName.str)
+          val rune = CodeRuneS(vassertSome(regionName).str) // impl isolates
           if (!functionEnv.allDeclaredRunes().contains(rune)) {
             throw CompileErrorExceptionS(CouldntFindRuneS(PostParser.evalRange(file, range), rune.name.str))
           }

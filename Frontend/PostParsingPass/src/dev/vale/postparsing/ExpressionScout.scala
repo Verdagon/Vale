@@ -4,7 +4,7 @@ import dev.vale.postparsing.patterns.PatternScout
 import dev.vale.postparsing.rules.{IRulexSR, IntLiteralSL, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vcurious, vwat}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vwat}
 import PostParser.{evalRange, noDeclarations, noVariableUses}
 import dev.vale
 import dev.vale.lexing.RangeL
@@ -86,9 +86,9 @@ class ExpressionScout(
       maybeNewDefaultRegion match {
         case None => parentStackFrame.contextRegion
         case Some(RegionRunePT(range, name)) => {
-          val regionRuneS = CodeRuneS(name.str)
+          val regionRuneS = CodeRuneS(vassertSome(name).str) // impl isolates
           if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
-            throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, name.str.str))
+            throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, vassertSome(name).str.str)) // impl isolates
           }
           regionRuneS
         }
