@@ -249,7 +249,7 @@ class CompilerTests extends FunSuite with Matchers {
       Collector.only(main.body, {
         case FunctionCallTE(callable, _) => callable
       })
-    callable.fullName.localName match {
+    callable.id.localName match {
       case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), Vector(IntegerTemplata(42)), _) =>
     }
   }
