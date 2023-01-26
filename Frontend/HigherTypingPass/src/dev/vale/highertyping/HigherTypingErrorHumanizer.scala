@@ -50,7 +50,7 @@ object HigherTypingErrorHumanizer {
           ": Couldn't find type `" + PostParserErrorHumanizer.humanizeImpreciseName(name) + "`:\n"
         }
         case CouldntSolveRulesA(range, err) => {
-          ": Couldn't solve generics rules:\n" +
+          ": Couldn't solve generics types:\n" +
           SolverErrorHumanizer.humanizeFailedSolve(
             filenamesAndSources,
             PostParserErrorHumanizer.humanizeRune,

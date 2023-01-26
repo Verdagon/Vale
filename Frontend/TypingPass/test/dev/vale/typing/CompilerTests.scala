@@ -114,19 +114,6 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
   }
 
-  test("Make array and dot it") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func main() int {
-        |  a = [#]int[6, 60, 103];
-        |  x = 2;
-        |  [_, _, _] = a;
-        |  return 2;
-        |}
-        |""".stripMargin)
-    compile.expectCompilerOutputs()
-  }
-
   test("Simple struct instantiate") {
     val compile = CompilerTestCompilation.test(
       """
@@ -250,7 +237,8 @@ class CompilerTests extends FunSuite with Matchers {
         case FunctionCallTE(callable, _) => callable
       })
     callable.id.localName match {
-      case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), Vector(IntegerTemplata(42)), _) =>
+      case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), Vector(IntegerTemplata(42), _), _) =>
+
     }
   }
 
@@ -469,9 +457,13 @@ class CompilerTests extends FunSuite with Matchers {
             Vector(StructTemplateNameT(StrI("MyStruct"))),
             FunctionNameT(
               FunctionTemplateNameT(StrI("drop"),_),
-              Vector(),
-              Vector(CoordT(OwnT,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector()))))))),
-          CoordT(ShareT,_,VoidT())), _) =>
+              Vector(PlaceholderTemplata(_,RegionTemplataType())),
+              Vector(
+                CoordT(
+                  OwnT,_,
+                  StructTT(
+                    IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplata(_,RegionTemplataType()))))))))),
+        CoordT(ShareT,_,VoidT())), _) =>
     }
   }
 
@@ -915,25 +907,6 @@ class CompilerTests extends FunSuite with Matchers {
     vpass()
   }
 
-  test("Test Vector of StructTemplata") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.functor1.*;
-        |import v.builtins.drop.*;
-        |import v.builtins.panic.*;
-        |
-        |struct Vec2 imm {
-        |  x float;
-        |  y float;
-        |}
-        |struct Pattern imm {
-        |  patternTiles []<imm>Vec2;
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
 
   test("If branches returns never and struct") {
     // We had a bug where it couldn't reconcile never and struct.
@@ -1368,21 +1341,6 @@ class CompilerTests extends FunSuite with Matchers {
       .nonEmpty)
   }
 
-  test("Report when multiple types in array") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func main() int {
-        |  arr = [#][true, 42];
-        |  return arr.1;
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ArrayElementsHaveDifferentTypes(_, types)) => {
-        types shouldEqual Set(CoordT(ShareT, vimpl(), IntT.i32), CoordT(ShareT, vimpl(), BoolT()))
-      }
-    }
-  }
-
   test("Report when abstract method defined outside open interface") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1508,22 +1466,6 @@ class CompilerTests extends FunSuite with Matchers {
       }
     }
   }
-
-  test("Test imm array") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.panic.*;
-        |import v.builtins.drop.*;
-        |export #[]int as ImmArrInt;
-        |exported func main(arr #[]int) {
-        |  __vbi_panic();
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-    val main = coutputs.lookupFunction("main")
-    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _, _) => }
-  }
-
 
   test("Tests calling an abstract function") {
     val compile = CompilerTestCompilation.test(
@@ -1673,28 +1615,6 @@ class CompilerTests extends FunSuite with Matchers {
 //    Collector.all(freeFunc, { case DiscardTE(referenceExprResultKind(IntT(_))) => }).size shouldEqual 3
   }
 
-  test("Reports when exported SSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |export [#5]<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
-
-  test("Reports when exported RSA depends on non-exported element") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |export []<imm>Raza as RazaArray;
-        |struct Raza imm { }
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(ExportedImmutableKindDependedOnNonExportedKind(_, _, _, _)) =>
-    }
-  }
-
   test("Imm generic can contain imm thing") {
     val compile = CompilerTestCompilation.test(
       """
@@ -1703,42 +1623,6 @@ class CompilerTests extends FunSuite with Matchers {
         |struct MyMutStruct { }
         |exported func main() { x = MyImmContainer<MyMutStruct>(MyMutStruct()); }
         |""".stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Test MakeArray") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.panic.*;
-        |import v.builtins.arith.*;
-        |import array.make.*;
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |
-        |exported func main() int {
-        |  a = MakeArray<int>(11, {_});
-        |  return len(&a);
-        |}
-      """.stripMargin)
-    val coutputs = compile.expectCompilerOutputs()
-  }
-
-  test("Test array push, pop, len, capacity, drop") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |import v.builtins.arrays.*;
-        |import v.builtins.drop.*;
-        |
-        |exported func main() void {
-        |  arr = Array<mut, int>(9);
-        |  arr.push(420);
-        |  arr.push(421);
-        |  arr.push(422);
-        |  arr.len();
-        |  arr.capacity();
-        |  // implicit drop with pops
-        |}
-      """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
   }
 

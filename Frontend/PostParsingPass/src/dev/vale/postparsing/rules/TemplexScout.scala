@@ -209,10 +209,9 @@ class TemplexScout(
               val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               ruleBuilder +=
-                rules.MaybeCoercingLookupSR(
+                rules.LookupSR(
                   rangeS,
                   templateRuneS,
-                  RuneUsage(RangeS(rangeS.begin, rangeS.begin), contextRegion),
                   interner.intern(CodeNameS(keywords.StaticArray)))
               ruleBuilder +=
                 MaybeCoercingCallSR(
@@ -232,10 +231,9 @@ class TemplexScout(
               val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               val templateRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
               ruleBuilder +=
-                rules.MaybeCoercingLookupSR(
+                rules.LookupSR(
                   rangeS,
                   templateRuneS,
-                  RuneUsage(RangeS(rangeS.begin, rangeS.begin), contextRegion),
                   interner.intern(CodeNameS(keywords.Array)))
               ruleBuilder +=
                 MaybeCoercingCallSR(

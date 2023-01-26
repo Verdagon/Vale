@@ -14,6 +14,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.DenizenDefaultRegionNameT
+import dev.vale.typing.templata.ITemplata.expectRegion
 import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.typing.types.RuntimeSizedArrayTT
 
@@ -39,7 +40,7 @@ class RSAMutableNewMacro(
     val header =
       FunctionHeaderT(
         env.id,
-        Vector.empty,
+        Vector(),
 //        Vector(RegionT(env.defaultRegion.localName, true)),
         paramCoords,
         maybeRetCoord.get,
@@ -57,7 +58,10 @@ class RSAMutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, vimpl())
+    val region =
+      expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))
+
+    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 
     val body =
       BlockTE(

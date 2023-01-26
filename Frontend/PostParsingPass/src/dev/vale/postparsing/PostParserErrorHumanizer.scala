@@ -207,7 +207,9 @@ object PostParserErrorHumanizer {
       case CoordSendSR(range, senderRune, receiverRune) => humanizeRune(senderRune.rune) + " -> " + humanizeRune(receiverRune.rune)
       case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => "coerceToCoord(" + humanizeRune(coordRune.rune) + ", " + humanizeRune(regionRune.rune) + ", " + humanizeRune(kindRune.rune) + ")"
       case MaybeCoercingCallSR(range, resultRune, region, templateRune, argRunes) => humanizeRune(resultRune.rune) + " = " + humanizeRune(region.rune) + "'" + humanizeRune(templateRune.rune) + "<" + argRunes.map(_.rune).map(humanizeRune).mkString(", ") + ">"
-      case MaybeCoercingLookupSR(range, rune, region, name) => humanizeRune(rune.rune) + " = " + humanizeRune(region.rune) + "'" + humanizeImpreciseName(name)
+      case MaybeCoercingLookupSR(range, rune, region, name) => humanizeRune(rune.rune) + " = " + humanizeRune(region.rune) + "'\"" + humanizeImpreciseName(name) + "\""
+      case CallSR(range, resultRune, templateRune, argRunes) => humanizeRune(resultRune.rune) + " = " + humanizeRune(templateRune.rune) + "<" + argRunes.map(_.rune).map(humanizeRune).mkString(", ") + ">"
+      case LookupSR(range, rune, name) => humanizeRune(rune.rune) + " = \"" + humanizeImpreciseName(name) + "\""
       case LiteralSR(range, rune, literal) => humanizeRune(rune.rune) + " = " + humanizeLiteral(literal)
       case AugmentSR(range, resultRune, ownership, region, innerRune) => humanizeRune(resultRune.rune) + " = " + ownership.map(humanizeOwnership).getOrElse("") + region.map(humanizeRegion).getOrElse("") + humanizeRune(innerRune.rune)
       case EqualsSR(range, left, right) => humanizeRune(left.rune) + " = " + humanizeRune(right.rune)

@@ -246,18 +246,18 @@ class OverloadResolver(
 
                 val runeTypeSolveEnv =
                   new IRuneTypeSolverEnv {
-                    override def lookup(range: RangeS, name: IImpreciseNameS):
+                    override def lookup(range: RangeS, nameS: IImpreciseNameS):
                     Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-                      vimpl()
-//                      callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-//                        case Some(x) => x.tyype
-//                        case None => {
+                      callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+                        case Some(x) => Ok(TemplataLookupResult(x.tyype))
+                        case None => Err(RuneTypingCouldntFindType(range, nameS))
+//                        {
 //                          throw CompileErrorExceptionT(
 //                            RangedInternalErrorT(
 //                              callRange,
 //                              "Couldn't find a: " + PostParserErrorHumanizer.humanizeImpreciseName(nameS)))
 //                        }
-//                      }
+                      }
                     }
                   }
 

@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl, vregion}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl, vregion, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
@@ -145,7 +145,10 @@ class ArrayCompiler(
           range: RangeS,
           name: IImpreciseNameS
         ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          vimpl()
+          name match {
+            case CodeNameS(n) if n == keywords.int => Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType()))
+            case other => vwat(other)
+          }
         }
       }
 
@@ -179,10 +182,15 @@ class ArrayCompiler(
     }
     val rulesA = ruleBuilder.toVector
 
+    // Elsewhere we do some incremental solving to fill in default generic param values like the
+    // context region, but here I think we can just feed it in directly. There's syntactically no
+    // way to hand it in as a generic param.
+    val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, DefaultRegionRuneS()), region))
+
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, parentRanges, callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges, Vector(), Vector(), true, true, Vector())
+        coutputs, rulesA, runeAToType.toMap, parentRanges, initialKnowns, Vector(), true, true, Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)

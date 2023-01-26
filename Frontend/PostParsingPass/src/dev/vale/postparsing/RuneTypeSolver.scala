@@ -84,7 +84,7 @@ class RuneTypeSolver(interner: Interner) {
         case IsStructSR(range, rune) => Vector(rune)
         case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
-        case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune)
+        case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(resultRune, innerRune) ++ region
         case MaybeCoercingCallSR(range, resultRune, contextRegionRune, templateRune, args) => Vector(resultRune, contextRegionRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune, returnTypeRune) ++ parameters
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members
@@ -103,13 +103,15 @@ class RuneTypeSolver(interner: Interner) {
     rule match {
       case EqualsSR(range, leftRune, rightRune) => Vector(Vector(leftRune.rune), Vector(rightRune.rune))
       case LookupSR(range, rune, _) => {
+        // If the type might be ambiguous, we would have done a MaybeCoercingLookupSR.
+
         if (predicting) {
-          // This Vector() literally means nothing can solve this puzzle.
-          // It needs to be passed in via plan/solve's initiallyKnownRunes parameter.
+          // This Vector() means nothing can solve this puzzle.
+          // We dont want to do a lookup when we're just predicting.
           Vector()
         } else {
-          // We need to know the type beforehand, because we don't know if we'll be coercing or not.
-          Vector(Vector(rune.rune))
+          // Vector(Vector()) because we can solve it immediately, by just doing the lookup.
+          Vector(Vector())
         }
       }
       case MaybeCoercingLookupSR(range, rune, _, _) => {
@@ -284,6 +286,25 @@ class RuneTypeSolver(interner: Interner) {
         stepState.concludeRune(List(range), rune.rune, literal.getType())
         Ok(())
       }
+      case LookupSR(range, resultRune, name) => {
+        val actualLookupResult =
+          env.lookup(range, name) match {
+            case Err(e) => return Err(RuleError(e))
+            case Ok(x) => x
+          }
+        actualLookupResult match {
+          case PrimitiveRuneTypeSolverLookupResult(tyype) => {
+            stepState.concludeRune(List(range), resultRune.rune, tyype)
+          }
+          case TemplataLookupResult(actualType) => {
+            stepState.concludeRune(List(range), resultRune.rune, actualType)
+          }
+          case CitizenRuneTypeSolverLookupResult(citizen) => {
+            stepState.concludeRune(List(range), resultRune.rune, citizen.tyype)
+          }
+        }
+        Ok(())
+      }
       case MaybeCoercingLookupSR(range, rune, regionRune, name) => {
         stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
         val actualLookupResult =
@@ -322,40 +343,56 @@ class RuneTypeSolver(interner: Interner) {
             }
           }
         }
-//
-//        (, ) match {
-//          case (PrimitiveRuneTypeSolverLookupResult(), CoordTemplataType() | KindTemplataType()) => {
-//            // Fine, proceed.
-//          }
-//          case (CitizenRuneTypeSolverLookupResult(citizen), CoordTemplataType() | KindTemplataType()) => {
-//            // Then it's an implicit call. Let's check that the param types match.
-//
-//          }
-//          case (KindTemplataType(), CoordTemplataType()) =>
-//          case (TemplateTemplataType(Vector(), KindTemplataType()), CoordTemplataType()) =>
-//          case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
-//          case (from, to) if from == to =>
-//          case (from, to) => {
-//
-//          }
-//        }
         Ok(())
       }
       case RuneParentEnvLookupSR(range, rune) => {
-        vimpl()
-//        (env(interner.intern(RuneNameS(rune.rune))), vassertSome(stepState.getConclusion(rune.rune))) match {
-//          case (KindTemplataType(), CoordTemplataType()) =>
-//          case (TemplateTemplataType(Vector(), KindTemplataType()), CoordTemplataType()) =>
-//          case (TemplateTemplataType(Vector(), result), expected) if result == expected =>
-//          case (from, to) if from == to =>
-//          case (from, to) => {
-//            return Err(SolverConflict(rune.rune, to, from))
-//          }
-//        }
+        // DO NOT SUBMIT combine with code from MaybeCoercingLookupSR
+        val actualLookupResult =
+          env.lookup(range, interner.intern(RuneNameS(rune.rune))) match {
+            case Err(e) => return Err(RuleError(e))
+            case Ok(x) => x
+          }
+        val expectedType = vassertSome(stepState.getConclusion(rune.rune))
+        actualLookupResult match {
+          case PrimitiveRuneTypeSolverLookupResult(tyype) => {
+            expectedType match {
+              case CoordTemplataType() | KindTemplataType() => // Either is fine
+              case _ => return Err(RuleError(FoundPrimitiveDidntMatchExpectedType(List(range), expectedType, tyype)))
+            }
+          }
+          case TemplataLookupResult(actualType) => {
+            (actualType, expectedType) match {
+              case (x, y) if x == y => // Matches, so is fine
+              case (KindTemplataType(), CoordTemplataType()) => // Will convert, so is fine
+              case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
+            }
+          }
+          case CitizenRuneTypeSolverLookupResult(citizen) => {
+            expectedType match {
+              case CoordTemplataType() | KindTemplataType() => {
+                // Then it's an implicit call, straight from being looked up.
+                checkGenericCall(List(range), citizen, Vector()) match {
+                  case Ok(()) =>
+                  case Err(e) => return Err(RuleError(e))
+                }
+              }
+              case x if x == citizen.tyype => {
+                // Not an implicit call, and it matches, proceed.
+              }
+              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, citizen)))
+            }
+          }
+        }
         Ok(())
       }
-      case AugmentSR(range, resultRune, ownership, region, innerRune) => {
+      case AugmentSR(range, resultRune, ownership, maybeRegionRune, innerRune) => {
         stepState.concludeRune(List(range), resultRune.rune, CoordTemplataType())
+        maybeRegionRune match {
+          case Some(regionRune) => {
+            stepState.concludeRune(List(range), regionRune.rune, RegionTemplataType())
+          }
+          case None =>
+        }
         stepState.concludeRune(List(range), innerRune.rune, CoordTemplataType())
         Ok(())
       }
