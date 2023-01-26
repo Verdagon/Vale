@@ -276,27 +276,72 @@ class FunctionCompilerSolvingLayer(
         TemplataCompiler.assembleCallSiteRules(
             function.rules, function.genericParameters, explicitTemplateArgs.size)
 
-    function.name match {
-      case FunctionNameS(StrI("len"), _) => {
-        vpass()
+    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
+
+    val envs = InferEnv(callingEnv, callRange, outerEnv)
+    val rules = callSiteRules
+    val runeToType = function.runeToType
+    val invocationRange = callRange
+    val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
+    val verifyConclusions = true
+    val isRootSolve = false
+    val includeReachableBoundsForRunes = Vector()
+
+    val solver =
+      inferCompiler.makeSolver(envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+
+    var loopCheck = function.genericParameters.size + 1
+
+    // Incrementally solve and add default generic parameters (and context region).
+    inferCompiler.incrementallySolve(
+      envs, coutputs, solver,
+      (solver) => {
+        if (loopCheck == 0) {
+          throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Infinite loop detected in incremental call solve!"))
+        }
+        loopCheck = loopCheck - 1
+
+        TemplataCompiler.getFirstUnsolvedIdentifyingRune(
+          function.genericParameters,
+          (rune) => solver.getConclusion(rune).nonEmpty) match {
+          case None => false
+          case Some((genericParam, index)) => {
+            // This unsolved rune better be one we didn't explicitly hand in already.
+            vassert(index >= explicitTemplateArgs.size)
+
+            genericParam.default match {
+              case Some(defaultRules) => {
+                solver.addRules(defaultRules.rules)
+                true
+              }
+              case None => {
+                // There are no defaults for this.
+
+                //                // If it's the default region rune, then supply the context rune.
+                //                if (function.defaultRegionRune == genericParam.rune.rune) {
+                //                  solver.manualStep(Map(genericParam.rune.rune ->
+                //                  contextRegion))
+                //                } else {
+                false
+                //                }
+              }
+            }
+          }
+        }
+      }) match {
+      case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        return (EvaluateFunctionFailure(InferFailure(f)))
       }
-      case _ =>
+      case Ok(true) =>
+      case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
     }
 
-    val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
-      inferCompiler.solveComplete(
-        InferEnv(callingEnv, callRange, outerEnv),
-        coutputs,
-        callSiteRules,
-        function.runeToType,
-        callRange,
-        assembleKnownTemplatas(function, explicitTemplateArgs),
-        initialSends,
-        true,
-        false,
-        Vector()
-      ) match {
+      (inferCompiler.interpretResults(envs, coutputs, invocationRange, runeToType, rules, verifyConclusions, isRootSolve, includeReachableBoundsForRunes, solver) match {
+        case f @ FailedCompilerSolve(_, _, _) => Err(f)
+        case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
+        case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
+      }) match {
         case Err(e) => return (EvaluateFunctionFailure(InferFailure(e)))
         case Ok(i) => (i)
       }
