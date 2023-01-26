@@ -13,6 +13,7 @@ import dev.vale.typing.env.{CitizenEnvironment, EnvironmentHelper, GeneralEnviro
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.infer.{CompilerSolver, CouldntFindFunction, CouldntFindImpl, CouldntResolveKind, IInfererDelegate, ITypingPassSolverError, ReturnTypeConflict}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IImplNameT, INameT, ITemplateNameT, IdT, ImplNameT, NameTranslator, ReachablePrototypeNameT, ResolvingEnvNameT, RuneNameT}
+import dev.vale.typing.templata.ITemplata.expectRegion
 import dev.vale.typing.templata._
 import dev.vale.typing.types.{CoordT, ICitizenTT, ISubKindTT, ISuperKindTT, InterfaceTT, KindT, RuntimeSizedArrayTT, StaticSizedArrayTT, StructTT}
 
@@ -560,7 +561,8 @@ class InferCompiler(
       case RuntimeSizedArrayTemplateTemplata() => {
         val Vector(m, CoordTemplata(coord)) = args
         val mutability = ITemplata.expectMutability(m)
-        delegate.resolveRuntimeSizedArrayKind(state, coord, mutability, vimpl())
+        val contextRegion = expectRegion(vassertSome(conclusions.get(regionRune.rune)))
+        delegate.resolveRuntimeSizedArrayKind(state, coord, mutability, contextRegion)
         Ok(())
       }
       case StaticSizedArrayTemplateTemplata() => {

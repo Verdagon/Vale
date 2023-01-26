@@ -190,6 +190,7 @@ class CompilerSolver(
     if (globalOptions.sanityCheck) {
       val sanityChecked: Vector[RuneUsage] =
         rule match {
+          case LookupSR(range, rune, literal) => Vector(rune)
           case MaybeCoercingLookupSR(range, rune, regionRune, literal) => Vector(rune, regionRune)
           case RuneParentEnvLookupSR(range, rune) => Vector(rune)
           case EqualsSR(range, left, right) => Vector(left, right)
@@ -226,6 +227,7 @@ class CompilerSolver(
 
   def getPuzzles(rule: IRulexSR): Vector[Vector[IRuneS]] = {
     rule match {
+      case LookupSR(range, _, _) => Vector(Vector())
       // This means we can solve this puzzle and dont need anything to do it.
       case MaybeCoercingLookupSR(range, _, _, _) => Vector(Vector())
       case RuneParentEnvLookupSR(range, rune) => Vector(Vector())
@@ -841,6 +843,15 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
         stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, templata)
         Ok(())
       }
+      case LookupSR(range, rune, name) => {
+        val result =
+          delegate.lookupTemplataImprecise(env, state, range :: env.parentRanges, name) match {
+            case None => return Err(LookupFailed(name))
+            case Some(x) => x
+          }
+        stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, rune.rune, result)
+        Ok(())
+      }
       case MaybeCoercingLookupSR(range, rune, _, name) => {
         val result =
           delegate.lookupTemplataImprecise(env, state, range :: env.parentRanges, name) match {
@@ -1016,7 +1027,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
         }
         Ok(())
       }
-      case MaybeCoercingCallSR(range, resultRune, _, templateRune, argRunes) => {
+      case MaybeCoercingCallSR(range, resultRune, contextRegionRune, templateRune, argRunes) => {
         stepState.getConclusion(resultRune.rune) match {
           case Some(result) => {
             val template = vassertSome(stepState.getConclusion(templateRune.rune))
@@ -1211,9 +1222,10 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
             template match {
               case RuntimeSizedArrayTemplateTemplata() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
                 val Vector(m, CoordTemplata(coord)) = args
                 val mutability = ITemplata.expectMutability(m)
-                val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability, vimpl())
+                val rsaKind = delegate.predictRuntimeSizedArrayKind(env, state, coord, mutability, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
                 Ok(())
               }

@@ -340,14 +340,14 @@ case class FunctionHeaderT(
       case None =>
       case Some(originFunctionTemplata) => {
         val templateName = TemplataCompiler.getFunctionTemplate(id)
-        val placeholders =
+        val placeholdersInThisFunctionName =
           Collector.all(id, {
             case KindPlaceholderT(name) => name
             case PlaceholderTemplata(name, _) => name
           })
         // Filter out any placeholders that came from the parent, in case this is a lambda function.
-        val placeholdersOfThisFunction =
-          placeholders.filter({ case IdT(packageCoord, initSteps, last) =>
+        val selfPlaceholdersInThisFunctionName =
+          placeholdersInThisFunctionName.filter({ case IdT(packageCoord, initSteps, last) =>
             val parentName = IdT(packageCoord, initSteps.init, initSteps.last)
             // Not sure which one it is, this should catch both.
             parentName == id || parentName == templateName
@@ -355,20 +355,28 @@ case class FunctionHeaderT(
 
         if (originFunctionTemplata.function.isLambda()) {
           // make sure there are no placeholders
-          vassert(placeholdersOfThisFunction.isEmpty)
+          vassert(selfPlaceholdersInThisFunctionName.isEmpty)
         } else {
           if (originFunctionTemplata.function.genericParameters.isEmpty) {
             // make sure there are no placeholders
-            vassert(placeholdersOfThisFunction.isEmpty)
+            vassert(selfPlaceholdersInThisFunctionName.isEmpty)
           } else {
-            // make sure all the placeholders in the parameters exist as template args
-            placeholdersOfThisFunction.foreach({
+            // Make sure all the placeholders in the generic parameters exist as template args in
+            // the original function definition.
+            selfPlaceholdersInThisFunctionName.foreach({
               case placeholderName @ IdT(_, _, NonKindPlaceholderNameT(index, rune)) => {
                 id.localName.templateArgs(index) match {
                   case PlaceholderTemplata(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
-                  case _ => vfail()
+                  case CoordTemplata(CoordT(_, PlaceholderTemplata(regionPlaceholderId, _), KindPlaceholderT(kindPlaceholderId))) => {
+                    vassert(placeholderName == regionPlaceholderId || placeholderName == kindPlaceholderId)
+                  }
+                  case other => {
+                    println("other: " + other)
+                    println("placeholderName: " + placeholderName)
+                    vfail(other)
+                  }
                 }
               }
               case placeholderName @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) => {

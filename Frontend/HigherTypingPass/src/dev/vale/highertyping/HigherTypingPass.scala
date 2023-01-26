@@ -198,8 +198,8 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       keywords.float -> KindTemplataType(),
       keywords.void -> KindTemplataType(),
       keywords.__Never -> KindTemplataType(),
-      keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType(), CoordTemplataType()), KindTemplataType()),
-      keywords.StaticArray -> TemplateTemplataType(Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType()), KindTemplataType()))
+      keywords.Array -> TemplateTemplataType(Vector(MutabilityTemplataType(), CoordTemplataType(), RegionTemplataType()), KindTemplataType()),
+      keywords.StaticArray -> TemplateTemplataType(Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType(), RegionTemplataType()), KindTemplataType()))
 
 
 
