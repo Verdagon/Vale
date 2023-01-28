@@ -94,15 +94,15 @@ object HigherTypingPass {
               case _ => vimpl() // DO NOT SUBMIT // return Err(FoundPrimitiveDidntMatchExpectedType(List(range), desiredType, tyype))
             }
           }
-          case CitizenRuneTypeSolverLookupResult(citizen) => {
+          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
             desiredType match {
               case KindTemplataType() => {
                 coerceKindTemplateLookupToKind(
-                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, citizen.tyype)
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, tyype)
               }
               case CoordTemplataType() => {
                 coerceKindTemplateLookupToCoord(
-                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, citizen.tyype)
+                  runeAToType, ruleBuilder, range, resultRune, regionRune, name, tyype)
               }
               case _ => vimpl() // DO NOT SUBMIT // return Err(FoundCitizenDidntMatchExpectedType(List(range), desiredType, citizen))
             }
@@ -255,11 +255,11 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
     val nearStructTypes =
       env.structsS
         .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
-        .map(x => CitizenRuneTypeSolverLookupResult(x))
+        .map(x => CitizenRuneTypeSolverLookupResult(x.tyype, x.genericParams))
     val nearInterfaceTypes =
       env.interfacesS
         .filter(interface => impreciseNameMatchesAbsoluteName(needleImpreciseNameS, interface.name))
-        .map(x => CitizenRuneTypeSolverLookupResult(x))
+        .map(x => CitizenRuneTypeSolverLookupResult(x.tyype, x.genericParams))
     val result = nearStructTypes ++ nearInterfaceTypes
 
     if (result.nonEmpty) {

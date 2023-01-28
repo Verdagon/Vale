@@ -390,7 +390,7 @@ class AnonymousInterfaceMacro(
       interfaceA.maybePredictedMutability,
       TemplateTemplataType(
         (interfaceA.tyype match {
-          case KindTemplataType() => Vector()
+//          case KindTemplataType() => Vector()
           case TemplateTemplataType(paramTypes, KindTemplataType()) => paramTypes
         }) ++ memberRunes.map(_ => CoordTemplataType()),
         KindTemplataType()),

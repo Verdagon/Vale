@@ -17,7 +17,7 @@ sealed trait IRuneTypeRuleError
 case class FoundCitizenDidntMatchExpectedType(
   range: List[RangeS],
   expectedType: ITemplataType,
-  actualType: ICitizenS
+  actualType: ITemplataType
 ) extends IRuneTypeRuleError
 case class FoundTemplataDidntMatchExpectedType(
   range: List[RangeS],
@@ -31,12 +31,12 @@ case class FoundPrimitiveDidntMatchExpectedType(
 ) extends IRuneTypeRuleError
 case class NotEnoughArgumentsForGenericCall(
   range: List[RangeS],
-  citizen: ICitizenS,
+//  citizen: ICitizenS,
   indexOfNonDefaultingParam: Int
 ) extends IRuneTypeRuleError
 case class GenericCallArgTypeMismatch(
   range: List[RangeS],
-  citizen: ICitizenS,
+//  citizen: ICitizenS,
   expectedType: ITemplataType,
   actualType: ITemplataType,
   paramIndex: Int
@@ -54,7 +54,7 @@ case class RuneTypingCouldntFindType(range: RangeS, name: IImpreciseNameS) exten
 
 sealed trait IRuneTypeSolverLookupResult
 case class PrimitiveRuneTypeSolverLookupResult(tyype: ITemplataType) extends IRuneTypeSolverLookupResult
-case class CitizenRuneTypeSolverLookupResult(citizen: ICitizenS) extends IRuneTypeSolverLookupResult
+case class CitizenRuneTypeSolverLookupResult(tyype: TemplateTemplataType, genericParams: Vector[GenericParameterS]) extends IRuneTypeSolverLookupResult
 case class TemplataLookupResult(templata: ITemplataType) extends IRuneTypeSolverLookupResult
 
 trait IRuneTypeSolverEnv {
@@ -299,8 +299,8 @@ class RuneTypeSolver(interner: Interner) {
           case TemplataLookupResult(actualType) => {
             stepState.concludeRune(List(range), resultRune.rune, actualType)
           }
-          case CitizenRuneTypeSolverLookupResult(citizen) => {
-            stepState.concludeRune(List(range), resultRune.rune, citizen.tyype)
+          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
+            stepState.concludeRune(List(range), resultRune.rune, tyype)
           }
         }
         Ok(())
@@ -327,19 +327,19 @@ class RuneTypeSolver(interner: Interner) {
               case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
             }
           }
-          case CitizenRuneTypeSolverLookupResult(citizen) => {
+          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
             expectedType match {
               case CoordTemplataType() | KindTemplataType() => {
                 // Then it's an implicit call, straight from being looked up.
-                checkGenericCall(List(range), citizen, Vector()) match {
+                checkGenericCall(List(range), genericParams, Vector()) match {
                   case Ok(()) =>
                   case Err(e) => return Err(RuleError(e))
                 }
               }
-              case x if x == citizen.tyype => {
+              case x if x == tyype => {
                 // Not an implicit call, and it matches, proceed.
               }
-              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, citizen)))
+              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, tyype)))
             }
           }
         }
@@ -367,19 +367,19 @@ class RuneTypeSolver(interner: Interner) {
               case _ => return Err(RuleError(FoundTemplataDidntMatchExpectedType(List(range), expectedType, actualType)))
             }
           }
-          case CitizenRuneTypeSolverLookupResult(citizen) => {
+          case CitizenRuneTypeSolverLookupResult(tyype, genericParams) => {
             expectedType match {
               case CoordTemplataType() | KindTemplataType() => {
                 // Then it's an implicit call, straight from being looked up.
-                checkGenericCall(List(range), citizen, Vector()) match {
+                checkGenericCall(List(range), genericParams, Vector()) match {
                   case Ok(()) =>
                   case Err(e) => return Err(RuleError(e))
                 }
               }
-              case x if x == citizen.tyype => {
+              case x if x == tyype => {
                 // Not an implicit call, and it matches, proceed.
               }
-              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, citizen)))
+              case _ => return Err(RuleError(FoundCitizenDidntMatchExpectedType(List(range), expectedType, tyype)))
             }
           }
         }
@@ -430,7 +430,6 @@ class RuneTypeSolver(interner: Interner) {
     unpreprocessedInitiallyKnownRunes: Map[IRuneS, ITemplataType]):
   Result[Map[IRuneS, ITemplataType], RuneTypeSolveError] = {
     val initiallyKnownRunes =
-      unpreprocessedInitiallyKnownRunes ++
         (if (predicting) {
           Map()
         } else {
@@ -445,7 +444,7 @@ class RuneTypeSolver(interner: Interner) {
                       FailedSolve(Vector().toStream, rules.toVector, RuleError(e))))
                 }
                 // We don't know whether we'll interpret these kinds as coords.
-                case Ok(CitizenRuneTypeSolverLookupResult(_)) => List()
+                case Ok(CitizenRuneTypeSolverLookupResult(_, _)) => List()
                 case Ok(PrimitiveRuneTypeSolverLookupResult(_)) => List()
                 case Ok(TemplataLookupResult(KindTemplataType())) => List()
                 // If it's not a kind, then we'll use it as it is.
@@ -455,7 +454,11 @@ class RuneTypeSolver(interner: Interner) {
             }
             case _ => List()
           }).toMap
-        })
+        }) ++
+      // This comes after, because we trust the initially known conclusions more. For example,
+      // an initially known conclusion might know that a pattern's incoming rune should be a coord,
+      // while the above code might think it's a template.
+      unpreprocessedInitiallyKnownRunes
     val solver =
       new Solver[IRulexSR, IRuneS, IRuneTypeSolverEnv, Unit, ITemplataType, IRuneTypeRuleError](
         sanityCheck,
@@ -507,25 +510,26 @@ class RuneTypeSolver(interner: Interner) {
 object RuneTypeSolver {
   def checkGenericCall(
     range: List[RangeS],
-    citizen: ICitizenS,
+    citizenGenericParams: Vector[GenericParameterS],
     argTypes: Vector[ITemplataType]):
   Result[Unit, IRuneTypeRuleError] = {
-    citizen.genericParams.zipWithIndex.foreach({ case (genericParam, index) =>
+    val regionRune = vassertSome(citizenGenericParams.lastOption).rune.rune
+    citizenGenericParams.zipWithIndex.foreach({ case (genericParam, index) =>
       if (index < argTypes.length) {
         val actualType = argTypes(index)
         // Make sure the given type matches the expected one
         if (genericParam.tyype == actualType) {
           // Matches, proceed.
         } else {
-          return Err(GenericCallArgTypeMismatch(range, citizen, genericParam.tyype, actualType, index))
+          return Err(GenericCallArgTypeMismatch(range, genericParam.tyype, actualType, index))
         }
       } else {
         if (genericParam.default.nonEmpty) {
           // Good, can just use that default
-        } else if (genericParam.rune.rune == citizen.regionRune) {
+        } else if (genericParam.rune.rune == regionRune) {
           // Good, we can infer that from the caller's context region.
         } else {
-          return Err(NotEnoughArgumentsForGenericCall(range, citizen, index))
+          return Err(NotEnoughArgumentsForGenericCall(range, index))
         }
       }
     })
