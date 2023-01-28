@@ -303,9 +303,10 @@ class ArrayCompiler(
           range: RangeS,
           name: IImpreciseNameS
         ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          Ok(
-            TemplataLookupResult(
-              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
+          vimpl()
+//          Ok(
+//            TemplataLookupResult(
+//              vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype))
         }
       }
 

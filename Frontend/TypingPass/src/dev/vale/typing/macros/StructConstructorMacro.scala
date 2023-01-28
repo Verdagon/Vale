@@ -91,7 +91,7 @@ class StructConstructorMacro(
         interner.intern(ConstructorNameS(structA.name)),
         Vector(),
         structA.tyype match {
-          case KindTemplataType() => FunctionTemplataType()
+//          case KindTemplataType() => FunctionTemplataType()
           case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
         },
         structA.genericParameters,

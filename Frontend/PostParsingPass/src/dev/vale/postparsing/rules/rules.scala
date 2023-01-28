@@ -33,6 +33,8 @@ case class CoordSendSR(
   senderRune: RuneUsage,
   receiverRune: RuneUsage
 ) extends IRulexSR {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(senderRune, receiverRune)
 }

@@ -71,7 +71,7 @@ case class StructA(
   //     tail ListNode<T>;
   //   }
   maybePredictedMutability: Option[MutabilityP],
-  tyype: ITemplataType,
+  tyype: TemplateTemplataType,
   genericParameters: Vector[GenericParameterS],
 
   // These are separated so that these alone can be run during resolving, see SMRASDR.
@@ -101,11 +101,12 @@ case class StructA(
 
   vassert(isTemplate)
 
-  def isTemplate: Boolean = tyype match {
-    case KindTemplataType() => false
-    case TemplateTemplataType(_, _) => true
-    case _ => vwat()
-  }
+  def isTemplate: Boolean = true
+//  tyype match {
+//    case KindTemplataType() => false
+//    case TemplateTemplataType(_, _) => true
+//    case _ => vwat()
+//  }
 }
 
 case class ImplA(
@@ -145,7 +146,10 @@ case class ExportAsA(
   }
 }
 
-sealed trait CitizenA
+sealed trait CitizenA {
+  def tyype: TemplateTemplataType
+  def genericParameters: Vector[GenericParameterS]
+}
 
 case class InterfaceA(
   range: RangeS,
@@ -158,7 +162,7 @@ case class InterfaceA(
   //     tail ListNode<T>;
   //   }
   maybePredictedMutability: Option[MutabilityP],
-  tyype: ITemplataType,
+  tyype: TemplateTemplataType,
 //    knowableRunes: Set[IRuneS],
   genericParameters: Vector[GenericParameterS],
 //    localRunes: Set[IRuneS],
@@ -186,11 +190,12 @@ case class InterfaceA(
     vassert(isTemplate == internalMethod.isTemplate);
   })
 
-  def isTemplate: Boolean = tyype match {
-    case KindTemplataType() => false
-    case TemplateTemplataType(_, _) => true
-    case _ => vwat()
-  }
+  def isTemplate: Boolean = true
+//  tyype match {
+//    case KindTemplataType() => false
+//    case TemplateTemplataType(_, _) => true
+//    case _ => vwat()
+//  }
 }
 
 object interfaceName {

@@ -124,8 +124,6 @@ class PatternCompiler(
             unconvertedInputExpr
           }
           case Some(receiverRune) => {
-            val runeAToType =
-              mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
             // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
             // loose. We intentionally ignored the types of the things they're looking up, so we could know
             // what types we *expect* them to be, so we could coerce.
@@ -134,12 +132,25 @@ class PatternCompiler(
 
             val runeTypeSolveEnv =
               new IRuneTypeSolverEnv {
-                override def lookup(range: RangeS, name: IImpreciseNameS):
+                override def lookup(range: RangeS, nameS: IImpreciseNameS):
                 Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-                  vimpl()
-                  // (range, name) => vassertSome(nenv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype
+                  // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
+                  nenv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+                    case Some(CitizenDefinitionTemplata(environment, a)) => {
+                      Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
+                    }
+                    case Some(x) => Ok(TemplataLookupResult(x.tyype))
+                    case None => Err(RuneTypingCouldntFindType(range, nameS))
+                  }
                 }
               }
+
+            val runeAToType =
+              mutable.HashMap[IRuneS, ITemplataType]((runeAToTypeWithImplicitlyCoercingLookupsS.toSeq): _*)
+            // We've now calculated all the types of all the runes, but the LookupSR rules are still a bit
+            // loose. We intentionally ignored the types of the things they're looking up, so we could know
+            // what types we *expect* them to be, so we could coerce.
+            // That coercion is good, but lets make it more explicit.
             explicifyLookups(
               runeTypeSolveEnv, runeAToType, ruleBuilder, rulesWithImplicitlyCoercingLookupsS) match {
               case Err(RuneTypingTooManyMatchingTypes(range, name)) => throw CompileErrorExceptionT(TooManyTypesWithNameT(range :: parentRanges, name))

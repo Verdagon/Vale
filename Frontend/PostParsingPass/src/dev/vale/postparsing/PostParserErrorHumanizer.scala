@@ -71,6 +71,9 @@ object PostParserErrorHumanizer {
 
   def humanizeRuneTypeError(codeMap: FileCoordinateMap[String], error: IRuneTypeRuleError): String = {
     error match {
+      case FoundTemplataDidntMatchExpectedType(range, expectedType, actualType) => {
+        "Expected " + humanizeTemplataType(expectedType) + " but found " + humanizeTemplataType(actualType)
+      }
       case other => vimpl(other)
     }
   }
