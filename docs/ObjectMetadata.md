@@ -17,6 +17,10 @@ If managed by a special allocator:
 The various Region Kind IDs: see "Planned Allocators" in "Tracking Allocator Per-Object" doc.
 
 
+We also might have a bit that tells us whether the object is currently owned by this thread or the outside. We could instead have a thread-local hash set for that.
+
+When not using perfect replayability, it could be that these 64 bits are constant throughout the life of the object. If that's the case, then performance will be slightly higher as we can just do a 64 bit compare for the generations.
+
 
 # Old Layout
 

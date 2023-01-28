@@ -66,4 +66,14 @@ class CompilerRegionTests extends FunSuite with Matchers {
       case PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, DefaultRegionRuneS()))), RegionTemplataType()) =>
     }
   }
+
+  test("Test region'd type") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |pure func CellularAutomata<r' imm>(rand_seed r'int) { }
+      """.stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+  }
 }

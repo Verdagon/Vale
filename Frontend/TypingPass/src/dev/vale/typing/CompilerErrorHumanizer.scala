@@ -399,8 +399,12 @@ object CompilerErrorHumanizer {
       case CouldntResolveKind(rf) => {
         "Couldn't find type: " + humanizeResolveFailure(false, codeMap, rf)
       }
-      case WrongNumberOfTemplateArgs(expectedNumArgs) => {
-        "Wrong number of template args, expected " + expectedNumArgs + "."
+      case WrongNumberOfTemplateArgs(expectedMinNumArgs, expectedMaxNumArgs) => {
+        if (expectedMinNumArgs == expectedMaxNumArgs) {
+          "Wrong number of template args, expected " + expectedMinNumArgs + "."
+        } else {
+          "Wrong number of template args, expected " + expectedMinNumArgs + " or " + expectedMaxNumArgs + "."
+        }
       }
       case LookupFailed(name) => "Couldn't find anything named: " + humanizeImpreciseName(name)
       case KindIsNotConcrete(kind) => {

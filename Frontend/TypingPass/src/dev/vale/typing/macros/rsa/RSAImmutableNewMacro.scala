@@ -14,6 +14,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.DenizenDefaultRegionNameT
+import dev.vale.typing.templata.ITemplata.expectRegion
 import dev.vale.typing.templata.PrototypeTemplata
 import dev.vale.typing.types._
 
@@ -58,7 +59,9 @@ class RSAImmutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, vimpl())
+    val region = expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))
+
+    val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 
     val generatorArgCoord =
       paramCoords(1).tyype match {
@@ -75,7 +78,7 @@ class RSAImmutableNewMacro(
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
         Vector(),
-        vimpl(),
+        region,
         Vector(generatorArgCoord, CoordT(ShareT, paramCoords(0).tyype.region, IntT(32))),
         Vector(),
         false,

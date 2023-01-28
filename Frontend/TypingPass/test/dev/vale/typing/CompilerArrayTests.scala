@@ -13,6 +13,12 @@ import scala.io.Source
 
 class CompilerArrayTests extends FunSuite with Matchers {
 
+  def readCodeFromResource(resourceFilename: String): String = {
+    val is = Source.fromInputStream(getClass().getClassLoader().getResourceAsStream(resourceFilename))
+    vassert(is != null)
+    is.mkString("")
+  }
+
   test("Make array and dot it") {
     val compile = CompilerTestCompilation.test(
       """
@@ -32,7 +38,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
         |import v.builtins.arrays.*;
         |import v.builtins.functor1.*;
         |import v.builtins.drop.*;
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |
         |struct Vec2 imm {
         |  x float;
@@ -89,11 +95,9 @@ class CompilerArrayTests extends FunSuite with Matchers {
   test("Test creating mut array") {
     val compile = CompilerTestCompilation.test(
       """
-        |extern("vale_runtime_sized_array_mut_new")
-        |func Array<M Mutability, E Ref>(size int) []<M>E
-        |where M = mut;
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.panic.*;
         |
-        |extern func __vbi_panic() __Never;
         |exported func main() {
         |  arr = []int(7);
         |  __vbi_panic();
@@ -105,6 +109,72 @@ class CompilerArrayTests extends FunSuite with Matchers {
     arr.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT), _, _) => }
   }
 
+  test("Test destroying array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |
+        |exported func main() {
+        |  arr = []int(7);
+        |  [] = arr;
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+  }
+
+  test("Test adding to array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.runtime_sized_array_push.*;
+        |import v.builtins.panic.*;
+        |
+        |exported func main() {
+        |  arr = []int(7);
+        |  arr.push(5);
+        |  __vbi_panic();
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+  }
+
+  test("Test reading from array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.runtime_sized_array_push.*;
+        |import v.builtins.panic.*;
+        |
+        |exported func main() {
+        |  arr = []int(7);
+        |  arr.push(5);
+        |  x = arr[0];
+        |  __vbi_panic();
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+  }
+
+  test("Test removing from array") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |import v.builtins.runtime_sized_array_push.*;
+        |import v.builtins.runtime_sized_array_pop.*;
+        |
+        |exported func main() {
+        |  arr = []int(7);
+        |  arr.push(5);
+        |  arr.pop();
+        |  [] = arr;
+        |}
+        |""".stripMargin)
+    val coutputs = compile.expectCompilerOutputs()
+    val main = coutputs.lookupFunction("main")
+  }
 
   test("Reports when exported SSA depends on non-exported element") {
     val compile = CompilerTestCompilation.test(
@@ -131,7 +201,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
   test("Test MakeArray") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |import v.builtins.arith.*;
         |import array.make.*;
         |import v.builtins.arrays.*;
@@ -164,4 +234,8 @@ class CompilerArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
   }
 
+  test("Test cellular automata") {
+    val compile = CompilerTestCompilation.test(readCodeFromResource("programs/cellularautomata.vale"))
+    compile.expectCompilerOutputs()
+  }
 }
