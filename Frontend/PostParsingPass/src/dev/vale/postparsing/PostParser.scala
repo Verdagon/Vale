@@ -273,9 +273,9 @@ object PostParser {
 
     val attributesS =
       attributesP.flatMap({
-        case ImmutableRuneAttributeP(rangeP) => Some(ImmutableRuneAttributeS(evalRange(env.file, rangeP)))
+        case ImmutableRegionRuneAttributeP(rangeP) => Some(ImmutableRuneAttributeS(evalRange(env.file, rangeP)))
         case ReadWriteRegionRuneAttributeP(rangeP) => Some(ReadWriteRuneAttributeS(evalRange(env.file, rangeP)))
-        case _ => vimpl()
+        case other => vimpl(other)
       })
 
     val defaultS =

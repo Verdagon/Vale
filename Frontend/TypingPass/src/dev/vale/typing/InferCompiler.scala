@@ -570,7 +570,8 @@ class InferCompiler(
         val size = ITemplata.expectInteger(s)
         val mutability = ITemplata.expectMutability(m)
         val variability = ITemplata.expectVariability(v)
-        delegate.resolveStaticSizedArrayKind(state, mutability, variability, size, coord, vimpl())
+        val contextRegion = expectRegion(vassertSome(conclusions.get(regionRune.rune)))
+        delegate.resolveStaticSizedArrayKind(state, mutability, variability, size, coord, contextRegion)
         Ok(())
       }
       case it @ StructDefinitionTemplata(_, _) => {

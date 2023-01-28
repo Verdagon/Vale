@@ -171,7 +171,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       """
         |import v.builtins.arrays.*;
         |import v.builtins.drop.*;
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |
         |exported func main() int {
         |  arr = #[#10]({_});
@@ -229,7 +229,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       """
         |import v.builtins.arrays.*;
         |import v.builtins.drop.*;
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |
         |exported func main() int {
         |  arr = Array<mut, int>(3);

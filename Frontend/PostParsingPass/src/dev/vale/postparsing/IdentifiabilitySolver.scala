@@ -39,7 +39,7 @@ object IdentifiabilitySolver {
         case IsStructSR(range, rune) => Vector(rune)
         case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(coordRune, regionRune, kindRune)
         case LiteralSR(range, rune, literal) => Vector(rune)
-        case AugmentSR(range, resultRune, maybeOwnership, maybeRegion, innerRune) => Vector(resultRune, innerRune)
+        case AugmentSR(range, resultRune, maybeOwnership, maybeRegion, innerRune) => Vector(resultRune, innerRune) ++ maybeRegion
         case MaybeCoercingCallSR(range, resultRune, defaultRegionRune, templateRune, args) => Vector(resultRune, defaultRegionRune, templateRune) ++ args
 //        case PrototypeSR(range, resultRune, name, parameters, returnTypeRune) => Vector(resultRune) ++ parameters ++ Vector(returnTypeRune)
         case PackSR(range, resultRune, members) => Vector(resultRune) ++ members

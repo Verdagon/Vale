@@ -58,8 +58,7 @@ class RSAMutableNewMacro(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
 
-    val region =
-      expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))
+    val region = expectRegion(vassertSome(env.id.localName.templateArgs.lastOption))
 
     val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 

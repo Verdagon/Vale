@@ -2,7 +2,7 @@ package dev.vale.postparsing.rules
 
 import dev.vale.parsing.ast.{LocationP, MutabilityP, OwnershipP, VariabilityP}
 import dev.vale.postparsing._
-import dev.vale.{RangeS, StrI, vassert, vcurious, vpass}
+import dev.vale.{RangeS, StrI, vassert, vassertSome, vcurious, vpass}
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
 
@@ -264,8 +264,9 @@ case class AugmentSR(
   innerRune: RuneUsage
 ) extends IRulexSR {
   vpass()
+  vassertSome(ownership)
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, innerRune)
+  override def runeUsages: Vector[RuneUsage] = Vector(resultRune, innerRune) ++ region
 }
 
 case class PackSR(

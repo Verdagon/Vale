@@ -103,7 +103,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |
         |func moo(i int, b bool) str { return "hello"; }
         |

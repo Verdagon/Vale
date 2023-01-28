@@ -165,7 +165,7 @@ class IntegrationTestsA extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
   test("Simple program with panic") {
-    val compile = RunCompilation.test("import v.builtins.panic.*; exported func main() int { return 3; }", false)
+    val compile = RunCompilation.test("import v.builtins.panicutils.*; exported func main() int { return 3; }", false)
     compile.evalForKind(Vector()) match { case VonInt(3) => }
   }
   test("Simple program with opt") {

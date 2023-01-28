@@ -913,7 +913,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |
         |exported struct Moo {}
         |exported func main() Moo {
@@ -942,7 +942,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Test return from inside if") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |exported func main() int {
         |  if (true) {
         |    return 7;
@@ -984,7 +984,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Reports when exported function depends on non-exported return") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |import panicutils.*;
         |struct Firefly { }
         |exported func moo() &Firefly { __pretend<&Firefly>() }
@@ -1344,7 +1344,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Report when abstract method defined outside open interface") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |interface IBlah { }
         |abstract func bork(virtual moo &IBlah);
         |exported func main() {
@@ -1390,7 +1390,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests stamping a struct and its implemented interface from a function param") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |import v.builtins.drop.*;
         |import panicutils.*;
         |sealed interface MyOption<T Ref> where func drop(T)void { }
@@ -1873,7 +1873,7 @@ class CompilerTests extends FunSuite with Matchers {
   test("Tests panic return type") {
     val compile = CompilerTestCompilation.test(
       """
-        |import v.builtins.panic.*;
+        |import v.builtins.panicutils.*;
         |exported func main() int {
         |  x = { __vbi_panic() }();
         |}

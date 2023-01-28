@@ -60,7 +60,7 @@ case class CallResultWasntExpectedType(expected: ITemplata[ITemplataType], actua
 }
 case class OneOfFailed(rule: OneOfSR) extends ITypingPassSolverError
 case class IsaFailed(sub: KindT, suuper: KindT) extends ITypingPassSolverError
-case class WrongNumberOfTemplateArgs(expectedNumArgs: Int) extends ITypingPassSolverError
+case class WrongNumberOfTemplateArgs(expectedMinNumArgs: Int, expectedMaxNumArgs: Int) extends ITypingPassSolverError
 case class FunctionDoesntHaveName(range: List[RangeS], name: IFunctionNameT) extends ITypingPassSolverError
 case class CantGetComponentsOfPlaceholderPrototype(range: List[RangeS]) extends ITypingPassSolverError
 case class ReturnTypeConflict(range: List[RangeS], expectedReturnType: CoordT, actual: PrototypeT) extends ITypingPassSolverError {
@@ -1035,20 +1035,31 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
               case RuntimeSizedArrayTemplateTemplata() => {
                 result match {
                   case CoordTemplata(CoordT(ShareT | OwnT, _, contentsRuntimeSizedArrayTT(mutability, memberType, region))) => {
-                    if (argRunes.size != 3) {
-                      return Err(WrongNumberOfTemplateArgs(3))
+                    if (argRunes.size < 2 || argRunes.size > 3) {
+                      return Err(WrongNumberOfTemplateArgs(2, 3))
                     }
-                    val Vector(mutabilityRune, elementRune, regionRune) = argRunes
+                    val mutabilityRune = argRunes(0)
+                    val elementRune = argRunes(1)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    if (argRunes.size >= 3) {
+                      val regionRune = argRunes(2)
+                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    }
                     Ok(())
                   }
                   case KindTemplata(contentsRuntimeSizedArrayTT(mutability, memberType, region)) => {
-                    val Vector(mutabilityRune, elementRune, regionRune) = argRunes
+                    if (argRunes.size < 2 || argRunes.size > 3) {
+                      return Err(WrongNumberOfTemplateArgs(2, 3))
+                    }
+                    val mutabilityRune = argRunes(0)
+                    val elementRune = argRunes(1)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    if (argRunes.size >= 3) {
+                      val regionRune = argRunes(2)
+                      stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    }
                     Ok(())
                   }
                   case _ => return Err(CallResultWasntExpectedType(template, result))
@@ -1060,7 +1071,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
                     vassert(regionFromCoord == regionFromKind)
                     val region = regionFromKind
                     if (argRunes.size != 4) {
-                      return Err(WrongNumberOfTemplateArgs(4))
+                      return Err(WrongNumberOfTemplateArgs(4, 4))
                     }
                     val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune, regionRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
@@ -1072,7 +1083,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
                   }
                   case KindTemplata(contentsStaticSizedArrayTT(size, mutability, variability, memberType, region)) => {
                     if (argRunes.size != 4) {
-                      return Err(WrongNumberOfTemplateArgs(4))
+                      return Err(WrongNumberOfTemplateArgs(4, 4))
                     }
                     val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune, regionRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
@@ -1231,11 +1242,12 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
               }
               case StaticSizedArrayTemplateTemplata() => {
                 val args = argRunes.map(argRune => vassertSome(stepState.getConclusion(argRune.rune)))
+                val contextRegion = expectRegion(vassertSome(stepState.getConclusion(contextRegionRune.rune)))
                 val Vector(s, m, v, CoordTemplata(coord)) = args
                 val size = ITemplata.expectInteger(s)
                 val mutability = ITemplata.expectMutability(m)
                 val variability = ITemplata.expectVariability(v)
-                val rsaKind = delegate.predictStaticSizedArrayKind(env, state, mutability, variability, size, coord, vimpl())
+                val rsaKind = delegate.predictStaticSizedArrayKind(env, state, mutability, variability, size, coord, contextRegion)
                 stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, KindTemplata(rsaKind))
                 Ok(())
               }
