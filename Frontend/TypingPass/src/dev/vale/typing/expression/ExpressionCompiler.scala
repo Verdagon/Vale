@@ -2067,9 +2067,23 @@ class ExpressionCompiler(
 
     val runeTypeSolveEnv =
       new IRuneTypeSolverEnv {
-        override def lookup(range: RangeS, name: IImpreciseNameS):
+        override def lookup(range: RangeS, nameS: IImpreciseNameS):
         Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          vimpl()
+          nameS match {
+            case LambdaStructImpreciseNameS(_) => {
+              Ok(TemplataLookupResult(TemplateTemplataType(Vector(RegionTemplataType()), KindTemplataType())))
+            }
+            case _ => {
+              // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
+              nenv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+                case Some(CitizenDefinitionTemplata(environment, a)) => {
+                  Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
+                }
+                case Some(x) => Ok(TemplataLookupResult(x.tyype))
+                case None => Err(RuneTypingCouldntFindType(range, nameS))
+              }
+            }
+          }
         }
       }
     val runeAToTypeWithImplicitlyCoercingLookupsS =

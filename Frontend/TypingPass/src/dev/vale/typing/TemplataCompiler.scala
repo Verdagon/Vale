@@ -868,12 +868,11 @@ class TemplataCompiler(
     val CoordT(targetOwnership, targetRegion, targetType) = targetPointerType;
     val CoordT(sourceOwnership, sourceRegion, sourceType) = sourcePointerType;
 
-    // Note the Never case will short-circuit a true, regardless of the other checks (ownership)
-
-    (sourceRegion, targetRegion) match {
-      case (a, b) if a == b =>
-      case other => vimpl(other)
+    if (sourceRegion != targetRegion) {
+      return false
     }
+
+    // Note the Never case will short-circuit a true, regardless of the other checks (ownership)
 
     (sourceType, targetType) match {
       case (NeverT(_), _) => return true

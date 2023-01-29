@@ -243,6 +243,7 @@ class CompilerTests extends FunSuite with Matchers {
   }
 
   test("Test taking a callable param") {
+//    start here, find where we're making a &do'F. it should be a &F'F.
     val compile = CompilerTestCompilation.test(
       """
         |func do<F>(callable F) int
@@ -674,7 +675,7 @@ class CompilerTests extends FunSuite with Matchers {
         |func moo<T> () where T Ref { }
         |
         |exported func main() {
-        |	moo<int>();
+        |	 moo<int>();
         |}
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
