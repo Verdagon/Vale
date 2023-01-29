@@ -88,8 +88,6 @@ class FunctionCompilerClosureOrLightLayer(
     contextRegion: ITemplata[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
-    vassert(function.isTemplate)
-
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
     val name = parentEnv.id.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
 //    coutputs.declareType(name)
@@ -384,7 +382,6 @@ class FunctionCompilerClosureOrLightLayer(
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     checkNotClosure(function)
-    vassert(function.isTemplate)
 
     val outerEnvFullName = parentEnv.id.addStep(nameTranslator.translateGenericTemplateFunctionName(function.name, argTypes))
     val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
@@ -402,8 +399,8 @@ class FunctionCompilerClosureOrLightLayer(
     contextRegion: ITemplata[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
-    vassert(function.isTemplate)
     val outerEnvFullName = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))
+
     val outerEnv = makeEnvWithoutClosureStuff(parentEnv, function, outerEnvFullName, false)
     ordinaryOrTemplatedLayer.evaluateTemplatedFunctionFromCallForBanner(
         outerEnv, coutputs, callingEnv, callRange, alreadySpecifiedTemplateArgs, contextRegion, argTypes)

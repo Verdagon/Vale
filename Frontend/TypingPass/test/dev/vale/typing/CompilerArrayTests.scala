@@ -23,7 +23,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |exported func main() int {
-        |  a = [#]int[6, 60, 103];
+        |  a = [#]int(6, 60, 103);
         |  x = 2;
         |  [_, _, _] = a;
         |  return 2;
@@ -55,7 +55,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
     val compile = CompilerTestCompilation.test(
       """
         |exported func main() int {
-        |  arr = [#][true, 42];
+        |  arr = [#](true, 42);
         |  return arr.1;
         |}
         |""".stripMargin)
@@ -235,7 +235,9 @@ class CompilerArrayTests extends FunSuite with Matchers {
   }
 
   test("Test cellular automata") {
-    val compile = CompilerTestCompilation.test(readCodeFromResource("programs/cellularautomata.vale"))
+    val compile =
+      CompilerTestCompilation.test(
+        readCodeFromResource("programs/cellularautomata.vale"))
     compile.expectCompilerOutputs()
   }
 }

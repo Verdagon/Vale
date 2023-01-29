@@ -59,7 +59,7 @@ class StructConstructorMacro(
     val retRune = RuneUsage(structA.name.range, ReturnRuneS())
     runeToType += (retRune.rune -> CoordTemplataType())
     val structNameRange = structA.name.range
-    if (structA.isTemplate) {
+//    if (structA.isTemplate) {
       val structGenericRune = StructNameRuneS(structA.name)
       runeToType += (structGenericRune -> structA.tyype)
       rules += MaybeCoercingLookupSR(structNameRange, RuneUsage(structNameRange, structGenericRune), RuneUsage(structNameRange, defaultRegionRune), structA.name.getImpreciseName(interner))
@@ -69,10 +69,6 @@ class StructConstructorMacro(
       rules += MaybeCoercingCallSR(structNameRange, structKindRune, RuneUsage(structNameRange, defaultRegionRune), RuneUsage(structNameRange, structGenericRune), structA.genericParameters.map(_.rune).toVector)
 
       rules += CoerceToCoordSR(structNameRange, retRune, RuneUsage(structNameRange, defaultRegionRune), structKindRune)
-    } else {
-      vcurious()
-      rules += MaybeCoercingLookupSR(structNameRange, retRune, RuneUsage(structNameRange, defaultRegionRune), structA.name.getImpreciseName(interner))
-    }
 
     val params =
       structA.members.zipWithIndex.flatMap({
@@ -90,10 +86,7 @@ class StructConstructorMacro(
         structA.range,
         interner.intern(ConstructorNameS(structA.name)),
         Vector(),
-        structA.tyype match {
-//          case KindTemplataType() => FunctionTemplataType()
-          case TemplateTemplataType(params, KindTemplataType()) => TemplateTemplataType(params, FunctionTemplataType())
-        },
+        TemplateTemplataType(structA.tyype.paramTypes, FunctionTemplataType()),
         structA.genericParameters,
         runeToType.toMap,
         params,

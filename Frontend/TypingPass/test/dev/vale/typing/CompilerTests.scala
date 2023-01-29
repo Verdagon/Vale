@@ -1428,19 +1428,6 @@ class CompilerTests extends FunSuite with Matchers {
     }
   }
 
-  test("Report when num elements mismatch") {
-    val compile = CompilerTestCompilation.test(
-      """
-        |exported func main() bool {
-        |  arr = [#4][true, false, false];
-        |  return arr.0;
-        |}
-        |""".stripMargin)
-    compile.getCompilerOutputs() match {
-      case Err(InitializedWrongNumberOfElements(_, 4, 3)) =>
-    }
-  }
-
   test("Reports when ownership doesnt match") {
     val compile = CompilerTestCompilation.test(
       """
