@@ -165,6 +165,7 @@ object PostParserErrorHumanizer {
       case ImplicitCoercionOwnershipRuneS(_, inner) => humanizeRune(inner) + ".own"
       case ImplicitCoercionKindRuneS(_, inner) => humanizeRune(inner) + ".kind"
       case ImplicitCoercionTemplateRuneS(_, inner) => humanizeRune(inner) + ".gen"
+      case ImplicitRegionRuneS(originalRune) => humanizeRune(originalRune) + ".region"
       case other => vimpl(other)
     }
   }

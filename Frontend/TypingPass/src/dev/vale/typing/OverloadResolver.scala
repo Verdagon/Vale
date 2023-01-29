@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.postparsing._
-import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR}
+import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.solver.IIncompleteOrFailedSolve
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.FunctionCompiler
@@ -14,7 +14,7 @@ import dev.vale.solver.FailedSolve
 import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
-import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IInDenizenEnvironment, IDenizenEnvironmentBox, TemplataLookupContext}
+import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IDenizenEnvironmentBox, IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT}
@@ -283,10 +283,16 @@ class OverloadResolver(
 
                     val runeTypeSolveEnv =
                       new IRuneTypeSolverEnv {
-                        override def lookup(range: RangeS, name: IImpreciseNameS):
+                        override def lookup(range: RangeS, nameS: IImpreciseNameS):
                         Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-                          vimpl()
-                          // vassertSome(callingEnv.lookupNearestWithImpreciseName(name, Set(TemplataLookupContext))).tyype
+                          // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
+                          callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+                            case Some(CitizenDefinitionTemplata(environment, a)) => {
+                              Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
+                            }
+                            case Some(x) => Ok(TemplataLookupResult(x.tyype))
+                            case None => Err(RuneTypingCouldntFindType(range, nameS))
+                          }
                         }
                       }
 
@@ -307,7 +313,7 @@ class OverloadResolver(
                     val rulesWithoutImplicitCoercionsA = ruleBuilder.toVector
 
                     // We preprocess out the rune parent env lookups, see MKRFA.
-                    val (initialKnowns, rulesWithoutRuneParentEnvLookups) =
+                    val (initialKnownsWithoutDefaultRegion, rulesWithoutRuneParentEnvLookups) =
                       rulesWithoutImplicitCoercionsA.foldLeft((Vector[InitialKnown](), Vector[IRulexSR]()))({
                         case ((previousConclusions, remainingRules), RuneParentEnvLookupSR(_, rune)) => {
                           val templata =
@@ -321,6 +327,16 @@ class OverloadResolver(
                           (previousConclusions, remainingRules :+ rule)
                         }
                       })
+                    // If the rules ask for a default region, here's where we supply it
+                    val initialKnowns =
+                      if (runeAToType.contains(DefaultRegionRuneS())) {
+                        initialKnownsWithoutDefaultRegion :+
+                          InitialKnown(
+                            RuneUsage(callRange.head, DefaultRegionRuneS()),
+                            contextRegion)
+                      } else {
+                        initialKnownsWithoutDefaultRegion
+                      }
 
   //                  val callEnv =
   //                    GeneralEnvironment.childOf(

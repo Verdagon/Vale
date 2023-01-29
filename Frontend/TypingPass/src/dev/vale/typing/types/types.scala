@@ -1,10 +1,10 @@
 package dev.vale.typing.types
 
-import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, vassert, vcurious, vfail, vpass}
+import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, StrI, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IInDenizenEnvironment
-import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, KindPlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{AnonymousSubstructNameT, CitizenNameT, FunctionTemplateNameT, ICitizenNameT, IInterfaceNameT, IRegionNameT, IStructNameT, ISubKindNameT, ISuperKindNameT, IVarNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, NonKindPlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StructNameT, StructTemplateNameT}
 import dev.vale.highertyping._
 import dev.vale.postparsing._
 import dev.vale.typing._
@@ -64,6 +64,16 @@ case class CoordT(
   kind: KindT)  {
 
   vpass()
+
+  this match {
+    case CoordT(
+      _,
+      PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("do"),_)),NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType()),
+      KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("do"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0,CodeRuneS(StrI("F"))))))) => {
+      vpass()
+    }
+    case _ =>
+  }
 
   kind match {
     case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) => {

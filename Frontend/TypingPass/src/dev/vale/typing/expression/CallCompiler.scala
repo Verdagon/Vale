@@ -1,16 +1,13 @@
 package dev.vale.typing.expression
 
-import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vfail, vimpl, vwat}
+import dev.vale.{Err, Interner, Keywords, Ok, RangeS, vassert, vcurious, vfail, vimpl, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
-import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper,
-  CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler,
-  TypingPassOptions, ast}
+import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironment,
-  NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -99,7 +96,7 @@ class CallCompiler(
           life,
           range,
           contextRegion,
-          callableExpr.result.coord.kind,
+          callableExpr.result.coord,
           explicitTemplateArgRulesS,
           explicitTemplateArgRunesS,
           callableExpr,
@@ -129,7 +126,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
     contextRegion: ITemplata[RegionTemplataType],
-    kind: KindT,
+    coord: CoordT,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
     givenCallableUnborrowedExpr2: ReferenceExpressionTE,
@@ -161,7 +158,8 @@ class CallCompiler(
     //      }
 
     val argsTypes2 = givenArgsExprs2.map(_.result.coord)
-    val closureParamType = CoordT(givenCallableBorrowExpr2.result.coord.ownership, contextRegion, kind)
+    vcurious(coord.ownership == givenCallableBorrowExpr2.result.coord.ownership)
+    val closureParamType = coord
     val paramFilters = Vector(closureParamType) ++ argsTypes2
     val resolved =
       overloadCompiler.findFunction(
@@ -180,7 +178,7 @@ class CallCompiler(
         case Ok(x) => x
       }
 
-    val mutability = Compiler.getMutability(coutputs, kind)
+    val mutability = Compiler.getMutability(coutputs, coord.kind)
     val ownership =
       mutability match {
         case MutabilityTemplata(MutableT) => BorrowT
