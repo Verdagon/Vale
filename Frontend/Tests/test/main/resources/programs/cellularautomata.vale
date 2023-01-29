@@ -23,8 +23,8 @@ func MakeBoard(rand_seed int) [][]bool {
   return rows;
 }
 
-func Display(
-  map &[][]bool)
+func Display<r' imm>(
+  map &r'[][]bool)
 {
   row_i = 0;
   while row_i < 20 {
@@ -47,6 +47,7 @@ func Display(
 exported func main() int {
   random_seed = 1337;
   board_0 = MakeBoard(random_seed);
+  Display(&board_0);
   while board_0.len() > 0 {
     row = board_0.pop();
     while row.len() > 0 {

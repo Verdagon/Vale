@@ -266,7 +266,6 @@ case class AugmentSR(
   innerRune: RuneUsage
 ) extends IRulexSR {
   vpass()
-  vassertSome(ownership)
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(resultRune, innerRune) ++ region
 }
