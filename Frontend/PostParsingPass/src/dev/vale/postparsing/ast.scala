@@ -272,7 +272,7 @@ case class FunctionS(
 
   genericParams: Vector[GenericParameterS],
   runeToPredictedType: Map[IRuneS, ITemplataType],
-  tyype: ITemplataType,
+  tyype: TemplateTemplataType,
 
   params: Vector[ParameterS],
 

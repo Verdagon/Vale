@@ -19,6 +19,7 @@ object Builtins {
       "runtime_sized_array_mut_new" -> "runtime_sized_array_mut_new.vale",
       "runtime_sized_array_push" -> "runtime_sized_array_push.vale",
       "runtime_sized_array_pop" -> "runtime_sized_array_pop.vale",
+      "runtime_sized_array_len" -> "runtime_sized_array_len.vale",
       "mainargs" -> "mainargs.vale",
       "as" -> "as.vale",
       "print" -> "print.vale",

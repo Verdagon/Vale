@@ -395,7 +395,6 @@ class FunctionScout(
                   RangedInternalErrorS(rangeS, "Cant have a lambda with _ and params"))
               }
 
-
               val closureStructKindRune = ImplicitRuneS(lidb.child().consume())
               val closureStructRegionRune =
                 ImplicitRegionRuneS(closureStructKindRune)

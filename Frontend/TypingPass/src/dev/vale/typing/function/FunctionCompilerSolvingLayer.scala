@@ -128,7 +128,6 @@ class FunctionCompilerSolvingLayer(
     val function = declaringEnv.function
     // Check preconditions
     checkClosureConcernsHandled(declaringEnv)
-    vassert(declaringEnv.function.isTemplate)
 
     val callSiteRules =
       TemplataCompiler.assembleCallSiteRules(
@@ -189,7 +188,6 @@ class FunctionCompilerSolvingLayer(
       case CodeBodyS(body1) => vassert(body1.closuredNames.isEmpty)
       case _ =>
     }
-    vassert(nearEnv.function.isTemplate)
 
     val callSiteRules =
       TemplataCompiler.assembleCallSiteRules(

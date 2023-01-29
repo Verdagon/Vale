@@ -143,12 +143,20 @@ class ArrayCompiler(
       new IRuneTypeSolverEnv {
         override def lookup(
           range: RangeS,
-          name: IImpreciseNameS
+          nameS: IImpreciseNameS
         ): Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
-          name match {
-            case CodeNameS(n) if n == keywords.int => Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType()))
-            case other => vwat(other)
+          // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
+          callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
+            case Some(CitizenDefinitionTemplata(environment, a)) => {
+              Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
+            }
+            case Some(x) => Ok(TemplataLookupResult(x.tyype))
+            case None => Err(RuneTypingCouldntFindType(range, nameS))
           }
+//          name match {
+//            case CodeNameS(n) if n == keywords.int => Ok(PrimitiveRuneTypeSolverLookupResult(KindTemplataType()))
+//            case other => vwat(other)
+//          }
         }
       }
 
@@ -368,13 +376,9 @@ class ArrayCompiler(
       }
     })
 
-    val size = getArraySize(templatas, sizeRuneA)
+//    val size = getArraySize(templatas, sizeRuneA)
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRuneA)))
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRuneA)))
-
-    if (size != exprs2.size) {
-      throw CompileErrorExceptionT(InitializedWrongNumberOfElements(parentRanges, size, exprs2.size))
-    }
 
     val staticSizedArrayType = resolveStaticSizedArray(mutability, variability, IntegerTemplata(exprs2.size), memberType, region)
     val ownership =

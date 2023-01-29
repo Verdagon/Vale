@@ -128,7 +128,7 @@ class StructDropMacro(
       structRange,
       dropOrFreeFunctionNameS,
       Vector(),
-      FunctionTemplataType(),
+      TemplateTemplataType(Vector(), FunctionTemplataType()),
       Vector(),
       Map(
         CodeRuneS(keywords.DropP1) -> CoordTemplataType(),

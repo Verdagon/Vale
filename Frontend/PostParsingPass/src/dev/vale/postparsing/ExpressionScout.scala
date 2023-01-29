@@ -503,9 +503,7 @@ class ExpressionScout(
           val result =
             size match {
               case RuntimeSizedP => {
-                if (initializingIndividualElements) {
-                  throw CompileErrorExceptionS(CantInitializeIndividualElementsOfRuntimeSizedArray(rangeS))
-                }
+                vassert(!initializingIndividualElements)
                 if (argsSE.isEmpty || argsSE.size > 2) {
                   throw CompileErrorExceptionS(InitializingRuntimeSizedArrayRequiresSizeAndCallable(rangeS))
                 }
@@ -546,11 +544,7 @@ class ExpressionScout(
                   if (argsSE.size != 1) {
                     throw CompileErrorExceptionS(InitializingStaticSizedArrayRequiresSizeAndCallable(rangeS))
                   }
-                  val sizeRuneS =
-                    maybeSizeRuneS match {
-                      case Some(s) => s
-                      case None => throw CompileErrorExceptionS(InitializingStaticSizedArrayFromCallableNeedsSizeTemplex(rangeS))
-                    }
+                  val sizeRuneS = vassertSome(maybeSizeRuneS)
                   val Vector(callableSE) = argsSE
                   StaticArrayFromCallableSE(
                     rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, variabilityRuneS, sizeRuneS, callableSE)
