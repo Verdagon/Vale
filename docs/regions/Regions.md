@@ -779,7 +779,15 @@ Perhaps if we need to reduce codesize, we _could_ use polymorph tricks, handing 
 
 We had a choice, between an ExpressionCompiler.evaluate parameter named contextRegion, or have the region explicitly specified in every expression given to the typing pass.
 
-### A: Context Region Parameter
+### Every AST Node Specifies its Result Region
+
+Every AST node, like ConstantIntSE, CallSE, etc. will specify its region.
+
+We'll probably fill this in in the post-parsing stage, before it's blasted apart into rules and we lose the hierarchy.
+
+Possible weakness: We might want to infer different regions depending on the type, which only the typing pass has. For example, if it's a migratory data, like some sort of atomically refcounted thing, we might want it in the atomically refcounted region. Same with primitives like integers. I suppose if we really need this, we can ignore the specified region for that type. Or just allow casting between them or something.
+
+### Rejected Alternative: Context Region Parameter
 
 To the user, there's the notion of a context region, a region that is applied to any following expressions. The typing pass can also think of it this way, such as by ExpressionCompiler.evaluate() taking in a parameter named contextRegion.
 
@@ -787,17 +795,9 @@ When evalute() sees an expression, its result will by default be of the contextR
 
 To make a result in a different region, we'd use a specific AST node (AugmentSE) and it would change the contextRegion to that region.
 
-### B: Every AST Node Specifies its Result Region
+Note from later: This actually falls apart because templexes' hierarchy is lost when transformed into rules.
 
-Every AST node, like ConstantIntSE, CallSE, etc. will specify its region.
 
-We'll probably fill this in in the post-parsing stage.
-
-### Conclusion: A
-
-We might want to infer different regions depending on the type, which only the typing pass has. For example, if it's a migratory data, like some sort of atomically refcounted thing, we might want it in the atomically refcounted region. Same with primitives like integers.
-
-Because of that, we'll go with A for now.
 
 
 
