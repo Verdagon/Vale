@@ -279,8 +279,6 @@ case class FunctionS(
   // We need to leave it an option to signal that the compiler can infer the return type.
   maybeRetCoordRune: Option[RuneUsage],
 
-  // We have this here because we still need to apply the default region to things in the header
-  // if they don't have a region specified. And we do this in the typing phase, see SRPPT.
   defaultRegion: IRuneS,
 
   rules: Vector[IRulexSR],

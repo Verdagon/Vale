@@ -256,7 +256,7 @@ class CompilerSolver(
       case IsStructSR(range, rune) => Vector(Vector(rune.rune))
       case CoerceToCoordSR(range, coordRune, regionRune, kindRune) => Vector(Vector(coordRune.rune), Vector(kindRune.rune, regionRune.rune))
       case LiteralSR(range, rune, literal) => Vector(Vector())
-      case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector(innerRune.rune) ++ region.map(_.rune), Vector(resultRune.rune) ++ region.map(_.rune))
+      case AugmentSR(range, resultRune, ownership, region, innerRune) => Vector(Vector(innerRune.rune) ++ region.map(_.rune), Vector(resultRune.rune))
 //      case StaticSizedArraySR(range, resultRune, mutabilityRune, variabilityRune, sizeRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, variabilityRune.rune, sizeRune.rune, elementRune.rune))
 //      case RuntimeSizedArraySR(range, resultRune, mutabilityRune, elementRune) => Vector(Vector(resultRune.rune), Vector(mutabilityRune.rune, elementRune.rune))
       // See SAIRFU, this will replace itself with other rules.
@@ -865,9 +865,52 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
         // This rule does nothing, it was actually preprocessed.
         Ok(())
       }
-      case AugmentSR(range, resultRune, maybeAugmentOwnership, maybeAugmentRegionRune, innerRune) => {
-        stepState.getConclusion(innerRune.rune) match {
-          case Some(CoordTemplata(initialCoord)) => {
+      case AugmentSR(range, outerCoordRune, maybeAugmentOwnership, maybeAugmentRegionRune, innerRune) => {
+        stepState.getConclusion(outerCoordRune.rune) match {
+          case Some(CoordTemplata(outerCoord)) => {
+            val CoordT(outerOwnership, outerRegion, outerKind) = outerCoord
+
+            val innerOwnership =
+              maybeAugmentOwnership match {
+                case None => outerOwnership
+                case Some(augmentOwnership) => {
+                  delegate.getMutability(state, outerKind) match {
+                    case PlaceholderTemplata(_, _) | MutabilityTemplata(MutableT) => {
+                      if (augmentOwnership == ShareP) {
+                        return Err(CantShareMutable(outerKind))
+                      }
+                      if (outerOwnership != Conversions.evaluateOwnership(augmentOwnership)) {
+                        return Err(OwnershipDidntMatch(
+                          outerCoord,
+                          Conversions.evaluateOwnership(augmentOwnership)))
+                      }
+                      OwnT
+                    }
+                    case MutabilityTemplata(ImmutableT) => outerOwnership
+                  }
+                }
+              }
+
+            val innerRegion =
+              maybeAugmentRegionRune match {
+                case None => outerRegion
+                case Some(augmentRegionRune) => {
+                  stepState.concludeRune(range :: env.parentRanges, augmentRegionRune.rune, outerRegion)
+                  env.contextRegion
+                }
+              }
+
+            val innerKind = outerKind
+
+            val innerCoord = CoordT(innerOwnership, innerRegion, innerKind)
+
+            stepState.concludeRune[ITypingPassSolverError](
+              range :: env.parentRanges, innerRune.rune, CoordTemplata(innerCoord))
+            Ok(())
+          }
+          case None => {
+            val CoordTemplata(innerCoord) =
+              expectCoordTemplata(vassertSome(stepState.getConclusion(innerRune.rune)))
             val newRegion =
               maybeAugmentRegionRune match {
                 case Some(augmentRegionRune) => {
@@ -877,70 +920,27 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
               }
             val newOwnership =
               maybeAugmentOwnership match {
-                case None => initialCoord.ownership
+                case None => innerCoord.ownership
                 case Some(augmentOwnership) => {
-                  delegate.getMutability(state, initialCoord.kind) match {
-                    case MutabilityTemplata(ImmutableT) => initialCoord.ownership
+                  delegate.getMutability(state, innerCoord.kind) match {
+                    case MutabilityTemplata(ImmutableT) => innerCoord.ownership
                     case PlaceholderTemplata(_, MutabilityTemplataType()) => {
                       if (augmentOwnership == ShareP) {
-                        return Err(CantSharePlaceholder(initialCoord.kind))
+                        return Err(CantSharePlaceholder(innerCoord.kind))
                       }
                       Conversions.evaluateOwnership(augmentOwnership)
                     }
                     case MutabilityTemplata(MutableT) => {
                       if (augmentOwnership == ShareP) {
-                        return Err(CantShareMutable(initialCoord.kind))
+                        return Err(CantShareMutable(innerCoord.kind))
                       }
                       Conversions.evaluateOwnership(augmentOwnership)
                     }
                   }
                 }
               }
-            val newCoord = CoordT(newOwnership, newRegion, initialCoord.kind)
-            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, resultRune.rune, CoordTemplata(newCoord))
-            Ok(())
-          }
-          case None => {
-            val CoordTemplata(innerCoord) = vassertSome(stepState.getConclusion(resultRune.rune))
-            val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
-
-            val resultRegion =
-              maybeAugmentRegionRune match {
-                case None => innerRegion
-                case Some(augmentRegionRune) => {
-                  val augmentRegion = expectRegion(vassertSome(stepState.getConclusion(augmentRegionRune.rune)))
-                  if (innerRegion != augmentRegion) {
-                    return Err(RegionDidntMatch(innerCoord, augmentRegion))
-                  }
-                  env.contextRegion
-                }
-              }
-
-            val resultOwnership =
-              maybeAugmentOwnership match {
-                case None => innerOwnership
-                case Some(augmentOwnership) => {
-                  delegate.getMutability(state, innerKind) match {
-                    case PlaceholderTemplata(_, _) | MutabilityTemplata(MutableT) => {
-                      if (augmentOwnership == ShareP) {
-                        return Err(CantShareMutable(innerKind))
-                      }
-                      if (innerOwnership != Conversions.evaluateOwnership(augmentOwnership)) {
-                        return Err(OwnershipDidntMatch(
-                          innerCoord,
-                          Conversions.evaluateOwnership(augmentOwnership)))
-                      }
-                      OwnT
-                    }
-                    case MutabilityTemplata(ImmutableT) => innerOwnership
-                  }
-                }
-              }
-            val resultCoord =
-              CoordT(resultOwnership, resultRegion, innerKind)
-
-            stepState.concludeRune[ITypingPassSolverError](
-              range :: env.parentRanges, innerRune.rune, CoordTemplata(resultCoord))
+            val newCoord = CoordT(newOwnership, newRegion, innerCoord.kind)
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, outerCoordRune.rune, CoordTemplata(newCoord))
             Ok(())
           }
         }

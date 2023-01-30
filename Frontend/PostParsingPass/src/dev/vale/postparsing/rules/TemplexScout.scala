@@ -2,7 +2,7 @@ package dev.vale.postparsing.rules
 
 import dev.vale.lexing.RangeL
 import dev.vale.parsing.ast._
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassertSome, vimpl}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, vassert, vassertSome, vimpl}
 import dev.vale.postparsing._
 import dev.vale.parsing.ast._
 import dev.vale.postparsing._
@@ -103,19 +103,30 @@ class TemplexScout(
                 addLookupRule(lidb.child(), ruleBuilder, evalRange(range), contextRegion, valueSR)
               }
             }
-            case InterpretedPT(range, ownership, region, innerP) => {
+            case InterpretedPT(range, ownership, maybeRegion, innerP) => {
               val rangeS = evalRange(range)
               val resultRuneS = rules.RuneUsage(rangeS, ImplicitRuneS(lidb.child().consume()))
-              val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, contextRegion, innerP)
-              val maybeRune =
-                region.map(runeName => {
+
+              val maybeRegionRune =
+                maybeRegion.map(runeName => {
                   val rune = CodeRuneS(vassertSome(runeName.name).str) // impl isolates
                   if (!env.allDeclaredRunes().contains(rune)) {
                     throw CompileErrorExceptionS(UnknownRegionError(rangeS, rune.name.str))
                   }
                   rules.RuneUsage(evalRange(range), rune)
                 })
-              ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, ownership.map(_.ownership), maybeRune, innerRuneS)
+
+              // We need to use region as the new context region for everything under us, since
+              // region annotations apply deeply.
+              val newRegion =
+                maybeRegionRune match {
+                  case None => contextRegion
+                  case Some(rune) => rune.rune
+                }
+
+              val innerRuneS = translateTemplex(env, lidb.child(), ruleBuilder, newRegion, innerP)
+
+              ruleBuilder += rules.AugmentSR(evalRange(range), resultRuneS, ownership.map(_.ownership), maybeRegionRune, innerRuneS)
               resultRuneS
             }
             case CallPT(rangeP, template, args) => {
