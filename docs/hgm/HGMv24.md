@@ -83,6 +83,9 @@ If it doesn't fit, we'll probably put it _before_ the struct. That way it can ov
 We could combine `trackable` with `cell`. `cell` can have a live bit for this, a writing bit, and an immutable bit.
 
 
+If we want to give better control, we can say `cell auto`.
+
+
 ## G: Trackable, Per Instance
 
 We could say `a trackable List<int> = ...` and then itll have some bits somewhere, and we can make `live` references to it. 

@@ -173,7 +173,7 @@ class Compiler(
             case VariabilityTemplata(_) =>
             case OwnershipTemplata(_) =>
             case MutabilityTemplata(_) =>
-            case RegionTemplata(_) =>
+            case RegionTemplata() =>
             case InterfaceDefinitionTemplata(_,_) =>
             case StructDefinitionTemplata(_,_) =>
             case ImplDefinitionTemplata(_,_) =>
