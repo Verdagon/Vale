@@ -164,4 +164,23 @@ class CompilerRegionTests extends FunSuite with Matchers {
         RegionTemplataType()) =>
     }
   }
+
+  test("Call function with callee param explicit region") {
+    val compile = CompilerTestCompilation.test(
+      """
+        |import v.builtins.runtime_sized_array_mut_new.*;
+        |
+        |func Display<r' imm>(map &r'[][]bool) { }
+        |
+        |exported func main() {
+        |  board_0 = [][]bool(20);
+        |  Display(&board_0);
+        |  [] = board_0;
+        |}
+        |
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("main")
+  }
 }

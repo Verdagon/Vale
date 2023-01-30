@@ -1,12 +1,11 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, DefaultRegionRuneS, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.templata.{CoordTemplata, ITemplata, MutabilityTemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
-import dev.vale.typing.templata.CoordTemplata
 import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectInteger, expectMutability, expectRegion, expectRegionTemplata, expectVariability}
 import dev.vale.typing.types._
 
@@ -199,7 +198,16 @@ case class RawArrayNameT(
   mutability: ITemplata[MutabilityTemplataType],
   elementType: CoordT,
   selfRegion: ITemplata[RegionTemplataType]
-) extends INameT
+) extends INameT {
+  this match {
+    case RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,PlaceholderTemplata(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType()),IntT(32)),PlaceholderTemplata(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType())) => {
+      vpass()
+    }
+    case _ => {
+
+    }
+  }
+}
 
 case class ReachablePrototypeNameT(num: Int) extends INameT
 
