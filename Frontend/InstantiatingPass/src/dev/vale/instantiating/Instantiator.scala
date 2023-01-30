@@ -3,7 +3,7 @@ package dev.vale.instantiating
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
-import dev.vale.typing.TemplataCompiler.{substituteTemplatasInKind}
+import dev.vale.typing.TemplataCompiler.{getTopLevelDenizenId, substituteTemplatasInKind}
 import dev.vale.typing.{Hinputs, InstantiationBoundArguments, TemplataCompiler}
 import dev.vale.typing.ast.{EdgeT, _}
 import dev.vale.typing.env._
@@ -318,7 +318,7 @@ object Instantiator {
     val structDefT = findStruct(hinputs, structId)
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(structId)
+      getTopLevelDenizenId(structId)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
 
@@ -760,7 +760,7 @@ object Instantiator {
 
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(desiredPrototype.id)
+      getTopLevelDenizenId(desiredPrototype.id)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
     // One would imagine we'd get structFullName.last.templateArgs here, because that's the struct
