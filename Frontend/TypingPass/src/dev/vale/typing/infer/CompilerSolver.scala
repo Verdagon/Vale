@@ -600,7 +600,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
             val CoordTemplata(CoordT(ownership, region, kind)) = coord
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, ownershipRune.rune, OwnershipTemplata(ownership))
             stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, kindRune.rune, KindTemplata(kind))
-            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, RegionTemplata(region))
+            stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
             Ok(())
           }
         }
