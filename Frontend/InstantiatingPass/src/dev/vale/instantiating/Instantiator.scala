@@ -3,12 +3,12 @@ package dev.vale.instantiating
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
 import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
-import dev.vale.typing.TemplataCompiler.{substituteTemplatasInKind}
+import dev.vale.typing.TemplataCompiler.{getTopLevelDenizenId, substituteTemplatasInKind}
 import dev.vale.typing.{Hinputs, InstantiationBoundArguments, TemplataCompiler}
 import dev.vale.typing.ast.{EdgeT, _}
 import dev.vale.typing.env._
 import dev.vale.typing.names._
-import dev.vale.typing.templata.ITemplata.{expectIntegerTemplata, expectKind, expectKindTemplata, expectMutabilityTemplata, expectVariabilityTemplata}
+import dev.vale.typing.templata.ITemplata.{expectIntegerTemplata, expectKind, expectKindTemplata, expectMutabilityTemplata, expectRegionTemplata, expectVariabilityTemplata}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
@@ -318,7 +318,7 @@ object Instantiator {
     val structDefT = findStruct(hinputs, structId)
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(structId)
+      getTopLevelDenizenId(structId)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
 
@@ -760,7 +760,7 @@ object Instantiator {
 
 
     val topLevelDenizenFullName =
-      getTopLevelDenizenFullName(desiredPrototype.id)
+      getTopLevelDenizenId(desiredPrototype.id)
     val topLevelDenizenTemplateFullName =
       TemplataCompiler.getTemplate(topLevelDenizenFullName)
     // One would imagine we'd get structFullName.last.templateArgs here, because that's the struct
@@ -1070,7 +1070,6 @@ class Instantiator(
         templateName,
         interner.intern(StructTT(newId)),
         attributes,
-        vregion(defaultRegion),
         weakable,
         MutabilityTemplata(mutability),
         members.map(translateStructMember),
@@ -1093,7 +1092,7 @@ class Instantiator(
     newId: IdT[IInterfaceNameT],
     interfaceDefT: InterfaceDefinitionT):
   Unit = {
-    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, defaultRegion, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
+    val InterfaceDefinitionT(templateName, instantiatedCitizen, ref, attributes, weakable, mutabilityT, _, _, internalMethods) = interfaceDefT
 
     val mutability = expectMutabilityTemplata(translateTemplata(mutabilityT)).mutability
 
@@ -1109,7 +1108,6 @@ class Instantiator(
         templateName,
         newInterfaceTT,
         newInterfaceTT,
-        vregion(defaultRegion),
         attributes,
         weakable,
         MutabilityTemplata(mutability),
@@ -1817,7 +1815,7 @@ class Instantiator(
     IdT(
     packageCoord,
     initSteps,
-    StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType)))) = ssaTT
+    StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, ssaRegion)))) = ssaTT
 
     interner.intern(StaticSizedArrayTT(
       IdT(
@@ -1829,7 +1827,8 @@ class Instantiator(
           expectVariabilityTemplata(translateTemplata(variability)),
           interner.intern(RawArrayNameT(
             expectMutabilityTemplata(translateTemplata(mutability)),
-            translateCoord(elementType))))))))
+            translateCoord(elementType),
+            expectRegionTemplata(translateTemplata(ssaRegion)))))))))
   }
 
   def translateRuntimeSizedArray(ssaTT: RuntimeSizedArrayTT): RuntimeSizedArrayTT = {
@@ -1837,7 +1836,7 @@ class Instantiator(
     IdT(
     packageCoord,
     initSteps,
-    RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType)))) = ssaTT
+    RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType, region)))) = ssaTT
 
     interner.intern(RuntimeSizedArrayTT(
       IdT(
@@ -1847,7 +1846,8 @@ class Instantiator(
           template,
           interner.intern(RawArrayNameT(
             expectMutabilityTemplata(translateTemplata(mutability)),
-            translateCoord(elementType))))))))
+            translateCoord(elementType),
+            expectRegionTemplata(translateTemplata(region)))))))))
   }
 
   def translateKind(kind: KindT): KindT = {
@@ -1867,8 +1867,8 @@ class Instantiator(
         translateInterface(
           s, translateBoundArgsForCallee(hinputs.getInstantiationBoundArgs(s.id)))
       }
-      case a @ contentsStaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(a)
-      case a @ contentsRuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(a)
+      case a @ contentsStaticSizedArrayTT(_, _, _, _, _) => translateStaticSizedArray(a)
+      case a @ contentsRuntimeSizedArrayTT(_, _, _) => translateRuntimeSizedArray(a)
       case other => vimpl(other)
     }
   }

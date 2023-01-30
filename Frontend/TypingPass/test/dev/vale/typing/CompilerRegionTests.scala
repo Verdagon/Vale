@@ -76,4 +76,19 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
   }
+
+  test("Access field of immutable object") {
+    val compile = CompilerTestCompilation.test(
+      """struct Ship { hp int; }
+        |func GetHp<r' imm, x'>(map &r'Ship) int x'{ map.hp }
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  return GetHp(&ship);
+        |}
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("main")
+  }
+
 }

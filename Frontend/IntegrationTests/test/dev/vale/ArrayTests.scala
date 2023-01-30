@@ -742,4 +742,17 @@ class ArrayTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(14) => }
   }
 
+  test("Call function with callee param explicit region") {
+    val compile = RunCompilation.test(
+      """struct Ship { hp int; }
+        |func GetHp<r' imm, x'>(map &r'Ship) int x'{ map.hp }
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  return GetHp(&ship);
+        |}
+        |""".stripMargin, false)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("main")
+  }
 }
