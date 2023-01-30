@@ -170,7 +170,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
       """
         |import v.builtins.runtime_sized_array_mut_new.*;
         |
-        |func Display<r' imm>(map &r'[][]bool) { }
+        |func Display<r' imm, x'>(map &r'[][]bool) x'{ }
         |
         |exported func main() {
         |  board_0 = [][]bool(20);
@@ -178,6 +178,20 @@ class CompilerRegionTests extends FunSuite with Matchers {
         |  [] = board_0;
         |}
         |
+        |""".stripMargin)
+
+    val coutputs = compile.expectCompilerOutputs()
+    val func = coutputs.lookupFunction("main")
+  }
+
+  test("Access field of immutable object") {
+    val compile = CompilerTestCompilation.test(
+      """struct Ship { hp int; }
+        |func GetHp<r' imm, x'>(map &r'Ship) int x'{ map.hp }
+        |exported func main() int {
+        |  ship = Ship(42);
+        |  return GetHp(&ship);
+        |}
         |""".stripMargin)
 
     val coutputs = compile.expectCompilerOutputs()
