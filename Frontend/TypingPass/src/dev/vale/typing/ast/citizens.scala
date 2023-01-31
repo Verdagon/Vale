@@ -2,8 +2,8 @@ package dev.vale.typing.ast
 
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType, RegionTemplataType}
 import dev.vale.typing.TemplataCompiler
-import dev.vale.typing.names.{CitizenNameT, CodeVarNameT, FunctionBoundNameT, ICitizenNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, IRegionNameT, IStructNameT, IStructTemplateNameT, IVarNameT, IdT, ImplBoundNameT, StructNameT}
 import dev.vale.typing.templata.ITemplata.expectRegionTemplata
+import dev.vale.typing.names._
 import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
