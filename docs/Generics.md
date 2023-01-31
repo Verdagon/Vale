@@ -1577,3 +1577,12 @@ We had a bug (search for test case with RRBFS) where the hail mary was thrown ev
 Moral of the story: these two last-resort strategies can sometimes race.
 
 For now, we resolve it by only doing the hail mary for call sites.
+
+
+# Instantiator Accesses Parts of Coord Generic Args (IAPCGA)
+
+As part of MNRFGC, a coord has no placeholder itself, it's instead a collection of a placeholder region and a placeholder kind (and maybe one day, a placeholder ownership?).
+
+
+This led to a complication in the instantiator, which accesses things like 
+

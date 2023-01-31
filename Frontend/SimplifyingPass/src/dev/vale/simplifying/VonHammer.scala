@@ -1094,13 +1094,14 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("arr", translateName(hinputs, hamuts, arr))))
       }
-      case RawArrayNameT(mutability, elementType) => {
+      case RawArrayNameT(mutability, elementType, region) => {
         VonObject(
           "RawArrayName",
           None,
           Vector(
             VonMember("mutability", vonifyMutability(Conversions.evaluateMutabilityTemplata(mutability))),
-            VonMember("elementType", vonifyCoord(typeHammer.translateCoord(hinputs, hamuts, elementType)))))
+            VonMember("elementType", vonifyCoord(typeHammer.translateCoord(hinputs, hamuts, elementType))),
+            vimpl()))
       }
       case TypingPassBlockResultVarNameT(life) => {
         VonObject(

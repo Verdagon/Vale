@@ -715,9 +715,6 @@ We'll go with D for now.
 
 
 
-These are added to the end, see IRRAE.
-
-
 # Implicit Region Runes are Added to the End (IRRAE)
 
 (This is obsolete now, we dont add implicit region runes)
