@@ -1,10 +1,10 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{BoolHT, FloatHT, InlineH, IntHT, KindHT, NeverHT, PrototypeH, CoordH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrHT, VoidHT, YonderH}
+import dev.vale.finalast.{BoolHT, CoordH, FloatHT, InlineH, IntHT, KindHT, NeverHT, PrototypeH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrHT, VoidHT, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, vfail, vwat, finalast => m}
+import dev.vale.{Interner, Keywords, vfail, vimpl, vwat, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT
@@ -31,8 +31,8 @@ class TypeHammer(
 
       case OverloadSetT(_, _) => VoidHT()
 
-      case a @ contentsStaticSizedArrayTT(_, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
-      case a @ contentsRuntimeSizedArrayTT(_, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
+      case a @ contentsStaticSizedArrayTT(_, _, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
+      case a @ contentsRuntimeSizedArrayTT(_, _, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
       case KindPlaceholderT(fullName) => {
         // this is a bit of a hack. sometimes lambda templates like to remember their original
         // defining generics, and we dont translate those in the instantiator, so it can later
@@ -93,7 +93,8 @@ class TypeHammer(
       case Some(x) => x.kind
       case None => {
         val name = nameHammer.translateFullName(hinputs, hamuts, ssaTT.name)
-        val contentsStaticSizedArrayTT(_, mutabilityT, variabilityT, memberType) = ssaTT
+        val contentsStaticSizedArrayTT(_, mutabilityT, variabilityT, memberType, arrRegion) = ssaTT
+        vimpl() // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         val variability = Conversions.evaluateVariabilityTemplata(variabilityT)
@@ -110,7 +111,8 @@ class TypeHammer(
       case Some(x) => x.kind
       case None => {
         val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaTT.name)
-        val contentsRuntimeSizedArrayTT(mutabilityT, memberType) = rsaTT
+        val contentsRuntimeSizedArrayTT(mutabilityT, memberType, arrRegion) = rsaTT
+        vimpl() // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         //    val variability = Conversions.evaluateVariability(variabilityT)
