@@ -62,7 +62,9 @@ case class ImplT(
 case class KindExportT(
   range: RangeS,
   tyype: KindT,
-  packageCoordinate: PackageCoordinate,
+  // Good for knowing the package of this export for later prefixing the exportedName, also good
+  // for getting its region.
+  id: IdT[ExportNameT],
   exportedName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -72,11 +74,11 @@ case class KindExportT(
 case class FunctionExportT(
   range: RangeS,
   prototype: PrototypeT,
-  packageCoordinate: PackageCoordinate,
+  exportId: IdT[ExportNameT],
   exportedName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-
+  vpass()
 }
 
 case class KindExternT(

@@ -161,8 +161,8 @@ case class RegionNameT(rune: IRuneS) extends IRegionNameT
 case class DenizenDefaultRegionNameT() extends IRegionNameT
 
 case class ExportTemplateNameT(codeLoc: CodeLocationS) extends ITemplateNameT
-case class ExportNameT(template: ExportTemplateNameT) extends IInstantiationNameT {
-  override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector()
+case class ExportNameT(template: ExportTemplateNameT, region: ITemplata[RegionTemplataType]) extends IInstantiationNameT {
+  override def templateArgs: Vector[ITemplata[ITemplataType]] = Vector(region)
 }
 
 case class ImplTemplateNameT(codeLocationS: CodeLocationS) extends IImplTemplateNameT {

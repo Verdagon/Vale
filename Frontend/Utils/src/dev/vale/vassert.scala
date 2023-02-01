@@ -134,6 +134,7 @@ object vimpl {
 // for region support
 object vregion {
   def apply[T](obj: T): T = {
+    vimpl()
     obj
   }
 }
