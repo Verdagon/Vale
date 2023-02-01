@@ -866,7 +866,7 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
         Ok(())
       }
       case AugmentSR(range, resultRune, maybeAugmentOwnership, maybeAugmentRegionRune, innerRune) => {
-        val augmentOwnership = vregion(vassertSome(maybeAugmentOwnership))
+        val augmentOwnership = vassertSome(maybeAugmentOwnership)
         stepState.getConclusion(innerRune.rune) match {
           case Some(CoordTemplata(initialCoord)) => {
             val newRegion =
