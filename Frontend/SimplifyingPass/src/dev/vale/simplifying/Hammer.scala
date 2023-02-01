@@ -183,14 +183,14 @@ class Hammer(interner: Interner, keywords: Keywords) {
     //    val emptyPackStructRefH = structHammer.translateStructRef(hinputs, hamuts, emptyPackStructRef)
     //    vassert(emptyPackStructRefH == ProgramH.emptyTupleStructRef)
 
-    kindExports.foreach({ case KindExportT(_, tyype, packageCoordinate, exportName) =>
+    kindExports.foreach({ case KindExportT(_, tyype, exportId, exportName) =>
       val kindH = typeHammer.translateKind(hinputs, hamuts, tyype)
-      hamuts.addKindExport(kindH, packageCoordinate, exportName)
+      hamuts.addKindExport(kindH, exportId.packageCoord, exportName)
     })
 
-    functionExports.foreach({ case FunctionExportT(_, prototype, packageCoordinate, exportName) =>
+    functionExports.foreach({ case FunctionExportT(_, prototype, exportId, exportName) =>
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)
-      hamuts.addFunctionExport(prototypeH, packageCoordinate, exportName)
+      hamuts.addFunctionExport(prototypeH, exportId.packageCoord, exportName)
     })
 
     kindExterns.foreach({ case KindExternT(tyype, packageCoordinate, exportName) =>

@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, finalast, vwat}
+import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, finalast, vfail, vwat}
 import dev.vale.finalast.IdH
 import dev.vale.typing.Hinputs
 import dev.vale.typing.names._
@@ -11,7 +11,6 @@ import dev.vale.typing.env.PackageEnvironment
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
-import dev.vale.CodeLocationS
 import dev.vale.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List
@@ -53,7 +52,7 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
       case IterationOptionNameT(range) => "iterationOption"
       case MagicParamNameT(codeLoc) => "magicParam"
       case PrimitiveNameT(humanName) => humanName.str
-      case RawArrayNameT(mutability, elementType) => "rawArr"
+      case RawArrayNameT(mutability, elementType, region) => "rawArr"
       case TypingPassBlockResultVarNameT(num) => "blockResult" + num
       case TypingPassFunctionResultVarNameT() => "funcResult"
       case TypingPassPatternDestructureeNameT(num) => "patDestr" + num
