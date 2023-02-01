@@ -766,4 +766,13 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val func = coutputs.lookupFunction("main")
   }
+
+  test("Test cellular automata") {
+    val compile =
+      RunCompilation.test(
+        Tests.loadExpected("programs/cellularautomata.vale"),
+        false)
+    compile.getMonouts()
+//    compile.evalForKind(Vector()) shouldEqual null
+  }
 }

@@ -11,6 +11,7 @@ import dev.vale.postparsing._
 import dev.vale.typing.templata._
 import dev.vale.typing._
 import dev.vale.typing.names._
+import dev.vale.typing.templata.ITemplata.expectRegionTemplata
 import dev.vale.typing.types._
 import dev.vale.von.{IVonData, VonArray, VonBool, VonFloat, VonInt, VonMember, VonObject, VonStr}
 
@@ -124,17 +125,18 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   }
 
   def vonifyRegion(region: RegionH): IVonData = {
-    val RegionH(name, kinds) = region
+    val RegionH() = region
 
     VonObject(
       "Region",
       None,
-      Vector(
-        VonMember(
-          "kinds",
-          VonArray(
-            None,
-            kinds.map(vonifyKind).toVector))))
+      Vector())
+//      Vector(
+//        VonMember(
+//          "kinds",
+//          VonArray(
+//            None,
+//            kinds.map(vonifyKind).toVector))))
   }
 
   def vonifyStructH(ref: StructHT): IVonData = {
@@ -985,6 +987,8 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
       case LocationTemplata(location) => VonObject("LocationTemplata", None, Vector(VonMember("location", vonifyLocation(Conversions.evaluateLocation(location)))))
       case BooleanTemplata(value) => VonObject("BooleanTemplata", None, Vector(VonMember("value", VonBool(value))))
       case IntegerTemplata(value) => VonObject("IntegerTemplata", None, Vector(VonMember("value", VonInt(value))))
+      case RegionTemplata() => VonObject("RegionTemplata", None, Vector())
+      case other => vimpl(other)
     }
   }
 
@@ -1101,7 +1105,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("mutability", vonifyMutability(Conversions.evaluateMutabilityTemplata(mutability))),
             VonMember("elementType", vonifyCoord(typeHammer.translateCoord(hinputs, hamuts, elementType))),
-            vimpl()))
+            VonMember("region", vonifyRegion(typeHammer.translateRegion(hinputs, hamuts, expectRegionTemplata(region))))))
       }
       case TypingPassBlockResultVarNameT(life) => {
         VonObject(

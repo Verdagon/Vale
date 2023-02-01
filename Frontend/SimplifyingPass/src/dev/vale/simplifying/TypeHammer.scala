@@ -4,10 +4,11 @@ import dev.vale.finalast.{BoolHT, CoordH, FloatHT, InlineH, IntHT, KindHT, Never
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, vfail, vimpl, vwat, finalast => m}
+import dev.vale.{Interner, Keywords, vfail, vimpl, vregionmut, vwat, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT
+import dev.vale.typing.templata.RegionTemplata
 //import dev.vale.typingpass.templata.FunctionHeaderT
 import dev.vale.typing.types._
 
@@ -44,6 +45,14 @@ class TypeHammer(
         VoidHT()
       }
     }
+  }
+
+  def translateRegion(
+    hinputs: Hinputs,
+    hamuts: HamutsBox,
+    region: RegionTemplata):
+  RegionH = {
+    RegionH()
   }
 
   def translateCoord(
@@ -94,7 +103,7 @@ class TypeHammer(
       case None => {
         val name = nameHammer.translateFullName(hinputs, hamuts, ssaTT.name)
         val contentsStaticSizedArrayTT(_, mutabilityT, variabilityT, memberType, arrRegion) = ssaTT
-        vimpl() // what do with arrRegion?
+        vregionmut(arrRegion) // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         val variability = Conversions.evaluateVariabilityTemplata(variabilityT)
@@ -112,7 +121,7 @@ class TypeHammer(
       case None => {
         val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaTT.name)
         val contentsRuntimeSizedArrayTT(mutabilityT, memberType, arrRegion) = rsaTT
-        vimpl() // what do with arrRegion?
+        vregionmut(arrRegion) // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
         val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
         //    val variability = Conversions.evaluateVariability(variabilityT)

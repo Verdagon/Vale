@@ -1187,18 +1187,18 @@ class CompilerTests extends FunSuite with Matchers {
     val regionName = funcTemplateName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
     val region = PlaceholderTemplata(regionName, RegionTemplataType())
 
-    val fireflyKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
+    val fireflyKind = StructTT(IdT(testPackageCoord, Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
-    val serenityKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Serenity")), Vector())))
+    val serenityKind = StructTT(IdT(testPackageCoord, Vector(), StructNameT(StructTemplateNameT(StrI("Serenity")), Vector())))
     val serenityCoord = CoordT(OwnT,region,serenityKind)
-    val ispaceshipKind = InterfaceTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), Vector())))
+    val ispaceshipKind = InterfaceTT(IdT(testPackageCoord, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("ISpaceship")), Vector())))
     val ispaceshipCoord = CoordT(OwnT,region,ispaceshipKind)
-    val unrelatedKind = StructTT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
+    val unrelatedKind = StructTT(IdT(testPackageCoord, Vector(), StructNameT(StructTemplateNameT(StrI("Spoon")), Vector())))
     val unrelatedCoord = CoordT(OwnT,region,unrelatedKind)
-    val fireflyTemplateName = IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)))
-    val fireflySignature = ast.SignatureT(IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector(), Vector(fireflyCoord)))))
-    val fireflyExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Firefly")));
-    val serenityExport = KindExportT(tz.head, fireflyKind, PackageCoordinate.TEST_TLD(interner, keywords), interner.intern(StrI("Serenity")));
+    val fireflyTemplateName = IdT(testPackageCoord, Vector(), interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)))
+    val fireflySignature = ast.SignatureT(IdT(testPackageCoord, Vector(), interner.intern(FunctionNameT(interner.intern(FunctionTemplateNameT(interner.intern(StrI("myFunc")), tz.head.begin)), Vector(), Vector(fireflyCoord)))))
+    val fireflyExport = KindExportT(tz.head, fireflyKind, vimpl(), interner.intern(StrI("Firefly")));
+    val serenityExport = KindExportT(tz.head, fireflyKind, vimpl(), interner.intern(StrI("Serenity")));
 
     val filenamesAndSources = FileCoordinateMap.test(interner, "blah blah blah\nblah blah blah")
 

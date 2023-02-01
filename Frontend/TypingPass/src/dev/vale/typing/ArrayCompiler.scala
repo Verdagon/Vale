@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl, vregion, vwat}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl, vregion, vregionmut, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
@@ -645,7 +645,7 @@ class ArrayCompiler(
     rsa: RuntimeSizedArrayTT
   ): RuntimeSizedArrayLookupTE = {
     val contentsRuntimeSizedArrayTT(mutability, memberType, selfRegion) = rsa
-    vregion(selfRegion)
+    vregionmut(selfRegion)
     if (indexExpr2.result.coord.kind != IntT(32)) {
       throw CompileErrorExceptionT(IndexedArrayWithNonInteger(range :: parentRanges, indexExpr2.result.coord))
     }

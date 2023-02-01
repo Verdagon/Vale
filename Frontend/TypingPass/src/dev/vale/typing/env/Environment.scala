@@ -513,8 +513,8 @@ object GeneralEnvironment {
 case class ExportEnvironment(
   globalEnv: GlobalEnvironment,
   parentEnv: PackageEnvironment[INameT],
-  id: IdT[ExportNameT],
-  defaultRegion: ITemplata[RegionTemplataType],
+  id: IdT[INameT],
+//  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = this

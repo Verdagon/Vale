@@ -83,9 +83,6 @@ class FunctionCompilerCore(
           case _ => false
         })
 
-    val maybeExport =
-      fullEnv.function.attributes.collectFirst { case e@ExportS(_) => e }
-
     val signature2 = SignatureT(fullEnv.id);
     val maybeRetTemplata =
       fullEnv.function.maybeRetCoordRune match {
@@ -211,23 +208,6 @@ class FunctionCompilerCore(
           header
         }
       }
-
-    maybeExport match {
-      case None =>
-      case Some(exportPackageCoord) => {
-        val exportedName =
-          fullEnv.id.localName match {
-            case FunctionNameT(FunctionTemplateNameT(humanName, _), _, _) => humanName
-            case _ => vfail("Can't export something that doesn't have a human readable name!")
-          }
-        coutputs.addInstantiationBounds(header.toPrototype.id, InstantiationBoundArguments(Map(), Map()))
-        coutputs.addFunctionExport(
-          fullEnv.function.range,
-          header.toPrototype,
-          exportPackageCoord.packageCoordinate,
-          exportedName)
-      }
-    }
 
     if (header.attributes.contains(PureT)) {
       //      header.params.foreach(param => {

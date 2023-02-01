@@ -23,6 +23,7 @@ object MetalPrinter {
         "Yonder" -> ">",
         "CoordTemplata" -> "TR",
         "KindTemplata" -> "TK",
+        "RegionTemplata" -> "®",
         "CitizenName" -> "C",
         "CoordListTemplata" -> "TRL",
         "CitizenTemplateName" -> "CT",

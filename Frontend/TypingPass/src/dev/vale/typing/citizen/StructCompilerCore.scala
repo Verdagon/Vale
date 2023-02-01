@@ -18,11 +18,11 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.parsing.ast.DontCallMacroP
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvEntry, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
-import dev.vale.typing.names.{AnonymousSubstructImplNameT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, DenizenDefaultRegionNameT, FunctionTemplateNameT, ICitizenTemplateNameT, IInterfaceNameT, IInterfaceTemplateNameT, INameT, IStructNameT, IStructTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, LambdaCitizenTemplateNameT, NameTranslator, PackageTopLevelNameT, RuneNameT, SelfNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.ITemplata.{expectMutabilityTemplata, expectRegionTemplata}
+import dev.vale.typing.templata.ITemplata.{expectMutabilityTemplata, expectRegion, expectRegionTemplata}
 
 import scala.collection.immutable.List
 
@@ -56,9 +56,6 @@ class StructCompilerCore(
         case MacroCallS(range, dontCall, macroName) => false
         case _ => true
       })
-
-    val maybeExport =
-      structA.attributes.collectFirst { case e@ExportS(_) => e }
 
     val mutability =
       structRunesEnv.lookupNearestWithImpreciseName(
@@ -159,22 +156,6 @@ class StructCompilerCore(
         runeToImplBound)
 
     coutputs.addStruct(structDefT);
-
-    maybeExport match {
-      case None =>
-      case Some(exportPackageCoord) => {
-        val exportedName =
-          placeholderedFullNameT.localName match {
-            case StructNameT(StructTemplateNameT(humanName), _) => humanName
-            case _ => vfail("Can't export something that doesn't have a human readable name!")
-          }
-        coutputs.addKindExport(
-          structA.range,
-          placeholderedStructTT,
-          exportPackageCoord.packageCoordinate,
-          exportedName)
-      }
-    }
   }
 
   def translateCitizenAttributes(attrs: Vector[ICitizenAttributeS]): Vector[ICitizenAttributeT] = {
@@ -253,16 +234,17 @@ class StructCompilerCore(
     maybeExport match {
       case None =>
       case Some(exportPackageCoord) => {
-        val exportedName =
-          placeholderedFullNameT.localName match {
-            case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => humanName
-            case _ => vfail("Can't export something that doesn't have a human readable name!")
-          }
-        coutputs.addKindExport(
-          interfaceA.range,
-          placeholderedInterfaceTT,
-          exportPackageCoord.packageCoordinate,
-          exportedName)
+        vimpl()
+//        val exportedName =
+//          placeholderedFullNameT.localName match {
+//            case InterfaceNameT(InterfaceTemplateNameT(humanName), _) => humanName
+//            case _ => vfail("Can't export something that doesn't have a human readable name!")
+//          }
+//        coutputs.addKindExport(
+//          interfaceA.range,
+//          placeholderedInterfaceTT,
+//          exportPackageCoord.packageCoordinate,
+//          exportedName)
       }
     }
 
