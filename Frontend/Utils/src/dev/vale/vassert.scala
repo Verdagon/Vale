@@ -138,3 +138,11 @@ object vregion {
     obj
   }
 }
+
+// this is mainly a passthrough, and marks something that needs to be implemented or doublechecked
+// for mutable/immutable region support
+object vregionmut {
+  def apply[T](obj: T): T = {
+    obj
+  }
+}
