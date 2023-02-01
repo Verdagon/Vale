@@ -2,7 +2,7 @@ package dev.vale.instantiating
 
 import dev.vale.options.GlobalOptions
 import dev.vale.{Accumulator, Collector, Interner, Keywords, StrI, vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vpass, vregion, vwat}
-import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType}
+import dev.vale.postparsing.{IRuneS, ITemplataType, IntegerTemplataType, RegionTemplataType}
 import dev.vale.typing.TemplataCompiler.{getTopLevelDenizenId, substituteTemplatasInKind}
 import dev.vale.typing.{Hinputs, InstantiationBoundArguments, TemplataCompiler}
 import dev.vale.typing.ast.{EdgeT, _}
@@ -93,52 +93,61 @@ object Instantiator {
 
     val monouts = new InstantiatedOutputs()
 
-    kindExportsT.foreach({ case KindExportT(range, tyype, packageCoordinate, exportedName) =>
-      val packageName = IdT(packageCoordinate, Vector(), interner.intern(PackageTopLevelNameT()))
-      val exportName =
-        packageName.addStep(interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)))))
-      val exportTemplateName = TemplataCompiler.getExportTemplate(exportName)
-      val instantiator =
-        new Instantiator(
-          opts,
-          interner,
-          keywords,
-          hinputs,
-          monouts,
-          exportTemplateName,
-          exportName,
-          Map(),
-          DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
-      KindExportT(
-        range,
-        instantiator.translateKind(tyype),
-        packageCoordinate,
-        exportedName)
-    })
+    val kindExports =
+      kindExportsT.map({ case KindExportT(range, tyype, placeholderedExportId, exportedName) =>
+  //      val packageName = IdT(exportId.packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
+        val exportTemplateId = TemplataCompiler.getTemplate(placeholderedExportId)
 
-    functionExportsT.foreach({ case FunctionExportT(range, prototype, packageCoordinate, exportedName) =>
-      val packageName = IdT(packageCoordinate, Vector(), interner.intern(PackageTopLevelNameT()))
-      val exportName =
-        packageName.addStep(
-          interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)))))
-      val exportTemplateName = TemplataCompiler.getExportTemplate(exportName)
-      val instantiator =
-        new Instantiator(
-          opts,
-          interner,
-          keywords,
-          hinputs,
-          monouts,
-          exportTemplateName,
-          exportName,
-          Map(exportName -> assemblePlaceholderMap(hinputs, exportName)),
-          DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
-      FunctionExportT(
-        range,
-        instantiator.translatePrototype(prototype),
-        packageCoordinate,
-        exportedName)
-    })
+        val exportId = vimpl()
+
+        val instantiator =
+          new Instantiator(
+            opts,
+            interner,
+            keywords,
+            hinputs,
+            monouts,
+            exportTemplateId,
+            exportId,
+            vimpl(), //Map(exportId -> assemblePlaceholderMap(hinputs, exportId)),
+            DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
+        KindExportT(
+          range,
+          instantiator.translateKind(tyype),
+          exportId,
+          exportedName)
+      })
+
+    val functionExports =
+      functionExportsT.map({ case FunctionExportT(range, prototypeT, exportPlaceholderedId, exportedName) =>
+  //      val packageName = IdT(exportId.packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
+  //      val exportName =
+  //        packageName.addStep(
+  //          interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)), )))
+
+        val exportTemplateId = TemplataCompiler.getExportTemplate(exportPlaceholderedId)
+
+        val IdT(packageCoord, initSteps, ExportNameT(exportTemplate, PlaceholderTemplata(_, RegionTemplataType()))) = exportPlaceholderedId
+        val region = RegionTemplata()
+        val exportId = IdT(packageCoord, initSteps, interner.intern(ExportNameT(exportTemplate, region)))
+
+        val exportTemplateName = TemplataCompiler.getExportTemplate(exportId)
+        val instantiator =
+          new Instantiator(
+            opts,
+            interner,
+            keywords,
+            hinputs,
+            monouts,
+            exportTemplateName,
+            exportId,
+            Map(exportTemplateId -> assemblePlaceholderMap(hinputs, exportId)),
+            DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
+        Collector.all(exportId, { case PlaceholderTemplata(_, _) => vwat() })
+        val prototype = instantiator.translatePrototype(prototypeT)
+        Collector.all(prototype, { case PlaceholderTemplata(_, _) => vwat() })
+        FunctionExportT(range, prototype, exportId, exportedName)
+      })
 
     while ({
       // We make structs and interfaces eagerly as we come across them
@@ -238,8 +247,8 @@ object Instantiator {
       interfaceEdgeBlueprints,
       interfaceToSubCitizenToEdge,
       Map(),
-      kindExportsT,
-      functionExportsT,
+      kindExports,
+      functionExports,
       kindExternsT,
       functionExternsT)
   }
@@ -930,8 +939,10 @@ object Instantiator {
         case IdT(_, _, localName : IImplNameT) => {
           hinputs.lookupImplByTemplate(localName.template).edgeId
         }
-        case IdT(_, _, _ : ExportNameT) => {
-
+        case IdT(_, _, localName : ExportNameT) => {
+          vassertOne(
+            hinputs.kindExports.filter(_.id.localName.template == localName.template).map(_.id) ++
+              hinputs.functionExports.filter(_.exportId.localName.template == localName.template).map(_.exportId))
         }
       }
 
@@ -939,10 +950,14 @@ object Instantiator {
     placeholderedName.localName.templateArgs
       .zip(id.localName.templateArgs)
       .flatMap({
-        case (CoordTemplata(CoordT(placeholderOwnership, placeholderRegion, KindPlaceholderT(placeholderId))), c @ CoordTemplata(_)) => {
+        case (CoordTemplata(CoordT(placeholderOwnership, PlaceholderTemplata(regionPlaceholderId, RegionTemplataType()), KindPlaceholderT(kindPlaceholderId))), c @ CoordTemplata(_)) => {
           vassert(placeholderOwnership == OwnT || placeholderOwnership == ShareT)
-          vcurious() // do we do anything with placeholderRegion?
-          List((placeholderId -> c))
+          // We might need to do something with placeholderRegion here, but I think we can just
+          // assume it correctly matches up with the coord's region. The typing phase should have
+          // made sure it matches up nicely.
+          List(
+            (regionPlaceholderId -> c.coord.region),
+            (kindPlaceholderId -> c))
         }
         case (KindTemplata(KindPlaceholderT(placeholderId)), kindTemplata) => {
           List((placeholderId -> kindTemplata))
@@ -1332,14 +1347,19 @@ class Instantiator(
         case ReturnTE(inner) => ReturnTE(translateRefExpr(inner))
         case ConsecutorTE(inners) => ConsecutorTE(inners.map(translateRefExpr))
         case ConstantIntTE(value, bits, region) => {
-          ConstantIntTE(ITemplata.expectIntegerTemplata(translateTemplata(value)), bits, vregion(region))
+          ConstantIntTE(
+            ITemplata.expectIntegerTemplata(translateTemplata(value)),
+            bits,
+            ITemplata.expectRegion(translateTemplata(region)))
         }
-        case ConstantStrTE(value, region) => ConstantStrTE(value, vregion(region))
-        case ConstantBoolTE(value, region) => ConstantBoolTE(value, vregion(region))
-        case ConstantFloatTE(value, region) => ConstantFloatTE(value, vregion(region))
+        case ConstantStrTE(value, region) => ConstantStrTE(value, ITemplata.expectRegion(translateTemplata(region)))
+        case ConstantBoolTE(value, region) => ConstantBoolTE(value, ITemplata.expectRegion(translateTemplata(region)))
+        case ConstantFloatTE(value, region) => ConstantFloatTE(value, ITemplata.expectRegion(translateTemplata(region)))
         case UnletTE(variable) => UnletTE(translateLocalVariable(variable))
         case DiscardTE(expr) => DiscardTE(translateRefExpr(expr))
-        case VoidLiteralTE(region) => VoidLiteralTE(vregion(region))
+        case VoidLiteralTE(region) => {
+          VoidLiteralTE(ITemplata.expectRegion(translateTemplata(region)))
+        }
         case FunctionCallTE(prototypeT, args) => {
           val prototype = translatePrototype(prototypeT)
           FunctionCallTE(
@@ -1514,7 +1534,7 @@ class Instantiator(
         case WhileTE(BlockTE(inner)) => {
           WhileTE(BlockTE(translateRefExpr(inner)))
         }
-        case BreakTE(region) => BreakTE(vregion(region))
+        case BreakTE(region) => BreakTE(ITemplata.expectRegion(translateTemplata(region)))
         case LockWeakTE(innerExpr, resultOptBorrowType, someConstructor, noneConstructor, someImplUntranslatedFullName, noneImplUntranslatedFullName) => {
           LockWeakTE(
             translateRefExpr(innerExpr),
@@ -1543,7 +1563,7 @@ class Instantiator(
           val result =
             NewImmRuntimeSizedArrayTE(
               translateRuntimeSizedArray(arrayType),
-              vregion(region),
+              ITemplata.expectRegion(translateTemplata(region)),
               translateRefExpr(sizeExpr),
               translateRefExpr(generator),
               translatePrototype(generatorMethod))
@@ -1565,7 +1585,7 @@ class Instantiator(
           val result =
             StaticArrayFromCallableTE(
               translateStaticSizedArray(arrayType),
-              vregion(region),
+              ITemplata.expectRegion(translateTemplata(region)),
               translateRefExpr(generator),
               translatePrototype(generatorMethod))
 
@@ -1608,7 +1628,7 @@ class Instantiator(
         case NewMutRuntimeSizedArrayTE(arrayType, region, capacityExpr) => {
           NewMutRuntimeSizedArrayTE(
             translateRuntimeSizedArray(arrayType),
-            vregion(region),
+            ITemplata.expectRegion(translateTemplata(region)),
             translateRefExpr(capacityExpr))
         }
         case TupleTE(elements, resultReference) => {
@@ -1793,8 +1813,8 @@ class Instantiator(
                 case (OwnT, ShareT) => ShareT
                 case other => vwat(other)
               }
-            vimpl() // what do with region?
-            CoordT(combinedOwnership, vimpl(), kind)
+            vassert(innerRegion == translateTemplata(outerRegion))
+            CoordT(combinedOwnership, innerRegion, kind)
           }
           case KindTemplata(kind) => {
             val newOwnership =
@@ -1817,7 +1837,8 @@ class Instantiator(
             case (_, ImmutableT) => ShareT
             case (other, MutableT) => other
           }
-        CoordT(newOwnership, vimpl(), translateKind(other))
+        val newRegion = expectRegionTemplata(translateTemplata(outerRegion))
+        CoordT(newOwnership, newRegion, translateKind(other))
       }
     }
   }

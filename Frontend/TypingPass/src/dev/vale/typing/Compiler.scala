@@ -32,10 +32,11 @@ import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult}
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
+import dev.vale.typing.templata.ITemplata.expectRegion
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -866,8 +867,10 @@ class Compiler(
         arrayCompiler.compileRuntimeSizedArray(globalEnv, coutputs)
 
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
-          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+        // Indexing phase
+
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, packageCoord)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
@@ -883,18 +886,60 @@ class Compiler(
           })
         })
 
-        // Indexing phase
+        // Compiling phase
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
-          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageId, templatas) =>
+          val packageEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, packageId)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
-                val templata = StructDefinitionTemplata(env, structA)
+                val templata = StructDefinitionTemplata(packageEnv, structA)
                 structCompiler.compileStruct(coutputs, List(), templata)
+
+                val maybeExport =
+                  structA.attributes.collectFirst { case e@ExportS(_) => e }
+                maybeExport match {
+                  case None =>
+                  case Some(exportS) => {
+                    val templateName = interner.intern(ExportTemplateNameT(structA.range.begin))
+                    val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+                    val exportOuterEnv =
+                      ExportEnvironment(
+                        globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
+
+                    val regionPlaceholder =
+                      expectRegion(
+                        templataCompiler.createPlaceholderInner(
+                          coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+
+                    val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
+                    val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
+                    val exportEnv =
+                      ExportEnvironment(
+                        globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
+
+                    val exportPlaceholderedStruct =
+                      structCompiler.resolveStruct(
+                        coutputs, exportEnv, List(structA.range), templata, Vector(regionPlaceholder), regionPlaceholder) match {
+                        case ResolveSuccess(kind) => kind
+                        case ResolveFailure(range, x) => {
+                          throw CompileErrorExceptionT(TypingPassSolverError(range, x))
+                        }
+                      }
+
+                    val exportName =
+                      structA.name match {
+                        case TopLevelStructDeclarationNameS(name, range) => name
+                        case _ => vwat()
+                      }
+
+                    coutputs.addKindExport(
+                      structA.range, exportPlaceholderedStruct, placeholderedExportId, exportName)
+                  }
+                }
               }
               case InterfaceEnvEntry(interfaceA) => {
-                val templata = InterfaceDefinitionTemplata(env, interfaceA)
+                val templata = InterfaceDefinitionTemplata(packageEnv, interfaceA)
                 structCompiler.compileInterface(coutputs, List(), templata)
               }
               case _ =>
@@ -902,8 +947,8 @@ class Compiler(
           })
         })
 
-        globalEnv.nameToTopLevelEnvironment.foreach({ case (namespaceCoord, templatas) =>
-          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+        globalEnv.nameToTopLevelEnvironment.foreach({ case (packageCoord, templatas) =>
+          val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, packageCoord)
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case ImplEnvEntry(impl) => {
@@ -916,13 +961,56 @@ class Compiler(
 
         globalEnv.nameToTopLevelEnvironment.foreach({
           // Anything in global scope should be compiled
-          case (namespaceCoord @ IdT(_, Vector(), PackageTopLevelNameT()), templatas) => {
-            val env = PackageEnvironment.makeTopLevelEnvironment(globalEnv, namespaceCoord)
+          case (packageId @ IdT(_, Vector(), PackageTopLevelNameT()), templatas) => {
+            val packageEnv = PackageEnvironment.makeTopLevelEnvironment(globalEnv, packageId)
             templatas.entriesByNameT.map({ case (name, entry) =>
               entry match {
                 case FunctionEnvEntry(functionA) => {
+                  val templata = FunctionTemplata(packageEnv, functionA)
                   functionCompiler.evaluateGenericFunctionFromNonCall(
-                    coutputs, List(), FunctionTemplata(env, functionA), true)
+                    coutputs, List(), templata, true)
+
+                  val maybeExport =
+                    functionA.attributes.collectFirst { case e@ExportS(_) => e }
+                  maybeExport match {
+                    case None =>
+                    case Some(exportS) => {
+                      val templateName = interner.intern(ExportTemplateNameT(functionA.range.begin))
+                      val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+                      val exportOuterEnv =
+                        ExportEnvironment(
+                          globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
+
+                      val regionPlaceholder =
+                        expectRegion(
+                          templataCompiler.createPlaceholderInner(
+                            coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+
+                      val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
+                      val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
+                      val exportEnv =
+                        ExportEnvironment(
+                          globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
+
+                      val exportPlaceholderedPrototype =
+                        functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+                          coutputs, List(functionA.range), exportEnv, templata, Vector(regionPlaceholder), regionPlaceholder, Vector()) match {
+                          case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
+                          case EvaluateFunctionFailure(reason) => {
+                            throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))
+                          }
+                        }
+
+                      val exportName =
+                        functionA.name match {
+                          case FunctionNameS(name, range) => name
+                          case other => vwat(other)
+                        }
+
+                      coutputs.addFunctionExport(
+                        functionA.range, exportPlaceholderedPrototype, placeholderedExportId, exportName)
+                    }
+                  }
                 }
                 case _ =>
               }
@@ -933,37 +1021,43 @@ class Compiler(
         })
 
         packageToProgramA.flatMap({ case (packageCoord, programA) =>
-          val env =
+          val packageEnv =
             PackageEnvironment.makeTopLevelEnvironment(
               globalEnv, IdT(packageCoord, Vector(), interner.intern(PackageTopLevelNameT())))
 
           programA.exports.foreach({ case ExportAsA(range, exportedName, rules, runeToType, typeRuneA) =>
             val typeRuneT = typeRuneA
 
-            val exportTemplateName = ExportTemplateNameT(range.begin)
-            val exportTemplateId = env.id.addStep(exportTemplateName)
-            val exportName = ExportNameT(exportTemplateName)
-            val exportId = env.id.addStep(exportName)
-            val regionId = vimpl()
+            val templateName = interner.intern(ExportTemplateNameT(range.begin))
+            val templateId = IdT(packageCoord, Vector(), templateName)
+            val exportOuterEnv =
+              ExportEnvironment(
+                globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
+            val regionPlaceholder =
+              expectRegion(
+                templataCompiler.createPlaceholderInner(
+                  coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+
+            val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
+            val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
             val exportEnv =
               ExportEnvironment(
-                globalEnv, env, exportId, regionId, TemplatasStore(exportId, Map(), Map()))
+                globalEnv, packageEnv, placeholderedExportId, TemplatasStore(placeholderedExportId, Map(), Map()))
 
             val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(exportEnv, List(range), env, vimpl()),
+                InferEnv(exportEnv, List(range), exportEnv, regionPlaceholder),
                 coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
-            val kind =
-              templataByRune.get(typeRuneT.rune) match {
-                case Some(KindTemplata(kind)) => {
-                  coutputs.addKindExport(range, kind, range.file.packageCoordinate, exportedName)
-                }
-                case Some(prototype) => {
-                  vimpl()
-                }
-                case _ => vfail()
+            templataByRune.get(typeRuneT.rune) match {
+              case Some(KindTemplata(kind)) => {
+                coutputs.addKindExport(range, kind, placeholderedExportId, exportedName)
               }
+              case Some(prototype) => {
+                vimpl()
+              }
+              case _ => vfail()
+            }
           })
         })
 
@@ -1207,7 +1301,7 @@ class Compiler(
   def ensureDeepExports(coutputs: CompilerOutputs): Unit = {
     val packageToKindToExport =
       coutputs.getKindExports
-        .map(kindExport => (kindExport.packageCoordinate, kindExport.tyype, kindExport))
+        .map(kindExport => (kindExport.id.packageCoord, kindExport.tyype, kindExport))
         .groupBy(_._1)
         .mapValues(
           _.map(x => (x._2, x._3))
@@ -1220,13 +1314,13 @@ class Compiler(
                 throw CompileErrorExceptionT(
                   TypeExportedMultipleTimes(
                     List(exports.head.range),
-                    exports.head.packageCoordinate,
+                    exports.head.id.packageCoord,
                     exports))
               }
             }))
 
     coutputs.getFunctionExports.foreach(funcExport => {
-      val exportedKindToExport = packageToKindToExport.getOrElse(funcExport.packageCoordinate, Map())
+      val exportedKindToExport = packageToKindToExport.getOrElse(funcExport.exportId.packageCoord, Map())
       (Vector(funcExport.prototype.returnType) ++ funcExport.prototype.paramTypes)
         .foreach(paramType => {
           val paramKind = paramType.kind
@@ -1238,7 +1332,7 @@ class Compiler(
               if (!exportedKindToExport.contains(placeholderedCitizen)) {
                 throw CompileErrorExceptionT(
                   ExportedFunctionDependedOnNonExportedKind(
-                    List(funcExport.range), funcExport.packageCoordinate, funcExport.prototype.toSignature, paramType.kind))
+                    List(funcExport.range), funcExport.exportId.packageCoord, funcExport.prototype.toSignature, paramType.kind))
               }
             }
             case RuntimeSizedArrayTT(_) | StaticSizedArrayTT(_) => {

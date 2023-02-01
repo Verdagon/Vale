@@ -229,7 +229,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               }
             }).toVector)
 
-      val maybeDefaultRegionP = vregion(None)
+      val maybeDefaultRegionP = vregionmut(None)
 
       val struct =
         StructP(

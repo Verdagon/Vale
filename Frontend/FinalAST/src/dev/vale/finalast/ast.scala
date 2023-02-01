@@ -16,9 +16,7 @@ object ProgramH {
   val externRegionName = "host"
 }
 
-case class RegionH(
-  name: String,
-  kinds: Vector[KindHT]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+case class RegionH() { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class Export(
   nameH: IdH,
