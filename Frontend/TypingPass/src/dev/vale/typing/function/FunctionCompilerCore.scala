@@ -337,7 +337,7 @@ class FunctionCompilerCore(
         // Exports' template args can only be regions
         val allTemplateArgsAreRegions =
           templateArgs.forall({
-            case RegionTemplata() => true
+            case RegionTemplata(_) => true
             case PlaceholderTemplata(_, RegionTemplataType()) => true
             case _ => false
           })

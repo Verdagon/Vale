@@ -902,7 +902,10 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
 
             val innerKind = outerKind
 
-            val innerCoord = CoordT(innerOwnership, innerRegion, innerKind)
+//            val innerCoord = CoordT(innerOwnership, innerRegion, innerKind)
+            // DO NOT SUBMIT
+            // trying out outerRegion here to see if it passes
+            val innerCoord = CoordT(innerOwnership, outerRegion, innerKind)
 
             stepState.concludeRune[ITypingPassSolverError](
               range :: env.parentRanges, innerRune.rune, CoordTemplata(innerCoord))

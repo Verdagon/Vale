@@ -484,7 +484,8 @@ class FunctionCompilerSolvingLayer(
                 genericParam,
                 index,
                 function.runeToType,
-                false)
+                false,
+                Vector())
             Some(InitialKnown(genericParam.rune, templata))
           }
         }
@@ -553,11 +554,12 @@ class FunctionCompilerSolvingLayer(
     })
     vassert(defaultRegionGenericParamIndex >= 0)
     val defaultRegionGenericParam = nearEnv.function.genericParameters(defaultRegionGenericParamIndex)
+    val defaultRegionMutable =
+      !defaultRegionGenericParam.attributes.exists({ case ImmutableRuneAttributeS(_) => true case _ => false })
     val defaultRegionPlaceholderTemplata =
-      expectRegion(
-        templataCompiler.createPlaceholder(
-          coutputs, nearEnv, functionTemplateFullName, defaultRegionGenericParam,
-          defaultRegionGenericParamIndex, function.runeToType, true))
+      templataCompiler.createRegionPlaceholderInner(
+        functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
+        Vector(), defaultRegionMutable)
     // we inform the solver of this placeholder below.
 
     val envs = InferEnv(nearEnv, parentRanges, nearEnv, defaultRegionPlaceholderTemplata)
@@ -580,7 +582,7 @@ class FunctionCompilerSolvingLayer(
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true)
+                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true, Vector())
             solver.manualStep(Map(genericParam.rune.rune -> templata))
             true
           }

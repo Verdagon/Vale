@@ -192,7 +192,8 @@ class ImplCompiler(
             rune,
             index,
             implA.runeToType,
-            true)
+            true,
+            Vector())
         InitialKnown(rune.rune, placeholder)
       })
 

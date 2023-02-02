@@ -495,20 +495,20 @@ class ArrayCompiler(
     val TemplateTemplataType(types, _) = StaticSizedArrayTemplateTemplata().tyype
     val Vector(IntegerTemplataType(), MutabilityTemplataType(), VariabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val sizePlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType(), false, true)
+      templataCompiler.createNonKindNonRegionPlaceholderInner(
+        templateFullName, 0, CodeRuneS(interner.intern(StrI("N"))), IntegerTemplataType())
     val mutabilityPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType(), false, true)
+      templataCompiler.createNonKindNonRegionPlaceholderInner(
+        templateFullName, 1, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
     val variabilityPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType(), false, true)
+      templataCompiler.createNonKindNonRegionPlaceholderInner(
+        templateFullName, 2, CodeRuneS(interner.intern(StrI("V"))), VariabilityTemplataType())
     val elementPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
+      templataCompiler.createCoordPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), false, true)
     val regionPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), RegionTemplataType(), false, true)
+      templataCompiler.createRegionPlaceholderInner(
+        templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), Vector(), true)
 
     val placeholders =
       Vector(
@@ -579,14 +579,14 @@ class ArrayCompiler(
     val TemplateTemplataType(types, _) = RuntimeSizedArrayTemplateTemplata().tyype
     val Vector(MutabilityTemplataType(), CoordTemplataType(), RegionTemplataType()) = types
     val mutabilityPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType(), false, true)
+      templataCompiler.createNonKindNonRegionPlaceholderInner(
+        templateFullName, 0, CodeRuneS(interner.intern(StrI("M"))), MutabilityTemplataType())
     val elementPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), CoordTemplataType(), false, true)
+      templataCompiler.createCoordPlaceholderInner(
+        coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), false, true)
     val regionPlaceholder =
-      templataCompiler.createPlaceholderInner(
-        coutputs, arrayOuterEnv, templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), RegionTemplataType(), false, true)
+      templataCompiler.createRegionPlaceholderInner(
+        templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), Vector(), true)
     val placeholders =
       Vector(mutabilityPlaceholder, elementPlaceholder, regionPlaceholder)
 

@@ -26,7 +26,7 @@ object ITemplata {
 
   def expectRegion(templata: ITemplata[ITemplataType]): ITemplata[RegionTemplataType] = {
     templata match {
-      case t @ RegionTemplata() => t
+      case t @ RegionTemplata(_) => t
       case PlaceholderTemplata(fullNameT, RegionTemplataType()) => PlaceholderTemplata(fullNameT, RegionTemplataType())
       case _ => vfail()
     }
@@ -101,7 +101,7 @@ object ITemplata {
 
   def expectRegionTemplata(templata: ITemplata[ITemplataType]): RegionTemplata = {
     templata match {
-      case t @ RegionTemplata() => t
+      case t @ RegionTemplata(_) => t
       case _ => vfail()
     }
   }
@@ -114,8 +114,7 @@ sealed trait ITemplata[+T <: ITemplataType]  {
 
 // The typing phase never makes one of these, they're purely abstract and conceptual in the
 // typing phase. The monomorphizer is the one that actually makes these templatas.
-// TODO(fullregions): Add a mutable boolean here.
-case class RegionTemplata() extends ITemplata[RegionTemplataType] {
+case class RegionTemplata(mutable: Boolean) extends ITemplata[RegionTemplataType] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: RegionTemplataType = RegionTemplataType()
 }

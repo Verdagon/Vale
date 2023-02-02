@@ -206,16 +206,7 @@ case class RawArrayNameT(
   mutability: ITemplata[MutabilityTemplataType],
   elementType: CoordT,
   selfRegion: ITemplata[RegionTemplataType]
-) extends INameT {
-  this match {
-    case RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,PlaceholderTemplata(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType()),IntT(32)),PlaceholderTemplata(IdT(PackageCoordinate(StrI("test"),Vector()),Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType())) => {
-      vpass()
-    }
-    case _ => {
-
-    }
-  }
-}
+) extends INameT
 
 case class ReachablePrototypeNameT(num: Int) extends INameT
 
@@ -273,7 +264,16 @@ case class KindPlaceholderNameT(template: KindPlaceholderTemplateNameT) extends 
 }
 
 // DO NOT SUBMIT figure out if kind/non-kind is the best distinction here.
-case class NonKindPlaceholderNameT(index: Int, rune: IRuneS) extends IPlaceholderNameT
+// This exists because we need a different way to refer to a coord generic param's other components,
+// see MNRFGC.
+case class NonKindNonRegionPlaceholderNameT(index: Int, rune: IRuneS) extends IPlaceholderNameT
+
+case class RegionPlaceholderNameT(
+  index: Int,
+  rune: IRuneS,
+  originallyIntroducedLocation: Vector[Int],
+  originallyMutable: Boolean
+) extends IPlaceholderNameT
 
 // See NNSPAFOC.
 case class OverrideDispatcherTemplateNameT(
