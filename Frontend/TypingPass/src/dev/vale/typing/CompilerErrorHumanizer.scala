@@ -10,7 +10,7 @@ import dev.vale.highertyping.FunctionA
 import PostParserErrorHumanizer._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.PostParserErrorHumanizer
-import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
+import OverloadResolver.{FindFunctionFailure, IFindFunctionFailureReason, InferFailure, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamRegionDoesntMatch, SpecificParamVirtualityDoesntMatch, WrongNumberOfArguments, WrongNumberOfTemplateArguments}
 import dev.vale.highertyping.{FunctionA, HigherTypingErrorHumanizer}
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, PrototypeT, SignatureT}
 import dev.vale.typing.infer.{BadIsaSubKind, BadIsaSuperKind, CallResultWasntExpectedType, CantCheckPlaceholder, CantGetComponentsOfPlaceholderPrototype, CantShareMutable, CouldntFindFunction, CouldntResolveKind, ITypingPassSolverError, IsaFailed, KindIsNotConcrete, KindIsNotInterface, LookupFailed, NoAncestorsSatisfyCall, OneOfFailed, OwnershipDidntMatch, ReceivingDifferentOwnerships, ReturnTypeConflict, SendingNonCitizen, SendingNonIdenticalKinds, WrongNumberOfTemplateArgs}
@@ -342,6 +342,9 @@ object CompilerErrorHumanizer {
           " Index " + index + " argument " + humanizeTemplata(codeMap, CoordTemplata(arg)) +
           " can't be given to expected parameter " + humanizeTemplata(codeMap, CoordTemplata(param))
       }
+      case SpecificParamRegionDoesntMatch(rune, suppliedMutable, expectedMutable) => {
+        " Generic param " + humanizeRune(rune) + " expected a " + (if (expectedMutable) "mutable" else "immutable") + " region, but received a " + (if (suppliedMutable) "mutable" else "immutable") + " region."
+      }
       case SpecificParamVirtualityDoesntMatch(index) => {
         "Virtualities don't match at index " + index
       }
@@ -516,10 +519,26 @@ object CompilerErrorHumanizer {
         "(" + coords.map(CoordTemplata).map(humanizeTemplata(codeMap, _)).mkString(", ") + ")"
       }
       case StringTemplata(value) => "\"" + value + "\""
-      case PlaceholderTemplata(fullNameT, tyype) => {
+      case RegionTemplata(mutable) => {
+        if (mutable) "mut'" else "imm'"
+      }
+      case PlaceholderTemplata(id@IdT(_, _, RegionPlaceholderNameT(index, rune, _, _)), tyype) => {
+        rune match {
+          case DefaultRegionRuneS() => {
+            id.initSteps.last match {
+              case t: ITemplateNameT => humanizeName(codeMap, t) + "'"
+              case _ => vwat()
+            }
+          }
+          case _ => {
+            humanizeRune(rune) + "'"
+          }
+        }
+      }
+      case PlaceholderTemplata(id@IdT(_, _, _), tyype) => {
         tyype match {
-          case CoordTemplataType() => "$" + humanizeId(codeMap, fullNameT)
-          case _ => humanizeTemplataType(tyype) + "$" + humanizeId(codeMap, fullNameT)
+          case CoordTemplataType() => "$" + humanizeId(codeMap, id)
+          case _ => humanizeTemplataType(tyype) + "$" + humanizeId(codeMap, id)
         }
       }
       case other => vimpl(other)
@@ -539,39 +558,7 @@ object CompilerErrorHumanizer {
         case BorrowT => "&"
         case WeakT => "&&"
       }
-    val regionStr =
-      region match {
-        case PlaceholderTemplata(id@IdT(_, _, NonKindPlaceholderNameT(index, rune)), tyype) => {
-          rune match {
-            case DefaultRegionRuneS() => {
-              id.initSteps.last match {
-                case t: ITemplateNameT => humanizeName(codeMap, t) + "'"
-                case _ => vwat()
-              }
-            }
-            case _ => {
-              humanizeRune(rune) + "'"
-            }
-          }
-        }
-        case PlaceholderTemplata(
-        id@IdT(
-        _,
-        _,
-        KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))), tyype) => {
-          rune match {
-            case DefaultRegionRuneS() => {
-              id.initSteps.last match {
-                case t: ITemplateNameT => humanizeName(codeMap, t) + "'"
-                case _ => vwat()
-              }
-            }
-            case _ => {
-              humanizeRune(rune) + "'"
-            }
-          }
-        }
-      }
+    val regionStr = humanizeTemplata(codeMap, region)
     val kindStr = humanizeKind(codeMap, kind, Some(region))
     ownershipStr + regionStr + kindStr
   }
@@ -651,7 +638,8 @@ object CompilerErrorHumanizer {
       }
       case KindPlaceholderNameT(template) => humanizeName(codeMap, template)
       case KindPlaceholderTemplateNameT(index, rune) => humanizeRune(rune)
-      case NonKindPlaceholderNameT(index, rune) => humanizeRune(rune)
+      case NonKindNonRegionPlaceholderNameT(index, rune) => humanizeRune(rune)
+      case RegionPlaceholderNameT(index, rune, _, _) => humanizeRune(rune)
       case CodeVarNameT(name) => name.str
       case LambdaCitizenNameT(template) => humanizeName(codeMap, template) + "<>"
       case FunctionTemplateNameT(humanName, codeLoc) => humanName.str

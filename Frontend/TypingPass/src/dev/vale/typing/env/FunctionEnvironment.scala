@@ -146,7 +146,11 @@ case class NodeEnvironment(
   // This can refer to vars in parent blocks, see UCRTVPE.
   unstackifiedLocals: Set[IdT[IVarNameT]],
 
-  defaultRegion: ITemplata[RegionTemplataType]
+  defaultRegion: ITemplata[RegionTemplataType],
+
+  // The location-in-denizen of the nearest enclosing pure block, if there is one. Otherwise, None.
+  // This is used to know whether a region is currently mutable or immutable.
+  latestPureBlockLocation: Option[Vector[Int]]
 ) extends IInDenizenEnvironment {
   vassert(declaredLocals.map(_.id) == declaredLocals.map(_.id).distinct)
 
@@ -154,7 +158,7 @@ case class NodeEnvironment(
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     obj match {
-      case that @ NodeEnvironment(_, _, _, _, _, _, _, _) => {
+      case that @ NodeEnvironment(_, _, _, _, _, _, _, _, _) => {
         id == that.id && life == that.life
       }
     }
@@ -225,16 +229,18 @@ case class NodeEnvironment(
 
   def addVariables(newVars: Vector[IVariableT]): NodeEnvironment = {
     NodeEnvironment(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
   }
   def addVariable(newVar: IVariableT): NodeEnvironment = {
-    NodeEnvironment(parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion)
+    NodeEnvironment(
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
   }
   def markLocalUnstackified(newUnstackified: IdT[IVarNameT]): NodeEnvironment = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
     vassert(getAllLocals().exists(_.id == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
-    NodeEnvironment(parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion)
+    NodeEnvironment(
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, latestPureBlockLocation)
   }
 
   // Gets the effects that this environment had on the outside world (on its parent
@@ -289,7 +295,8 @@ case class NodeEnvironment(
       TemplatasStore(id, Map(), Map()),
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE.
-      defaultRegion)
+      defaultRegion,
+      latestPureBlockLocation)
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironment = {
@@ -301,7 +308,8 @@ case class NodeEnvironment(
       templatas.addEntry(interner, name, entry),
       declaredLocals,
       unstackifiedLocals,
-      defaultRegion)
+      defaultRegion,
+      latestPureBlockLocation)
   }
   def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): NodeEnvironment = {
     NodeEnvironment(
@@ -312,7 +320,8 @@ case class NodeEnvironment(
       templatas.addEntries(interner, newEntries),
       declaredLocals,
       unstackifiedLocals,
-      defaultRegion)
+      defaultRegion,
+      latestPureBlockLocation)
   }
 
   def nearestBlockEnv(): Option[(NodeEnvironment, BlockSE)] = {
@@ -503,7 +512,6 @@ case class FunctionEnvironment(
   }
 
   private[env] override def lookupWithImpreciseNameInner(
-
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
@@ -517,10 +525,17 @@ case class FunctionEnvironment(
     // locals from the parent function.
     val (declaredLocals, unstackifiedLocals) =
       parentEnv match {
-        case NodeEnvironment(_, _, _, _, _, declaredLocals, unstackifiedLocals, _) => {
+        case NodeEnvironment(_, _, _, _, _, declaredLocals, unstackifiedLocals, _, _) => {
           (declaredLocals, unstackifiedLocals)
         }
         case _ => (Vector(), Set[IdT[IVarNameT]]())
+      }
+
+    val latestPureBlockLocation =
+      if (function.attributes.collectFirst({ case PureS => }).nonEmpty) {
+        Some(Vector())
+      } else {
+        None
       }
 
     NodeEnvironment(
@@ -531,12 +546,13 @@ case class FunctionEnvironment(
       TemplatasStore(id, Map(), Map()),
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE
-      defaultRegion)
+      defaultRegion,
+      latestPureBlockLocation)
   }
 
   def getClosuredDeclaredLocals(): Vector[IVariableT] = {
     parentEnv match {
-      case n @ NodeEnvironment(_, _, _, _, _, _, _, _) => n.declaredLocals
+      case n @ NodeEnvironment(_, _, _, _, _, _, _, _, _) => n.declaredLocals
       case f @ FunctionEnvironment(_, _, _, _, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
       case _ => Vector()
     }

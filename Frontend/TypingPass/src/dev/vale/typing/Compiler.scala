@@ -174,7 +174,7 @@ class Compiler(
             case VariabilityTemplata(_) =>
             case OwnershipTemplata(_) =>
             case MutabilityTemplata(_) =>
-            case RegionTemplata() =>
+            case RegionTemplata(_) =>
             case InterfaceDefinitionTemplata(_,_) =>
             case StructDefinitionTemplata(_,_) =>
             case ImplDefinitionTemplata(_,_) =>
@@ -908,9 +908,8 @@ class Compiler(
                         globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
                     val regionPlaceholder =
-                      expectRegion(
-                        templataCompiler.createPlaceholderInner(
-                          coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+                      templataCompiler.createRegionPlaceholderInner(
+                        templateId, 0, DefaultRegionRuneS(), Vector(), true)
 
                     val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                     val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -982,9 +981,8 @@ class Compiler(
                           globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
                       val regionPlaceholder =
-                        expectRegion(
-                          templataCompiler.createPlaceholderInner(
-                            coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+                        templataCompiler.createRegionPlaceholderInner(
+                          templateId, 0, DefaultRegionRuneS(), Vector(), true)
 
                       val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                       val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1035,9 +1033,8 @@ class Compiler(
                 globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
             val regionPlaceholder =
-              expectRegion(
-                templataCompiler.createPlaceholderInner(
-                  coutputs, exportOuterEnv, templateId, 0, DefaultRegionRuneS(), RegionTemplataType(), false, true))
+              templataCompiler.createRegionPlaceholderInner(
+                templateId, 0, DefaultRegionRuneS(), Vector(), true)
 
             val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
             val placeholderedExportId = templateId.copy(localName = placeholderedExportName)

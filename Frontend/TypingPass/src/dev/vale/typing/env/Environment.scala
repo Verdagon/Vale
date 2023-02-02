@@ -94,11 +94,6 @@ trait IInDenizenEnvironment extends IEnvironment {
   // This is the denizen that we're currently compiling.
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
-
-//  // We have this here to convey the default region into the solving process when we're calling
-//  // templates.
-//  // Nevermind, it's better to hand in a contextRegion parameter for cases like x`Moo<int>.
-//  def defaultRegion: ITemplata[RegionTemplataType]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -153,7 +148,7 @@ object TemplatasStore {
           case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
           case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
           case PrototypeTemplata(_, _) => true
-          case RegionTemplata() => contexts.contains(TemplataLookupContext)
+          case RegionTemplata(_) => contexts.contains(TemplataLookupContext)
           case KindTemplata(_) => contexts.contains(TemplataLookupContext)
           case StructDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
           case InterfaceDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)

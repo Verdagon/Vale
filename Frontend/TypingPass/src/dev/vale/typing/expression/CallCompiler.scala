@@ -38,7 +38,7 @@ class CallCompiler(
     explicitTemplateArgRunesS: Vector[IRuneS],
     givenArgsExprs2: Vector[ReferenceExpressionTE]
   ):
-  (FunctionCallTE) = {
+  (ReferenceExpressionTE) = {
     callableExpr.result.coord.kind match {
       case NeverT(true) => vwat()
       case NeverT(false) | BoolT() => {
@@ -278,7 +278,7 @@ class CallCompiler(
     explicitTemplateArgRunesS: Vector[IRuneS],
     argsExprs2: Vector[ReferenceExpressionTE]
   ):
-  (FunctionCallTE) = {
+  (ReferenceExpressionTE) = {
     val callExpr =
       evaluateCall(
         coutputs,

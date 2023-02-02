@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vpass}
+import dev.vale.{Accumulator, Err, Interner, Keywords, Ok, Profiler, RangeS, Result, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vpass, vregionmut, vwat}
 import dev.vale.postparsing._
 import dev.vale.postparsing.rules.{DefinitionFuncSR, IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.solver.IIncompleteOrFailedSolve
@@ -11,13 +11,14 @@ import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.postparsing.PostParserErrorHumanizer
 import dev.vale.solver.FailedSolve
-import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend}
+import OverloadResolver.{Outscored, RuleTypeSolveFailure, SpecificParamDoesntMatchExactly, SpecificParamDoesntSend, SpecificParamRegionDoesntMatch}
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
+import dev.vale.parsing.ast.ReadOnlyRegionRuneAttributeP
 import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate, HeaderCalleeCandidate, ICalleeCandidate, IValidCalleeCandidate, ParameterT, PrototypeT, ReferenceExpressionTE, ValidCalleeCandidate, ValidHeaderCalleeCandidate}
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IDenizenEnvironmentBox, IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT}
+import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT, RegionPlaceholderNameT}
 
 import scala.collection.immutable.{Map, Set}
 import scala.collection.mutable
@@ -46,6 +47,10 @@ object OverloadResolver {
   case class WrongNumberOfTemplateArguments(supplied: Int, expected: Int) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntSend(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
   case class SpecificParamDoesntMatchExactly(index: Int, argument: CoordT, parameter: CoordT) extends IFindFunctionFailureReason {
+    override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+    vpass()
+  }
+  case class SpecificParamRegionDoesntMatch(rune: IRuneS, suppliedMutable: Boolean, expectedMutable: Boolean) extends IFindFunctionFailureReason {
     override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
     vpass()
   }
@@ -223,6 +228,7 @@ class OverloadResolver(
     candidate: ICalleeCandidate,
     exact: Boolean,
     verifyConclusions: Boolean):
+    //maybeLatestPureBlockLocation: Option[Vector[Int]]):
   Result[IValidCalleeCandidate, IFindFunctionFailureReason] = {
     candidate match {
       case FunctionCalleeCandidate(ft@FunctionTemplata(declaringEnv, function)) => {
@@ -230,7 +236,6 @@ class OverloadResolver(
         if (explicitTemplateArgRunesS.size > identifyingRuneTemplataTypes.size) {
           Err(WrongNumberOfTemplateArguments(explicitTemplateArgRunesS.size, identifyingRuneTemplataTypes.size))
         } else {
-
           // Now that we know what types are expected, we can FINALLY rule-type these explicitly
           // specified template args! (The rest of the rule-typing happened back in the astronomer,
           // this is the one time we delay it, see MDRTCUT).
@@ -335,10 +340,6 @@ class OverloadResolver(
                   initialKnownsWithoutDefaultRegion
                 }
 
-//                  val callEnv =
-//                    GeneralEnvironment.childOf(
-//                      interner, callingEnv, callingEnv.fullName.addStep(CallEnvNameT()))
-
               // We only want to solve the template arg runes
               inferCompiler.solveComplete(
                 InferEnv(callingEnv, callRange, declaringEnv, contextRegion),
@@ -368,24 +369,35 @@ class OverloadResolver(
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
+                            vregionmut() // check regions?
                             Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
                           }
                         }
                       }
                     }
                   } else {
+                    val calleeContextRegion =
+                      if (ft.function.attributes.collectFirst({ case PureS => }).nonEmpty) {
+                        RegionTemplata(true)
+                      } else {
+                        contextRegion
+                      }
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                     functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                      coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, contextRegion, args) match {
+                      coutputs, callRange, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, args) match {
                       case (EvaluateFunctionFailure(reason)) => Err(reason)
                       case (EvaluateFunctionSuccess(prototype, conclusions)) => {
                         paramsMatch(coutputs, callingEnv, callRange, args, prototype.prototype.paramTypes, exact) match {
                           case Err(rejectionReason) => Err(rejectionReason)
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
-                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
                           }
                         }
+                        checkRegions(ft, conclusions) match {
+                          case Err(e) => return Err(e)
+                          case Ok(()) =>
+                        }
+                        Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
                       }
                     }
                   }
@@ -396,6 +408,8 @@ class OverloadResolver(
         }
       }
       case HeaderCalleeCandidate(header) => {
+        vregionmut() // what if its a pure call
+
         paramsMatch(coutputs, callingEnv, callRange, args, header.paramTypes, exact) match {
           case Ok(_) => {
             Ok(ValidHeaderCalleeCandidate(header))
@@ -404,6 +418,8 @@ class OverloadResolver(
         }
       }
       case PrototypeTemplataCalleeCandidate(declarationRange, prototype) => {
+        vregionmut() // what if its a pure call
+
         // We get here if we're considering a function that's being passed in as a bound.
         vcurious(prototype.id.localName.templateArgs.isEmpty)
         val substituter =
@@ -436,6 +452,60 @@ class OverloadResolver(
         }
       }
     }
+  }
+
+  private def checkRegions(
+    ft: FunctionTemplata,
+    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+  Result[Unit, IFindFunctionFailureReason] = {
+    val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
+    // The only place we can specify a region's mutability in the receiving function
+    // is in the generic parameter declaration. So all we need to do is loop
+    // through the generic parameter declarations and make sure the region we
+    // give for them has the right mutability.
+    ft.function.genericParameters.foreach(genericParam => {
+      genericParam.tyype match {
+        case RegionTemplataType() => {
+          val expectedImmutable =
+            genericParam.attributes.collectFirst({ case ImmutableRuneAttributeS(_) => }).nonEmpty
+          val expectedReadwrite =
+            genericParam.attributes.collectFirst({ case ReadWriteRuneAttributeS(_) => }).nonEmpty
+          val expectedReadonly =
+            genericParam.attributes.collectFirst({ case ReadOnlyRuneAttributeS(_) => }).nonEmpty
+          vassert(expectedImmutable || expectedReadwrite || expectedReadonly)
+          if (expectedReadonly) {
+            vassert(!expectedImmutable)
+            vassert(!expectedReadwrite)
+            // Do nothing, it can receive any region mutability
+          } else {
+            vassert(expectedImmutable != expectedReadwrite)
+            val expectedMutable = expectedReadwrite
+            conclusions.get(genericParam.rune.rune) match {
+              case Some(PlaceholderTemplata(IdT(_, _, RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)), RegionTemplataType())) => {
+                // Someday we'll also want to check if there were any pure blocks since the
+                // region was created.
+                // Until then, it's only mutable if it originally was and this isn't a pure call.
+                val actuallyMutable = originallyMutable && !isPure
+
+                if (actuallyMutable != expectedMutable) {
+                  // DO NOT SUBMIT test this
+                  return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, actuallyMutable, expectedMutable))
+                }
+              }
+              case Some(RegionTemplata(mutable)) => {
+                if (mutable != expectedMutable) {
+                  // DO NOT SUBMIT test this
+                  return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, mutable, expectedMutable))
+                }
+              }
+              case other => vwat(other)
+            }
+          }
+        }
+        case _ =>
+      }
+    })
+    Ok(())
   }
 
   // Gets all the environments for all the arguments.

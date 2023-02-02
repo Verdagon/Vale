@@ -987,7 +987,13 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
       case LocationTemplata(location) => VonObject("LocationTemplata", None, Vector(VonMember("location", vonifyLocation(Conversions.evaluateLocation(location)))))
       case BooleanTemplata(value) => VonObject("BooleanTemplata", None, Vector(VonMember("value", VonBool(value))))
       case IntegerTemplata(value) => VonObject("IntegerTemplata", None, Vector(VonMember("value", VonInt(value))))
-      case RegionTemplata() => VonObject("RegionTemplata", None, Vector())
+      case RegionTemplata(mutable) => {
+        VonObject(
+          "RegionTemplata",
+          None,
+          Vector(
+            VonMember("mutable", VonBool(mutable))))
+      }
       case other => vimpl(other)
     }
   }

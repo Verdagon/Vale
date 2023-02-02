@@ -366,13 +366,25 @@ case class FunctionHeaderT(
             // Make sure all the placeholders in the generic parameters exist as template args in
             // the original function definition.
             selfPlaceholdersInThisFunctionName.foreach({
-              case placeholderName @ IdT(_, _, NonKindPlaceholderNameT(index, rune)) => {
+              case placeholderName @ IdT(_, _, NonKindNonRegionPlaceholderNameT(index, rune)) => {
+                id.localName.templateArgs(index) match {
+                  case PlaceholderTemplata(placeholderNameAtIndex, _) => {
+                    vassert(placeholderName == placeholderNameAtIndex)
+                  }
+                  case other => {
+                    println("other: " + other)
+                    println("placeholderName: " + placeholderName)
+                    vfail(other)
+                  }
+                }
+              }
+              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)) => {
                 id.localName.templateArgs(index) match {
                   case PlaceholderTemplata(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
                   case CoordTemplata(CoordT(_, PlaceholderTemplata(regionPlaceholderId, _), KindPlaceholderT(kindPlaceholderId))) => {
-                    vassert(placeholderName == regionPlaceholderId || placeholderName == kindPlaceholderId)
+                    vassert(placeholderName == regionPlaceholderId)
                   }
                   case other => {
                     println("other: " + other)

@@ -16,7 +16,7 @@ import dev.vale.postparsing._
 import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.solver.{FailedSolve, RuleError, Step}
 import dev.vale.typing.ast.{ConstantIntTE, DestroyTE, DiscardTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, KindExportT, LetAndLendTE, LetNormalTE, LocalLookupTE, ParameterT, PrototypeT, ReferenceMemberLookupTE, ReturnTE, SignatureT, SoftLoadTE, UserFunctionT, referenceExprResultKind, referenceExprResultStructName}
-import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, CitizenNameT, CitizenTemplateNameT, CodeVarNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, InterfaceNameT, InterfaceTemplateNameT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, NonKindPlaceholderNameT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -89,7 +89,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
           case PlaceholderTemplata(
             IdT(_,
               Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-              NonKindPlaceholderNameT(0,CodeRuneS(StrI("r")))),
+              RegionPlaceholderNameT(_,CodeRuneS(StrI("r")), _, _)),
             RegionTemplataType()) => Some(Unit)
           case _ => None
         }
@@ -140,7 +140,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-          NonKindPlaceholderNameT(1,DefaultRegionRuneS())),RegionTemplataType()) =>
+          RegionPlaceholderNameT(1,DefaultRegionRuneS(), _, _)),RegionTemplataType()) =>
     }
   }
 
@@ -160,7 +160,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
-          NonKindPlaceholderNameT(1,CodeRuneS(StrI("x")))),
+          RegionPlaceholderNameT(1,CodeRuneS(StrI("x")), _, _)),
         RegionTemplataType()) =>
     }
   }

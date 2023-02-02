@@ -128,7 +128,8 @@ object Instantiator {
         val exportTemplateId = TemplataCompiler.getExportTemplate(exportPlaceholderedId)
 
         val IdT(packageCoord, initSteps, ExportNameT(exportTemplate, PlaceholderTemplata(_, RegionTemplataType()))) = exportPlaceholderedId
-        val region = RegionTemplata()
+        // Someday we'll have exports that do immutable things... not yet though.
+        val region = RegionTemplata(true)
         val exportId = IdT(packageCoord, initSteps, interner.intern(ExportNameT(exportTemplate, region)))
 
         val exportTemplateName = TemplataCompiler.getExportTemplate(exportId)
@@ -1998,6 +1999,7 @@ class Instantiator(
         case MutabilityTemplata(mutability) => MutabilityTemplata(mutability)
         case VariabilityTemplata(variability) => VariabilityTemplata(variability)
         case KindTemplata(kind) => KindTemplata(translateKind(kind))
+        case RegionTemplata(mutable) => RegionTemplata(mutable)
         case other => vimpl(other)
       }
     if (opts.sanityCheck) {

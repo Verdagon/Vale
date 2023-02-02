@@ -8,7 +8,7 @@ import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
-import dev.vale.parsing.ast.ImmutableRuneAttributeP
+import dev.vale.parsing.ast.{ImmutableRegionRuneAttributeP, ImmutableRuneAttributeP}
 import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, SignatureT}
@@ -623,7 +623,14 @@ object TemplataCompiler {
           templata
         }
       }
-      case PlaceholderTemplata(id @ IdT(_, _, pn @ NonKindPlaceholderNameT(index, rune)), _) => {
+      case PlaceholderTemplata(id @ IdT(_, _, pn @ NonKindNonRegionPlaceholderNameT(index, rune)), _) => {
+        if (id.initFullName(interner) == needleTemplateName) {
+          newSubstitutingTemplatas(index)
+        } else {
+          templata
+        }
+      }
+      case PlaceholderTemplata(id @ IdT(_, _, pn @ RegionPlaceholderNameT(index, rune, _, _)), _) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -1103,53 +1110,97 @@ class TemplataCompiler(
     genericParam: GenericParameterS,
     index: Int,
     runeToType: Map[IRuneS, ITemplataType],
-    registerWithCompilerOutputs: Boolean
+    registerWithCompilerOutputs: Boolean,
+    originallyIntroducedLocation: Vector[Int],
   ):
   ITemplata[ITemplataType] = {
+    // Note: this immutable is used for both coords and regions.
     val immutable =
       genericParam.attributes.exists({
         case ImmutableRuneAttributeS(_) => true
         case _ => false
       })
     val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
-    createPlaceholderInner(
-      coutputs, env, namePrefix, index, genericParam.rune.rune, runeType, immutable, registerWithCompilerOutputs)
+    val rune = genericParam.rune.rune
+
+    runeType match {
+      case KindTemplataType() => {
+        createKindPlaceholderInner(
+          coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+      }
+      case CoordTemplataType() => {
+        createCoordPlaceholderInner(
+          coutputs,
+          env,
+          namePrefix,
+          index,
+          rune,
+          immutable,
+          registerWithCompilerOutputs)
+      }
+      case RegionTemplataType() => {
+        createRegionPlaceholderInner(
+          namePrefix,
+          index,
+          rune,
+          originallyIntroducedLocation,
+          !immutable)
+      }
+      case otherType => {
+        createNonKindNonRegionPlaceholderInner(namePrefix, index, rune, otherType)
+      }
+    }
   }
 
-  def createPlaceholderInner(
+//  def createPlaceholderInner(
+//    coutputs: CompilerOutputs,
+//    env: IInDenizenEnvironment,
+//    namePrefix: IdT[INameT],
+//    index: Int,
+//    rune: IRuneS,
+//    runeType: ITemplataType,
+//    immutable: Boolean,
+//    registerWithCompilerOutputs: Boolean):
+//  ITemplata[ITemplataType] = {
+//    runeType match {
+//      case KindTemplataType() => {
+//        vcurious()
+//        createKindPlaceholderInner(
+//          coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+//      }
+//      case CoordTemplataType() => {
+//        vcurious()
+//        createCoordPlaceholderInner(
+//          coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
+//      }
+//      case otherType => {
+//        createNonKindNonRegionPlaceholderInner(namePrefix, index, rune, otherType)
+//      }
+//    }
+//  }
+
+  def createCoordPlaceholderInner(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironment,
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    runeType: ITemplataType,
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean
-  ):
-  ITemplata[ITemplataType] = {
-    runeType match {
-      case KindTemplataType() => {
-        val kindPlaceholderIdT =
-          createKindPlaceholderInner(
-            coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
-        val kindPlaceholderKindT = KindPlaceholderT(kindPlaceholderIdT)
-        KindTemplata(kindPlaceholderKindT)
-      }
-      case CoordTemplataType() => {
-        val regionPlaceholderTemplata =
-         createNonKindPlaceholderInner(namePrefix, index, rune, RegionTemplataType())
-        val kindPlaceholderIdT =
-          createKindPlaceholderInner(
-            coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
-        val kindPlaceholderKindT = KindPlaceholderT(kindPlaceholderIdT)
+  ) = {
+    // Not sure this really matters, because we can't mutate a generic argument. We can only
+    // mutate a struct or array, and a generic argument isn't seen as either.
+    val regionOriginallyMutable = true
+    val regionIntroducedLocation = Vector()
+    val regionPlaceholderTemplata =
+      createRegionPlaceholderInner(
+        namePrefix, index, rune, regionIntroducedLocation, regionOriginallyMutable)
+    val kindPlaceholderT =
+      createKindPlaceholderInner(
+        coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
 
-        val ownership = if (immutable) ShareT else OwnT
-        CoordTemplata(CoordT(ownership, regionPlaceholderTemplata, kindPlaceholderKindT))
-      }
-      case otherType => {
-        createNonKindPlaceholderInner(namePrefix, index, rune, otherType)
-      }
-    }
+    val ownership = if (immutable) ShareT else OwnT
+    CoordTemplata(CoordT(ownership, regionPlaceholderTemplata, kindPlaceholderT.kind))
   }
 
   def createKindPlaceholderInner(
@@ -1160,7 +1211,7 @@ class TemplataCompiler(
     rune: IRuneS,
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean):
-  IdT[KindPlaceholderNameT] = {
+  KindTemplata = {
     val kindPlaceholderId =
       namePrefix.addStep(
         interner.intern(KindPlaceholderNameT(
@@ -1179,16 +1230,27 @@ class TemplataCompiler(
       coutputs.declareTypeInnerEnv(kindPlaceholderTemplateId, placeholderEnv)
     }
 
-    kindPlaceholderId
+    KindTemplata(KindPlaceholderT(kindPlaceholderId))
   }
 
-  def createNonKindPlaceholderInner[T <: ITemplataType](
+  def createNonKindNonRegionPlaceholderInner[T <: ITemplataType](
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
     tyype: T):
   PlaceholderTemplata[T] = {
-    val idT = namePrefix.addStep(interner.intern(NonKindPlaceholderNameT(index, rune)))
+    val idT = namePrefix.addStep(interner.intern(NonKindNonRegionPlaceholderNameT(index, rune)))
     PlaceholderTemplata(idT, tyype)
+  }
+
+  def createRegionPlaceholderInner(
+    namePrefix: IdT[INameT],
+    index: Int,
+    rune: IRuneS,
+    originallyIntroducedLocation: Vector[Int],
+    originallyMutable: Boolean):
+  PlaceholderTemplata[RegionTemplataType] = {
+    val idT = namePrefix.addStep(interner.intern(RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)))
+    PlaceholderTemplata(idT, RegionTemplataType())
   }
 }

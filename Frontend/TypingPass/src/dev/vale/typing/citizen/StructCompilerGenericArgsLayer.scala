@@ -335,9 +335,8 @@ class StructCompilerGenericArgsLayer(
       vassert(defaultRegionGenericParamIndex >= 0)
       val defaultRegionGenericParam = structA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
-        expectRegion(
-          templataCompiler.createPlaceholder(
-            coutputs, outerEnv, structTemplateFullName, defaultRegionGenericParam, defaultRegionGenericParamIndex, allRuneToType, true))
+        templataCompiler.createRegionPlaceholderInner(
+          structTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, Vector(), true)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(structA.range), outerEnv, defaultRegionPlaceholderTemplata)
@@ -360,7 +359,7 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, structTemplateFullName, genericParam, index, allRuneToType, true)
+                  coutputs, outerEnv, structTemplateFullName, genericParam, index, allRuneToType, true, Vector())
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }
@@ -435,9 +434,8 @@ class StructCompilerGenericArgsLayer(
       vassert(defaultRegionGenericParamIndex >= 0)
       val defaultRegionGenericParam = interfaceA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
-        expectRegion(
-          templataCompiler.createPlaceholder(
-            coutputs, outerEnv, interfaceTemplateFullName, defaultRegionGenericParam, defaultRegionGenericParamIndex, interfaceA.runeToType, true))
+        templataCompiler.createRegionPlaceholderInner(
+          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, Vector(), true)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), outerEnv, defaultRegionPlaceholderTemplata)
@@ -460,7 +458,7 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, true)
+                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, true, Vector())
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }

@@ -23,9 +23,7 @@ func MakeBoard(rand_seed int) [][]bool {
   return rows;
 }
 
-func Display<r' imm>(
-  map &r'[][]bool)
-{
+pure func Display<r' imm>(map &r'[][]bool) {
   row_i = 0;
   while row_i < 20 {
     row = map[row_i];
