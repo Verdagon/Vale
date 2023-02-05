@@ -637,7 +637,7 @@ class Parser(interner: Interner, keywords: Keywords, opts: GlobalOptions) {
               case Err(err) => return Err(err)
               case Ok(result) => result
             }
-          BlockPE(blockL.range, maybeDefaultRegion, statementsP)
+          BlockPE(blockL.range, None, maybeDefaultRegion, statementsP)
         })
 
       Ok(FunctionP(funcRangeL, header, bodyP))

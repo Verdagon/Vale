@@ -206,7 +206,7 @@ object Spanner {
   }
 
   def forBlock(b: BlockPE): Span = {
-    val BlockPE(range, maybeDefaultRegion, inner) = b
+    val BlockPE(range, pure, maybeDefaultRegion, inner) = b
     makeSpan(
       Block, range,
       maybeDefaultRegion.toVector.map(n => makeSpan(Region, n.range)) ++
@@ -349,7 +349,7 @@ object Spanner {
       case ReturnPE(range, expr) => {
         makeSpan(Ret, range, Vector(forExpression(expr)))
       }
-      case b @ BlockPE(_, _, _) => {
+      case b @ BlockPE(_, _, _, _) => {
         forBlock(b)
       }
 //      case MatchPE(range, condExpr, lambdas) => {
@@ -370,7 +370,7 @@ object Spanner {
           range,
           Vector(forExpression(condition), forExpression(body)))
       }
-      case EachPE(range, entryPattern, inKeywordRange, iterableExpr, body) => {
+      case EachPE(range, maybePure, entryPattern, inKeywordRange, iterableExpr, body) => {
         makeSpan(
           While,
           range,

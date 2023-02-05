@@ -224,6 +224,8 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
   private def parseWhile(iter: ScrambleIterator): Result[Option[WhilePE], IParseError] = {
     val whileBegin = iter.getPos()
 
+    val pure = iter.trySkipWord(keywords.pure)
+
     if (iter.trySkipWord(keywords.whiile).isEmpty) {
       return Ok(None)
     }
@@ -251,7 +253,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         ast.WhilePE(
           RangeL(whileBegin, iter.getPrevEndPos()),
           condition,
-          BlockPE(body.range, None, body))))
+          BlockPE(body.range, pure, None, body))))
   }
 
   private def parseForeach(
@@ -264,6 +266,8 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     if (tentativeIter.trySkipWord(keywords.parallel).nonEmpty) {
       // do nothing for now
     }
+
+    val pure = tentativeIter.trySkipWord(keywords.pure)
 
     if (tentativeIter.trySkipWord(keywords.foreeach).isEmpty) {
       return Ok(None)
@@ -318,10 +322,11 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       Some(
         EachPE(
           RangeL(eachBegin, iter.getPrevEndPos()),
+          pure,
           pattern,
           inRange,
           iterableExpr,
-          ast.BlockPE(RangeL(bodyBegin, iter.getPrevEndPos()), None, body))))
+          ast.BlockPE(RangeL(bodyBegin, iter.getPrevEndPos()), None, None, body))))
   }
 
   private def parseIfLadder(iter: ScrambleIterator): Result[Option[IfPE], IParseError] = {
@@ -369,7 +374,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           }
 
         val elseEnd = iter.getPos()
-        Some(ast.BlockPE(RangeL(elseBegin, elseEnd), None, elseBody))
+        Some(ast.BlockPE(RangeL(elseBegin, elseEnd), None, None, elseBody))
       } else {
         None
       }
@@ -379,6 +384,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         case None => {
           BlockPE(
             RangeL(iter.getPrevEndPos(), iter.getPrevEndPos()),
+            None,
             None,
             VoidPE(RangeL(iter.getPrevEndPos(), iter.getPrevEndPos())))
         }
@@ -395,6 +401,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           //   }
           BlockPE(
             RangeL(condBlock.range.begin, thenBlock.range.end),
+            None,
             None,
             IfPE(
               RangeL(condBlock.range.begin, thenBlock.range.end),
@@ -517,7 +524,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     Ok(
       (
         conditionPE,
-        ast.BlockPE(body.range, None, body)))
+        ast.BlockPE(body.range, None, None, body)))
   }
 
   def parseBlock(blockL: CurliedLE): Result[IExpressionPE, IParseError] = {
@@ -584,7 +591,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
     // The pure/unsafe is a hack to get syntax highlighting work for
     // the future pure block feature.
     tentativeIter.trySkipWord(keywords.unsafe)
-    tentativeIter.trySkipWord(keywords.pure)
+    val pure = tentativeIter.trySkipWord(keywords.pure)
 
     if (tentativeIter.trySkipWord(keywords.block).isEmpty) {
       return Ok(None)
@@ -609,7 +616,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
         }
       }
 
-    Ok(Some(ast.BlockPE(RangeL(begin, iter.getPrevEndPos()), None, contents)))
+    Ok(Some(ast.BlockPE(RangeL(begin, iter.getPrevEndPos()), pure, None, contents)))
   }
 
   private def parseDestruct(
@@ -1611,6 +1618,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
             }
           BlockPE(
             blockL.range,
+            None,
             // Would we ever want a lambda with a different default region?
             None,
             statementsP)
@@ -1621,6 +1629,7 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
             case Ok(result) => {
               BlockPE(
                 result.range,
+                None,
                 // Would we ever want a lambda with a different default region?
                 None,
                 result)
@@ -1765,13 +1774,13 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
             AndPE(
               RangeL(leftOperand.range.begin, leftOperand.range.end),
               leftOperand,
-              BlockPE(rightOperand.range, None, rightOperand))
+              BlockPE(rightOperand.range, None, None, rightOperand))
           }
           case s if s == keywords.or => {
             OrPE(
               RangeL(leftOperand.range.begin, leftOperand.range.end),
               leftOperand,
-              BlockPE(rightOperand.range, None, rightOperand))
+              BlockPE(rightOperand.range, None, None, rightOperand))
           }
           case _ => {
             BinaryCallPE(

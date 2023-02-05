@@ -12,11 +12,13 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
     stackFrame0: StackFrame,
     lidb: LocationInDenizenBuilder,
     rangeP: RangeL,
+    pure: Boolean,
     makeContents: (StackFrame, LocationInDenizenBuilder, Boolean) => (StackFrame, BlockSE, VariableUses, VariableUses)):
   (BlockSE, VariableUses, VariableUses) = {
     // This just scopes the iterable's expression so its things dont outlive the foreach block.
     expressionScout.newBlock(
       stackFrame0.parentEnv, Some(stackFrame0), lidb.child(), PostParser.evalRange(stackFrame0.file, rangeP),
+      pure,
       stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
@@ -32,6 +34,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
     stackFrame0: StackFrame,
     lidb: LocationInDenizenBuilder,
     range: RangeL,
+    pure: Boolean,
     entryPatternPP: PatternPP,
     inKeywordRange: RangeL,
     iterableExpr: IExpressionPE,
@@ -39,6 +42,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
   (BlockSE, VariableUses, VariableUses) = {
     expressionScout.newBlock(
       stackFrame0.parentEnv, Some(stackFrame0), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+      pure,
       stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
@@ -68,12 +72,14 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         val (loopSE, loopBodySelfUses, loopBodyChildUses) =
           expressionScout.newBlock(
             stackFrame3.parentEnv, Some(stackFrame3), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+            pure,
             stackFrame3.contextRegion,
             noDeclarations,
             (stackFrame4, lidb) => {
-              val (loopBodySE, loopBodySelfUses, lookBodyChildUses) =
+              val (loopBodySE, loopBodySelfUses, loopBodyChildUses) =
                 expressionScout.newBlock(
                   stackFrame4.parentEnv, Some(stackFrame4), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+                  false, // The outer block is the pure one
                   stackFrame4.contextRegion,
                   noDeclarations,
                   (stackFrame5, lidb) => {
@@ -85,7 +91,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
                 } else {
                   postparsing.WhileSE(PostParser.evalRange(stackFrame0.file, range), loopBodySE)
                 }
-              (stackFrame4, loopSE, loopBodySelfUses, lookBodyChildUses)
+              (stackFrame4, loopSE, loopBodySelfUses, loopBodyChildUses)
             })
 
         val contentsSE = PostParser.consecutive(Vector(letIterableSE, letIteratorSE, loopSE))
@@ -144,6 +150,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
           val (thenSE, thenUses, thenChildUses) =
             expressionScout.newBlock(
               stackFrame1.parentEnv, Some(stackFrame1), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+              false,
               stackFrame1.contextRegion,
               noDeclarations,
               (stackFrame2, lidb) => {
@@ -185,9 +192,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         UseP)
 
     val (userBodySE, userBodySelfUses, userBodyChildUses) =
-      expressionScout.scoutBlock(
-        stackFrame5, lidb.child(), noDeclarations,
-        bodyPE)
+      expressionScout.scoutBlock(stackFrame5, lidb.child(), noDeclarations, false, bodyPE)
 
     val selfUses = ifSelfUses.thenMerge(consumeSomeSelfUses).thenMerge(userBodySelfUses)
     val childUses = ifChildUses.thenMerge(consumeSomeChildUses).thenMerge(userBodyChildUses)
@@ -209,6 +214,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
     expressionScout.newBlock(
       stackFrame0.parentEnv, Some(stackFrame0), lidb.child(),
       PostParser.evalRange(stackFrame0.file, range),
+      false,
       stackFrame0.contextRegion,
       noDeclarations,
       (stackFrame1, lidb) => {
@@ -216,20 +222,22 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
           expressionScout.newBlock(
             stackFrame1.parentEnv, Some(stackFrame1), lidb.child(),
             PostParser.evalRange(stackFrame0.file, range),
+            false,
             stackFrame1.contextRegion,
             noDeclarations,
             (stackFrame4, lidb) => {
-              val (loopBodySE, loopBodySelfUses, lookBodyChildUses) =
+              val (loopBodySE, loopBodySelfUses, loopBodyChildUses) =
                 expressionScout.newBlock(
                   stackFrame4.parentEnv, Some(stackFrame4), lidb.child(),
                   PostParser.evalRange(stackFrame0.file, range),
+                  false,
                   stackFrame4.contextRegion,
                   noDeclarations,
                   (stackFrame5, lidb) => {
                     scoutWhileBody(expressionScout, stackFrame5, lidb, range, conditionPE, body)
                   })
               val whileSE = postparsing.WhileSE(PostParser.evalRange(stackFrame0.file, range), loopBodySE)
-              (stackFrame4, whileSE, loopBodySelfUses, lookBodyChildUses)
+              (stackFrame4, whileSE, loopBodySelfUses, loopBodyChildUses)
             })
         (stackFrame1, loopSE, loopBodySelfUses, loopBodyChildUses)
       })
@@ -265,6 +273,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
           val (thenSE, thenUses, thenChildUses) =
             expressionScout.newBlock(
               stackFrame3.parentEnv, Some(stackFrame3), lidb.child(), PostParser.evalRange(stackFrame0.file, range),
+              false,
               stackFrame3.contextRegion,
               noDeclarations,
               (stackFrame4, lidb) => {
@@ -275,9 +284,7 @@ class LoopPostParser(interner: Interner, keywords: Keywords) {
         })
 
     val (userBodySE, userBodySelfUses, userBodyChildUses) =
-      expressionScout.scoutBlock(
-        stackFrame4, lidb.child(), noDeclarations,
-        bodyPE)
+      expressionScout.scoutBlock(stackFrame4, lidb.child(), noDeclarations, false, bodyPE)
 
     val selfUses = ifSelfUses.thenMerge(userBodySelfUses)
     val childUses = ifChildUses.thenMerge(userBodyChildUses)

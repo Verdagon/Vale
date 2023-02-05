@@ -274,6 +274,7 @@ class ParsedLoader(interner: Interner) {
   def loadBlock(jobj: JObject): BlockPE = {
     BlockPE(
       loadRange(getObjectField(jobj, "range")),
+      loadOptionalObject(getObjectField(jobj, "maybePure"), loadRange),
       loadOptionalObject(getObjectField(jobj, "maybeDefaultRegion"), loadRegionRune),
       loadExpression(getObjectField(jobj, "inner")))
   }
@@ -464,6 +465,7 @@ class ParsedLoader(interner: Interner) {
       case "Each" => {
         EachPE(
           loadRange(getObjectField(jobj, "range")),
+          loadOptionalObject(getObjectField(jobj, "maybePure"), loadRange),
           loadPattern(getObjectField(jobj, "entryPattern")),
           loadRange(getObjectField(jobj, "inRange")),
           loadExpression(getObjectField(jobj, "iterableExpr")),

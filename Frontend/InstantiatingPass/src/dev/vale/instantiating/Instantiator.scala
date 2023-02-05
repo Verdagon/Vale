@@ -1417,7 +1417,7 @@ class Instantiator(
               case (WeakT, BorrowT) => WeakT
               case other => vwat(other)
             }
-          SoftLoadTE(inner, targetOwnership)
+          SoftLoadTE(inner, vimpl(targetOwnership))
         }
         case ExternFunctionCallTE(prototype2, args) => {
           ExternFunctionCallTE(
