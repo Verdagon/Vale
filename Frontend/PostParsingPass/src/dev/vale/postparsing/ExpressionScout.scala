@@ -73,9 +73,10 @@ class ExpressionScout(
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,
+    pure: Boolean,
     blockPE: BlockPE):
   (BlockSE, VariableUses, VariableUses) = {
-    val BlockPE(rangeP, maybeNewDefaultRegion, inner) = blockPE
+    val BlockPE(rangeP, pure, maybeNewDefaultRegion, inner) = blockPE
     val rangeS = PostParser.evalRange(parentStackFrame.file, rangeP)
     vassert(maybeNewDefaultRegion.isEmpty)
     newBlock(
@@ -83,6 +84,7 @@ class ExpressionScout(
       Some(parentStackFrame),
       lidb.child(),
       rangeS,
+      pure.nonEmpty,
       maybeNewDefaultRegion match {
         case None => parentStackFrame.contextRegion
         case Some(RegionRunePT(range, name)) => {
@@ -117,6 +119,7 @@ class ExpressionScout(
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,
+    pure: Boolean,
     contextRegion: IRuneS,
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
@@ -554,10 +557,10 @@ class ExpressionScout(
 
           (stackFrame1, NormalResult(result), selfUses, childUses)
         }
-        case b @ BlockPE(_, maybeNewDefaultRegion, _) => {
+        case b @ BlockPE(_, pure, maybeNewDefaultRegion, _) => {
           vassert(maybeNewDefaultRegion.isEmpty)
           val (resultSE, selfUses, childUses) =
-            scoutBlock(stackFrame0, lidb.child(), noDeclarations, b)
+            scoutBlock(stackFrame0, lidb.child(), noDeclarations, pure.nonEmpty, b)
           (stackFrame0, NormalResult(resultSE), selfUses, childUses)
         }
         case ConsecutorPE(inners) => {
@@ -590,7 +593,7 @@ class ExpressionScout(
               },
               (stackFrame2, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, rightPE)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, rightPE)
                 (stackFrame2, thenSE, thenUses, thenChildUses)
               },
               (stackFrame3, lidb) => {
@@ -618,7 +621,7 @@ class ExpressionScout(
               },
               (stackFrame3, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame3, lidb.child(), noDeclarations, rightPE)
+                  scoutBlock(stackFrame3, lidb.child(), noDeclarations, false, rightPE)
                 (stackFrame3, thenSE, thenUses, thenChildUses)
               })
 
@@ -631,15 +634,16 @@ class ExpressionScout(
               Some(stackFrame0),
               lidb.child(),
               evalRange(range),
+              false,
               stackFrame0.contextRegion,
               noDeclarations,
               (stackFrame1, lidb) => {
                 val (stackFrame2, condSE, condUses, condChildUses) =
                   scoutExpressionAndCoerce(stackFrame1, lidb.child(), condition, UseP)
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, thenBody)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, thenBody)
                 val (elseSE, elseUses, elseChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, elseBody)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, elseBody)
 
                 val selfCaseUses = thenUses.branchMerge(elseUses)
                 val selfUses = condUses.thenMerge(selfCaseUses);
@@ -690,9 +694,9 @@ class ExpressionScout(
   //            })
   //        (stackFrame0, NormalResult(WhileSE(evalRange(range), combinedBodySE)), selfUses, childUses)
         }
-        case EachPE(range, entryPatternPP, inKeywordRange, iterableExpr, body) => {
+        case EachPE(range, maybePure, entryPatternPP, inKeywordRange, iterableExpr, body) => {
           val (loopSE, selfUses, childUses) =
-            loopPostParser.scoutEach(this, stackFrame0, lidb, range, entryPatternPP, inKeywordRange, iterableExpr, body)
+            loopPostParser.scoutEach(this, stackFrame0, lidb, range, maybePure.nonEmpty, entryPatternPP, inKeywordRange, iterableExpr, body)
           (stackFrame0, NormalResult(loopSE), selfUses, childUses)
         }
   //      case BadLetPE(range) => {

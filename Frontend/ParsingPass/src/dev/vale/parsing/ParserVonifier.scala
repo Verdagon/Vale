@@ -761,12 +761,13 @@ object ParserVonifier {
   }
 
   def vonifyBlock(thing: BlockPE): VonObject = {
-    val BlockPE(range, maybeDefaultRegion, inner) = thing
+    val BlockPE(range, maybePure, maybeDefaultRegion, inner) = thing
     VonObject(
       "Block",
       None,
       Vector(
         VonMember("range", vonifyRange(range)),
+        VonMember("maybePure", vonifyOptional(maybePure, vonifyRange)),
         VonMember("maybeDefaultRegion", vonifyOptional(maybeDefaultRegion, vonifyRegionRune)),
         VonMember("inner", vonifyExpression(inner))))
   }
@@ -864,12 +865,13 @@ object ParserVonifier {
             VonMember("range", vonifyRange(range)),
             VonMember("innerExpr", vonifyExpression(inner))))
       }
-      case EachPE(range, entryPattern, inRange, iterableExpr, body) => {
+      case EachPE(range, maybePure, entryPattern, inRange, iterableExpr, body) => {
         VonObject(
           "Each",
           None,
           Vector(
             VonMember("range", vonifyRange(range)),
+            VonMember("maybePure", vonifyOptional(maybePure, vonifyRange)),
             VonMember("entryPattern", vonifyPattern(entryPattern)),
             VonMember("inRange", vonifyRange(inRange)),
             VonMember("iterableExpr", vonifyExpression(iterableExpr)),
@@ -1030,7 +1032,7 @@ object ParserVonifier {
             VonMember("left", vonifyExpression(left)),
             VonMember("right", vonifyExpression(right))))
       }
-      case b @ BlockPE(_, _, _) => {
+      case b @ BlockPE(_, _, _, _) => {
         vonifyBlock(b)
       }
       case c @ ConsecutorPE(_) => {

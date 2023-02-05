@@ -70,7 +70,7 @@ case class WhilePE(range: RangeL, condition: IExpressionPE, body: BlockPE) exten
   override def needsSemicolonBeforeNextStatement: Boolean = false
   override def producesResult(): Boolean = false
 }
-case class EachPE(range: RangeL, entryPattern: PatternPP, inKeywordRange: RangeL, iterableExpr: IExpressionPE, body: BlockPE) extends IExpressionPE {
+case class EachPE(range: RangeL, maybePure: Option[RangeL], entryPattern: PatternPP, inKeywordRange: RangeL, iterableExpr: IExpressionPE, body: BlockPE) extends IExpressionPE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious();
   override def needsSemicolonBeforeNextStatement: Boolean = false
   override def producesResult(): Boolean = body.producesResult()
@@ -297,7 +297,7 @@ case class LambdaPE(
   override def producesResult(): Boolean = true
 }
 
-case class BlockPE(range: RangeL, maybeDefaultRegion: Option[RegionRunePT], inner: IExpressionPE) extends IExpressionPE {
+case class BlockPE(range: RangeL, maybePure: Option[RangeL], maybeDefaultRegion: Option[RegionRunePT], inner: IExpressionPE) extends IExpressionPE {
   vpass()
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious();
   override def needsSemicolonBeforeNextStatement: Boolean = false

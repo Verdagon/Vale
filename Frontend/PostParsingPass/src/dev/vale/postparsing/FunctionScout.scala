@@ -616,6 +616,7 @@ class FunctionScout(
       parentStackFrame,
       lidb.child(),
       PostParser.evalRange(functionBodyEnv.file, body0.range),
+      false,
       contextRegion,
       initialDeclarations,
       (stackFrame1, lidb) => {
