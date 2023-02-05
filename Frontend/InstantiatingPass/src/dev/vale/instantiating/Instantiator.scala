@@ -77,7 +77,7 @@ class InstantiatedOutputs() {
 }
 
 object Instantiator {
-  def translate(opts: GlobalOptions, interner: Interner, keywords: Keywords, hinputs: Hinputs): Hinputs = {
+  def translate(opts: GlobalOptions, interner: Interner, keywords: Keywords, originalHinputs: Hinputs): Hinputs = {
     val Hinputs(
     interfacesT,
     structsT,
@@ -89,7 +89,7 @@ object Instantiator {
     kindExportsT,
     functionExportsT,
     kindExternsT,
-    functionExternsT) = hinputs
+    functionExternsT) = originalHinputs
 
     val monouts = new InstantiatedOutputs()
 
@@ -105,7 +105,7 @@ object Instantiator {
             opts,
             interner,
             keywords,
-            hinputs,
+            originalHinputs,
             monouts,
             exportTemplateId,
             exportId,
@@ -138,11 +138,11 @@ object Instantiator {
             opts,
             interner,
             keywords,
-            hinputs,
+            originalHinputs,
             monouts,
             exportTemplateName,
             exportId,
-            Map(exportTemplateId -> assemblePlaceholderMap(hinputs, exportId)),
+            Map(exportTemplateId -> assemblePlaceholderMap(originalHinputs, exportId)),
             DenizenBoundToDenizenCallerBoundArg(Map(), Map()))
         Collector.all(exportId, { case PlaceholderTemplata(_, _) => vwat() })
         val prototype = instantiator.translatePrototype(prototypeT)
@@ -166,18 +166,18 @@ object Instantiator {
         val (newFuncName, instantiationBoundArgs, maybeDenizenBoundToDenizenCallerSuppliedThing) =
           monouts.newFunctions.dequeue()
         Instantiator.translateFunction(
-          opts, interner, keywords, hinputs, monouts, newFuncName, instantiationBoundArgs,
+          opts, interner, keywords, originalHinputs, monouts, newFuncName, instantiationBoundArgs,
           maybeDenizenBoundToDenizenCallerSuppliedThing)
         true
       } else if (monouts.newImpls.nonEmpty) {
         val (implFullName, instantiationBoundsForUnsubstitutedImpl) = monouts.newImpls.dequeue()
         Instantiator.translateImpl(
-          opts, interner, keywords, hinputs, monouts, implFullName, instantiationBoundsForUnsubstitutedImpl)
+          opts, interner, keywords, originalHinputs, monouts, implFullName, instantiationBoundsForUnsubstitutedImpl)
         true
       } else if (monouts.newAbstractFuncs.nonEmpty) {
         val (abstractFunc, virtualIndex, interfaceFullName, instantiationBoundArgs) = monouts.newAbstractFuncs.dequeue()
         Instantiator.translateAbstractFunc(
-          opts, interner, keywords, hinputs, monouts, interfaceFullName, abstractFunc, virtualIndex, instantiationBoundArgs)
+          opts, interner, keywords, originalHinputs, monouts, interfaceFullName, abstractFunc, virtualIndex, instantiationBoundArgs)
         true
       } else {
         false
@@ -240,18 +240,27 @@ object Instantiator {
           }).toMap
       }).toMap
 
-    Hinputs(
-      interfaces.toVector,
-      monouts.structs.values.toVector,
-      monouts.functions.values.toVector,
-      //      monouts.immKindToDestructor.toMap,
-      interfaceEdgeBlueprints,
-      interfaceToSubCitizenToEdge,
-      Map(),
-      kindExports,
-      functionExports,
-      kindExternsT,
-      functionExternsT)
+    val resultHinputs =
+      Hinputs(
+        interfaces.toVector,
+        monouts.structs.values.toVector,
+        monouts.functions.values.toVector,
+        //      monouts.immKindToDestructor.toMap,
+        interfaceEdgeBlueprints,
+        interfaceToSubCitizenToEdge,
+        Map(),
+        kindExports,
+        functionExports,
+        kindExternsT,
+        functionExternsT)
+
+    if (opts.sanityCheck) {
+      Collector.all(resultHinputs, {
+        case BorrowT => vfail()
+      })
+    }
+
+    resultHinputs
   }
 
   def translateInterfaceDefinition(
@@ -1815,7 +1824,7 @@ class Instantiator(
                 case other => vwat(other)
               }
             vassert(innerRegion == translateTemplata(outerRegion))
-            CoordT(combinedOwnership, innerRegion, kind)
+            CoordT(vimpl(combinedOwnership), innerRegion, kind)
           }
           case KindTemplata(kind) => {
             val newOwnership =
@@ -1823,7 +1832,7 @@ class Instantiator(
                 case ImmutableT => ShareT
                 case MutableT => outerOwnership
               }
-            CoordT(newOwnership, vimpl(), kind)
+            CoordT(vimpl(newOwnership), vimpl(), kind)
           }
         }
       }
@@ -1834,9 +1843,14 @@ class Instantiator(
         val kind = translateKind(other)
         val mutability = getMutability(kind)
         val newOwnership =
-          (outerOwnership, mutability) match {
+          ((outerOwnership, mutability) match {
             case (_, ImmutableT) => ShareT
             case (other, MutableT) => other
+          }) match {
+            case BorrowT => {
+              vimpl()
+            }
+            case other => other
           }
         val newRegion = expectRegionTemplata(translateTemplata(outerRegion))
         CoordT(newOwnership, newRegion, translateKind(other))
