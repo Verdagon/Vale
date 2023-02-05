@@ -14,7 +14,7 @@ import dev.vale.typing.types._
 
 import scala.collection.immutable.List
 
-sealed trait OwnershipT  {
+sealed trait OwnershipT {
 }
 case object ShareT extends OwnershipT {
   override def toString: String = "share"
@@ -27,6 +27,14 @@ case object BorrowT extends OwnershipT {
 }
 case object WeakT extends OwnershipT {
   override def toString: String = "weak"
+}
+// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
+case object ImmutableBorrowT extends OwnershipT {
+  override def toString: String = "immborrow"
+}
+// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
+case object MutableBorrowT extends OwnershipT {
+  override def toString: String = "mutborrow"
 }
 
 sealed trait MutabilityT  {
