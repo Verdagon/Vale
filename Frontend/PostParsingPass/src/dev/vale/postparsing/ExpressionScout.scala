@@ -4,7 +4,7 @@ import dev.vale.postparsing.patterns.PatternScout
 import dev.vale.postparsing.rules.{IRulexSR, IntLiteralSL, LiteralSR, MutabilityLiteralSL, RuleScout, RuneUsage, TemplexScout, VariabilityLiteralSL}
 import dev.vale.parsing.ast._
 import dev.vale.parsing.{ast, _}
-import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vwat}
+import dev.vale.{Interner, Keywords, Profiler, RangeS, StrI, postparsing, vassert, vassertSome, vcurious, vfail, vwat}
 import PostParser.{evalRange, noDeclarations, noVariableUses}
 import dev.vale
 import dev.vale.lexing.RangeL
@@ -74,38 +74,56 @@ class ExpressionScout(
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,
     blockPE: BlockPE):
-  (BlockSE, VariableUses, VariableUses) = {
+  (IExpressionSE, VariableUses, VariableUses) = {
     val BlockPE(rangeP, pure, maybeNewDefaultRegion, inner) = blockPE
     val rangeS = PostParser.evalRange(parentStackFrame.file, rangeP)
     vassert(maybeNewDefaultRegion.isEmpty)
-    newBlock(
-      parentStackFrame.parentEnv,
-      Some(parentStackFrame),
-      lidb.child(),
-      rangeS,
-      maybeNewDefaultRegion match {
-        case None => parentStackFrame.contextRegion
-        case Some(RegionRunePT(range, name)) => {
-          val regionRuneS = CodeRuneS(vassertSome(name).str) // impl isolates
-          if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
-            throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, vassertSome(name).str.str)) // impl isolates
+    val (blockSE, selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove) =
+      newBlock(
+        parentStackFrame.parentEnv,
+        Some(parentStackFrame),
+        lidb.child(),
+        rangeS,
+        maybeNewDefaultRegion match {
+          case None => parentStackFrame.contextRegion
+          case Some(RegionRunePT(range, name)) => {
+            val regionRuneS = CodeRuneS(vassertSome(name).str) // impl isolates
+            if (!parentStackFrame.parentEnv.allDeclaredRunes().contains(regionRuneS)) {
+              throw CompileErrorExceptionS(CouldntFindRuneS(rangeS, vassertSome(name).str.str)) // impl isolates
+            }
+            regionRuneS
           }
-          regionRuneS
-        }
-      },
-      initialLocals,
-      (stackFrame1, lidb) => {
-        val (stackFrame2, innerExprSE, selfUses, childUses) =
-          scoutExpressionAndCoerce(
-            stackFrame1, lidb, inner, UseP)
-        val maybePuredExprSE =
-          if (blockPE.maybePure.nonEmpty) {
-            PureSE(evalRange(parentStackFrame.file, blockPE.range), lidb.child().consume(), innerExprSE)
-          } else {
-            innerExprSE
-          }
-        (stackFrame2, maybePuredExprSE, selfUses, childUses)
-      })
+        },
+        initialLocals,
+        (stackFrame1, lidb) => {
+          val (stackFrame2, innerExprSE, selfUses, childUses) =
+            scoutExpressionAndCoerce(
+              stackFrame1, lidb, inner, UseP)
+          (stackFrame2, innerExprSE, selfUses, childUses)
+        })
+    val resultingExprSE =
+      if (blockPE.maybePure.nonEmpty) {
+        PureSE(evalRange(parentStackFrame.file, blockPE.range), lidb.child().consume(), blockSE)
+      } else {
+        blockSE
+      }
+    (resultingExprSE, selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove)
+  }
+
+  def scoutImpureBlock(
+    parentStackFrame: StackFrame,
+    lidb: LocationInDenizenBuilder,
+    // When we scout a function, it might hand in things here because it wants them to be considered part of
+    // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
+    initialLocals: VariableDeclarations,
+    blockPE: BlockPE):
+  (BlockSE, VariableUses, VariableUses) = {
+    val (exprSE, selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove) =
+      scoutBlock(parentStackFrame, lidb, initialLocals, blockPE)
+    exprSE match {
+      case b @ BlockSE(_, _, _) => (b, selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove)
+      case other => vfail("Expected impure block!")
+    }
   }
 
   def newBlock(
@@ -586,7 +604,7 @@ class ExpressionScout(
               },
               (stackFrame2, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, rightPE)
+                  scoutImpureBlock(stackFrame2, lidb.child(), noDeclarations, rightPE)
                 (stackFrame2, thenSE, thenUses, thenChildUses)
               },
               (stackFrame3, lidb) => {
@@ -614,7 +632,7 @@ class ExpressionScout(
               },
               (stackFrame3, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame3, lidb.child(), noDeclarations, rightPE)
+                  scoutImpureBlock(stackFrame3, lidb.child(), noDeclarations, rightPE)
                 (stackFrame3, thenSE, thenUses, thenChildUses)
               })
 
@@ -633,9 +651,9 @@ class ExpressionScout(
                 val (stackFrame2, condSE, condUses, condChildUses) =
                   scoutExpressionAndCoerce(stackFrame1, lidb.child(), condition, UseP)
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, thenBody)
+                  scoutImpureBlock(stackFrame2, lidb.child(), noDeclarations, thenBody)
                 val (elseSE, elseUses, elseChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, elseBody)
+                  scoutImpureBlock(stackFrame2, lidb.child(), noDeclarations, elseBody)
 
                 val selfCaseUses = thenUses.branchMerge(elseUses)
                 val selfUses = condUses.thenMerge(selfCaseUses);

@@ -106,7 +106,12 @@ case class PureSE(
   range: RangeS,
   location: LocationInDenizen,
   inner: IExpressionSE
-) extends IExpressionSE
+) extends IExpressionSE {
+  inner match {
+    case BlockSE(range, locals, expr) =>
+    case other => vwat() // Pures always contain blocks, see PSBOB.
+  }
+}
 
 case class BlockSE(
   range: RangeS,

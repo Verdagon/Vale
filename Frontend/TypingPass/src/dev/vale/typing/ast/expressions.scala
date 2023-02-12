@@ -175,6 +175,7 @@ case class DiscardTE(
     case MutableBorrowT =>
     case ImmutableBorrowT =>
     case ShareT =>
+    case MutableShareT | ImmutableShareT =>
     case WeakT =>
   }
 

@@ -1540,7 +1540,6 @@ class ExpressionCompiler(
               lastReturns).toSet)
         }
         case p@PureSE(range, location, inner) => {
-          val outerRegion = region
           val newRegion =
             PlaceholderTemplata(
               TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
@@ -1548,23 +1547,36 @@ class ExpressionCompiler(
                   interner.intern(RegionPlaceholderNameT(-1, PureBlockRegionRuneS(location), location, true))),
               RegionTemplataType())
 
-          val newLocationIfPure = Some(location)
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(p, Some(newRegion), newLocationIfPure))
+          // We'll restore these things at the end. We're reusing the same nenv because any locals
+          // inside should be unstackified at the end of the block.
+          val oldLatestPureBlockLocation = nenv.nodeEnvironment.latestPureBlockLocation
+          val oldDefaultRegion = nenv.nodeEnvironment.defaultRegion
+          nenv.nodeEnvironment =
+            nenv.nodeEnvironment
+              .copy(defaultRegion = newRegion, latestPureBlockLocation = Some(location))
 
           val (innerExpr, returnsFromExprs) =
             evaluateAndCoerceToReferenceExpression(
-              coutputs, childEnvironment, life + 0, parentRanges, callLocation, newRegion, inner);
+              coutputs, nenv, life + 0, parentRanges, callLocation, newRegion, inner);
 
-          val unstackifiedAncestorLocals = childEnvironment.snapshot.getEffectsSince(nenv.snapshot)
-          unstackifiedAncestorLocals.foreach(nenv.markLocalUnstackified)
-
+          val unstackifiedAncestorLocals = nenv.snapshot.getEffectsSince(nenv.snapshot)
+          if (unstackifiedAncestorLocals.nonEmpty) {
+            vimpl("Unstackifying from inside pure blocks unimplemented!")
+          }
           if (returnsFromExprs.nonEmpty) {
             vimpl("Returning from pure blocks unimplemented")
           }
 
+          // Restore changes to the environment
+          nenv.nodeEnvironment =
+            nenv.nodeEnvironment
+              .copy(
+                defaultRegion = oldDefaultRegion,
+                latestPureBlockLocation = oldLatestPureBlockLocation)
+
           innerExpr.result.coord.kind match {
             case IntT(_) | BoolT() | VoidT() => {
-              (PureTE(location, outerRegion, innerExpr), returnsFromExprs)
+              (PureTE(location, region, innerExpr), returnsFromExprs)
             }
             case _ => vimpl("Non-primitive results from pure blocks unimplemented")
           }
