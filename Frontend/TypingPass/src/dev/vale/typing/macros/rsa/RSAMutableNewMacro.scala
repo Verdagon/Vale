@@ -33,6 +33,7 @@ class RSAMutableNewMacro(
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -62,6 +63,7 @@ class RSAMutableNewMacro(
 
     val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 
+    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

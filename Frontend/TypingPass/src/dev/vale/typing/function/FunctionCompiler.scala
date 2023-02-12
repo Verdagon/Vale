@@ -35,6 +35,7 @@ trait IFunctionCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
@@ -105,6 +106,7 @@ class FunctionCompiler(
   def evaluateGenericFunctionFromNonCall(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
@@ -112,7 +114,7 @@ class FunctionCompiler(
       val FunctionTemplata(env, function) = functionTemplata
       if (function.isLight) {
         closureOrLightLayer.evaluateGenericLightFunctionFromNonCall(
-          env, coutputs, function.range :: parentRanges, function, verifyConclusions)
+          env, coutputs, function.range :: parentRanges, callLocation, function, verifyConclusions)
       } else {
         vfail() // I think we need a call to evaluate a lambda?
       }
@@ -124,6 +126,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
@@ -135,7 +138,7 @@ class FunctionCompiler(
         declaringEnv,
         coutputs,
         callingEnv, // See CSSNCE
-        callRange, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
+        callRange, callLocation, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
     })
   }
 
@@ -143,6 +146,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplata,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
@@ -155,7 +159,7 @@ class FunctionCompiler(
           declaringEnv,
           coutputs,
           callingEnv, // See CSSNCE
-          callRange, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
+          callRange, callLocation, function, alreadySpecifiedTemplateArgs, contextRegion, argTypes)
       } else {
         val lambdaCitizenName2 =
           functionTemplata.function.name match {
@@ -170,7 +174,7 @@ class FunctionCompiler(
               Set(TemplataLookupContext)))
         val banner =
           closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForBanner(
-            declaringEnv, coutputs, callingEnv, callRange, closureStructRef, function,
+            declaringEnv, coutputs, callingEnv, callRange, callLocation, closureStructRef, function,
             alreadySpecifiedTemplateArgs, contextRegion, argTypes)
         (banner)
       }
@@ -181,6 +185,7 @@ class FunctionCompiler(
   def evaluateTemplatedFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -192,7 +197,7 @@ class FunctionCompiler(
       val FunctionTemplata(env, function) = functionTemplata
       if (function.isLight()) {
         closureOrLightLayer.evaluateTemplatedLightFunctionFromCallForPrototype2(
-          env, coutputs, callingEnv, callRange, function, explicitTemplateArgs, contextRegion, argTypes, verifyConclusions)
+          env, coutputs, callingEnv, callRange, callLocation, function, explicitTemplateArgs, contextRegion, argTypes, verifyConclusions)
       } else {
         val lambdaCitizenName2 =
           function.name match {
@@ -205,7 +210,7 @@ class FunctionCompiler(
               lambdaCitizenName2,
               Set(TemplataLookupContext)))
         closureOrLightLayer.evaluateTemplatedClosureFunctionFromCallForPrototype(
-          env, coutputs, callingEnv, callRange, closureStructRef, function, explicitTemplateArgs,
+          env, coutputs, callingEnv, callRange, callLocation, closureStructRef, function, explicitTemplateArgs,
           contextRegion, argTypes, verifyConclusions)
       }
     })
@@ -215,6 +220,7 @@ class FunctionCompiler(
   def evaluateGenericLightFunctionParentForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     args: Vector[Option[CoordT]]):
@@ -222,13 +228,14 @@ class FunctionCompiler(
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionParentForPrototype2(
-        env, coutputs, callingEnv, callRange, function, args)
+        env, coutputs, callingEnv, callRange, callLocation, function, args)
     })
   }
 
   def evaluateGenericLightFunctionFromCallForPrototype(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     functionTemplata: FunctionTemplata,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
@@ -238,7 +245,7 @@ class FunctionCompiler(
     Profiler.frame(() => {
       val FunctionTemplata(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
-        env, coutputs, callingEnv, callRange, function, explicitTemplateArgs,
+        env, coutputs, callingEnv, callRange, callLocation, function, explicitTemplateArgs,
         contextRegion, args.map(Some(_)))
     })
   }
@@ -247,6 +254,7 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     containingNodeEnv: NodeEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     verifyConclusions: Boolean):
@@ -262,7 +270,7 @@ class FunctionCompiler(
 
     val (structTT, _, functionTemplata) =
       structCompiler.makeClosureUnderstruct(
-        containingNodeEnv, coutputs, callRange, name, functionA, closuredVarNamesAndTypes)
+        containingNodeEnv, coutputs, callRange, callLocation, name, functionA, closuredVarNamesAndTypes)
 
     (structTT)
   }

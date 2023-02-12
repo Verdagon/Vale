@@ -1,6 +1,6 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{BorrowH, ConsecutorH, DestroyH, DestroyStaticSizedArrayIntoLocalsH, DiscardH, ExpressionH, Final, KindHT, Local, NeverHT, NewStructH, OwnH, CoordH, StackifyH, UnstackifyH, YonderH}
+import dev.vale.finalast._
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, FunctionHeaderT, LetAndLendTE, LetNormalTE, ReferenceExpressionTE, UnletTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
@@ -362,7 +362,7 @@ class LetHammer(
               val (boxStructRefH) =
                 structHammer.makeBox(hinputs, hamuts, variability, memberRefType2, memberRefTypeH)
               // Structs only ever borrow boxes, boxes are only ever owned by the stack.
-              val localBoxType = CoordH(BorrowH, YonderH, boxStructRefH)
+              val localBoxType = CoordH(vimpl(/*BorrowH*/), YonderH, boxStructRefH)
               val localIndex = locals.addHammerLocal(localBoxType, Final)
 
               (remainingDestinationReferenceLocalVariables, previousLocalTypes :+ localBoxType, previousLocalIndices :+ localIndex)

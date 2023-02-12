@@ -111,7 +111,9 @@ case class ExportAttributeP(range: RangeL) extends IAttributeP { override def eq
 case class PureAttributeP(range: RangeL) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 //case class RuleAttributeP(rule: IRulexPR) extends IAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 
-sealed trait IRuneAttributeP
+sealed trait IRuneAttributeP {
+  def range: RangeL
+}
 case class ImmutableRuneAttributeP(range: RangeL) extends IRuneAttributeP
 //case class TypeRuneAttributeP(range: RangeL, tyype: ITypePR) extends IRuneAttributeP { override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious() }
 case class ReadOnlyRegionRuneAttributeP(range: RangeL) extends IRuneAttributeP

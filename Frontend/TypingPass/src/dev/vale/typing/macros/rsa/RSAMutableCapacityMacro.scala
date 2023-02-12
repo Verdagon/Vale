@@ -26,6 +26,7 @@ class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IF
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -44,6 +45,7 @@ class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IF
 //        env.lookupNearestWithImpreciseName(
 //          interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
 
+    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

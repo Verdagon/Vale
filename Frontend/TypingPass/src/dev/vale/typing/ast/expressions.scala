@@ -6,10 +6,10 @@ import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunction
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType}
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata}
+import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata, RegionTemplata}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {
@@ -265,12 +265,14 @@ case class ReturnTE(
   sourceExpr: ReferenceExpressionTE
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResultT(CoordT(ShareT, sourceExpr.result.coord.region, NeverT(false)))
-
-  def getFinalExpr(expression2: ExpressionT): Unit = {
-    expression2 match {
-      case BlockTE(expr) => getFinalExpr(expr)
-    }
+  override def result = {
+    val ownership =
+      sourceExpr.result.coord.region match {
+        case PlaceholderTemplata(_, _) => ShareT
+        case RegionTemplata(true) => MutableShareT
+        case RegionTemplata(false) => ImmutableShareT
+      }
+    ReferenceResultT(CoordT(ownership, sourceExpr.result.coord.region, NeverT(false)))
   }
 }
 
@@ -286,10 +288,43 @@ case class BreakTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpre
 
 // Block2 is required to unlet all the variables it introduces.
 case class BlockTE(
-    inner: ReferenceExpressionTE
+  inner: ReferenceExpressionTE
 ) extends ReferenceExpressionTE {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = inner.result
+}
+
+// A pure block will:
+// 1. Create a new region (someday possibly with an allocator)
+// 2. Freeze the existing region
+// 3. Run the inner code
+// 4. Un-freeze the existing region
+// 5. Merge (transmigrate) any results from the new region into the existing region
+// 6. Destroy the new region
+case class PureTE(
+  location: LocationInDenizen,
+  // At some point we'll need a specific function to call to do the transmigration, see NMTFPT.
+  transmigrateResultToRegion: ITemplata[RegionTemplataType],
+  inner: ReferenceExpressionTE
+) extends ReferenceExpressionTE {
+  vpass()
+
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def result: ReferenceResultT = {
+    val innerCoord = inner.result.coord
+    val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
+    (innerOwnership, innerRegion, transmigrateResultToRegion) match {
+      case (ShareT, PlaceholderTemplata(_, _), PlaceholderTemplata(_, _)) => {
+        ReferenceResultT(innerCoord.copy(region = transmigrateResultToRegion))
+      }
+      case (ImmutableShareT, RegionTemplata(false), RegionTemplata(true)) => {
+        ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), innerKind))
+      }
+      case _ => vwat()
+    }
+  }
 }
 
 case class ConsecutorTE(exprs: Vector[ReferenceExpressionTE]) extends ReferenceExpressionTE {
@@ -418,7 +453,15 @@ case class VoidLiteralTE(region: ITemplata[RegionTemplataType]) extends Referenc
 
 case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResultT(CoordT(ShareT, region, IntT(bits)))
+  override def result = {
+    val newOwnership =
+      region match {
+        case PlaceholderTemplata(_, _) => ShareT
+        case RegionTemplata(true) => MutableShareT
+        case RegionTemplata(false) => MutableShareT
+      }
+    ReferenceResultT(CoordT(newOwnership, region, IntT(bits)))
+  }
 }
 
 case class ConstantBoolTE(value: Boolean, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
@@ -494,15 +537,17 @@ case class ReferenceMemberLookupTE(
     range: RangeS,
     structExpr: ReferenceExpressionTE,
     memberName: IdT[IVarNameT],
+    // See RMLRMO for why this is the same ownership as the original field.
     memberReference: CoordT,
     // See RMLRMO for why we dont have a targetOwnership field here.
     variability: VariabilityT) extends AddressExpressionTE {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
     // See RMLRMO why we just return the member type.
     AddressResultT(memberReference)
   }
-  vpass()
 }
 case class AddressMemberLookupTE(
     range: RangeS,

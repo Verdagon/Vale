@@ -518,10 +518,10 @@ object RuneTypeSolver {
       if (index < argTypes.length) {
         val actualType = argTypes(index)
         // Make sure the given type matches the expected one
-        if (genericParam.tyype == actualType) {
+        if (genericParam.tyype.tyype == actualType) {
           // Matches, proceed.
         } else {
-          return Err(GenericCallArgTypeMismatch(range, genericParam.tyype, actualType, index))
+          return Err(GenericCallArgTypeMismatch(range, genericParam.tyype.tyype, actualType, index))
         }
       } else {
         if (genericParam.default.nonEmpty) {

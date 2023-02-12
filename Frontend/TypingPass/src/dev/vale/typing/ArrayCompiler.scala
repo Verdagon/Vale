@@ -43,6 +43,7 @@ class ArrayCompiler(
     callingEnv: IInDenizenEnvironment,
     region: ITemplata[RegionTemplataType],
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
     sizeRuneA: IRuneS,
@@ -96,11 +97,12 @@ class ArrayCompiler(
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, parentRanges, callingEnv, region),
+        InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
         coutputs,
         rulesA,
         runeAToType.toMap,
         parentRanges,
+        callLocation,
         Vector(),
         Vector(),
         true,
@@ -112,7 +114,7 @@ class ArrayCompiler(
     val variability = ITemplata.expectVariability(vassertSome(templatas.get(variabilityRune)))
     val prototype =
       overloadResolver.getArrayGeneratorPrototype(
-        coutputs, callingEnv, parentRanges, callableTE, region, true)
+        coutputs, callingEnv, parentRanges, callLocation, callableTE, region, true)
     val ssaMT = resolveStaticSizedArray(mutability, variability, size, prototype.returnType, region)
 
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
@@ -130,6 +132,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     callingEnv: NodeEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
@@ -197,8 +200,9 @@ class ArrayCompiler(
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, parentRanges, callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges, initialKnowns, Vector(), true, true, Vector())
+        InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
+        coutputs, rulesA, runeAToType.toMap, parentRanges,
+        callLocation, initialKnowns, Vector(), true, true, Vector())
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -221,7 +225,7 @@ class ArrayCompiler(
 
         val prototype =
           overloadResolver.getArrayGeneratorPrototype(
-            coutputs, callingEnv, parentRanges, callableTE, region, true)
+            coutputs, callingEnv, parentRanges, callLocation, callableTE, region, true)
         val rsaMT = resolveRuntimeSizedArray(prototype.returnType, mutability, region)
 
         maybeElementTypeRune.foreach(elementTypeRuneA => {
@@ -246,6 +250,7 @@ class ArrayCompiler(
               })),
             coutputs,
             parentRanges,
+            callLocation,
             interner.intern(CodeNameS(keywords.Array)),
             Vector(
               RuneParentEnvLookupSR(parentRanges.head, RuneUsage(parentRanges.head, CodeRuneS(keywords.M)))) ++
@@ -295,6 +300,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRuneA: Option[IRuneS],
     sizeRuneA: IRuneS,
@@ -367,8 +373,9 @@ class ArrayCompiler(
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, parentRanges, callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges, initialKnowns, Vector(), true, true, Vector())
+        InferEnv(callingEnv, parentRanges, callLocation,callingEnv, region),
+        coutputs, rulesA, runeAToType.toMap, parentRanges,
+        callLocation, initialKnowns, Vector(), true, true, Vector())
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {
@@ -400,6 +407,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBox,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE,
     contextRegion: ITemplata[RegionTemplataType]):
@@ -414,7 +422,7 @@ class ArrayCompiler(
 
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
-        coutputs, fate, range, callableTE, arrayTT.elementType, contextRegion, true)
+        coutputs, fate, range, callLocation, callableTE, arrayTT.elementType, contextRegion, true)
 
     ast.DestroyStaticSizedArrayIntoFunctionTE(
       arrTE,
@@ -427,6 +435,7 @@ class ArrayCompiler(
     coutputs: CompilerOutputs,
     fate: FunctionEnvironmentBox,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     arrTE: ReferenceExpressionTE,
     callableTE: ReferenceExpressionTE,
     contextRegion: ITemplata[RegionTemplataType]):
@@ -454,7 +463,7 @@ class ArrayCompiler(
 
     val prototype =
       overloadResolver.getArrayConsumerPrototype(
-        coutputs, fate, range, callableTE, arrayTT.elementType, contextRegion, true)
+        coutputs, fate, range, callLocation, callableTE, arrayTT.elementType, contextRegion, true)
 
 //    val freePrototype =
 //      destructorCompiler.getFreeFunction(
@@ -508,7 +517,7 @@ class ArrayCompiler(
         coutputs, arrayOuterEnv, templateFullName, 3, CodeRuneS(interner.intern(StrI("E"))), false, true)
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
-        templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), Vector(), true)
+        templateFullName, 4, CodeRuneS(interner.intern(StrI("Z"))), LocationInDenizen(Vector()), true)
 
     val placeholders =
       Vector(
@@ -586,7 +595,7 @@ class ArrayCompiler(
         coutputs, arrayOuterEnv, templateFullName, 1, CodeRuneS(interner.intern(StrI("E"))), false, true)
     val regionPlaceholder =
       templataCompiler.createRegionPlaceholderInner(
-        templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), Vector(), true)
+        templateFullName, 2, CodeRuneS(interner.intern(StrI("Z"))), LocationInDenizen(Vector()), true)
     val placeholders =
       Vector(mutabilityPlaceholder, elementPlaceholder, regionPlaceholder)
 

@@ -103,6 +103,7 @@ class PatternCompiler(
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     runeAToTypeWithImplicitlyCoercingLookupsS: Map[IRuneS, ITemplataType],
     pattern: AtomSP,
@@ -161,11 +162,12 @@ class PatternCompiler(
 
             val CompleteCompilerSolve(_, templatasByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(nenv.snapshot, parentRanges, nenv.snapshot, nenv.defaultRegion),
+                InferEnv(nenv.snapshot, parentRanges, callLocation, nenv.snapshot, nenv.defaultRegion),
                 coutputs,
                 rulesA,
                 runeAToType.toMap,
                 pattern.range :: parentRanges,
+                callLocation,
                 Vector(),
                 Vector(
                   InitialSend(

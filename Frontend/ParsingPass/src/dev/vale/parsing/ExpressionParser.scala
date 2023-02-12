@@ -224,11 +224,15 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
   private def parseWhile(iter: ScrambleIterator): Result[Option[WhilePE], IParseError] = {
     val whileBegin = iter.getPos()
 
-    val pure = iter.trySkipWord(keywords.pure)
+    val tentativeIter = iter.clone()
 
-    if (iter.trySkipWord(keywords.whiile).isEmpty) {
+    val pure = tentativeIter.trySkipWord(keywords.pure)
+
+    if (tentativeIter.trySkipWord(keywords.whiile).isEmpty) {
       return Ok(None)
     }
+
+    iter.skipTo(tentativeIter)
 
     val condition =
       parseBlockContents(iter, true) match {

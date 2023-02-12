@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.{CodeLocationS, finalast, vimpl}
-import dev.vale.finalast.{BorrowH, CodeLocation, Final, Immutable, InlineH, LocationH, Mutability, Mutable, OwnH, OwnershipH, ShareH, Variability, Varying, WeakH, YonderH}
+import dev.vale.finalast._
 import dev.vale.postparsing._
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -62,17 +62,11 @@ object Conversions {
   def evaluateOwnership(ownership: OwnershipT): OwnershipH = {
     ownership match {
       case OwnT => OwnH
-      case BorrowT => BorrowH
-      case ShareT => ShareH
+      case ImmutableBorrowT => ImmutableBorrowH
+      case MutableBorrowT => MutableBorrowH
+      case ImmutableShareT => ImmutableShareH
+      case MutableShareT => MutableShareH
       case WeakT => WeakH
-    }
-  }
-
-  def unevaluateOwnership(ownership: OwnershipH): OwnershipH = {
-    ownership match {
-      case OwnH => finalast.OwnH
-      case BorrowH => finalast.BorrowH
-      case ShareH => finalast.ShareH
     }
   }
 

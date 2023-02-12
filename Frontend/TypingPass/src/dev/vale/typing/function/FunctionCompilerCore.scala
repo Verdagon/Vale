@@ -39,11 +39,12 @@ class FunctionCompilerCore(
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
       parentRanges: List[RangeS],
+      callLocation: LocationInDenizen,
       region: ITemplata[RegionTemplataType],
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       delegate.evaluateBlockStatements(
-        coutputs, startingNenv, nenv, life, parentRanges, region, exprs)
+        coutputs, startingNenv, nenv, life, parentRanges, callLocation, region, exprs)
     }
 
     override def translatePatternList(
@@ -66,6 +67,7 @@ class FunctionCompilerCore(
     fullEnv: FunctionEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     params2: Vector[ParameterT]):
   (FunctionHeaderT) = {
 //    opts.debugOut("Evaluating function " + fullEnv.fullName)
@@ -121,7 +123,7 @@ class FunctionCompilerCore(
                   header.toPrototype,
                   (coutputs) => {
                     finishFunctionMaybeDeferred(
-                      coutputs, fullEnv, callRange, life, attributesT, params2, isDestructor, Some(returnCoord))
+                      coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, Some(returnCoord))
                   }))
 
               (header)
@@ -129,7 +131,7 @@ class FunctionCompilerCore(
             case None => {
               val header =
                 finishFunctionMaybeDeferred(
-                  coutputs, fullEnv, callRange, life, attributesT, params2, isDestructor, None)
+                  coutputs, fullEnv, callRange, callLocation, life, attributesT, params2, isDestructor, None)
               (header)
             }
           }
@@ -192,7 +194,7 @@ class FunctionCompilerCore(
           val generator = vassertSome(fullEnv.globalEnv.nameToFunctionBodyMacro.get(generatorId))
           val (header, body) =
             generator.generateFunctionBody(
-              fullEnv, coutputs, generatorId, life, callRange,
+              fullEnv, coutputs, generatorId, life, callRange, callLocation,
               Some(fullEnv.function), params2, maybeRetCoord)
 
           coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
@@ -273,6 +275,7 @@ class FunctionCompilerCore(
       coutputs: CompilerOutputs,
       fullEnvSnapshot: FunctionEnvironment,
       callRange: List[RangeS],
+      callLocation: LocationInDenizen,
       life: LocationInFunctionEnvironment,
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
@@ -282,7 +285,7 @@ class FunctionCompilerCore(
     val (maybeEvaluatedRetCoord, body2) =
       bodyCompiler.declareAndEvaluateFunctionBody(
         FunctionEnvironmentBox(fullEnvSnapshot),
-        coutputs, life, callRange, fullEnvSnapshot.function, maybeExplicitReturnCoord, paramsT, isDestructor)
+        coutputs, life, callRange, callLocation, fullEnvSnapshot.function, maybeExplicitReturnCoord, paramsT, isDestructor)
 
     val retCoord = vassertOne(maybeExplicitReturnCoord.toList ++ maybeEvaluatedRetCoord.toList)
     val header = finalizeHeader(fullEnvSnapshot, coutputs, attributesT, paramsT, retCoord)

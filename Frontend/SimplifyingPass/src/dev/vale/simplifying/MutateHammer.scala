@@ -1,7 +1,6 @@
 package dev.vale.simplifying
 
 import dev.vale.{Keywords, finalast, vassert, vimpl}
-import dev.vale.finalast.{BorrowH, ExpressionH, KindHT, LocalLoadH, LocalStoreH, MemberLoadH, MemberStoreH, CoordH, RuntimeSizedArrayStoreH, StaticSizedArrayStoreH, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, MutateTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
@@ -154,14 +153,14 @@ class MutateHammer(
       structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
 
     // Remember, structs can never own boxes, they only borrow them
-    val expectedStructBoxMemberType = CoordH(BorrowH, YonderH, boxStructRefH)
+    val expectedStructBoxMemberType = CoordH(vimpl(/*BorrowH*/), YonderH, boxStructRefH)
 
     // We're storing into a struct's member that is a box. The stack is also
     // pointing at this box. First, get the box, then mutate what's inside.
     val nameH = nameHammer.translateFullName(hinputs, hamuts, memberName)
     val loadResultType =
       CoordH(
-        finalast.BorrowH,
+        vimpl(/*BorrowH*/),
         YonderH,
         boxStructRefH)
     val loadBoxNode =
@@ -239,7 +238,7 @@ class MutateHammer(
     val loadBoxNode =
       LocalLoadH(
         local,
-        finalast.BorrowH,
+        vimpl(/*BorrowH*/),
         nameH)
     val storeNode =
         MemberStoreH(

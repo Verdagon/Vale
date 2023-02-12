@@ -38,6 +38,7 @@ class StructCompilerCore(
     structRunesEnv: CitizenEnvironment[IStructNameT, IStructTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     structA: StructA):
   Unit = {
     val templateArgs = structRunesEnv.id.localName.templateArgs
@@ -134,7 +135,7 @@ class StructCompilerCore(
             outerEnv.id.addStep(name),
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
-                coutputs, parentRanges, FunctionTemplata(outerEnv, functionA), true)
+                coutputs, parentRanges, callLocation, FunctionTemplata(outerEnv, functionA), true)
             }))
       }
       case _ => vcurious()
@@ -177,6 +178,7 @@ class StructCompilerCore(
     interfaceRunesEnv: CitizenEnvironment[IInterfaceNameT, IInterfaceTemplateNameT],
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     interfaceA: InterfaceA):
   (InterfaceDefinitionT) = {
     val templateArgs = interfaceRunesEnv.id.localName.templateArgs
@@ -210,7 +212,7 @@ class StructCompilerCore(
         case (name, FunctionEnvEntry(functionA)) => {
           val header =
             delegate.evaluateGenericFunctionFromNonCallForHeader(
-              coutputs, parentRanges, FunctionTemplata(outerEnv, functionA), true)
+              coutputs, parentRanges, callLocation, FunctionTemplata(outerEnv, functionA), true)
           header.toPrototype -> vassertSome(header.getVirtualIndex)
         }
       }).toVector
@@ -297,6 +299,7 @@ class StructCompilerCore(
     containingFunctionEnv: NodeEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     members: Vector[NormalStructMemberT]):
@@ -407,6 +410,7 @@ class StructCompilerCore(
       delegate.evaluateGenericFunctionFromNonCallForHeader(
         coutputs,
         parentRanges,
+        callLocation,
         structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
           case Some(ft@FunctionTemplata(_, _)) => ft
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))

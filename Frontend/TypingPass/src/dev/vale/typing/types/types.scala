@@ -1,6 +1,6 @@
 package dev.vale.typing.types
 
-import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, StrI, vassert, vcurious, vfail, vpass}
+import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, StrI, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.postparsing.IImpreciseNameS
 import dev.vale.typing.ast.{AbstractT, FunctionHeaderT, ICitizenAttributeT}
 import dev.vale.typing.env.IInDenizenEnvironment
@@ -18,6 +18,15 @@ sealed trait OwnershipT {
 }
 case object ShareT extends OwnershipT {
   override def toString: String = "share"
+}
+// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
+case object ImmutableShareT extends OwnershipT {
+  override def toString: String = "immshare"
+}
+// Instantiator turns ShareT into MutableShareT and ImmutableShareT, see HRALII
+// Ironic because shared things are immutable, this is rather referring to the refcount.
+case object MutableShareT extends OwnershipT {
+  override def toString: String = "mutshare"
 }
 case object OwnT extends OwnershipT {
   override def toString: String = "own"
@@ -73,9 +82,14 @@ case class CoordT(
 
   vpass()
 
+  (ownership, region) match {
+    case (ImmutableShareT, RegionTemplata(true)) => vwat()
+    case _ =>
+  }
+
   kind match {
     case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) => {
-      vassert(ownership == ShareT)
+      vassert(ownership == ShareT || ownership == MutableShareT || ownership == ImmutableShareT)
     }
     case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(_, _, arrRegion)))) => {
       vassert(region == arrRegion)
@@ -84,7 +98,12 @@ case class CoordT(
       vassert(region == arrRegion)
     }
     case StructTT(IdT(_, _, localName)) => {
-      vassert(localName.templateArgs.last == region)
+      region match {
+        case PlaceholderTemplata(_, _) => {
+          vassert(localName.templateArgs.last == region)
+        }
+        case _ => // In instantiator, the coord region might differ.
+      }
     }
     case InterfaceTT(IdT(_, _, localName)) => {
       vassert(localName.templateArgs.last == region)

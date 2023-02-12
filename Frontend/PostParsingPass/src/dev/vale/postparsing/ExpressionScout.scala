@@ -73,7 +73,6 @@ class ExpressionScout(
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
     initialLocals: VariableDeclarations,
-    pure: Boolean,
     blockPE: BlockPE):
   (BlockSE, VariableUses, VariableUses) = {
     val BlockPE(rangeP, pure, maybeNewDefaultRegion, inner) = blockPE
@@ -84,7 +83,6 @@ class ExpressionScout(
       Some(parentStackFrame),
       lidb.child(),
       rangeS,
-      pure.nonEmpty,
       maybeNewDefaultRegion match {
         case None => parentStackFrame.contextRegion
         case Some(RegionRunePT(range, name)) => {
@@ -97,20 +95,16 @@ class ExpressionScout(
       },
       initialLocals,
       (stackFrame1, lidb) => {
-        val (stackFrame2, exprSE, selfUses, childUses) =
+        val (stackFrame2, innerExprSE, selfUses, childUses) =
           scoutExpressionAndCoerce(
             stackFrame1, lidb, inner, UseP)
-//        val maybeVoidedExprSE =
-//          if (resultRequested) {
-//            exprSE
-//          } else {
-//            Scout.consecutive(
-//              Vector(
-//                exprSE,
-//                VoidSE(
-//                  Scout.evalRange(parentStackFrame.file, Range(range.end, range.end)))))
-//          }
-        (stackFrame2, exprSE, selfUses, childUses)
+        val maybePuredExprSE =
+          if (blockPE.maybePure.nonEmpty) {
+            PureSE(evalRange(parentStackFrame.file, blockPE.range), lidb.child().consume(), innerExprSE)
+          } else {
+            innerExprSE
+          }
+        (stackFrame2, maybePuredExprSE, selfUses, childUses)
       })
   }
 
@@ -119,7 +113,6 @@ class ExpressionScout(
     parentStackFrame: Option[StackFrame],
     lidb: LocationInDenizenBuilder,
     rangeS: RangeS,
-    pure: Boolean,
     contextRegion: IRuneS,
     // When we scout a function, it might hand in things here because it wants them to be considered part of
     // the body's block, so that we get to reuse the code at the bottom of function, tracking uses etc.
@@ -196,8 +189,8 @@ class ExpressionScout(
     val childUsesOfThingsFromAbove =
       VariableUses(childUses.uses.filter(selfUseName => !locals.map(_.varName).contains(selfUseName.name)))
 
-    // Notice how the fate is continuing on
-    (BlockSE(rangeS, locals, exprWithConstructingIfNecessary), selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove)
+    val blockSE = BlockSE(rangeS, locals, exprWithConstructingIfNecessary)
+    (blockSE, selfUsesOfThingsFromAbove, childUsesOfThingsFromAbove)
   }
 
   def findLocal(stackFrame0: StackFrame, rangeS: RangeS, impreciseNameS: IImpreciseNameS):
@@ -557,10 +550,10 @@ class ExpressionScout(
 
           (stackFrame1, NormalResult(result), selfUses, childUses)
         }
-        case b @ BlockPE(_, pure, maybeNewDefaultRegion, _) => {
+        case b @ BlockPE(_, _, maybeNewDefaultRegion, _) => {
           vassert(maybeNewDefaultRegion.isEmpty)
           val (resultSE, selfUses, childUses) =
-            scoutBlock(stackFrame0, lidb.child(), noDeclarations, pure.nonEmpty, b)
+            scoutBlock(stackFrame0, lidb.child(), noDeclarations, b)
           (stackFrame0, NormalResult(resultSE), selfUses, childUses)
         }
         case ConsecutorPE(inners) => {
@@ -593,7 +586,7 @@ class ExpressionScout(
               },
               (stackFrame2, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, rightPE)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, rightPE)
                 (stackFrame2, thenSE, thenUses, thenChildUses)
               },
               (stackFrame3, lidb) => {
@@ -621,7 +614,7 @@ class ExpressionScout(
               },
               (stackFrame3, lidb) => {
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame3, lidb.child(), noDeclarations, false, rightPE)
+                  scoutBlock(stackFrame3, lidb.child(), noDeclarations, rightPE)
                 (stackFrame3, thenSE, thenUses, thenChildUses)
               })
 
@@ -634,16 +627,15 @@ class ExpressionScout(
               Some(stackFrame0),
               lidb.child(),
               evalRange(range),
-              false,
               stackFrame0.contextRegion,
               noDeclarations,
               (stackFrame1, lidb) => {
                 val (stackFrame2, condSE, condUses, condChildUses) =
                   scoutExpressionAndCoerce(stackFrame1, lidb.child(), condition, UseP)
                 val (thenSE, thenUses, thenChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, thenBody)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, thenBody)
                 val (elseSE, elseUses, elseChildUses) =
-                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, false, elseBody)
+                  scoutBlock(stackFrame2, lidb.child(), noDeclarations, elseBody)
 
                 val selfCaseUses = thenUses.branchMerge(elseUses)
                 val selfUses = condUses.thenMerge(selfCaseUses);

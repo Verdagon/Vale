@@ -44,6 +44,7 @@ class LocalHelper(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     life: LocationInFunctionEnvironment,
     contextRegion: ITemplata[RegionTemplataType],
     r: ReferenceExpressionTE,
@@ -58,7 +59,7 @@ class LocalHelper(
 
     val unlet = unletLocalWithoutDropping(nenv, rlv)
     val destructExpr2 =
-      destructorCompiler.drop(nenv.snapshot, coutputs, range, contextRegion, unlet)
+      destructorCompiler.drop(nenv.snapshot, coutputs, range, callLocation, contextRegion, unlet)
     vassert(destructExpr2.kind == VoidT())
 
     // No Discard here because the destructor already returns void.
@@ -76,13 +77,14 @@ class LocalHelper(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     contextRegion: ITemplata[RegionTemplataType],
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map({ case variable =>
       val unlet = unletLocalWithoutDropping(nenv, variable)
       val maybeHeadExpr2 =
-        destructorCompiler.drop(nenv.snapshot, coutputs, range, contextRegion, unlet)
+        destructorCompiler.drop(nenv.snapshot, coutputs, range, callLocation, contextRegion, unlet)
       maybeHeadExpr2
     })
   }

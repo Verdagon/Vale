@@ -35,13 +35,14 @@ class DestructorCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     contextRegion: ITemplata[RegionTemplataType],
     type2: CoordT):
   EvaluateFunctionSuccess = {
     val name = interner.intern(CodeNameS(keywords.drop))
     val args = Vector(type2)
     overloadCompiler.findFunction(
-      env, coutputs, callRange, name, Vector.empty, Vector.empty, contextRegion, args, Vector(), true, true) match {
+      env, coutputs, callRange, callLocation, name, Vector.empty, Vector.empty, contextRegion, args, Vector(), true, true) match {
       case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, e))
       case Ok(x) => x
     }
@@ -51,6 +52,7 @@ class DestructorCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     contextRegion: ITemplata[RegionTemplataType],
     undestructedExpr2: ReferenceExpressionTE):
   (ReferenceExpressionTE) = {
@@ -59,7 +61,7 @@ class DestructorCompiler(
         case CoordT(ShareT, _, NeverT(_)) => undestructedExpr2
         case CoordT(ShareT, _, _) => DiscardTE(undestructedExpr2)
         case r@CoordT(OwnT, _, _) => {
-          val destructorPrototype = getDropFunction(env, coutputs, callRange, contextRegion, r)
+          val destructorPrototype = getDropFunction(env, coutputs, callRange, callLocation, contextRegion, r)
           vassert(coutputs.getInstantiationBounds(destructorPrototype.prototype.prototype.id).nonEmpty)
           FunctionCallTE(destructorPrototype.prototype.prototype, Vector(undestructedExpr2))
         }

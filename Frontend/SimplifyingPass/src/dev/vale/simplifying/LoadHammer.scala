@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.{Keywords, finalast, vassert, vfail, vimpl}
-import dev.vale.finalast.{BorrowH, ExpressionH, KindHT, LocalLoadH, MemberLoadH, OwnH, CoordH, RuntimeSizedArrayLoadH, ShareH, StaticSizedArrayLoadH, YonderH}
+import dev.vale.finalast._
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
@@ -77,7 +77,8 @@ class LoadHammer(
     val indexAccess = indexExprResultLine.expectIntAccess()
 
     vassert(
-      targetOwnership == BorrowH ||
+      targetOwnership == MutableBorrowH ||
+      targetOwnership == ImmutableBorrowH ||
         targetOwnership == ShareH)
 
     val rsa = hamuts.getRuntimeSizedArray(arrayAccess.resultType.kind)
@@ -85,7 +86,8 @@ class LoadHammer(
     val resultType = {
       val location =
         (targetOwnership, expectedElementType.location) match {
-          case (BorrowH, _) => YonderH
+          case (ImmutableBorrowH, _) => YonderH
+          case (MutableBorrowH, _) => YonderH
           case (OwnH, location) => location
           case (ShareH, location) => location
         }
@@ -123,14 +125,15 @@ class LoadHammer(
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, indexExpr2);
     val indexAccess = indexExprResultLine.expectIntAccess()
 
-    vassert(targetOwnership == finalast.BorrowH || targetOwnership == finalast.ShareH)
+    vassert(targetOwnership == finalast.MutableBorrowH || targetOwnership == finalast.ImmutableBorrowH || targetOwnership == finalast.ShareH)
 
     val ssa = hamuts.getStaticSizedArray(arrayAccess.resultType.kind)
     val expectedElementType = ssa.elementType
     val resultType = {
       val location =
         (targetOwnership, expectedElementType.location) match {
-          case (BorrowH, _) => YonderH
+          case (MutableBorrowH, _) => YonderH
+          case (ImmutableBorrowH, _) => YonderH
           case (OwnH, location) => location
           case (ShareH, location) => location
         }
@@ -188,7 +191,7 @@ class LoadHammer(
     val (boxStructRefH) =
       structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
 
-    val boxInStructCoord = CoordH(BorrowH, YonderH, boxStructRefH)
+    val boxInStructCoord = CoordH(vimpl(/*BorrowH*/), YonderH, boxStructRefH)
 
     // We're storing into a struct's member that is a box. The stack is also
     // pointing at this box. First, get the box, then mutate what's inside.
@@ -285,7 +288,7 @@ class LoadHammer(
     val loadBoxNode =
         LocalLoadH(
           local,
-          finalast.BorrowH,
+          vimpl(/*BorrowH*/),
           varNameH)
 
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
@@ -351,7 +354,7 @@ class LoadHammer(
     val loadBoxNode =
       LocalLoadH(
         local,
-        finalast.BorrowH,
+        vimpl(/*BorrowH*/),
         nameHammer.translateFullName(hinputs, hamuts, localVar.id))
     loadBoxNode
   }
@@ -397,14 +400,14 @@ class LoadHammer(
       structHammer.makeBox(hinputs, hamuts, variability, boxedType2, boxedTypeH)
 
     // We expect a borrow because structs never own boxes, they only borrow them
-    val expectedStructBoxMemberType = CoordH(finalast.BorrowH, YonderH, boxStructRefH)
+    val expectedStructBoxMemberType = CoordH(vimpl(/*BorrowH*/), YonderH, boxStructRefH)
 
     val loadResultType =
       CoordH(
         // Boxes are either owned or borrowed. We only own boxes from locals,
         // and we're loading from a struct here, so we're getting a borrow to the
         // box from the struct.
-        BorrowH,
+        vimpl(/*BorrowH*/),
         YonderH,
         boxStructRefH)
 
@@ -424,7 +427,8 @@ class LoadHammer(
   def getBorrowedLocation(memberType: CoordH[KindHT]) = {
     (memberType.ownership, memberType.location) match {
       case (OwnH, _) => YonderH
-      case (BorrowH, _) => YonderH
+      case (ImmutableBorrowH, _) => YonderH
+      case (MutableBorrowH, _) => YonderH
       case (ShareH, location) => location
     }
   }

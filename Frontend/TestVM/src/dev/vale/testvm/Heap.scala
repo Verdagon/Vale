@@ -1,6 +1,6 @@
 package dev.vale.testvm
 
-import dev.vale.finalast.{BoolHT, BorrowH, FloatHT, InlineH, IntHT, InterfaceHT, KindHT, Local, LocationH, OwnH, OwnershipH, ProgramH, PrototypeH, CoordH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, ShareH, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrHT, StructDefinitionH, StructMemberH, StructHT, VoidHT, WeakH}
+import dev.vale.finalast._
 import dev.vale.{vassert, vassertSome, vfail, vimpl, von}
 
 import java.io.PrintStream
@@ -327,7 +327,8 @@ class Heap(in_vivemDout: PrintStream) {
   def zero(reference: ReferenceV) = {
     val allocation = objectsById.get(reference.allocId)
     vassert(allocation.getTotalRefCount(Some(OwnH)) == 0)
-    vassert(allocation.getTotalRefCount(Some(BorrowH)) == 0)
+    vassert(allocation.getTotalRefCount(Some(ImmutableBorrowH)) == 0)
+    vassert(allocation.getTotalRefCount(Some(MutableBorrowH)) == 0)
     allocation.kind match {
       case si @ StructInstanceV(_, _) => si.zero()
       case _ =>
@@ -338,7 +339,8 @@ class Heap(in_vivemDout: PrintStream) {
   // This happens when the last owning and weak references disappear.
   def deallocateIfNoWeakRefs(reference: ReferenceV) = {
     val allocation = objectsById.get(reference.allocId)
-    if (reference.actualCoord.hamut.ownership == OwnH && allocation.getTotalRefCount(Some(BorrowH)) > 0) {
+    if (reference.actualCoord.hamut.ownership == OwnH &&
+      (allocation.getTotalRefCount(Some(MutableBorrowH)) + allocation.getTotalRefCount(Some(ImmutableBorrowH))) > 0) {
       throw ConstraintViolatedException("Constraint violated!")
     }
     if (allocation.getTotalRefCount(None) == 0) {

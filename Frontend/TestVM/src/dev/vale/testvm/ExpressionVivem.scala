@@ -1,6 +1,6 @@
 package dev.vale.testvm
 
-import dev.vale.finalast.{ArgumentH, ArrayCapacityH, ArrayLengthH, AsSubtypeH, BlockH, BoolHT, BorrowH, BorrowToWeakH, BreakH, CallH, ConsecutorH, ConstantBoolH, ConstantF64H, ConstantIntH, ConstantStrH, ConstantVoidH, DestroyH, DestroyImmRuntimeSizedArrayH, DestroyMutRuntimeSizedArrayH, DestroyStaticSizedArrayIntoFunctionH, DestroyStaticSizedArrayIntoLocalsH, DiscardH, ExpressionH, FloatHT, IfH, InlineH, IntHT, InterfaceCallH, InterfaceHT, IsSameInstanceH, KindHT, LocalLoadH, LocalStoreH, LocationH, LockWeakH, MemberLoadH, MemberStoreH, NewArrayFromValuesH, NewImmRuntimeSizedArrayH, NewMutRuntimeSizedArrayH, NewStructH, OwnH, PopRuntimeSizedArrayH, ProgramH, PrototypeH, PushRuntimeSizedArrayH, CoordH, ReturnH, RuntimeSizedArrayHT, RuntimeSizedArrayLoadH, RuntimeSizedArrayStoreH, ShareH, StackifyH, StaticArrayFromCallableH, StaticSizedArrayHT, StaticSizedArrayLoadH, StaticSizedArrayStoreH, StrHT, StructHT, StructToInterfaceUpcastH, UnstackifyH, VoidHT, WeakH, WhileH, YonderH}
+import dev.vale.finalast._
 import dev.vale.{vassert, vassertOne, vassertSome, vcurious, vfail, vimpl, vwat, finalast => m}
 import dev.vale.finalast._
 
@@ -72,7 +72,8 @@ object ExpressionVivem {
       case DiscardH(sourceExpr) => {
         sourceExpr.resultType.ownership match {
           case ShareH =>
-          case BorrowH =>
+          case ImmutableBorrowH =>
+          case MutableBorrowH =>
           case WeakH =>
         }
         val sourceRef =
@@ -186,7 +187,7 @@ object ExpressionVivem {
           structReference)
 
         // DDSOT
-        heap.ensureRefCount(structReference, Some(Set(OwnH, BorrowH)), 0)
+        heap.ensureRefCount(structReference, Some(Set(OwnH, MutableBorrowH, ImmutableBorrowH)), 0)
 
         val oldMemberReferences = heap.destructure(structReference)
 
@@ -264,7 +265,7 @@ object ExpressionVivem {
             case r @ (NodeReturn(_) | NodeBreak()) => return r
             case NodeContinue(r) => r
           }
-        vassert(constraintRef.ownership == BorrowH)
+        vassert(constraintRef.ownership == MutableBorrowH || constraintRef.ownership == ImmutableBorrowH)
 
         val weakRef = heap.transmute(constraintRef, sourceExpr.resultType, waH.resultType)
         heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, weakRef.ownership), weakRef)
@@ -325,7 +326,7 @@ object ExpressionVivem {
         vassert(weakRef.ownership == WeakH)
 
         if (heap.containsLiveObject(weakRef)) {
-          val expectedRef = CoordH(BorrowH, YonderH, sourceExpr.resultType.kind)
+          val expectedRef = CoordH(vimpl(/*BorrowH*/), YonderH, sourceExpr.resultType.kind)
           val constraintRef = heap.transmute(weakRef, sourceExpr.resultType, expectedRef)
 
           heap.vivemDout.println()
@@ -1115,7 +1116,8 @@ object ExpressionVivem {
         case WeakH => {
           heap.deallocateIfNoWeakRefs(actualReference)
         }
-        case BorrowH => // Do nothing.
+        case MutableBorrowH => // Do nothing.
+        case ImmutableBorrowH => // Do nothing.
         case ShareH => {
           expectedReference.kind match {
             case VoidHT() | IntHT(_) | BoolHT() | StrHT() | FloatHT() => {

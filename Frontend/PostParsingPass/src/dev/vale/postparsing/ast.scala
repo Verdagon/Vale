@@ -1,6 +1,6 @@
 package dev.vale.postparsing
 
-import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vpass, vwat}
+import dev.vale.{PackageCoordinate, RangeS, StrI, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.parsing.ast.{IMacroInclusionP, IRuneAttributeP, MutabilityP, VariabilityP}
 import dev.vale.postparsing.patterns.{AbstractSP, AtomSP}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
@@ -243,21 +243,47 @@ case class CodeBodyS(body: BodySE) extends IBodyS {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 
+sealed trait IRegionMutabilityS
+case object ReadWriteRegionS extends IRegionMutabilityS
+case object ReadOnlyRegionS extends IRegionMutabilityS
+case object ImmutableRegionS extends IRegionMutabilityS
+
+object IGenericParameterTypeS {
+  def expectRegion(x: IGenericParameterTypeS): RegionGenericParameterTypeS = {
+    x match {
+      case z @ RegionGenericParameterTypeS(_) => z
+      case _ => vfail()
+    }
+  }
+}
+sealed trait IGenericParameterTypeS {
+  def tyype: ITemplataType
+}
+case class RegionGenericParameterTypeS(mutability: IRegionMutabilityS) extends IGenericParameterTypeS {
+  def tyype: ITemplataType = RegionTemplataType()
+}
+case class CoordGenericParameterTypeS(coordRegion: Option[RuneUsage], mutable: Boolean) extends IGenericParameterTypeS {
+  vassert(coordRegion.isEmpty) // not implemented yet
+
+  def tyype: ITemplataType = CoordTemplataType()
+}
+case class OtherGenericParameterTypeS(tyype: ITemplataType) extends IGenericParameterTypeS {
+  tyype match {
+    case RegionTemplataType() | CoordTemplataType() => vwat() // Use other types for this
+    case _ =>
+  }
+}
+
 case class GenericParameterS(
   range: RangeS,
   rune: RuneUsage,
-  tyype: ITemplataType,
-  coordRegion: Option[RuneUsage],
-  attributes: Vector[IRuneAttributeS],
-  default: Option[GenericParameterDefaultS]) {
+  tyype: IGenericParameterTypeS,
+  default: Option[GenericParameterDefaultS])
 
-  vassert(coordRegion.isEmpty) // not implemented yet
-}
-
-sealed trait IRuneAttributeS
-case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS
-case class ReadWriteRuneAttributeS(range: RangeS) extends IRuneAttributeS
-case class ReadOnlyRuneAttributeS(range: RangeS) extends IRuneAttributeS
+//sealed trait IRuneAttributeS
+//case class ImmutableRuneAttributeS(range: RangeS) extends IRuneAttributeS
+//case class ReadWriteRuneAttributeS(range: RangeS) extends IRuneAttributeS
+//case class ReadOnlyRuneAttributeS(range: RangeS) extends IRuneAttributeS
 
 case class GenericParameterDefaultS(
   // One day, when we want more rules in here, we might need to have a runeToType map
@@ -351,6 +377,26 @@ case class LocationInDenizen(path: Vector[Int]) {
       case LocationInDenizen(thatPath) => path == thatPath
       case _ => false
     }
+  }
+
+  def before(that: LocationInDenizen): Boolean = {
+    this.path.zip(that.path).foreach({ case (thisStep, thatStep) =>
+      if (thisStep < thatStep) {
+        return true
+      }
+      if (thisStep > thatStep) {
+        return false
+      }
+    })
+    // If we get here, their steps match up... but one might have more steps than the other.
+    if (this.path.length < that.path.length) {
+      return true
+    }
+    if (this.path.length > that.path.length) {
+      return false
+    }
+    // They're equal.
+    return false
   }
 }
 

@@ -1,6 +1,6 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, DefaultRegionRuneS, IRuneS, ITemplataType, IntegerTemplataType, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, DefaultRegionRuneS, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
@@ -271,7 +271,7 @@ case class NonKindNonRegionPlaceholderNameT(index: Int, rune: IRuneS) extends IP
 case class RegionPlaceholderNameT(
   index: Int,
   rune: IRuneS,
-  originallyIntroducedLocation: Vector[Int],
+  originallyIntroducedLocation: LocationInDenizen,
   originallyMutable: Boolean
 ) extends IPlaceholderNameT
 

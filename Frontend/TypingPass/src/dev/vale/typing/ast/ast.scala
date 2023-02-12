@@ -190,6 +190,8 @@ case class FunctionDefinitionT(
 
   // We always end a function with a ret, whose result is a Never.
   vassert(body.result.kind == NeverT(false))
+
+  def isPure: Boolean = header.isPure
 }
 
 object getFunctionLastName {
@@ -482,6 +484,10 @@ case class FunctionHeaderT(
 
   def unapply(arg: FunctionHeaderT): Option[(IdT[IFunctionNameT], Vector[ParameterT], CoordT)] = {
     Some(id, params, returnType)
+  }
+
+  def isPure: Boolean = {
+    attributes.collectFirst({ case PureT => }).nonEmpty
   }
 }
 

@@ -271,7 +271,8 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   def vonifyOwnership(ownership: OwnershipH): IVonData = {
     ownership match {
       case OwnH => VonObject("Own", None, Vector())
-      case BorrowH => VonObject("Borrow", None, Vector())
+      case ImmutableBorrowH => VonObject("ImmutableBorrow", None, Vector())
+      case MutableBorrowH => VonObject("MutableBorrow", None, Vector())
       case ShareH => VonObject("Share", None, Vector())
       case WeakH => VonObject("Weak", None, Vector())
     }

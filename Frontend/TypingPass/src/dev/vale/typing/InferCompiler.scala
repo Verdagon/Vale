@@ -63,6 +63,7 @@ case class InferEnv(
   originalCallingEnv: IInDenizenEnvironment,
 
   parentRanges: List[RangeS],
+  callLocation: LocationInDenizen,
 
   // We look in this for everything else, such as type names like "int" etc.
   selfEnv: IEnvironment,
@@ -86,6 +87,7 @@ trait IInferCompilerDelegate {
     callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     templata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
@@ -97,6 +99,7 @@ trait IInferCompilerDelegate {
     callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     templata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
@@ -124,6 +127,7 @@ trait IInferCompilerDelegate {
     callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     name: StrI,
     coords: Vector[CoordT],
     contextRegion: ITemplata[RegionTemplataType],
@@ -154,6 +158,7 @@ class InferCompiler(
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: List[RangeS],
+    callLocation: LocationInDenizen,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
@@ -168,7 +173,7 @@ class InferCompiler(
       case Err(e) => return Err(e)
     }
 
-    interpretResults(envs, coutputs, invocationRange, runeToType, rules, verifyConclusions, isRootSolve, includeReachableBoundsForRunes, solver) match {
+    interpretResults(envs, coutputs, invocationRange, callLocation, runeToType, rules, verifyConclusions, isRootSolve, includeReachableBoundsForRunes, solver) match {
       case f @ FailedCompilerSolve(_, _, _) => Err(f)
       case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
       case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
@@ -181,6 +186,7 @@ class InferCompiler(
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: List[RangeS],
+    callLocation: LocationInDenizen,
     initialKnowns: Vector[InitialKnown],
     initialSends: Vector[InitialSend],
     verifyConclusions: Boolean,
@@ -204,6 +210,7 @@ class InferCompiler(
       rules,
       runeToType,
       invocationRange,
+      callLocation,
       verifyConclusions,
       isRootSolve,
       includeReachableBoundsForRunes,
@@ -217,6 +224,7 @@ class InferCompiler(
     rules: Vector[IRulexSR],
     runeToType: Map[IRuneS, ITemplataType],
     invocationRange: List[RangeS],
+    callLocation: LocationInDenizen,
     verifyConclusions: Boolean,
     isRootSolve: Boolean,
     includeReachableBoundsForRunes: Vector[IRuneS],
@@ -226,6 +234,7 @@ class InferCompiler(
       envs,
       coutputs,
       invocationRange,
+      callLocation,
       runeToType,
       rules,
       verifyConclusions,
@@ -298,6 +307,7 @@ class InferCompiler(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     invocationRange: List[RangeS],
+    callLocation: LocationInDenizen,
     runeToType: Map[IRuneS, ITemplataType],
     initialRules: Vector[IRulexSR],
     verifyConclusions: Boolean,
@@ -313,7 +323,7 @@ class InferCompiler(
             .flatMap(conc => TemplataCompiler.getReachableBounds(interner, keywords, state, conc))
         val runeToFunctionBound =
           if (verifyConclusions) {
-            checkTemplateInstantiations(envs, state, invocationRange, initialRules, conclusions, reachableBounds, isRootSolve) match {
+            checkTemplateInstantiations(envs, state, invocationRange, callLocation, initialRules, conclusions, reachableBounds, isRootSolve) match {
               case Ok(c) => vassertSome(c)
               case Err(e) => return FailedCompilerSolve(steps, Vector(), e)
             }
@@ -324,7 +334,8 @@ class InferCompiler(
       }
       case IncompleteSolve(steps, unsolvedRules, unknownRunes, incompleteConclusions) => {
         if (verifyConclusions) {
-          checkTemplateInstantiations(envs, state, invocationRange, initialRules, incompleteConclusions, Vector(), isRootSolve) match {
+          checkTemplateInstantiations(envs, state, invocationRange,
+            callLocation, initialRules, incompleteConclusions, Vector(), isRootSolve) match {
             case Ok(c) =>
             case Err(e) => return FailedCompilerSolve(steps, unsolvedRules, e)
           }
@@ -339,6 +350,7 @@ class InferCompiler(
     envs: InferEnv, // See CSSNCE
     state: CompilerOutputs,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
     reachableBounds: Vector[PrototypeTemplata],
@@ -383,7 +395,7 @@ class InferCompiler(
           }))
 
       checkTemplateInstantiationsForEnv(
-        originalCallingEnvWithBoundsAndUnverifiedConclusions, state, ranges, envs.contextRegion, rules, conclusions)
+        originalCallingEnvWithBoundsAndUnverifiedConclusions, state, ranges, callLocation, envs.contextRegion, rules, conclusions)
     } else {
       val envWithBounds =
         GeneralEnvironment.childOf(
@@ -396,7 +408,7 @@ class InferCompiler(
           }).toVector)
 
       checkTemplateInstantiationsForEnv(
-        envWithBounds, state, ranges, envs.contextRegion, rules, conclusions)
+        envWithBounds, state, ranges, callLocation, envs.contextRegion, rules, conclusions)
     }
   }
 
@@ -404,6 +416,7 @@ class InferCompiler(
     env: IInDenizenEnvironment, // See CSSNCE
     state: CompilerOutputs,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     contextRegion: ITemplata[RegionTemplataType],
     rules: Vector[IRulexSR],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
@@ -411,7 +424,7 @@ class InferCompiler(
     // Check all template calls
     rules.foreach({
       case r@MaybeCoercingCallSR(_, _, _, _, _) => {
-        checkTemplateCall(env, contextRegion, state, ranges, r, conclusions) match {
+        checkTemplateCall(env, contextRegion, state, ranges, callLocation, r, conclusions) match {
           case Ok(()) =>
           case Err(e) => return Err(RuleError(CouldntResolveKind(e)))
         }
@@ -422,7 +435,7 @@ class InferCompiler(
     val maybeRunesAndPrototypes =
       rules.collect({
         case r@ResolveSR(_, _, _, _, _) => {
-          checkFunctionCall(env, state, ranges, r, conclusions, contextRegion) match {
+          checkFunctionCall(env, state, ranges, callLocation, r, conclusions, contextRegion) match {
             case Ok(maybeRuneAndPrototype) => maybeRuneAndPrototype
             case Err(e) => return Err(e)
           }
@@ -462,6 +475,7 @@ class InferCompiler(
     callingEnv: IInDenizenEnvironment,
     state: CompilerOutputs,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     c: ResolveSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType]):
@@ -481,7 +495,7 @@ class InferCompiler(
       }
 
     val funcSuccess =
-      delegate.resolveFunction(callingEnv, state, range :: ranges, name, paramCoords, contextRegion, true) match {
+      delegate.resolveFunction(callingEnv, state, range :: ranges, callLocation, name, paramCoords, contextRegion, true) match {
         case Err(e) => return Err(RuleError(CouldntFindFunction(range :: ranges, e)))
         case Ok(x) => x
       }
@@ -537,6 +551,7 @@ class InferCompiler(
     contextRegion: ITemplata[RegionTemplataType],
     state: CompilerOutputs,
     ranges: List[RangeS],
+    callLocation: LocationInDenizen,
     c: MaybeCoercingCallSR,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, ResolveFailure[KindT]] = {
@@ -575,14 +590,14 @@ class InferCompiler(
         Ok(())
       }
       case it @ StructDefinitionTemplata(_, _) => {
-        delegate.resolveStruct(callingEnv, state, range :: ranges, it, args.toVector, contextRegion, true) match {
+        delegate.resolveStruct(callingEnv, state, range :: ranges, callLocation, it, args.toVector, contextRegion, true) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }
         Ok(())
       }
       case it @ InterfaceDefinitionTemplata(_, _) => {
-        delegate.resolveInterface(callingEnv, state, range :: ranges, it, args.toVector, contextRegion, true) match {
+        delegate.resolveInterface(callingEnv, state, range :: ranges, callLocation, it, args.toVector, contextRegion, true) match {
           case ResolveSuccess(kind) => kind
           case rf @ ResolveFailure(_, _) => return Err(rf)
         }
