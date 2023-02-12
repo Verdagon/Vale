@@ -105,7 +105,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
         |""".stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
-    val arr = Collector.only(main, { case ReferenceLocalVariableT(IdT(_, _, localName), _, c) => c })
+    val arr = Collector.only(main, { case ReferenceLocalVariableT(localName, _, c) => c })
     arr.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT), _, _) => }
   }
 

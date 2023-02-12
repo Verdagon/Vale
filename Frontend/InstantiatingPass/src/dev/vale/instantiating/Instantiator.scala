@@ -23,14 +23,14 @@ case class DenizenBoundToDenizenCallerBoundArg(
 case class NodeEnvironment(
   maybeParent: Option[NodeEnvironment],
   // We track these because we need to know the original type of the local, see CTOTFIPB.
-  idToLocal: mutable.HashMap[IdT[IVarNameT], ILocalVariableT]) {
+  nameToLocal: mutable.HashMap[IVarNameT, ILocalVariableT]) {
 
-  def addTranslatedVariable(idT: IdT[IVarNameT], translatedLocalVar: ILocalVariableT): Unit = {
-    idToLocal += (idT -> translatedLocalVar)
+  def addTranslatedVariable(idT: IVarNameT, translatedLocalVar: ILocalVariableT): Unit = {
+    nameToLocal += (idT -> translatedLocalVar)
   }
 
-  def lookupOriginalTranslatedVariable(idT: IdT[IVarNameT]): ILocalVariableT = {
-    vassertSome(idToLocal.get(idT))
+  def lookupOriginalTranslatedVariable(idT: IVarNameT): ILocalVariableT = {
+    vassertSome(nameToLocal.get(idT))
   }
 }
 class InstantiatedOutputs() {
@@ -1306,28 +1306,28 @@ class Instantiator(
 
   def translateLocalVariable(
     maybeNearestPureBlockLocation: Option[LocationInDenizen],
-    variable: ILocalVariableT):
+    variable: ILocalVariableT,
+    // We use this pre-translated type instead of the one in the variable because of CTOTFIPB.
+    tyype: CoordT):
   ILocalVariableT = {
     variable match {
-      case r @ ReferenceLocalVariableT(_, _, _) => translateReferenceLocalVariable(maybeNearestPureBlockLocation, r)
-      case AddressibleLocalVariableT(id, variability, coord) => {
-        AddressibleLocalVariableT(
-          translateVarFullName(maybeNearestPureBlockLocation, id),
-          variability,
-          translateCoord(maybeNearestPureBlockLocation, coord))
+      case r @ ReferenceLocalVariableT(_, _, _) => {
+        translateReferenceLocalVariable(maybeNearestPureBlockLocation, r, tyype)
+      }
+      case AddressibleLocalVariableT(id, variability, coordUnusedT) => {
+        AddressibleLocalVariableT(translateVarName(id), variability, tyype)
       }
     }
   }
 
   def translateReferenceLocalVariable(
     maybeNearestPureBlockLocation: Option[LocationInDenizen],
-    variable: ReferenceLocalVariableT):
+    variable: ReferenceLocalVariableT,
+    // We use this pre-translated type instead of the one in the variable because of CTOTFIPB.
+    tyype: CoordT):
   ReferenceLocalVariableT = {
     val ReferenceLocalVariableT(id, variability, reference) = variable
-    ReferenceLocalVariableT(
-      translateVarFullName(maybeNearestPureBlockLocation, id),
-      variability,
-      translateCoord(maybeNearestPureBlockLocation, reference))
+    ReferenceLocalVariableT(translateVarName(id), variability, tyype)
   }
 
   def translateAddrExpr(
@@ -1340,21 +1340,21 @@ class Instantiator(
         // We specifically don't *translate* LocalLookupTE.localVariable because we can't translate
         // it properly from here with our current understandings of the regions' mutabilities, we
         // need its original type. See CTOTFIPB.
-        val localVariable = env.lookupOriginalTranslatedVariable(localVariableT.id)
+        val localVariable = env.lookupOriginalTranslatedVariable(localVariableT.name)
 
         LocalLookupTE(range, localVariable)
       }
-      case ReferenceMemberLookupTE(range, structExprT, memberName, memberCoordT, variability) => {
+      case ReferenceMemberLookupTE(range, structExprT, memberNameT, memberCoordT, variability) => {
         val structExpr = translateRefExpr(env, maybeNearestPureBlockLocation, structExprT)
         val resultStruct = structExpr.result.coord.kind.expectStruct()
-        val memberId = translateVarFullName(maybeNearestPureBlockLocation, memberName)
+        val memberName = translateVarName(memberNameT)
         // We can't translate ReferenceMemberLookupTE.memberCoord's kind here because we'll
         // translate its template args' regions incorrectly according to their current mutabilities.
         // They need to be the mutabilities at the time they were introduced, see CTOTFIPB. So
         // instead, we look it up from the struct definition.
         val structDef = vassertSome(monouts.structs.get(resultStruct.id))
         val defMemberCoord =
-          vassertSome(structDef.members.find(_.name == memberId.localName)) match {
+          vassertSome(structDef.members.find(_.name == memberName)) match {
             case NormalStructMemberT(name, variability, tyype) => tyype.reference
             case VariadicStructMemberT(name, tyype) => vimpl()
           }
@@ -1375,7 +1375,7 @@ class Instantiator(
         ReferenceMemberLookupTE(
           range,
           structExpr,
-          memberId,
+          memberName,
           resultCoord,
           variability)
       }
@@ -1391,7 +1391,7 @@ class Instantiator(
         AddressMemberLookupTE(
           range,
           translateRefExpr(env, maybeNearestPureBlockLocation, structExpr),
-          translateVarFullName(maybeNearestPureBlockLocation, memberName),
+          translateVarName(memberName),
           translateCoord(maybeNearestPureBlockLocation, resultType2),
           variability)
       }
@@ -1425,12 +1425,13 @@ class Instantiator(
   ReferenceExpressionTE = {
     val resultRefExpr =
       expr match {
-        case LetNormalTE(variableT, inner) => {
-          val translatedVariable = translateLocalVariable(maybeNearestPureBlockLocation, variableT)
-          env.addTranslatedVariable(variableT.id, translatedVariable)
+        case LetNormalTE(variableT, innerTE) => {
+          val inner = translateRefExpr(env, maybeNearestPureBlockLocation, innerTE)
+          val translatedVariable = translateLocalVariable(maybeNearestPureBlockLocation, variableT, inner.result.coord)
+          env.addTranslatedVariable(variableT.name, translatedVariable)
           LetNormalTE(
             translatedVariable,
-            translateRefExpr(env, maybeNearestPureBlockLocation, inner))
+            inner)
         }
         case PureTE(location, transmigrateResultToRegion, inner) => {
           val newMaybeNearestPureBlockLocation = Some(location)
@@ -1464,7 +1465,8 @@ class Instantiator(
           ConstantFloatTE(value, ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)))
         }
         case UnletTE(variable) => {
-          UnletTE(translateLocalVariable(maybeNearestPureBlockLocation, variable))
+          val local = env.lookupOriginalTranslatedVariable(variable.name)
+          UnletTE(local)
         }
         case DiscardTE(expr) => {
           DiscardTE(translateRefExpr(env, maybeNearestPureBlockLocation, expr))
@@ -1580,7 +1582,7 @@ class Instantiator(
               translateBoundArgsForCallee(
                 maybeNearestPureBlockLocation,
                 hinputs.getInstantiationBoundArgs(structTT.id))),
-            destinationReferenceVariables.map(translateReferenceLocalVariable(maybeNearestPureBlockLocation, _)))
+            destinationReferenceVariables.map(translateReferenceLocalVariable(maybeNearestPureBlockLocation, _, vimpl())))
         }
         case MutateTE(destinationExpr, sourceExpr) => {
           MutateTE(
@@ -1665,7 +1667,7 @@ class Instantiator(
             }
 
           LetAndLendTE(
-            translateLocalVariable(maybeNearestPureBlockLocation, variable),
+            translateLocalVariable(maybeNearestPureBlockLocation, variable, vimpl()),
             sourceExpr,
             resultOwnership)
         }
@@ -1855,19 +1857,6 @@ class Instantiator(
         originallyMutable
       }
     }
-  }
-
-  def translateVarFullName(
-    maybeNearestPureBlockLocation: Option[LocationInDenizen],
-    id: IdT[IVarNameT]):
-  IdT[IVarNameT] = {
-    val IdT(module, steps, last) = id
-    val result =
-      IdT(
-        module,
-        steps.map(translateName(maybeNearestPureBlockLocation, _)),
-        translateVarName(last))
-    result
   }
 
   def translateFunctionFullName(
@@ -2274,7 +2263,7 @@ class Instantiator(
     name match {
       case TypingPassFunctionResultVarNameT() => name
       case CodeVarNameT(_) => name
-      case ClosureParamNameT() => name
+      case ClosureParamNameT(_) => name
       case TypingPassBlockResultVarNameT(life) => name
       case TypingPassTemporaryVarNameT(life) => name
       case ConstructingMemberNameT(_) => name

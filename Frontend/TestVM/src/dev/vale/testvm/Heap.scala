@@ -36,7 +36,7 @@ class AllocationMap(vivemDout: PrintStream) {
   private val objectsById = mutable.HashMap[AllocationId, Allocation]()
   private val STARTING_ID = 501
   private var nextId = STARTING_ID;
-  val void: ReferenceV = add(ShareH, InlineH, VoidV)
+  val void: ReferenceV = add(MutableShareH, InlineH, VoidV)
 
   private def newId() = {
     val id = nextId;
@@ -266,8 +266,8 @@ class Heap(in_vivemDout: PrintStream) {
   }
 
   def isSameInstance(callId: CallId, left: ReferenceV, right: ReferenceV): ReferenceV = {
-    val ref = allocateTransient(ShareH, InlineH, BoolV(left.allocId == right.allocId))
-    incrementReferenceRefCount(RegisterToObjectReferrer(callId, ShareH), ref)
+    val ref = allocateTransient(MutableShareH, InlineH, BoolV(left.allocId == right.allocId))
+    incrementReferenceRefCount(RegisterToObjectReferrer(callId, MutableShareH), ref)
     ref
   }
 
@@ -428,7 +428,7 @@ class Heap(in_vivemDout: PrintStream) {
     }
 
     val ReferenceV(actualKind, oldSeenAsType, oldOwnership, oldLocation, objectId) = reference
-    vassert((oldOwnership == ShareH) == (targetType.ownership == ShareH))
+    vassert((oldOwnership == MutableShareH) == (targetType.ownership == MutableShareH))
     if (oldSeenAsType.hamut != expectedType.kind) {
       // not sure if the above .actualType is right
 
@@ -454,7 +454,7 @@ class Heap(in_vivemDout: PrintStream) {
     }
 
     val ReferenceV(actualKind, oldSeenAsType, oldOwnership, oldLocation, objectId) = reference
-    vassert((oldOwnership == ShareH) == (targetType.ownership == ShareH))
+    vassert((oldOwnership == MutableShareH) == (targetType.ownership == MutableShareH))
     if (oldSeenAsType.hamut != expectedType.kind) {
       // not sure if the above .actualType is right
 

@@ -541,8 +541,8 @@ case class ArrayLengthTE(arrayExpr: ReferenceExpressionTE) extends ReferenceExpr
 case class ReferenceMemberLookupTE(
     range: RangeS,
     structExpr: ReferenceExpressionTE,
-    memberName: IdT[IVarNameT],
-    // See RMLRMO for why this is the same ownership as the original field.
+    memberName: IVarNameT,
+  // See RMLRMO for why this is the same ownership as the original field.
     memberReference: CoordT,
     // See RMLRMO for why we dont have a targetOwnership field here.
     variability: VariabilityT) extends AddressExpressionTE {
@@ -557,7 +557,7 @@ case class ReferenceMemberLookupTE(
 case class AddressMemberLookupTE(
     range: RangeS,
     structExpr: ReferenceExpressionTE,
-    memberName: IdT[IVarNameT],
+    memberName: IVarNameT,
     resultType2: CoordT,
     variability: VariabilityT) extends AddressExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

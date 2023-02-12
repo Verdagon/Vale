@@ -94,6 +94,12 @@ class ExpressionHammer(
           mutateHammer.translateMutate(hinputs, hamuts, currentFunctionHeader, locals, mutate2)
         (newEmptyPackStructNodeHE, Vector.empty)
       }
+      case b @ PureTE(_, _, _) => {
+        vimpl()
+//        val blockH =
+//          blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)
+//        (blockH, Vector.empty)
+      }
       case b @ BlockTE(_) => {
         val blockH =
           blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)
@@ -981,7 +987,7 @@ class ExpressionHammer(
 
     val (conditionBlockH, Vector()) =
       translate(hinputs, hamuts, currentFunctionHeader, parentLocals, condition2);
-    vassert(conditionBlockH.resultType == CoordH(ShareH, InlineH, BoolHT()))
+    vassert(conditionBlockH.resultType == CoordH(MutableShareH, InlineH, BoolHT()))
 
     val thenLocals = LocalsBox(parentLocals.snapshot)
     val (thenBlockH, Vector()) =

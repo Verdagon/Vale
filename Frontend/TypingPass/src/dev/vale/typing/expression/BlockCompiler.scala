@@ -65,7 +65,7 @@ class BlockCompiler(
     callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     block1: BlockSE):
-  (BlockTE, Set[IdT[IVarNameT]], Set[CoordT]) = {
+  (BlockTE, Set[IVarNameT], Set[CoordT]) = {
     val nenv = NodeEnvironmentBox(parentFate.makeChildNodeEnvironment(block1, life))
     val startingNenv = nenv.snapshot
 

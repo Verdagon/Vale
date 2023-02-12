@@ -134,7 +134,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     val func = coutputs.lookupFunction("CellularAutomata")
-    val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("a"))), _, c), _) => c })
+    val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
       case PlaceholderTemplata(
         IdT(
@@ -154,7 +154,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     val func = coutputs.lookupFunction("CellularAutomata")
-    val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("a"))), _, c), _) => c })
+    val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
       case PlaceholderTemplata(
         IdT(

@@ -1,7 +1,7 @@
 package dev.vale.testvm
 
 import dev.vale.{Interner, Keywords, PackageCoordinate, PackageCoordinateMap, StrI, finalast}
-import dev.vale.finalast.{BlockH, CallH, ConstantIntH, IdH, FunctionH, InlineH, IntHT, PackageH, ProgramH, PrototypeH, CoordH, ShareH, UserFunctionH}
+import dev.vale.finalast._
 import dev.vale.finalast._
 import dev.vale.von.{VonArray, VonInt, VonMember, VonObject, VonStr}
 import org.scalatest.{FunSuite, Matchers}
@@ -17,7 +17,7 @@ class VivemTests extends FunSuite with Matchers {
             "main",
             0,
             PackageCoordinate.TEST_TLD(interner, keywords),
-            Vector(VonObject("F",None,Vector(VonMember("humanName",VonStr("main")), VonMember("templateArgs",VonArray(None,Vector())), VonMember("parameters",VonArray(None,Vector())))))),Vector.empty,CoordH(ShareH,InlineH,IntHT.i32)),
+            Vector(VonObject("F",None,Vector(VonMember("humanName",VonStr("main")), VonMember("templateArgs",VonArray(None,Vector())), VonMember("parameters",VonArray(None,Vector())))))),Vector.empty,CoordH(MutableShareH,InlineH,IntHT.i32)),
         true,
         false,
         Vector(UserFunctionH),
@@ -44,8 +44,8 @@ class VivemTests extends FunSuite with Matchers {
           0,
           PackageCoordinate.BUILTIN(interner, keywords),
           Vector(VonObject("F",None,Vector(VonMember("humanName",VonStr("__vbi_addI32")), VonMember("templateArgs",VonArray(None,Vector())), VonMember("parameters",VonArray(None,Vector(intRef, intRef))))))),
-        Vector(CoordH(ShareH,InlineH,IntHT.i32), CoordH(ShareH,InlineH,IntHT.i32)),
-        CoordH(ShareH,InlineH,IntHT.i32))
+        Vector(CoordH(MutableShareH,InlineH,IntHT.i32), CoordH(MutableShareH,InlineH,IntHT.i32)),
+        CoordH(MutableShareH,InlineH,IntHT.i32))
     val main =
       FunctionH(
         PrototypeH(
@@ -53,7 +53,7 @@ class VivemTests extends FunSuite with Matchers {
             "main",
             0,
             PackageCoordinate.TEST_TLD(interner, keywords),
-            Vector(VonObject("F",None,Vector(VonMember("humanName",VonStr("main")), VonMember("templateArgs",VonArray(None,Vector())), VonMember("parameters",VonArray(None,Vector())))))),Vector.empty,CoordH(finalast.ShareH,InlineH,IntHT.i32)),
+            Vector(VonObject("F",None,Vector(VonMember("humanName",VonStr("main")), VonMember("templateArgs",VonArray(None,Vector())), VonMember("parameters",VonArray(None,Vector())))))),Vector.empty,CoordH(MutableShareH,InlineH,IntHT.i32)),
         true,
         false,
         Vector(UserFunctionH),

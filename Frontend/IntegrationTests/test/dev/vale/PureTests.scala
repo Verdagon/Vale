@@ -3,7 +3,7 @@ package dev.vale
 import dev.vale.simplifying.VonHammer
 import dev.vale.finalast.YonderH
 import dev.vale.typing._
-import dev.vale.typing.types.{CoordT, ImmutableBorrowT, OwnT, StrT, StructTT}
+import dev.vale.typing.types.{CoordT, ImmutableBorrowT, ImmutableShareT, IntT, OwnT, StrT, StructTT}
 import dev.vale.testvm.StructInstanceV
 import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
@@ -54,7 +54,7 @@ class PureTests extends FunSuite with Matchers {
     val main = compile.getMonouts().lookupFunction("main")
     val rml =
       Collector.only(main, {
-        case rml @ ReferenceMemberLookupTE(_, _, IdT(_, _, CodeVarNameT(StrI("engine"))), _, _) => rml
+        case rml @ ReferenceMemberLookupTE(_, _, CodeVarNameT(StrI("engine")), _, _) => rml
       })
     rml.memberReference match {
       // See RMLRMO for why this is OwnT
@@ -63,18 +63,18 @@ class PureTests extends FunSuite with Matchers {
 
     val xType =
       Collector.only(main, {
-        case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("x"))), _, coord), _) => coord
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case null =>
+      case CoordT(ImmutableBorrowT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
     }
 
     val yType =
       Collector.only(main, {
-        case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("y"))), _, coord), _) => coord
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
       })
     yType match {
-      case null =>
+      case CoordT(ImmutableShareT,RegionTemplata(false),IntT(32)) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -96,7 +96,7 @@ class PureTests extends FunSuite with Matchers {
     val main = compile.getMonouts().lookupFunction("main")
     val mainEngineCoord =
       Collector.only(main, {
-        case ReferenceMemberLookupTE(_, _, IdT(_, _, CodeVarNameT(StrI("engine"))), coord, _) => coord
+        case ReferenceMemberLookupTE(_, _, CodeVarNameT(StrI("engine")), coord, _) => coord
       })
     mainEngineCoord match {
       case CoordT(ImmutableBorrowT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>

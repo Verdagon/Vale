@@ -273,7 +273,8 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
       case OwnH => VonObject("Own", None, Vector())
       case ImmutableBorrowH => VonObject("ImmutableBorrow", None, Vector())
       case MutableBorrowH => VonObject("MutableBorrow", None, Vector())
-      case ShareH => VonObject("Share", None, Vector())
+      case ImmutableShareH => VonObject("ImmutableShare", None, Vector())
+      case MutableShareH => VonObject("MutableShare", None, Vector())
       case WeakH => VonObject("Weak", None, Vector())
     }
   }
@@ -1155,7 +1156,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case ClosureParamNameT() => {
+      case ClosureParamNameT(_) => {
         VonObject(
           "ClosureParamName",
           None,

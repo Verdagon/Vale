@@ -18,8 +18,8 @@ object ExpressionVivem {
 
   def makePrimitive(heap: Heap, callId: CallId, location: LocationH, kind: KindV) = {
     vassert(kind != VoidV)
-    val ref = heap.allocateTransient(ShareH, location, kind)
-    heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, ShareH), ref)
+    val ref = heap.allocateTransient(MutableShareH, location, kind)
+    heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, MutableShareH), ref)
     ref
   }
 
@@ -71,7 +71,8 @@ object ExpressionVivem {
     node match {
       case DiscardH(sourceExpr) => {
         sourceExpr.resultType.ownership match {
-          case ShareH =>
+          case MutableShareH =>
+          case ImmutableShareH =>
           case ImmutableBorrowH =>
           case MutableBorrowH =>
           case WeakH =>
@@ -1001,7 +1002,7 @@ object ExpressionVivem {
       heap.vivemDout.println()
       heap.vivemDout.println("  " * callId.callDepth + "Making new stack frame (generator)")
 
-      val indexReference = heap.allocateTransient(ShareH, InlineH, IntV(i, 32))
+      val indexReference = heap.allocateTransient(MutableShareH, InlineH, IntV(i, 32))
 
       heap.vivemDout.println()
 
@@ -1116,9 +1117,8 @@ object ExpressionVivem {
         case WeakH => {
           heap.deallocateIfNoWeakRefs(actualReference)
         }
-        case MutableBorrowH => // Do nothing.
-        case ImmutableBorrowH => // Do nothing.
-        case ShareH => {
+        case MutableBorrowH | ImmutableBorrowH => // Do nothing.
+        case MutableShareH | ImmutableShareH => {
           expectedReference.kind match {
             case VoidHT() | IntHT(_) | BoolHT() | StrHT() | FloatHT() => {
               heap.zero(actualReference)
