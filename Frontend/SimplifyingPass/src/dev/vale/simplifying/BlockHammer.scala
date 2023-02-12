@@ -1,13 +1,12 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{BlockH, NeverHT}
+import dev.vale.finalast.{BlockH, MutabilifyH, NeverHT}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{BlockTE, FunctionHeaderT}
-import dev.vale.vfail
-import dev.vale.{finalast => m}
-import dev.vale.finalast._
+import dev.vale.{vcurious, vfail, vimpl, finalast => m}
 import dev.vale.typing.ast._
-import dev.vale.vfail
+import dev.vale.typing.templata.RegionTemplata
+import dev.vale.typing.types.IntT
 
 class BlockHammer(expressionHammer: ExpressionHammer) {
   def translateBlock(
@@ -53,5 +52,27 @@ class BlockHammer(expressionHammer: ExpressionHammer) {
 
 //    start here, we're returning locals and thats not optimal
     BlockH(exprH)
+  }
+
+  def translatePure(
+    hinputs: Hinputs,
+    hamuts: HamutsBox,
+    currentFunctionHeader: FunctionHeaderT,
+    locals: LocalsBox,
+    node: PureTE):
+  MutabilifyH = {
+    val PureTE(_, transmigrateResultToRegion, innerTE) = node
+    vcurious(transmigrateResultToRegion == RegionTemplata(true))
+
+    val innerHE =
+      expressionHammer.translateExpressionsAndDeferreds(
+        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerTE));
+
+    innerTE.result.coord.kind match {
+      case IntT(bits) => {
+        MutabilifyH(innerHE)
+      }
+      case other => vimpl(other)
+    }
   }
 }

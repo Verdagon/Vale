@@ -95,10 +95,9 @@ class ExpressionHammer(
         (newEmptyPackStructNodeHE, Vector.empty)
       }
       case b @ PureTE(_, _, _) => {
-        vimpl()
-//        val blockH =
-//          blockHammer.translateBlock(hinputs, hamuts, currentFunctionHeader, locals, b)
-//        (blockH, Vector.empty)
+        val pureH =
+          blockHammer.translatePure(hinputs, hamuts, currentFunctionHeader, locals, b)
+        (pureH, Vector.empty)
       }
       case b @ BlockTE(_) => {
         val blockH =

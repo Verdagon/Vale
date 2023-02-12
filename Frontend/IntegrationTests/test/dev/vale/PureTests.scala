@@ -77,7 +77,7 @@ class PureTests extends FunSuite with Matchers {
       case CoordT(ImmutableShareT,RegionTemplata(false),IntT(32)) =>
     }
 
-    compile.evalForKind(Vector()) match { case VonInt(10) => }
+    // We don't evaluate the program, its main takes in a struct which is impossible
   }
 
   test("Pure function returning struct") {

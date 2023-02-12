@@ -836,6 +836,25 @@ If we want to know if a region's immutable, check if the latest pure block is mo
 This is nice, because a variable's type doesn't change halfway through a function which would confuse the backend.
 
 
+# Pure Should Be Outside the Block (PSBOB)
+
+We had this code:
+
+```
+exported func main(s &Spaceship) int {
+  pure block {
+    x = s.engine;
+    y = x.fuel;
+    y
+  }
+}
+```
+
+It resulted in a BlockTE containing a PureTE which contained some lets and dots.
+
+However, we ran into some awkwardness. The lets inside the pure block were being unstackified outside the pure block.
+
+So instead, let's make it so the pure is outside the block.
 
 
 
