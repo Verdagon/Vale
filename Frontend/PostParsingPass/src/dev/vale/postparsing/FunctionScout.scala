@@ -260,7 +260,7 @@ class FunctionScout(
               case ParentInterface(_, _, _, _) => noDeclarations
               case ParentFunction(_) => {
                 // Every lambda has a closure as its first arg, even if its empty
-                val closureParamName = interner.intern(ClosureParamNameS())
+                val closureParamName = interner.intern(ClosureParamNameS(rangeS.begin))
                 val closureDeclaration =
                   VariableDeclarations(Vector(VariableDeclaration(closureParamName)))
                 closureDeclaration
@@ -400,6 +400,7 @@ class FunctionScout(
               val closureStructRegionRune =
                 ImplicitRegionRuneS(closureStructKindRune)
               val closureStructCoordRune = ImplicitRuneS(lidb.child().consume())
+
               val closureParamS =
                 createClosureParam(
                   range,
@@ -531,9 +532,9 @@ class FunctionScout(
     closureStructKindRune: IRuneS,
     closureStructCoordRune: IRuneS):
   ParameterS = {
-    val closureParamName = interner.intern(ClosureParamNameS())
     val closureParamPos = PostParser.evalPos(parentStackFrame.file, range.begin)
     val closureParamRange = RangeS(closureParamPos, closureParamPos)
+    val closureParamName = interner.intern(ClosureParamNameS(closureParamRange.begin))
 
     runeToExplicitType += ((closureStructKindRune, KindTemplataType()))
     val closureStructName =

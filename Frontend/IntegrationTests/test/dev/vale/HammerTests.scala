@@ -1,7 +1,7 @@
 package dev.vale
 
 import dev.vale.passmanager.FullCompilationOptions
-import dev.vale.finalast.{BlockH, CallH, ConsecutorH, ConstantIntH, InlineH, IntHT, NeverHT, PrototypeH, CoordH, ShareH}
+import dev.vale.finalast._
 import dev.vale.typing.types.ShareT
 import dev.vale.testvm.PanicException
 import dev.vale.simplifying._
@@ -64,7 +64,7 @@ class HammerTests extends FunSuite with Matchers {
 
     val mySome = packageH.structs.find(_.id.toFullString() == """test::C(CT("MySome"),[TR(R(@,<,i(32)))])""").get;
     vassert(mySome.members.size == 1);
-    vassert(mySome.members.head.tyype == CoordH[IntHT](ShareH, InlineH, IntHT.i32))
+    vassert(mySome.members.head.tyype == CoordH[IntHT](MutableShareH, InlineH, IntHT.i32))
 
     val myNone = packageH.structs.find(_.id.toFullString() == """test::C(CT("MyNone"),[TR(R(@,<,i(32)))])""").get;
     vassert(myNone.members.isEmpty);

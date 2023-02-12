@@ -64,7 +64,7 @@ sealed trait ExpressionH[+T <: KindHT] {
 // Produces a void.
 case class ConstantVoidH() extends ExpressionH[VoidHT] {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = 1337
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Produces an integer.
@@ -74,7 +74,7 @@ case class ConstantIntH(
   bits: Int
 ) extends ExpressionH[IntHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[IntHT] = CoordH(ShareH, InlineH, IntHT(bits))
+  override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT(bits))
 }
 
 // Produces a boolean.
@@ -83,7 +83,7 @@ case class ConstantBoolH(
   value: Boolean
 ) extends ExpressionH[BoolHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[BoolHT] = CoordH(ShareH, InlineH, BoolHT())
+  override def resultType: CoordH[BoolHT] = CoordH(MutableShareH, InlineH, BoolHT())
 }
 
 // Produces a string.
@@ -92,7 +92,7 @@ case class ConstantStrH(
   value: String
 ) extends ExpressionH[StrHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[StrHT] = CoordH(ShareH, YonderH, StrHT())
+  override def resultType: CoordH[StrHT] = CoordH(MutableShareH, YonderH, StrHT())
 }
 
 // Produces a float.
@@ -101,7 +101,7 @@ case class ConstantF64H(
   value: Double
 ) extends ExpressionH[FloatHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[FloatHT] = CoordH(ShareH, InlineH, FloatHT())
+  override def resultType: CoordH[FloatHT] = CoordH(MutableShareH, InlineH, FloatHT())
 }
 
 // Produces the value from an argument.
@@ -129,7 +129,7 @@ case class StackifyH(
   sourceExpr.resultType.kind match { case NeverHT(_) => vwat() case _ => }
   vassert(sourceExpr.resultType == local.typeH)
 
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Takes a value from a local variable on the stack, and produces it.
@@ -169,7 +169,7 @@ case class DestroyH(
   // Nevermind, type system guarantees it
   // structExpression.resultType.kind match { case NeverH(_) => vwat() case _ => }
 
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Takes a struct from the given expressions, and destroys it.
@@ -194,7 +194,7 @@ case class DestroyStaticSizedArrayIntoLocalsH(
   // Nevermind, type system guarantees it
   // structExpression.resultType.kind match { case NeverH(_) => vwat() case _ => }
 
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Takes a struct reference from the "source" expressions, and makes an interface reference
@@ -270,11 +270,10 @@ case class LocalLoadH(
   override def resultType: CoordH[KindHT] = {
     val location =
       (targetOwnership, local.typeH.location) match {
-        case (ImmutableBorrowH, _) => YonderH
-        case (MutableBorrowH, _) => YonderH
+        case (ImmutableBorrowH | MutableBorrowH, _) => YonderH
         case (WeakH, _) => YonderH
         case (OwnH, location) => location
-        case (ShareH, location) => location
+        case (MutableShareH | ImmutableShareH, location) => location
       }
     CoordH(targetOwnership, location, local.typeH.kind)
   }
@@ -542,9 +541,9 @@ case class WhileH(
 
   val resultCoord =
     bodyBlock.resultType.kind match {
-      case VoidHT() => CoordH(ShareH, InlineH, VoidHT())
-      case NeverHT(true) => CoordH(ShareH, InlineH, VoidHT())
-      case NeverHT(false) => CoordH(ShareH, InlineH, NeverHT(false))
+      case VoidHT() => CoordH(MutableShareH, InlineH, VoidHT())
+      case NeverHT(true) => CoordH(MutableShareH, InlineH, VoidHT())
+      case NeverHT(false) => CoordH(MutableShareH, InlineH, NeverHT(false))
       case _ => vwat()
     }
 
@@ -571,7 +570,7 @@ case class ConsecutorH(
     // The init ones should always return void structs.
     // If there's a never somewhere in there, then there should be nothing afterward.
     // Use Hammer.consecutive to conform to this.
-    vassert(nonLastResultLine.resultType == CoordH(ShareH, InlineH, VoidHT()))
+    vassert(nonLastResultLine.resultType == CoordH(MutableShareH, InlineH, VoidHT()))
   })
 
   val indexOfFirstNever =
@@ -647,7 +646,7 @@ case class ReturnH(
   sourceExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[NeverHT] = CoordH(ShareH, InlineH, NeverHT(false))
+  override def resultType: CoordH[NeverHT] = CoordH(MutableShareH, InlineH, NeverHT(false))
 }
 
 // Constructs an immutable unknown-size array, whose length is the integer from sizeExpression,
@@ -678,7 +677,7 @@ case class NewImmRuntimeSizedArrayH(
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   generatorExpression.resultType.ownership match {
-    case ShareH | MutableBorrowH | ImmutableBorrowH =>
+    case MutableShareH | ImmutableShareH | MutableBorrowH | ImmutableBorrowH =>
     case other => vwat(other)
   }
   vassert(sizeExpression.resultType.kind == IntHT.i32)
@@ -717,7 +716,7 @@ case class PushRuntimeSizedArrayH(
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
-  override def resultType: CoordH[KindHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[KindHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Adds a new element to the end of a mutable unknown-size array.
@@ -762,7 +761,8 @@ case class StaticArrayFromCallableH(
   vassert(
     generatorExpression.resultType.ownership == MutableBorrowH ||
       generatorExpression.resultType.ownership == ImmutableBorrowH ||
-      generatorExpression.resultType.ownership == ShareH)
+      generatorExpression.resultType.ownership == MutableShareH ||
+      generatorExpression.resultType.ownership == ImmutableShareH)
 }
 
 // Destroys an array previously created with NewArrayFromValuesH.
@@ -783,7 +783,7 @@ case class DestroyStaticSizedArrayIntoFunctionH(
   consumerExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Destroys an array previously created with ConstructRuntimeSizedArrayH.
@@ -803,7 +803,7 @@ case class DestroyImmRuntimeSizedArrayH(
   consumerExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Destroys an array previously created with ConstructRuntimeSizedArrayH.
@@ -817,13 +817,13 @@ case class DestroyMutRuntimeSizedArrayH(
 //  arrayExpression.resultType.kind match { case NeverH(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 // Jumps to after the closest containing loop.
 case class BreakH() extends ExpressionH[NeverHT] {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[NeverHT] = CoordH(ShareH, InlineH, NeverHT(true))
+  override def resultType: CoordH[NeverHT] = CoordH(MutableShareH, InlineH, NeverHT(true))
 }
 
 // Creates a new struct instance.
@@ -850,7 +850,7 @@ case class ArrayLengthH(
   sourceExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[IntHT] = CoordH(ShareH, InlineH, IntHT.i32)
+  override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT.i32)
 }
 
 // Gets the capacity of an unknown-sized array.
@@ -862,7 +862,7 @@ case class ArrayCapacityH(
   sourceExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[IntHT] = CoordH(ShareH, InlineH, IntHT.i32)
+  override def resultType: CoordH[IntHT] = CoordH(MutableShareH, InlineH, IntHT.i32)
 }
 
 // Turns a borrow ref into a weak ref.
@@ -889,7 +889,7 @@ case class IsSameInstanceH(
   rightExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-  override def resultType: CoordH[KindHT] = CoordH(ShareH, InlineH, BoolHT())
+  override def resultType: CoordH[KindHT] = CoordH(MutableShareH, InlineH, BoolHT())
 }
 
 // Tries to downcast to the specified subtype and wrap in a Some.
@@ -934,9 +934,9 @@ case class DiscardH(sourceExpression: ExpressionH[KindHT]) extends ExpressionH[V
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   sourceExpression.resultType.ownership match {
-    case MutableBorrowH | ImmutableBorrowH | ShareH | WeakH =>
+    case MutableBorrowH | ImmutableBorrowH | MutableShareH | ImmutableShareH | WeakH =>
   }
-  override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
+  override def resultType: CoordH[VoidHT] = CoordH(MutableShareH, InlineH, VoidHT())
 }
 
 trait IExpressionH {

@@ -148,7 +148,7 @@ case class NodeEnvironmentT(
   // This contains locals from parent blocks, see WTHPFE.
   declaredLocals: Vector[IVariableT],
   // This can refer to vars in parent blocks, see UCRTVPE.
-  unstackifiedLocals: Set[IdT[IVarNameT]],
+  unstackifiedLocals: Set[IVarNameT],
 
   defaultRegion: ITemplata[RegionTemplataType],
 
@@ -156,7 +156,7 @@ case class NodeEnvironmentT(
   // This is used to know whether a region is currently mutable or immutable.
   latestPureBlockLocation: Option[LocationInDenizen]
 ) extends IInDenizenEnvironment {
-  vassert(declaredLocals.map(_.id) == declaredLocals.map(_.id).distinct)
+  vassert(declaredLocals.map(_.name) == declaredLocals.map(_.name).distinct)
 
   val hash = id.hashCode() ^ life.hashCode();
   override def hashCode(): Int = hash;
@@ -208,13 +208,13 @@ case class NodeEnvironmentT(
   }
 
   def getVariable(name: IVarNameT): Option[IVariableT] = {
-    declaredLocals.find(_.id.localName == name) match {
+    declaredLocals.find(_.name == name) match {
       case Some(v) => Some(v)
       case None => {
         parentNodeEnv match {
           case Some(p) => p.getVariable(name)
           case None => {
-            parentFunctionEnv.closuredLocals.find(_.id.localName == name)
+            parentFunctionEnv.closuredLocals.find(_.name == name)
           }
         }
       }
@@ -229,7 +229,7 @@ case class NodeEnvironmentT(
     declaredLocals.collect({ case i : ILocalVariableT => i })
   }
 
-  def getAllUnstackifiedLocals(): Vector[IdT[IVarNameT]] = {
+  def getAllUnstackifiedLocals(): Vector[IVarNameT] = {
     unstackifiedLocals.toVector
   }
 
@@ -241,9 +241,9 @@ case class NodeEnvironmentT(
     NodeEnvironmentT(
       parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
   }
-  def markLocalUnstackified(newUnstackified: IdT[IVarNameT]): NodeEnvironmentT = {
+  def markLocalUnstackified(newUnstackified: IVarNameT): NodeEnvironmentT = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
-    vassert(getAllLocals().exists(_.id == newUnstackified))
+    vassert(getAllLocals().exists(_.name == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
     NodeEnvironmentT(
       parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, latestPureBlockLocation)
@@ -251,7 +251,7 @@ case class NodeEnvironmentT(
 
   // Gets the effects that this environment had on the outside world (on its parent
   // environments). In other words, parent locals that were unstackified.
-  def getEffectsSince(earlierNodeEnv: NodeEnvironmentT): Set[IdT[IVarNameT]] = {
+  def getEffectsSince(earlierNodeEnv: NodeEnvironmentT): Set[IVarNameT] = {
     vassert(parentFunctionEnv == earlierNodeEnv.parentFunctionEnv)
 
     // We may have unstackified outside locals from inside the block, make sure
@@ -259,10 +259,10 @@ case class NodeEnvironmentT(
 
     // declaredLocals contains things from parent environment, which is why we need to receive
     // an earlier environment to compare to, see WTHPFE.
-    val earlierNodeEnvDeclaredLocals = earlierNodeEnv.declaredLocals.map(_.id).toSet
+    val earlierNodeEnvDeclaredLocals = earlierNodeEnv.declaredLocals.map(_.name).toSet
     val earlierNodeEnvLiveLocals = earlierNodeEnvDeclaredLocals -- earlierNodeEnv.unstackifiedLocals
     val liveLocalsIntroducedSinceEarlier =
-      declaredLocals.map(_.id).filter(x => !earlierNodeEnvLiveLocals.contains(x))
+      declaredLocals.map(_.name).filter(x => !earlierNodeEnvLiveLocals.contains(x))
 
     val unstackifiedAncestorLocals = unstackifiedLocals -- liveLocalsIntroducedSinceEarlier
     unstackifiedAncestorLocals
@@ -287,7 +287,7 @@ case class NodeEnvironmentT(
     vassert(localsDeclaredSinceThen.size == localsAsOfNow.size - localsAsOfThen.size)
 
     val unmovedLocalsDeclaredSinceThen =
-      localsDeclaredSinceThen.filter(x => !unstackifiedLocals.contains(x.id))
+      localsDeclaredSinceThen.filter(x => !unstackifiedLocals.contains(x.name))
 
     unmovedLocalsDeclaredSinceThen
   }
@@ -359,14 +359,14 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
   def maybeReturnType: Option[CoordT] = nodeEnvironment.parentFunctionEnv.maybeReturnType
   def globalEnv: GlobalEnvironment = nodeEnvironment.globalEnv
   def declaredLocals: Vector[IVariableT] = nodeEnvironment.declaredLocals
-  def unstackifieds: Set[IdT[IVarNameT]] = nodeEnvironment.unstackifiedLocals
+  def unstackifieds: Set[IVarNameT] = nodeEnvironment.unstackifiedLocals
   def function = nodeEnvironment.function
   def functionEnvironment = nodeEnvironment.parentFunctionEnv
 
   def addVariable(newVar: IVariableT): Unit= {
     nodeEnvironment = nodeEnvironment.addVariable(newVar)
   }
-  def markLocalUnstackified(newMoved: IdT[IVarNameT]): Unit= {
+  def markLocalUnstackified(newMoved: IVarNameT): Unit= {
     nodeEnvironment = nodeEnvironment.markLocalUnstackified(newMoved)
   }
 
@@ -378,7 +378,7 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
     nodeEnvironment.getAllLocals()
   }
 
-  def getAllUnstackifiedLocals(): Vector[IdT[IVarNameT]] = {
+  def getAllUnstackifiedLocals(): Vector[IVarNameT] = {
     nodeEnvironment.getAllUnstackifiedLocals()
   }
 
@@ -544,7 +544,7 @@ case class FunctionEnvironment(
         case NodeEnvironmentT(_, _, _, _, _, declaredLocals, unstackifiedLocals, _, _) => {
           (declaredLocals, unstackifiedLocals)
         }
-        case _ => (Vector(), Set[IdT[IVarNameT]]())
+        case _ => (Vector(), Set[IVarNameT]())
       }
 
     val latestPureBlockLocation =
@@ -651,13 +651,13 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
 }
 
 sealed trait IVariableT  {
-  def id: IdT[IVarNameT]
+  def name: IVarNameT
   def variability: VariabilityT
   def coord: CoordT
 }
 sealed trait ILocalVariableT extends IVariableT {
+  def name: IVarNameT
   def coord: CoordT
-  def id: IdT[IVarNameT]
 }
 // Why the difference between reference and addressible:
 // If we mutate/move a variable from inside a closure, we need to put
@@ -666,7 +666,7 @@ sealed trait ILocalVariableT extends IVariableT {
 // Lucky for us, the parser figured out if any of our child closures did
 // any mutates/moves/borrows.
 case class AddressibleLocalVariableT(
-  id: IdT[IVarNameT],
+  name: IVarNameT,
   variability: VariabilityT,
   coord: CoordT
 ) extends ILocalVariableT {
@@ -674,7 +674,7 @@ case class AddressibleLocalVariableT(
 
 }
 case class ReferenceLocalVariableT(
-  id: IdT[IVarNameT],
+  name: IVarNameT,
   variability: VariabilityT,
   coord: CoordT
 ) extends ILocalVariableT {
@@ -682,7 +682,7 @@ case class ReferenceLocalVariableT(
   vpass()
 }
 case class AddressibleClosureVariableT(
-  id: IdT[IVarNameT],
+  name: IVarNameT,
   closuredVarsStructType: StructTT,
   variability: VariabilityT,
   coord: CoordT
@@ -690,7 +690,7 @@ case class AddressibleClosureVariableT(
   vpass()
 }
 case class ReferenceClosureVariableT(
-  id: IdT[IVarNameT],
+  name: IVarNameT,
   closuredVarsStructType: StructTT,
   variability: VariabilityT,
   coord: CoordT

@@ -1,5 +1,6 @@
 package dev.vale.finalast
 
+import dev.vale.typing.types.{ImmutableShareT, MutableShareT}
 import dev.vale.{FileCoordinate, Interner, Keywords, PackageCoordinate, vassert, vfail, vimpl}
 
 // Represents a reference type.
@@ -33,9 +34,8 @@ case class CoordH[+T <: KindHT](
 
   (ownership, location) match {
     case (OwnH, YonderH) =>
-    case (ShareH, _) =>
-    case (MutableBorrowH, YonderH) =>
-    case (ImmutableBorrowH, YonderH) =>
+    case (ImmutableShareH | MutableShareH, _) =>
+    case (MutableBorrowH | ImmutableBorrowH, YonderH) =>
     case (WeakH, YonderH) =>
     case _ => vfail()
   }
@@ -43,12 +43,12 @@ case class CoordH[+T <: KindHT](
   kind match {
     case IntHT(_) | BoolHT() | FloatHT() | NeverHT(_) => {
       // Make sure that if we're pointing at a primitives, it's via a Share reference.
-      vassert(ownership == ShareH)
+      vassert(ownership == ImmutableShareH || ownership == MutableShareH)
       vassert(location == InlineH)
     }
     case StrHT() => {
       // Strings need to be yonder because Midas needs to do refcounting for them.
-      vassert(ownership == ShareH)
+      vassert(ownership == ImmutableShareH || ownership == MutableShareH)
       vassert(location == YonderH)
     }
     case StructHT(name) => {
@@ -203,7 +203,6 @@ case object ImmutableBorrowH extends OwnershipH
 case object MutableShareH extends OwnershipH
 case object ImmutableShareH extends OwnershipH
 case object WeakH extends OwnershipH
-case object ShareH extends OwnershipH
 
 // Location says whether a reference contains the kind's location (yonder) or
 // contains the kind itself (inline).

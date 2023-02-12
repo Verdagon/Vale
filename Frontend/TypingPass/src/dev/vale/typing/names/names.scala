@@ -315,7 +315,7 @@ case class TypingPassPatternMemberNameT(life: LocationInFunctionEnvironment) ext
 case class TypingIgnoredParamNameT(num: Int) extends IVarNameT
 case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT
 case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT
-case class ClosureParamNameT() extends IVarNameT
+case class ClosureParamNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ConstructingMemberNameT(name: StrI) extends IVarNameT
 case class WhileCondResultNameT(range: RangeS) extends IVarNameT
 case class IterableNameT(range: RangeS) extends IVarNameT {  }
@@ -546,13 +546,11 @@ case class StructNameT(
   template: IStructTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IStructNameT with CitizenNameT {
-  this match {
-    case StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(false))) => {
-      vwat() // Last arg shouldnt be imm
-    }
+  vpass()
+  templateArgs.lastOption match {
+    case Some(RegionTemplata(false)) => vwat() // Last arg should never be imm
     case _ =>
   }
-  vpass()
 }
 
 case class InterfaceNameT(

@@ -122,7 +122,7 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     structExpr2: ReferenceExpressionTE,
-    memberName: IdT[IVarNameT]
+    memberName: IVarNameT
   ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
     val (destinationResultLine, destinationDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
@@ -134,7 +134,7 @@ class MutateHammer(
 //        case PackTT(_, sr) => sr
       }
     val structDefT = hinputs.lookupStruct(structTT.id)
-    val memberIndex = structDefT.members.indexWhere(member => structDefT.instantiatedCitizen.id.addStep(member.name) == memberName)
+    val memberIndex = structDefT.members.indexWhere(_.name == memberName)
     vassert(memberIndex >= 0)
     val member2 =
       structDefT.members(memberIndex) match {
@@ -157,7 +157,7 @@ class MutateHammer(
 
     // We're storing into a struct's member that is a box. The stack is also
     // pointing at this box. First, get the box, then mutate what's inside.
-    val nameH = nameHammer.translateFullName(hinputs, hamuts, memberName)
+    val nameH = nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(memberName))
     val loadResultType =
       CoordH(
         vimpl(/*BorrowH*/),
@@ -187,7 +187,7 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     structExpr2: ReferenceExpressionTE,
-    memberName: IdT[IVarNameT]
+    memberName: IVarNameT
   ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
     val (destinationResultLine, destinationDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
@@ -199,7 +199,7 @@ class MutateHammer(
     val structDefT = hinputs.lookupStruct(structTT.id)
     val memberIndex =
       structDefT.members
-        .indexWhere(member => structDefT.templateName.addStep(member.name) == memberName)
+        .indexWhere(_.name == memberName)
     vassert(memberIndex >= 0)
 
     val structDefH = hamuts.structTToStructDefH(structTT)
@@ -211,7 +211,7 @@ class MutateHammer(
           destinationResultLine.expectStructAccess(),
           memberIndex,
           sourceExprResultLine,
-          nameHammer.translateFullName(hinputs, hamuts, memberName))
+          nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(memberName)))
     (storeNode, destinationDeferreds)
   }
 
@@ -222,7 +222,7 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     sourceResultPointerTypeH: CoordH[KindHT],
-    varId: IdT[IVarNameT],
+    varId: IVarNameT,
     variability: VariabilityT,
     reference: CoordT
   ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
@@ -234,7 +234,7 @@ class MutateHammer(
 
     // This means we're trying to mutate a local variable that holds a box.
     // We need to load the box, then mutate its contents.
-    val nameH = nameHammer.translateFullName(hinputs, hamuts, varId)
+    val nameH = nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(varId))
     val loadBoxNode =
       LocalLoadH(
         local,
@@ -256,7 +256,7 @@ class MutateHammer(
     currentFunctionHeader: FunctionHeaderT,
                                            locals: LocalsBox,
                                            sourceExprResultLine: ExpressionH[KindHT],
-                                           varId: IdT[IVarNameT]
+                                           varId: IVarNameT
   ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
     val local = locals.get(varId).get
     vassert(!locals.unstackifiedVars.contains(local.id))
@@ -264,7 +264,7 @@ class MutateHammer(
         LocalStoreH(
           local,
           sourceExprResultLine,
-          nameHammer.translateFullName(hinputs, hamuts, varId))
+          nameHammer.translateFullName(hinputs, hamuts, currentFunctionHeader.id.addStep(varId)))
     (newStoreNode, Vector.empty)
   }
 }

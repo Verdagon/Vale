@@ -64,15 +64,15 @@ class TypeHammer(
     val location = {
       (ownership, innerType) match {
         case (OwnT, _) => YonderH
-        case (BorrowT, _) => YonderH
+        case (BorrowT | ImmutableBorrowT | MutableBorrowT, _) => YonderH
         case (WeakT, _) => YonderH
-        case (ShareT, OverloadSetT(_, _)) => InlineH
+        case (ShareT | ImmutableShareT | MutableShareT, OverloadSetT(_, _)) => InlineH
 //        case (ShareT, PackTT(_, _)) => InlineH
 //        case (ShareT, TupleTT(_, _)) => InlineH
 //        case (ShareT, StructTT(FullNameT(_, Vector(), CitizenNameT(CitizenTemplateNameT("Tup"), _)))) => InlineH
-        case (ShareT, VoidT() | IntT(_) | BoolT() | FloatT() | NeverT(_)) => InlineH
-        case (ShareT, StrT()) => YonderH
-        case (ShareT, _) => YonderH
+        case (ShareT | ImmutableShareT | MutableShareT, VoidT() | IntT(_) | BoolT() | FloatT() | NeverT(_)) => InlineH
+        case (ShareT | ImmutableShareT | MutableShareT, StrT()) => YonderH
+        case (ShareT | ImmutableShareT | MutableShareT, _) => YonderH
       }
     }
     val (innerH) = translateKind(hinputs, hamuts, innerType);
