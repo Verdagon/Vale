@@ -77,7 +77,7 @@ class CompilerTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), { case ParameterT(_, _, CoordT(ShareT, _, IntT.i32)) => })
     val lookup = Collector.onlyOf(coutputs.lookupFunction("main"), classOf[LocalLookupTE]);
-    lookup.localVariable.id.localName match { case CodeVarNameT(StrI("a")) => }
+    lookup.localVariable.name match { case CodeVarNameT(StrI("a")) => }
     lookup.localVariable.coord match { case CoordT(ShareT, _, IntT.i32) => }
   }
 
@@ -173,7 +173,7 @@ class CompilerTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     val tyype =
       Collector.only(main.body, {
-        case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("b"))), _, tyype), _) => tyype
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("b")), _, tyype), _) => tyype
       })
     tyype.ownership shouldEqual BorrowT
   }
@@ -430,9 +430,7 @@ class CompilerTests extends FunSuite with Matchers {
     main shouldHave {
       case ReferenceMemberLookupTE(_,
         SoftLoadTE(_,BorrowT),
-        IdT(_,
-          Vector(StructTemplateNameT(StrI("MyStruct"))),
-          CodeVarNameT(StrI("a"))),
+          CodeVarNameT(StrI("a")),
         CoordT(ShareT,_,IntT(32)),
         FinalT) =>
     }
@@ -613,7 +611,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     val main = coutputs.lookupFunction("main")
 
-    Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(IdT(_,_,CodeVarNameT(StrI("x"))),FinalT,CoordT(OwnT,_,InterfaceTT(simpleName("MyInterface")))), _) => })
+    Collector.only(main, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")),FinalT,CoordT(OwnT,_,InterfaceTT(simpleName("MyInterface")))), _) => })
 
     val upcast = Collector.onlyOf(main, classOf[UpcastTE])
     upcast.result.coord match { case CoordT(OwnT,_,InterfaceTT(IdT(x, Vector(), InterfaceNameT(InterfaceTemplateNameT(StrI("MyInterface")), Vector())))) => vassert(x.isTest) }
@@ -709,7 +707,7 @@ class CompilerTests extends FunSuite with Matchers {
     Collector.only(main, {
       case ReferenceMemberLookupTE(_,
         SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,_,StructTT(_)))),BorrowT),
-        IdT(_, Vector(StructTemplateNameT(StrI("Vec3i"))),CodeVarNameT(StrI("x"))),CoordT(ShareT,_,IntT.i32),FinalT) =>
+        CodeVarNameT(StrI("x")),CoordT(ShareT,_,IntT.i32),FinalT) =>
     })
   }
 
@@ -1273,7 +1271,7 @@ class CompilerTests extends FunSuite with Matchers {
       CantMutateFinalMember(
         tz,
         serenityKind,
-        IdT(PackageCoordinate.TEST_TLD(interner, keywords), Vector(), CodeVarNameT(StrI("bork")))))
+        CodeVarNameT(StrI("bork"))))
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       LambdaReturnDoesntMatchInterfaceConstructor(

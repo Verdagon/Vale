@@ -336,7 +336,7 @@ class ArrayTests extends FunSuite with Matchers {
     Collector.only(main, {
       case LetNormalTE(
         ReferenceLocalVariableT(
-          IdT(_,Vector(_),CodeVarNameT(StrI("a"))),
+          CodeVarNameT(StrI("a")),
           _,
           CoordT(OwnT,_,contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT),CoordT(ShareT,_,IntT(_)), null))), _) =>
     })

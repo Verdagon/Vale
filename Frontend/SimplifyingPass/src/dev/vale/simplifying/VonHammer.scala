@@ -1146,7 +1146,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
           Vector(
             VonMember("codeLocation", vonifyCodeLocation2(codeLocation))))
       }
-      case ClosureParamNameT() => {
+      case ClosureParamNameT(_) => {
         VonObject(
           "ClosureParamName",
           None,

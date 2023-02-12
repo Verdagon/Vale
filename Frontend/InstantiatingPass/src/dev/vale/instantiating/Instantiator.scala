@@ -1264,7 +1264,7 @@ class Instantiator(
       case r @ ReferenceLocalVariableT(_, _, _) => translateReferenceLocalVariable(r)
       case AddressibleLocalVariableT(id, variability, coord) => {
         AddressibleLocalVariableT(
-          translateVarFullName(id),
+          translateVarName(id),
           variability,
           translateCoord(coord))
       }
@@ -1276,7 +1276,7 @@ class Instantiator(
   ReferenceLocalVariableT = {
     val ReferenceLocalVariableT(id, variability, reference) = variable
     ReferenceLocalVariableT(
-      translateVarFullName(id),
+      translateVarName(id),
       variability,
       translateCoord(reference))
   }
@@ -1292,7 +1292,7 @@ class Instantiator(
         ReferenceMemberLookupTE(
           range,
           translateRefExpr(structExpr),
-          translateVarFullName(memberName),
+          translateVarName(memberName),
           translateCoord(memberCoord),
           variability)
       }
@@ -1308,7 +1308,7 @@ class Instantiator(
         AddressMemberLookupTE(
           range,
           translateRefExpr(structExpr),
-          translateVarFullName(memberName),
+          translateVarName(memberName),
           translateCoord(resultType2),
           variability)
       }
@@ -1658,18 +1658,6 @@ class Instantiator(
     resultRefExpr
   }
 
-  def translateVarFullName(
-    id: IdT[IVarNameT]):
-  IdT[IVarNameT] = {
-    val IdT(module, steps, last) = id
-    val result =
-      IdT(
-        module,
-        steps.map(translateName),
-        translateVarName(last))
-    result
-  }
-
   def translateFunctionFullName(
     fullNameT: IdT[IFunctionNameT]):
   IdT[IFunctionNameT] = {
@@ -2006,7 +1994,7 @@ class Instantiator(
     name match {
       case TypingPassFunctionResultVarNameT() => name
       case CodeVarNameT(_) => name
-      case ClosureParamNameT() => name
+      case ClosureParamNameT(_) => name
       case TypingPassBlockResultVarNameT(life) => name
       case TypingPassTemporaryVarNameT(life) => name
       case ConstructingMemberNameT(_) => name
