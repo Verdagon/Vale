@@ -37,7 +37,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     moo.genericParams match {
       case Vector(
         GenericParameterS(_,
-          RuneUsage(_,DefaultRegionRuneS()),
+          RuneUsage(_,DenizenDefaultRegionRuneS(_)),
           RegionGenericParameterTypeS(ReadWriteRegionS),
           None)) =>
     }
@@ -186,7 +186,7 @@ class PostParserTests extends FunSuite with Matchers with Collector {
     moo.genericParams match {
       case Vector(
         GenericParameterS(_, RuneUsage(_,CodeRuneS(StrI("r"))), RegionGenericParameterTypeS(ImmutableRegionS), None),
-        GenericParameterS(_, RuneUsage(_,DefaultRegionRuneS()), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
+        GenericParameterS(_, RuneUsage(_,DenizenDefaultRegionRuneS(_)), RegionGenericParameterTypeS(ReadWriteRegionS), None)) =>
     }
   }
 

@@ -19,6 +19,20 @@ case class DenizenBoundToDenizenCallerBoundArg(
   funcBoundToCallerSuppliedBoundArgFunc: Map[IdT[FunctionBoundNameT], PrototypeT],
   implBoundToCallerSuppliedBoundArgImpl: Map[IdT[ImplBoundNameT], IdT[IImplNameT]])
 
+// Note this has mutable stuff in it.
+case class NodeEnvironment(
+  maybeParent: Option[NodeEnvironment],
+  // We track these because we need to know the original type of the local, see CTOTFIPB.
+  idToLocal: mutable.HashMap[IdT[IVarNameT], ILocalVariableT]) {
+
+  def addTranslatedVariable(idT: IdT[IVarNameT], translatedLocalVar: ILocalVariableT): Unit = {
+    idToLocal += (idT -> translatedLocalVar)
+  }
+
+  def lookupOriginalTranslatedVariable(idT: IdT[IVarNameT]): ILocalVariableT = {
+    vassertSome(idToLocal.get(idT))
+  }
+}
 class InstantiatedOutputs() {
   val functions: mutable.HashMap[IdT[IFunctionNameT], FunctionDefinitionT] =
     mutable.HashMap[IdT[IFunctionNameT], FunctionDefinitionT]()
@@ -1283,7 +1297,8 @@ class Instantiator(
 
     val newHeader = translateFunctionHeader(headerT)
 
-    val bodyResult = translateRefExpr(maybeNearestPureBlockLocation, bodyT)
+    val startingEnv = NodeEnvironment(None, mutable.HashMap())
+    val bodyResult = translateRefExpr(startingEnv, maybeNearestPureBlockLocation, bodyT)
     val result = FunctionDefinitionT(newHeader, Map(), Map(), bodyResult)
     monouts.functions.put(result.header.id, result)
     result
@@ -1316,33 +1331,66 @@ class Instantiator(
   }
 
   def translateAddrExpr(
+    env: NodeEnvironment,
     maybeNearestPureBlockLocation: Option[LocationInDenizen],
     expr: AddressExpressionTE):
   AddressExpressionTE = {
     expr match {
-      case LocalLookupTE(range, localVariable) => {
-        LocalLookupTE(range, translateLocalVariable(maybeNearestPureBlockLocation, localVariable))
+      case LocalLookupTE(range, localVariableT) => {
+        // We specifically don't *translate* LocalLookupTE.localVariable because we can't translate
+        // it properly from here with our current understandings of the regions' mutabilities, we
+        // need its original type. See CTOTFIPB.
+        val localVariable = env.lookupOriginalTranslatedVariable(localVariableT.id)
+
+        LocalLookupTE(range, localVariable)
       }
-      case ReferenceMemberLookupTE(range, structExpr, memberName, memberCoord, variability) => {
+      case ReferenceMemberLookupTE(range, structExprT, memberName, memberCoordT, variability) => {
+        val structExpr = translateRefExpr(env, maybeNearestPureBlockLocation, structExprT)
+        val resultStruct = structExpr.result.coord.kind.expectStruct()
+        val memberId = translateVarFullName(maybeNearestPureBlockLocation, memberName)
+        // We can't translate ReferenceMemberLookupTE.memberCoord's kind here because we'll
+        // translate its template args' regions incorrectly according to their current mutabilities.
+        // They need to be the mutabilities at the time they were introduced, see CTOTFIPB. So
+        // instead, we look it up from the struct definition.
+        val structDef = vassertSome(monouts.structs.get(resultStruct.id))
+        val defMemberCoord =
+          vassertSome(structDef.members.find(_.name == memberId.localName)) match {
+            case NormalStructMemberT(name, variability, tyype) => tyype.reference
+            case VariadicStructMemberT(name, tyype) => vimpl()
+          }
+
+        // However, the resulting coord's region *should* have the current mutability.
+        val resultRegion =
+          expectRegion(translateTemplata(maybeNearestPureBlockLocation, memberCoordT.region))
+
+        val resultOwnership =
+          (defMemberCoord.ownership, resultRegion) match {
+            case (OwnT, RegionTemplata(false)) => OwnT
+            case (MutableShareT, RegionTemplata(false)) => ImmutableShareT
+            case (otherOwnership, otherRegion) => vimpl()
+          }
+
+        val resultCoord = CoordT(resultOwnership, resultRegion, defMemberCoord.kind)
+
         ReferenceMemberLookupTE(
           range,
-          translateRefExpr(maybeNearestPureBlockLocation, structExpr),
-          translateVarFullName(maybeNearestPureBlockLocation, memberName),
-          translateCoord(maybeNearestPureBlockLocation, memberCoord),
+          structExpr,
+          memberId,
+          resultCoord,
           variability)
       }
       case StaticSizedArrayLookupTE(range, arrayExpr, arrayType, indexExpr, variability) => {
         StaticSizedArrayLookupTE(
           range,
-          translateRefExpr(maybeNearestPureBlockLocation, arrayExpr),
+          translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr),
           translateStaticSizedArray(maybeNearestPureBlockLocation, arrayType),
-          translateRefExpr(maybeNearestPureBlockLocation, indexExpr),
+          translateRefExpr(env, maybeNearestPureBlockLocation, indexExpr),
           variability)
       }
       case AddressMemberLookupTE(range, structExpr, memberName, resultType2, variability) => {
         AddressMemberLookupTE(
           range,
-          translateRefExpr(maybeNearestPureBlockLocation, structExpr),
+          translateRefExpr(env, maybeNearestPureBlockLocation, structExpr),
           translateVarFullName(maybeNearestPureBlockLocation, memberName),
           translateCoord(maybeNearestPureBlockLocation, resultType2),
           variability)
@@ -1350,9 +1398,9 @@ class Instantiator(
       case RuntimeSizedArrayLookupTE(range, arrayExpr, arrayType, indexExpr, variability) => {
         RuntimeSizedArrayLookupTE(
           range,
-          translateRefExpr(maybeNearestPureBlockLocation, arrayExpr),
+          translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr),
           translateRuntimeSizedArray(maybeNearestPureBlockLocation, arrayType),
-          translateRefExpr(maybeNearestPureBlockLocation, indexExpr),
+          translateRefExpr(env, maybeNearestPureBlockLocation, indexExpr),
           variability)
       }
       case other => vimpl(other)
@@ -1360,41 +1408,45 @@ class Instantiator(
   }
 
   def translateExpr(
+    env: NodeEnvironment,
     maybeNearestPureBlockLocation: Option[LocationInDenizen],
     expr: ExpressionT):
   ExpressionT = {
     expr match {
-      case r : ReferenceExpressionTE => translateRefExpr(maybeNearestPureBlockLocation, r)
-      case a : AddressExpressionTE => translateAddrExpr(maybeNearestPureBlockLocation, a)
+      case r : ReferenceExpressionTE => translateRefExpr(env, maybeNearestPureBlockLocation, r)
+      case a : AddressExpressionTE => translateAddrExpr(env, maybeNearestPureBlockLocation, a)
     }
   }
 
   def translateRefExpr(
+    env: NodeEnvironment,
     maybeNearestPureBlockLocation: Option[LocationInDenizen],
     expr: ReferenceExpressionTE):
   ReferenceExpressionTE = {
     val resultRefExpr =
       expr match {
-        case LetNormalTE(variable, inner) => {
+        case LetNormalTE(variableT, inner) => {
+          val translatedVariable = translateLocalVariable(maybeNearestPureBlockLocation, variableT)
+          env.addTranslatedVariable(variableT.id, translatedVariable)
           LetNormalTE(
-            translateLocalVariable(maybeNearestPureBlockLocation, variable),
-            translateRefExpr(maybeNearestPureBlockLocation, inner))
+            translatedVariable,
+            translateRefExpr(env, maybeNearestPureBlockLocation, inner))
         }
         case PureTE(location, transmigrateResultToRegion, inner) => {
           val newMaybeNearestPureBlockLocation = Some(location)
           PureTE(
             location,
             expectRegionTemplata(translateTemplata(maybeNearestPureBlockLocation, transmigrateResultToRegion)),
-            translateRefExpr(newMaybeNearestPureBlockLocation, inner))
+            translateRefExpr(env, newMaybeNearestPureBlockLocation, inner))
         }
         case BlockTE(inner) => {
-          BlockTE(translateRefExpr(maybeNearestPureBlockLocation, inner))
+          BlockTE(translateRefExpr(env, maybeNearestPureBlockLocation, inner))
         }
         case ReturnTE(inner) => {
-          ReturnTE(translateRefExpr(maybeNearestPureBlockLocation, inner))
+          ReturnTE(translateRefExpr(env, maybeNearestPureBlockLocation, inner))
         }
         case ConsecutorTE(inners) => {
-          ConsecutorTE(inners.map(translateRefExpr(maybeNearestPureBlockLocation, _)))
+          ConsecutorTE(inners.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)))
         }
         case ConstantIntTE(value, bits, region) => {
           ConstantIntTE(
@@ -1415,7 +1467,7 @@ class Instantiator(
           UnletTE(translateLocalVariable(maybeNearestPureBlockLocation, variable))
         }
         case DiscardTE(expr) => {
-          DiscardTE(translateRefExpr(maybeNearestPureBlockLocation, expr))
+          DiscardTE(translateRefExpr(env, maybeNearestPureBlockLocation, expr))
         }
         case VoidLiteralTE(region) => {
           VoidLiteralTE(ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)))
@@ -1424,7 +1476,7 @@ class Instantiator(
           val prototype = translatePrototype(maybeNearestPureBlockLocation, prototypeT)
           FunctionCallTE(
             prototype,
-            args.map(translateRefExpr(maybeNearestPureBlockLocation, _)))
+            args.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)))
         }
         case InterfaceFunctionCallTE(superFunctionPrototypeT, virtualParamIndex, resultReference, args) => {
           val superFunctionPrototype = translatePrototype(maybeNearestPureBlockLocation, superFunctionPrototypeT)
@@ -1433,7 +1485,7 @@ class Instantiator(
               superFunctionPrototype,
               virtualParamIndex,
               translateCoord(maybeNearestPureBlockLocation, resultReference),
-              args.map(translateRefExpr(maybeNearestPureBlockLocation, _)))
+              args.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)))
           val interfaceFullName =
             superFunctionPrototype.paramTypes(virtualParamIndex).kind.expectInterface().id
           //        val interfaceFullName =
@@ -1456,7 +1508,7 @@ class Instantiator(
         }
         case ArgLookupTE(paramIndex, reference) => ArgLookupTE(paramIndex, translateCoord(maybeNearestPureBlockLocation, reference))
         case SoftLoadTE(originalInner, originalTargetOwnership) => {
-          val inner = translateAddrExpr(maybeNearestPureBlockLocation, originalInner)
+          val inner = translateAddrExpr(env, maybeNearestPureBlockLocation, originalInner)
           val targetOwnership =
             // First, figure out what ownership it is after substitution.
             // if we have an owned T but T is a &Ship, then own + borrow = borrow
@@ -1466,6 +1518,15 @@ class Instantiator(
               case (ShareT, MutableShareT) => MutableShareT
               case (BorrowT, ImmutableShareT) => ImmutableShareT
               case (BorrowT, MutableShareT) => MutableShareT
+              case (BorrowT, ImmutableBorrowT) => ImmutableBorrowT
+              case (BorrowT, MutableBorrowT) => {
+//                MutableBorrowT
+                if (coordRegionIsMutable(maybeNearestPureBlockLocation, originalInner.result.coord)) {
+                  MutableBorrowT
+                } else {
+                  ImmutableBorrowT
+                }
+              }
               case (BorrowT, WeakT) => WeakT
               case (BorrowT, OwnT) => {
                 if (coordRegionIsMutable(maybeNearestPureBlockLocation, originalInner.result.coord)) {
@@ -1486,7 +1547,7 @@ class Instantiator(
         case ExternFunctionCallTE(prototype2, args) => {
           ExternFunctionCallTE(
             translatePrototype(maybeNearestPureBlockLocation, prototype2),
-            args.map(translateRefExpr(maybeNearestPureBlockLocation, _)))
+            args.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)))
         }
         case ConstructTE(structTT, resultReference, args) => {
           val coord = translateCoord(maybeNearestPureBlockLocation, resultReference)
@@ -1508,11 +1569,11 @@ class Instantiator(
                 maybeNearestPureBlockLocation,
                 hinputs.getInstantiationBoundArgs(structTT.id))),
             coord,
-            args.map(translateExpr(maybeNearestPureBlockLocation, _)))
+            args.map(translateExpr(env, maybeNearestPureBlockLocation, _)))
         }
         case DestroyTE(expr, structTT, destinationReferenceVariables) => {
           DestroyTE(
-            translateRefExpr(maybeNearestPureBlockLocation, expr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, expr),
             translateStruct(
               maybeNearestPureBlockLocation,
               structTT,
@@ -1523,8 +1584,8 @@ class Instantiator(
         }
         case MutateTE(destinationExpr, sourceExpr) => {
           MutateTE(
-            translateAddrExpr(maybeNearestPureBlockLocation, destinationExpr),
-            translateRefExpr(maybeNearestPureBlockLocation, sourceExpr))
+            translateAddrExpr(env, maybeNearestPureBlockLocation, destinationExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, sourceExpr))
         }
         case u @ UpcastTE(innerExprUnsubstituted, targetSuperKind, untranslatedImplFullName) => {
           val implFullName =
@@ -1545,21 +1606,21 @@ class Instantiator(
           //          }
 
           UpcastTE(
-            translateRefExpr(maybeNearestPureBlockLocation, innerExprUnsubstituted),
+            translateRefExpr(env, maybeNearestPureBlockLocation, innerExprUnsubstituted),
             translateSuperKind(maybeNearestPureBlockLocation, targetSuperKind),
             implFullName)//,
           //            freePrototype)
         }
         case IfTE(condition, thenCall, elseCall) => {
           IfTE(
-            translateRefExpr(maybeNearestPureBlockLocation, condition),
-            translateRefExpr(maybeNearestPureBlockLocation, thenCall),
-            translateRefExpr(maybeNearestPureBlockLocation, elseCall))
+            translateRefExpr(env, maybeNearestPureBlockLocation, condition),
+            translateRefExpr(env, maybeNearestPureBlockLocation, thenCall),
+            translateRefExpr(env, maybeNearestPureBlockLocation, elseCall))
         }
         case IsSameInstanceTE(left, right) => {
           IsSameInstanceTE(
-            translateRefExpr(maybeNearestPureBlockLocation, left),
-            translateRefExpr(maybeNearestPureBlockLocation, right))
+            translateRefExpr(env, maybeNearestPureBlockLocation, left),
+            translateRefExpr(env, maybeNearestPureBlockLocation, right))
         }
         case StaticArrayFromValuesTE(elements, resultReference, arrayType) => {
 
@@ -1574,17 +1635,17 @@ class Instantiator(
           //          }
 
           StaticArrayFromValuesTE(
-            elements.map(translateRefExpr(maybeNearestPureBlockLocation, _)),
+            elements.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)),
             translateCoord(maybeNearestPureBlockLocation, resultReference),
             arrayType)
         }
         case DeferTE(innerExpr, deferredExpr) => {
           DeferTE(
-            translateRefExpr(maybeNearestPureBlockLocation, innerExpr),
-            translateRefExpr(maybeNearestPureBlockLocation, deferredExpr))
+            translateRefExpr(env, maybeNearestPureBlockLocation, innerExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, deferredExpr))
         }
         case LetAndLendTE(variable, sourceExprT, targetOwnership) => {
-          val sourceExpr = translateRefExpr(maybeNearestPureBlockLocation, sourceExprT)
+          val sourceExpr = translateRefExpr(env, maybeNearestPureBlockLocation, sourceExprT)
 
           val resultOwnership =
             (targetOwnership, sourceExpr.result.coord.ownership) match {
@@ -1609,16 +1670,16 @@ class Instantiator(
             resultOwnership)
         }
         case BorrowToWeakTE(innerExpr) => {
-          BorrowToWeakTE(translateRefExpr(maybeNearestPureBlockLocation, innerExpr))
+          BorrowToWeakTE(translateRefExpr(env, maybeNearestPureBlockLocation, innerExpr))
         }
         case WhileTE(BlockTE(inner)) => {
           vimpl()
-          WhileTE(BlockTE(translateRefExpr(vimpl(), inner)))
+          WhileTE(BlockTE(translateRefExpr(env, vimpl(), inner)))
         }
         case BreakTE(region) => BreakTE(ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)))
         case LockWeakTE(innerExpr, resultOptBorrowType, someConstructor, noneConstructor, someImplUntranslatedFullName, noneImplUntranslatedFullName) => {
           LockWeakTE(
-            translateRefExpr(maybeNearestPureBlockLocation, innerExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, innerExpr),
             translateCoord(maybeNearestPureBlockLocation, resultOptBorrowType),
             translatePrototype(maybeNearestPureBlockLocation, someConstructor),
             translatePrototype(maybeNearestPureBlockLocation, noneConstructor),
@@ -1637,9 +1698,9 @@ class Instantiator(
         }
         case DestroyStaticSizedArrayIntoFunctionTE(arrayExpr, arrayType, consumer, consumerMethod) => {
           DestroyStaticSizedArrayIntoFunctionTE(
-            translateRefExpr(maybeNearestPureBlockLocation, arrayExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr),
             translateStaticSizedArray(maybeNearestPureBlockLocation, arrayType),
-            translateRefExpr(maybeNearestPureBlockLocation, consumer),
+            translateRefExpr(env, maybeNearestPureBlockLocation, consumer),
             translatePrototype(maybeNearestPureBlockLocation, consumerMethod))
         }
         case NewImmRuntimeSizedArrayTE(arrayType, region, sizeExpr, generator, generatorMethod) => {
@@ -1649,8 +1710,8 @@ class Instantiator(
             NewImmRuntimeSizedArrayTE(
               translateRuntimeSizedArray(maybeNearestPureBlockLocation, arrayType),
               ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)),
-              translateRefExpr(maybeNearestPureBlockLocation, sizeExpr),
-              translateRefExpr(maybeNearestPureBlockLocation, generator),
+              translateRefExpr(env, maybeNearestPureBlockLocation, sizeExpr),
+              translateRefExpr(env, maybeNearestPureBlockLocation, generator),
               translatePrototype(maybeNearestPureBlockLocation, generatorMethod))
 
           val coord = result.result.coord
@@ -1671,7 +1732,7 @@ class Instantiator(
             StaticArrayFromCallableTE(
               translateStaticSizedArray(maybeNearestPureBlockLocation, arrayType),
               ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)),
-              translateRefExpr(maybeNearestPureBlockLocation, generator),
+              translateRefExpr(env, maybeNearestPureBlockLocation, generator),
               translatePrototype(maybeNearestPureBlockLocation, generatorMethod))
 
           val coord = result.result.coord
@@ -1686,44 +1747,44 @@ class Instantiator(
           result
         }
         case RuntimeSizedArrayCapacityTE(arrayExpr) => {
-          RuntimeSizedArrayCapacityTE(translateRefExpr(maybeNearestPureBlockLocation, arrayExpr))
+          RuntimeSizedArrayCapacityTE(translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr))
         }
         case PushRuntimeSizedArrayTE(arrayExpr, newElementExpr) => {
           PushRuntimeSizedArrayTE(
-            translateRefExpr(maybeNearestPureBlockLocation, arrayExpr),
-            translateRefExpr(maybeNearestPureBlockLocation, newElementExpr))
+            translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, newElementExpr))
         }
         case PopRuntimeSizedArrayTE(arrayExpr) => {
-          PopRuntimeSizedArrayTE(translateRefExpr(maybeNearestPureBlockLocation, arrayExpr))
+          PopRuntimeSizedArrayTE(translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr))
         }
         case ArrayLengthTE(arrayExpr) => {
-          ArrayLengthTE(translateRefExpr(maybeNearestPureBlockLocation, arrayExpr))
+          ArrayLengthTE(translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr))
         }
         case DestroyImmRuntimeSizedArrayTE(arrayExpr, arrayType, consumer, consumerMethod) => {
           DestroyImmRuntimeSizedArrayTE(
-            translateRefExpr(maybeNearestPureBlockLocation, arrayExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr),
             translateRuntimeSizedArray(maybeNearestPureBlockLocation, arrayType),
-            translateRefExpr(maybeNearestPureBlockLocation, consumer),
+            translateRefExpr(env, maybeNearestPureBlockLocation, consumer),
             translatePrototype(maybeNearestPureBlockLocation, consumerMethod))
           //            translatePrototype(freePrototype))
         }
         case DestroyMutRuntimeSizedArrayTE(arrayExpr) => {
-          DestroyMutRuntimeSizedArrayTE(translateRefExpr(maybeNearestPureBlockLocation, arrayExpr))
+          DestroyMutRuntimeSizedArrayTE(translateRefExpr(env, maybeNearestPureBlockLocation, arrayExpr))
         }
         case NewMutRuntimeSizedArrayTE(arrayType, region, capacityExpr) => {
           NewMutRuntimeSizedArrayTE(
             translateRuntimeSizedArray(maybeNearestPureBlockLocation, arrayType),
             ITemplata.expectRegion(translateTemplata(maybeNearestPureBlockLocation, region)),
-            translateRefExpr(maybeNearestPureBlockLocation, capacityExpr))
+            translateRefExpr(env, maybeNearestPureBlockLocation, capacityExpr))
         }
         case TupleTE(elements, resultReference) => {
           TupleTE(
-            elements.map(translateRefExpr(maybeNearestPureBlockLocation, _)),
+            elements.map(translateRefExpr(env, maybeNearestPureBlockLocation, _)),
             translateCoord(maybeNearestPureBlockLocation, resultReference))
         }
         case AsSubtypeTE(sourceExpr, targetSubtype, resultResultType, okConstructor, errConstructor, implFullNameT, okResultImplFullNameT, errResultImplFullNameT) => {
           AsSubtypeTE(
-            translateRefExpr(maybeNearestPureBlockLocation, sourceExpr),
+            translateRefExpr(env, maybeNearestPureBlockLocation, sourceExpr),
             translateCoord(maybeNearestPureBlockLocation, targetSubtype),
             translateCoord(maybeNearestPureBlockLocation, resultResultType),
             translatePrototype(maybeNearestPureBlockLocation, okConstructor),

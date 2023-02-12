@@ -84,6 +84,7 @@ case class CoordT(
 
   (ownership, region) match {
     case (ImmutableShareT, RegionTemplata(true)) => vwat()
+    case (MutableShareT, RegionTemplata(false)) => vwat()
     case _ =>
   }
 

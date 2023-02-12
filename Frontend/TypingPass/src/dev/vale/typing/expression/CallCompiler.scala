@@ -7,7 +7,7 @@ import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._

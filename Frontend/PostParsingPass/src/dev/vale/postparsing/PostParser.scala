@@ -439,7 +439,7 @@ class PostParser(
     val (defaultRegionRuneRangeS, defaultRegionRuneS, maybeRegionGenericParam) =
     {
       val regionRange = RangeS(rangeS.end, rangeS.end)
-      val rune = DefaultRegionRuneS()
+      val rune = DenizenDefaultRegionRuneS(implName)
       runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -534,7 +534,7 @@ class PostParser(
     val (defaultRegionRuneRangeS, defaultRegionRuneS, regionGenericParam) =
     {
       val regionRange = RangeS(rangeS.end, rangeS.end)
-      val rune = DefaultRegionRuneS()
+      val rune = DenizenDefaultRegionRuneS(exportName)
       runeToExplicitType += ((rune, RegionTemplataType()))
       val implicitRegionGenericParam =
         GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -604,7 +604,7 @@ class PostParser(
       maybeDefaultRegionRuneP match {
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
-          val rune = DefaultRegionRuneS()
+          val rune = DenizenDefaultRegionRuneS(structName)
           headerRuneToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -685,7 +685,7 @@ class PostParser(
     val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), KindTemplataType())
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
-    val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))
+    val attrsS = translateCitizenAttributes(file, structName, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))
 
 //    val runeSToCanonicalRune = ruleBuilder.runeSToTentativeRune.mapValues(tentativeRune => tentativeRuneToCanonicalRune(tentativeRune))
 
@@ -708,9 +708,9 @@ class PostParser(
       membersS)
   }
 
-  def translateCitizenAttributes(file: FileCoordinate, attrsP: Vector[IAttributeP]): Vector[ICitizenAttributeS] = {
+  def translateCitizenAttributes(file: FileCoordinate, denizenName: INameS, attrsP: Vector[IAttributeP]): Vector[ICitizenAttributeS] = {
     attrsP.map({
-      case ExportAttributeP(_) => ExportS(file.packageCoordinate)
+      case ExportAttributeP(_) => ExportS(file.packageCoordinate, ExportDefaultRegionRuneS(denizenName))
       case SealedAttributeP(_) => SealedS
       case MacroCallP(range, dontCall, NameP(_, str)) => MacroCallS(PostParser.evalRange(file, range), dontCall, str)
       case x => vimpl(x.toString)
@@ -810,7 +810,7 @@ class PostParser(
       maybeDefaultRegionRuneP match {
         case None => {
           val regionRange = RangeS(bodyRangeS.begin, bodyRangeS.begin)
-          val rune = DefaultRegionRuneS()
+          val rune = DenizenDefaultRegionRuneS(interfaceFullName)
           runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
@@ -866,7 +866,7 @@ class PostParser(
       })
 
     val weakable = attributesP.exists({ case w @ WeakableAttributeP(_) => true case _ => false })
-    val attrsS = translateCitizenAttributes(file, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))
+    val attrsS = translateCitizenAttributes(file, interfaceFullName, attributesP.filter({ case WeakableAttributeP(_) => false case _ => true}))
 
     val interfaceS =
       InterfaceS(

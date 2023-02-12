@@ -5,7 +5,7 @@ import dev.vale.RangeS
 import dev.vale.postparsing._
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions}
 import dev.vale.typing.ast.{BlockTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironmentT, NodeEnvironmentBox}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{IRegionNameT, IVarNameT, IdT, TypingPassBlockResultVarNameT}
 import dev.vale.typing.types.CoordT
@@ -32,7 +32,7 @@ trait IBlockCompilerDelegate {
 
   def dropSince(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
@@ -82,7 +82,7 @@ class BlockCompiler(
 
   def evaluateBlockStatements(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,

@@ -53,7 +53,7 @@ class StructCompilerCore(
 
     val attributesWithoutExportOrMacros =
       structA.attributes.filter({
-        case ExportS(_) => false
+        case ExportS(_, _) => false
         case MacroCallS(range, dontCall, macroName) => false
         case _ => true
       })
@@ -193,12 +193,12 @@ class StructCompilerCore(
 
     val attributesWithoutExportOrMacros =
       interfaceA.attributes.filter({
-        case ExportS(_) => false
+        case ExportS(_, _) => false
         case MacroCallS(range, dontCall, macroName) => false
         case _ => true
       })
     val maybeExport =
-      interfaceA.attributes.collectFirst { case e@ExportS(_) => e }
+      interfaceA.attributes.collectFirst { case e@ExportS(_, _) => e }
 
     val mutability =
       ITemplata.expectMutability(
@@ -296,7 +296,7 @@ class StructCompilerCore(
 
   // Makes a struct to back a closure
   def makeClosureUnderstruct(
-    containingFunctionEnv: NodeEnvironment,
+    containingFunctionEnv: NodeEnvironmentT,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,

@@ -12,7 +12,7 @@ import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
@@ -130,7 +130,7 @@ class ArrayCompiler(
 
   def evaluateRuntimeSizedArrayFromCallable(
     coutputs: CompilerOutputs,
-    callingEnv: NodeEnvironment,
+    callingEnv: NodeEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
@@ -141,6 +141,10 @@ class ArrayCompiler(
     maybeCallableTE: Option[ReferenceExpressionTE],
     verifyConclusions: Boolean):
   ReferenceExpressionTE = {
+
+    // Normally we make runes in the post-parser, but there's not really an array definition
+    // anywhere that we might post-parse.
+    val defaultRegionRune = DenizenDefaultRegionRuneS(RuntimeSizedArrayDeclarationNameS())
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -195,8 +199,8 @@ class ArrayCompiler(
 
     // Elsewhere we do some incremental solving to fill in default generic param values like the
     // context region, but here I think we can just feed it in directly. There's syntactically no
-    // way to hand it in as a generic param.
-    val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, DefaultRegionRuneS()), region))
+    // way for the user to hand it in as a generic param.
+    val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, defaultRegionRune), region))
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
@@ -311,6 +315,10 @@ class ArrayCompiler(
     verifyConclusions: Boolean):
   StaticArrayFromValuesTE = {
 
+    // Normally we make runes in the post-parser, but there's not really an array definition
+    // anywhere that we might post-parse.
+    val defaultRegionRune = DenizenDefaultRegionRuneS(StaticSizedArrayDeclarationNameS())
+
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
         override def lookup(
@@ -368,7 +376,7 @@ class ArrayCompiler(
     val initialKnowns =
       Vector(
         InitialKnown(
-          RuneUsage(vassertSome(parentRanges.headOption), DefaultRegionRuneS()),
+          RuneUsage(vassertSome(parentRanges.headOption), defaultRegionRune),
           region))
 
     val CompleteCompilerSolve(_, templatas, _, Vector()) =

@@ -19,7 +19,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, IFunctionGenerator, InferCompiler, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.citizen.StructCompiler
-import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IInDenizenEnvironment, NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
+import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{IRegionNameT, IdT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -31,7 +31,7 @@ import scala.collection.immutable.{List, Set}
 trait IFunctionCompilerDelegate {
   def evaluateBlockStatements(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     ranges: List[RangeS],
@@ -252,7 +252,7 @@ class FunctionCompiler(
 
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
-    containingNodeEnv: NodeEnvironment,
+    containingNodeEnv: NodeEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
@@ -276,7 +276,7 @@ class FunctionCompiler(
   }
 
   private def determineClosureVariableMember(
-    env: NodeEnvironment,
+    env: NodeEnvironmentT,
     coutputs: CompilerOutputs,
     name: IVarNameS) = {
     val (variability2, memberType) =

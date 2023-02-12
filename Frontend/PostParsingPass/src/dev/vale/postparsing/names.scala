@@ -110,6 +110,8 @@ case class IteratorNameS(range: RangeS) extends IVarNameS with IImpreciseNameS {
 case class IterationOptionNameS(range: RangeS) extends IVarNameS with IImpreciseNameS {  }
 case class WhileCondResultNameS(range: RangeS) extends IVarNameS {  }
 case class RuneNameS(rune: IRuneS) extends INameS with IImpreciseNameS {  }
+case class RuntimeSizedArrayDeclarationNameS() extends INameS
+case class StaticSizedArrayDeclarationNameS() extends INameS
 
 // We differentiate rune names from regular names, we scout out what's actually
 // a rune so we can inform the typingpass. The typingpass wants to know so it can know
@@ -136,7 +138,9 @@ case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
   }
 }
 case class PureBlockRegionRuneS(lid: LocationInDenizen) extends IRuneS
-case class PureCallRegionRuneS(lid: LocationInDenizen) extends IRuneS
+case class PureCallRegionRuneS(lid: LocationInDenizen) extends IRuneS {
+  vpass()
+}
 case class ImplicitRegionRuneS(originalRune: IRuneS) extends IRuneS
 case class ReachablePrototypeRuneS(num: Int) extends IRuneS
 case class FreeOverrideStructTemplateRuneS() extends IRuneS
@@ -146,7 +150,12 @@ case class LetImplicitRuneS(lid: LocationInDenizen) extends IRuneS {  }
 case class MagicParamRuneS(lid: LocationInDenizen) extends IRuneS {  }
 case class MemberRuneS(memberIndex: Int) extends IRuneS
 
-case class DefaultRegionRuneS() extends IRuneS
+case class LocalDefaultRegionRuneS(lid: LocationInDenizen) extends IRuneS
+// This has a name because there might be multiple default regions in play sometimes.
+// When a function calls the constructor for a struct, the function has its own default region,
+// but it's also evaluating the rules for the struct. Best not mix them up.
+case class DenizenDefaultRegionRuneS(denizenName: INameS) extends IRuneS
+case class ExportDefaultRegionRuneS(denizenName: INameS) extends IRuneS
 case class ImplicitCoercionOwnershipRuneS(range: RangeS, originalCoordRune: IRuneS) extends IRuneS {  }
 case class ImplicitCoercionKindRuneS(range: RangeS, originalCoordRune: IRuneS) extends IRuneS {  }
 case class ImplicitCoercionTemplateRuneS(range: RangeS, originalKindRune: IRuneS) extends IRuneS {  }

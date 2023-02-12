@@ -137,9 +137,9 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
 
 }
 
-case class NodeEnvironment(
+case class NodeEnvironmentT(
   parentFunctionEnv: FunctionEnvironment,
-  parentNodeEnv: Option[NodeEnvironment],
+  parentNodeEnv: Option[NodeEnvironmentT],
   node: IExpressionSE,
   life: LocationInFunctionEnvironment,
 
@@ -162,7 +162,7 @@ case class NodeEnvironment(
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     obj match {
-      case that @ NodeEnvironment(_, _, _, _, _, _, _, _, _) => {
+      case that @ NodeEnvironmentT(_, _, _, _, _, _, _, _, _) => {
         id == that.id && life == that.life
       }
     }
@@ -233,25 +233,25 @@ case class NodeEnvironment(
     unstackifiedLocals.toVector
   }
 
-  def addVariables(newVars: Vector[IVariableT]): NodeEnvironment = {
-    NodeEnvironment(
+  def addVariables(newVars: Vector[IVariableT]): NodeEnvironmentT = {
+    NodeEnvironmentT(
       parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
   }
-  def addVariable(newVar: IVariableT): NodeEnvironment = {
-    NodeEnvironment(
+  def addVariable(newVar: IVariableT): NodeEnvironmentT = {
+    NodeEnvironmentT(
       parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
   }
-  def markLocalUnstackified(newUnstackified: IdT[IVarNameT]): NodeEnvironment = {
+  def markLocalUnstackified(newUnstackified: IdT[IVarNameT]): NodeEnvironmentT = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
     vassert(getAllLocals().exists(_.id == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
-    NodeEnvironment(
+    NodeEnvironmentT(
       parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, latestPureBlockLocation)
   }
 
   // Gets the effects that this environment had on the outside world (on its parent
   // environments). In other words, parent locals that were unstackified.
-  def getEffectsSince(earlierNodeEnv: NodeEnvironment): Set[IdT[IVarNameT]] = {
+  def getEffectsSince(earlierNodeEnv: NodeEnvironmentT): Set[IdT[IVarNameT]] = {
     vassert(parentFunctionEnv == earlierNodeEnv.parentFunctionEnv)
 
     // We may have unstackified outside locals from inside the block, make sure
@@ -269,7 +269,7 @@ case class NodeEnvironment(
   }
 
   def getLiveVariablesIntroducedSince(
-    sinceNenv: NodeEnvironment):
+    sinceNenv: NodeEnvironmentT):
   Vector[ILocalVariableT] = {
     val localsAsOfThen =
       sinceNenv.declaredLocals.collect({
@@ -292,8 +292,12 @@ case class NodeEnvironment(
     unmovedLocalsDeclaredSinceThen
   }
 
-  def makeChild(node: IExpressionSE, locationIfPure: Option[LocationInDenizen]): NodeEnvironment = {
-    NodeEnvironment(
+  def makeChild(
+    node: IExpressionSE,
+    maybeNewDefaultRegion: Option[ITemplata[RegionTemplataType]],
+    locationIfPure: Option[LocationInDenizen]):
+  NodeEnvironmentT = {
+    NodeEnvironmentT(
       parentFunctionEnv,
       Some(this),
       node,
@@ -301,12 +305,12 @@ case class NodeEnvironment(
       TemplatasStore(id, Map(), Map()),
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE.
-      defaultRegion,
+      maybeNewDefaultRegion.getOrElse(defaultRegion),
       locationIfPure.orElse(latestPureBlockLocation))
   }
 
-  def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironment = {
-    NodeEnvironment(
+  def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironmentT = {
+    NodeEnvironmentT(
       parentFunctionEnv,
       parentNodeEnv,
       node,
@@ -317,8 +321,8 @@ case class NodeEnvironment(
       defaultRegion,
       latestPureBlockLocation)
   }
-  def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): NodeEnvironment = {
-    NodeEnvironment(
+  def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): NodeEnvironmentT = {
+    NodeEnvironmentT(
       parentFunctionEnv,
       parentNodeEnv,
       node,
@@ -330,13 +334,13 @@ case class NodeEnvironment(
       latestPureBlockLocation)
   }
 
-  def nearestBlockEnv(): Option[(NodeEnvironment, BlockSE)] = {
+  def nearestBlockEnv(): Option[(NodeEnvironmentT, BlockSE)] = {
     node match {
       case b @ BlockSE(_, _, _) => Some((this, b))
       case _ => parentNodeEnv.flatMap(_.nearestBlockEnv())
     }
   }
-  def nearestLoopEnv(): Option[(NodeEnvironment, IExpressionSE)] = {
+  def nearestLoopEnv(): Option[(NodeEnvironmentT, IExpressionSE)] = {
     node match {
       case w @ WhileSE(_, _) => Some((this, w))
       case w @ MapSE(_, _) => Some((this, w))
@@ -345,10 +349,10 @@ case class NodeEnvironment(
   }
 }
 
-case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
+case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
-  def snapshot: NodeEnvironment = nodeEnvironment
+  def snapshot: NodeEnvironmentT = nodeEnvironment
   def defaultRegion: ITemplata[RegionTemplataType] = nodeEnvironment.defaultRegion
   def id: IdT[IFunctionNameT] = nodeEnvironment.parentFunctionEnv.id
   def node: IExpressionSE = nodeEnvironment.node
@@ -410,8 +414,12 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
     nodeEnvironment.lookupWithNameInner(nameS, lookupFilter, getOnlyNearest)
   }
 
-  def makeChild(node: IExpressionSE, locationIfPure: Option[LocationInDenizen]): NodeEnvironment = {
-    nodeEnvironment.makeChild(node, locationIfPure)
+  def makeChild(
+    node: IExpressionSE,
+    maybeNewDefaultRegion: Option[ITemplata[RegionTemplataType]],
+    locationIfPure: Option[LocationInDenizen]):
+  NodeEnvironmentT = {
+    nodeEnvironment.makeChild(node, maybeNewDefaultRegion, locationIfPure)
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): Unit = {
@@ -421,10 +429,10 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
     nodeEnvironment = nodeEnvironment.addEntries(interner, newEntries)
   }
 
-  def nearestBlockEnv(): Option[(NodeEnvironment, BlockSE)] = {
+  def nearestBlockEnv(): Option[(NodeEnvironmentT, BlockSE)] = {
     nodeEnvironment.nearestBlockEnv()
   }
-  def nearestLoopEnv(): Option[(NodeEnvironment, IExpressionSE)] = {
+  def nearestLoopEnv(): Option[(NodeEnvironmentT, IExpressionSE)] = {
     nodeEnvironment.nearestLoopEnv()
   }
 }
@@ -528,12 +536,12 @@ case class FunctionEnvironment(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
 
-  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironment = {
+  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironmentT = {
     // See WTHPFE, if this is a lambda, we let our blocks start with
     // locals from the parent function.
     val (declaredLocals, unstackifiedLocals) =
       parentEnv match {
-        case NodeEnvironment(_, _, _, _, _, declaredLocals, unstackifiedLocals, _, _) => {
+        case NodeEnvironmentT(_, _, _, _, _, declaredLocals, unstackifiedLocals, _, _) => {
           (declaredLocals, unstackifiedLocals)
         }
         case _ => (Vector(), Set[IdT[IVarNameT]]())
@@ -546,7 +554,7 @@ case class FunctionEnvironment(
         None
       }
 
-    NodeEnvironment(
+    NodeEnvironmentT(
       this,
       None,
       node,
@@ -560,7 +568,7 @@ case class FunctionEnvironment(
 
   def getClosuredDeclaredLocals(): Vector[IVariableT] = {
     parentEnv match {
-      case n @ NodeEnvironment(_, _, _, _, _, _, _, _, _) => n.declaredLocals
+      case n @ NodeEnvironmentT(_, _, _, _, _, _, _, _, _) => n.declaredLocals
       case f @ FunctionEnvironment(_, _, _, _, _, _, _, _, _, _) => f.getClosuredDeclaredLocals()
       case _ => Vector()
     }
@@ -635,7 +643,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     functionEnvironment.lookupWithNameInner(nameS, lookupFilter, getOnlyNearest)
   }
 
-  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironment = {
+  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironmentT = {
     functionEnvironment.makeChildNodeEnvironment(node, life)
   }
 

@@ -524,11 +524,11 @@ object CompilerErrorHumanizer {
       }
       case PlaceholderTemplata(id@IdT(_, _, RegionPlaceholderNameT(index, rune, _, _)), tyype) => {
         rune match {
-          case DefaultRegionRuneS() => {
-            id.initSteps.last match {
-              case t: ITemplateNameT => humanizeName(codeMap, t) + "'"
-              case _ => vwat()
-            }
+          case DenizenDefaultRegionRuneS(denizenName) => {
+            PostParserErrorHumanizer.humanizeName(denizenName) + "'"
+          }
+          case ExportDefaultRegionRuneS(denizenName) => {
+            PostParserErrorHumanizer.humanizeName(denizenName) + ".export'"
           }
           case _ => {
             humanizeRune(rune) + "'"
@@ -676,13 +676,13 @@ object CompilerErrorHumanizer {
     (
       if (templateArgs.nonEmpty) {
         "<" +
-            templateArgs.init.map(humanizeTemplata(codeMap, _)) ++
+          (templateArgs.init.map(humanizeTemplata(codeMap, _)) ++
               templateArgs.lastOption.map(region => {
                 containingRegion match {
-                  case None => humanizeTemplata(codeMap, region) + "'"
+                  case None => humanizeTemplata(codeMap, region)
                   case Some(r) => vassert(r == region); "_"
                 }
-              }).mkString(", ") +
+              })).mkString(", ") +
           ">"
       } else {
         ""

@@ -538,6 +538,8 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
   def translateExport(astrouts: Astrouts,  env: EnvironmentA, exportS: ExportAsS): ExportAsA = {
     val ExportAsS(rangeS, rulesWithImplicitlyCoercingLookupsS, regionGenericParam, regionRune, exportName, rune, exportedName) = exportS
 
+    val defaultRegionRune = ExportDefaultRegionRuneS(exportName)
+
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
         override def lookup(
@@ -574,7 +576,13 @@ class HigherTypingPass(globalOptions: GlobalOptions, interner: Interner, keyword
       case Ok(()) =>
     }
 
-    highertyping.ExportAsA(rangeS, exportedName, ruleBuilder.toVector, runeAToType.toMap, rune)
+    ExportAsA(
+      rangeS,
+      exportedName,
+      defaultRegionRune,
+      ruleBuilder.toVector,
+      runeAToType.toMap,
+      rune)
   }
 
   def translateFunction(astrouts: Astrouts, env: EnvironmentA, functionS: FunctionS): FunctionA = {
