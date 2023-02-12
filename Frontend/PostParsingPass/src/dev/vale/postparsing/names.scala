@@ -135,6 +135,8 @@ case class ImplicitRuneS(lid: LocationInDenizen) extends IRuneS {
     case _ =>
   }
 }
+case class PureBlockRegionRuneS(lid: LocationInDenizen) extends IRuneS
+case class PureCallRegionRuneS(lid: LocationInDenizen) extends IRuneS
 case class ImplicitRegionRuneS(originalRune: IRuneS) extends IRuneS
 case class ReachablePrototypeRuneS(num: Int) extends IRuneS
 case class FreeOverrideStructTemplateRuneS() extends IRuneS

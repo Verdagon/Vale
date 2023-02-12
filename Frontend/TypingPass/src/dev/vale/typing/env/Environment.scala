@@ -94,6 +94,8 @@ trait IInDenizenEnvironment extends IEnvironment {
   // This is the denizen that we're currently compiling.
   // If we're compiling a generic, it's the denizen that currently has placeholders defined.
   def rootCompilingDenizenEnv: IInDenizenEnvironment
+
+  def denizenId: IdT[INameT]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -429,6 +431,8 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
 ) extends IInDenizenEnvironment {
   vassert(templatas.templatasStoreName == id)
 
+  override def denizenId: IdT[INameT] = templateId
+
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IInDenizenEnvironment]) {
@@ -513,6 +517,7 @@ case class ExportEnvironment(
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
+  override def denizenId: IdT[INameT] = id
 
   override def lookupWithNameInner(
     name: INameT,
@@ -540,6 +545,8 @@ case class GeneralEnvironment[+T <: INameT](
 //  defaultRegion: ITemplata[RegionTemplataType],
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
+  override def denizenId: IdT[INameT] = id
+
   override def equals(obj: Any): Boolean = vcurious();
 
   override def hashCode(): Int = vcurious()

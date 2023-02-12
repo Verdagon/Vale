@@ -270,7 +270,8 @@ case class LocalLoadH(
   override def resultType: CoordH[KindHT] = {
     val location =
       (targetOwnership, local.typeH.location) match {
-        case (BorrowH, _) => YonderH
+        case (ImmutableBorrowH, _) => YonderH
+        case (MutableBorrowH, _) => YonderH
         case (WeakH, _) => YonderH
         case (OwnH, location) => location
         case (ShareH, location) => location
@@ -677,7 +678,7 @@ case class NewImmRuntimeSizedArrayH(
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   generatorExpression.resultType.ownership match {
-    case ShareH | BorrowH =>
+    case ShareH | MutableBorrowH | ImmutableBorrowH =>
     case other => vwat(other)
   }
   vassert(sizeExpression.resultType.kind == IntHT.i32)
@@ -759,7 +760,8 @@ case class StaticArrayFromCallableH(
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   vassert(
-    generatorExpression.resultType.ownership == BorrowH ||
+    generatorExpression.resultType.ownership == MutableBorrowH ||
+      generatorExpression.resultType.ownership == ImmutableBorrowH ||
       generatorExpression.resultType.ownership == ShareH)
 }
 
@@ -871,7 +873,7 @@ case class BorrowToWeakH(
   // See BRCOBS, no arguments should be Never.
   refExpression.resultType.kind match { case NeverHT(_) => vwat() case _ => }
 
-  vassert(refExpression.resultType.ownership == BorrowH)
+  vassert(refExpression.resultType.ownership == ImmutableBorrowH || refExpression.resultType.ownership == MutableBorrowH)
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   override def resultType: CoordH[KindHT] = CoordH(WeakH, YonderH, refExpression.resultType.kind)
@@ -932,7 +934,7 @@ case class DiscardH(sourceExpression: ExpressionH[KindHT]) extends ExpressionH[V
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   sourceExpression.resultType.ownership match {
-    case BorrowH | ShareH | WeakH =>
+    case MutableBorrowH | ImmutableBorrowH | ShareH | WeakH =>
   }
   override def resultType: CoordH[VoidHT] = CoordH(ShareH, InlineH, VoidHT())
 }

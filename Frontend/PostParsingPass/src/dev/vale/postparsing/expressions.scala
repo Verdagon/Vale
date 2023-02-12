@@ -102,11 +102,18 @@ case class BodySE(
   vpass()
 }
 
+case class PureSE(
+  range: RangeS,
+  location: LocationInDenizen,
+  inner: IExpressionSE
+) extends IExpressionSE
+
 case class BlockSE(
   range: RangeS,
   locals: Vector[LocalS],
   expr: IExpressionSE,
 ) extends IExpressionSE {
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(locals.map(_.varName) == locals.map(_.varName).distinct)

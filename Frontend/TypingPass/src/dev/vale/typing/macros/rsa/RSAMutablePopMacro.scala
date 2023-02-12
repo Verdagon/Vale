@@ -26,6 +26,7 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -38,7 +39,7 @@ class RSAMutablePopMacro(interner: Interner, keywords: Keywords) extends IFuncti
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
-
+    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

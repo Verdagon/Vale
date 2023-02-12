@@ -116,6 +116,7 @@ class FunctionCompilerMiddleLayer(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     function1: FunctionA):
   (PrototypeTemplata) = {
     // Check preconditions
@@ -139,7 +140,7 @@ class FunctionCompilerMiddleLayer(
         coutputs.declareFunctionInnerEnv(namedEnv.id, runedEnv)
 
         val header =
-          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, params2)
+          core.evaluateFunctionForHeader(namedEnv, coutputs, callRange, callLocation, params2)
         if (!header.toBanner.same(banner)) {
           val bannerFromHeader = header.toBanner
           vfail("wut\n" + bannerFromHeader + "\n" + banner)
@@ -161,6 +162,7 @@ class FunctionCompilerMiddleLayer(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     function1: FunctionA):
   (FunctionHeaderT) = {
 
@@ -196,7 +198,7 @@ class FunctionCompilerMiddleLayer(
 
         val header =
           core.evaluateFunctionForHeader(
-            namedEnv, coutputs, callRange, params2)
+            namedEnv, coutputs, callRange, callLocation, params2)
         vassert(header.toSignature == needleSignature)
         (header)
       }

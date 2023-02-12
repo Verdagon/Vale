@@ -1,7 +1,6 @@
 package dev.vale.simplifying
 
 import dev.vale.{Interner, Keywords, PackageCoordinate, vassert, vassertSome, vimpl, finalast => m}
-import dev.vale.finalast.{BorrowH, EdgeH, InterfaceDefinitionH, InterfaceMethodH, InterfaceHT, KindHT, Mutable, PrototypeH, CoordH, StructDefinitionH, StructMemberH, StructHT, YonderH}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{EdgeT, PrototypeT}
 import dev.vale.typing.names._
@@ -160,7 +159,7 @@ class StructHammer(
           val (boxStructRefH) =
             makeBox(hinputs, hamuts, variability, coord, referenceH)
           // The stack owns the box, closure structs just borrow it.
-          (variability, CoordH(BorrowH, YonderH, boxStructRefH))
+          (variability, CoordH(vimpl(/*BorrowH*/), YonderH, boxStructRefH))
         }
       }
     StructMemberH(

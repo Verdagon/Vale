@@ -345,6 +345,7 @@ class EdgeCompiler(
       functionCompiler.evaluateGenericLightFunctionParentForPrototype(
         coutputs,
         List(range, impl.templata.impl.range),
+        vimpl(),
         dispatcherOuterEnv,
         originFunctionTemplata,
         abstractFunctionPrototype.paramTypes.indices.map(_ => None)
@@ -435,6 +436,7 @@ class EdgeCompiler(
       implCompiler.solveImplForCall(
         coutputs,
         List(range),
+        vimpl(),//callLocation,
         dispatcherInnerEnv,
         // For example, if we're doing the Milano case:
         //   impl<I, J, K, L> ISpaceship<I, J, K> for Milano<I, J, K, L>;
@@ -507,6 +509,7 @@ class EdgeCompiler(
         dispatcherCaseEnv,
         coutputs,
         List(range, impl.templata.impl.range),
+        vimpl(),
         overrideImpreciseName,
         Vector.empty,
         Vector.empty,

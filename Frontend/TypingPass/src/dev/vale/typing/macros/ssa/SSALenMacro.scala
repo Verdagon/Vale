@@ -2,6 +2,7 @@ package dev.vale.typing.macros.ssa
 
 import dev.vale.{Keywords, RangeS, StrI, vassertSome, vimpl}
 import dev.vale.highertyping.FunctionA
+import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, ConsecutorTE, ConstantIntTE, DiscardTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
@@ -22,6 +23,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -44,6 +46,7 @@ class SSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
               callRange, "SSALenMacro received non-SSA param: " + header.paramTypes))
         }
       }
+    vimpl() // pure?
     val body =
       BlockTE(
         ConsecutorTE(

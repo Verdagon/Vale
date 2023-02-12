@@ -4,7 +4,7 @@ import dev.vale.highertyping.{FunctionA, ImplA, InterfaceA, StructA}
 import dev.vale.postparsing._
 import dev.vale.typing.ast.{FunctionHeaderT, PrototypeT}
 import dev.vale.typing.env.IInDenizenEnvironment
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IPlaceholderNameT, IRegionNameT, IdT, InterfaceTemplateNameT, KindPlaceholderNameT}
+import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, FunctionNameT, IFunctionNameT, IImplNameT, INameT, IPlaceholderNameT, IRegionNameT, IdT, InterfaceTemplateNameT, KindPlaceholderNameT, RegionPlaceholderNameT}
 import dev.vale.typing.types._
 import dev.vale.{RangeS, StrI, vassert, vfail, vimpl, vpass, vwat}
 import dev.vale.highertyping._
@@ -29,6 +29,15 @@ object ITemplata {
       case t @ RegionTemplata(_) => t
       case PlaceholderTemplata(fullNameT, RegionTemplataType()) => PlaceholderTemplata(fullNameT, RegionTemplataType())
       case _ => vfail()
+    }
+  }
+
+  def expectRegionPlaceholder(templata: ITemplata[RegionTemplataType]): IdT[RegionPlaceholderNameT] = {
+    templata match {
+      case PlaceholderTemplata(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _)), RegionTemplataType()) => {
+        IdT(packageCoord, initSteps, r)
+      }
+      case other => vfail(other)
     }
   }
 
@@ -115,6 +124,7 @@ sealed trait ITemplata[+T <: ITemplataType]  {
 // The typing phase never makes one of these, they're purely abstract and conceptual in the
 // typing phase. The monomorphizer is the one that actually makes these templatas.
 case class RegionTemplata(mutable: Boolean) extends ITemplata[RegionTemplataType] {
+  vpass()
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
   override def tyype: RegionTemplataType = RegionTemplataType()
 }

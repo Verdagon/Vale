@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.FunctionA
-import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, RegionTemplataType, SealedS}
+import dev.vale.postparsing.{GenericParameterS, IFunctionDeclarationNameS, ITemplataType, LocationInDenizen, RegionTemplataType, SealedS}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.{CompilerOutputs, InferCompiler, InitialKnown, TypingPassOptions}
@@ -35,6 +35,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
@@ -59,7 +60,7 @@ class StructCompilerGenericArgsLayer(
           structA.headerRules.toVector, structA.genericParameters, templateArgs.size)
 
       // Check if its a valid use of this template
-      val envs = InferEnv(originalCallingEnv, callRange, declaringEnv, contextRegion)
+      val envs = InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion)
       val solver =
         inferCompiler.makeSolver(
           envs,
@@ -78,6 +79,7 @@ class StructCompilerGenericArgsLayer(
           envs,
           coutputs,
           callRange,
+          callLocation,
           structA.headerRuneToType,
           callSiteRules,
           true,
@@ -108,6 +110,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
@@ -139,11 +142,12 @@ class StructCompilerGenericArgsLayer(
       // just to populate any generic parameter default values.
       val CompleteCompilerSolve(_, inferences, _, Vector()) =
         inferCompiler.solveExpectComplete(
-          InferEnv(originalCallingEnv, callRange, declaringEnv, contextRegion),
+          InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
           coutputs,
           callSiteRules,
           runeToTypeForPrediction,
           callRange,
+          callLocation,
           initialKnowns,
           Vector(),
           // False because we're just predicting, see STCMBDP.
@@ -173,6 +177,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // The default region is the only implicit generic param, see DROIGP.
@@ -208,11 +213,12 @@ class StructCompilerGenericArgsLayer(
 
       val CompleteCompilerSolve(_, inferences, _, Vector()) =
         inferCompiler.solveExpectComplete(
-          InferEnv(originalCallingEnv, callRange, declaringEnv, contextRegion),
+          InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
           coutputs,
           callSiteRules,
           runeToTypeForPrediction,
           callRange,
+          callLocation,
           initialKnowns,
           Vector(),
           // False because we're just predicting, see STCMBDP.
@@ -241,6 +247,7 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplata,
     templateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
@@ -264,7 +271,7 @@ class StructCompilerGenericArgsLayer(
           interfaceA.rules.toVector, interfaceA.genericParameters, templateArgs.size)
 
       // This checks to make sure it's a valid use of this template.
-      val envs = InferEnv(originalCallingEnv, callRange, declaringEnv, contextRegion)
+      val envs = InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion)
       val solver =
         inferCompiler.makeSolver(
           envs,
@@ -283,6 +290,7 @@ class StructCompilerGenericArgsLayer(
           envs,
           coutputs,
           callRange,
+          callLocation,
           interfaceA.runeToType,
           callSiteRules,
           true,
@@ -311,6 +319,7 @@ class StructCompilerGenericArgsLayer(
   def compileStruct(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
@@ -336,10 +345,14 @@ class StructCompilerGenericArgsLayer(
       val defaultRegionGenericParam = structA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          structTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, Vector(), true)
+          structTemplateFullName,
+          defaultRegionGenericParamIndex,
+          defaultRegionGenericParam.rune.rune,
+          LocationInDenizen(Vector()),
+          true)
       // we inform the solver of this placeholder below.
 
-      val envs = InferEnv(outerEnv, List(structA.range), outerEnv, defaultRegionPlaceholderTemplata)
+      val envs = InferEnv(outerEnv, List(structA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
       val solver =
         inferCompiler.makeSolver(
           envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, Vector(), Vector())
@@ -359,7 +372,14 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, structTemplateFullName, genericParam, index, allRuneToType, true, Vector())
+                  coutputs,
+                  outerEnv,
+                  structTemplateFullName,
+                  genericParam,
+                  index,
+                  allRuneToType,
+                  true,
+                  LocationInDenizen(Vector()))
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }
@@ -373,7 +393,7 @@ class StructCompilerGenericArgsLayer(
       }
       val CompleteCompilerSolve(_, inferences, _, reachableBoundsFromParamsAndReturn) =
         inferCompiler.expectCompleteSolve(
-          envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, true, true, Vector(), solver)
+          envs, coutputs, definitionRules, allRuneToType, structA.range :: parentRanges, callLocation, true, true, Vector(), solver)
 
 
       structA.maybePredictedMutability match {
@@ -403,13 +423,14 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(structTemplateFullName, innerEnv)
 
-      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, structA)
+      core.compileStruct(outerEnv, innerEnv, coutputs, parentRanges, callLocation, structA)
     })
   }
 
   def compileInterface(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     interfaceTemplata: InterfaceDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
@@ -435,10 +456,10 @@ class StructCompilerGenericArgsLayer(
       val defaultRegionGenericParam = interfaceA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, Vector(), true)
+          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, LocationInDenizen(Vector()), true)
       // we inform the solver of this placeholder below.
 
-      val envs = InferEnv(outerEnv, List(interfaceA.range), outerEnv, defaultRegionPlaceholderTemplata)
+      val envs = InferEnv(outerEnv, List(interfaceA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
       val solver =
         inferCompiler.makeSolver(
           envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, Vector(), Vector())
@@ -458,7 +479,7 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, true, Vector())
+                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, true, LocationInDenizen(Vector()))
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }
@@ -472,7 +493,7 @@ class StructCompilerGenericArgsLayer(
       }
       val CompleteCompilerSolve(_, inferences, _, reachableBoundsFromParamsAndReturn) =
         inferCompiler.expectCompleteSolve(
-          envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, true, true, Vector(), solver)
+          envs, coutputs, definitionRules, interfaceA.runeToType, interfaceA.range :: parentRanges, callLocation, true, true, Vector(), solver)
 
       interfaceA.maybePredictedMutability match {
         case None => {
@@ -500,7 +521,7 @@ class StructCompilerGenericArgsLayer(
 
       coutputs.declareTypeInnerEnv(interfaceTemplateFullName, innerEnv)
 
-      core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, interfaceA)
+      core.compileInterface(outerEnv, innerEnv, coutputs, parentRanges, callLocation, interfaceA)
     })
   }
 
@@ -509,11 +530,13 @@ class StructCompilerGenericArgsLayer(
     containingFunctionEnv: NodeEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[NormalStructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
-    core.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)
+    core.makeClosureUnderstruct(
+      containingFunctionEnv, coutputs, parentRanges, callLocation, name, functionS, members)
   }
 
   def assembleStructName(

@@ -34,6 +34,7 @@ class RSAImmutableNewMacro(
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -75,6 +76,7 @@ class RSAImmutableNewMacro(
         env,
         coutputs,
         callRange,
+        callLocation,
         interner.intern(CodeNameS(keywords.underscoresCall)),
         Vector(),
         Vector(),
@@ -92,6 +94,7 @@ class RSAImmutableNewMacro(
     val sizeTE = ArgLookupTE(0, paramCoords(0).tyype)
     val generatorTE = ArgLookupTE(1, paramCoords(1).tyype)
 
+    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

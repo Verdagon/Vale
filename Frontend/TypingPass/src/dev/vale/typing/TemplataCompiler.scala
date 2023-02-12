@@ -46,6 +46,7 @@ trait ITemplataCompilerDelegate {
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
@@ -57,6 +58,7 @@ trait ITemplataCompilerDelegate {
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
@@ -1111,15 +1113,16 @@ class TemplataCompiler(
     index: Int,
     runeToType: Map[IRuneS, ITemplataType],
     registerWithCompilerOutputs: Boolean,
-    originallyIntroducedLocation: Vector[Int],
+    originallyIntroducedLocation: LocationInDenizen,
   ):
   ITemplata[ITemplataType] = {
     // Note: this immutable is used for both coords and regions.
     val immutable =
-      genericParam.attributes.exists({
-        case ImmutableRuneAttributeS(_) => true
+      genericParam.tyype match {
+        case CoordGenericParameterTypeS(coordRegion, mutable) => !mutable
+        case RegionGenericParameterTypeS(mutability) => mutability == ImmutableRegionS
         case _ => false
-      })
+      }
     val runeType = vassertSome(runeToType.get(genericParam.rune.rune))
     val rune = genericParam.rune.rune
 
@@ -1191,7 +1194,7 @@ class TemplataCompiler(
     // Not sure this really matters, because we can't mutate a generic argument. We can only
     // mutate a struct or array, and a generic argument isn't seen as either.
     val regionOriginallyMutable = true
-    val regionIntroducedLocation = Vector()
+    val regionIntroducedLocation = LocationInDenizen(Vector())
     val regionPlaceholderTemplata =
       createRegionPlaceholderInner(
         namePrefix, index, rune, regionIntroducedLocation, regionOriginallyMutable)
@@ -1247,10 +1250,12 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    originallyIntroducedLocation: Vector[Int],
+    originallyIntroducedLocation: LocationInDenizen,
     originallyMutable: Boolean):
   PlaceholderTemplata[RegionTemplataType] = {
-    val idT = namePrefix.addStep(interner.intern(RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)))
+    val idT =
+      namePrefix.addStep(
+        interner.intern(RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)))
     PlaceholderTemplata(idT, RegionTemplataType())
   }
 }

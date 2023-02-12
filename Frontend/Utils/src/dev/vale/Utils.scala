@@ -138,4 +138,19 @@ object U {
     }
     return false
   }
+  def extract[T, Y](vec: Vector[T], func: scala.PartialFunction[T, Y]): (Vector[Y], Vector[T]) = {
+    val result = mutable.ArrayBuffer[Y]()
+    val remainder = mutable.ArrayBuffer[T]()
+    var i = 0
+    while (i < vec.size) {
+      val el = vec(i)
+      if (func.isDefinedAt(el)) {
+        result += func(el)
+      } else {
+        remainder += el
+      }
+      i = i + 1
+    }
+    return (result.toVector, remainder.toVector)
+  }
 }

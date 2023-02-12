@@ -34,7 +34,7 @@ object HigherTypedPrinter {
 
         val newGenericParams =
           genericParams.map(genericParam => {
-            val GenericParameterS(_, runeUsage, genericType, coordRegion, attributes, default) = genericParam
+            val GenericParameterS(_, runeUsage, genericType, default) = genericParam
             val RuneUsage(_, rune) = runeUsage
             vassert(attributes.isEmpty)
 
@@ -43,9 +43,10 @@ object HigherTypedPrinter {
             printer += PostParserErrorHumanizer.humanizeRune(rune)
             val genParamNameEnd = printer.pos
 
-            genericType match {
+            vimpl() // rest of the stuff in generic type
+            genericType.tyype match {
               case CoordTemplataType() => // Nothing, that's the default
-              case _ => printer += " " + PostParserErrorHumanizer.humanizeTemplataType(genericType)
+              case _ => printer += " " + PostParserErrorHumanizer.humanizeTemplataType(genericType.tyype)
             }
 
             val genParamEnd = printer.pos
@@ -56,8 +57,6 @@ object HigherTypedPrinter {
               RangeS(genParamBegin, genParamEnd),
               RuneUsage(RangeS(genParamNameBegin, genParamNameEnd), rune),
               genericType,
-              vimpl(),
-              Vector(),
               default)
           })
 

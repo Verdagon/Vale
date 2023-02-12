@@ -34,7 +34,8 @@ case class CoordH[+T <: KindHT](
   (ownership, location) match {
     case (OwnH, YonderH) =>
     case (ShareH, _) =>
-    case (BorrowH, YonderH) =>
+    case (MutableBorrowH, YonderH) =>
+    case (ImmutableBorrowH, YonderH) =>
     case (WeakH, YonderH) =>
     case _ => vfail()
   }
@@ -54,7 +55,7 @@ case class CoordH[+T <: KindHT](
       val isBox = name.toFullString.startsWith("::C(\"__Box\"")
 
       if (isBox) {
-        vassert(ownership == OwnH || ownership == BorrowH)
+        vassert(ownership == OwnH || ownership == ImmutableBorrowH || ownership == MutableBorrowH)
       }
     }
     case _ =>
@@ -197,7 +198,10 @@ case class CodeLocation(
 // ReferenceH for explanation.
 sealed trait OwnershipH
 case object OwnH extends OwnershipH
-case object BorrowH extends OwnershipH
+case object MutableBorrowH extends OwnershipH
+case object ImmutableBorrowH extends OwnershipH
+case object MutableShareH extends OwnershipH
+case object ImmutableShareH extends OwnershipH
 case object WeakH extends OwnershipH
 case object ShareH extends OwnershipH
 

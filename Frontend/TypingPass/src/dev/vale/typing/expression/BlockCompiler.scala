@@ -25,6 +25,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     expr1: IExpressionSE):
   (ReferenceExpressionTE, Set[CoordT])
@@ -34,6 +35,7 @@ trait IBlockCompilerDelegate {
     startingNenv: NodeEnvironment,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
+    callLocation: LocationInDenizen,
     life: LocationInFunctionEnvironment,
     region: ITemplata[RegionTemplataType],
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
@@ -60,6 +62,7 @@ class BlockCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     block1: BlockSE):
   (BlockTE, Set[IdT[IVarNameT]], Set[CoordT]) = {
@@ -68,7 +71,7 @@ class BlockCompiler(
 
     val (expressionsWithResult, returnsFromExprs) =
       evaluateBlockStatements(
-        coutputs, startingNenv, nenv, parentRanges, life, region, block1)
+        coutputs, startingNenv, nenv, parentRanges, callLocation, life, region, block1)
 
     val block2 = BlockTE(expressionsWithResult)
 
@@ -82,13 +85,15 @@ class BlockCompiler(
     startingNenv: NodeEnvironment,
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     life: LocationInFunctionEnvironment,
     region: ITemplata[RegionTemplataType],
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {
     val (unneveredUnresultifiedUndestructedRootExpression, returnsFromExprs) =
       delegate.evaluateAndCoerceToReferenceExpression(
-        coutputs, nenv, life + 0, parentRanges, region, blockSE.expr);
+        coutputs, nenv, life + 0, parentRanges,
+        callLocation, region, blockSE.expr);
 
     val unneveredUnresultifiedUndestructedExpressions =
       unneveredUnresultifiedUndestructedRootExpression
@@ -121,6 +126,7 @@ class BlockCompiler(
         startingNenv,
         nenv,
         RangeS(blockSE.range.end, blockSE.range.end) :: parentRanges,
+        callLocation,
         life,
         region,
         unresultifiedUndestructedExpressions)

@@ -29,6 +29,7 @@ trait IBodyCompilerDelegate {
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
@@ -60,6 +61,7 @@ class BodyCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     function1: FunctionA,
     maybeExplicitReturnCoord: Option[CoordT],
     params2: Vector[ParameterT],
@@ -79,6 +81,7 @@ class BodyCompiler(
                 coutputs,
                 life,
                 parentRanges,
+                callLocation,
                 function1.params,
                 params2,
                 bodyS,
@@ -113,6 +116,7 @@ class BodyCompiler(
                 coutputs,
                 life,
                 parentRanges,
+                callLocation,
                 function1.params,
                 params2,
                 bodyS,
@@ -158,6 +162,7 @@ class BodyCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     params1: Vector[ParameterS],
     params2: Vector[ParameterT],
     body1: BodySE,
@@ -172,7 +177,7 @@ class BodyCompiler(
 
     val (statementsFromBlock, returnsFromInsideMaybeWithNever) =
       delegate.evaluateBlockStatements(
-        coutputs, startingEnv, env, life + 1, parentRanges, startingEnv.defaultRegion, body1.block);
+        coutputs, startingEnv, env, life + 1, parentRanges, callLocation, startingEnv.defaultRegion, body1.block);
 
     val unconvertedBodyWithoutReturn = Compiler.consecutive(Vector(patternsTE, statementsFromBlock))
 

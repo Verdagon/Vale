@@ -1,7 +1,7 @@
 package dev.vale.typing.citizen
 
 import dev.vale.highertyping.ImplA
-import dev.vale.postparsing.{IRuneS, ITemplataType, ImplImpreciseNameS, ImplSubCitizenImpreciseNameS, ImplTemplataType}
+import dev.vale.postparsing.{IRuneS, ITemplataType, ImplImpreciseNameS, ImplSubCitizenImpreciseNameS, ImplTemplataType, LocationInDenizen}
 import dev.vale.postparsing.rules.{Equivalencies, IRulexSR, RuleScout}
 import dev.vale.solver.{IIncompleteOrFailedSolve, SolverErrorHumanizer}
 import dev.vale.typing.OverloadResolver.InferFailure
@@ -44,6 +44,7 @@ class ImplCompiler(
   def solveImplForCall(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
@@ -79,6 +80,7 @@ class ImplCompiler(
         // to evaluate an override.
         callingEnv,
         range :: parentRanges,
+        vimpl(),
         outerEnv,
         vimpl())
     val solver =
@@ -95,6 +97,7 @@ class ImplCompiler(
         envs,
         coutputs,
         range :: parentRanges,
+        callLocation,
         runeToType,
         definitionRules,
         verifyConclusions,
@@ -109,6 +112,7 @@ class ImplCompiler(
   private def solveImplForDefine(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
     implTemplata: ImplDefinitionTemplata,
@@ -145,12 +149,14 @@ class ImplCompiler(
           // to evaluate an override.
           callingEnv,
           range :: parentRanges,
+          vimpl(),
           outerEnv,
           vimpl()),
         coutputs,
         definitionRules,
         runeToType,
         range :: parentRanges,
+        callLocation,
         initialKnowns,
         Vector(),
         true,
@@ -193,12 +199,12 @@ class ImplCompiler(
             index,
             implA.runeToType,
             true,
-            Vector())
+            LocationInDenizen(Vector()))
         InitialKnown(rune.rune, placeholder)
       })
 
     val CompleteCompilerSolve(_, inferences, runeToFunctionBound1, reachableBoundsFromSubCitizen) =
-      solveImplForDefine(coutputs, List(implA.range), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
+      solveImplForDefine(coutputs, List(implA.range), vimpl(), implOuterEnv, implPlaceholders, implTemplata, true, true) match {
         case Ok(i) => i
         case Err(e) => throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implA.range), e))
       }
@@ -274,6 +280,7 @@ class ImplCompiler(
       solveImplForCall(
         coutputs,
         List(implTemplata.impl.range),
+        vimpl(),
         implOuterEnv,
         Vector(
           InitialKnown(
@@ -493,7 +500,7 @@ class ImplCompiler(
       Vector(
         InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
     val CompleteCompilerSolve(_, conclusions, _, _) =
-      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, isRootSolve, true) match {
+      solveImplForCall(coutputs, parentRanges, vimpl(), callingEnv, initialKnowns, implTemplata, isRootSolve, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
         case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
@@ -520,7 +527,7 @@ class ImplCompiler(
         parentRanges,
         TemplataCompiler.getCitizenTemplate(child.id))
     val CompleteCompilerSolve(_, conclusions, _, _) =
-      solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, implTemplata, false, true) match {
+      solveImplForCall(coutputs, parentRanges, vimpl(), callingEnv, initialKnowns, implTemplata, false, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
         case x : IIncompleteOrFailedCompilerSolve => return Err(x)
       }
@@ -648,7 +655,7 @@ class ImplCompiler(
           Vector(
             InitialKnown(impl.impl.subCitizenRune, KindTemplata(subKindTT)),
             InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superKindTT)))
-        solveImplForCall(coutputs, parentRanges, callingEnv, initialKnowns, impl, false, true) match {
+        solveImplForCall(coutputs, parentRanges, vimpl(), callingEnv, initialKnowns, impl, false, true) match {
           case ccs @ CompleteCompilerSolve(_, _, _, _) => Ok((impl, ccs))
           case x : IIncompleteOrFailedCompilerSolve => Err(x)
         }

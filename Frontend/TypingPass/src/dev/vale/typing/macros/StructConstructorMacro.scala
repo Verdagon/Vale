@@ -85,7 +85,7 @@ class StructConstructorMacro(
       FunctionA(
         structA.range,
         interner.intern(ConstructorNameS(structA.name)),
-        Vector(),
+        Vector(PureS),
         TemplateTemplataType(structA.tyype.paramTypes, FunctionTemplataType()),
         structA.genericParameters,
         runeToType.toMap,
@@ -107,6 +107,7 @@ class StructConstructorMacro(
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -159,7 +160,7 @@ class StructConstructorMacro(
     val header =
       ast.FunctionHeaderT(
         constructorFullName,
-        Vector.empty,
+        Vector(PureT),
 //        Vector(RegionT(env.defaultRegion.localName, true)),
         constructorParams,
         constructorReturnType,

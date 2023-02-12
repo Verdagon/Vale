@@ -158,10 +158,9 @@ class FunctionScout(
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
           val rune = DefaultRegionRuneS()
           runeToExplicitType += ((rune, RegionTemplataType()))
-          val attrs = Vector(ReadWriteRuneAttributeS(regionRange))
           val implicitRegionGenericParam =
             GenericParameterS(
-              regionRange, RuneUsage(regionRange, rune), RegionTemplataType(), None, attrs, None)
+              regionRange, RuneUsage(regionRange, rune), RegionGenericParameterTypeS(ReadWriteRegionS), None)
           (regionRange, rune, Some(implicitRegionGenericParam))
         }
         case Some(RegionRunePT(regionRange, regionName)) => {
@@ -199,12 +198,14 @@ class FunctionScout(
       }
     }
 
+    val isPure = functionP.header.attributes.exists({ case PureAttributeP(_) => true case _ => false })
+
     // We'll add the implicit runes to the end, see IRRAE.
     val functionUserSpecifiedGenericParametersS =
       genericParametersP.zip(userSpecifiedIdentifyingRunes)
         .map({ case (g, r) =>
           PostParser.scoutGenericParameter(
-            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, g, r)
+            templexScout, functionEnv, lidb.child(), runeToExplicitType, ruleBuilder, defaultRegionRuneS, isPure, g, r)
         })
 
     val myStackFrameWithoutParams =
@@ -434,9 +435,7 @@ class FunctionScout(
                     GenericParameterS(
                       param.pattern.range,
                       coordRune,
-                      CoordTemplataType(),
-                      None,//Some(implicitRegionRune),
-                      Vector(),
+                      OtherGenericParameterTypeS(CoordTemplataType()),
                       None))
                 })
               (extraGenericParamsFromBodyS, Some(closureParamS), magicParams)
@@ -495,7 +494,7 @@ class FunctionScout(
       genericParametersS.map(_.rune.rune),
       rulesArray)
 
-    val tyype = TemplateTemplataType(genericParametersS.map(_.tyype), FunctionTemplataType())
+    val tyype = TemplateTemplataType(genericParametersS.map(_.tyype.tyype), FunctionTemplataType())
 
     val functionS =
       FunctionS(
@@ -616,7 +615,6 @@ class FunctionScout(
       parentStackFrame,
       lidb.child(),
       PostParser.evalRange(functionBodyEnv.file, body0.range),
-      false,
       contextRegion,
       initialDeclarations,
       (stackFrame1, lidb) => {

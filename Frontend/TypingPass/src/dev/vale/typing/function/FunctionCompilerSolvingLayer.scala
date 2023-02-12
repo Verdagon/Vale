@@ -8,7 +8,7 @@ import dev.vale.typing.function.FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.postparsing.patterns._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
-import dev.vale.postparsing.{IEnvironmentS => _, _}
+import dev.vale.postparsing.{IGenericParameterTypeS, IEnvironmentS => _, _}
 import dev.vale.typing.OverloadResolver.InferFailure
 import dev.vale.typing._
 import dev.vale.typing.ast._
@@ -61,6 +61,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
@@ -78,11 +79,12 @@ class FunctionCompilerSolvingLayer(
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, callRange, outerEnv, contextRegion),
+        InferEnv(originalCallingEnv, callRange, callLocation, outerEnv, contextRegion),
         coutputs,
         callSiteRules,
         function.runeToType,
         callRange,
+        callLocation,
         assembleKnownTemplatas(function, explicitTemplateArgs),
         initialSends,
         false,
@@ -103,7 +105,7 @@ class FunctionCompilerSolvingLayer(
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
-        outerEnv, runedEnv, coutputs, callRange, function)
+        outerEnv, runedEnv, coutputs, callRange, callLocation, function)
 
     coutputs.addInstantiationBounds(header.toPrototype.id, runeToFunctionBound)
     EvaluateFunctionSuccess(
@@ -120,6 +122,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT]
@@ -136,11 +139,12 @@ class FunctionCompilerSolvingLayer(
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args.map(Some(_)))
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, callRange, declaringEnv, contextRegion),
+        InferEnv(originalCallingEnv, callRange, callLocation, declaringEnv, contextRegion),
         coutputs,
         callSiteRules,
         function.runeToType,
         callRange,
+        callLocation,
         assembleKnownTemplatas(function, alreadySpecifiedTemplateArgs),
         initialSends,
         true,
@@ -161,7 +165,7 @@ class FunctionCompilerSolvingLayer(
 
     val prototype =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
-        declaringEnv, runedEnv, coutputs, callRange, function)
+        declaringEnv, runedEnv, coutputs, callRange, callLocation, function)
 
     coutputs.addInstantiationBounds(prototype.prototype.id, runeToFunctionBound)
 
@@ -177,6 +181,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT]
@@ -197,11 +202,12 @@ class FunctionCompilerSolvingLayer(
     val initialKnowns = assembleKnownTemplatas(function, explicitTemplateArgs)
     val CompleteCompilerSolve(_, inferences, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveComplete(
-        InferEnv(originalCallingEnv, callRange, nearEnv, contextRegion),
+        InferEnv(originalCallingEnv, callRange, callLocation, nearEnv, contextRegion),
         coutputs,
         callSiteRules,
         function.runeToType,
         callRange,
+        callLocation,
         initialKnowns,
         initialSends,
         true,
@@ -222,7 +228,7 @@ class FunctionCompilerSolvingLayer(
 
     val prototypeTemplata =
       middleLayer.getOrEvaluateTemplatedFunctionForBanner(
-        nearEnv, runedEnv, coutputs, callRange, function)
+        nearEnv, runedEnv, coutputs, callRange, callLocation, function)
 
     coutputs.addInstantiationBounds(prototypeTemplata.prototype.id, runeToFunctionBound)
     EvaluateFunctionSuccess(prototypeTemplata, inferences)
@@ -307,6 +313,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
     contextRegion: ITemplata[RegionTemplataType],
     args: Vector[Option[CoordT]]
@@ -322,7 +329,7 @@ class FunctionCompilerSolvingLayer(
 
     val initialSends = assembleInitialSendsFromArgs(callRange.head, function, args)
 
-    val envs = InferEnv(callingEnv, callRange, outerEnv, contextRegion)
+    val envs = InferEnv(callingEnv, callRange, callLocation, outerEnv, contextRegion)
     val rules = callSiteRules
     val runeToType = function.runeToType
     val invocationRange = callRange
@@ -381,7 +388,7 @@ class FunctionCompilerSolvingLayer(
     }
 
     val CompleteCompilerSolve(_, inferredTemplatas, runeToFunctionBound, reachableBounds) =
-      (inferCompiler.interpretResults(envs, coutputs, invocationRange, runeToType, rules, verifyConclusions, isRootSolve, includeReachableBoundsForRunes, solver) match {
+      (inferCompiler.interpretResults(envs, coutputs, invocationRange, callLocation, runeToType, rules, verifyConclusions, isRootSolve, includeReachableBoundsForRunes, solver) match {
         case f @ FailedCompilerSolve(_, _, _) => Err(f)
         case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
         case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
@@ -413,6 +420,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     args: Vector[Option[CoordT]]
   ):
   IEvaluateFunctionResult = {
@@ -430,7 +438,7 @@ class FunctionCompilerSolvingLayer(
     //   func map<T, F>(self Opt<T>, f F, t T) { ... }
     // into a:
     //   func map<F>(self Opt<$0>, f F, t $0) { ... }
-    val preliminaryEnvs = InferEnv(callingEnv, callRange, nearEnv, vimpl())
+    val preliminaryEnvs = InferEnv(callingEnv, callRange, callLocation, nearEnv, vimpl())
     val preliminarySolver =
       inferCompiler.makeSolver(
         preliminaryEnvs,
@@ -451,6 +459,7 @@ class FunctionCompilerSolvingLayer(
         preliminaryEnvs,
         coutputs,
         function.range :: callRange,
+        callLocation,
       function.runeToType,
         functionDefinitionRules,
       false,
@@ -485,7 +494,7 @@ class FunctionCompilerSolvingLayer(
                 index,
                 function.runeToType,
                 false,
-                Vector())
+                vimpl(Vector()))
             Some(InitialKnown(genericParam.rune, templata))
           }
         }
@@ -496,11 +505,12 @@ class FunctionCompilerSolvingLayer(
 
     val CompleteCompilerSolve(_, inferences, runeToFunctionBound, reachableBounds) =
       inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, callRange, nearEnv, vimpl()),
+        InferEnv(callingEnv, callRange, callLocation, nearEnv, vimpl()),
         coutputs,
         functionDefinitionRules,
         function.runeToType,
         function.range :: callRange,
+        callLocation,
         placeholderInitialKnownsFromFunction,
         Vector(),
         true,
@@ -529,6 +539,7 @@ class FunctionCompilerSolvingLayer(
     coutputs: CompilerOutputs,
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     verifyConclusions: Boolean
   ): FunctionHeaderT = {
     val function = nearEnv.function
@@ -549,20 +560,21 @@ class FunctionCompilerSolvingLayer(
     // Before doing the incremental solving/placeholdering, add a placeholder for the default
     // region, see SIPWDR.
     val defaultRegionGenericParamIndex =
-    nearEnv.function.genericParameters.indexWhere(genericParam => {
-      genericParam.rune.rune == nearEnv.function.defaultRegionRune
-    })
+      nearEnv.function.genericParameters.indexWhere(genericParam => {
+        genericParam.rune.rune == nearEnv.function.defaultRegionRune
+      })
     vassert(defaultRegionGenericParamIndex >= 0)
     val defaultRegionGenericParam = nearEnv.function.genericParameters(defaultRegionGenericParamIndex)
-    val defaultRegionMutable =
-      !defaultRegionGenericParam.attributes.exists({ case ImmutableRuneAttributeS(_) => true case _ => false })
+    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
+    val defaultRegionMutable = defaultRegionGenericParamType.mutability == ReadWriteRegionS
     val defaultRegionPlaceholderTemplata =
       templataCompiler.createRegionPlaceholderInner(
         functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
-        Vector(), defaultRegionMutable)
+        LocationInDenizen(Vector()),
+        defaultRegionMutable)
     // we inform the solver of this placeholder below.
 
-    val envs = InferEnv(nearEnv, parentRanges, nearEnv, defaultRegionPlaceholderTemplata)
+    val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, defaultRegionPlaceholderTemplata)
     val solver =
       inferCompiler.makeSolver(
         envs, coutputs, definitionRules, function.runeToType, range, Vector(), Vector())
@@ -582,7 +594,7 @@ class FunctionCompilerSolvingLayer(
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true, Vector())
+                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true, LocationInDenizen(Vector()))
             solver.manualStep(Map(genericParam.rune.rune -> templata))
             true
           }
@@ -596,7 +608,7 @@ class FunctionCompilerSolvingLayer(
       }
     val CompleteCompilerSolve(_, inferences, _, reachableBoundsFromParamsAndReturn) =
       inferCompiler.expectCompleteSolve(
-        envs, coutputs, definitionRules, function.runeToType, range, true, true, paramRunes, solver)
+        envs, coutputs, definitionRules, function.runeToType, range, callLocation, true, true, paramRunes, solver)
 
     val runedEnv =
       addRunedDataToNearEnv(
@@ -604,7 +616,7 @@ class FunctionCompilerSolvingLayer(
 
     val header =
       middleLayer.getOrEvaluateFunctionForHeader(
-        nearEnv, runedEnv, coutputs, parentRanges, function)
+        nearEnv, runedEnv, coutputs, parentRanges, callLocation, function)
 
     // We don't add these here because we aren't instantiating anything here, we're compiling a
     // function

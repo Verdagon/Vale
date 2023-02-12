@@ -1,6 +1,6 @@
 package dev.vale.typing
 
-import dev.vale.postparsing.RegionTemplataType
+import dev.vale.postparsing.{LocationInDenizen, RegionTemplataType}
 import dev.vale.typing.ast.{ReferenceExpressionTE, TupleTE}
 import dev.vale.{Interner, Keywords, Profiler, RangeS, vassert, vassertSome, vimpl}
 import dev.vale.typing.citizen.StructCompiler
@@ -25,11 +25,12 @@ class SequenceCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     exprs2: Vector[ReferenceExpressionTE]):
   (ReferenceExpressionTE) = {
     val types2 = exprs2.map(_.result.expectReference().coord)
     val region = vimpl()
-    val finalExpr = TupleTE(exprs2, makeTupleCoord(env, coutputs, parentRanges, region, types2))
+    val finalExpr = TupleTE(exprs2, makeTupleCoord(env, coutputs, parentRanges, callLocation, region, types2))
     (finalExpr)
   }
 
@@ -37,6 +38,7 @@ class SequenceCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     types2: Vector[CoordT]):
   StructTT = {
     val tupleTemplate @ StructDefinitionTemplata(_, _) =
@@ -47,6 +49,7 @@ class SequenceCompiler(
       coutputs,
       env,
       RangeS.internal(interner, -17653) :: parentRanges,
+      callLocation,
       tupleTemplate,
 //      Vector(CoordListTemplata(types2))).kind
       types2.map(CoordTemplata),
@@ -57,10 +60,11 @@ class SequenceCompiler(
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     region: ITemplata[RegionTemplataType],
     types2: Vector[CoordT]):
   CoordT = {
     templataCompiler.coerceKindToCoord(
-      coutputs, makeTupleKind(env, coutputs, parentRanges, types2), region)
+      coutputs, makeTupleKind(env, coutputs, parentRanges, callLocation, types2), region)
   }
 }

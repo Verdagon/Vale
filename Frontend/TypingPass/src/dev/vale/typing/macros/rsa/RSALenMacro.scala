@@ -2,6 +2,7 @@ package dev.vale.typing.macros.rsa
 
 import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.highertyping.FunctionA
+import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.CompilerOutputs
 import dev.vale.typing.ast.{ArgLookupTE, ArrayLengthTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReturnTE}
 import dev.vale.typing.env.FunctionEnvironment
@@ -21,6 +22,7 @@ class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -33,6 +35,7 @@ class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
+    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

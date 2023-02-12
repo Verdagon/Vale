@@ -26,6 +26,8 @@ case class BuildingFunctionEnvironmentWithClosureds(
   isRootCompilingDenizen: Boolean
 ) extends IInDenizenEnvironment {
 
+  override def denizenId: IdT[INameT] = id
+
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IInDenizenEnvironment]) {
@@ -84,6 +86,8 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   isRootCompilingDenizen: Boolean,
   defaultRegion: ITemplata[RegionTemplataType],
 ) extends IInDenizenEnvironment {
+
+  override def denizenId: IdT[INameT] = id
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {
@@ -150,7 +154,7 @@ case class NodeEnvironment(
 
   // The location-in-denizen of the nearest enclosing pure block, if there is one. Otherwise, None.
   // This is used to know whether a region is currently mutable or immutable.
-  latestPureBlockLocation: Option[Vector[Int]]
+  latestPureBlockLocation: Option[LocationInDenizen]
 ) extends IInDenizenEnvironment {
   vassert(declaredLocals.map(_.id) == declaredLocals.map(_.id).distinct)
 
@@ -163,6 +167,8 @@ case class NodeEnvironment(
       }
     }
   }
+
+  override def denizenId: IdT[INameT] = parentFunctionEnv.denizenId
 
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = {
 //    parentEnv match {
@@ -286,7 +292,7 @@ case class NodeEnvironment(
     unmovedLocalsDeclaredSinceThen
   }
 
-  def makeChild(node: IExpressionSE): NodeEnvironment = {
+  def makeChild(node: IExpressionSE, locationIfPure: Option[LocationInDenizen]): NodeEnvironment = {
     NodeEnvironment(
       parentFunctionEnv,
       Some(this),
@@ -296,7 +302,7 @@ case class NodeEnvironment(
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE.
       defaultRegion,
-      latestPureBlockLocation)
+      locationIfPure.orElse(latestPureBlockLocation))
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironment = {
@@ -404,8 +410,8 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironment) {
     nodeEnvironment.lookupWithNameInner(nameS, lookupFilter, getOnlyNearest)
   }
 
-  def makeChild(node: IExpressionSE): NodeEnvironment = {
-    nodeEnvironment.makeChild(node)
+  def makeChild(node: IExpressionSE, locationIfPure: Option[LocationInDenizen]): NodeEnvironment = {
+    nodeEnvironment.makeChild(node, locationIfPure)
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): Unit = {
@@ -446,6 +452,8 @@ case class FunctionEnvironment(
   // environments in the global environment.
 ) extends IInDenizenEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
+
+  override def denizenId: IdT[INameT] = templateId
 
   override def equals(obj: Any): Boolean = {
     if (!obj.isInstanceOf[IInDenizenEnvironment]) {
@@ -533,7 +541,7 @@ case class FunctionEnvironment(
 
     val latestPureBlockLocation =
       if (function.attributes.collectFirst({ case PureS => }).nonEmpty) {
-        Some(Vector())
+        Some(LocationInDenizen(Vector()))
       } else {
         None
       }
@@ -570,6 +578,8 @@ case class FunctionEnvironment(
 }
 
 case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) extends IDenizenEnvironmentBox {
+  override def denizenId: IdT[INameT] = functionEnvironment.denizenId
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable
 
   override def snapshot: FunctionEnvironment = functionEnvironment

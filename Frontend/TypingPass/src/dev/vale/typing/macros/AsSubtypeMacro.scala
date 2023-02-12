@@ -2,8 +2,9 @@ package dev.vale.typing.macros
 
 import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail, vimpl, vwat}
 import dev.vale.highertyping.FunctionA
+import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
-import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionHeaderT, FunctionDefinitionT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
@@ -28,6 +29,7 @@ class AsSubtypeMacro(
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],
     paramCoords: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -55,7 +57,7 @@ class AsSubtypeMacro(
     val successCoord = CoordT(resultOwnership, resultRegion, targetKind)
     val failCoord = CoordT(resultOwnership, resultRegion, incomingKind)
     val (resultCoord, okConstructor, okResultImpl, errConstructor, errResultImpl) =
-      expressionCompiler.getResult(coutputs, env, callRange, resultRegion, successCoord, failCoord)
+      expressionCompiler.getResult(coutputs, env, callRange, callLocation, resultRegion, successCoord, failCoord)
     if (resultCoord != vassertSome(maybeRetCoord)) {
       throw CompileErrorExceptionT(RangedInternalErrorT(callRange, "Bad result coord:\n" + resultCoord + "\nand\n" + vassertSome(maybeRetCoord)))
     }
@@ -79,6 +81,7 @@ class AsSubtypeMacro(
         okResultImpl,
         errResultImpl)
 
+    vimpl() // pure?
     (header, BlockTE(ReturnTE(asSubtypeExpr)))
   }
 }

@@ -175,6 +175,7 @@ class StructDropMacro(
     generatorId: StrI,
     life: LocationInFunctionEnvironment,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     originFunction1: Option[FunctionA],
     params2: Vector[ParameterT],
     maybeRetCoord: Option[CoordT]):
@@ -214,6 +215,8 @@ class StructDropMacro(
 
     val body =
       BlockTE(
+//        LocationInDenizen(Vector()),
+//        false,
         Compiler.consecutive(
           Vector(
             structDef.mutability match {
@@ -246,6 +249,7 @@ class StructDropMacro(
                         bodyEnv,
                         coutputs,
                         originFunction1.map(_.range).toList ++ callRange,
+                        callLocation,
                         env.defaultRegion,
                         UnletTE(v))
                     }))

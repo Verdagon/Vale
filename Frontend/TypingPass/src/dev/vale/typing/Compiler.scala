@@ -100,26 +100,28 @@ class Compiler(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironment,
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           structTemplata: StructDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
           contextRegion: ITemplata[RegionTemplataType]):
         IResolveOutcome[StructTT] = {
           structCompiler.resolveStruct(
-            coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs, contextRegion)
+            coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, contextRegion)
         }
 
         override def resolveInterface(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           interfaceTemplata: InterfaceDefinitionTemplata,
           uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
           contextRegion: ITemplata[RegionTemplataType]):
         IResolveOutcome[InterfaceTT] = {
           structCompiler.resolveInterface(
-            coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
+            coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
         }
 
 //        override def resolveStaticSizedArrayKind(
@@ -351,7 +353,7 @@ class Compiler(
           contextRegion: ITemplata[RegionTemplataType]):
         (KindT) = {
             structCompiler.predictInterface(
-              state, env.originalCallingEnv, env.parentRanges, templata, templateArgs, contextRegion)
+              state, env.originalCallingEnv, env.parentRanges, env.callLocation, templata, templateArgs, contextRegion)
         }
 
         override def predictStruct(
@@ -362,7 +364,7 @@ class Compiler(
           contextRegion: ITemplata[RegionTemplataType]):
         (KindT) = {
           structCompiler.predictStruct(
-            state, env.originalCallingEnv, env.parentRanges, templata, templateArgs, contextRegion)
+            state, env.originalCallingEnv, env.parentRanges, env.callLocation, templata, templateArgs, contextRegion)
         }
 
         override def kindIsFromTemplate(
@@ -458,6 +460,7 @@ class Compiler(
           callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           templata: InterfaceDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
@@ -465,13 +468,14 @@ class Compiler(
           verifyConclusions: Boolean):
         IResolveOutcome[InterfaceTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
-          structCompiler.resolveInterface(state, callingEnv, callRange, templata, templateArgs, contextRegion)
+          structCompiler.resolveInterface(state, callingEnv, callRange, callLocation, templata, templateArgs, contextRegion)
         }
 
         override def resolveStruct(
           callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           templata: StructDefinitionTemplata,
           templateArgs: Vector[ITemplata[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
@@ -479,13 +483,14 @@ class Compiler(
           verifyConclusions: Boolean):
         IResolveOutcome[StructTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
-          structCompiler.resolveStruct(state, callingEnv, callRange, templata, templateArgs, contextRegion)
+          structCompiler.resolveStruct(state, callingEnv, callRange,callLocation, templata, templateArgs, contextRegion)
         }
 
         override def resolveFunction(
           callingEnv: IInDenizenEnvironment,
           state: CompilerOutputs,
           range: List[RangeS],
+          callLocation: LocationInDenizen,
           name: StrI,
           coords: Vector[CoordT],
           contextRegion: ITemplata[RegionTemplataType],
@@ -495,6 +500,7 @@ class Compiler(
             callingEnv,
             state,
             range,
+            callLocation,
             interner.intern(CodeNameS(interner.intern(name))),
             Vector.empty,
             Vector.empty,
@@ -563,17 +569,19 @@ class Compiler(
         override def evaluateGenericFunctionFromNonCallForHeader(
           coutputs: CompilerOutputs,
           parentRanges: List[RangeS],
+          callLocation: LocationInDenizen,
           functionTemplata: FunctionTemplata,
           verifyConclusions: Boolean):
         FunctionHeaderT = {
           functionCompiler.evaluateGenericFunctionFromNonCall(
-            coutputs, parentRanges, functionTemplata, verifyConclusions)
+            coutputs, parentRanges, callLocation, functionTemplata, verifyConclusions)
         }
 
         override def scoutExpectedFunctionForPrototype(
           env: IInDenizenEnvironment,
           coutputs: CompilerOutputs,
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Vector[IRuneS],
@@ -587,6 +595,7 @@ class Compiler(
             env,
             coutputs,
             callRange,
+            callLocation,
             functionName,
             explicitTemplateArgRulesS,
             explicitTemplateArgRunesS,
@@ -613,11 +622,12 @@ class Compiler(
         nenv: NodeEnvironmentBox,
         life: LocationInFunctionEnvironment,
         ranges: List[RangeS],
+      callLocation: LocationInDenizen,
         region: ITemplata[RegionTemplataType],
         exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       expressionCompiler.evaluateBlockStatements(
-        coutputs, startingNenv, nenv, life, ranges, region, exprs)
+        coutputs, startingNenv, nenv, life, ranges, callLocation, region, exprs)
     }
 
     override def translatePatternList(
@@ -689,36 +699,39 @@ class Compiler(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           functionTemplata: FunctionTemplata,
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
           contextRegion: ITemplata[RegionTemplataType],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args, true)
+            coutputs, callRange, callLocation, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args, true)
         }
 
         override def evaluateGenericFunctionFromCallForPrototype(
           coutputs: CompilerOutputs,
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
+          callLocation: LocationInDenizen,
           functionTemplata: FunctionTemplata,
           explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
           contextRegion: ITemplata[RegionTemplataType],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-            coutputs, callRange, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args)
+            coutputs, callRange, callLocation, callingEnv, functionTemplata, explicitTemplateArgs, contextRegion, args)
         }
 
         override def evaluateClosureStruct(
-            coutputs: CompilerOutputs,
-            containingNodeEnv: NodeEnvironment,
-            callRange: List[RangeS],
-            name: IFunctionDeclarationNameS,
-            function1: FunctionA):
+          coutputs: CompilerOutputs,
+          containingNodeEnv: NodeEnvironment,
+          callRange: List[RangeS],
+          callLocation: LocationInDenizen,
+          name: IFunctionDeclarationNameS,
+          function1: FunctionA):
         StructTT = {
-          functionCompiler.evaluateClosureStruct(coutputs, containingNodeEnv, callRange, name, function1, true)
+          functionCompiler.evaluateClosureStruct(coutputs, containingNodeEnv, callRange, callLocation, name, function1, true)
         }
       })
 
@@ -894,7 +907,7 @@ class Compiler(
             entry match {
               case StructEnvEntry(structA) => {
                 val templata = StructDefinitionTemplata(packageEnv, structA)
-                structCompiler.compileStruct(coutputs, List(), templata)
+                structCompiler.compileStruct(coutputs, List(), LocationInDenizen(Vector()), templata)
 
                 val maybeExport =
                   structA.attributes.collectFirst { case e@ExportS(_) => e }
@@ -909,7 +922,7 @@ class Compiler(
 
                     val regionPlaceholder =
                       templataCompiler.createRegionPlaceholderInner(
-                        templateId, 0, DefaultRegionRuneS(), Vector(), true)
+                        templateId, 0, DefaultRegionRuneS(), LocationInDenizen(Vector()), true)
 
                     val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                     val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -919,7 +932,7 @@ class Compiler(
 
                     val exportPlaceholderedStruct =
                       structCompiler.resolveStruct(
-                        coutputs, exportEnv, List(structA.range), templata, Vector(regionPlaceholder), regionPlaceholder) match {
+                        coutputs, exportEnv, List(structA.range), LocationInDenizen(Vector()), templata, Vector(regionPlaceholder), regionPlaceholder) match {
                         case ResolveSuccess(kind) => kind
                         case ResolveFailure(range, x) => {
                           throw CompileErrorExceptionT(TypingPassSolverError(range, x))
@@ -939,7 +952,7 @@ class Compiler(
               }
               case InterfaceEnvEntry(interfaceA) => {
                 val templata = InterfaceDefinitionTemplata(packageEnv, interfaceA)
-                structCompiler.compileInterface(coutputs, List(), templata)
+                structCompiler.compileInterface(coutputs, List(), LocationInDenizen(Vector()), templata)
               }
               case _ =>
             }
@@ -967,7 +980,7 @@ class Compiler(
                 case FunctionEnvEntry(functionA) => {
                   val templata = FunctionTemplata(packageEnv, functionA)
                   functionCompiler.evaluateGenericFunctionFromNonCall(
-                    coutputs, List(), templata, true)
+                    coutputs, List(), LocationInDenizen(Vector()), templata, true)
 
                   val maybeExport =
                     functionA.attributes.collectFirst { case e@ExportS(_) => e }
@@ -982,7 +995,7 @@ class Compiler(
 
                       val regionPlaceholder =
                         templataCompiler.createRegionPlaceholderInner(
-                          templateId, 0, DefaultRegionRuneS(), Vector(), true)
+                          templateId, 0, DefaultRegionRuneS(), LocationInDenizen(Vector()), true)
 
                       val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                       val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -992,7 +1005,7 @@ class Compiler(
 
                       val exportPlaceholderedPrototype =
                         functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
-                          coutputs, List(functionA.range), exportEnv, templata, Vector(regionPlaceholder), regionPlaceholder, Vector()) match {
+                          coutputs, List(functionA.range), LocationInDenizen(Vector()), exportEnv, templata, Vector(regionPlaceholder), regionPlaceholder, Vector()) match {
                           case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
                           case EvaluateFunctionFailure(reason) => {
                             throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))
@@ -1034,7 +1047,7 @@ class Compiler(
 
             val regionPlaceholder =
               templataCompiler.createRegionPlaceholderInner(
-                templateId, 0, DefaultRegionRuneS(), Vector(), true)
+                templateId, 0, DefaultRegionRuneS(), LocationInDenizen(Vector()), true)
 
             val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
             val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1044,8 +1057,9 @@ class Compiler(
 
             val CompleteCompilerSolve(_, templataByRune, _, Vector()) =
               inferCompiler.solveExpectComplete(
-                InferEnv(exportEnv, List(range), exportEnv, regionPlaceholder),
-                coutputs, rules, runeToType, List(range), Vector(), Vector(), true, true, Vector())
+                InferEnv(exportEnv, List(range), LocationInDenizen(Vector()), exportEnv, regionPlaceholder),
+                coutputs, rules, runeToType, List(range),
+                LocationInDenizen(Vector()), Vector(), Vector(), true, true, Vector())
             templataByRune.get(typeRuneT.rune) match {
               case Some(KindTemplata(kind)) => {
                 coutputs.addKindExport(range, kind, placeholderedExportId, exportedName)

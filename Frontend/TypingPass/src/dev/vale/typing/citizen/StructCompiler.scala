@@ -31,6 +31,7 @@ trait IStructCompilerDelegate {
   def evaluateGenericFunctionFromNonCallForHeader(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     functionTemplata: FunctionTemplata,
     verifyConclusions: Boolean):
   FunctionHeaderT
@@ -39,6 +40,7 @@ trait IStructCompilerDelegate {
     env: IInDenizenEnvironment,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -78,6 +80,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata,
     uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
@@ -85,7 +88,7 @@ class StructCompiler(
   IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       templateArgsLayer.resolveStruct(
-        coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs, contextRegion)
+        coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, contextRegion)
     })
   }
 
@@ -183,10 +186,11 @@ class StructCompiler(
   def compileStruct(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     structTemplata: StructDefinitionTemplata):
   Unit = {
     Profiler.frame(() => {
-      templateArgsLayer.compileStruct(coutputs, parentRanges, structTemplata)
+      templateArgsLayer.compileStruct(coutputs, parentRanges, callLocation, structTemplata)
     })
   }
 
@@ -195,6 +199,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
@@ -203,7 +208,7 @@ class StructCompiler(
     contextRegion: ITemplata[RegionTemplataType]):
   (InterfaceTT) = {
     templateArgsLayer.predictInterface(
-      coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
+      coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
   }
 
   // See SFWPRL for how this is different from resolveStruct.
@@ -211,6 +216,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     structTemplata: StructDefinitionTemplata,
@@ -219,13 +225,14 @@ class StructCompiler(
     defaultRegion: ITemplata[RegionTemplataType]):
   (StructTT) = {
     templateArgsLayer.predictStruct(
-      coutputs, callingEnv, callRange, structTemplata, uncoercedTemplateArgs, defaultRegion)
+      coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, defaultRegion)
   }
 
   def resolveInterface(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata,
@@ -235,7 +242,7 @@ class StructCompiler(
   IResolveOutcome[InterfaceTT] = {
     val success =
       templateArgsLayer.resolveInterface(
-        coutputs, callingEnv, callRange, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
+        coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
 
     success
   }
@@ -244,6 +251,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     citizenTemplata: CitizenDefinitionTemplata,
@@ -252,20 +260,21 @@ class StructCompiler(
     contextRegion: ITemplata[RegionTemplataType]):
   IResolveOutcome[ICitizenTT] = {
     citizenTemplata match {
-      case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, st, uncoercedTemplateArgs, contextRegion)
-      case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, it, uncoercedTemplateArgs, contextRegion)
+      case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, callLocation, st, uncoercedTemplateArgs, contextRegion)
+      case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, callLocation, it, uncoercedTemplateArgs, contextRegion)
     }
   }
 
   def compileInterface(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
     interfaceTemplata: InterfaceDefinitionTemplata):
   Unit = {
     templateArgsLayer.compileInterface(
-      coutputs, parentRanges, interfaceTemplata)
+      coutputs, parentRanges, callLocation, interfaceTemplata)
   }
 
   // Makes a struct to back a closure
@@ -273,12 +282,13 @@ class StructCompiler(
     containingFunctionEnv: NodeEnvironment,
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
+    callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[NormalStructMemberT]):
   (StructTT, MutabilityT, FunctionTemplata) = {
 //    Profiler.reentrant("StructCompiler-makeClosureUnderstruct", name.codeLocation.toString, () => {
-      templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, name, functionS, members)
+      templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, callLocation, name, functionS, members)
 //    })
   }
 
