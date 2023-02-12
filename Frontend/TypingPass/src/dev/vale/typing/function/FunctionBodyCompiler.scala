@@ -8,7 +8,7 @@ import dev.vale.postparsing.patterns.{AtomSP, CaptureS}
 import dev.vale.postparsing._
 import dev.vale.typing.{BodyResultDoesntMatch, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntConvertForReturnT, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{ArgLookupTE, BlockTE, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironment, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironmentT, NodeEnvironmentBox}
 import dev.vale.typing.names.{IRegionNameT, IdT, NameTranslator}
 import dev.vale.typing.types._
 import dev.vale.typing.types._
@@ -25,7 +25,7 @@ import scala.collection.immutable.{List, Set}
 trait IBodyCompilerDelegate {
   def evaluateBlockStatements(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],

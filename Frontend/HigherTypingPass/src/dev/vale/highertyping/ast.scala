@@ -121,11 +121,13 @@ case class ImplA(
 }
 
 case class ExportAsA(
-    range: RangeS,
-    exportedName: StrI,
+  range: RangeS,
+  exportedName: StrI,
+  defaultRegionRune: IRuneS,
   rules: Vector[IRulexSR],
-    runeToType: Map[IRuneS, ITemplataType],
-    typeRune: RuneUsage) {
+  runeToType: Map[IRuneS, ITemplataType],
+  typeRune: RuneUsage)
+{
   val hash = range.hashCode() + exportedName.hashCode
   override def hashCode(): Int = hash;
   override def equals(obj: Any): Boolean = {

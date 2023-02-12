@@ -172,6 +172,8 @@ case class DiscardTE(
 
   expr.result.coord.ownership match {
     case BorrowT =>
+    case MutableBorrowT =>
+    case ImmutableBorrowT =>
     case ShareT =>
     case WeakT =>
   }
@@ -321,6 +323,9 @@ case class PureTE(
       }
       case (ImmutableShareT, RegionTemplata(false), RegionTemplata(true)) => {
         ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), innerKind))
+      }
+      case (MutableShareT, RegionTemplata(true), RegionTemplata(true)) => {
+        vwat()
       }
       case _ => vwat()
     }

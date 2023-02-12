@@ -35,7 +35,7 @@ class FunctionCompilerCore(
   val bodyCompiler = new BodyCompiler(opts, nameTranslator, templataCompiler, convertHelper, new IBodyCompilerDelegate {
     override def evaluateBlockStatements(
       coutputs: CompilerOutputs,
-      startingNenv: NodeEnvironment,
+      startingNenv: NodeEnvironmentT,
       nenv: NodeEnvironmentBox,
       life: LocationInFunctionEnvironment,
       parentRanges: List[RangeS],
@@ -108,7 +108,7 @@ class FunctionCompilerCore(
         case CodeBodyS(body) => {
           val attributesWithoutExport =
             fullEnv.function.attributes.filter({
-              case ExportS(_) => false
+              case ExportS(_, _) => false
               case _ => true
             })
           val attributesT = translateAttributes(attributesWithoutExport)

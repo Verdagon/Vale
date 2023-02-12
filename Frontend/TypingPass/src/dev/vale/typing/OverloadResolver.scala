@@ -334,14 +334,14 @@ class OverloadResolver(
                 })
               // If the rules ask for a default region, here's where we supply it
               val initialKnowns =
-                if (runeAToType.contains(DefaultRegionRuneS())) {
-                  initialKnownsWithoutDefaultRegion :+
-                    InitialKnown(
-                      RuneUsage(callRange.head, DefaultRegionRuneS()),
-                      contextRegion)
-                } else {
+//                if (runeAToType.contains(DefaultRegionRuneS())) {
+//                  initialKnownsWithoutDefaultRegion :+
+//                    InitialKnown(
+//                      RuneUsage(callRange.head, DefaultRegionRuneS()),
+//                      contextRegion)
+//                } else {
                   initialKnownsWithoutDefaultRegion
-                }
+//                }
 
               // We only want to solve the template arg runes
               inferCompiler.solveComplete(

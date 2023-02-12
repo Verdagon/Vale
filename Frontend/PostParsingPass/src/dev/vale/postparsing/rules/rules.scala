@@ -222,17 +222,6 @@ case class MaybeCoercingCallSR(
   templateRune: RuneUsage,
   args: Vector[RuneUsage]
 ) extends IRulexSR {
-  this match {
-    case MaybeCoercingCallSR(_,RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 1)))),RuneUsage(_,DefaultRegionRuneS()),RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 2)))),Vector(RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 3, 1, 1)))), RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 4, 1, 1)))))) => {
-      vpass()
-    }
-    case MaybeCoercingCallSR(_,RuneUsage(_,ImplicitCoercionKindRuneS(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 1))))),RuneUsage(_,DefaultRegionRuneS()),RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 2)))),Vector(RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 3, 1, 1)))), RuneUsage(_,ImplicitRuneS(LocationInDenizen(Vector(3, 1, 1, 2, 4, 1, 1)))))) => {
-      vpass()
-    }
-    case _ => {
-
-    }
-  }
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def runeUsages: Vector[RuneUsage] = Vector(resultRune, contextRegionRune, templateRune) ++ args
 }

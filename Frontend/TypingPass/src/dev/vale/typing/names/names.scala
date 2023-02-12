@@ -1,10 +1,10 @@
 package dev.vale.typing.names
 
-import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, DefaultRegionRuneS, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
+import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
 import dev.vale.typing.ast.LocationInFunctionEnvironment
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.{CoordTemplata, ITemplata, MutabilityTemplata, PlaceholderTemplata, RegionTemplata}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectInteger, expectMutability, expectRegion, expectRegionTemplata, expectVariability}
 import dev.vale.typing.types._
@@ -546,6 +546,12 @@ case class StructNameT(
   template: IStructTemplateNameT,
   templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IStructNameT with CitizenNameT {
+  this match {
+    case StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(false))) => {
+      vwat() // Last arg shouldnt be imm
+    }
+    case _ =>
+  }
   vpass()
 }
 

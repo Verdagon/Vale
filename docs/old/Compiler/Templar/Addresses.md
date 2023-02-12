@@ -14,8 +14,7 @@ fn main() {
 
 that ship.engine expression results in a &Engine.
 
-So, we might think that a ReferenceMemberLookup will result in a
-&Engine.
+So, we might think that a ReferenceMemberLookup will result in a &Engine.
 
 However, that doesnt work for this snippet:
 

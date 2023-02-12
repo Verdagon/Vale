@@ -1,7 +1,7 @@
 
 # How Regions Are Lowered In Instantiator (HRALII)
 
-Instantiator lowers these to RegionTemplata(mutable). However, this is the mutability of the region _at the time the thing was created_. A `List<mut&Ship>` is not a list of mutable references to ships, it's a List of references that it regards as mutable, but might not be mutable right now. Rather, it tracks what's mutable right now by putting that information in the coord's ownership, which can be owning, mutable borrow, or immutable borrow.
+Instantiator lowers region placeholders to RegionTemplata(mutable). However, this is the mutability of the region _at the time the thing was created_. A `List<mut&Ship>` is not a list of mutable references to ships, it's a List of references that it regards as mutable, but might not be mutable right now. Rather, it tracks what's mutable right now by putting that information in the coord's ownership, which can be owning, mutable borrow, or immutable borrow.
 
 The instantiator is in a constant quest to simplify coords to just two things:
 
@@ -140,4 +140,34 @@ Three remaining minor downsides:
  * The typing phase itself will have trouble comparing the two. Let's say we return a reference from the pure block, we'd have to do some tricky logic to compare the result `(imm main)'Ship<(imm main)'>` can be received into a `(mut main)'Ship<(mut main)'>`.
  * The instantiator doesn't have enough information to sanity check the typing phase's outputs. That'll be nice to have when we distribute .vast files with the typing phase outputs.
  * We have to loop over the entire environment. Not too expensive, but the other approach is a bit faster.
+
+
+# Can't Translate Outside Things From Inside Pure Blocks (CTOTFIPB)
+
+In this snippet:
+
+```
+struct Engine { fuel int; }
+struct Spaceship { engine Engine; }
+
+exported func main(s &Spaceship) int {
+  pure block { s.engine.fuel }
+}
+```
+
+Before the pure block, `s` is a `&main'Spaceship<main'>`, instantiated it's `mut&Spaceship<mut>`.
+
+From inside the pure block, `s` is still a `&main'Spaceship<main'>`, but instantiated it's a `imm&Spaceship<mut>`. Note how only that first `mut` turned into an `imm`, because of HRALII.
+
+However, the implementation can be trippy here. In the pure, when we do a LocalLookupTE, it contains a `ReferenceLocalVariableTE` which contains the type of the local, in this case `&main'Spaceship<main'>`. Of course, when we do the instantiation, we see `main'` is immutable, so it erroneously produces `imm&Spaceship<imm>`.
+
+The answer is for the instantiator to keep track of the current type of every variable in scope, and not re-translate it inside the pure block like that.
+
+
+The same applies to structs. ReferenceMemberLookupTE.memberCoord might be translated as `imm&Engine<imm>` when it needs to be `imm&Engine<mut>`.
+
+
+The same applies to when we're translating anything from outside the pure block. In LocalVariableT, we have the full name of the variable, which includes the full name of the function. When we try to translate it, suddenly its mutable parameters are immutable, and the variable suddenly thinks it's in a different function.
+
+So generally speaking, we shouldn't translate anything outside the pure block from within the pure block.
 

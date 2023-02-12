@@ -3,7 +3,7 @@ package dev.vale
 import dev.vale.simplifying.VonHammer
 import dev.vale.finalast.YonderH
 import dev.vale.typing._
-import dev.vale.typing.types.{CoordT, ImmutableBorrowT, StrT, StructTT}
+import dev.vale.typing.types.{CoordT, ImmutableBorrowT, OwnT, StrT, StructTT}
 import dev.vale.testvm.StructInstanceV
 import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
@@ -36,6 +36,53 @@ class PureTests extends FunSuite with Matchers {
   }
 
   test("Simple pure block") {
+    // Taking in a &Spaceship so we don't call the constructors, that's covered by another test.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |struct Engine { fuel int; }
+          |struct Spaceship { engine Engine; }
+          |exported func main(s &Spaceship) int {
+          |  pure block {
+          |    x = s.engine;
+          |    y = x.fuel;
+          |    y
+          |  }
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+    val rml =
+      Collector.only(main, {
+        case rml @ ReferenceMemberLookupTE(_, _, IdT(_, _, CodeVarNameT(StrI("engine"))), _, _) => rml
+      })
+    rml.memberReference match {
+      // See RMLRMO for why this is OwnT
+      case CoordT(OwnT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+    }
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("x"))), _, coord), _) => coord
+      })
+    xType match {
+      case null =>
+    }
+
+    val yType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(IdT(_, _, CodeVarNameT(StrI("y"))), _, coord), _) => coord
+      })
+    yType match {
+      case null =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(10) => }
+  }
+
+  test("Pure function returning struct") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
     val compile =
       RunCompilation.test(
         """
@@ -43,7 +90,7 @@ class PureTests extends FunSuite with Matchers {
           |struct Spaceship { engine Engine; }
           |exported func main() int {
           |  s = Spaceship(Engine(10));
-          |  pure block { s.engine.fuel }
+          |  s.engine.fuel
           |}
           |""".stripMargin, false)
     val main = compile.getMonouts().lookupFunction("main")

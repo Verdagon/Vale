@@ -201,9 +201,10 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val tz = List(RangeS.testZero(interner))
     val testPackageCoord = PackageCoordinate.TEST_TLD(interner, keywords)
     val tzCodeLoc = CodeLocationS.testZero(interner)
-    val funcTemplateName = IdT(testPackageCoord, Vector(), FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc))
+    val funcTemplateName = FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc)
+    val funcTemplateId = IdT(testPackageCoord, Vector(), funcTemplateName)
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
-    val regionName = funcTemplateName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DefaultRegionRuneS())))))
+    val regionName = funcTemplateId.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DenizenDefaultRegionRuneS(FunctionNameS(funcTemplateName.humanName, funcTemplateName.codeLocation)))))))
     val region = PlaceholderTemplata(regionName, RegionTemplataType())
 
 

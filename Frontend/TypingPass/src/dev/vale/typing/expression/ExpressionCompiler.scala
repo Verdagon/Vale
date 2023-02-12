@@ -25,7 +25,7 @@ import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLooku
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, StructCompiler}
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT,
   ExpressionLookupContext, FunctionEnvironment, IInDenizenEnvironment, ILocalVariableT,
-  NodeEnvironment, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT,
+  NodeEnvironmentT, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT,
   TemplataEnvEntry, TemplataLookupContext}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.highertyping._
@@ -83,7 +83,7 @@ trait IExpressionCompilerDelegate {
 
   def evaluateClosureStruct(
     coutputs: CompilerOutputs,
-    containingNodeEnv: NodeEnvironment,
+    containingNodeEnv: NodeEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     name: IFunctionDeclarationNameS,
@@ -147,7 +147,7 @@ class ExpressionCompiler(
 
       override def dropSince(
         coutputs: CompilerOutputs,
-        startingNenv: NodeEnvironment,
+        startingNenv: NodeEnvironmentT,
         nenv: NodeEnvironmentBox,
         range: List[RangeS],
         callLocation: LocationInDenizen,
@@ -1172,7 +1172,7 @@ class ExpressionCompiler(
           }
 
           val maybeLocationIfPure = vimpl()//if (thenBodySE.pure) Some(thenBodySE.location) else None
-          val thenFate = NodeEnvironmentBox(nenv.makeChild(thenBodySE, maybeLocationIfPure))
+          val thenFate = NodeEnvironmentBox(nenv.makeChild(thenBodySE, vimpl(), maybeLocationIfPure))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1194,7 +1194,7 @@ class ExpressionCompiler(
               case _ => true
             }
 
-          val elseFate = NodeEnvironmentBox(nenv.makeChild(elseBodySE, vimpl()))
+          val elseFate = NodeEnvironmentBox(nenv.makeChild(elseBodySE, vimpl(), vimpl()))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1329,9 +1329,9 @@ class ExpressionCompiler(
           // and the body block, so they can access any locals declared by the condition.
 
           // See BEAFB for why we make a new environment for the While
-          val loopNenv = nenv.makeChild(w, None)
+          val loopNenv = nenv.makeChild(w, vimpl(), None)
 
-          val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl()))
+          val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
           val (bodyExpressionsWithResult, bodyReturnsFromExprs) =
             evaluateBlockStatements(
               coutputs,
@@ -1367,8 +1367,8 @@ class ExpressionCompiler(
           // the temporary list.
           val elementRefT = {
             // See BEAFB for why we make a new environment for the While
-            val loopNenv = nenv.makeChild(m, vimpl())
-            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl()))
+            val loopNenv = nenv.makeChild(m, vimpl(), vimpl())
+            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
             val (bodyExpressionsWithResult, _) =
               evaluateBlockStatements(
                 coutputs,
@@ -1414,9 +1414,9 @@ class ExpressionCompiler(
 
           val (loopTE, returnsFromLoop) = {
             // See BEAFB for why we make a new environment for the While
-            val loopNenv = nenv.makeChild(m, vimpl())
+            val loopNenv = nenv.makeChild(m, vimpl(), vimpl())
 
-            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl()))
+            val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
             val (userBodyTE, bodyReturnsFromExprs) =
               evaluateBlockStatements(
                 coutputs,
@@ -1517,11 +1517,11 @@ class ExpressionCompiler(
             PlaceholderTemplata(
               TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
                 .addStep(
-                  RegionPlaceholderNameT(-1, PureBlockRegionRuneS(location), location, true)),
+                  interner.intern(RegionPlaceholderNameT(-1, PureBlockRegionRuneS(location), location, true))),
               RegionTemplataType())
 
           val newLocationIfPure = Some(location)
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(p, newLocationIfPure))
+          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(p, Some(newRegion), newLocationIfPure))
 
           val (innerExpr, returnsFromExprs) =
             evaluateAndCoerceToReferenceExpression(
@@ -1542,7 +1542,7 @@ class ExpressionCompiler(
           }
         }
         case b@BlockSE(range, locals, _) => {
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, nenv.snapshot.latestPureBlockLocation))
+          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, nenv.snapshot.latestPureBlockLocation))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(
@@ -2083,7 +2083,7 @@ class ExpressionCompiler(
 
   def evaluateBlockStatements(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
@@ -2202,7 +2202,7 @@ class ExpressionCompiler(
 
   def dropSince(
     coutputs: CompilerOutputs,
-    startingNenv: NodeEnvironment,
+    startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,

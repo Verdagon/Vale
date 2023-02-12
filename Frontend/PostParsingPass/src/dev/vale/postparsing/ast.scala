@@ -59,7 +59,7 @@ case class BuiltinS(generatorName: StrI) extends IFunctionAttributeS with ICitiz
 case class MacroCallS(range: RangeS, include: IMacroInclusionP, macroName: StrI) extends ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
-case class ExportS(packageCoordinate: PackageCoordinate) extends IFunctionAttributeS with ICitizenAttributeS {
+case class ExportS(packageCoordinate: PackageCoordinate, defaultRegionRune: IRuneS) extends IFunctionAttributeS with ICitizenAttributeS {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case object UserFunctionS extends IFunctionAttributeS // Whether it was written by a human. Mostly for tests right now.

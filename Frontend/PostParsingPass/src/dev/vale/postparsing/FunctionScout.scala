@@ -156,7 +156,7 @@ class FunctionScout(
       maybeBody0.flatMap(_.maybeDefaultRegion) match {
         case None => {
           val regionRange = RangeS(headerRangeS.end, headerRangeS.end)
-          val rune = DefaultRegionRuneS()
+          val rune = DenizenDefaultRegionRuneS(funcName)
           runeToExplicitType += ((rune, RegionTemplataType()))
           val implicitRegionGenericParam =
             GenericParameterS(
@@ -466,7 +466,15 @@ class FunctionScout(
         case ParentFunction(_) => unfilteredAttrsP
       }
 
-    val funcAttrsS = translateFunctionAttributes(file, filteredAttrs)
+    val funcAttrsS =
+      filteredAttrs.map({
+        case AbstractAttributeP(_) => vwat() // Should have been filtered out, typingpass cares about abstract directly
+        case ExportAttributeP(_) => ExportS(file.packageCoordinate, ExportDefaultRegionRuneS(funcName))
+        case ExternAttributeP(_) => ExternS(file.packageCoordinate)
+        case PureAttributeP(_) => PureS
+        case BuiltinAttributeP(_, generatorName) => BuiltinS(generatorName.str)
+        case x => vimpl(x.toString)
+      })
 
     // Filter out any RuneParentEnvLookupSR rules, we don't want these methods to look up these runes
     // from the environment. See MKRFA.
@@ -691,17 +699,5 @@ class FunctionScout(
     vassert(variableUses.uses.isEmpty)
     functionS
   }
-
-  def translateFunctionAttributes(file: FileCoordinate, attrsP: Vector[IAttributeP]): Vector[IFunctionAttributeS] = {
-    attrsP.map({
-      case AbstractAttributeP(_) => vwat() // Should have been filtered out, typingpass cares about abstract directly
-      case ExportAttributeP(_) => ExportS(file.packageCoordinate)
-      case ExternAttributeP(_) => ExternS(file.packageCoordinate)
-      case PureAttributeP(_) => PureS
-      case BuiltinAttributeP(_, generatorName) => BuiltinS(generatorName.str)
-      case x => vimpl(x.toString)
-    })
-  }
-
 }
 
