@@ -264,7 +264,7 @@ case class IndexSE(range: RangeS, left: IExpressionSE, indexExpr: IExpressionSE)
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 
-case class FunctionCallSE(range: RangeS, callableExpr: IExpressionSE, argsExprs1: Vector[IExpressionSE]) extends IExpressionSE {
+case class FunctionCallSE(range: RangeS, location: LocationInDenizen, callableExpr: IExpressionSE, argsExprs1: Vector[IExpressionSE]) extends IExpressionSE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 }
 

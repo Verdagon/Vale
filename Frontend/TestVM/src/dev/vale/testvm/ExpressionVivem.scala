@@ -153,6 +153,10 @@ object ExpressionVivem {
 
         NodeContinue(ref)
       }
+      case MutabilifyH(inner) => {
+        // No op, just execute inner.
+        executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), inner)
+      }
       case BlockH(sourceExpr) => {
         executeNode(programH, stdin, stdout, heap, expressionId.addStep(0), sourceExpr)
       }

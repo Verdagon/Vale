@@ -96,6 +96,8 @@ trait IInDenizenEnvironment extends IEnvironment {
   def rootCompilingDenizenEnv: IInDenizenEnvironment
 
   def denizenId: IdT[INameT]
+
+  def maybeLatestPureBlockLocation: Option[LocationInDenizen]
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -431,6 +433,8 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
 ) extends IInDenizenEnvironment {
   vassert(templatas.templatasStoreName == id)
 
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+
   override def denizenId: IdT[INameT] = templateId
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
@@ -518,6 +522,7 @@ case class ExportEnvironment(
 ) extends IInDenizenEnvironment {
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
   override def denizenId: IdT[INameT] = id
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
 
   override def lookupWithNameInner(
     name: INameT,
@@ -546,6 +551,7 @@ case class GeneralEnvironment[+T <: INameT](
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def denizenId: IdT[INameT] = id
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
 
   override def equals(obj: Any): Boolean = vcurious();
 

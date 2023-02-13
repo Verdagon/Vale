@@ -2,14 +2,15 @@ package dev.vale.typing.ast
 
 //import dev.vale.astronomer.IVarNameA
 import dev.vale.typing.env.{ILocalVariableT, ReferenceLocalVariableT}
-import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, ExternFunctionNameT, IImplNameT, IRegionNameT, IVarNameT, IdT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names._
 import dev.vale.{RangeS, vassert, vcurious, vfail, vpass, vwat}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType}
+import dev.vale.options.GlobalOptions.test
+import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, PureCallRegionRuneS, RegionTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata, RegionTemplata}
+import dev.vale.typing.templata.{ITemplata, IntegerTemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata, RegionTemplata, VariabilityTemplata}
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {
@@ -308,29 +309,16 @@ case class BlockTE(
 // 6. Destroy the new region
 case class PureTE(
   location: LocationInDenizen,
-  // At some point we'll need a specific function to call to do the transmigration, see NMTFPT.
-  transmigrateResultToRegion: ITemplata[RegionTemplataType],
-  inner: ReferenceExpressionTE
+//  newDefaultRegionName: IdT[INameT],
+  newDefaultRegion: ITemplata[RegionTemplataType],
+  oldRegionToNewRegion: Vector[(ITemplata[RegionTemplataType], ITemplata[RegionTemplataType])],
+  inner: ReferenceExpressionTE,
+  resultType: CoordT
 ) extends ReferenceExpressionTE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResultT = {
-    val innerCoord = inner.result.coord
-    val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
-    (innerOwnership, innerRegion, transmigrateResultToRegion) match {
-      case (ShareT, PlaceholderTemplata(_, _), PlaceholderTemplata(_, _)) => {
-        ReferenceResultT(innerCoord.copy(region = transmigrateResultToRegion))
-      }
-      case (ImmutableShareT, RegionTemplata(false), RegionTemplata(true)) => {
-        ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), innerKind))
-      }
-      case (MutableShareT, RegionTemplata(true), RegionTemplata(true)) => {
-        vwat()
-      }
-      case _ => vwat()
-    }
-  }
+  override def result: ReferenceResultT = ReferenceResultT(resultType)
 }
 
 case class ConsecutorTE(exprs: Vector[ReferenceExpressionTE]) extends ReferenceExpressionTE {
@@ -454,7 +442,14 @@ case class AsSubtypeTE(
 
 case class VoidLiteralTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResultT(CoordT(ShareT, region, VoidT()))
+  override def result = {
+    val ownership =
+      region match {
+        case RegionTemplata(_) => MutableShareT
+        case PlaceholderTemplata(_, RegionTemplataType()) => ShareT
+      }
+    ReferenceResultT(CoordT(ownership, region, VoidT()))
+  }
 }
 
 case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
@@ -507,15 +502,18 @@ case class ArgLookupTE(
 case class StaticSizedArrayLookupTE(
   range: RangeS,
     arrayExpr: ReferenceExpressionTE,
-    arrayType: StaticSizedArrayTT,
     indexExpr: ReferenceExpressionTE,
+  // See RMLRMO for why this is the same ownership as the original field.
+    elementType: CoordT,
     // See RMLRMO for why we dont have a targetOwnership field here.
     variability: VariabilityT
 ) extends AddressExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vassert(arrayExpr.result.coord.kind == arrayType)
 
-  override def result = AddressResultT(arrayType.elementType)
+  override def result = {
+    // See RMLRMO why we just return the element type.
+    AddressResultT(elementType)
+  }
 }
 
 case class RuntimeSizedArrayLookupTE(

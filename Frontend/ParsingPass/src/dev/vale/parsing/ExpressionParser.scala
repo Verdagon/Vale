@@ -719,12 +719,6 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
       case Ok(None) =>
     }
 
-    parseLoneBlock(iter) match {
-      case Err(e) => return Err(e)
-      case Ok(Some(x)) => return Ok(x)
-      case Ok(None) =>
-    }
-
     parseBreak(iter) match {
       case Err(e) => return Err(e)
       case Ok(Some(x)) => return Ok(x)
@@ -1399,6 +1393,12 @@ class ExpressionParser(interner: Interner, keywords: Keywords, opts: GlobalOptio
           case Ok(x) => x
         }
       return Ok(NotPE(RangeL(begin, innerPE.range.end), innerPE))
+    }
+
+    parseLoneBlock(iter) match {
+      case Err(e) => return Err(e)
+      case Ok(Some(x)) => return Ok(x)
+      case Ok(None) =>
     }
 
     parseIfLadder(iter) match {

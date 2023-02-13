@@ -78,6 +78,19 @@ object FunctionCompiler {
   case class EvaluateFunctionFailure(
     reason: IFindFunctionFailureReason
   ) extends IEvaluateFunctionResult
+
+
+  trait IStampFunctionResult
+
+  case class StampFunctionSuccess(
+    maybeNewRegion: Option[ITemplata[RegionTemplataType]],
+    prototype: PrototypeTemplata,
+    inferences: Map[IRuneS, ITemplata[ITemplataType]]
+  ) extends IStampFunctionResult
+
+  case class StampFunctionFailure(
+    reason: IFindFunctionFailureReason
+  ) extends IStampFunctionResult
 }
 
 // When typingpassing a function, these things need to happen:

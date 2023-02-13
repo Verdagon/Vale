@@ -428,7 +428,9 @@ class Heap(in_vivemDout: PrintStream) {
     }
 
     val ReferenceV(actualKind, oldSeenAsType, oldOwnership, oldLocation, objectId) = reference
-    vassert((oldOwnership == MutableShareH) == (targetType.ownership == MutableShareH))
+    vassert(
+      (oldOwnership == MutableShareH || oldOwnership == ImmutableShareH) ==
+        (targetType.ownership == MutableShareH || targetType.ownership == ImmutableShareH))
     if (oldSeenAsType.hamut != expectedType.kind) {
       // not sure if the above .actualType is right
 
@@ -650,7 +652,21 @@ class Heap(in_vivemDout: PrintStream) {
     } else {
       vassert(containsLiveObject(actualReference.allocId))
     }
-    if (actualReference.seenAsCoord.hamut != expectedType) {
+    if ((actualReference.seenAsCoord.hamut.ownership match {
+      case ImmutableShareH => MutableShareH
+      case ImmutableBorrowH => MutableBorrowH
+      case other => other
+    }) != (expectedType.ownership  match {
+      case ImmutableShareH => MutableShareH
+      case ImmutableBorrowH => MutableBorrowH
+      case other => other
+    })) {
+      vfail("Expected " + expectedType + " but was " + actualReference.seenAsCoord.hamut)
+    }
+    if (actualReference.seenAsCoord.hamut.location != expectedType.location) {
+      vfail("Expected " + expectedType + " but was " + actualReference.seenAsCoord.hamut)
+    }
+    if (actualReference.seenAsCoord.hamut.kind != expectedType.kind) {
       vfail("Expected " + expectedType + " but was " + actualReference.seenAsCoord.hamut)
     }
     val actualKind = dereference(actualReference, actualReference.ownership == WeakH)

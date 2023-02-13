@@ -273,7 +273,7 @@ case class RegionPlaceholderNameT(
   rune: IRuneS,
   originallyIntroducedLocation: LocationInDenizen,
   originallyMutable: Boolean
-) extends IPlaceholderNameT
+) extends IRegionNameT with IPlaceholderNameT
 
 // See NNSPAFOC.
 case class OverrideDispatcherTemplateNameT(

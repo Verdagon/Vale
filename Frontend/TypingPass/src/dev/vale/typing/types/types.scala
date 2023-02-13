@@ -93,10 +93,20 @@ case class CoordT(
       vassert(ownership == ShareT || ownership == MutableShareT || ownership == ImmutableShareT)
     }
     case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(_, _, arrRegion)))) => {
-      vassert(region == arrRegion)
+      region match {
+        case PlaceholderTemplata(_, _) => {
+          vassert(arrRegion == region)
+        }
+        case _ => // In instantiator, the coord region might differ.
+      }
     }
     case StaticSizedArrayTT(IdT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(_, _, arrRegion)))) => {
-      vassert(region == arrRegion)
+      region match {
+        case PlaceholderTemplata(_, _) => {
+          vassert(arrRegion == region)
+        }
+        case _ => // In instantiator, the coord region might differ.
+      }
     }
     case StructTT(IdT(_, _, localName)) => {
       region match {

@@ -45,7 +45,7 @@ pure func Display<r' imm>(map &r'[][]bool) {
 exported func main() int {
   random_seed = 1337;
   board_0 = MakeBoard(random_seed);
-  pure { Display(&board_0); }
+  Display(&board_0);
   while board_0.len() > 0 {
     row = board_0.pop();
     while row.len() > 0 {

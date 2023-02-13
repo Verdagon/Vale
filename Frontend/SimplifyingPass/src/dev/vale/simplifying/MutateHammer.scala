@@ -48,7 +48,7 @@ class MutateHammer(
         case AddressMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
           translateAddressibleMemberMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, structExpr2, memberName)
         }
-        case StaticSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
+        case StaticSizedArrayLookupTE(_, arrayExpr2, indexExpr2, _, _) => {
           translateMundaneStaticSizedArrayMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, arrayExpr2, indexExpr2)
         }
         case RuntimeSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {

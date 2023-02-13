@@ -3,38 +3,17 @@ package dev.vale
 import dev.vale.simplifying.VonHammer
 import dev.vale.finalast.YonderH
 import dev.vale.typing._
-import dev.vale.typing.types.{CoordT, ImmutableBorrowT, ImmutableShareT, IntT, OwnT, StrT, StructTT}
+import dev.vale.typing.types.{CoordT, FinalT, ImmutableBorrowT, ImmutableShareT, IntT, MutableShareT, MutableT, OwnT, StaticSizedArrayTT, StrT, StructTT}
 import dev.vale.testvm.StructInstanceV
-import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE}
+import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
-import dev.vale.typing.names.{CodeVarNameT, IdT, StructNameT, StructTemplateNameT}
-import dev.vale.typing.templata.RegionTemplata
+import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.templata.{IntegerTemplata, MutabilityTemplata, RegionTemplata, VariabilityTemplata}
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
 import org.scalatest.{FunSuite, Matchers}
 
 class PureTests extends FunSuite with Matchers {
-  test("Simple pure function") {
-    val compile =
-      RunCompilation.test(
-        """
-          |struct Engine {
-          |  fuel int;
-          |}
-          |struct Spaceship {
-          |  engine Engine;
-          |}
-          |pure func pfunc(s &Spaceship) int {
-          |  return s.engine.fuel;
-          |}
-          |exported func main() int {
-          |  s = Spaceship(Engine(10));
-          |  return pfunc(&s);
-          |}
-          |""".stripMargin)
-    compile.evalForKind(Vector()) match { case VonInt(10) => }
-  }
-
   test("Simple pure block") {
     // Taking in a &Spaceship so we don't call the constructors, that's covered by another test.
 
@@ -78,6 +57,108 @@ class PureTests extends FunSuite with Matchers {
     }
 
     // We don't evaluate the program, its main takes in a struct which is impossible
+    compile.getHamuts()
+  }
+
+  test("Pure block accessing arrays") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |exported func main() int {
+          |  s = [#]([#](10, 20), [#](30, 40));
+          |  res =
+          |    pure block {
+          |      x = s[0];
+          |      y = x[0];
+          |      y
+          |    };
+          |  [[a1, a2], [a3, a4]] = s;
+          |  res
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+    val ssal =
+      vassertSome(
+        Collector.all(main, {
+          case ssal @ StaticSizedArrayLookupTE(_, _, _, _, _) => ssal
+        }).headOption)
+    ssal.elementType match {
+      // See RMLRMO for why this is OwnT
+      case CoordT(OwnT,RegionTemplata(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplata(2),_,RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))) =>
+    }
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
+      case CoordT(ImmutableBorrowT,RegionTemplata(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplata(2),_,RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))) =>
+    }
+
+    val yType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
+      })
+    yType match {
+      case CoordT(ImmutableShareT,RegionTemplata(false),IntT(32)) =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(10) => }
+  }
+
+  test("Pure block returning an array") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |exported func main() int {
+          |  x = pure block { [#]([#](10, 20), [#](30, 40)) };
+          |  [[a1, a2], [a3, a4]] = x;
+          |  a1
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
+      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(10) => }
+  }
+
+  test("Pure function returning an array") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |pure func makeArr() [#2][#2]int {
+          |  return [#]([#](10, 20), [#](30, 40));
+          |}
+          |exported func main() int {
+          |  x = makeArr();
+          |  [[a1, a2], [a3, a4]] = x;
+          |  a1
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
+      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
 
   test("Pure function returning struct") {
@@ -88,18 +169,42 @@ class PureTests extends FunSuite with Matchers {
         """
           |struct Engine { fuel int; }
           |struct Spaceship { engine Engine; }
+          |pure func makeSpaceship() Spaceship {
+          |  Spaceship(Engine(10))
+          |}
           |exported func main() int {
-          |  s = Spaceship(Engine(10));
-          |  s.engine.fuel
+          |  s = makeSpaceship();
+          |  pure block {
+          |    x = s.engine;
+          |    y = x.fuel;
+          |    y
+          |  }
           |}
           |""".stripMargin, false)
     val main = compile.getMonouts().lookupFunction("main")
-    val mainEngineCoord =
+    val rml =
       Collector.only(main, {
-        case ReferenceMemberLookupTE(_, _, CodeVarNameT(StrI("engine")), coord, _) => coord
+        case rml @ ReferenceMemberLookupTE(_, _, CodeVarNameT(StrI("engine")), _, _) => rml
       })
-    mainEngineCoord match {
+    rml.memberReference match {
+      // See RMLRMO for why this is OwnT
+      case CoordT(OwnT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+    }
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
       case CoordT(ImmutableBorrowT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+    }
+
+    val yType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
+      })
+    yType match {
+      case CoordT(ImmutableShareT,RegionTemplata(false),IntT(32)) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }

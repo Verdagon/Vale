@@ -85,7 +85,9 @@ class StructConstructorMacro(
       FunctionA(
         structA.range,
         interner.intern(ConstructorNameS(structA.name)),
-        Vector(PureS),
+        // Struct constructors cant be pure, that would require the temporary struct inside the
+        // constructor to have members that could point to a different, immutable region.
+        Vector(),
         TemplateTemplataType(structA.tyype.paramTypes, FunctionTemplataType()),
         structA.genericParameters,
         runeToType.toMap,

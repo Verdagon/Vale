@@ -5,11 +5,10 @@ import dev.vale.parsing.ast.ImmutableP
 import dev.vale.typing.NewImmRSANeedsCallable
 import dev.vale.typing.ast.{LetNormalTE, NewImmRuntimeSizedArrayTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
-import dev.vale.typing.names.{CodeVarNameT, IdT}
+import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, StaticSizedArrayNameT}
 import dev.vale.typing.types._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.typing.names.CodeVarNameT
 import dev.vale.typing.templata.MutabilityTemplata
 import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonInt, VonStr}
@@ -150,8 +149,12 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
+      case StaticSizedArrayLookupTE(_, arrayExpr,_, _, _) => {
+        arrayExpr.result.coord.kind match {
+          case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+            mutability shouldEqual MutabilityTemplata(MutableT)
+          }
+        }
       }
     })
 
@@ -163,8 +166,12 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(ImmutableT)
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+        arrayExpr.result.coord.kind match {
+          case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+            mutability shouldEqual MutabilityTemplata(ImmutableT)
+          }
+        }
       }
     })
 
@@ -176,8 +183,12 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+        arrayExpr.result.coord.kind match {
+          case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+            mutability shouldEqual MutabilityTemplata(MutableT)
+          }
+        }
       }
     })
 
@@ -189,8 +200,12 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(ImmutableT)
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+        arrayExpr.result.coord.kind match {
+          case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+            mutability shouldEqual MutabilityTemplata(ImmutableT)
+          }
+        }
       }
     })
 
@@ -202,8 +217,12 @@ class ArrayTests extends FunSuite with Matchers {
 
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case StaticSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
+      case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
+        arrayExpr.result.coord.kind match {
+          case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+            mutability shouldEqual MutabilityTemplata(MutableT)
+          }
+        }
       }
     })
 
