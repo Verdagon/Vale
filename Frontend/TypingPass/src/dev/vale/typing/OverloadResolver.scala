@@ -18,6 +18,7 @@ import dev.vale.typing.ast.{AbstractT, FunctionBannerT, FunctionCalleeCandidate,
 import dev.vale.typing.env.{ExpressionLookupContext, FunctionEnvironmentBox, IDenizenEnvironmentBox, IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
+import dev.vale.typing.function.FunctionCompiler.{StampFunctionFailure, StampFunctionSuccess}
 import dev.vale.typing.names.{CallEnvNameT, CodeVarNameT, FunctionBoundNameT, FunctionBoundTemplateNameT, FunctionNameT, FunctionTemplateNameT, IdT, RegionPlaceholderNameT}
 
 import scala.collection.immutable.{Map, Set}
@@ -102,7 +103,7 @@ class OverloadResolver(
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
     verifyConclusions: Boolean):
-  Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
+  Result[StampFunctionSuccess, FindFunctionFailure] = {
     Profiler.frame(() => {
       findPotentialFunction(
         callingEnv,
@@ -117,7 +118,7 @@ class OverloadResolver(
         extraEnvsToLookIn,
         exact,
         verifyConclusions) match {
-        case Err(e) => return Err(e)
+        case Err(f @ FindFunctionFailure(_, _, _)) => Err(f)
         case Ok(potentialBanner) => {
           Ok(
             stampPotentialFunctionForPrototype(
@@ -374,26 +375,31 @@ class OverloadResolver(
                           case Ok(()) => {
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
                             vregionmut() // check regions?
-                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
+                            Ok(ast.ValidPrototypeTemplataCalleeCandidate(vimpl(), prototype))
                           }
                         }
                       }
                     }
                   } else {
-                    val calleeContextRegion =
-                      if (ft.function.attributes.collectFirst({ case PureS => }).nonEmpty) {
-                        PlaceholderTemplata(
-                          callingEnv.denizenId
-                            .addStep(
-                              interner.intern(RegionPlaceholderNameT(
-                                -1,
-                                PureCallRegionRuneS(callLocation),
-                                callLocation,
-                                true))),
-                          RegionTemplataType())
+                    val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
+                    val (maybeNewRegion, maybeLatestPureBlockLocation) =
+                      if (isPure) {
+                        val calleeContextRegion =
+                          PlaceholderTemplata(
+                            callingEnv.denizenId
+                              .addStep(
+                                interner.intern(RegionPlaceholderNameT(
+                                  -1,
+                                  PureCallRegionRuneS(callLocation),
+                                  callLocation,
+                                  true))),
+                            RegionTemplataType())
+                        val newLatestPureBlockLocation = callLocation
+                        (Some(calleeContextRegion), Some(newLatestPureBlockLocation))
                       } else {
-                        contextRegion
+                        (None, callingEnv.maybeLatestPureBlockLocation)
                       }
+                    val calleeContextRegion = maybeNewRegion.getOrElse(contextRegion)
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
                     functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
                       coutputs, callRange, callLocation, callingEnv, ft, explicitlySpecifiedTemplateArgTemplatas.toVector, calleeContextRegion, args) match {
@@ -405,11 +411,11 @@ class OverloadResolver(
                             vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
                           }
                         }
-                        checkRegions(ft, conclusions) match {
+                        checkRegions(ft, maybeLatestPureBlockLocation, conclusions) match {
                           case Err(e) => return Err(e)
                           case Ok(()) =>
                         }
-                        Ok(ast.ValidPrototypeTemplataCalleeCandidate(prototype))
+                        Ok(ast.ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype))
                       }
                     }
                   }
@@ -458,7 +464,7 @@ class OverloadResolver(
             val bounds = Map[IRuneS, PrototypeTemplata]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-            Ok(ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(declarationRange, prototype)))
+            Ok(ValidPrototypeTemplataCalleeCandidate(vimpl(), PrototypeTemplata(declarationRange, prototype)))
           }
           case Err(fff) => Err(fff)
         }
@@ -468,9 +474,9 @@ class OverloadResolver(
 
   private def checkRegions(
     ft: FunctionTemplata,
+    maybeLatestPureBlockLocation: Option[LocationInDenizen],
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, IFindFunctionFailureReason] = {
-    val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
     // The only place we can specify a region's mutability in the receiving function
     // is in the generic parameter declaration. So all we need to do is loop
     // through the generic parameter declarations and make sure the region we
@@ -489,7 +495,14 @@ class OverloadResolver(
                   // Someday we'll also want to check if there were any pure blocks since the
                   // region was created.
                   // Until then, it's only mutable if it originally was and this isn't a pure call.
-                  val actuallyMutable = originallyMutable && !isPure
+                  val actuallyMutable =
+                  originallyMutable &&
+                    (maybeLatestPureBlockLocation match {
+                      case None => true
+                      case Some(latestPureBlockLocation) => {
+                        !originallyIntroducedLocation.before(latestPureBlockLocation)
+                      }
+                    })
 
                   if (actuallyMutable != expectedMutable) {
                     // DO NOT SUBMIT test this
@@ -639,7 +652,7 @@ class OverloadResolver(
         val ordinaryBanners =
           potentialBannersWithSameParamTypes.filter({
             case ValidCalleeCandidate(_, _, function) => false
-            case ValidPrototypeTemplataCalleeCandidate(prototype) => true
+            case ValidPrototypeTemplataCalleeCandidate(_, prototype) => true
             case ValidHeaderCalleeCandidate(_) => true
           })
         if (ordinaryBanners.isEmpty) {
@@ -691,7 +704,7 @@ class OverloadResolver(
       survivingBannerIndices
         .groupBy(index => {
           banners(index) match {
-            case ValidPrototypeTemplataCalleeCandidate(PrototypeTemplata(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+            case ValidPrototypeTemplataCalleeCandidate(_, PrototypeTemplata(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None
@@ -768,14 +781,14 @@ class OverloadResolver(
     contextRegion: ITemplata[RegionTemplataType],
     args: Vector[CoordT],
     verifyConclusions: Boolean):
-  EvaluateFunctionSuccess = {
+  StampFunctionSuccess = {
     potentialBanner match {
       case ValidCalleeCandidate(header, templateArgs, ft @ FunctionTemplata(_, _)) => {
         if (ft.function.isLambda()) {
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
                 coutputs,callRange, callLocation, callingEnv, ft, templateArgs, contextRegion, args, verifyConclusions) match {
-              case efs @ EvaluateFunctionSuccess(_, _) => efs
+              case EvaluateFunctionSuccess(prototype, inferences) => StampFunctionSuccess(vimpl(), prototype, inferences)
               case (eff@EvaluateFunctionFailure(_)) => vfail(eff.toString)
             }
 //          } else {
@@ -787,7 +800,9 @@ class OverloadResolver(
         } else {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
             coutputs, callRange, callLocation, callingEnv, ft, templateArgs, contextRegion, args) match {
-            case efs @ EvaluateFunctionSuccess(_, _) => efs
+            case EvaluateFunctionSuccess(prototype, inferences) => {
+              StampFunctionSuccess(vimpl(), prototype, inferences)
+            }
             case (EvaluateFunctionFailure(fffr)) => {
               throw CompileErrorExceptionT(CouldntEvaluateFunction(callRange, fffr))
             }
@@ -797,11 +812,11 @@ class OverloadResolver(
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        EvaluateFunctionSuccess(PrototypeTemplata(declarationRange, header.toPrototype), Map())
+        StampFunctionSuccess(vimpl(), PrototypeTemplata(declarationRange, header.toPrototype), Map())
       }
-      case ValidPrototypeTemplataCalleeCandidate(prototype) => {
+      case ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
-        EvaluateFunctionSuccess(prototype, Map())
+        StampFunctionSuccess(maybeNewRegion, prototype, Map())
       }
     }
   }

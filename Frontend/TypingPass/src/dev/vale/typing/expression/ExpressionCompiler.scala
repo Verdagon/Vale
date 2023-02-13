@@ -538,6 +538,7 @@ class ExpressionCompiler(
         }
         case FunctionCallSE(
         range,
+        callLocation,
         OutsideLoadSE(_, rules, name, maybeTemplateArgs, callableTargetOwnership),
         argsExprs1) => {
           //          vassert(callableTargetOwnership == PointConstraintP(Some(ReadonlyP)))
@@ -568,6 +569,7 @@ class ExpressionCompiler(
         }
         case FunctionCallSE(
         range,
+        callLocation,
         OutsideLoadSE(_, rules, name, templateArgTemplexesS, callableTargetOwnership),
         argsExprs1) => {
           //          vassert(callableTargetOwnership == PointConstraintP(None))
@@ -588,7 +590,7 @@ class ExpressionCompiler(
               argsExprs2)
           (callExpr2, returnsFromArgs)
         }
-        case FunctionCallSE(range, callableExpr1, argsExprs1) => {
+        case FunctionCallSE(range, callLocation, callableExpr1, argsExprs1) => {
           val (undecayedCallableExpr2, returnsFromCallable) =
             evaluateAndCoerceToReferenceExpression(
               coutputs, nenv, life + 0, parentRanges, callLocation, region, callableExpr1);
@@ -1540,20 +1542,20 @@ class ExpressionCompiler(
               lastReturns).toSet)
         }
         case p@PureSE(range, location, inner) => {
-          val newRegion =
-            PlaceholderTemplata(
-              TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
-                .addStep(
-                  interner.intern(RegionPlaceholderNameT(-1, PureBlockRegionRuneS(location), location, true))),
-              RegionTemplataType())
+          val newRegionId =
+            TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
+              .addStep(
+                interner.intern(RegionPlaceholderNameT(
+                  -1, PureBlockRegionRuneS(location), location, true)))
+          val newRegion = PlaceholderTemplata(newRegionId, RegionTemplataType())
 
           // We'll restore these things at the end. We're reusing the same nenv because any locals
           // inside should be unstackified at the end of the block.
-          val oldLatestPureBlockLocation = nenv.nodeEnvironment.latestPureBlockLocation
+          val oldLatestPureBlockLocation = nenv.nodeEnvironment.maybeLatestPureBlockLocation
           val oldDefaultRegion = nenv.nodeEnvironment.defaultRegion
           nenv.nodeEnvironment =
             nenv.nodeEnvironment
-              .copy(defaultRegion = newRegion, latestPureBlockLocation = Some(location))
+              .copy(defaultRegion = newRegion, maybeLatestPureBlockLocation = Some(location))
 
           val (innerExpr, returnsFromExprs) =
             evaluateAndCoerceToReferenceExpression(
@@ -1572,17 +1574,17 @@ class ExpressionCompiler(
             nenv.nodeEnvironment
               .copy(
                 defaultRegion = oldDefaultRegion,
-                latestPureBlockLocation = oldLatestPureBlockLocation)
+                maybeLatestPureBlockLocation = oldLatestPureBlockLocation)
 
-          innerExpr.result.coord.kind match {
-            case IntT(_) | BoolT() | VoidT() => {
-              (PureTE(location, region, innerExpr), returnsFromExprs)
-            }
-            case _ => vimpl("Non-primitive results from pure blocks unimplemented")
-          }
+          val resultCoord =
+            TemplataCompiler.mergeCoordRegions(
+              interner, coutputs, Map(newRegion -> region), innerExpr.result.coord)
+          val pureTE =
+            PureTE(location, newRegion, Vector((region, newRegion)), innerExpr, resultCoord)
+          (pureTE, returnsFromExprs)
         }
         case b@BlockSE(range, locals, _) => {
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, nenv.snapshot.latestPureBlockLocation))
+          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, nenv.snapshot.maybeLatestPureBlockLocation))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(

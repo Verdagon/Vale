@@ -26,6 +26,8 @@ case class BuildingFunctionEnvironmentWithClosureds(
   isRootCompilingDenizen: Boolean
 ) extends IInDenizenEnvironment {
 
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+
   override def denizenId: IdT[INameT] = id
 
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
@@ -86,6 +88,8 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   isRootCompilingDenizen: Boolean,
   defaultRegion: ITemplata[RegionTemplataType],
 ) extends IInDenizenEnvironment {
+
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
 
   override def denizenId: IdT[INameT] = id
 
@@ -154,7 +158,7 @@ case class NodeEnvironmentT(
 
   // The location-in-denizen of the nearest enclosing pure block, if there is one. Otherwise, None.
   // This is used to know whether a region is currently mutable or immutable.
-  latestPureBlockLocation: Option[LocationInDenizen]
+  maybeLatestPureBlockLocation: Option[LocationInDenizen]
 ) extends IInDenizenEnvironment {
   vassert(declaredLocals.map(_.name) == declaredLocals.map(_.name).distinct)
 
@@ -235,18 +239,18 @@ case class NodeEnvironmentT(
 
   def addVariables(newVars: Vector[IVariableT]): NodeEnvironmentT = {
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, maybeLatestPureBlockLocation)
   }
   def addVariable(newVar: IVariableT): NodeEnvironmentT = {
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, latestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, maybeLatestPureBlockLocation)
   }
   def markLocalUnstackified(newUnstackified: IVarNameT): NodeEnvironmentT = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
     vassert(getAllLocals().exists(_.name == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, latestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, maybeLatestPureBlockLocation)
   }
 
   // Gets the effects that this environment had on the outside world (on its parent
@@ -306,7 +310,7 @@ case class NodeEnvironmentT(
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE.
       maybeNewDefaultRegion.getOrElse(defaultRegion),
-      locationIfPure.orElse(latestPureBlockLocation))
+      locationIfPure.orElse(maybeLatestPureBlockLocation))
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironmentT = {
@@ -319,7 +323,7 @@ case class NodeEnvironmentT(
       declaredLocals,
       unstackifiedLocals,
       defaultRegion,
-      latestPureBlockLocation)
+      maybeLatestPureBlockLocation)
   }
   def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): NodeEnvironmentT = {
     NodeEnvironmentT(
@@ -331,7 +335,7 @@ case class NodeEnvironmentT(
       declaredLocals,
       unstackifiedLocals,
       defaultRegion,
-      latestPureBlockLocation)
+      maybeLatestPureBlockLocation)
   }
 
   def nearestBlockEnv(): Option[(NodeEnvironmentT, BlockSE)] = {
@@ -461,6 +465,8 @@ case class FunctionEnvironment(
 ) extends IInDenizenEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
 
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+
   override def denizenId: IdT[INameT] = templateId
 
   override def equals(obj: Any): Boolean = {
@@ -586,6 +592,8 @@ case class FunctionEnvironment(
 }
 
 case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) extends IDenizenEnvironmentBox {
+  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = functionEnvironment.maybeLatestPureBlockLocation
+
   override def denizenId: IdT[INameT] = functionEnvironment.denizenId
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Shouldnt hash, is mutable

@@ -47,8 +47,9 @@ class LoadHammer(
         case RuntimeSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
           translateMundaneRuntimeSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
         }
-        case StaticSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
-          translateMundaneStaticSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
+        case StaticSizedArrayLookupTE(_, arrayExpr2, indexExpr2, _, _) => {
+          translateMundaneStaticSizedArrayLoad(
+            hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
         }
       }
 

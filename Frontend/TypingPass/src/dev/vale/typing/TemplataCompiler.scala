@@ -13,7 +13,7 @@ import dev.vale.postparsing._
 import dev.vale.typing._
 import dev.vale.typing.ast.{PrototypeT, SignatureT}
 import dev.vale.typing.citizen.{IResolveOutcome, ImplCompiler, IsParent, IsParentResult, IsntParent, ResolveSuccess}
-import dev.vale.typing.templata.ITemplata.{expectInteger, expectKindTemplata, expectMutability, expectRegion, expectVariability}
+import dev.vale.typing.templata.ITemplata.{expectCoord, expectInteger, expectIntegerTemplata, expectKindTemplata, expectMutability, expectRegion, expectVariability}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -118,6 +118,117 @@ object TemplataCompiler {
       case KindTemplata(KindPlaceholderT(n)) => n
       case CoordTemplata(CoordT(_, _, KindPlaceholderT(n))) => n
       case other => vwat(other)
+    }
+  }
+
+  def mergeCoordRegions(
+    interner: Interner,
+    coutputs: CompilerOutputs,
+    oldToNewRegion: Map[ITemplata[RegionTemplataType], ITemplata[RegionTemplataType]],
+    coord: CoordT):
+  CoordT = {
+    val CoordT(ownership, region, kind) = coord
+    CoordT(
+      ownership,
+      mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, region),
+      mergeKindRegions(interner, coutputs, oldToNewRegion, kind))
+  }
+
+  def mergeRegionTemplataRegions(
+    interner: Interner,
+    coutputs: CompilerOutputs,
+    oldToNewRegion: Map[ITemplata[RegionTemplataType], ITemplata[RegionTemplataType]],
+    region: ITemplata[RegionTemplataType]):
+  ITemplata[RegionTemplataType] = {
+    oldToNewRegion.getOrElse(region, region)
+  }
+
+  def mergeTemplataRegions(
+    interner: Interner,
+    coutputs: CompilerOutputs,
+    oldToNewRegion: Map[ITemplata[RegionTemplataType], ITemplata[RegionTemplataType]],
+    templata: ITemplata[ITemplataType]):
+  ITemplata[ITemplataType] = {
+    // Translate it if it is in the map
+    templata match {
+      case PlaceholderTemplata(fullNameT, RegionTemplataType()) => {
+        val p = PlaceholderTemplata(fullNameT, RegionTemplataType())
+        oldToNewRegion.getOrElse(p, p)
+      }
+      case RegionTemplata(_) => vwat()
+      case IntegerTemplata(value) => templata
+      case VariabilityTemplata(variability) => templata
+      case MutabilityTemplata(mutability) => templata
+      case other => vimpl(other)
+    }
+
+  }
+
+  def mergeNameRegions(
+    interner: Interner,
+    coutputs: CompilerOutputs,
+    oldToNewRegion: Map[ITemplata[RegionTemplataType], ITemplata[RegionTemplataType]],
+    name: INameT):
+  INameT = {
+    name match {
+      case other => vimpl(other)
+    }
+  }
+
+  def mergeKindRegions(
+    interner: Interner,
+    coutputs: CompilerOutputs,
+    oldToNewRegion: Map[ITemplata[RegionTemplataType], ITemplata[RegionTemplataType]],
+    kind: KindT):
+  KindT = {
+    kind match {
+      case IntT(bits) => kind
+      case StructTT(id @ IdT(packageCoord, initSteps, StructNameT(template, templateArgs))) => {
+
+        val newStruct =
+          interner.intern(StructTT(
+            IdT(
+              packageCoord,
+              initSteps.map(mergeNameRegions(interner, coutputs, oldToNewRegion, _)),
+              interner.intern(StructNameT(
+                template,
+                templateArgs.map(mergeTemplataRegions(interner, coutputs, oldToNewRegion, _)))))))
+
+        val instantiationBounds = vassertSome(coutputs.getInstantiationBounds(id))
+        val emptyBounds = InstantiationBoundArguments(Map(), Map())
+        if (instantiationBounds == emptyBounds) {
+          // DO NOT SUBMIT
+          // If we don't have instantiation bounds for the new struct, then we hit errors later on.
+          // This is a temporary workaround, the real solution might be to literally resolve the
+          // struct. Might be a bit of a chore to look up the original templata for this struct,
+          // but should be possible.
+          coutputs.getInstantiationBounds(newStruct.id) match {
+            case Some(b) => vassert(b == emptyBounds)
+            case None => coutputs.addInstantiationBounds(newStruct.id, emptyBounds)
+          }
+        } else {
+          vimpl()
+        }
+        newStruct
+      }
+      case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+        // DO NOT SUBMIT
+        // not sure we can conjure new SSATTs out of the are like this. Don't we have to resolve
+        // them so they have the proper instantiation bounds and stuff?
+        interner.intern(StaticSizedArrayTT(
+          IdT(
+            packageCoord,
+            initSteps.map(mergeNameRegions(interner, coutputs, oldToNewRegion, _)),
+            interner.intern(StaticSizedArrayNameT(
+              template,
+              expectInteger(mergeTemplataRegions(interner, coutputs, oldToNewRegion, size)),
+              expectVariability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, variability)),
+              RawArrayNameT(
+                expectMutability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, mutability)),
+                mergeCoordRegions(interner, coutputs, oldToNewRegion, elementType),
+                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion)))))))
+      }
+      case other => vimpl(other)
     }
   }
 

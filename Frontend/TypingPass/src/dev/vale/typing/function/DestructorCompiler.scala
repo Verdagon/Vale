@@ -20,7 +20,7 @@ import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
 import dev.vale.typing.names.PackageTopLevelNameT
 
 import scala.collection.immutable.List
@@ -38,7 +38,7 @@ class DestructorCompiler(
     callLocation: LocationInDenizen,
     contextRegion: ITemplata[RegionTemplataType],
     type2: CoordT):
-  EvaluateFunctionSuccess = {
+  StampFunctionSuccess = {
     val name = interner.intern(CodeNameS(keywords.drop))
     val args = Vector(type2)
     overloadCompiler.findFunction(

@@ -18,7 +18,7 @@ import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
 import dev.vale.typing.Compiler.isPrimitive
 import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
-import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IInDenizenEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironmentT, NodeEnvironmentBox, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
+import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IInDenizenEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen._
 import dev.vale.typing.macros.rsa.{RSADropIntoMacro, RSAImmutableNewMacro, RSALenMacro, RSAMutableCapacityMacro, RSAMutableNewMacro, RSAMutablePopMacro, RSAMutablePushMacro}
@@ -32,7 +32,7 @@ import dev.vale.typing.expression.LocalHelper
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.function.FunctionCompiler
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult}
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, IEvaluateFunctionResult, StampFunctionSuccess}
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
@@ -495,7 +495,7 @@ class Compiler(
           coords: Vector[CoordT],
           contextRegion: ITemplata[RegionTemplataType],
           verifyConclusions: Boolean):
-        Result[EvaluateFunctionSuccess, FindFunctionFailure] = {
+        Result[StampFunctionSuccess, FindFunctionFailure] = {
           overloadResolver.findFunction(
             callingEnv,
             state,
@@ -590,7 +590,7 @@ class Compiler(
           extraEnvsToLookIn: Vector[IInDenizenEnvironment],
           exact: Boolean,
           verifyConclusions: Boolean):
-        EvaluateFunctionSuccess = {
+        StampFunctionSuccess = {
           overloadResolver.findFunction(
             env,
             coutputs,

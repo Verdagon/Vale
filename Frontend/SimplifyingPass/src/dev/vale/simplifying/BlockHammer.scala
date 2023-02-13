@@ -1,14 +1,15 @@
 package dev.vale.simplifying
 
-import dev.vale.finalast.{BlockH, MutabilifyH, NeverHT}
+import dev.vale.finalast.{BlockH, ImmutableBorrowH, ImmutableShareH, MutabilifyH, MutableBorrowH, MutableShareH, NeverHT}
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{BlockTE, FunctionHeaderT}
-import dev.vale.{vcurious, vfail, vimpl, finalast => m}
+import dev.vale.{vassert, vcurious, vfail, vimpl, vwat, finalast => m}
 import dev.vale.typing.ast._
+import dev.vale.typing.names.{IdT, RawArrayNameT, StaticSizedArrayNameT}
 import dev.vale.typing.templata.RegionTemplata
-import dev.vale.typing.types.IntT
+import dev.vale.typing.types.{IntT, StaticSizedArrayTT}
 
-class BlockHammer(expressionHammer: ExpressionHammer) {
+class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
   def translateBlock(
     hinputs: Hinputs,
     hamuts: HamutsBox,
@@ -61,18 +62,25 @@ class BlockHammer(expressionHammer: ExpressionHammer) {
     locals: LocalsBox,
     node: PureTE):
   MutabilifyH = {
-    val PureTE(_, transmigrateResultToRegion, innerTE) = node
-    vcurious(transmigrateResultToRegion == RegionTemplata(true))
+    val PureTE(_, newDefaultRegion, oldRegionToNewRegion, innerTE, resultCoordT) = node
+    oldRegionToNewRegion.foreach({ case (oldRegion, newRegion) =>
+      vcurious(newRegion == RegionTemplata(true))
+    })
 
     val innerHE =
       expressionHammer.translateExpressionsAndDeferreds(
         hinputs, hamuts, currentFunctionHeader, locals, Vector(innerTE));
 
-    innerTE.result.coord.kind match {
-      case IntT(bits) => {
-        MutabilifyH(innerHE)
-      }
-      case other => vimpl(other)
+    val resultCoordH =
+      typeHammer.translateCoord(hinputs, hamuts, resultCoordT)
+    (innerHE.resultType.ownership, resultCoordH.ownership) match {
+      case (x, y) if x == y =>
+      case (ImmutableShareH, MutableShareH) =>
+      case (ImmutableBorrowH, MutableBorrowH) =>
+      case other => vwat(other)
     }
+    vassert(innerHE.resultType.kind == resultCoordH.kind)
+
+    MutabilifyH(innerHE)
   }
 }

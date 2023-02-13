@@ -410,6 +410,8 @@ class AnonymousInterfaceMacro(
     val structType = struct.tyype
     val FunctionA(methodRange, name, attributes, methodOriginalType, methodOriginalIdentifyingRunes, methodOriginalRuneToType, originalParams, maybeRetCoordRune, defaultRegionRune, methodOriginalRules, body) = method
 
+    val lidb = new LocationInDenizenBuilder(Vector())
+
     vassert(struct.genericParameters.map(_.rune).startsWith(methodOriginalIdentifyingRunes.map(_.rune)))
     val genericParams = struct.genericParameters
 
@@ -500,6 +502,7 @@ class AnonymousInterfaceMacro(
     val newBody =
       FunctionCallSE(
         methodRange,
+        lidb.child().consume(),
         DotSE(
           methodRange,
           LocalLoadSE(methodRange, interner.intern(SelfNameS()), UseP),

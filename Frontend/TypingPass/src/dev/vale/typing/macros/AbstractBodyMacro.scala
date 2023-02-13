@@ -9,7 +9,7 @@ import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionDefinitionT
 import dev.vale.typing.env.{FunctionEnvironment, TemplatasStore}
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
 import dev.vale.typing.templata.{FunctionTemplata, PrototypeTemplata}
 
 class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver: OverloadResolver) extends IFunctionBodyMacro {
@@ -54,7 +54,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
         Vector(),
         true,
         true) match {
-        case Ok(EvaluateFunctionSuccess(PrototypeTemplata(_, prototype), _)) => prototype
+        case Ok(StampFunctionSuccess(_, PrototypeTemplata(_, prototype), _)) => prototype
         case Err(fff @ FindFunctionFailure(_, _, _)) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, fff))
       }
 

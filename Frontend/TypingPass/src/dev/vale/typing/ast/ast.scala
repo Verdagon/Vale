@@ -6,7 +6,7 @@ import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, ITemplataType}
+import dev.vale.postparsing.{IRuneS, ITemplataType, RegionTemplataType}
 import dev.vale.typing._
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.templata._
@@ -252,6 +252,7 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
 }
 case class ValidPrototypeTemplataCalleeCandidate(
+  maybeNewRegion: Option[ITemplata[RegionTemplataType]],
   prototype: PrototypeTemplata
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();

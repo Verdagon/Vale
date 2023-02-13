@@ -253,7 +253,7 @@ class ExpressionScout(
                 val addCallRange = RangeS(prevExpr.range.end, partSE.range.begin)
                 val callableExpr =
                   vale.postparsing.OutsideLoadSE(addCallRange, Vector(), interner.intern(CodeNameS(keywords.plus)), None, LoadAsBorrowP)
-                FunctionCallSE(addCallRange, callableExpr, Vector(prevExpr, partSE))
+                FunctionCallSE(addCallRange, lidb.child().consume(), callableExpr, Vector(prevExpr, partSE))
               }
             })
           (stackFrame1, NormalResult(addedExpr), partsSelfUses, partsChildUses)
@@ -290,7 +290,7 @@ class ExpressionScout(
 
           val result =
             NormalResult(
-              vale.postparsing.FunctionCallSE(evalRange(range), callableSE, Vector(innerSE)))
+              vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callableSE, Vector(innerSE)))
 
           (stackFrame1, result, innerSelfUses, innerChildUses)
         }
@@ -318,7 +318,7 @@ class ExpressionScout(
             scoutExpressionAndCoerce(stackFrame1, lidb.child(), endPE, loadEndAs)
 
           val resultSE =
-              vale.postparsing.FunctionCallSE(evalRange(range), callableSE, Vector(beginSE, endSE))
+              vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callableSE, Vector(beginSE, endSE))
 
           (stackFrame2, NormalResult(resultSE), beginSelfUses.thenMerge(endSelfUses), beginChildUses.thenMerge(endChildUses))
         }
@@ -413,7 +413,7 @@ class ExpressionScout(
             scoutExpressionAndCoerce(stackFrame0, lidb.child(), callablePE, loadCallableAs)
           val (stackFrame2, args1, argsSelfUses, argsChildUses) =
             scoutElementsAsExpressions(stackFrame1, lidb.child(), args)
-          val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), callable1, args1.toVector))
+          val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callable1, args1.toVector))
           (stackFrame2, result, callableSelfUses.thenMerge(argsSelfUses), callableChildUses.thenMerge(argsChildUses))
         }
         case BinaryCallPE(range, namePE, leftPE, rightPE) => {
@@ -426,7 +426,7 @@ class ExpressionScout(
 
           val result =
             NormalResult(
-              vale.postparsing.FunctionCallSE(evalRange(range), callableSE, Vector(leftSE, rightSE)))
+              vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callableSE, Vector(leftSE, rightSE)))
           (stackFrame2, result, leftSelfUses.thenMerge(rightSelfUses), leftChildUses.thenMerge(rightChildUses))
         }
         case BraceCallPE(range, operatorRange, subjectPE, args, callableReadwrite) => {
@@ -470,7 +470,7 @@ class ExpressionScout(
           val childUses = callableChildUses.thenMerge(subjectChildUses).thenMerge(tailArgsChildUses)
           val args = Vector(subject1) ++ tailArgs1
 
-          val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), callable1, args))
+          val result = NormalResult(vale.postparsing.FunctionCallSE(evalRange(range), lidb.child().consume(), callable1, args))
           (stackFrame3, result, selfUses, childUses)
         }
         case TuplePE(range, elementsPE) => {

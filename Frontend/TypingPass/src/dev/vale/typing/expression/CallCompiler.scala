@@ -7,12 +7,13 @@ import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
 import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
-import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox}
+import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.{ast, _}
 import dev.vale.typing.ast._
+import dev.vale.typing.function.FunctionCompiler.StampFunctionSuccess
 import dev.vale.typing.names.{IRegionNameT, IdT}
 
 import scala.collection.immutable.List
@@ -37,8 +38,7 @@ class CallCompiler(
     callableExpr: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    givenArgsExprs2: Vector[ReferenceExpressionTE]
-  ):
+    givenArgsExprs2: Vector[ReferenceExpressionTE]):
   (ReferenceExpressionTE) = {
     callableExpr.result.coord.kind match {
       case NeverT(true) => vwat()
@@ -55,7 +55,7 @@ class CallCompiler(
         // we might be in the middle of a recursive call like:
         // func main():Int(main())
 
-        val prototype =
+        val StampFunctionSuccess(maybeNewRegion, prototype, inferences) =
           overloadCompiler.findFunction(
             overloadSetEnv,
             coutputs,
@@ -78,18 +78,52 @@ class CallCompiler(
             coutputs,
             range,
             givenArgsExprs2,
-            prototype.prototype.prototype.paramTypes)
+            prototype.prototype.paramTypes)
 
         checkTypes(
           coutputs,
           nenv.snapshot,
           range,
-          prototype.prototype.prototype.paramTypes,
+          prototype.prototype.paramTypes,
           argsExprs2.map(a => a.result.coord),
           exact = true)
 
-        vassert(coutputs.getInstantiationBounds(prototype.prototype.prototype.id).nonEmpty)
-        (ast.FunctionCallTE(prototype.prototype.prototype, argsExprs2))
+        vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
+        val callTE = ast.FunctionCallTE(prototype.prototype, argsExprs2)
+        val resultTE =
+          maybeNewRegion match {
+            case None => callTE
+            case Some(newRegion) => {
+              // If we get any instances that are part of the newRegion, we need to interpret them
+              // to the contextRegion.
+
+              val resultCoord =
+                TemplataCompiler.mergeCoordRegions(
+                  interner, coutputs, Map(newRegion -> contextRegion), callTE.result.coord)
+
+//              val innerCoord = inner.result.coord
+//              val CoordT(innerOwnership, innerRegion, innerKind) = innerCoord
+//              vimpl()
+//              (innerOwnership, innerRegion, transmigrateResultToRegion) match {
+//                case (ShareT, PlaceholderTemplata(_, _), PlaceholderTemplata(_, _)) => {
+//                  ReferenceResultT(innerCoord.copy(region = transmigrateResultToRegion))
+//                }
+//                case (ImmutableShareT, RegionTemplata(false), RegionTemplata(true)) => {
+//                  ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), innerKind))
+//                }
+//                case (OwnT, PlaceholderTemplata(fullNameT, tyype), PlaceholderTemplata(fullNameT, tyype)) => {
+//                  vimpl()
+//                }
+//                case (MutableShareT, RegionTemplata(true), RegionTemplata(true)) => {
+//                  vwat()
+//                }
+//                case _ => vwat()
+//              }
+              PureTE(
+                callLocation, newRegion, Vector((contextRegion, newRegion)), callTE, resultCoord)
+            }
+          }
+        resultTE
       }
       case other => {
         evaluateCustomCall(

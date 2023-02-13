@@ -19,7 +19,7 @@ import dev.vale.postparsing.rules._
 import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult}
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult, StampFunctionSuccess}
 import dev.vale.typing.templata.ITemplata.expectMutability
 
 import scala.collection.immutable.List
@@ -49,7 +49,7 @@ trait IStructCompilerDelegate {
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
     verifyConclusions: Boolean):
-  EvaluateFunctionSuccess
+  StampFunctionSuccess
 }
 
 sealed trait IResolveOutcome[+T <: KindT] {

@@ -19,7 +19,7 @@ class ExpressionHammer(
     nameHammer: NameHammer,
     structHammer: StructHammer,
     functionHammer: FunctionHammer) {
-  val blockHammer = new BlockHammer(this)
+  val blockHammer = new BlockHammer(this, typeHammer)
   val loadHammer = new LoadHammer(keywords, typeHammer, nameHammer, structHammer, this)
   val letHammer = new LetHammer(typeHammer, nameHammer, structHammer, this, loadHammer)
   val mutateHammer = new MutateHammer(keywords, typeHammer, nameHammer, structHammer, this)
@@ -94,7 +94,7 @@ class ExpressionHammer(
           mutateHammer.translateMutate(hinputs, hamuts, currentFunctionHeader, locals, mutate2)
         (newEmptyPackStructNodeHE, Vector.empty)
       }
-      case b @ PureTE(_, _, _) => {
+      case b @ PureTE(_, _, _, _, _) => {
         val pureH =
           blockHammer.translatePure(hinputs, hamuts, currentFunctionHeader, locals, b)
         (pureH, Vector.empty)

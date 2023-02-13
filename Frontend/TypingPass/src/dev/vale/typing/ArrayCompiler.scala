@@ -6,18 +6,18 @@ import dev.vale.postparsing.rules.{IRulexSR, RuneParentEnvLookupSR, RuneUsage}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.types._
-import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vimpl, vregion, vregionmut, vwat}
+import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vcurious, vimpl, vregion, vregionmut, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
 import OverloadResolver.FindFunctionFailure
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
+import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
-import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -242,7 +242,7 @@ class ArrayCompiler(
         NewImmRuntimeSizedArrayTE(rsaMT, region, sizeTE, callableTE, prototype)
       }
       case MutabilityTemplata(MutableT) => {
-        val EvaluateFunctionSuccess(prototype, conclusions) =
+        val StampFunctionSuccess(maybeNewRegion, prototype, conclusions) =
           overloadResolver.findFunction(
             callingEnv
               .addEntries(
@@ -271,6 +271,7 @@ class ArrayCompiler(
             case Err(e) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(parentRanges, e))
             case Ok(x) => x
           }
+        vcurious(maybeNewRegion.isEmpty)
 
         val elementType =
           prototype.prototype.returnType.kind match {
@@ -317,7 +318,7 @@ class ArrayCompiler(
 
     // Normally we make runes in the post-parser, but there's not really an array definition
     // anywhere that we might post-parse.
-    val defaultRegionRune = DenizenDefaultRegionRuneS(StaticSizedArrayDeclarationNameS())
+    val defaultRegionRune = DenizenDefaultRegionRuneS(interner.intern(StaticSizedArrayDeclarationNameS()))
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -345,7 +346,8 @@ class ArrayCompiler(
         Map[IRuneS, ITemplataType](
           sizeRuneA -> IntegerTemplataType(),
           mutabilityRuneA -> MutabilityTemplataType(),
-          variabilityRuneA -> VariabilityTemplataType()) ++
+          variabilityRuneA -> VariabilityTemplataType(),
+          defaultRegionRune -> RegionTemplataType()) ++
           (maybeElementTypeRuneA match {
             case Some(rune) => Map(rune -> CoordTemplataType())
             case None => Map()
@@ -640,18 +642,18 @@ class ArrayCompiler(
   }
 
   def lookupInStaticSizedArray(
-      range: RangeS,
-      containerExpr2: ReferenceExpressionTE,
-      indexExpr2: ReferenceExpressionTE,
-      at: StaticSizedArrayTT) = {
+    range: RangeS,
+    containerExpr2: ReferenceExpressionTE,
+    indexExpr2: ReferenceExpressionTE,
+    at: StaticSizedArrayTT):
+  StaticSizedArrayLookupTE = {
     val contentsStaticSizedArrayTT(size, mutability, variabilityTemplata, memberType, selfRegion) = at
-    vregion(selfRegion)
     val variability =
       variabilityTemplata match {
         case PlaceholderTemplata(_, _) => FinalT
         case VariabilityTemplata(variability) => variability
       }
-    StaticSizedArrayLookupTE(range, containerExpr2, at, indexExpr2, variability)
+    StaticSizedArrayLookupTE(range, containerExpr2, indexExpr2, memberType,  variability)
   }
 
   def lookupInUnknownSizedArray(
