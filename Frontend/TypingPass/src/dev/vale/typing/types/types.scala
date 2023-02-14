@@ -219,6 +219,11 @@ case class RuntimeSizedArrayTT(
 ) extends KindT with IInterning {
   def mutability = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
+
+//  name.localName.arr.selfRegion match {
+//    case RegionTemplata(false) => vwat()
+//    case _ =>
+//  }
 }
 
 object ICitizenTT {

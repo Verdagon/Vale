@@ -524,7 +524,7 @@ class ExpressionScout(
                 val sizeSE = argsSE.head
                 val callableSE = argsSE.lift(1)
 
-                NewRuntimeSizedArraySE(rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, sizeSE, callableSE)
+                NewRuntimeSizedArraySE(rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, sizeSE, stackFrame1.contextRegion, callableSE)
               }
               case StaticSizedP(maybeSizePT) => {
                 val maybeSizeRuneS =
@@ -553,7 +553,7 @@ class ExpressionScout(
                     }
 
                   StaticArrayFromValuesSE(
-                    rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, variabilityRuneS, sizeRuneS, argsSE.toVector)
+                    rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, variabilityRuneS, sizeRuneS, stackFrame1.contextRegion, argsSE.toVector)
                 } else {
                   if (argsSE.size != 1) {
                     throw CompileErrorExceptionS(InitializingStaticSizedArrayRequiresSizeAndCallable(rangeS))
@@ -561,7 +561,7 @@ class ExpressionScout(
                   val sizeRuneS = vassertSome(maybeSizeRuneS)
                   val Vector(callableSE) = argsSE
                   StaticArrayFromCallableSE(
-                    rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, variabilityRuneS, sizeRuneS, callableSE)
+                    rangeS, ruleBuilder.toVector, maybeTypeRuneS, mutabilityRuneS, variabilityRuneS, sizeRuneS, stackFrame1.contextRegion, callableSE)
                 }
               }
             }

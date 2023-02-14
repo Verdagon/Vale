@@ -100,6 +100,7 @@ object PostParserErrorHumanizer {
       case FunctionNameS(name, codeLocation) => name.str
       case AnonymousSubstructTemplateNameS(tlcd) => humanizeName(tlcd) + ".anonymous"
       case TopLevelCitizenDeclarationNameS(name, range) => name.str
+      case RuntimeSizedArrayDeclarationNameS() => "__rsa"
     }
   }
 

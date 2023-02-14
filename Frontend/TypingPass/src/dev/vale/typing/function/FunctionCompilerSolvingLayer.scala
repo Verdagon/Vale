@@ -351,7 +351,7 @@ class FunctionCompilerSolvingLayer(
         }
         loopCheck = loopCheck - 1
 
-        TemplataCompiler.getFirstUnsolvedIdentifyingRune(
+        TemplataCompiler.getFirstUnsolvedIdentifyingGenericParam(
           function.genericParameters,
           (rune) => solver.getConclusion(rune).nonEmpty) match {
           case None => false
@@ -587,7 +587,7 @@ class FunctionCompilerSolvingLayer(
       // Each step happens after the solver has done all it possibly can. Sometimes this can lead
       // to races, see RRBFS.
       (solver) => {
-        TemplataCompiler.getFirstUnsolvedIdentifyingRune(function.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
+        TemplataCompiler.getFirstUnsolvedIdentifyingGenericParam(function.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
           case None => false
           case Some((genericParam, index)) => {
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.

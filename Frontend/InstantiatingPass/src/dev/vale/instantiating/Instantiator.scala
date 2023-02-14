@@ -2151,7 +2151,7 @@ class Instantiator(
         vassertSome(vassertSome(substitutions.get(placeholderFullName.initFullName(interner))).get(placeholderFullName)) match {
           case CoordTemplata(CoordT(innerOwnership, innerRegion, kind)) => {
             val combinedOwnership =
-              (outerOwnership, innerOwnership) match {
+              ((outerOwnership, innerOwnership) match {
                 case (OwnT, OwnT) => OwnT
                 case (OwnT, BorrowT) => BorrowT
                 case (BorrowT, OwnT) => BorrowT
@@ -2165,9 +2165,26 @@ class Instantiator(
                 case (ShareT, ShareT) => ShareT
                 case (OwnT, ShareT) => ShareT
                 case other => vwat(other)
+                  // DO NOT SUBMIT combine this with what's elsewhere in this file
+              }) match { // Now  if it's a borrow, figure out whether it's mutable or immutable
+                case BorrowT => {
+                  if (regionIsMutable(substitutions, maybeNearestPureBlockLocation, expectRegionPlaceholder(outerRegion))) {
+                    MutableBorrowT
+                  } else {
+                    ImmutableBorrowT
+                  }
+                }
+                case ShareT => {
+                  if (regionIsMutable(substitutions, maybeNearestPureBlockLocation, expectRegionPlaceholder(outerRegion))) {
+                    MutableShareT
+                  } else {
+                    ImmutableShareT
+                  }
+                }
+                case other => other
               }
             vassert(innerRegion == translateTemplata(substitutions, maybeNearestPureBlockLocation, outerRegion))
-            CoordT(vimpl(combinedOwnership), innerRegion, kind)
+            CoordT(combinedOwnership, innerRegion, kind)
           }
           case KindTemplata(kind) => {
             val newOwnership =

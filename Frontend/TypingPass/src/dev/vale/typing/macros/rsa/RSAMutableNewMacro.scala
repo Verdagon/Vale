@@ -63,7 +63,6 @@ class RSAMutableNewMacro(
 
     val arrayTT = arrayCompiler.resolveRuntimeSizedArray(elementType, mutability, region)
 
-    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

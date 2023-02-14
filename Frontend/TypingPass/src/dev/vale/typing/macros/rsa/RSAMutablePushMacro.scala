@@ -39,7 +39,6 @@ class RSAMutablePushMacro(interner: Interner, keywords: Keywords) extends IFunct
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
-    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

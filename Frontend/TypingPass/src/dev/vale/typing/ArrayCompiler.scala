@@ -9,7 +9,7 @@ import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Err, Interner, Keywords, Ok, PackageCoordinate, Profiler, RangeS, Result, StrI, vassert, vassertOne, vassertSome, vcurious, vimpl, vregion, vregionmut, vwat}
 import dev.vale.typing.types._
 import dev.vale.typing.templata.{ITemplata, _}
-import OverloadResolver.FindFunctionFailure
+import OverloadResolver.{FindFunctionFailure, InferFailure}
 import dev.vale.highertyping.HigherTypingPass.explicifyLookups
 import dev.vale.typing.ast.{DestroyImmRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoFunctionTE, FunctionCallTE, NewImmRuntimeSizedArrayTE, ReferenceExpressionTE, RuntimeSizedArrayLookupTE, StaticArrayFromCallableTE, StaticArrayFromValuesTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironmentBox, GlobalEnvironment, IEnvironment, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
@@ -17,7 +17,7 @@ import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.ast._
 import dev.vale.typing.citizen.StructCompilerCore
-import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
+import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess, StampFunctionSuccess}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
 
@@ -41,6 +41,7 @@ class ArrayCompiler(
   def evaluateStaticSizedArrayFromCallable(
     coutputs: CompilerOutputs,
     callingEnv: IInDenizenEnvironment,
+    defaultRegionRune: IRuneS,
     region: ITemplata[RegionTemplataType],
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
@@ -95,6 +96,7 @@ class ArrayCompiler(
     }
     val rulesA = ruleBuilder.toVector
 
+    vimpl() // update to also not use solveExpectComplete
     val CompleteCompilerSolve(_, templatas, _, Vector()) =
       inferCompiler.solveExpectComplete(
         InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
@@ -133,6 +135,7 @@ class ArrayCompiler(
     callingEnv: NodeEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
+    defaultRegionRune: IRuneS,
     region: ITemplata[RegionTemplataType],
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
     maybeElementTypeRune: Option[IRuneS],
@@ -141,10 +144,6 @@ class ArrayCompiler(
     maybeCallableTE: Option[ReferenceExpressionTE],
     verifyConclusions: Boolean):
   ReferenceExpressionTE = {
-
-    // Normally we make runes in the post-parser, but there's not really an array definition
-    // anywhere that we might post-parse.
-    val defaultRegionRune = DenizenDefaultRegionRuneS(RuntimeSizedArrayDeclarationNameS())
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -177,7 +176,7 @@ class ArrayCompiler(
         rulesWithImplicitlyCoercingLookupsS,
         List(),
         true,
-        Map(mutabilityRune -> MutabilityTemplataType()) ++
+        Map(mutabilityRune -> MutabilityTemplataType(), defaultRegionRune -> RegionTemplataType()) ++
           maybeElementTypeRune.map(_ -> CoordTemplataType())) match {
         case Ok(r) => r
         case Err(e) => throw CompileErrorExceptionT(HigherTypingInferError(parentRanges, e))
@@ -202,11 +201,49 @@ class ArrayCompiler(
     // way for the user to hand it in as a generic param.
     val initialKnowns = Vector(InitialKnown(RuneUsage(parentRanges.head, defaultRegionRune), region))
 
-    val CompleteCompilerSolve(_, templatas, _, Vector()) =
-      inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges,
-        callLocation, initialKnowns, Vector(), true, true, Vector())
+//    val CompleteCompilerSolve(_, templatas, _, Vector()) =
+//      inferCompiler.solveExpectComplete(
+//        InferEnv(callingEnv, parentRanges, callLocation, callingEnv, region),
+//        coutputs, rulesA, runeAToType.toMap, parentRanges,
+//        callLocation, initialKnowns, Vector(), true, true, Vector())
+    val rules = rulesA
+    val runeToType = runeAToType.toMap
+    val invocationRange = parentRanges
+    val initialSends = Vector()
+
+    val envs = InferEnv(callingEnv, parentRanges, callLocation,callingEnv, region)
+    val solver =
+      inferCompiler.makeSolver(
+        envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+
+    // Incrementally solve and add default generic parameters (and context region).
+    inferCompiler.incrementallySolve(
+      envs, coutputs, solver,
+      (solver) => {
+        if (solver.getConclusion(defaultRegionRune).isEmpty) {
+          solver.manualStep(Map(defaultRegionRune -> region))
+          true
+        } else {
+          false
+        }
+      }) match {
+      case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        throw CompileErrorExceptionT(TypingPassSolverError(invocationRange, f))
+      }
+      case Ok(true) =>
+      case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
+    }
+
+    val CompleteCompilerSolve(_, templatas, runeToFunctionBound, reachableBounds) =
+      (inferCompiler.interpretResults(envs, coutputs, invocationRange, callLocation, runeToType, rules, verifyConclusions, true, Vector(), solver) match {
+        case f @ FailedCompilerSolve(_, _, _) => Err(f)
+        case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
+        case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
+      }) match {
+        case Err(e) => throw CompileErrorExceptionT(TypingPassSolverError(invocationRange, e))
+        case Ok(i) => (i)
+      }
+
     val mutability = ITemplata.expectMutability(vassertSome(templatas.get(mutabilityRune)))
 
 //    val variability = getArrayVariability(templatas, variabilityRune)
@@ -312,13 +349,10 @@ class ArrayCompiler(
     mutabilityRuneA: IRuneS,
     variabilityRuneA: IRuneS,
     exprs2: Vector[ReferenceExpressionTE],
+    defaultRegionRune: IRuneS,
     region: ITemplata[RegionTemplataType],
     verifyConclusions: Boolean):
   StaticArrayFromValuesTE = {
-
-    // Normally we make runes in the post-parser, but there's not really an array definition
-    // anywhere that we might post-parse.
-    val defaultRegionRune = DenizenDefaultRegionRuneS(interner.intern(StaticSizedArrayDeclarationNameS()))
 
     val runeTypingEnv =
       new IRuneTypeSolverEnv {
@@ -381,11 +415,50 @@ class ArrayCompiler(
           RuneUsage(vassertSome(parentRanges.headOption), defaultRegionRune),
           region))
 
-    val CompleteCompilerSolve(_, templatas, _, Vector()) =
-      inferCompiler.solveExpectComplete(
-        InferEnv(callingEnv, parentRanges, callLocation,callingEnv, region),
-        coutputs, rulesA, runeAToType.toMap, parentRanges,
-        callLocation, initialKnowns, Vector(), true, true, Vector())
+//    val CompleteCompilerSolve(_, templatas, _, Vector()) =
+//      inferCompiler.solveExpectComplete(
+//        envs,
+//        coutputs, rulesA, runeAToType.toMap, parentRanges,
+//        callLocation, initialKnowns, Vector(), true, true, Vector())
+    val rules = rulesA
+    val runeToType = runeAToType.toMap
+    val invocationRange = parentRanges
+    val initialSends = Vector()
+
+    val envs = InferEnv(callingEnv, parentRanges, callLocation,callingEnv, region)
+    val solver =
+      inferCompiler.makeSolver(
+        envs, coutputs, rules, runeToType, invocationRange, initialKnowns, initialSends)
+
+    // Incrementally solve and add default generic parameters (and context region).
+    inferCompiler.incrementallySolve(
+      envs, coutputs, solver,
+      (solver) => {
+        if (solver.getConclusion(defaultRegionRune).isEmpty) {
+          solver.manualStep(Map(defaultRegionRune -> region))
+          true
+        } else {
+          false
+        }
+      }) match {
+      case Err(f @ FailedCompilerSolve(_, _, err)) => {
+        throw CompileErrorExceptionT(TypingPassSolverError(invocationRange, f))
+      }
+      case Ok(true) =>
+      case Ok(false) => // Incomplete, will be detected as IncompleteCompilerSolve below.
+    }
+
+    val CompleteCompilerSolve(_, templatas, runeToFunctionBound, reachableBounds) =
+      (inferCompiler.interpretResults(envs, coutputs, invocationRange, callLocation, runeToType, rules, verifyConclusions, true, Vector(), solver) match {
+        case f @ FailedCompilerSolve(_, _, _) => Err(f)
+        case i @ IncompleteCompilerSolve(_, _, _, _) => Err(i)
+        case c @ CompleteCompilerSolve(_, _, _, _) => Ok(c)
+      }) match {
+        case Err(e) => throw CompileErrorExceptionT(TypingPassSolverError(invocationRange, e))
+        case Ok(i) => (i)
+      }
+
+
     maybeElementTypeRuneA.foreach(elementTypeRuneA => {
       val expectedElementType = getArrayElementType(templatas, elementTypeRuneA)
       if (memberType != expectedElementType) {

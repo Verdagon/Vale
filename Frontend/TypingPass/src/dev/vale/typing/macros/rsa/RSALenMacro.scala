@@ -35,7 +35,7 @@ class RSALenMacro(keywords: Keywords) extends IFunctionBodyMacro {
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
-    vimpl() // pure?
+    // DO NOT SUBMIT pure?
     val body =
       BlockTE(
         ReturnTE(
