@@ -182,7 +182,7 @@ object TemplataCompiler {
     kind: KindT):
   KindT = {
     kind match {
-      case IntT(bits) => kind
+      case VoidT() | IntT(_) => kind
       case StructTT(id @ IdT(packageCoord, initSteps, StructNameT(template, templateArgs))) => {
 
         val newStruct =
@@ -223,6 +223,21 @@ object TemplataCompiler {
               template,
               expectInteger(mergeTemplataRegions(interner, coutputs, oldToNewRegion, size)),
               expectVariability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, variability)),
+              RawArrayNameT(
+                expectMutability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, mutability)),
+                mergeCoordRegions(interner, coutputs, oldToNewRegion, elementType),
+                mergeRegionTemplataRegions(interner, coutputs, oldToNewRegion, selfRegion)))))))
+      }
+      case RuntimeSizedArrayTT(IdT(packageCoord, initSteps, RuntimeSizedArrayNameT(template, RawArrayNameT(mutability, elementType, selfRegion)))) => {
+        // DO NOT SUBMIT
+        // not sure we can conjure new SSATTs out of the are like this. Don't we have to resolve
+        // them so they have the proper instantiation bounds and stuff?
+        interner.intern(RuntimeSizedArrayTT(
+          IdT(
+            packageCoord,
+            initSteps.map(mergeNameRegions(interner, coutputs, oldToNewRegion, _)),
+            interner.intern(RuntimeSizedArrayNameT(
+              template,
               RawArrayNameT(
                 expectMutability(mergeTemplataRegions(interner, coutputs, oldToNewRegion, mutability)),
                 mergeCoordRegions(interner, coutputs, oldToNewRegion, elementType),
@@ -954,6 +969,18 @@ object TemplataCompiler {
   }
 
   def getFirstUnsolvedIdentifyingRune(
+    genericParamRunes: Vector[IRuneS],
+    isSolved: IRuneS => Boolean):
+  Option[(IRuneS, Int)] = {
+    genericParamRunes
+      .zipWithIndex
+      .map({ case (rune, index) => (rune, index, isSolved(rune)) })
+      .filter(!_._3)
+      .map({ case (genericParam, index, false) => (genericParam, index) })
+      .headOption
+  }
+
+  def getFirstUnsolvedIdentifyingGenericParam(
     genericParameters: Vector[GenericParameterS],
     isSolved: IRuneS => Boolean):
   Option[(GenericParameterS, Int)] = {

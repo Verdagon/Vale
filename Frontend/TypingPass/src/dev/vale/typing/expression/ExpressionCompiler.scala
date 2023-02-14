@@ -1011,6 +1011,7 @@ class ExpressionCompiler(
         mutabilityRune,
         variabilityRune,
         sizeRuneA,
+        defaultRegionRune,
         elements1) => {
           val (exprs2, returnsFromElements) =
             evaluateAndCoerceToReferenceExpressions(
@@ -1028,6 +1029,7 @@ class ExpressionCompiler(
               mutabilityRune.rune,
               variabilityRune.rune,
               exprs2,
+              defaultRegionRune,
               region,
               true)
           (expr2, returnsFromElements)
@@ -1039,6 +1041,7 @@ class ExpressionCompiler(
         maybeMutabilityRune,
         maybeVariabilityRune,
         sizeRuneA,
+        defaultRegionRune,
         callableAE) => {
           val (callableTE, returnsFromCallable) =
             evaluateAndCoerceToReferenceExpression(
@@ -1047,6 +1050,7 @@ class ExpressionCompiler(
             arrayCompiler.evaluateStaticSizedArrayFromCallable(
               coutputs,
               nenv.snapshot,
+              defaultRegionRune,
               region,
               range :: parentRanges,
               callLocation,
@@ -1065,6 +1069,7 @@ class ExpressionCompiler(
         maybeElementTypeRune,
         mutabilityRune,
         sizeAE,
+        defaultRegionRune,
         maybeCallableAE) => {
           val (sizeTE, returnsFromSize) =
             evaluateAndCoerceToReferenceExpression(
@@ -1092,6 +1097,7 @@ class ExpressionCompiler(
               nenv.snapshot,
               range :: parentRanges,
               callLocation,
+              defaultRegionRune,
               region,
               rulesA.toVector,
               maybeElementTypeRune.map(_.rune),
@@ -1201,8 +1207,9 @@ class ExpressionCompiler(
             }
           }
 
-          val maybeLocationIfPure = vimpl()//if (thenBodySE.pure) Some(thenBodySE.location) else None
-          val thenFate = NodeEnvironmentBox(nenv.makeChild(thenBodySE, vimpl(), maybeLocationIfPure))
+          val thenFate =
+            NodeEnvironmentBox(
+              nenv.makeChild(thenBodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1224,7 +1231,9 @@ class ExpressionCompiler(
               case _ => true
             }
 
-          val elseFate = NodeEnvironmentBox(nenv.makeChild(elseBodySE, vimpl(), vimpl()))
+          val elseFate =
+            NodeEnvironmentBox(
+              nenv.makeChild(elseBodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1359,9 +1368,11 @@ class ExpressionCompiler(
           // and the body block, so they can access any locals declared by the condition.
 
           // See BEAFB for why we make a new environment for the While
-          val loopNenv = nenv.makeChild(w, vimpl(), None)
+          val loopNenv = nenv.makeChild(w, None, None)
 
-          val loopBlockFate = NodeEnvironmentBox(loopNenv.makeChild(bodySE, vimpl(), vimpl()))
+          val loopBlockFate =
+            NodeEnvironmentBox(
+              loopNenv.makeChild(bodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
           val (bodyExpressionsWithResult, bodyReturnsFromExprs) =
             evaluateBlockStatements(
               coutputs,

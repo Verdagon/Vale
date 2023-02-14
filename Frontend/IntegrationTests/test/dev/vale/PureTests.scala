@@ -3,11 +3,11 @@ package dev.vale
 import dev.vale.simplifying.VonHammer
 import dev.vale.finalast.YonderH
 import dev.vale.typing._
-import dev.vale.typing.types.{CoordT, FinalT, ImmutableBorrowT, ImmutableShareT, IntT, MutableShareT, MutableT, OwnT, StaticSizedArrayTT, StrT, StructTT}
+import dev.vale.typing.types._
 import dev.vale.testvm.StructInstanceV
 import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
-import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
+import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
 import dev.vale.typing.templata.{IntegerTemplata, MutabilityTemplata, RegionTemplata, VariabilityTemplata}
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
@@ -133,7 +133,7 @@ class PureTests extends FunSuite with Matchers {
     compile.evalForKind(Vector()) match { case VonInt(10) => }
   }
 
-  test("Pure function returning an array") {
+  test("Pure function returning a static sized array") {
     // In other words, calling a constructor. All the default constructors are pure functions.
 
     val compile =
@@ -159,6 +159,64 @@ class PureTests extends FunSuite with Matchers {
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
+  }
+
+  test("Pure function taking in a static sized array") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |pure func Display<r'>(arr &r'[#2][#2]int) {
+          |  // do nothing
+          |}
+          |exported func main() int {
+          |  x = [#]([#](10, 20), [#](30, 40));
+          |  Display(&x);
+          |  [[a1, a2], [a3, a4]] = x;
+          |  a1
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
+      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(10) => }
+  }
+
+  test("Pure function returning a runtime sized array") {
+    // In other words, calling a constructor. All the default constructors are pure functions.
+
+    val compile =
+      RunCompilation.test(
+        """
+          |import v.builtins.runtime_sized_array_mut_new.*;
+          |pure func makeArr() [][]int {
+          |  return [][]int(0);
+          |}
+          |exported func main() int {
+          |  x = makeArr();
+          |  [] = x;
+          |  42
+          |}
+          |""".stripMargin, false)
+    val main = compile.getMonouts().lookupFunction("main")
+
+    val xType =
+      Collector.only(main, {
+        case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
+      })
+    xType match {
+      case CoordT(OwnT,RegionTemplata(true),RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),RuntimeSizedArrayTT(IdT(_,Vector(),RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(MutableShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+    }
+
+    compile.evalForKind(Vector()) match { case VonInt(42) => }
   }
 
   test("Pure function returning struct") {
