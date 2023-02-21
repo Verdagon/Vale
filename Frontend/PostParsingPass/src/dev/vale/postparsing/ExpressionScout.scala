@@ -139,7 +139,14 @@ class ExpressionScout(
     scoutContents: (StackFrame, LocationInDenizenBuilder) => (StackFrame, IExpressionSE, VariableUses, VariableUses)):
   (BlockSE, VariableUses, VariableUses) = {
     val initialStackFrame =
-      StackFrame(functionBodyEnv.file, functionBodyEnv.name, functionBodyEnv, parentStackFrame, contextRegion, initialLocals)
+      StackFrame(
+        functionBodyEnv.file,
+        functionBodyEnv.name,
+        functionBodyEnv,
+        parentStackFrame,
+        contextRegion,
+        parentStackFrame.map(_.pureHeight + 1).getOrElse(0),
+        initialLocals)
 //    val rangeS = evalRange(functionBodyEnv.file, blockPE.range)
 //
 //    val (stackFrameBeforeExtrasAndConstructing, exprsWithoutExtrasWithoutConstructingWithoutVoidS, selfUsesBeforeExtrasAndConstructing, childUsesBeforeExtrasAndConstructing) =

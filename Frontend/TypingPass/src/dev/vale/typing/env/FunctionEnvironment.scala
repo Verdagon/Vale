@@ -26,7 +26,7 @@ case class BuildingFunctionEnvironmentWithClosureds(
   isRootCompilingDenizen: Boolean
 ) extends IInDenizenEnvironment {
 
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def denizenId: IdT[INameT] = id
 
@@ -89,7 +89,7 @@ case class BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs(
   defaultRegion: ITemplata[RegionTemplataType],
 ) extends IInDenizenEnvironment {
 
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def denizenId: IdT[INameT] = id
 
@@ -158,7 +158,7 @@ case class NodeEnvironmentT(
 
   // The location-in-denizen of the nearest enclosing pure block, if there is one. Otherwise, None.
   // This is used to know whether a region is currently mutable or immutable.
-  maybeLatestPureBlockLocation: Option[LocationInDenizen]
+  pureHeight: Int
 ) extends IInDenizenEnvironment {
   vassert(declaredLocals.map(_.name) == declaredLocals.map(_.name).distinct)
 
@@ -239,18 +239,18 @@ case class NodeEnvironmentT(
 
   def addVariables(newVars: Vector[IVariableT]): NodeEnvironmentT = {
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, maybeLatestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals ++ newVars, unstackifiedLocals, defaultRegion, pureHeight)
   }
   def addVariable(newVar: IVariableT): NodeEnvironmentT = {
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, maybeLatestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals :+ newVar, unstackifiedLocals, defaultRegion, pureHeight)
   }
   def markLocalUnstackified(newUnstackified: IVarNameT): NodeEnvironmentT = {
     vassert(!getAllUnstackifiedLocals().contains(newUnstackified))
     vassert(getAllLocals().exists(_.name == newUnstackified))
     // Even if the local belongs to a parent env, we still mark it unstackified here, see UCRTVPE.
     NodeEnvironmentT(
-      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, maybeLatestPureBlockLocation)
+      parentFunctionEnv, parentNodeEnv, node, life, templatas, declaredLocals, unstackifiedLocals + newUnstackified, defaultRegion, pureHeight)
   }
 
   // Gets the effects that this environment had on the outside world (on its parent
@@ -299,7 +299,7 @@ case class NodeEnvironmentT(
   def makeChild(
     node: IExpressionSE,
     maybeNewDefaultRegion: Option[ITemplata[RegionTemplataType]],
-    locationIfPure: Option[LocationInDenizen]):
+    maybeNewPureHeight: Option[Int]):
   NodeEnvironmentT = {
     NodeEnvironmentT(
       parentFunctionEnv,
@@ -310,7 +310,7 @@ case class NodeEnvironmentT(
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE.
       maybeNewDefaultRegion.getOrElse(defaultRegion),
-      locationIfPure.orElse(maybeLatestPureBlockLocation))
+      maybeNewPureHeight.getOrElse(pureHeight))
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): NodeEnvironmentT = {
@@ -323,7 +323,7 @@ case class NodeEnvironmentT(
       declaredLocals,
       unstackifiedLocals,
       defaultRegion,
-      maybeLatestPureBlockLocation)
+      pureHeight)
   }
   def addEntries(interner: Interner, newEntries: Vector[(INameT, IEnvEntry)]): NodeEnvironmentT = {
     NodeEnvironmentT(
@@ -335,7 +335,7 @@ case class NodeEnvironmentT(
       declaredLocals,
       unstackifiedLocals,
       defaultRegion,
-      maybeLatestPureBlockLocation)
+      pureHeight)
   }
 
   def nearestBlockEnv(): Option[(NodeEnvironmentT, BlockSE)] = {
@@ -421,9 +421,9 @@ case class NodeEnvironmentBox(var nodeEnvironment: NodeEnvironmentT) {
   def makeChild(
     node: IExpressionSE,
     maybeNewDefaultRegion: Option[ITemplata[RegionTemplataType]],
-    locationIfPure: Option[LocationInDenizen]):
+    maybeNewPureHeight: Option[Int]):
   NodeEnvironmentT = {
-    nodeEnvironment.makeChild(node, maybeNewDefaultRegion, locationIfPure)
+    nodeEnvironment.makeChild(node, maybeNewDefaultRegion, maybeNewPureHeight)
   }
 
   def addEntry(interner: Interner, name: INameT, entry: IEnvEntry): Unit = {
@@ -465,7 +465,7 @@ case class FunctionEnvironment(
 ) extends IInDenizenEnvironment {
   val hash = runtime.ScalaRunTime._hashCode(id); override def hashCode(): Int = hash;
 
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def denizenId: IdT[INameT] = templateId
 
@@ -553,12 +553,7 @@ case class FunctionEnvironment(
         case _ => (Vector(), Set[IVarNameT]())
       }
 
-    val latestPureBlockLocation =
-      if (function.attributes.collectFirst({ case PureS => }).nonEmpty) {
-        Some(LocationInDenizen(Vector()))
-      } else {
-        None
-      }
+    val pureHeight = 0
 
     NodeEnvironmentT(
       this,
@@ -569,7 +564,7 @@ case class FunctionEnvironment(
       declaredLocals, // See WTHPFE.
       unstackifiedLocals, // See WTHPFE
       defaultRegion,
-      latestPureBlockLocation)
+      pureHeight)
   }
 
   def getClosuredDeclaredLocals(): Vector[IVariableT] = {
@@ -592,7 +587,7 @@ case class FunctionEnvironment(
 }
 
 case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) extends IDenizenEnvironmentBox {
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = functionEnvironment.maybeLatestPureBlockLocation
+  override def pureHeight: Int = functionEnvironment.pureHeight
 
   override def denizenId: IdT[INameT] = functionEnvironment.denizenId
 

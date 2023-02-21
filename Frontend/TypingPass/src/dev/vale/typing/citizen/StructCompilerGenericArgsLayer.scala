@@ -348,8 +348,7 @@ class StructCompilerGenericArgsLayer(
           structTemplateFullName,
           defaultRegionGenericParamIndex,
           defaultRegionGenericParam.rune.rune,
-          LocationInDenizen(Vector()),
-          true)
+          0)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(structA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
@@ -378,6 +377,7 @@ class StructCompilerGenericArgsLayer(
                   genericParam,
                   index,
                   allRuneToType,
+                  vimpl(),
                   true,
                   LocationInDenizen(Vector()))
               solver.manualStep(Map(genericParam.rune.rune -> templata))
@@ -456,7 +456,7 @@ class StructCompilerGenericArgsLayer(
       val defaultRegionGenericParam = interfaceA.genericParameters(defaultRegionGenericParamIndex)
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, LocationInDenizen(Vector()), true)
+          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, 0)
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
@@ -479,7 +479,7 @@ class StructCompilerGenericArgsLayer(
               // Make a placeholder for every argument even if it has a default, see DUDEWCD.
               val templata =
                 templataCompiler.createPlaceholder(
-                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, true, LocationInDenizen(Vector()))
+                  coutputs, outerEnv, interfaceTemplateFullName, genericParam, index, interfaceA.runeToType, vimpl(), true, LocationInDenizen(Vector()))
               solver.manualStep(Map(genericParam.rune.rune -> templata))
               true
             }

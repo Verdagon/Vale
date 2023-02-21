@@ -758,7 +758,7 @@ object TemplataCompiler {
           templata
         }
       }
-      case PlaceholderTemplata(id @ IdT(_, _, pn @ RegionPlaceholderNameT(index, rune, _, _)), _) => {
+      case PlaceholderTemplata(id @ IdT(_, _, pn @ RegionPlaceholderNameT(index, rune, _)), _) => {
         if (id.initFullName(interner) == needleTemplateName) {
           newSubstitutingTemplatas(index)
         } else {
@@ -1250,6 +1250,7 @@ class TemplataCompiler(
     genericParam: GenericParameterS,
     index: Int,
     runeToType: Map[IRuneS, ITemplataType],
+    pureHeight: Int,
     registerWithCompilerOutputs: Boolean,
     originallyIntroducedLocation: LocationInDenizen,
   ):
@@ -1276,6 +1277,7 @@ class TemplataCompiler(
           namePrefix,
           index,
           rune,
+          pureHeight,
           immutable,
           registerWithCompilerOutputs)
       }
@@ -1284,8 +1286,7 @@ class TemplataCompiler(
           namePrefix,
           index,
           rune,
-          originallyIntroducedLocation,
-          !immutable)
+          pureHeight)
       }
       case otherType => {
         createNonKindNonRegionPlaceholderInner(namePrefix, index, rune, otherType)
@@ -1326,6 +1327,7 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
+    pureHeight: Int,
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean
   ) = {
@@ -1335,7 +1337,7 @@ class TemplataCompiler(
     val regionIntroducedLocation = LocationInDenizen(Vector())
     val regionPlaceholderTemplata =
       createRegionPlaceholderInner(
-        namePrefix, index, rune, regionIntroducedLocation, regionOriginallyMutable)
+        namePrefix, index, rune,  pureHeight)
     val kindPlaceholderT =
       createKindPlaceholderInner(
         coutputs, env, namePrefix, index, rune, immutable, registerWithCompilerOutputs)
@@ -1388,12 +1390,13 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    originallyIntroducedLocation: LocationInDenizen,
-    originallyMutable: Boolean):
+    pureHeight: Int):
   PlaceholderTemplata[RegionTemplataType] = {
     val idT =
       namePrefix.addStep(
-        interner.intern(RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)))
+        interner.intern(RegionPlaceholderNameT(
+          index, rune,
+          pureHeight)))
     PlaceholderTemplata(idT, RegionTemplataType())
   }
 }

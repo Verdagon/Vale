@@ -384,6 +384,7 @@ class OverloadResolver(
                     val isPure = ft.function.attributes.collectFirst({ case PureS => }).nonEmpty
                     val (maybeNewRegion, maybeLatestPureBlockLocation) =
                       if (isPure) {
+                        val newPureHeight = callingEnv.pureHeight + 1
                         val calleeContextRegion =
                           PlaceholderTemplata(
                             callingEnv.denizenId
@@ -391,13 +392,15 @@ class OverloadResolver(
                                 interner.intern(RegionPlaceholderNameT(
                                   -1,
                                   PureCallRegionRuneS(callLocation),
-                                  callLocation,
-                                  true))),
+                                  newPureHeight
+//                                  Some(callLocation),
+//                                  callLocation,
+//                                  true
+                                ))),
                             RegionTemplataType())
-                        val newLatestPureBlockLocation = callLocation
-                        (Some(calleeContextRegion), Some(newLatestPureBlockLocation))
+                        (Some(calleeContextRegion), newPureHeight)
                       } else {
-                        (None, callingEnv.maybeLatestPureBlockLocation)
+                        (None, callingEnv.pureHeight)
                       }
                     val calleeContextRegion = maybeNewRegion.getOrElse(contextRegion)
                     // We pass in our env because the callee needs to see functions declared here, see CSSNCE.
@@ -474,7 +477,7 @@ class OverloadResolver(
 
   private def checkRegions(
     ft: FunctionTemplata,
-    maybeLatestPureBlockLocation: Option[LocationInDenizen],
+    callSitePureHeight: Int,
     conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
   Result[Unit, IFindFunctionFailureReason] = {
     // The only place we can specify a region's mutability in the receiving function
@@ -491,28 +494,15 @@ class OverloadResolver(
             case ReadWriteRegionS | ImmutableRegionS => {
               val expectedMutable = (mutability == ReadWriteRegionS)
               conclusions.get(genericParam.rune.rune) match {
-                case Some(PlaceholderTemplata(IdT(_, _, RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)), RegionTemplataType())) => {
+                case Some(PlaceholderTemplata(IdT(_, _, RegionPlaceholderNameT(index, rune, regionPureHeight)), RegionTemplataType())) => {
                   // Someday we'll also want to check if there were any pure blocks since the
                   // region was created.
                   // Until then, it's only mutable if it originally was and this isn't a pure call.
-                  val actuallyMutable =
-                  originallyMutable &&
-                    (maybeLatestPureBlockLocation match {
-                      case None => true
-                      case Some(latestPureBlockLocation) => {
-                        !originallyIntroducedLocation.before(latestPureBlockLocation)
-                      }
-                    })
+                  val actuallyMutable = callSitePureHeight == regionPureHeight
 
                   if (actuallyMutable != expectedMutable) {
                     // DO NOT SUBMIT test this
                     return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, actuallyMutable, expectedMutable))
-                  }
-                }
-                case Some(RegionTemplata(mutable)) => {
-                  if (mutable != expectedMutable) {
-                    // DO NOT SUBMIT test this
-                    return Err(SpecificParamRegionDoesntMatch(genericParam.rune.rune, mutable, expectedMutable))
                   }
                 }
                 case other => vwat(other)

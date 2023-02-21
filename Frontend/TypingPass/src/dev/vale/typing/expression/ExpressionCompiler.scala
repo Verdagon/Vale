@@ -188,7 +188,7 @@ class ExpressionCompiler(
     targetOwnership: LoadAsP
   ):
   Option[ExpressionT] = {
-    evaluateAddressibleLookup(coutputs, nenv, range, name) match {
+    evaluateAddressibleLookup(coutputs, nenv, range, region, name) match {
       case Some(x) => {
         val thing = localHelper.softLoad(nenv, range, x, targetOwnership)
         Some(thing)
@@ -207,16 +207,17 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
+    region: ITemplata[RegionTemplataType],
     loadRange: RangeS,
     nameA: IVarNameS
   ):
   Option[AddressExpressionTE] = {
     nenv.getVariable(nameTranslator.translateVarNameStep(nameA)) match {
       case Some(alv@AddressibleLocalVariableT(_, _, reference)) => {
-        Some(LocalLookupTE(loadRange, alv))
+        Some(LocalLookupTE(loadRange, alv, alv.coord.region))
       }
       case Some(rlv@ReferenceLocalVariableT(id, _, reference)) => {
-        Some(LocalLookupTE(loadRange, rlv))
+        Some(LocalLookupTE(loadRange, rlv, rlv.coord.region))
       }
       case Some(AddressibleClosureVariableT(id, closuredVarsStructRef, variability, tyype)) => {
         val closuredVarsStructFullName = closuredVarsStructRef.id
@@ -242,7 +243,8 @@ class ExpressionCompiler(
             coutputs,
             LocalLookupTE(
               loadRange,
-              ReferenceLocalVariableT(name2, FinalT, closuredVarsStructRefRef)))
+              ReferenceLocalVariableT(name2, FinalT, closuredVarsStructRefRef),
+              closuredVarsStructRefRef.region))
 
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef.id)
         vassert(closuredVarsStructDef.members.exists(member => closuredVarsStructRef.id.addStep(member.name) == id))
@@ -280,7 +282,8 @@ class ExpressionCompiler(
               ReferenceLocalVariableT(
                 interner.intern(ClosureParamNameT(closuredVarsStructTemplateName.codeLocation)),
                 FinalT,
-                closuredVarsStructRefCoord)))
+                closuredVarsStructRefCoord),
+              closuredVarsStructRefCoord.region))
 
         val lookup =
           ast.ReferenceMemberLookupTE(loadRange, borrowExpr, varName, tyype, variability)
@@ -295,19 +298,20 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
     ranges: List[RangeS],
+    region: ITemplata[RegionTemplataType],
     name2: IVarNameT
   ):
   Option[AddressExpressionTE] = {
     nenv.getVariable(name2) match {
       case Some(alv@AddressibleLocalVariableT(varId, variability, reference)) => {
         vassert(!nenv.unstackifieds.contains(varId))
-        Some(LocalLookupTE(ranges.head, alv))
+        Some(LocalLookupTE(ranges.head, alv, alv.coord.region))
       }
       case Some(rlv@ReferenceLocalVariableT(varId, variability, reference)) => {
         if (nenv.unstackifieds.contains(varId)) {
           throw CompileErrorExceptionT(CantUseUnstackifiedLocal(ranges, varId))
         }
-        Some(LocalLookupTE(ranges.head, rlv))
+        Some(LocalLookupTE(ranges.head, rlv, rlv.coord.region))
       }
       case Some(AddressibleClosureVariableT(id, closuredVarsStructRef, variability, tyype)) => {
         val closuredVarsStructFullName = closuredVarsStructRef.id
@@ -334,7 +338,8 @@ class ExpressionCompiler(
             coutputs,
             LocalLookupTE(
               ranges.head,
-              ReferenceLocalVariableT(closureParamVarName2, FinalT, closuredVarsStructRefRef)))
+              ReferenceLocalVariableT(closureParamVarName2, FinalT, closuredVarsStructRefRef),
+              closuredVarsStructRefRef.region))
         val closuredVarsStructDef = coutputs.lookupStruct(closuredVarsStructRef.id)
 
 //        vassert(closuredVarsStructRef.id.steps == id.steps.init)
@@ -372,7 +377,8 @@ class ExpressionCompiler(
               ReferenceLocalVariableT(
                 interner.intern(ClosureParamNameT(closuredVarsStructTemplateName.codeLocation)),
                 FinalT,
-                closuredVarsStructRefCoord)))
+                closuredVarsStructRefCoord),
+              closuredVarsStructRefCoord.region))
 
         val lookup = ReferenceMemberLookupTE(ranges.head, borrowExpr, varName, tyype, variability)
         Some(lookup)
@@ -404,7 +410,7 @@ class ExpressionCompiler(
         }
         case NormalStructMemberT(memberName, variability, tyype) => {
           val lookup =
-            evaluateAddressibleLookup(coutputs, nenv, range, memberName) match {
+            evaluateAddressibleLookup(coutputs, nenv, range, region, memberName) match {
               case None => {
                 throw CompileErrorExceptionT(RangedInternalErrorT(
                   range,
@@ -751,7 +757,7 @@ class ExpressionCompiler(
         }
         case LocalMutateSE(range, name, sourceExpr1) => {
           val destinationExpr2 =
-            evaluateAddressibleLookupForMutate(coutputs, nenv, parentRanges, range, name) match {
+            evaluateAddressibleLookupForMutate(coutputs, nenv, parentRanges, region, range, name) match {
               case None => {
                 throw CompileErrorExceptionT(
                   RangedInternalErrorT(range :: parentRanges, "Couldnt find " + name))
@@ -1209,7 +1215,7 @@ class ExpressionCompiler(
 
           val thenFate =
             NodeEnvironmentBox(
-              nenv.makeChild(thenBodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
+              nenv.makeChild(thenBodySE, None, None))
 
           val (thenExpressionsWithResult, thenReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1233,7 +1239,7 @@ class ExpressionCompiler(
 
           val elseFate =
             NodeEnvironmentBox(
-              nenv.makeChild(elseBodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
+              nenv.makeChild(elseBodySE, None, None))
 
           val (elseExpressionsWithResult, elseReturnsFromExprs) =
             evaluateBlockStatements(
@@ -1372,7 +1378,7 @@ class ExpressionCompiler(
 
           val loopBlockFate =
             NodeEnvironmentBox(
-              loopNenv.makeChild(bodySE, None, nenv.nodeEnvironment.maybeLatestPureBlockLocation))
+              loopNenv.makeChild(bodySE, None, None))
           val (bodyExpressionsWithResult, bodyReturnsFromExprs) =
             evaluateBlockStatements(
               coutputs,
@@ -1492,9 +1498,7 @@ class ExpressionCompiler(
                 Vector(
                   localHelper.borrowSoftLoad(
                     coutputs,
-                    LocalLookupTE(
-                      range,
-                      listLocal)),
+                    LocalLookupTE(range, listLocal, listLocal.coord.region)),
                   localHelper.unletLocalWithoutDropping(nenv, iterationResultLocal)))
             val bodyTE = BlockTE(Compiler.consecutive(Vector(letIterationResultTE, addCall)))
 
@@ -1553,20 +1557,23 @@ class ExpressionCompiler(
               lastReturns).toSet)
         }
         case p@PureSE(range, location, inner) => {
+          val newPureHeight = nenv.snapshot.pureHeight + 1
           val newRegionId =
             TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
               .addStep(
                 interner.intern(RegionPlaceholderNameT(
-                  -1, PureBlockRegionRuneS(location), location, true)))
+                  -1, PureBlockRegionRuneS(location), newPureHeight)))
           val newRegion = PlaceholderTemplata(newRegionId, RegionTemplataType())
 
           // We'll restore these things at the end. We're reusing the same nenv because any locals
           // inside should be unstackified at the end of the block.
-          val oldLatestPureBlockLocation = nenv.nodeEnvironment.maybeLatestPureBlockLocation
+          val oldLatestPureBlockLocation = nenv.nodeEnvironment.pureHeight
           val oldDefaultRegion = nenv.nodeEnvironment.defaultRegion
           nenv.nodeEnvironment =
             nenv.nodeEnvironment
-              .copy(defaultRegion = newRegion, maybeLatestPureBlockLocation = Some(location))
+              .copy(
+                defaultRegion = newRegion,
+                pureHeight = newPureHeight)
 
           val (innerExpr, returnsFromExprs) =
             evaluateAndCoerceToReferenceExpression(
@@ -1585,7 +1592,7 @@ class ExpressionCompiler(
             nenv.nodeEnvironment
               .copy(
                 defaultRegion = oldDefaultRegion,
-                maybeLatestPureBlockLocation = oldLatestPureBlockLocation)
+                pureHeight = oldLatestPureBlockLocation)
 
           val resultCoord =
             TemplataCompiler.mergeCoordRegions(
@@ -1595,7 +1602,7 @@ class ExpressionCompiler(
           (pureTE, returnsFromExprs)
         }
         case b@BlockSE(range, locals, _) => {
-          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, nenv.snapshot.maybeLatestPureBlockLocation))
+          val childEnvironment = NodeEnvironmentBox(nenv.makeChild(b, None, None))
 
           val (expressionsWithResult, returnsFromExprs) =
             evaluateBlockStatements(

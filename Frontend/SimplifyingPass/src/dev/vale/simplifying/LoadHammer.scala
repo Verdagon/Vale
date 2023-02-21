@@ -5,13 +5,15 @@ import dev.vale.finalast._
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
-import dev.vale.typing.names.{IdT, IVarNameT}
+import dev.vale.typing.names.{IVarNameT, IdT}
 import dev.vale.typing.types._
 import dev.vale.finalast._
+import dev.vale.postparsing.RegionTemplataType
 import dev.vale.typing.{types => t, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.IVarNameT
+import dev.vale.typing.templata.{ITemplata, RegionTemplata}
 import dev.vale.typing.types._
 
 class LoadHammer(
@@ -32,24 +34,90 @@ class LoadHammer(
 
     val (loadedAccessH, sourceDeferreds) =
       sourceExpr2 match {
-        case LocalLookupTE(_,ReferenceLocalVariableT(varId, variability, reference)) => {
-          translateMundaneLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, reference, targetOwnership)
+        case LocalLookupTE(_,ReferenceLocalVariableT(varId, variability, reference), sourceRegion) => {
+          // DO NOT SUBMIT combine this with below
+          val combinedTargetOwnership = targetOwnership
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
+          translateMundaneLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, reference, combinedTargetOwnership)
         }
-        case LocalLookupTE(_,AddressibleLocalVariableT(varId, variability, localReference2)) => {
-          translateAddressibleLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, variability, localReference2, targetOwnership)
+        case LocalLookupTE(_,AddressibleLocalVariableT(varId, variability, localReference2), sourceRegion) => {
+          // DO NOT SUBMIT combine this with below
+          val combinedTargetOwnership = vimpl()
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
+          translateAddressibleLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, variability, localReference2, combinedTargetOwnership)
         }
         case ReferenceMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
+//          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          // DO NOT SUBMIT combine this with below
+//          val combinedTargetOwnership =
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
           translateMundaneMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberType2, memberName, targetOwnership)
         }
         case AddressMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
-          translateAddressibleMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberName, memberType2, targetOwnership)
+          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          // DO NOT SUBMIT combine this with below
+          val combinedTargetOwnership = vimpl()
+//          val combinedTargetOwnership =
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
+          translateAddressibleMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberName, memberType2, combinedTargetOwnership)
         }
         case RuntimeSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
-          translateMundaneRuntimeSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
+          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          // DO NOT SUBMIT combine this with below
+          val combinedTargetOwnership = vimpl()
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
+          translateMundaneRuntimeSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
         }
         case StaticSizedArrayLookupTE(_, arrayExpr2, indexExpr2, _, _) => {
+          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          // DO NOT SUBMIT combine this with below
+          val combinedTargetOwnership = vimpl()
+//          val combinedTargetOwnership =
+//            (targetOwnership, sourceRegion) match {
+//              case (OwnT, _) => OwnT
+//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
+//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
+//              case (ShareT, RegionTemplata(true)) => MutableShareT
+//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
+//              case (WeakT, _) => vimpl()
+//            }
           translateMundaneStaticSizedArrayLoad(
-            hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
+            hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
         }
       }
 
@@ -349,7 +417,8 @@ class LoadHammer(
       locals: LocalsBox,
       lookup2: LocalLookupTE):
   (ExpressionH[KindHT]) = {
-    val LocalLookupTE(_,localVar) = lookup2;
+    val LocalLookupTE(_,localVar, sourceRegion) = lookup2;
+    vimpl()
 
     val local = locals.get(localVar.name).get
     vassert(!locals.unstackifiedVars.contains(local.id))

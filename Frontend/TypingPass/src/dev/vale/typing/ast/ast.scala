@@ -6,7 +6,7 @@ import dev.vale.typing.templata.FunctionTemplata
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
-import dev.vale.postparsing.{IRuneS, ITemplataType, RegionTemplataType}
+import dev.vale.postparsing.{IRuneS, ITemplataType, LocationInDenizen, RegionTemplataType}
 import dev.vale.typing._
 import dev.vale.typing.env.IInDenizenEnvironment
 import dev.vale.typing.templata._
@@ -340,6 +340,18 @@ case class FunctionHeaderT(
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
+//  val perspectiveRegion =
+//    id.localName.templateArgs.last match {
+//      case PlaceholderTemplata(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _, _, _)), RegionTemplataType()) => {
+//        IdT(packageCoord, initSteps, r)
+//      }
+//      case _ => vwat()
+//    }
+//  if (attributes.contains(PureT)) {
+//    // Instantiator relies on this assumption so that it knows when certain things are pure.
+//    vassert(perspectiveRegion.localName.originalMaybeNearestPureLocation == Some(LocationInDenizen(Vector())))
+//  }
+
   vassert({
     maybeOriginFunctionTemplata match {
       case None =>
@@ -381,7 +393,7 @@ case class FunctionHeaderT(
                   }
                 }
               }
-              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, originallyIntroducedLocation, originallyMutable)) => {
+              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, _, _, _)) => {
                 id.localName.templateArgs(index) match {
                   case PlaceholderTemplata(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)

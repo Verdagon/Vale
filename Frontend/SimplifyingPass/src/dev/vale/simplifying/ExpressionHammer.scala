@@ -291,7 +291,8 @@ class ExpressionHammer(
         (loadedAccessH, deferreds)
       }
 
-      case lookup2 @ LocalLookupTE(_,AddressibleLocalVariableT(_, _, _)) => {
+      case lookup2 @ LocalLookupTE(_,AddressibleLocalVariableT(_, _, _), sourceRegion) => {
+        vimpl()
         val loadBoxAccess =
           loadHammer.translateLocalAddress(hinputs, hamuts, currentFunctionHeader, locals, lookup2)
         (loadBoxAccess, Vector.empty)
