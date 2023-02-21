@@ -97,7 +97,7 @@ trait IInDenizenEnvironment extends IEnvironment {
 
   def denizenId: IdT[INameT]
 
-  def maybeLatestPureBlockLocation: Option[LocationInDenizen]
+  def pureHeight: Int
 }
 
 trait IDenizenEnvironmentBox extends IInDenizenEnvironment {
@@ -433,7 +433,7 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
 ) extends IInDenizenEnvironment {
   vassert(templatas.templatasStoreName == id)
 
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def denizenId: IdT[INameT] = templateId
 
@@ -522,7 +522,7 @@ case class ExportEnvironment(
 ) extends IInDenizenEnvironment {
   override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
   override def denizenId: IdT[INameT] = id
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def lookupWithNameInner(
     name: INameT,
@@ -551,7 +551,7 @@ case class GeneralEnvironment[+T <: INameT](
   templatas: TemplatasStore
 ) extends IInDenizenEnvironment {
   override def denizenId: IdT[INameT] = id
-  override def maybeLatestPureBlockLocation: Option[LocationInDenizen] = None
+  override def pureHeight: Int = 0
 
   override def equals(obj: Any): Boolean = vcurious();
 

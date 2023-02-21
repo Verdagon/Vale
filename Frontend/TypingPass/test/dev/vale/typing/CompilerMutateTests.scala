@@ -38,11 +38,11 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
       case MutateTE(
-        LocalLookupTE(_,ReferenceLocalVariableT(CodeVarNameT(StrI("a")), VaryingT, _)),
+        LocalLookupTE(_,ReferenceLocalVariableT(CodeVarNameT(StrI("a")), VaryingT, _),_),
         ConstantIntTE(IntegerTemplata(4), _, _)) =>
     })
 
-    val lookup = Collector.only(main, { case l @ LocalLookupTE(range, localVariable) => l })
+    val lookup = Collector.only(main, { case l @ LocalLookupTE(_, _, _) => l })
     val resultCoord = lookup.result.coord
     resultCoord shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
   }

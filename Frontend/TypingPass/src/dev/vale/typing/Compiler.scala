@@ -922,7 +922,7 @@ class Compiler(
 
                     val regionPlaceholder =
                       templataCompiler.createRegionPlaceholderInner(
-                        templateId, 0, defaultRegionRune, LocationInDenizen(Vector()), true)
+                        templateId, 0, defaultRegionRune, 0)
 
                     val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                     val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -995,7 +995,7 @@ class Compiler(
 
                       val regionPlaceholder =
                         templataCompiler.createRegionPlaceholderInner(
-                          templateId, 0, defaultRegionRune, LocationInDenizen(Vector()), true)
+                          templateId, 0, defaultRegionRune, 0)
 
                       val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                       val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1047,7 +1047,7 @@ class Compiler(
 
             val regionPlaceholder =
               templataCompiler.createRegionPlaceholderInner(
-                templateId, 0, defaultRegionRune, LocationInDenizen(Vector()), true)
+                templateId, 0, defaultRegionRune, 0)
 
             val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
             val placeholderedExportId = templateId.copy(localName = placeholderedExportName)

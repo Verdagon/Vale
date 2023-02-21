@@ -232,7 +232,7 @@ class PatternCompiler(
           val localT = localHelper.makeUserLocalVariable(coutputs, nenv, range :: parentRanges, localS, inputExpr.result.coord)
           currentInstructions = currentInstructions :+ LetNormalTE(localT, inputExpr)
           val capturedLocalAliasTE =
-            localHelper.softLoad(nenv, range :: parentRanges, LocalLookupTE(range, localT), LoadAsBorrowP)
+            localHelper.softLoad(nenv, range :: parentRanges, LocalLookupTE(range, localT, localT.coord.region), LoadAsBorrowP)
           (Some(localT), capturedLocalAliasTE)
         }
       }
@@ -345,7 +345,7 @@ class PatternCompiler(
     val localT = localHelper.makeTemporaryLocal(nenv, life + 0, containerTE.result.coord)
     val letTE = LetNormalTE(localT, containerTE)
     val containerAliasingExprTE =
-      localHelper.softLoad(nenv, range, LocalLookupTE(range.head, localT), LoadAsBorrowP)
+      localHelper.softLoad(nenv, range, LocalLookupTE(range.head, localT, localT.coord.region), LoadAsBorrowP)
 
     Compiler.consecutive(
       Vector(

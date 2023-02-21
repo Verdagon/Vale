@@ -1,6 +1,8 @@
 
 # How Regions Are Lowered In Instantiator (HRALII)
 
+Note from later: we dont change the coord's ownership anymore, they stay borrow and share. To know the mutability we need to look at the current pure stack height and compare it to the coord's region's pure stack height.
+
 Instantiator lowers region placeholders to RegionTemplata(mutable). However, this is the mutability of the region _at the time the thing was created_. A `List<mut&Ship>` is not a list of mutable references to ships, it's a List of references that it regards as mutable, but might not be mutable right now. Rather, it tracks what's mutable right now by putting that information in the coord's ownership, which can be owning, mutable borrow, or immutable borrow.
 
 The instantiator is in a constant quest to simplify coords to just two things:
@@ -144,6 +146,8 @@ Three remaining minor downsides:
 
 # Can't Translate Outside Things From Inside Pure Blocks (CTOTFIPB)
 
+(Note from later: we found a way to resolve this, see TTTDRM)
+
 In this snippet:
 
 ```
@@ -170,4 +174,65 @@ The same applies to structs. ReferenceMemberLookupTE.memberCoord might be transl
 The same applies to when we're translating anything from outside the pure block. In LocalVariableT, we have the full name of the variable, which includes the full name of the function. When we try to translate it, suddenly its mutable parameters are immutable, and the variable suddenly thinks it's in a different function.
 
 So generally speaking, we shouldn't translate anything outside the pure block from within the pure block.
+
+(Note from later: we found a way to resolve this, see TTTDRM)
+
+
+# Time Travel To Determining Region Mutabilities (TTTDRM)
+
+Recall HRALII, where a template argument that's a region becomes the mutability at the time the template was created.
+
+Of course, that's difficult to do. If we mess it up we run into the CTOTFIPB problem.
+
+Let's take this example:
+
+```
+struct Spaceship { fuel int; }
+
+exported func main(s &main'List<&main'Spaceship>) int {
+  pure block {
+    z = s;
+    z.engine.fuel
+  }
+}
+```
+
+`s` is a `mut&List<mut&Spaceship>`, but `z` needs to be an `imm&List<mut&Spaceship>` However, if inside the pure block we just use the current mutabilities of the `main'` region we erroneously end up with `imm&List<imm&Spaceship>`.
+
+What we really need is to go back and calculate the mutabilities at the time the `List` was made.
+
+Luckily, there's an easy way to do that. We just calculate List's template args' mutabilities **from the perspective of List's region**.
+
+In other words:
+
+ 1. We know that `List` is in the `main'` region which is currently immutable, so it's an `imm&List<something>`.
+ 2. Now we start processing `List`'s template arguments there. But we do it **from the perspective** of `main'`. This is the "**perspective region**".
+ 3. We encounter the `&main'Spaceship`, and ask, "what is the mutability of `main'` from the perspective of the containing List?" in other words "what is the mutability of `main'` from `main'`?" And the answer is, of course, mutable.
+
+So how do we calculate the mutability of one region from the perspective of another?
+
+Conceptually, we need to figure out if there was a pure block introduced between those two regions. Instead of searching through the environment, let's just have RegionPlaceholderNameT **remember the location of the latest pure block** from its perspective. That way, we can just check if the latest pure block is before or after the other region.
+
+
+
+# RegionTemplata Has Pure Stack Height (RTHPSH)
+
+RegionTemplata(boolean) didnt quite work, because we couldn't determine (from just regions' booleans) the relationship between all the regions. We need to know what region is pure from what region's perspective, not just whether a region is mutable or not. When a function can only receive one boolean per region, it can't tell if one immutable region is immutable to another immutable region. (DO NOT SUBMIT TODO explain this more)
+
+So instead, we'll have a RegionTemplata(int) where the int is how many pure blocks between here and there. Zero means mutable. One means there's one pure block between us and this region, and two means there are two pure blocks between us and this region.
+
+If x' is 1 and y' is 2, then both are immutable, and y is immutable to x.
+
+If x' is 1 and y' is 1, then both are immutable, and y is mutable to x.
+
+
+
+# After Instantiator There Are No Regions
+
+Under the hood, the instantiator is really just trying to figure out what references are currently immutable. The RegionTemplata(int) is mostly just an abstraction that helps humans reason about it better.
+
+Well, "mostly" because there is one thing regions help us do that coding with `imm&` and `&` can't do: it helps the compiler know when it's safe to cast from `imm&` back to `&`, such as when we come back from a pure block. The compiler knows that if a pure block is returning something created just before itself, it can safely cast that to a mutable reference... but if a pure block is returning something created three pure blocks up, then it shouldn't cast that to a mutable reference.
+
+
+
 

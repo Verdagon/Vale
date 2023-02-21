@@ -209,7 +209,7 @@ class FunctionScout(
         })
 
     val myStackFrameWithoutParams =
-      StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, noDeclarations)
+      StackFrame(file, funcName, functionEnv, None, defaultRegionRuneS, 0, noDeclarations)
 
     val paramPatternsP =
       maybeParamsP.toVector.flatMap(_.patterns).map(pattern => {

@@ -492,6 +492,7 @@ class FunctionCompilerSolvingLayer(
                 genericParam,
                 index,
                 function.runeToType,
+                vimpl(),
                 false,
                 vimpl(Vector()))
             Some(InitialKnown(genericParam.rune, templata))
@@ -564,13 +565,17 @@ class FunctionCompilerSolvingLayer(
       })
     vassert(defaultRegionGenericParamIndex >= 0)
     val defaultRegionGenericParam = nearEnv.function.genericParameters(defaultRegionGenericParamIndex)
-    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
-    val defaultRegionMutable = defaultRegionGenericParamType.mutability == ReadWriteRegionS
+//    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
+//    val defaultRegionMutable = vimpl()//defaultRegionGenericParamType.mutability == ReadWriteRegionS
+    vassert(IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype).mutability == ReadWriteRegionS)
+    val defaultRegionPureHeight = 0
     val defaultRegionPlaceholderTemplata =
       templataCompiler.createRegionPlaceholderInner(
         functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
-        LocationInDenizen(Vector()),
-        defaultRegionMutable)
+        defaultRegionPureHeight)
+//        None,
+//        LocationInDenizen(Vector()),
+//        defaultRegionMutable)
     // we inform the solver of this placeholder below.
 
     val envs = InferEnv(nearEnv, parentRanges, callLocation, nearEnv, defaultRegionPlaceholderTemplata)
@@ -590,10 +595,25 @@ class FunctionCompilerSolvingLayer(
         TemplataCompiler.getFirstUnsolvedIdentifyingGenericParam(function.genericParameters, (rune) => solver.getConclusion(rune).nonEmpty) match {
           case None => false
           case Some((genericParam, index)) => {
+            val placeholderPureHeight =
+              genericParam.tyype match {
+                case OtherGenericParameterTypeS(_) => 0
+                case CoordGenericParameterTypeS(coordRegion, mutable) => {
+                  if (coordRegion.nonEmpty) vimpl()
+                  if (mutable) 0 else -1
+                }
+                case RegionGenericParameterTypeS(mutability) => {
+                  mutability match {
+                    case ReadWriteRegionS => 0
+                    case ImmutableRegionS => -1
+                    case ReadOnlyRegionS => -1
+                  }
+                }
+              }
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val templata =
               templataCompiler.createPlaceholder(
-                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, true, LocationInDenizen(Vector()))
+                coutputs, nearEnv, functionTemplateFullName, genericParam, index, function.runeToType, placeholderPureHeight, true, LocationInDenizen(Vector()))
             solver.manualStep(Map(genericParam.rune.rune -> templata))
             true
           }

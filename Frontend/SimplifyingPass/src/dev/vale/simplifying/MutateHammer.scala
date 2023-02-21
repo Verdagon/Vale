@@ -36,10 +36,12 @@ class MutateHammer(
 
     val (oldValueAccess, destinationDeferreds) =
       destinationExpr2 match {
-        case LocalLookupTE(_,ReferenceLocalVariableT(varId, variability, reference)) => {
+        case LocalLookupTE(_,ReferenceLocalVariableT(varId, variability, reference), sourceRegion) => {
+          vimpl()
           translateMundaneLocalMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, varId)
         }
-        case LocalLookupTE(_,AddressibleLocalVariableT(varId, variability, reference)) => {
+        case LocalLookupTE(_,AddressibleLocalVariableT(varId, variability, reference), sourceRegion) => {
+          vimpl()
           translateAddressibleLocalMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, sourceResultPointerTypeH, varId, variability, reference)
         }
         case ReferenceMemberLookupTE(_,structExpr2, memberName, _, _) => {

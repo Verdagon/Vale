@@ -706,7 +706,7 @@ class CompilerTests extends FunSuite with Matchers {
 
     Collector.only(main, {
       case ReferenceMemberLookupTE(_,
-        SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,_,StructTT(_)))),BorrowT),
+        SoftLoadTE(LocalLookupTE(_,ReferenceLocalVariableT(_,FinalT,CoordT(_,_,StructTT(_))), _),BorrowT),
         CodeVarNameT(StrI("x")),CoordT(ShareT,_,IntT.i32),FinalT) =>
     })
   }

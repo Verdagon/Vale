@@ -227,6 +227,7 @@ case class StaticSizedArrayNameT(
   size: ITemplata[IntegerTemplataType],
   variability: ITemplata[VariabilityTemplataType],
   arr: RawArrayNameT) extends ICitizenNameT {
+
   override def templateArgs: Vector[ITemplata[ITemplataType]] = {
     Vector(size, arr.mutability, variability, CoordTemplata(arr.elementType))
   }
@@ -271,8 +272,11 @@ case class NonKindNonRegionPlaceholderNameT(index: Int, rune: IRuneS) extends IP
 case class RegionPlaceholderNameT(
   index: Int,
   rune: IRuneS,
-  originallyIntroducedLocation: LocationInDenizen,
-  originallyMutable: Boolean
+//  // Used for TTTDRM to determine other regions' mutabilities from this region's perspective.
+//  originalMaybeNearestPureLocation: Option[LocationInDenizen],
+//  originallyIntroducedLocation: LocationInDenizen,
+//  originallyMutable: Boolean
+  pureHeight: Int
 ) extends IRegionNameT with IPlaceholderNameT
 
 // See NNSPAFOC.
@@ -547,10 +551,6 @@ case class StructNameT(
   templateArgs: Vector[ITemplata[ITemplataType]]
 ) extends IStructNameT with CitizenNameT {
   vpass()
-  templateArgs.lastOption match {
-    case Some(RegionTemplata(false)) => vwat() // Last arg should never be imm
-    case _ =>
-  }
 }
 
 case class InterfaceNameT(

@@ -1096,12 +1096,14 @@ extends ISolveRule[IRulexSR, IRuneS, InferEnv, CompilerOutputs, ITemplata[ITempl
                     if (argRunes.size != 4) {
                       return Err(WrongNumberOfTemplateArgs(4, 4))
                     }
-                    val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune, regionRune) = argRunes
+                    // We don't take in the region rune here because there's no syntactical way to specify it.
+                    val Vector(sizeRune, mutabilityRune, variabilityRune, elementRune) = argRunes
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, sizeRune.rune, size)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, mutabilityRune.rune, mutability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, variabilityRune.rune, variability)
                     stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, elementRune.rune, CoordTemplata(memberType))
-                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, regionRune.rune, region)
+                    // We still have the region rune though, the rule still gives it to us.
+                    stepState.concludeRune[ITypingPassSolverError](range :: env.parentRanges, contextRegionRune.rune, region)
                     Ok(())
                   }
                   case _ => return Err(CallResultWasntExpectedType(template, result))

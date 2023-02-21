@@ -4,7 +4,7 @@ import dev.vale.finalast.{BoolHT, CoordH, FloatHT, InlineH, IntHT, KindHT, Never
 import dev.vale.typing.Hinputs
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.types._
-import dev.vale.{Interner, Keywords, vfail, vimpl, vregionmut, vwat, finalast => m}
+import dev.vale.{Interner, Keywords, vassert, vfail, vimpl, vregionmut, vwat, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT

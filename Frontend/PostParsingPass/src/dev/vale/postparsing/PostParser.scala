@@ -108,10 +108,11 @@ case class StackFrame(
     parentEnv: FunctionEnvironmentS,
     maybeParent: Option[StackFrame],
     contextRegion: IRuneS,
+    pureHeight: Int,
     locals: VariableDeclarations) {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   def ++(newVars: VariableDeclarations): StackFrame = {
-    StackFrame(file, name, parentEnv, maybeParent, contextRegion, locals ++ newVars)
+    StackFrame(file, name, parentEnv, maybeParent, contextRegion, pureHeight, locals ++ newVars)
   }
   def allDeclarations: VariableDeclarations = {
     locals ++ maybeParent.map(_.allDeclarations).getOrElse(PostParser.noDeclarations)

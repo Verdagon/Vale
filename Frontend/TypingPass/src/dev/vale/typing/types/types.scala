@@ -83,6 +83,7 @@ case class CoordT(
   vpass()
 
   (ownership, region) match {
+    case (ShareT, RegionTemplata(_)) => vwat()
     case (ImmutableShareT, RegionTemplata(true)) => vwat()
     case (MutableShareT, RegionTemplata(false)) => vwat()
     case _ =>
