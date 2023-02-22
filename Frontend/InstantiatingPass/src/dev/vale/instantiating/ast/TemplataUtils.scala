@@ -16,7 +16,7 @@ object simpleNameI {
       case ClosureParamNameI(_) => None
       case MagicParamNameI(_) => None
       case CodeVarNameI(name) => Some(name.str)
-      case FunctionNameI(FunctionTemplateNameI(humanName, _), _, _) => Some(humanName.str)
+      case FunctionNameIX(FunctionTemplateNameI(humanName, _), _, _) => Some(humanName.str)
       case LambdaCitizenNameI(_) => None
       case StructNameI(StructTemplateNameI(humanName), _) => Some(humanName.str)
       case StructTemplateNameI(humanName) => Some(humanName.str)

@@ -42,7 +42,7 @@ object ITemplataI {
     }
   }
 
-  def expectVariabilityTemplata(templata: ITemplataI): ITemplataI = {
+  def expectVariabilityTemplata(templata: ITemplataI): VariabilityTemplataI = {
     templata match {
       case t @ VariabilityTemplataI(_) => t
       case _ => vfail()
@@ -141,19 +141,20 @@ case class InterfaceDefinitionTemplataI(
 }
 
 case class ImplDefinitionTemplataI(
-  // The paackage this interface was declared in.
-  // See TMRE for more on these environments.
-  env: IEnvironment,
+  envId: IdI[INameI]
+//  // The paackage this interface was declared in.
+//  // See TMRE for more on these environments.
+//  env: IEnvironment,
+////
+////  // The containers are the structs/interfaces/impls/functions that this thing is inside.
+////  // E.g. if LinkedList has a Node substruct, then the Node's templata will have one
+////  // container, the LinkedList.
+////  // See NTKPRR for why we have these parents.
+////  containers: Vector[IContainer],
 //
-//  // The containers are the structs/interfaces/impls/functions that this thing is inside.
-//  // E.g. if LinkedList has a Node substruct, then the Node's templata will have one
-//  // container, the LinkedList.
-//  // See NTKPRR for why we have these parents.
-//  containers: Vector[IContainer],
-
-  // This is the impl that the interface came from originally. It has all the parent
-  // structs and interfaces. See NTKPRR for more.
-  impl: ImplA
+//  // This is the impl that the interface came from originally. It has all the parent
+//  // structs and interfaces. See NTKPRR for more.
+//  impl: ImplA
 ) extends ITemplataI {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 

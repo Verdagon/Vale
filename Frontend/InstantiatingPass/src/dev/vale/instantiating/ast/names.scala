@@ -53,13 +53,13 @@ case class IdI[+I <: INameI](
     }
   }
 
-  def packageFullName(interner: Interner): IdI[PackageTopLevelNameI] = {
-    IdI(packageCoord, Vector(), interner.intern(PackageTopLevelNameI()))
+  def packageFullName: IdI[PackageTopLevelNameI] = {
+    IdI(packageCoord, Vector(), PackageTopLevelNameI())
   }
 
-  def initFullName(interner: Interner): IdI[INameI] = {
+  def initFullName: IdI[INameI] = {
     if (initSteps.isEmpty) {
-      IdI(packageCoord, Vector(), interner.intern(PackageTopLevelNameI()))
+      IdI(packageCoord, Vector(), PackageTopLevelNameI())
     } else {
       IdI(packageCoord, initSteps.init, initSteps.last)
     }
@@ -91,7 +91,7 @@ case class IdI[+I <: INameI](
 sealed trait INameI
 sealed trait ITemplateNameI extends INameI
 sealed trait IFunctionTemplateNameI extends ITemplateNameI {
-  def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI
+//  def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI
 }
 sealed trait IInstantiationNameI extends INameI {
   def template: ITemplateNameI
@@ -105,17 +105,17 @@ sealed trait IFunctionNameI extends IInstantiationNameI {
 sealed trait ISuperKindTemplateNameI extends ITemplateNameI
 sealed trait ISubKindTemplateNameI extends ITemplateNameI
 sealed trait ICitizenTemplateNameI extends ISubKindTemplateNameI {
-  def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplataI]): ICitizenNameI
+//  def makeCitizenName(templateArgs: Vector[ITemplataI]): ICitizenNameI
 }
 sealed trait IStructTemplateNameI extends ICitizenTemplateNameI {
-  def makeStructName(interner: Interner, templateArgs: Vector[ITemplataI]): IStructNameI
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplataI]):
-  ICitizenNameI = {
-    makeStructName(interner, templateArgs)
-  }
+//  def makeStructName(templateArgs: Vector[ITemplataI]): IStructNameI
+//  override def makeCitizenName(templateArgs: Vector[ITemplataI]):
+//  ICitizenNameI = {
+//    makeStructName(templateArgs)
+//  }
 }
 sealed trait IInterfaceTemplateNameI extends ICitizenTemplateNameI with ISuperKindTemplateNameI {
-  def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplataI]): IInterfaceNameI
+//  def makeInterfaceName(templateArgs: Vector[ITemplataI]): IInterfaceNameI
 }
 sealed trait ISuperKindNameI extends IInstantiationNameI {
   def template: ISuperKindTemplateNameI
@@ -138,7 +138,7 @@ sealed trait IInterfaceNameI extends ICitizenNameI with ISubKindNameI with ISupe
   override def templateArgs: Vector[ITemplataI]
 }
 sealed trait IImplTemplateNameI extends ITemplateNameI {
-  def makeImplName(interner: Interner, templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): IImplNameI
+//  def makeImplName(templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): IImplNameI
 }
 sealed trait IImplNameI extends IInstantiationNameI {
   def template: IImplTemplateNameI
@@ -156,9 +156,9 @@ case class ExportNameI(template: ExportTemplateNameI, region: ITemplataI) extend
 
 case class ImplTemplateNameI(codeLocationS: CodeLocationS) extends IImplTemplateNameI {
   vpass()
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): ImplNameI = {
-    interner.intern(ImplNameI(this, templateArgs, subCitizen))
-  }
+//  override def makeImplName(templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): ImplNameI = {
+//    ImplNameI(this, templateArgs, subCitizen)
+//  }
 }
 case class ImplNameI(
   template: ImplTemplateNameI,
@@ -171,9 +171,9 @@ case class ImplNameI(
 }
 
 case class ImplBoundTemplateNameI(codeLocationS: CodeLocationS) extends IImplTemplateNameI {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): ImplBoundNameI = {
-    interner.intern(ImplBoundNameI(this, templateArgs))
-  }
+//  override def makeImplName(templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): ImplBoundNameI = {
+//    ImplBoundNameI(this, templateArgs)
+//  }
 }
 case class ImplBoundNameI(
   template: ImplBoundTemplateNameI,
@@ -193,49 +193,53 @@ case class LetNameI(codeLocation: CodeLocationS) extends INameI
 case class ExportAsNameI(codeLocation: CodeLocationS) extends INameI
 
 case class RawArrayNameI(
-  mutability: ITemplataI,
+  mutability: MutabilityI,
   elementType: CoordI,
-  selfRegion: ITemplataI
+  selfRegion: RegionTemplataI
 ) extends INameI
 
 case class ReachablePrototypeNameI(num: Int) extends INameI
 
 case class StaticSizedArrayTemplateNameI() extends ICitizenTemplateNameI {
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplataI]): ICitizenNameI = {
-    vassert(templateArgs.size == 5)
-    val size = expectIntegerTemplata(templateArgs(0))
-    val mutability = expectMutabilityTemplata(templateArgs(1))
-    val variability = expectVariabilityTemplata(templateArgs(2))
-    val elementType = expectCoordTemplata(templateArgs(3)).coord
-    val selfRegion = expectRegionTemplata(templateArgs(4))
-    interner.intern(StaticSizedArrayNameI(this, size, variability, RawArrayNameI(mutability, elementType, selfRegion)))
-  }
+//  override def makeCitizenName(templateArgs: Vector[ITemplataI]): ICitizenNameI = {
+//    vassert(templateArgs.size == 5)
+//    val size = expectIntegerTemplata(templateArgs(0)).value
+//    val mutability = expectMutabilityTemplata(templateArgs(1)).mutability
+//    val variability = expectVariabilityTemplata(templateArgs(2)).variability
+//    val elementType = expectCoordTemplata(templateArgs(3)).coord
+//    val selfRegion = expectRegionTemplata(templateArgs(4))
+//    StaticSizedArrayNameI(this, size, variability, RawArrayNameI(mutability, elementType, selfRegion))
+//  }
 }
 
 case class StaticSizedArrayNameI(
   template: StaticSizedArrayTemplateNameI,
-  size: ITemplataI,
-  variability: ITemplataI,
+  size: Long,
+  variability: VariabilityI,
   arr: RawArrayNameI) extends ICitizenNameI {
 
   override def templateArgs: Vector[ITemplataI] = {
-    Vector(size, arr.mutability, variability, CoordTemplataI(arr.elementType))
+    Vector(
+      IntegerTemplataI(size),
+      MutabilityTemplataI(arr.mutability),
+      VariabilityTemplataI(variability),
+      CoordTemplataI(arr.elementType))
   }
 }
 
 case class RuntimeSizedArrayTemplateNameI() extends ICitizenTemplateNameI {
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplataI]): ICitizenNameI = {
-    vassert(templateArgs.size == 3)
-    val mutability = expectMutabilityTemplata(templateArgs(0))
-    val elementType = expectCoordTemplata(templateArgs(1)).coord
-    val region = expectRegionTemplata(templateArgs(2))
-    interner.intern(RuntimeSizedArrayNameI(this, RawArrayNameI(mutability, elementType, region)))
-  }
+//  override def makeCitizenName(templateArgs: Vector[ITemplataI]): ICitizenNameI = {
+//    vassert(templateArgs.size == 3)
+//    val mutability = expectMutabilityTemplata(templateArgs(0)).mutability
+//    val elementType = expectCoordTemplata(templateArgs(1)).coord
+//    val region = expectRegionTemplata(templateArgs(2))
+//    RuntimeSizedArrayNameI(this, RawArrayNameI(mutability, elementType, region))
+//  }
 }
 
 case class RuntimeSizedArrayNameI(template: RuntimeSizedArrayTemplateNameI, arr: RawArrayNameI) extends ICitizenNameI {
   override def templateArgs: Vector[ITemplataI] = {
-    Vector(arr.mutability, CoordTemplataI(arr.elementType))
+    Vector(MutabilityTemplataI(arr.mutability), CoordTemplataI(arr.elementType))
   }
 }
 
@@ -273,14 +277,14 @@ case class RegionPlaceholderNameI(
 case class OverrideDispatcherTemplateNameI(
   implId: IdI[IImplTemplateNameI]
 ) extends IFunctionTemplateNameI {
-  override def makeFunctionName(
-    interner: Interner,
-    keywords: Keywords,
-    templateArgs: Vector[ITemplataI],
-    params: Vector[CoordI]):
-  OverrideDispatcherNameI = {
-    interner.intern(OverrideDispatcherNameI(this, templateArgs, params))
-  }
+//  override def makeFunctionName(
+//    interner: Interner,
+//    keywords: Keywords,
+//    templateArgs: Vector[ITemplataI],
+//    params: Vector[CoordI]):
+//  OverrideDispatcherNameI = {
+//    interner.intern(OverrideDispatcherNameI(this, templateArgs, params))
+//  }
 }
 
 case class OverrideDispatcherNameI(
@@ -302,12 +306,12 @@ case class OverrideDispatcherCaseNameI(
 }
 
 sealed trait IVarNameI extends INameI
-case class TypingPassBlockResultVarNameI(life: LocationInFunctionEnvironment) extends IVarNameI
+case class TypingPassBlockResultVarNameI(life: LocationInFunctionEnvironmentI) extends IVarNameI
 case class TypingPassFunctionResultVarNameI() extends IVarNameI
-case class TypingPassTemporaryVarNameI(life: LocationInFunctionEnvironment) extends IVarNameI
-case class TypingPassPatternMemberNameI(life: LocationInFunctionEnvironment) extends IVarNameI
+case class TypingPassTemporaryVarNameI(life: LocationInFunctionEnvironmentI) extends IVarNameI
+case class TypingPassPatternMemberNameI(life: LocationInFunctionEnvironmentI) extends IVarNameI
 case class TypingIgnoredParamNameI(num: Int) extends IVarNameI
-case class TypingPassPatternDestructureeNameI(life: LocationInFunctionEnvironment) extends IVarNameI
+case class TypingPassPatternDestructureeNameI(life: LocationInFunctionEnvironmentI) extends IVarNameI
 case class UnnamedLocalNameI(codeLocation: CodeLocationS) extends IVarNameI
 case class ClosureParamNameI(codeLocation: CodeLocationS) extends IVarNameI
 case class ConstructingMemberNameI(name: StrI) extends IVarNameI
@@ -342,17 +346,17 @@ case class ExternFunctionNameI(
 ) extends IFunctionNameI with IFunctionTemplateNameI {
   override def template: IFunctionTemplateNameI = this
 
-  override def makeFunctionName(
-    interner: Interner,
-    keywords: Keywords,
-    templateArgs: Vector[ITemplataI],
-    params: Vector[CoordI]):
-  IFunctionNameI = this
+//  override def makeFunctionName(
+//    interner: Interner,
+//    keywords: Keywords,
+//    templateArgs: Vector[ITemplataI],
+//    params: Vector[CoordI]):
+//  IFunctionNameI = this
 
   override def templateArgs: Vector[ITemplataI] = Vector.empty
 }
 
-case class FunctionNameI(
+case class FunctionNameIX(
   template: FunctionTemplateNameI,
   templateArgs: Vector[ITemplataI],
   parameters: Vector[CoordI]
@@ -370,9 +374,9 @@ case class FunctionBoundTemplateNameI(
   humanName: StrI,
   codeLocation: CodeLocationS
 ) extends INameI with IFunctionTemplateNameI {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): FunctionBoundNameI = {
-    interner.intern(FunctionBoundNameI(this, templateArgs, params))
-  }
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): FunctionBoundNameI = {
+//    interner.intern(FunctionBoundNameI(this, templateArgs, params))
+//  }
 }
 
 case class FunctionBoundNameI(
@@ -386,20 +390,20 @@ case class FunctionTemplateNameI(
     codeLocation: CodeLocationS
 ) extends INameI with IFunctionTemplateNameI {
   vpass()
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
-    interner.intern(FunctionNameI(this, templateArgs, params))
-  }
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
+//    interner.intern(FunctionNameI(this, templateArgs, params))
+//  }
 }
 
 case class LambdaCallFunctionTemplateNameI(
   codeLocation: CodeLocationS,
   paramTypes: Vector[CoordI]
 ) extends INameI with IFunctionTemplateNameI {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
-    // Post instantiator, the params will be real, but our template paramTypes will still be placeholders
-    // vassert(params == paramTypes)
-    interner.intern(LambdaCallFunctionNameI(this, templateArgs, params))
-  }
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
+//    // Post instantiator, the params will be real, but our template paramTypes will still be placeholders
+//    // vassert(params == paramTypes)
+//    interner.intern(LambdaCallFunctionNameI(this, templateArgs, params))
+//  }
 }
 
 case class LambdaCallFunctionNameI(
@@ -412,16 +416,16 @@ case class ForwarderFunctionTemplateNameI(
   inner: IFunctionTemplateNameI,
   index: Int
 ) extends INameI with IFunctionTemplateNameI {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
-    interner.intern(ForwarderFunctionNameI(this, inner.makeFunctionName(interner, keywords, templateArgs, params)))//, index))
-  }
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
+//    interner.intern(ForwarderFunctionNameI(this, inner.makeFunctionName(keywords, templateArgs, params)))//, index))
+//  }
 }
 
 
 //case class AbstractVirtualDropFunctionTemplateNameI(
 //  implName: INameI
 //) extends INameI with IFunctionTemplateNameI {
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    interner.intern(
 //      AbstractVirtualDropFunctionNameI(implName, templateArgs, params))
 //  }
@@ -436,7 +440,7 @@ case class ForwarderFunctionTemplateNameI(
 //case class OverrideVirtualDropFunctionTemplateNameI(
 //  implName: INameI
 //) extends INameI with IFunctionTemplateNameI {
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    interner.intern(
 //      OverrideVirtualDropFunctionNameI(implName, templateArgs, params))
 //  }
@@ -451,19 +455,19 @@ case class ForwarderFunctionTemplateNameI(
 //case class LambdaTemplateNameI(
 //  codeLocation: CodeLocationS
 //) extends INameI with IFunctionTemplateNameI {
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    interner.intern(FunctionNameI(interner.intern(FunctionTemplateNameI(keywords.underscoresCall, codeLocation)), templateArgs, params))
 //  }
 //}
 case class ConstructorTemplateNameI(
   codeLocation: CodeLocationS
 ) extends INameI with IFunctionTemplateNameI {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = vimpl()
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = vimpl()
 }
 
 //case class FreeTemplateNameI(codeLoc: CodeLocationS) extends INameI with IFunctionTemplateNameI {
 //  vpass()
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    params match {
 //      case Vector(coord) => {
 //        interner.intern(FreeNameI(this, templateArgs, coord))
@@ -482,7 +486,7 @@ case class ConstructorTemplateNameI(
 
 //// See NSIDN for why we have these virtual names
 //case class AbstractVirtualFreeTemplateNameI(codeLoc: CodeLocationS) extends INameI with IFunctionTemplateNameI {
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    val Vector(CoordI(ShareI, kind)) = params
 //    interner.intern(AbstractVirtualFreeNameI(templateArgs, kind))
 //  }
@@ -494,7 +498,7 @@ case class ConstructorTemplateNameI(
 //
 //// See NSIDN for why we have these virtual names
 //case class OverrideVirtualFreeTemplateNameI(codeLoc: CodeLocationS) extends INameI with IFunctionTemplateNameI {
-//  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplata[ITemplataType]], params: Vector[CoordI]): IFunctionNameI = {
 //    val Vector(CoordI(ShareI, kind)) = params
 //    interner.intern(OverrideVirtualFreeNameI(templateArgs, kind))
 //  }
@@ -540,10 +544,10 @@ case class InterfaceNameI(
 case class LambdaCitizenTemplateNameI(
   codeLocation: CodeLocationS
 ) extends IStructTemplateNameI {
-  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplataI]): IStructNameI = {
-    vassert(templateArgs.isEmpty)
-    interner.intern(LambdaCitizenNameI(this))
-  }
+//  override def makeStructName(templateArgs: Vector[ITemplataI]): IStructNameI = {
+//    vassert(templateArgs.isEmpty)
+//    interner.intern(LambdaCitizenNameI(this))
+//  }
 }
 
 case class LambdaCitizenNameI(
@@ -562,7 +566,7 @@ sealed trait CitizenTemplateNameI extends ICitizenTemplateNameI {
   //   remember its code location.
   //codeLocation: CodeLocationS
 
-//  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameI = {
+//  override def makeCitizenName(templateArgs: Vector[ITemplata[ITemplataType]]): ICitizenNameI = {
 //    interner.intern(CitizenNameI(this, templateArgs))
 //  }
 }
@@ -579,9 +583,9 @@ case class StructTemplateNameI(
 ) extends IStructTemplateNameI with CitizenTemplateNameI {
   vpass()
 
-  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplataI]): IStructNameI = {
-    interner.intern(StructNameI(this, templateArgs))
-  }
+//  override def makeStructName(templateArgs: Vector[ITemplataI]): IStructNameI = {
+//    interner.intern(StructNameI(this, templateArgs))
+//  }
 }
 case class InterfaceTemplateNameI(
   humanNamee: StrI,
@@ -593,20 +597,20 @@ case class InterfaceTemplateNameI(
   //codeLocation: CodeLocationS
 ) extends IInterfaceTemplateNameI with CitizenTemplateNameI with ICitizenTemplateNameI {
   override def humanName = humanNamee
-  override def makeInterfaceName(interner: Interner, templateArgs: Vector[ITemplataI]): IInterfaceNameI = {
-    interner.intern(InterfaceNameI(this, templateArgs))
-  }
-  override def makeCitizenName(interner: Interner, templateArgs: Vector[ITemplataI]): ICitizenNameI = {
-    makeInterfaceName(interner, templateArgs)
-  }
+//  override def makeInterfaceName(templateArgs: Vector[ITemplataI]): IInterfaceNameI = {
+//    interner.intern(InterfaceNameI(this, templateArgs))
+//  }
+//  override def makeCitizenName(templateArgs: Vector[ITemplataI]): ICitizenNameI = {
+//    makeInterfaceName(templateArgs)
+//  }
 }
 
 case class AnonymousSubstructImplTemplateNameI(
   interface: IInterfaceTemplateNameI
 ) extends IImplTemplateNameI {
-  override def makeImplName(interner: Interner, templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): IImplNameI = {
-    interner.intern(AnonymousSubstructImplNameI(this, templateArgs, subCitizen))
-  }
+//  override def makeImplName(templateArgs: Vector[ITemplataI], subCitizen: ICitizenIT): IImplNameI = {
+//    AnonymousSubstructImplNameI(this, templateArgs, subCitizen)
+//  }
 }
 case class AnonymousSubstructImplNameI(
   template: AnonymousSubstructImplTemplateNameI,
@@ -620,16 +624,16 @@ case class AnonymousSubstructTemplateNameI(
   // This is really only here to help us calculate the imprecise name for this thing.
   interface: IInterfaceTemplateNameI
 ) extends IStructTemplateNameI {
-  override def makeStructName(interner: Interner, templateArgs: Vector[ITemplataI]): IStructNameI = {
-    interner.intern(AnonymousSubstructNameI(this, templateArgs))
-  }
+//  override def makeStructName(templateArgs: Vector[ITemplataI]): IStructNameI = {
+//    interner.intern(AnonymousSubstructNameI(this, templateArgs))
+//  }
 }
 case class AnonymousSubstructConstructorTemplateNameI(
   substruct: ICitizenTemplateNameI
 ) extends IFunctionTemplateNameI {
-  override def makeFunctionName(interner: Interner, keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
-    interner.intern(AnonymousSubstructConstructorNameI(this, templateArgs, params))
-  }
+//  override def makeFunctionName(keywords: Keywords, templateArgs: Vector[ITemplataI], params: Vector[CoordI]): IFunctionNameI = {
+//    interner.intern(AnonymousSubstructConstructorNameI(this, templateArgs, params))
+//  }
 }
 
 case class AnonymousSubstructConstructorNameI(

@@ -3,7 +3,7 @@ package dev.vale.typing.macros.rsa
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing._
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, CompilerErrorHumanizer, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, ast}
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, NewImmRuntimeSizedArrayTE, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplataLookupContext}
 import dev.vale.typing.macros.IFunctionBodyMacro
 import dev.vale.typing.templata._
@@ -32,7 +32,7 @@ class RSAImmutableNewMacro(
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     generatorId: StrI,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],

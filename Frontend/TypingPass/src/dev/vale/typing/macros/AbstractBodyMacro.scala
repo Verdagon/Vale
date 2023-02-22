@@ -5,7 +5,7 @@ import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, CouldntFindFunctionToCallT, OverloadResolver, TemplataCompiler, ast}
-import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, InterfaceFunctionCallTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{AbstractT, ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, InterfaceFunctionCallTE, LocationInFunctionEnvironmentT, ParameterT, ReturnTE}
 import dev.vale.typing.env.{FunctionEnvironment, TemplatasStore}
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
@@ -19,7 +19,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     generatorId: StrI,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],

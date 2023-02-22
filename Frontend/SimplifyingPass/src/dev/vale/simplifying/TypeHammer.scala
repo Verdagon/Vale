@@ -1,78 +1,71 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast.{BoolHT, CoordH, FloatHT, InlineH, IntHT, KindHT, NeverHT, PrototypeH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrHT, VoidHT, YonderH}
-import dev.vale.typing.HinputsT
-import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, vassert, vfail, vimpl, vregionmut, vwat, finalast => m}
 import dev.vale.finalast._
-import dev.vale.typing._
-import dev.vale.typing.names.CitizenTemplateNameT
-import dev.vale.typing.templata.RegionTemplataT
-//import dev.vale.typingpass.templata.FunctionHeaderT
-import dev.vale.typing.types._
+import dev.vale.instantiating.ast._
 
 class TypeHammer(
     interner: Interner,
     keywords: Keywords,
     nameHammer: NameHammer,
     structHammer: StructHammer) {
-  def translateKind(hinputs: HinputsT, hamuts: HamutsBox, tyype: KindT):
+  def translateKind(hinputs: HinputsI, hamuts: HamutsBox, tyype: KindIT):
   (KindHT) = {
     tyype match {
-      case NeverT(fromBreak) => NeverHT(fromBreak)
-      case IntT(bits) => IntHT(bits)
-      case BoolT() => BoolHT()
-      case FloatT() => FloatHT()
-      case StrT() => StrHT()
-      case VoidT() => VoidHT()
-      case s @ StructTT(_) => structHammer.translateStructT(hinputs, hamuts, s)
+      case NeverIT(fromBreak) => NeverHT(fromBreak)
+      case IntIT(bits) => IntHT(bits)
+      case BoolIT() => BoolHT()
+      case FloatIT() => FloatHT()
+      case StrIT() => StrHT()
+      case VoidIT() => VoidHT()
+      case s @ StructIT(_) => structHammer.translateStructI(hinputs, hamuts, s)
 
-      case i @ InterfaceTT(_) => structHammer.translateInterface(hinputs, hamuts, i)
+      case i @ InterfaceIT(_) => structHammer.translateInterface(hinputs, hamuts, i)
 
-      case OverloadSetT(_, _) => VoidHT()
+//      case OverloadSetI(_, _) => VoidHT()
 
-      case a @ contentsStaticSizedArrayTT(_, _, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
-      case a @ contentsRuntimeSizedArrayTT(_, _, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
-      case KindPlaceholderT(fullName) => {
-        // this is a bit of a hack. sometimes lambda templates like to remember their original
-        // defining generics, and we dont translate those in the instantiator, so it can later
-        // use them to find those original templates.
-        // because of that, they make their way into the hammer, right here.
-        // long term, we should probably find a way to tostring templatas cleanly rather than
-        // converting them to hammer first.
-        // See DMPOGN for why these make it into the hammer.
-        VoidHT()
-      }
+      case a @ contentsStaticSizedArrayIT(_, _, _, _, _) => translateStaticSizedArray(hinputs, hamuts, a)
+      case a @ contentsRuntimeSizedArrayIT(_, _, _) => translateRuntimeSizedArray(hinputs, hamuts, a)
+//      case KindPlaceholderI(fullName) => {
+//        // this is a bit of a hack. sometimes lambda templates like to remember their original
+//        // defining generics, and we dont translate those in the instantiator, so it can later
+//        // use them to find those original templates.
+//        // because of that, they make their way into the hammer, right here.
+//        // long term, we should probably find a way to tostring templatas cleanly rather than
+//        // converting them to hammer first.
+//        // See DMPOGN for why these make it into the hammer.
+//        VoidHT()
+//      }
     }
   }
 
   def translateRegion(
-    hinputs: HinputsT,
+    hinputs: HinputsI,
     hamuts: HamutsBox,
-    region: RegionTemplataT):
+    region: RegionTemplataI):
   RegionH = {
     RegionH()
   }
 
   def translateCoord(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-      coord: CoordT):
+      coord: CoordI):
   (CoordH[KindHT]) = {
-    val CoordT(ownership, region, innerType) = coord;
+    val CoordI(ownership, innerType) = coord;
     val location = {
       (ownership, innerType) match {
-        case (OwnT, _) => YonderH
-        case (BorrowT | ImmutableBorrowT | MutableBorrowT, _) => YonderH
-        case (WeakT, _) => YonderH
-        case (ShareT | ImmutableShareT | MutableShareT, OverloadSetT(_, _)) => InlineH
-//        case (ShareT, PackTT(_, _)) => InlineH
-//        case (ShareT, TupleTT(_, _)) => InlineH
-//        case (ShareT, StructTT(FullNameT(_, Vector(), CitizenNameT(CitizenTemplateNameT("Tup"), _)))) => InlineH
-        case (ShareT | ImmutableShareT | MutableShareT, VoidT() | IntT(_) | BoolT() | FloatT() | NeverT(_)) => InlineH
-        case (ShareT | ImmutableShareT | MutableShareT, StrT()) => YonderH
-        case (ShareT | ImmutableShareT | MutableShareT, _) => YonderH
+        case (OwnI, _) => YonderH
+        case (ImmutableBorrowI | MutableBorrowI, _) => YonderH
+        case (WeakI, _) => YonderH
+//        case (ImmutableShareI | MutableShareI, OverloadSetI(_, _)) => InlineH
+//        case (ShareI, PackIT(_, _)) => InlineH
+//        case (ShareI, TupleIT(_, _)) => InlineH
+//        case (ShareI, StructIT(FullNameI(_, Vector(), CitizenNameI(CitizenTemplateNameI("Tup"), _)))) => InlineH
+        case (ImmutableShareI | MutableShareI, VoidIT() | IntIT(_) | BoolIT() | FloatIT() | NeverIT(_)) => InlineH
+        case (ImmutableShareI | MutableShareI, StrIT()) => YonderH
+        case (ImmutableShareI | MutableShareI, _) => YonderH
       }
     }
     val (innerH) = translateKind(hinputs, hamuts, innerType);
@@ -80,9 +73,9 @@ class TypeHammer(
   }
 
   def translateCoords(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-      references2: Vector[CoordT]):
+      references2: Vector[CoordI]):
   (Vector[CoordH[KindHT]]) = {
     references2.map(translateCoord(hinputs, hamuts, _))
   }
@@ -94,49 +87,49 @@ class TypeHammer(
   }
 
   def translateStaticSizedArray(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-      ssaTT: StaticSizedArrayTT):
+      ssaIT: StaticSizedArrayIT):
   StaticSizedArrayHT = {
-    hamuts.staticSizedArrays.get(ssaTT) match {
+    hamuts.staticSizedArrays.get(ssaIT) match {
       case Some(x) => x.kind
       case None => {
-        val name = nameHammer.translateFullName(hinputs, hamuts, ssaTT.name)
-        val contentsStaticSizedArrayTT(_, mutabilityT, variabilityT, memberType, arrRegion) = ssaTT
+        val name = nameHammer.translateFullName(hinputs, hamuts, ssaIT.name)
+        val contentsStaticSizedArrayIT(_, mutabilityI, variabilityI, memberType, arrRegion) = ssaIT
         vregionmut(arrRegion) // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
-        val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
-        val variability = Conversions.evaluateVariabilityTemplata(variabilityT)
-        val size = Conversions.evaluateIntegerTemplata(ssaTT.size)
+        val mutability = Conversions.evaluateMutabilityTemplata(mutabilityI)
+        val variability = Conversions.evaluateVariabilityTemplata(variabilityI)
+        val size = ssaIT.size
         val definition = StaticSizedArrayDefinitionHT(name, size, mutability, variability, memberReferenceH)
-        hamuts.addStaticSizedArray(ssaTT, definition)
+        hamuts.addStaticSizedArray(ssaIT, definition)
         StaticSizedArrayHT(name)
       }
     }
   }
 
-  def translateRuntimeSizedArray(hinputs: HinputsT, hamuts: HamutsBox, rsaTT: RuntimeSizedArrayTT): RuntimeSizedArrayHT = {
-    hamuts.runtimeSizedArrays.get(rsaTT) match {
+  def translateRuntimeSizedArray(hinputs: HinputsI, hamuts: HamutsBox, rsaIT: RuntimeSizedArrayIT): RuntimeSizedArrayHT = {
+    hamuts.runtimeSizedArrays.get(rsaIT) match {
       case Some(x) => x.kind
       case None => {
-        val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaTT.name)
-        val contentsRuntimeSizedArrayTT(mutabilityT, memberType, arrRegion) = rsaTT
+        val nameH = nameHammer.translateFullName(hinputs, hamuts, rsaIT.name)
+        val contentsRuntimeSizedArrayIT(mutabilityI, memberType, arrRegion) = rsaIT
         vregionmut(arrRegion) // what do with arrRegion?
         val memberReferenceH = translateCoord(hinputs, hamuts, memberType)
-        val mutability = Conversions.evaluateMutabilityTemplata(mutabilityT)
-        //    val variability = Conversions.evaluateVariability(variabilityT)
+        val mutability = Conversions.evaluateMutabilityTemplata(mutabilityI)
+        //    val variability = Conversions.evaluateVariability(variabilityI)
         val definition = RuntimeSizedArrayDefinitionHT(nameH, mutability, memberReferenceH)
-        hamuts.addRuntimeSizedArray(rsaTT, definition)
+        hamuts.addRuntimeSizedArray(rsaIT, definition)
         RuntimeSizedArrayHT(nameH)
       }
     }
   }
 
   def translatePrototype(
-    hinputs: HinputsT, hamuts: HamutsBox,
-    prototype2: PrototypeT):
+    hinputs: HinputsI, hamuts: HamutsBox,
+    prototype2: PrototypeI):
   (PrototypeH) = {
-    val PrototypeT(fullName2, returnType2) = prototype2;
+    val PrototypeI(fullName2, returnType2) = prototype2;
     val (paramsTypesH) = translateCoords(hinputs, hamuts, prototype2.paramTypes)
     val (returnTypeH) = translateCoord(hinputs, hamuts, returnType2)
     val (fullNameH) = nameHammer.translateFullName(hinputs, hamuts, fullName2)

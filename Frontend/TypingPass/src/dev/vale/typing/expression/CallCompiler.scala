@@ -6,7 +6,7 @@ import dev.vale.postparsing.rules.IRulexSR
 import dev.vale.postparsing.GlobalFunctionFamilyNameS
 import dev.vale.typing.OverloadResolver.FindFunctionFailure
 import dev.vale.typing.{CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, CouldntFindFunctionToCallT, OverloadResolver, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
-import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
+import dev.vale.typing.ast.{FunctionCallTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE}
 import dev.vale.typing.env.{FunctionEnvironmentBox, IInDenizenEnvironment, NodeEnvironmentBox, NodeEnvironmentT}
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -31,7 +31,7 @@ class CallCompiler(
   private def evaluateCall(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     contextRegion: ITemplataT[RegionTemplataType],
@@ -160,7 +160,7 @@ class CallCompiler(
   private def evaluateCustomCall(
     nenv: NodeEnvironmentBox,
     coutputs: CompilerOutputs,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     contextRegion: ITemplataT[RegionTemplataType],
@@ -310,7 +310,7 @@ class CallCompiler(
   def evaluatePrefixCall(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     range: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],

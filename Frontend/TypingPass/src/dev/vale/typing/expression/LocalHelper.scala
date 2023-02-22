@@ -4,7 +4,7 @@ import dev.vale.{Interner, RangeS, vassert, vfail, vimpl}
 import dev.vale.parsing.ast.{LoadAsBorrowP, LoadAsP, LoadAsWeakP, MoveP, UseP}
 import dev.vale.postparsing._
 import dev.vale.typing.{CantMoveOutOfMemberT, CompileErrorExceptionT, Compiler, CompilerOutputs, RangedInternalErrorT, TypingPassOptions, ast, env}
-import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, DeferTE, ExpressionT, LetAndLendTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE, UnletTE}
+import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, DeferTE, ExpressionT, LetAndLendTE, LocalLookupTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE, UnletTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ILocalVariableT, NodeEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{NameTranslator, TypingPassTemporaryVarNameT}
@@ -29,7 +29,7 @@ class LocalHelper(
 
   def makeTemporaryLocal(
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     coord: CoordT):
   ReferenceLocalVariableT = {
     val varId = interner.intern(TypingPassTemporaryVarNameT(life))
@@ -45,7 +45,7 @@ class LocalHelper(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     contextRegion: ITemplataT[RegionTemplataType],
     r: ReferenceExpressionTE,
     targetOwnership: OwnershipT):

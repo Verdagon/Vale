@@ -2,7 +2,7 @@ package dev.vale.typing.macros
 
 import dev.vale.{Keywords, RangeS, StrI, vimpl}
 import dev.vale.typing.CompilerOutputs
-import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, IsSameInstanceTE, LocationInFunctionEnvironment, ParameterT, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, BlockTE, FunctionDefinitionT, FunctionHeaderT, IsSameInstanceTE, LocationInFunctionEnvironmentT, ParameterT, ReturnTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.types.CoordT
@@ -19,7 +19,7 @@ class SameInstanceMacro(keywords: Keywords) extends IFunctionBodyMacro {
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     generatorId: StrI,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],

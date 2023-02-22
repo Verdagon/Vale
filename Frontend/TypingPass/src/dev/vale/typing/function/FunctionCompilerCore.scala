@@ -5,7 +5,7 @@ import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassert
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunctionBody, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
-import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionDefinitionT, FunctionHeaderT, IFunctionAttributeT, LocationInFunctionEnvironment, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
+import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionDefinitionT, FunctionHeaderT, IFunctionAttributeT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{ExternFunctionNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
@@ -37,7 +37,7 @@ class FunctionCompilerCore(
       coutputs: CompilerOutputs,
       startingNenv: NodeEnvironmentT,
       nenv: NodeEnvironmentBox,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       parentRanges: List[RangeS],
       callLocation: LocationInDenizen,
       region: ITemplataT[RegionTemplataType],
@@ -50,7 +50,7 @@ class FunctionCompilerCore(
     override def translatePatternList(
       coutputs: CompilerOutputs,
       nenv: NodeEnvironmentBox,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       parentRanges: List[RangeS],
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
@@ -75,7 +75,7 @@ class FunctionCompilerCore(
 //    val functionTemplateName = TemplataCompiler.getFunctionTemplate(fullEnv.fullName)
     val functionTemplateName = fullEnv.id
 
-    val life = LocationInFunctionEnvironment(Vector())
+    val life = LocationInFunctionEnvironmentT(Vector())
 
     val isDestructor =
       params2.nonEmpty &&
@@ -276,7 +276,7 @@ class FunctionCompilerCore(
       fullEnvSnapshot: FunctionEnvironment,
       callRange: List[RangeS],
       callLocation: LocationInDenizen,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       attributesT: Vector[IFunctionAttributeT],
       paramsT: Vector[ParameterT],
       isDestructor: Boolean,

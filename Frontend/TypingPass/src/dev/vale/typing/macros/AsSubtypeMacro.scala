@@ -4,7 +4,7 @@ import dev.vale.{Keywords, RangeS, StrI, vassertSome, vfail, vimpl, vwat}
 import dev.vale.highertyping.FunctionA
 import dev.vale.postparsing.LocationInDenizen
 import dev.vale.typing.{CantDowncastToInterface, CantDowncastUnrelatedTypes, CompileErrorExceptionT, CompilerOutputs, RangedInternalErrorT}
-import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, ReferenceExpressionTE, ReturnTE}
+import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, FunctionDefinitionT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, ReferenceExpressionTE, ReturnTE}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
@@ -27,7 +27,7 @@ class AsSubtypeMacro(
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
     generatorId: StrI,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     originFunction: Option[FunctionA],

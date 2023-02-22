@@ -300,18 +300,25 @@ case class BlockIE(
 // 4. Un-freeze the existing region
 // 5. Merge (transmigraIE) any results from the new region into the existing region
 // 6. Destroy the new region
-case class PureIE(
-  location: LocationInDenizen,
-  //  newDefaultRegionName: IdI[INameI],
-  newDefaultRegion: ITemplataI[RegionTemplataType],
-  oldRegionToNewRegion: Vector[(ITemplataI[RegionTemplataType], ITemplataI[RegionTemplataType])],
-  inner: ReferenceExpressionIE,
-  resultType: CoordI
+case class MutabilifyIE(
+  inner: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = ReferenceResulIT(resultType)
+  override def result: ReferenceResulIT = {
+    val innerCoord = inner.result.coord
+    val newOwnership =
+      innerCoord.ownership match {
+        case ImmutableShareI => MutableShareI
+        case ImmutableBorrowI => MutableBorrowI
+        case MutableShareI => vwat()
+        case MutableBorrowI => vwat()
+        case OwnI => vwat()
+        case WeakI => vimpl()
+      }
+    ReferenceResulIT(innerCoord.copy(ownership = newOwnership))
+  }
 }
 
 case class ConsecutorIE(exprs: Vector[ReferenceExpressionIE]) extends ReferenceExpressionIE {
@@ -440,7 +447,7 @@ case class VoidLiteralIE() extends ReferenceExpressionIE {
   }
 }
 
-case class ConstantIntIE(value: ITemplataI[IntegerTemplataType], bits: Int) extends ReferenceExpressionIE {
+case class ConstantIntIE(value: Long, bits: Int) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
     ReferenceResulIT(CoordI(MutableShareI, IntIT(bits)))
@@ -657,8 +664,8 @@ case class NewMutRuntimeSizedArrayIE(
     ReferenceResulIT(
       CoordI(
         arrayType.mutability match {
-          case MutabilityTemplataI(MutableI) => OwnI
-          case MutabilityTemplataI(ImmutableI) => MutableShareI
+          case MutableI => OwnI
+          case ImmutableI => MutableShareI
         },
         arrayType))
   }
@@ -674,8 +681,8 @@ case class StaticArrayFromCallableIE(
     ReferenceResulIT(
       CoordI(
         arrayType.mutability match {
-          case MutabilityTemplataI(MutableI) => OwnI
-          case MutabilityTemplataI(ImmutableI) => MutableShareI
+          case MutableI => OwnI
+          case ImmutableI => MutableShareI
         },
         arrayType))
   }
@@ -833,7 +840,7 @@ case class DestroyImmRuntimeSizedArrayIE(
   consumerMethod: PrototypeI,
 ) extends ReferenceExpressionIE {
   arrayType.mutability match {
-    case MutabilityTemplataI(ImmutableI) =>
+    case ImmutableI =>
     case _ => vwat()
   }
 
@@ -860,7 +867,7 @@ case class NewImmRuntimeSizedArrayIE(
   generatorMethod: PrototypeI,
 ) extends ReferenceExpressionIE {
   arrayType.mutability match {
-    case MutabilityTemplataI(ImmutableI) =>
+    case ImmutableI =>
     case _ => vwat()
   }
   // We dont want to own the generator
@@ -878,8 +885,8 @@ case class NewImmRuntimeSizedArrayIE(
     ReferenceResulIT(
       CoordI(
         arrayType.mutability match {
-          case MutabilityTemplataI(MutableI) => OwnI
-          case MutabilityTemplataI(ImmutableI) => MutableShareI
+          case MutableI => OwnI
+          case ImmutableI => MutableShareI
         },
         arrayType))
   }

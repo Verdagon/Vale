@@ -3,7 +3,7 @@ package dev.vale.typing.env
 import dev.vale.highertyping.FunctionA
 import dev.vale.{Interner, vassert, vcurious, vfail, vpass}
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{LocationInFunctionEnvironment, ParameterT}
+import dev.vale.typing.ast.{LocationInFunctionEnvironmentT, ParameterT}
 import dev.vale.typing.names.{BuildingFunctionNameWithClosuredsT, IFunctionNameT, IFunctionTemplateNameT, INameT, IRegionNameT, ITemplateNameT, IVarNameT, IdT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -145,7 +145,7 @@ case class NodeEnvironmentT(
   parentFunctionEnv: FunctionEnvironment,
   parentNodeEnv: Option[NodeEnvironmentT],
   node: IExpressionSE,
-  life: LocationInFunctionEnvironment,
+  life: LocationInFunctionEnvironmentT,
 
   // The things below are the "state"; they can be different for any given line in a function.
   templatas: TemplatasStore,
@@ -542,7 +542,7 @@ case class FunctionEnvironment(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
 
-  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironmentT = {
+  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironmentT): NodeEnvironmentT = {
     // See WTHPFE, if this is a lambda, we let our blocks start with
     // locals from the parent function.
     val (declaredLocals, unstackifiedLocals) =
@@ -646,7 +646,7 @@ case class FunctionEnvironmentBox(var functionEnvironment: FunctionEnvironment) 
     functionEnvironment.lookupWithNameInner(nameS, lookupFilter, getOnlyNearest)
   }
 
-  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironment): NodeEnvironmentT = {
+  def makeChildNodeEnvironment(node: IExpressionSE, life: LocationInFunctionEnvironmentT): NodeEnvironmentT = {
     functionEnvironment.makeChildNodeEnvironment(node, life)
   }
 

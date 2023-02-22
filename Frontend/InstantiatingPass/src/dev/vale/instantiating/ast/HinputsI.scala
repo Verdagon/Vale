@@ -77,32 +77,32 @@ case class HinputsI(
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 
-  def lookupStructByTemplateFullName(structTemplateId: IdI[IStructTemplateNameI]): StructDefinitionI = {
-    vassertSome(structs.find(_.templateName == structTemplateId))
-  }
-
-  def lookupInterfaceByTemplateFullName(interfaceTemplateId: IdI[IInterfaceTemplateNameI]): InterfaceDefinitionI = {
-    vassertSome(interfaces.find(_.templateName == interfaceTemplateId))
-  }
-
-  def lookupCitizenByTemplateFullName(interfaceTemplateId: IdI[ICitizenTemplateNameI]): CitizenDefinitionI = {
-    interfaceTemplateId match {
-      case IdI(packageCoord, initSteps, t: IStructTemplateNameI) => {
-        lookupStructByTemplateFullName(IdI(packageCoord, initSteps, t))
-      }
-      case IdI(packageCoord, initSteps, t: IInterfaceTemplateNameI) => {
-        lookupInterfaceByTemplateFullName(IdI(packageCoord, initSteps, t))
-      }
-    }
-  }
-
-  def lookupStructByTemplateName(structTemplateName: StructTemplateNameI): StructDefinitionI = {
-    vassertOne(structs.filter(_.templateName.localName == structTemplateName))
-  }
-
-  def lookupInterfaceByTemplateName(interfaceTemplateName: InterfaceTemplateNameI): InterfaceDefinitionI = {
-    vassertSome(interfaces.find(_.templateName.localName == interfaceTemplateName))
-  }
+//  def lookupStructByTemplateFullName(structTemplateId: IdI[IStructTemplateNameI]): StructDefinitionI = {
+//    vassertSome(structs.find(_.templateName == structTemplateId))
+//  }
+//
+//  def lookupInterfaceByTemplateFullName(interfaceTemplateId: IdI[IInterfaceTemplateNameI]): InterfaceDefinitionI = {
+//    vassertSome(interfaces.find(_.templateName == interfaceTemplateId))
+//  }
+//
+//  def lookupCitizenByTemplateFullName(interfaceTemplateId: IdI[ICitizenTemplateNameI]): CitizenDefinitionI = {
+//    interfaceTemplateId match {
+//      case IdI(packageCoord, initSteps, t: IStructTemplateNameI) => {
+//        lookupStructByTemplateFullName(IdI(packageCoord, initSteps, t))
+//      }
+//      case IdI(packageCoord, initSteps, t: IInterfaceTemplateNameI) => {
+//        lookupInterfaceByTemplateFullName(IdI(packageCoord, initSteps, t))
+//      }
+//    }
+//  }
+//
+//  def lookupStructByTemplateName(structTemplateName: StructTemplateNameI): StructDefinitionI = {
+//    vassertOne(structs.filter(_.templateName.localName == structTemplateName))
+//  }
+//
+//  def lookupInterfaceByTemplateName(interfaceTemplateName: InterfaceTemplateNameI): InterfaceDefinitionI = {
+//    vassertSome(interfaces.find(_.templateName.localName == interfaceTemplateName))
+//  }
 
   def lookupFunction(signature2: SignatureI): Option[FunctionDefinitionI] = {
     functions.find(_.header.toSignature == signature2).headOption
@@ -115,7 +115,7 @@ case class HinputsI(
   def lookupFunction(humanName: String): FunctionDefinitionI = {
     val matches = functions.filter(f => {
       f.header.id.localName match {
-        case FunctionNameI(n, _, _) if n.humanName.str == humanName => true
+        case FunctionNameIX(n, _, _) if n.humanName.str == humanName => true
         case _ => false
       }
     })
@@ -129,8 +129,8 @@ case class HinputsI(
 
   def lookupStruct(humanName: String): StructDefinitionI = {
     val matches = structs.filter(s => {
-      s.templateName.localName match {
-        case StructTemplateNameI(n) if n.str == humanName => true
+      s.instantiatedCitizen.id.localName match {
+        case StructNameI(StructTemplateNameI(n), _) if n.str == humanName => true
         case _ => false
       }
     })
@@ -153,8 +153,8 @@ case class HinputsI(
 
   def lookupInterface(humanName: String): InterfaceDefinitionI = {
     val matches = interfaces.filter(s => {
-      s.templateName.localName match {
-        case InterfaceTemplateNameI(n) if n.str == humanName => true
+      s.instantiatedCitizen.id.localName match {
+        case InterfaceNameI(InterfaceTemplateNameI(n), _) if n.str == humanName => true
         case _ => false
       }
     })
@@ -169,7 +169,7 @@ case class HinputsI(
   def lookupUserFunction(humanName: String): FunctionDefinitionI = {
     val matches =
       functions
-        .filter(function => simpleNameT.unapply(function.header.id).contains(humanName))
+        .filter(function => simpleNameI.unapply(function.header.id).contains(humanName))
         .filter(_.header.isUserFunction)
     if (matches.size == 0) {
       vfail("Not found!")
@@ -184,7 +184,7 @@ case class HinputsI(
     val lastTwo = name.steps.slice(name.steps.size - 2, name.steps.size)
     (first, lastTwo) match {
       case (
-        FunctionNameI(FunctionTemplateNameI(StrI(hayFunctionHumanName), _), _, _),
+        FunctionNameIX(FunctionTemplateNameI(StrI(hayFunctionHumanName), _), _, _),
         Vector(
           LambdaCitizenTemplateNameI(_),
           LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(_, _), _, _)))

@@ -6,7 +6,7 @@ import dev.vale.postparsing._
 import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, Result, vassert, vassertSome, vfail, vimpl}
 import dev.vale.postparsing.rules.{IRulexSR, RuneUsage}
 import dev.vale.typing.{ArrayCompiler, CompileErrorExceptionT, Compiler, CompilerOutputs, ConvertHelper, InferCompiler, InitialSend, RangedInternalErrorT, TypingPassOptions, WrongNumberOfDestructuresError}
-import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironment, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
+import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, LetNormalTE, LocalLookupTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE, ReferenceMemberLookupTE, SoftLoadTE}
 import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntry}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{IRegionNameT, IdT, RuneNameT}
@@ -47,7 +47,7 @@ class PatternCompiler(
   def translatePatternList(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     patternsA: Vector[AtomSP],
     patternInputsTE: Vector[ReferenceExpressionTE],
@@ -67,7 +67,7 @@ class PatternCompiler(
   def iterateTranslateListAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     liveCaptureLocals: Vector[ILocalVariableT],
     patternsA: List[AtomSP],
@@ -101,7 +101,7 @@ class PatternCompiler(
   def inferAndTranslatePattern(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     rulesWithImplicitlyCoercingLookupsS: Vector[IRulexSR],
@@ -113,7 +113,7 @@ class PatternCompiler(
     // - The body of a match's case statement
     // - The rest of the pattern that contains this pattern
     // But if we're doing a regular let statement, then it doesn't need to contain everything past it.
-    afterPatternsSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE):
+    afterPatternsSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE):
   ReferenceExpressionTE = {
     Profiler.frame(() => {
 
@@ -197,7 +197,7 @@ class PatternCompiler(
   private def innerTranslateSubPatternAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     pattern: AtomSP,
     previousLiveCaptureLocals: Vector[ILocalVariableT],
@@ -207,7 +207,7 @@ class PatternCompiler(
     // - The body of a match's case statement
     // - The rest of the pattern that contains this pattern
     // But if we're doing a regular let statement, then it doesn't need to contain everything past it.
-    afterSubPatternSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE):
+    afterSubPatternSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE):
   ReferenceExpressionTE = {
     vassert(previousLiveCaptureLocals.map(_.name) == previousLiveCaptureLocals.map(_.name).distinct)
 
@@ -270,12 +270,12 @@ class PatternCompiler(
   private def destructureOwning(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     inputExpr: ReferenceExpressionTE,
     listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
-    afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
+    afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
 
@@ -333,12 +333,12 @@ class PatternCompiler(
   private def destructureNonOwningAndMaybeContinue(
       coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       range: List[RangeS],
       liveCaptureLocals: Vector[ILocalVariableT],
       containerTE: ReferenceExpressionTE,
       listOfMaybeDestructureMemberPatterns: Vector[AtomSP],
-      afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
+      afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals.map(_.name) == liveCaptureLocals.map(_.name).distinct)
 
@@ -357,14 +357,14 @@ class PatternCompiler(
   private def iterateDestructureNonOwningAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     liveCaptureLocals: Vector[ILocalVariableT],
     expectedContainerCoord: CoordT,
     containerAliasingExprTE: ReferenceExpressionTE,
     memberIndex: Int,
     listOfMaybeDestructureMemberPatterns: List[AtomSP],
-    afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
+    afterDestructureSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(liveCaptureLocals.map(_.name) == liveCaptureLocals.map(_.name).distinct)
 
@@ -430,12 +430,12 @@ class PatternCompiler(
   private def translateDestroyStructInnerAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     innerPatternMaybes: Vector[AtomSP],
     inputStructExpr: ReferenceExpressionTE,
-    afterDestroySuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
+    afterDestroySuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
 
@@ -485,12 +485,12 @@ class PatternCompiler(
   private def makeLetsForOwnAndMaybeContinue(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     initialLiveCaptureLocals: Vector[ILocalVariableT],
     memberLocalVariables: List[ILocalVariableT],
     innerPatternMaybes: List[AtomSP],
-    afterLetsSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironment, Vector[ILocalVariableT]) => ReferenceExpressionTE
+    afterLetsSuccessContinuation: (CompilerOutputs, NodeEnvironmentBox, LocationInFunctionEnvironmentT, Vector[ILocalVariableT]) => ReferenceExpressionTE
   ): ReferenceExpressionTE = {
     vassert(initialLiveCaptureLocals.map(_.name) == initialLiveCaptureLocals.map(_.name).distinct)
 

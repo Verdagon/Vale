@@ -19,7 +19,7 @@ import dev.vale.typing.{ArrayCompiler, CannotSubscriptT, CantMoveFromGlobal,
 import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, ArgLookupTE, BlockTE,
   BorrowToWeakTE, BreakTE, ConstantBoolTE, ConstantFloatTE, ConstantIntTE, ConstantStrTE,
   ConstructTE, DestroyTE, ExpressionT, IfTE, LetNormalTE, LocalLookupTE,
-  LocationInFunctionEnvironment, MutateTE, PrototypeT, ReferenceExpressionTE,
+  LocationInFunctionEnvironmentT, MutateTE, PrototypeT, ReferenceExpressionTE,
   ReferenceMemberLookupTE, ReinterpretTE, ReturnTE, RuntimeSizedArrayLookupTE,
   StaticSizedArrayLookupTE, VoidLiteralTE, WhileTE}
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent, StructCompiler}
@@ -132,7 +132,7 @@ class ExpressionCompiler(
       override def evaluateAndCoerceToReferenceExpression(
         coutputs: CompilerOutputs,
         nenv: NodeEnvironmentBox,
-        life: LocationInFunctionEnvironment,
+        life: LocationInFunctionEnvironmentT,
         parentRanges: List[RangeS],
         callLocation: LocationInDenizen,
         region: ITemplataT[RegionTemplataType],
@@ -150,7 +150,7 @@ class ExpressionCompiler(
         nenv: NodeEnvironmentBox,
         range: List[RangeS],
         callLocation: LocationInDenizen,
-        life: LocationInFunctionEnvironment,
+        life: LocationInFunctionEnvironmentT,
         region: ITemplataT[RegionTemplataType],
         unresultifiedUndestructedExpressions: ReferenceExpressionTE
       ):
@@ -163,7 +163,7 @@ class ExpressionCompiler(
   def evaluateAndCoerceToReferenceExpressions(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -452,7 +452,7 @@ class ExpressionCompiler(
   def evaluateAndCoerceToReferenceExpression(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -488,7 +488,7 @@ class ExpressionCompiler(
   private def evaluateExpectedAddressExpression(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -512,7 +512,7 @@ class ExpressionCompiler(
   private def evaluate(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -2046,7 +2046,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     contextRegion: ITemplataT[RegionTemplataType],
     undecayedUnborrowedContainerExpr2: ExpressionT
   ):
@@ -2141,7 +2141,7 @@ class ExpressionCompiler(
     coutputs: CompilerOutputs,
     startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -2155,7 +2155,7 @@ class ExpressionCompiler(
   def translatePatternList(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]
@@ -2262,7 +2262,7 @@ class ExpressionCompiler(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     region: ITemplataT[RegionTemplataType],
     exprTE: ReferenceExpressionTE
   ):
@@ -2331,7 +2331,7 @@ class ExpressionCompiler(
   // we dont have any special casing.
   def resultifyExpressions(
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     expr: ReferenceExpressionTE
   ):
   (ReferenceExpressionTE, ReferenceLocalVariableT) = {
