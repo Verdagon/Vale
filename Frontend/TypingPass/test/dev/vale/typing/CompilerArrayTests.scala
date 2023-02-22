@@ -3,7 +3,7 @@ package dev.vale.typing
 import dev.vale.typing.ast.{FunctionCallTE, ParameterT}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names._
-import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types._
 import dev.vale.{Collector, vassert, _}
 //import dev.vale.typingpass.infer.NotEnoughToSolveError
@@ -76,7 +76,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("zork")
-    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(ImmutableT), _, _) => }
+    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplataT(ImmutableT), _, _) => }
   }
 
   test("Test receiving mut array") {
@@ -89,7 +89,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
       """.stripMargin)
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("zork")
-    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT), _, _) => }
+    main.header.params.head.tyype.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplataT(MutableT), _, _) => }
   }
 
   test("Test creating mut array") {
@@ -106,7 +106,7 @@ class CompilerArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("main")
     val arr = Collector.only(main, { case ReferenceLocalVariableT(localName, _, c) => c })
-    arr.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT), _, _) => }
+    arr.kind match { case contentsRuntimeSizedArrayTT(MutabilityTemplataT(MutableT), _, _) => }
   }
 
   test("Test destroying array") {

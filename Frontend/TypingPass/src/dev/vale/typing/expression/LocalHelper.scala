@@ -8,7 +8,7 @@ import dev.vale.typing.ast.{AddressExpressionTE, AddressMemberLookupTE, DeferTE,
 import dev.vale.typing.env.{AddressibleLocalVariableT, ILocalVariableT, NodeEnvironmentBox, ReferenceLocalVariableT}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{NameTranslator, TypingPassTemporaryVarNameT}
-import dev.vale.typing.templata.{Conversions, ITemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.parsing._
 import dev.vale.parsing.ast._
@@ -46,7 +46,7 @@ class LocalHelper(
     range: List[RangeS],
     callLocation: LocationInDenizen,
     life: LocationInFunctionEnvironment,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     r: ReferenceExpressionTE,
     targetOwnership: OwnershipT):
   (DeferTE) = {
@@ -78,7 +78,7 @@ class LocalHelper(
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     variables: Vector[ILocalVariableT]):
   (Vector[ReferenceExpressionTE]) = {
     variables.map({ case variable =>
@@ -155,7 +155,7 @@ class LocalHelper(
         loadAsP match {
           case UseP => {
             a match {
-              case LocalLookupTE(_, lv, _) => {
+              case LocalLookupTE(_, lv) => {
                 nenv.markLocalUnstackified(lv.name)
                 UnletTE(lv)
               }
@@ -168,7 +168,7 @@ class LocalHelper(
           }
           case MoveP => {
             a match {
-              case LocalLookupTE(_, lv, _) => {
+              case LocalLookupTE(_, lv) => {
                 nenv.markLocalUnstackified(lv.name)
                 UnletTE(lv)
               }
@@ -219,40 +219,40 @@ class LocalHelper(
       case VoidT() => ShareT
       case contentsStaticSizedArrayTT(_, mutability, _, _, _) => {
         mutability match {
-          case MutabilityTemplata(MutableT) => BorrowT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+          case MutabilityTemplataT(MutableT) => BorrowT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case contentsRuntimeSizedArrayTT(mutability, _, _) => {
         mutability match {
-          case MutabilityTemplata(MutableT) => BorrowT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+          case MutabilityTemplataT(MutableT) => BorrowT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case p @ KindPlaceholderT(fullName) => {
         val mutability = Compiler.getMutability(coutputs, p)
         mutability match {
-          case MutabilityTemplata(MutableT) => BorrowT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+          case MutabilityTemplataT(MutableT) => BorrowT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case sr2 @ StructTT(_) => {
         val mutability = Compiler.getMutability(coutputs, sr2)
         mutability match {
-          case MutabilityTemplata(MutableT) => BorrowT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+          case MutabilityTemplataT(MutableT) => BorrowT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case ir2 @ InterfaceTT(_) => {
         val mutability = Compiler.getMutability(coutputs, ir2)
         mutability match {
-          case MutabilityTemplata(MutableT) => BorrowT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+          case MutabilityTemplataT(MutableT) => BorrowT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
         }
       }
       case OverloadSetT(_, _) => {
@@ -264,9 +264,9 @@ class LocalHelper(
 
 object LocalHelper {
   // See ClosureTests for requirements here
-  def determineIfLocalIsAddressible(mutability: ITemplata[MutabilityTemplataType], localA: LocalS): Boolean = {
+  def determineIfLocalIsAddressible(mutability: ITemplataT[MutabilityTemplataType], localA: LocalS): Boolean = {
     mutability match {
-      case MutabilityTemplata(MutableT) => {
+      case MutabilityTemplataT(MutableT) => {
         localA.childMutated != NotUsed || localA.childMoved != NotUsed
       }
       case _ => {

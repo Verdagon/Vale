@@ -36,7 +36,7 @@ class DestructorCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     type2: CoordT):
   StampFunctionSuccess = {
     val name = interner.intern(CodeNameS(keywords.drop))
@@ -53,7 +53,7 @@ class DestructorCompiler(
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     undestructedExpr2: ReferenceExpressionTE):
   (ReferenceExpressionTE) = {
     val resultExpr2 =

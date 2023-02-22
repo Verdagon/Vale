@@ -4,7 +4,7 @@ import dev.vale.postparsing.{DenizenDefaultRegionRuneS, FunctionNameS, LocationI
 import dev.vale.{CodeLocationS, FileCoordinate, PackageCoordinate, RangeS, StrI, Tests, vassert, vassertSome, vimpl}
 import dev.vale.typing.ast.SignatureT
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IdT, KindPlaceholderNameT, KindPlaceholderTemplateNameT, LambdaCallFunctionNameT, LambdaCallFunctionTemplateNameT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, StructNameT, StructTemplateNameT}
-import dev.vale.typing.templata.{CoordTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.types._
 import org.scalatest.{FunSuite, Matchers}
@@ -45,7 +45,7 @@ class CompilerProjectTests extends FunSuite with Matchers {
     val mainFullName = IdT(packageCoord, Vector(), mainName)
 //    val region = mainTemplateFullName.addStep(interner.intern(DenizenDefaultRegionNameT()))
     val regionName = mainTemplateFullName.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DenizenDefaultRegionRuneS(FunctionNameS(mainTemplateName.humanName, mainTemplateName.codeLocation)))))))
-    val region = PlaceholderTemplata(regionName, RegionTemplataType())
+    val region = PlaceholderTemplataT(regionName, RegionTemplataType())
     vimpl() // fulln to id
 
     val lambdaLoc = CodeLocationS(interner.intern(FileCoordinate(packageCoord, "test.vale")), 23)

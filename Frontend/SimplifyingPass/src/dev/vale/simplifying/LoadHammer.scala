@@ -2,7 +2,7 @@ package dev.vale.simplifying
 
 import dev.vale.{Keywords, finalast, vassert, vfail, vimpl}
 import dev.vale.finalast._
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{IVarNameT, IdT}
@@ -13,7 +13,7 @@ import dev.vale.typing.{types => t, _}
 import dev.vale.typing.ast._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.IVarNameT
-import dev.vale.typing.templata.{ITemplata, RegionTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
 class LoadHammer(
@@ -24,7 +24,7 @@ class LoadHammer(
     expressionHammer: ExpressionHammer) {
 
   def translateLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -75,7 +75,7 @@ class LoadHammer(
           translateMundaneMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberType2, memberName, targetOwnership)
         }
         case AddressMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
-          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
           // DO NOT SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //          val combinedTargetOwnership =
@@ -90,7 +90,7 @@ class LoadHammer(
           translateAddressibleMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberName, memberType2, combinedTargetOwnership)
         }
         case RuntimeSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
-          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
           // DO NOT SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
@@ -104,7 +104,7 @@ class LoadHammer(
           translateMundaneRuntimeSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
         }
         case StaticSizedArrayLookupTE(_, arrayExpr2, indexExpr2, _, _) => {
-          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
+          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
           // DO NOT SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //          val combinedTargetOwnership =
@@ -127,7 +127,7 @@ class LoadHammer(
   }
 
   private def translateMundaneRuntimeSizedArrayLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -178,7 +178,7 @@ class LoadHammer(
   }
 
   private def translateMundaneStaticSizedArrayLoad(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -224,7 +224,7 @@ class LoadHammer(
   }
 
   private def translateAddressibleMemberLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -293,7 +293,7 @@ class LoadHammer(
   }
 
   private def translateMundaneMemberLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -336,7 +336,7 @@ class LoadHammer(
   }
 
   def translateAddressibleLocalLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -379,7 +379,7 @@ class LoadHammer(
   }
 
   def translateMundaneLocalLoad(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -411,7 +411,7 @@ class LoadHammer(
   }
 
   def translateLocalAddress(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -438,7 +438,7 @@ class LoadHammer(
   // In this, we're basically taking an addressible lookup, in other words,
   // a reference to a box.
   def translateMemberAddress(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,

@@ -2,9 +2,8 @@ package dev.vale.typing.ast
 
 import dev.vale.postparsing.{CoordTemplataType, IRuneS, ITemplataType, MutabilityTemplataType, PackTemplataType, RegionTemplataType}
 import dev.vale.typing.TemplataCompiler
-import dev.vale.typing.templata.ITemplata.expectRegionTemplata
 import dev.vale.typing.names._
-import dev.vale.typing.templata.{ITemplata, PlaceholderTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{StrI, vcurious, vfail, vpass}
 
@@ -15,7 +14,7 @@ trait CitizenDefinitionT {
   def templateName: IdT[ICitizenTemplateNameT]
   def genericParamTypes: Vector[ITemplataType]
   def instantiatedCitizen: ICitizenTT
-  def defaultRegion: ITemplata[RegionTemplataType]
+  def defaultRegion: ITemplataT[RegionTemplataType]
 }
 
 case class StructDefinitionT(
@@ -24,16 +23,16 @@ case class StructDefinitionT(
   instantiatedCitizen: StructTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
-  mutability: ITemplata[MutabilityTemplataType],
+  mutability: ITemplataT[MutabilityTemplataType],
   members: Vector[IStructMemberT],
   isClosure: Boolean,
   runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
 ) extends CitizenDefinitionT {
-  def defaultRegion: PlaceholderTemplata[RegionTemplataType] = {
+  def defaultRegion: PlaceholderTemplataT[RegionTemplataType] = {
     instantiatedCitizen.id.localName.templateArgs.last match {
-      case PlaceholderTemplata(fullNameT, RegionTemplataType()) =>  {
-        PlaceholderTemplata(fullNameT, RegionTemplataType())
+      case PlaceholderTemplataT(fullNameT, RegionTemplataType()) =>  {
+        PlaceholderTemplataT(fullNameT, RegionTemplataType())
       }
     }
   }
@@ -87,7 +86,7 @@ case class NormalStructMemberT(
 
 case class VariadicStructMemberT(
   name: IVarNameT,
-  tyype: PlaceholderTemplata[PackTemplataType]
+  tyype: PlaceholderTemplataT[PackTemplataType]
 ) extends IStructMemberT {
   vpass()
 }
@@ -118,7 +117,7 @@ case class InterfaceDefinitionT(
   ref: InterfaceTT,
   attributes: Vector[ICitizenAttributeT],
   weakable: Boolean,
-  mutability: ITemplata[MutabilityTemplataType],
+  mutability: ITemplataT[MutabilityTemplataType],
   runeToFunctionBound: Map[IRuneS, IdT[FunctionBoundNameT]],
   runeToImplBound: Map[IRuneS, IdT[ImplBoundNameT]],
   // This does not include abstract functions declared outside the interface.
@@ -126,10 +125,10 @@ case class InterfaceDefinitionT(
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[(PrototypeT, Int)]
 ) extends CitizenDefinitionT {
-  def defaultRegion: PlaceholderTemplata[RegionTemplataType] = {
+  def defaultRegion: PlaceholderTemplataT[RegionTemplataType] = {
     instantiatedInterface.id.localName.templateArgs.last match {
-      case PlaceholderTemplata(fullNameT, RegionTemplataType()) =>  {
-        PlaceholderTemplata(fullNameT, RegionTemplataType())
+      case PlaceholderTemplataT(fullNameT, RegionTemplataType()) =>  {
+        PlaceholderTemplataT(fullNameT, RegionTemplataType())
       }
     }
   }

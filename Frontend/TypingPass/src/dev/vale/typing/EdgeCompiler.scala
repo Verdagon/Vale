@@ -5,7 +5,7 @@ package dev.vale.typing
 import dev.vale.postparsing.rules.RuneUsage
 import dev.vale._
 import dev.vale.postparsing._
-import dev.vale.typing.ast.{InterfaceEdgeBlueprint, PrototypeT}
+import dev.vale.typing.ast.{InterfaceEdgeBlueprintT, PrototypeT}
 import dev.vale.typing.env.{GeneralEnvironment, IInDenizenEnvironment, TemplataEnvEntry, TemplataLookupContext, TemplatasStore}
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
@@ -13,8 +13,8 @@ import dev.vale.typing.citizen.ImplCompiler
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, EvaluateFunctionSuccess}
 import dev.vale.typing.names._
-import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata, expectKindTemplata}
-import dev.vale.typing.templata.{CoordTemplata, FunctionTemplata, ITemplata, KindTemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.ITemplataT.{expectCoord, expectCoordTemplata, expectKindTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 
 import scala.collection.mutable
@@ -39,7 +39,7 @@ class EdgeCompiler(
     implCompiler: ImplCompiler) {
   def compileITables(coutputs: CompilerOutputs):
   (
-    Vector[InterfaceEdgeBlueprint],
+    Vector[InterfaceEdgeBlueprintT],
     Map[
       IdT[IInterfaceNameT],
       Map[
@@ -95,7 +95,7 @@ class EdgeCompiler(
     (interfaceEdgeBlueprints, itables)
   }
 
-  private def makeInterfaceEdgeBlueprints(coutputs: CompilerOutputs): Vector[InterfaceEdgeBlueprint] = {
+  private def makeInterfaceEdgeBlueprints(coutputs: CompilerOutputs): Vector[InterfaceEdgeBlueprintT] = {
     val x1 =
       coutputs.getAllFunctions().flatMap({ case function =>
         function.header.getAbstractInterface match {
@@ -140,7 +140,7 @@ class EdgeCompiler(
     val interfaceEdgeBlueprints =
       abstractFunctionHeadersByInterfaceTemplateFullName
         .map({ case (interfaceTemplateFullName, functionHeaders2) =>
-          InterfaceEdgeBlueprint(
+          InterfaceEdgeBlueprintT(
             coutputs.lookupInterface(interfaceTemplateFullName).instantiatedInterface.id,
             // This is where they're given order and get an implied index
             functionHeaders2.toVector)
@@ -151,11 +151,11 @@ class EdgeCompiler(
   def createOverridePlaceholderMimicking(
     coutputs: CompilerOutputs,
 //    implToDispatcherRegionSubstitutions: Vector[(IdT[IRegionNameT], IdT[IRegionNameT])],
-    originalTemplataToMimic: ITemplata[ITemplataType],
+    originalTemplataToMimic: ITemplataT[ITemplataType],
     dispatcherOuterEnv: IInDenizenEnvironment,
     index: Int,
     rune: IRuneS):
-  ITemplata[ITemplataType] = {
+  ITemplataT[ITemplataType] = {
     // Need New Special Placeholders for Abstract Function Override Case (NNSPAFOC)
     //
     // One would think that we could just conjure up some placeholders under the abstract
@@ -207,16 +207,16 @@ class EdgeCompiler(
 
     val result =
       originalTemplataToMimic match {
-        case PlaceholderTemplata(_, tyype) => {
-          PlaceholderTemplata(placeholderFullName, tyype)
+        case PlaceholderTemplataT(_, tyype) => {
+          PlaceholderTemplataT(placeholderFullName, tyype)
         }
-        case KindTemplata(KindPlaceholderT(originalPlaceholderFullName)) => {
+        case KindTemplataT(KindPlaceholderT(originalPlaceholderFullName)) => {
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
-          KindTemplata(KindPlaceholderT(placeholderFullName))
+          KindTemplataT(KindPlaceholderT(placeholderFullName))
         }
-        case CoordTemplata(CoordT(ownership, region, KindPlaceholderT(originalPlaceholderFullName))) => {
+        case CoordTemplataT(CoordT(ownership, region, KindPlaceholderT(originalPlaceholderFullName))) => {
           val originalPlaceholderTemplateFullName = TemplataCompiler.getPlaceholderTemplate(originalPlaceholderFullName)
           val mutability = coutputs.lookupMutability(originalPlaceholderTemplateFullName)
           coutputs.declareTypeMutability(placeholderTemplateFullName, mutability)
@@ -229,7 +229,7 @@ class EdgeCompiler(
 //          }
           val newRegion = vimpl()//vassertOne(implToDispatcherRegionSubstitutions.filter(_._1 == region))._2
 
-          CoordTemplata(CoordT(ownership, newRegion, KindPlaceholderT(placeholderFullName)))
+          CoordTemplataT(CoordT(ownership, newRegion, KindPlaceholderT(placeholderFullName)))
         }
         case other => vwat(other)
       }
@@ -297,7 +297,7 @@ class EdgeCompiler(
     // have that ZZ.
     // Note that these placeholder indexes might not line up with the ones from the original impl.
     val implPlaceholderToDispatcherPlaceholder =
-      U.mapWithIndex[ITemplata[ITemplataType], (IdT[IPlaceholderNameT], ITemplata[ITemplataType])](
+      U.mapWithIndex[ITemplataT[ITemplataType], (IdT[IPlaceholderNameT], ITemplataT[ITemplataType])](
         impl.instantiatedId.localName.templateArgs.toVector
         .zip(impl.runeIndexToIndependence)
         .filter({ case (templata, independent) => !independent }) // Only grab dependent runes
@@ -378,7 +378,7 @@ class EdgeCompiler(
     // Step 3: Figure Out Dependent And Independent Runes, see FODAIR.
 
     val implRuneToImplPlaceholderAndCasePlaceholder =
-      U.mapWithIndex[(IRuneS, ITemplata[ITemplataType]), (IRuneS, IdT[IPlaceholderNameT], ITemplata[ITemplataType])](
+      U.mapWithIndex[(IRuneS, ITemplataT[ITemplataType]), (IRuneS, IdT[IPlaceholderNameT], ITemplataT[ITemplataType])](
         impl.templata.impl.genericParams.map(_.rune.rune).toVector
           .zip(impl.instantiatedId.localName.templateArgs.toIterable)
           .zip(impl.runeIndexToIndependence)
@@ -449,7 +449,7 @@ class EdgeCompiler(
             impl.templata.impl.interfaceKindRune,
             // We may be feeding in something interesting like IObserver<Opt<T>> here should be fine,
             // the impl will receive it and match it to its own unknown runes appropriately.
-            KindTemplata(dispatcherPlaceholderedInterface))) ++
+            KindTemplataT(dispatcherPlaceholderedInterface))) ++
         implRuneToCasePlaceholder
           .map({ case (rune, templata) => InitialKnown(RuneUsage(range, rune), templata) }),
         impl.templata,

@@ -10,7 +10,7 @@ import dev.vale.typing.env.{FunctionEnvironment, TemplatasStore}
 import dev.vale.typing.types.CoordT
 import dev.vale.typing.ast._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, StampFunctionSuccess}
-import dev.vale.typing.templata.{FunctionTemplata, PrototypeTemplata}
+import dev.vale.typing.templata._
 
 class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver: OverloadResolver) extends IFunctionBodyMacro {
   val generatorId: StrI = keywords.abstractBody
@@ -35,7 +35,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
         //Vector(RegionT(env.defaultRegion.localName, true)),
         params2,
         returnReferenceType2,
-        originFunction.map(FunctionTemplata(env.parentEnv, _)))
+        originFunction.map(FunctionTemplataT(env.parentEnv, _)))
 
     // Find self, but instead of calling it like a regular function call, call it like an interface.
     // We do this instead of grabbing the prototype out of the environment because we want to get its
@@ -54,7 +54,7 @@ class AbstractBodyMacro(interner: Interner, keywords: Keywords, overloadResolver
         Vector(),
         true,
         true) match {
-        case Ok(StampFunctionSuccess(_, PrototypeTemplata(_, prototype), _)) => prototype
+        case Ok(StampFunctionSuccess(_, PrototypeTemplataT(_, prototype), _)) => prototype
         case Err(fff @ FindFunctionFailure(_, _, _)) => throw CompileErrorExceptionT(CouldntFindFunctionToCallT(callRange, fff))
       }
 

@@ -8,7 +8,7 @@ import dev.vale.testvm.StructInstanceV
 import dev.vale.typing.ast.{LetNormalTE, LocalLookupTE, ReferenceMemberLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, RuntimeSizedArrayNameT, RuntimeSizedArrayTemplateNameT, StaticSizedArrayNameT, StaticSizedArrayTemplateNameT, StructNameT, StructTemplateNameT}
-import dev.vale.typing.templata.{IntegerTemplata, MutabilityTemplata, RegionTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 import dev.vale.von.VonInt
 import dev.vale.{finalast => m}
 import org.scalatest.{FunSuite, Matchers}
@@ -37,7 +37,7 @@ class PureTests extends FunSuite with Matchers {
       })
     rml.memberReference match {
       // See RMLRMO for why this is OwnT
-      case CoordT(OwnT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplataT(true)))))) =>
     }
 
     val xType =
@@ -45,7 +45,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(BorrowT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+      case CoordT(BorrowT,RegionTemplataT(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplataT(true)))))) =>
     }
 
     val yType =
@@ -53,7 +53,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
       })
     yType match {
-      case CoordT(ShareT,RegionTemplata(false),IntT(32)) =>
+      case CoordT(ShareT,RegionTemplataT(false),IntT(32)) =>
     }
 
     // We don't evaluate the program, its main takes in a struct which is impossible
@@ -86,7 +86,7 @@ class PureTests extends FunSuite with Matchers {
         }).headOption)
     ssal.elementType match {
       // See RMLRMO for why this is OwnT
-      case CoordT(OwnT,RegionTemplata(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplata(2),_,RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplataT(2),_,RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))) =>
     }
 
     val xType =
@@ -94,7 +94,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(BorrowT,RegionTemplata(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplata(2),_,RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))) =>
+      case CoordT(BorrowT,RegionTemplataT(false),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(_,IntegerTemplataT(2),_,RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))) =>
     }
 
     val yType =
@@ -102,7 +102,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
       })
     yType match {
-      case CoordT(ShareT,RegionTemplata(false),IntT(32)) =>
+      case CoordT(ShareT,RegionTemplataT(false),IntT(32)) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -127,7 +127,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))),RegionTemplataT(true)))))) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -155,7 +155,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))),RegionTemplataT(true)))))) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -184,7 +184,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplata(2),VariabilityTemplata(FinalT),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(OwnT,RegionTemplataT(true),StaticSizedArrayTT(IdT(_,_,StaticSizedArrayNameT(StaticSizedArrayTemplateNameT(),IntegerTemplataT(2),VariabilityTemplataT(FinalT),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))),RegionTemplataT(true)))))) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }
@@ -213,7 +213,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(OwnT,RegionTemplata(true),RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(OwnT,RegionTemplata(true),RuntimeSizedArrayTT(IdT(_,Vector(),RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplata(MutableT),CoordT(ShareT,RegionTemplata(true),IntT(32)),RegionTemplata(true)))))),RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(true),RuntimeSizedArrayTT(IdT(_,_,RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(OwnT,RegionTemplataT(true),RuntimeSizedArrayTT(IdT(_,Vector(),RuntimeSizedArrayNameT(RuntimeSizedArrayTemplateNameT(),RawArrayNameT(MutabilityTemplataT(MutableT),CoordT(ShareT,RegionTemplataT(true),IntT(32)),RegionTemplataT(true)))))),RegionTemplataT(true)))))) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(42) => }
@@ -246,7 +246,7 @@ class PureTests extends FunSuite with Matchers {
       })
     rml.memberReference match {
       // See RMLRMO for why this is OwnT
-      case CoordT(OwnT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+      case CoordT(OwnT,RegionTemplataT(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplataT(true)))))) =>
     }
 
     val xType =
@@ -254,7 +254,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("x")), _, coord), _) => coord
       })
     xType match {
-      case CoordT(ImmutableBorrowT,RegionTemplata(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplata(true)))))) =>
+      case CoordT(ImmutableBorrowT,RegionTemplataT(false),StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Engine")),Vector(RegionTemplataT(true)))))) =>
     }
 
     val yType =
@@ -262,7 +262,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("y")), _, coord), _) => coord
       })
     yType match {
-      case CoordT(ImmutableShareT,RegionTemplata(false),IntT(32)) =>
+      case CoordT(ImmutableShareT,RegionTemplataT(false),IntT(32)) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }

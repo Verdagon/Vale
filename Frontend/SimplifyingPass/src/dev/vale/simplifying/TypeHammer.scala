@@ -1,14 +1,14 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast.{BoolHT, CoordH, FloatHT, InlineH, IntHT, KindHT, NeverHT, PrototypeH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StrHT, VoidHT, YonderH}
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.PrototypeT
 import dev.vale.typing.types._
 import dev.vale.{Interner, Keywords, vassert, vfail, vimpl, vregionmut, vwat, finalast => m}
 import dev.vale.finalast._
 import dev.vale.typing._
 import dev.vale.typing.names.CitizenTemplateNameT
-import dev.vale.typing.templata.RegionTemplata
+import dev.vale.typing.templata.RegionTemplataT
 //import dev.vale.typingpass.templata.FunctionHeaderT
 import dev.vale.typing.types._
 
@@ -17,7 +17,7 @@ class TypeHammer(
     keywords: Keywords,
     nameHammer: NameHammer,
     structHammer: StructHammer) {
-  def translateKind(hinputs: Hinputs, hamuts: HamutsBox, tyype: KindT):
+  def translateKind(hinputs: HinputsT, hamuts: HamutsBox, tyype: KindT):
   (KindHT) = {
     tyype match {
       case NeverT(fromBreak) => NeverHT(fromBreak)
@@ -48,15 +48,15 @@ class TypeHammer(
   }
 
   def translateRegion(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
-    region: RegionTemplata):
+    region: RegionTemplataT):
   RegionH = {
     RegionH()
   }
 
   def translateCoord(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       coord: CoordT):
   (CoordH[KindHT]) = {
@@ -80,7 +80,7 @@ class TypeHammer(
   }
 
   def translateCoords(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       references2: Vector[CoordT]):
   (Vector[CoordH[KindHT]]) = {
@@ -94,7 +94,7 @@ class TypeHammer(
   }
 
   def translateStaticSizedArray(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       ssaTT: StaticSizedArrayTT):
   StaticSizedArrayHT = {
@@ -115,7 +115,7 @@ class TypeHammer(
     }
   }
 
-  def translateRuntimeSizedArray(hinputs: Hinputs, hamuts: HamutsBox, rsaTT: RuntimeSizedArrayTT): RuntimeSizedArrayHT = {
+  def translateRuntimeSizedArray(hinputs: HinputsT, hamuts: HamutsBox, rsaTT: RuntimeSizedArrayTT): RuntimeSizedArrayHT = {
     hamuts.runtimeSizedArrays.get(rsaTT) match {
       case Some(x) => x.kind
       case None => {
@@ -133,7 +133,7 @@ class TypeHammer(
   }
 
   def translatePrototype(
-    hinputs: Hinputs, hamuts: HamutsBox,
+    hinputs: HinputsT, hamuts: HamutsBox,
     prototype2: PrototypeT):
   (PrototypeH) = {
     val PrototypeT(fullName2, returnType2) = prototype2;

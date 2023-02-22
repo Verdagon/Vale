@@ -57,19 +57,19 @@ class CompilerRegionTests extends FunSuite with Matchers {
             Vector(
               CoordT(
                 BorrowT,
-                PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()),
-                StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()))))))))),
-          CoordT(ShareT,PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()),VoidT())),
+                PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()),
+                StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("MyStruct")),Vector(PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()))))))))),
+          CoordT(ShareT,PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()),VoidT())),
         Vector(arg)) => {
         arg.result.coord.region match {
-          case PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()) =>
+          case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("main"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("main"),_)),0)),RegionTemplataType()) =>
         }
       }
     })
 
     val myFunc = coutputs.lookupFunction("myFunc")
     myFunc.header.params.head.tyype.region match {
-      case PlaceholderTemplata(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),0)),RegionTemplataType()) =>
+      case PlaceholderTemplataT(IdT(_,Vector(FunctionTemplateNameT(StrI("myFunc"),_)),RegionPlaceholderNameT(0,DenizenDefaultRegionRuneS(FunctionNameS(StrI("myFunc"),_)),0)),RegionTemplataType()) =>
     }
   }
 
@@ -90,9 +90,9 @@ class CompilerRegionTests extends FunSuite with Matchers {
       """.stripMargin)
 
     object regionR {
-      def unapply(templata: ITemplata[ITemplataType]): Option[Unit] = {
+      def unapply(templata: ITemplataT[ITemplataType]): Option[Unit] = {
         templata match {
-          case PlaceholderTemplata(
+          case PlaceholderTemplataT(
             IdT(_,
               Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
               RegionPlaceholderNameT(_,CodeRuneS(StrI("r")), _)),
@@ -114,7 +114,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
             RuntimeSizedArrayNameT(
               RuntimeSizedArrayTemplateNameT(),
               RawArrayNameT(
-                MutabilityTemplata(MutableT),
+                MutabilityTemplataT(MutableT),
                 CoordT(ShareT, regionR(_), IntT(32)),
               regionR(_)))))) =>
     }
@@ -142,7 +142,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("CellularAutomata")
     val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
-      case PlaceholderTemplata(
+      case PlaceholderTemplataT(
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),
@@ -162,7 +162,7 @@ class CompilerRegionTests extends FunSuite with Matchers {
     val func = coutputs.lookupFunction("CellularAutomata")
     val intType = Collector.only(func, { case LetNormalTE(ReferenceLocalVariableT(CodeVarNameT(StrI("a")), _, c), _) => c })
     intType.region match {
-      case PlaceholderTemplata(
+      case PlaceholderTemplataT(
         IdT(
           _,
           Vector(FunctionTemplateNameT(StrI("CellularAutomata"),_)),

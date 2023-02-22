@@ -34,7 +34,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     callableExpr: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -163,7 +163,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     coord: CoordT,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
@@ -221,9 +221,9 @@ class CallCompiler(
     val mutability = Compiler.getMutability(coutputs, coord.kind)
     val ownership =
       mutability match {
-        case MutabilityTemplata(MutableT) => BorrowT
-        case MutabilityTemplata(ImmutableT) => ShareT
-        case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => BorrowT
+        case MutabilityTemplataT(MutableT) => BorrowT
+        case MutabilityTemplataT(ImmutableT) => ShareT
+        case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => BorrowT
       }
     vassert(givenCallableBorrowExpr2.result.coord.ownership == ownership)
     val actualCallableExpr2 = givenCallableBorrowExpr2
@@ -313,7 +313,7 @@ class CallCompiler(
     life: LocationInFunctionEnvironment,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     callableReferenceExpr2: ReferenceExpressionTE,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],

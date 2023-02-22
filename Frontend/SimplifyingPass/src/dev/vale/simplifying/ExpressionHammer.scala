@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast._
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast._
 import dev.vale.typing.env.AddressibleLocalVariableT
 import dev.vale.typing.types._
@@ -31,7 +31,7 @@ class ExpressionHammer(
   // - result register id
   // - deferred expressions, to move to after the enclosing call. head is put first after call.
   def translate(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -612,7 +612,7 @@ class ExpressionHammer(
   }
 
   def translateDeferreds(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -664,7 +664,7 @@ class ExpressionHammer(
   }
 
   def translateExpressionsUntilNever(
-    hinputs: Hinputs, hamuts: HamutsBox,
+    hinputs: HinputsT, hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
     exprsTE: Vector[ExpressionT]):
@@ -694,7 +694,7 @@ class ExpressionHammer(
   }
 
   def translateExpressionsAndDeferreds(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -712,7 +712,7 @@ class ExpressionHammer(
   }
 
   def translateExternFunctionCall(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -742,7 +742,7 @@ class ExpressionHammer(
   }
 
   def translateFunctionPointerCall(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -783,7 +783,7 @@ class ExpressionHammer(
   }
 
   def translateNewMutRuntimeSizedArray(
-    hinputs: Hinputs, hamuts: HamutsBox,
+    hinputs: HinputsT, hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
     constructArray2: NewMutRuntimeSizedArrayTE):
@@ -815,7 +815,7 @@ class ExpressionHammer(
   }
 
   def translateNewImmRuntimeSizedArray(
-    hinputs: Hinputs, hamuts: HamutsBox,
+    hinputs: HinputsT, hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
     constructArray2: NewImmRuntimeSizedArrayTE):
@@ -856,7 +856,7 @@ class ExpressionHammer(
   }
 
   def translateStaticArrayFromCallable(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -893,7 +893,7 @@ class ExpressionHammer(
   }
 
   def translateDestroyStaticSizedArray(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -933,7 +933,7 @@ class ExpressionHammer(
   }
 
   def translateDestroyImmRuntimeSizedArray(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -977,7 +977,7 @@ class ExpressionHammer(
   }
 
   def translateIf(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     parentLocals: LocalsBox,
@@ -1046,7 +1046,7 @@ class ExpressionHammer(
   }
 
   def translateWhile(
-    hinputs: Hinputs, hamuts: HamutsBox,
+    hinputs: HinputsT, hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
     while2: WhileTE):
@@ -1064,7 +1064,7 @@ class ExpressionHammer(
   }
 
   def translateInterfaceFunctionCall(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,

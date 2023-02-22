@@ -19,15 +19,6 @@ sealed trait OwnershipT {
 case object ShareT extends OwnershipT {
   override def toString: String = "share"
 }
-// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
-case object ImmutableShareT extends OwnershipT {
-  override def toString: String = "immshare"
-}
-// Instantiator turns ShareT into MutableShareT and ImmutableShareT, see HRALII
-// Ironic because shared things are immutable, this is rather referring to the refcount.
-case object MutableShareT extends OwnershipT {
-  override def toString: String = "mutshare"
-}
 case object OwnT extends OwnershipT {
   override def toString: String = "own"
 }
@@ -36,14 +27,6 @@ case object BorrowT extends OwnershipT {
 }
 case object WeakT extends OwnershipT {
   override def toString: String = "weak"
-}
-// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
-case object ImmutableBorrowT extends OwnershipT {
-  override def toString: String = "immborrow"
-}
-// Instantiator turns BorrowT into MutableBorrowT and ImmutableBorrowT, see HRALII
-case object MutableBorrowT extends OwnershipT {
-  override def toString: String = "mutborrow"
 }
 
 sealed trait MutabilityT  {
@@ -77,25 +60,18 @@ case object YonderT extends LocationT {
 case class CoordT(
   ownership: OwnershipT,
   // Usually these will just be placeholders, but one day we might want to say e.g. host'
-  region: ITemplata[RegionTemplataType],
+  region: ITemplataT[RegionTemplataType],
   kind: KindT)  {
 
   vpass()
 
-  (ownership, region) match {
-    case (ShareT, RegionTemplata(_)) => vwat()
-    case (ImmutableShareT, RegionTemplata(true)) => vwat()
-    case (MutableShareT, RegionTemplata(false)) => vwat()
-    case _ =>
-  }
-
   kind match {
     case IntT(_) | BoolT() | StrT() | FloatT() | VoidT() | NeverT(_) => {
-      vassert(ownership == ShareT || ownership == MutableShareT || ownership == ImmutableShareT)
+      vassert(ownership == ShareT)
     }
     case RuntimeSizedArrayTT(IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(_, _, arrRegion)))) => {
       region match {
-        case PlaceholderTemplata(_, _) => {
+        case PlaceholderTemplataT(_, _) => {
           vassert(arrRegion == region)
         }
         case _ => // In instantiator, the coord region might differ.
@@ -103,7 +79,7 @@ case class CoordT(
     }
     case StaticSizedArrayTT(IdT(_, _, StaticSizedArrayNameT(_, _, _, RawArrayNameT(_, _, arrRegion)))) => {
       region match {
-        case PlaceholderTemplata(_, _) => {
+        case PlaceholderTemplataT(_, _) => {
           vassert(arrRegion == region)
         }
         case _ => // In instantiator, the coord region might differ.
@@ -111,7 +87,7 @@ case class CoordT(
     }
     case StructTT(IdT(_, _, localName)) => {
       region match {
-        case PlaceholderTemplata(_, _) => {
+        case PlaceholderTemplataT(_, _) => {
           vassert(localName.templateArgs.last == region)
         }
         case _ => // In instantiator, the coord region might differ.
@@ -192,7 +168,7 @@ case class FloatT() extends KindT {
 
 object contentsStaticSizedArrayTT {
   def unapply(ssa: StaticSizedArrayTT):
-  Option[(ITemplata[IntegerTemplataType], ITemplata[MutabilityTemplataType], ITemplata[VariabilityTemplataType], CoordT, ITemplata[RegionTemplataType])] = {
+  Option[(ITemplataT[IntegerTemplataType], ITemplataT[MutabilityTemplataType], ITemplataT[VariabilityTemplataType], CoordT, ITemplataT[RegionTemplataType])] = {
     val IdT(_, _, StaticSizedArrayNameT(_, size, variability, RawArrayNameT(mutability, coord, selfRegion))) = ssa.name
     Some((size, mutability, variability, coord, selfRegion))
   }
@@ -202,7 +178,7 @@ case class StaticSizedArrayTT(
   name: IdT[StaticSizedArrayNameT]
 ) extends KindT with IInterning {
   vassert(name.initSteps.isEmpty)
-  def mutability: ITemplata[MutabilityTemplataType] = name.localName.arr.mutability
+  def mutability: ITemplataT[MutabilityTemplataType] = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
   def size = name.localName.size
   def variability = name.localName.variability
@@ -210,7 +186,7 @@ case class StaticSizedArrayTT(
 
 object contentsRuntimeSizedArrayTT {
   def unapply(rsa: RuntimeSizedArrayTT):
-  Option[(ITemplata[MutabilityTemplataType], CoordT, ITemplata[RegionTemplataType])] = {
+  Option[(ITemplataT[MutabilityTemplataType], CoordT, ITemplataT[RegionTemplataType])] = {
     val IdT(_, _, RuntimeSizedArrayNameT(_, RawArrayNameT(mutability, coord, selfRegion))) = rsa.name
     Some((mutability, coord, selfRegion))
   }

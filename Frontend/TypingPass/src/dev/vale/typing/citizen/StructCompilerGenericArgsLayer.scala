@@ -17,7 +17,7 @@ import dev.vale.typing.templata._
 import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env._
-import dev.vale.typing.templata.ITemplata.expectRegion
+import dev.vale.typing.templata.ITemplataT.expectRegion
 
 import scala.collection.immutable.{List, Set}
 
@@ -36,13 +36,13 @@ class StructCompilerGenericArgsLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]],
+    structTemplata: StructDefinitionTemplataT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
-      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
 
       // We no longer assume this:
@@ -111,13 +111,13 @@ class StructCompilerGenericArgsLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    interfaceTemplata: InterfaceDefinitionTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]],
+    interfaceTemplata: InterfaceDefinitionTemplataT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   (InterfaceTT) = {
     Profiler.frame(() => {
-      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -178,13 +178,13 @@ class StructCompilerGenericArgsLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]],
+    structTemplata: StructDefinitionTemplataT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
     // The default region is the only implicit generic param, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   (StructTT) = {
     Profiler.frame(() => {
-      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
 
       // We no longer assume this:
@@ -248,13 +248,13 @@ class StructCompilerGenericArgsLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    interfaceTemplata: InterfaceDefinitionTemplata,
-    templateArgs: Vector[ITemplata[ITemplataType]],
+    interfaceTemplata: InterfaceDefinitionTemplataT,
+    templateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   IResolveOutcome[InterfaceTT] = {
     Profiler.frame(() => {
-      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
 
       // We no longer assume this:
@@ -320,10 +320,10 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplata):
+    structTemplata: StructDefinitionTemplataT):
   Unit = {
     Profiler.frame(() => {
-      val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
+      val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
       val structTemplateName = nameTranslator.translateStructName(structA.name)
       val structTemplateFullName = declaringEnv.id.addStep(structTemplateName)
 
@@ -399,7 +399,7 @@ class StructCompilerGenericArgsLayer(
       structA.maybePredictedMutability match {
         case None => {
           val mutability =
-            ITemplata.expectMutability(inferences(structA.mutabilityRune.rune))
+            ITemplataT.expectMutability(inferences(structA.mutabilityRune.rune))
           coutputs.declareTypeMutability(structTemplateFullName, mutability)
         }
         case Some(_) =>
@@ -431,10 +431,10 @@ class StructCompilerGenericArgsLayer(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    interfaceTemplata: InterfaceDefinitionTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplataT):
   Unit = {
     Profiler.frame(() => {
-      val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
+      val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
       val interfaceTemplateName = nameTranslator.translateInterfaceName(interfaceA.name)
       val interfaceTemplateFullName = declaringEnv.id.addStep(interfaceTemplateName)
 
@@ -497,7 +497,7 @@ class StructCompilerGenericArgsLayer(
 
       interfaceA.maybePredictedMutability match {
         case None => {
-          val mutability = ITemplata.expectMutability(inferences(interfaceA.mutabilityRune.rune))
+          val mutability = ITemplataT.expectMutability(inferences(interfaceA.mutabilityRune.rune))
           coutputs.declareTypeMutability(interfaceTemplateFullName, mutability)
         }
         case Some(_) =>
@@ -534,14 +534,14 @@ class StructCompilerGenericArgsLayer(
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[NormalStructMemberT]):
-  (StructTT, MutabilityT, FunctionTemplata) = {
+  (StructTT, MutabilityT, FunctionTemplataT) = {
     core.makeClosureUnderstruct(
       containingFunctionEnv, coutputs, parentRanges, callLocation, name, functionS, members)
   }
 
   def assembleStructName(
     templateName: IdT[IStructTemplateNameT],
-    templateArgs: Vector[ITemplata[ITemplataType]]):
+    templateArgs: Vector[ITemplataT[ITemplataType]]):
   IdT[IStructNameT] = {
     templateName.copy(
       localName = templateName.localName.makeStructName(interner, templateArgs))
@@ -549,7 +549,7 @@ class StructCompilerGenericArgsLayer(
 
   def assembleInterfaceName(
     templateName: IdT[IInterfaceTemplateNameT],
-    templateArgs: Vector[ITemplata[ITemplataType]]):
+    templateArgs: Vector[ITemplataT[ITemplataType]]):
   IdT[IInterfaceNameT] = {
     templateName.copy(
       localName = templateName.localName.makeInterfaceName(interner, templateArgs))

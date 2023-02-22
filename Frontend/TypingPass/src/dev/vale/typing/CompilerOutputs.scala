@@ -8,7 +8,7 @@ import dev.vale.typing.names._
 import dev.vale.typing.types._
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, RangeS, StrI, vassert, vassertOne, vassertSome, vfail, vimpl, vpass, vwat}
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, MutabilityTemplata, PrototypeTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.immutable.{List, Map}
@@ -61,7 +61,7 @@ case class CompilerOutputs() {
   // wants to look in its inner env to get some bounds.
   private val typeNameToInnerEnv: mutable.HashMap[IdT[ITemplateNameT], IInDenizenEnvironment] = mutable.HashMap()
   // One must fill this in when putting things into declaredNames.
-  private val typeNameToMutability: mutable.HashMap[IdT[ITemplateNameT], ITemplata[MutabilityTemplataType]] = mutable.HashMap()
+  private val typeNameToMutability: mutable.HashMap[IdT[ITemplateNameT], ITemplataT[MutabilityTemplataType]] = mutable.HashMap()
   // One must fill this in when putting things into declaredNames.
   private val interfaceNameToSealed: mutable.HashMap[IdT[IInterfaceTemplateNameT], Boolean] = mutable.HashMap()
 
@@ -85,8 +85,8 @@ case class CompilerOutputs() {
   // This map is how we remember it.
   // Here, we'd remember: [drop<int>(Opt<int>), [Rune1337, drop(int)]].
   // We also do this for structs and interfaces too.
-  private val instantiationIdToInstantiationBounds: mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArguments] =
-    mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArguments]()
+  private val instantiationIdToInstantiationBounds: mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT] =
+    mutable.HashMap[IdT[IInstantiationNameT], InstantiationBoundArgumentsT]()
 
 //  // Only ArrayCompiler can make an RawArrayT2.
 //  private val staticSizedArrayTypes:
@@ -129,7 +129,7 @@ case class CompilerOutputs() {
     deferredFunctionCompiles -= name
   }
 
-  def getInstantiationNameToFunctionBoundToRune(): Map[IdT[IInstantiationNameT], InstantiationBoundArguments] = {
+  def getInstantiationNameToFunctionBoundToRune(): Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT] = {
     instantiationIdToInstantiationBounds.toMap
   }
 
@@ -139,13 +139,13 @@ case class CompilerOutputs() {
 
   def getInstantiationBounds(
     instantiationId: IdT[IInstantiationNameT]):
-  Option[InstantiationBoundArguments] = {
+  Option[InstantiationBoundArgumentsT] = {
     instantiationIdToInstantiationBounds.get(instantiationId)
   }
 
   def addInstantiationBounds(
     instantiationId: IdT[IInstantiationNameT],
-    functionBoundToRune: InstantiationBoundArguments):
+    functionBoundToRune: InstantiationBoundArgumentsT):
   Unit = {
     // We'll do this when we can cache instantiations from StructTemplar etc.
     // // We should only add instantiation bounds in exactly one place: the place that makes the
@@ -245,7 +245,7 @@ case class CompilerOutputs() {
 
   def declareTypeMutability(
     templateName: IdT[ITemplateNameT],
-    mutability: ITemplata[MutabilityTemplataType]
+    mutability: ITemplataT[MutabilityTemplataType]
   ): Unit = {
     vassert(typeDeclaredNames.contains(templateName))
     vassert(!typeNameToMutability.contains(templateName))
@@ -305,7 +305,7 @@ case class CompilerOutputs() {
   }
 
   def addStruct(structDef: StructDefinitionT): Unit = {
-    if (structDef.mutability == MutabilityTemplata(ImmutableT)) {
+    if (structDef.mutability == MutabilityTemplataT(ImmutableT)) {
       structDef.members.foreach({
         case NormalStructMemberT(name, variability, AddressMemberTypeT(reference)) => {
           vwat() // Immutable structs cant contain address members
@@ -403,7 +403,7 @@ case class CompilerOutputs() {
 //    }
 //  }
 
-  def lookupMutability(templateName: IdT[ITemplateNameT]): ITemplata[MutabilityTemplataType] = {
+  def lookupMutability(templateName: IdT[ITemplateNameT]): ITemplataT[MutabilityTemplataType] = {
     // If it has a structTT, then we've at least started to evaluate this citizen
     typeNameToMutability.get(templateName) match {
       case None => vfail("Still figuring out mutability for struct: " + templateName) // See MFDBRE

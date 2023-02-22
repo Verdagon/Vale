@@ -12,7 +12,7 @@ import dev.vale.postparsing.{LocationInDenizen, MutabilityTemplataType}
 import dev.vale.typing.ast._
 import dev.vale.typing.env.IEnvEntry
 import dev.vale.typing.names.CitizenTemplateNameT
-import dev.vale.typing.templata.ITemplata
+import dev.vale.typing.templata.ITemplataT
 import dev.vale.typing.types.InterfaceTT
 
 trait IFunctionBodyMacro {

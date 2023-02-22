@@ -2,7 +2,7 @@ package dev.vale.simplifying
 
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, finalast, vfail, vwat}
 import dev.vale.finalast.IdH
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.names._
 import dev.vale.finalast._
 import dev.vale.postparsing.AnonymousSubstructParentInterfaceTemplateRuneS
@@ -15,7 +15,7 @@ import dev.vale.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List
 
-class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
+class NameHammer(translateName: (HinputsT, HamutsBox, INameT) => IVonData) {
   def getReadableName(namePart: INameT): String = {
     namePart match {
       case SelfNameT() => "self"
@@ -66,7 +66,7 @@ class NameHammer(translateName: (Hinputs, HamutsBox, INameT) => IVonData) {
   }
 
   def translateFullName(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     fullName2: IdT[INameT]
   ): IdH = {

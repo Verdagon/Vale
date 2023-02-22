@@ -2,7 +2,7 @@ package dev.vale.typing.ast
 
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.names._
-import dev.vale.typing.templata.FunctionTemplata
+import dev.vale.typing.templata.FunctionTemplataT
 import dev.vale.{PackageCoordinate, RangeS, vassert, vcurious, vfail}
 import dev.vale.typing.types._
 import dev.vale._
@@ -29,7 +29,7 @@ case class ImplT(
   // We do this because a struct might implement an interface in multiple ways, see SCIIMT.
   // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
-  templata: ImplDefinitionTemplata,
+  templata: ImplDefinitionTemplataT,
 
   implOuterEnv: IInDenizenEnvironment,
 
@@ -100,7 +100,7 @@ case class FunctionExternT(
 
 }
 
-case class InterfaceEdgeBlueprint(
+case class InterfaceEdgeBlueprintT(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interface: IdT[IInterfaceNameT],
   superFamilyRootHeaders: Vector[(PrototypeT, Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
@@ -128,8 +128,8 @@ case class OverrideT(
   // might not be simple placeholders
   dispatcherCallId: IdT[OverrideDispatcherNameT],
 
-  implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplata[ITemplataType])],
-  implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplata[ITemplataType])],
+  implPlaceholderToDispatcherPlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
+  implPlaceholderToCasePlaceholder: Vector[(IdT[IPlaceholderNameT], ITemplataT[ITemplataType])],
 
   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   // TIBANFC.
@@ -229,7 +229,7 @@ case class ParameterT(
 
 sealed trait ICalleeCandidate
 
-case class FunctionCalleeCandidate(ft: FunctionTemplata) extends ICalleeCandidate {
+case class FunctionCalleeCandidate(ft: FunctionTemplataT) extends ICalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 }
 case class HeaderCalleeCandidate(header: FunctionHeaderT) extends ICalleeCandidate {
@@ -252,8 +252,8 @@ case class ValidHeaderCalleeCandidate(
   override def paramTypes: Vector[CoordT] = header.paramTypes.toVector
 }
 case class ValidPrototypeTemplataCalleeCandidate(
-  maybeNewRegion: Option[ITemplata[RegionTemplataType]],
-  prototype: PrototypeTemplata
+  maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
+  prototype: PrototypeTemplataT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -262,8 +262,8 @@ case class ValidPrototypeTemplataCalleeCandidate(
 }
 case class ValidCalleeCandidate(
   banner: FunctionHeaderT,
-  templateArgs: Vector[ITemplata[ITemplataType]],
-  function: FunctionTemplata
+  templateArgs: Vector[ITemplataT[ITemplataType]],
+  function: FunctionTemplataT
 ) extends IValidCalleeCandidate {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
@@ -289,7 +289,7 @@ case class SignatureT(id: IdT[IFunctionNameT]) {
 }
 
 case class FunctionBannerT(
-  originFunctionTemplata: Option[FunctionTemplata],
+  originFunctionTemplata: Option[FunctionTemplataT],
   name: IdT[IFunctionNameT])   {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -336,7 +336,7 @@ case class FunctionHeaderT(
 //  regions: Vector[RegionT],
   params: Vector[ParameterT],
   returnType: CoordT,
-  maybeOriginFunctionTemplata: Option[FunctionTemplata]) {
+  maybeOriginFunctionTemplata: Option[FunctionTemplataT]) {
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -360,7 +360,7 @@ case class FunctionHeaderT(
         val placeholdersInThisFunctionName =
           Collector.all(id, {
             case KindPlaceholderT(name) => name
-            case PlaceholderTemplata(name, _) => name
+            case PlaceholderTemplataT(name, _) => name
           })
         // Filter out any placeholders that came from the parent, in case this is a lambda function.
         val selfPlaceholdersInThisFunctionName =
@@ -383,7 +383,7 @@ case class FunctionHeaderT(
             selfPlaceholdersInThisFunctionName.foreach({
               case placeholderName @ IdT(_, _, NonKindNonRegionPlaceholderNameT(index, rune)) => {
                 id.localName.templateArgs(index) match {
-                  case PlaceholderTemplata(placeholderNameAtIndex, _) => {
+                  case PlaceholderTemplataT(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
                   case other => {
@@ -393,12 +393,12 @@ case class FunctionHeaderT(
                   }
                 }
               }
-              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, _, _, _)) => {
+              case placeholderName @ IdT(_, _, RegionPlaceholderNameT(index, rune, _)) => {
                 id.localName.templateArgs(index) match {
-                  case PlaceholderTemplata(placeholderNameAtIndex, _) => {
+                  case PlaceholderTemplataT(placeholderNameAtIndex, _) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
-                  case CoordTemplata(CoordT(_, PlaceholderTemplata(regionPlaceholderId, _), KindPlaceholderT(kindPlaceholderId))) => {
+                  case CoordTemplataT(CoordT(_, PlaceholderTemplataT(regionPlaceholderId, _), KindPlaceholderT(kindPlaceholderId))) => {
                     vassert(placeholderName == regionPlaceholderId)
                   }
                   case other => {
@@ -410,10 +410,10 @@ case class FunctionHeaderT(
               }
               case placeholderName @ IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(index, rune))) => {
                 id.localName.templateArgs(index) match {
-                  case KindTemplata(KindPlaceholderT(placeholderNameAtIndex)) => {
+                  case KindTemplataT(KindPlaceholderT(placeholderNameAtIndex)) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
-                  case CoordTemplata(CoordT(_, _, KindPlaceholderT(placeholderNameAtIndex))) => {
+                  case CoordTemplataT(CoordT(_, _, KindPlaceholderT(placeholderNameAtIndex))) => {
                     vassert(placeholderName == placeholderNameAtIndex)
                   }
                   case _ => vfail()

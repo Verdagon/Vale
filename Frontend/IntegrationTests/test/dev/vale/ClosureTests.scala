@@ -12,7 +12,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
 import org.scalatest.{FunSuite, Matchers}
-import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.von.VonInt
 
 class ClosureTests extends FunSuite with Matchers {
@@ -29,12 +29,12 @@ class ClosureTests extends FunSuite with Matchers {
         childMutated: IVariableUseCertainty) = {
       val addressibleIfMutable =
         LocalHelper.determineIfLocalIsAddressible(
-          MutabilityTemplata(MutableT),
+          MutabilityTemplataT(MutableT),
           LocalS(
             CodeVarNameS(interner.intern(StrI("x"))), selfBorrowed, selfMoved, selfMutated, childBorrowed, childMoved, childMutated))
       val addressibleIfImmutable =
         LocalHelper.determineIfLocalIsAddressible(
-          MutabilityTemplata(ImmutableT),
+          MutabilityTemplataT(ImmutableT),
           LocalS(
             CodeVarNameS(interner.intern(StrI("x"))), selfBorrowed, selfMoved, selfMutated, childBorrowed, childMoved, childMutated))
       (addressibleIfMutable, addressibleIfImmutable)
@@ -249,7 +249,7 @@ class ClosureTests extends FunSuite with Matchers {
         }
       }).get
     closureStruct.mutability match {
-      case MutabilityTemplata(MutableT) =>
+      case MutabilityTemplataT(MutableT) =>
     }
     compile.evalForKind(Vector()) match { case VonInt(42) => }
   }

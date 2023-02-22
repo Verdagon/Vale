@@ -20,7 +20,7 @@ import dev.vale.typing.env._
 import dev.vale.typing.function.FunctionCompiler
 import dev.vale.typing.ast._
 import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionSuccess, IEvaluateFunctionResult, StampFunctionSuccess}
-import dev.vale.typing.templata.ITemplata.expectMutability
+import dev.vale.typing.templata.ITemplataT.expectMutability
 
 import scala.collection.immutable.List
 import scala.collection.mutable
@@ -32,7 +32,7 @@ trait IStructCompilerDelegate {
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    functionTemplata: FunctionTemplata,
+    functionTemplata: FunctionTemplataT,
     verifyConclusions: Boolean):
   FunctionHeaderT
 
@@ -44,7 +44,7 @@ trait IStructCompilerDelegate {
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
@@ -81,10 +81,10 @@ class StructCompiler(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    structTemplata: StructDefinitionTemplataT,
+    uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only implicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   IResolveOutcome[StructTT] = {
     Profiler.frame(() => {
       templateArgsLayer.resolveStruct(
@@ -94,9 +94,9 @@ class StructCompiler(
 
   def precompileStruct(
     coutputs: CompilerOutputs,
-    structTemplata: StructDefinitionTemplata):
+    structTemplata: StructDefinitionTemplataT):
   Unit = {
-    val StructDefinitionTemplata(declaringEnv, structA) = structTemplata
+    val StructDefinitionTemplataT(declaringEnv, structA) = structTemplata
 
     val structTemplateId = templataCompiler.resolveStructTemplate(structTemplata)
 
@@ -107,7 +107,7 @@ class StructCompiler(
       case Some(predictedMutability) => {
         coutputs.declareTypeMutability(
           structTemplateId,
-          MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+          MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
       }
     }
 
@@ -133,9 +133,9 @@ class StructCompiler(
 
   def precompileInterface(
     coutputs: CompilerOutputs,
-    interfaceTemplata: InterfaceDefinitionTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplataT):
   Unit = {
-    val InterfaceDefinitionTemplata(declaringEnv, interfaceA) = interfaceTemplata
+    val InterfaceDefinitionTemplataT(declaringEnv, interfaceA) = interfaceTemplata
 
     val interfaceTemplateId = templataCompiler.resolveInterfaceTemplate(interfaceTemplata)
     val defaultRegion = vimpl()
@@ -147,7 +147,7 @@ class StructCompiler(
       case Some(predictedMutability) => {
         coutputs.declareTypeMutability(
           interfaceTemplateId,
-          MutabilityTemplata(Conversions.evaluateMutability(predictedMutability)))
+          MutabilityTemplataT(Conversions.evaluateMutability(predictedMutability)))
       }
     }
 
@@ -187,7 +187,7 @@ class StructCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    structTemplata: StructDefinitionTemplata):
+    structTemplata: StructDefinitionTemplataT):
   Unit = {
     Profiler.frame(() => {
       templateArgsLayer.compileStruct(coutputs, parentRanges, callLocation, structTemplata)
@@ -202,10 +202,10 @@ class StructCompiler(
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    interfaceTemplata: InterfaceDefinitionTemplataT,
+    uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   (InterfaceTT) = {
     templateArgsLayer.predictInterface(
       coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
@@ -219,10 +219,10 @@ class StructCompiler(
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    structTemplata: StructDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    structTemplata: StructDefinitionTemplataT,
+    uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // The default region is the only implicit generic param, see DROIGP.
-    defaultRegion: ITemplata[RegionTemplataType]):
+    defaultRegion: ITemplataT[RegionTemplataType]):
   (StructTT) = {
     templateArgsLayer.predictStruct(
       coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, defaultRegion)
@@ -235,10 +235,10 @@ class StructCompiler(
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    interfaceTemplata: InterfaceDefinitionTemplataT,
+    uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   IResolveOutcome[InterfaceTT] = {
     val success =
       templateArgsLayer.resolveInterface(
@@ -254,14 +254,14 @@ class StructCompiler(
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    citizenTemplata: CitizenDefinitionTemplata,
-    uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+    citizenTemplata: CitizenDefinitionTemplataT,
+    uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
     // Context region is the only impicit generic parameter, see DROIGP.
-    contextRegion: ITemplata[RegionTemplataType]):
+    contextRegion: ITemplataT[RegionTemplataType]):
   IResolveOutcome[ICitizenTT] = {
     citizenTemplata match {
-      case st @ StructDefinitionTemplata(_, _) => resolveStruct(coutputs, callingEnv, callRange, callLocation, st, uncoercedTemplateArgs, contextRegion)
-      case it @ InterfaceDefinitionTemplata(_, _) => resolveInterface(coutputs, callingEnv, callRange, callLocation, it, uncoercedTemplateArgs, contextRegion)
+      case st @ StructDefinitionTemplataT(_, _) => resolveStruct(coutputs, callingEnv, callRange, callLocation, st, uncoercedTemplateArgs, contextRegion)
+      case it @ InterfaceDefinitionTemplataT(_, _) => resolveInterface(coutputs, callingEnv, callRange, callLocation, it, uncoercedTemplateArgs, contextRegion)
     }
   }
 
@@ -271,7 +271,7 @@ class StructCompiler(
     callLocation: LocationInDenizen,
     // We take the entire templata (which includes environment and parents) so we can incorporate
     // their rules as needed
-    interfaceTemplata: InterfaceDefinitionTemplata):
+    interfaceTemplata: InterfaceDefinitionTemplataT):
   Unit = {
     templateArgsLayer.compileInterface(
       coutputs, parentRanges, callLocation, interfaceTemplata)
@@ -286,7 +286,7 @@ class StructCompiler(
     name: IFunctionDeclarationNameS,
     functionS: FunctionA,
     members: Vector[NormalStructMemberT]):
-  (StructTT, MutabilityT, FunctionTemplata) = {
+  (StructTT, MutabilityT, FunctionTemplataT) = {
 //    Profiler.reentrant("StructCompiler-makeClosureUnderstruct", name.codeLocation.toString, () => {
       templateArgsLayer.makeClosureUnderstruct(containingFunctionEnv, coutputs, parentRanges, callLocation, name, functionS, members)
 //    })
@@ -318,10 +318,10 @@ object StructCompiler {
     interner: Interner,
     keywords: Keywords,
     coutputs: CompilerOutputs,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     structTT: StructTT,
     boundArgumentsSource: IBoundArgumentsSource):
-  ITemplata[MutabilityTemplataType] = {
+  ITemplataT[MutabilityTemplataType] = {
     val definition = coutputs.lookupStruct(structTT.id)
     val transformer =
       TemplataCompiler.getPlaceholderSubstituter(
@@ -329,6 +329,6 @@ object StructCompiler {
 //        Vector((definition.defaultRegion, region)),
         boundArgumentsSource)
     val result = transformer.substituteForTemplata(coutputs, definition.mutability)
-    ITemplata.expectMutability(result)
+    ITemplataT.expectMutability(result)
   }
 }

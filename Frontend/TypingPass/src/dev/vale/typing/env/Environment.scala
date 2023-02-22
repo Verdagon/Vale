@@ -35,18 +35,18 @@ trait IEnvironment {
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]]
+  Iterable[ITemplataT[ITemplataType]]
 
   private[env] def lookupWithNameInner(
     nameS: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]]
+  Iterable[ITemplataT[ITemplataType]]
 
   def lookupAllWithImpreciseName(
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithImpreciseNameInner(nameS, lookupFilter, false)
     })
@@ -55,7 +55,7 @@ trait IEnvironment {
   def lookupAllWithName(
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithNameInner(nameS, lookupFilter, false)
     })
@@ -64,7 +64,7 @@ trait IEnvironment {
   def lookupNearestWithName(
     nameS: INameT,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata[ITemplataType]] = {
+  Option[ITemplataT[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithNameInner(nameS, lookupFilter, true).toList match {
         case List() => None
@@ -77,7 +77,7 @@ trait IEnvironment {
   def lookupNearestWithImpreciseName(
     nameS: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Option[ITemplata[ITemplataType]] = {
+  Option[ITemplataT[ITemplataType]] = {
     Profiler.frame(() => {
       lookupWithImpreciseNameInner(nameS, lookupFilter, true).toList match {
         case List() => None
@@ -146,41 +146,40 @@ object TemplatasStore {
       case InterfaceEnvEntry(_) => contexts.contains(TemplataLookupContext)
       case TemplataEnvEntry(templata) => {
         templata match {
-          case PlaceholderTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case IsaTemplata(_, _, _, _) => contexts.contains(TemplataLookupContext)
+          case PlaceholderTemplataT(_, _) => contexts.contains(TemplataLookupContext)
+          case IsaTemplataT(_, _, _, _) => contexts.contains(TemplataLookupContext)
 //          case PrototypeTemplata(_, _, _) => true
-          case CoordTemplata(_) => contexts.contains(TemplataLookupContext)
-          case CoordListTemplata(_) => contexts.contains(TemplataLookupContext)
-          case PrototypeTemplata(_, _) => true
-          case RegionTemplata(_) => contexts.contains(TemplataLookupContext)
-          case KindTemplata(_) => contexts.contains(TemplataLookupContext)
-          case StructDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case InterfaceDefinitionTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case RuntimeSizedArrayTemplateTemplata() => contexts.contains(TemplataLookupContext)
-          case StaticSizedArrayTemplateTemplata() => contexts.contains(TemplataLookupContext)
-          case BooleanTemplata(_) => true
-          case FunctionTemplata(_, _) => contexts.contains(ExpressionLookupContext)
-          case ImplDefinitionTemplata(_, _) => contexts.contains(ExpressionLookupContext)
-          case IntegerTemplata(_) => true
-          case StringTemplata(_) => true
-          case LocationTemplata(_) => contexts.contains(TemplataLookupContext)
-          case MutabilityTemplata(_) => contexts.contains(TemplataLookupContext)
-          case OwnershipTemplata(_) => contexts.contains(TemplataLookupContext)
-          case VariabilityTemplata(_) => contexts.contains(TemplataLookupContext)
+          case CoordTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case CoordListTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case PrototypeTemplataT(_, _) => true
+          case KindTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case StructDefinitionTemplataT(_, _) => contexts.contains(TemplataLookupContext)
+          case InterfaceDefinitionTemplataT(_, _) => contexts.contains(TemplataLookupContext)
+          case RuntimeSizedArrayTemplateTemplataT() => contexts.contains(TemplataLookupContext)
+          case StaticSizedArrayTemplateTemplataT() => contexts.contains(TemplataLookupContext)
+          case BooleanTemplataT(_) => true
+          case FunctionTemplataT(_, _) => contexts.contains(ExpressionLookupContext)
+          case ImplDefinitionTemplataT(_, _) => contexts.contains(ExpressionLookupContext)
+          case IntegerTemplataT(_) => true
+          case StringTemplataT(_) => true
+          case LocationTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case MutabilityTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case OwnershipTemplataT(_) => contexts.contains(TemplataLookupContext)
+          case VariabilityTemplataT(_) => contexts.contains(TemplataLookupContext)
 //          case ExternImplTemplata(_, _) => contexts.contains(TemplataLookupContext)
-          case ExternFunctionTemplata(_) => contexts.contains(ExpressionLookupContext)
+          case ExternFunctionTemplataT(_) => contexts.contains(ExpressionLookupContext)
         }
       }
     }
   }
 
-  def entryToTemplata(definingEnv: IEnvironment, entry: IEnvEntry): ITemplata[ITemplataType] = {
+  def entryToTemplata(definingEnv: IEnvironment, entry: IEnvEntry): ITemplataT[ITemplataType] = {
     //    vassert(env.fullName != FullName2(PackageCoordinate.BUILTIN, Vector.empty, PackageTopLevelName2()))
     entry match {
-      case FunctionEnvEntry(func) => templata.FunctionTemplata(definingEnv, func)
-      case StructEnvEntry(struct) => templata.StructDefinitionTemplata(definingEnv, struct)
-      case InterfaceEnvEntry(interface) => templata.InterfaceDefinitionTemplata(definingEnv, interface)
-      case ImplEnvEntry(impl) => templata.ImplDefinitionTemplata(definingEnv, impl)
+      case FunctionEnvEntry(func) => templata.FunctionTemplataT(definingEnv, func)
+      case StructEnvEntry(struct) => templata.StructDefinitionTemplataT(definingEnv, struct)
+      case InterfaceEnvEntry(interface) => templata.InterfaceDefinitionTemplataT(definingEnv, interface)
+      case ImplEnvEntry(impl) => templata.ImplDefinitionTemplataT(definingEnv, impl)
       case TemplataEnvEntry(templata) => templata
     }
   }
@@ -285,7 +284,7 @@ case class TemplatasStore(
       newEntries
         .toVector
         .flatMap({
-          case (key, value @ TemplataEnvEntry(PrototypeTemplata(_, prototype))) => {
+          case (key, value @ TemplataEnvEntry(PrototypeTemplataT(_, prototype))) => {
             // This is so if we have:
             //    where func moo(T)T
             // then that prototype will be accessible via not only ImplicitRune(1.4.6.1)
@@ -300,7 +299,7 @@ case class TemplatasStore(
               interner.intern(ImplSubCitizenImpreciseNameS(implA.subCitizenImpreciseName)) -> entry,
               interner.intern(ImplSuperInterfaceImpreciseNameS(implA.superInterfaceImpreciseName)) -> entry)
           }
-          case (key, entry @ TemplataEnvEntry(IsaTemplata(_, _, subKind, superKind))) => {
+          case (key, entry @ TemplataEnvEntry(IsaTemplataT(_, _, subKind, superKind))) => {
             val subImpreciseName =
               subKind match {
                 case StructTT(fullName) => vassertSome(getImpreciseName(interner, fullName.localName))
@@ -345,7 +344,7 @@ case class TemplatasStore(
 
     name: INameT,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     entriesByNameT.get(name)
       .filter(entryMatchesFilter(_, lookupFilter))
       .map(entryToTemplata(definingEnv, _))
@@ -356,7 +355,7 @@ case class TemplatasStore(
 
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext]):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     val a1 = entriesByImpreciseNameS.getOrElse(name, Vector())
     val a2 = a1.filter(entryMatchesFilter(_, lookupFilter))
     val a3 = a2.map(entryToTemplata(definingEnv, _))
@@ -401,7 +400,7 @@ case class PackageEnvironment[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     globalEnv.builtins.lookupWithNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
       val env = PackageEnvironment(globalEnv, ns.templatasStoreName, globalNamespaces)
@@ -413,7 +412,7 @@ case class PackageEnvironment[+T <: INameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     globalEnv.builtins.lookupWithImpreciseNameInner(this, name, lookupFilter) ++
     globalNamespaces.flatMap(ns => {
       ns.lookupWithImpreciseNameInner(
@@ -470,7 +469,7 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     val result = templatas.lookupWithNameInner(this, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result
@@ -484,7 +483,7 @@ case class CitizenEnvironment[+T <: INameT, +Y <: ITemplateNameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     val result = templatas.lookupWithImpreciseNameInner(this, name, lookupFilter)
     if (result.nonEmpty && getOnlyNearest) {
       result
@@ -500,7 +499,7 @@ object GeneralEnvironment {
     parentEnv: IInDenizenEnvironment,
     newName: IdT[Y],
     // None means just inherit it from the parent environment.
-    maybeDefaultRegion: Option[ITemplata[RegionTemplataType]] = None,
+    maybeDefaultRegion: Option[ITemplataT[RegionTemplataType]] = None,
     newEntriesList: Vector[(INameT, IEnvEntry)] = Vector()):
   GeneralEnvironment[Y] = {
     GeneralEnvironment(
@@ -528,7 +527,7 @@ case class ExportEnvironment(
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -537,7 +536,7 @@ case class ExportEnvironment(
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -569,7 +568,7 @@ case class GeneralEnvironment[+T <: INameT](
     name: INameT,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }
@@ -578,7 +577,7 @@ case class GeneralEnvironment[+T <: INameT](
     name: IImpreciseNameS,
     lookupFilter: Set[ILookupContext],
     getOnlyNearest: Boolean):
-  Iterable[ITemplata[ITemplataType]] = {
+  Iterable[ITemplataT[ITemplataType]] = {
     EnvironmentHelper.lookupWithImpreciseNameInner(
       this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
   }

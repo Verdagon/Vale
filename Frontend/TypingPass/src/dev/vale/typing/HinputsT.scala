@@ -1,9 +1,9 @@
 package dev.vale.typing
 
 import dev.vale.postparsing.IRuneS
-import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionDefinitionT, InterfaceEdgeBlueprint, KindExportT, KindExternT, PrototypeT, SignatureT}
+import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionDefinitionT, InterfaceEdgeBlueprintT, KindExportT, KindExternT, PrototypeT, SignatureT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
-import dev.vale.typing.templata.{PrototypeTemplata, simpleName}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.{StrI, vassertOne, vassertSome, vcurious, vfail, vimpl}
 import dev.vale.typing.ast._
@@ -12,11 +12,11 @@ import dev.vale.typing.types._
 
 import scala.collection.mutable
 
-case class InstantiationBoundArguments(
+case class InstantiationBoundArgumentsT(
   runeToFunctionBoundArg: Map[IRuneS, PrototypeT],
   runeToImplBoundArg: Map[IRuneS, IdT[IImplNameT]])
 
-case class Hinputs(
+case class HinputsT(
   interfaces: Vector[InterfaceDefinitionT],
   structs: Vector[StructDefinitionT],
 //  emptyPackStructRef: StructTT,
@@ -24,11 +24,11 @@ case class Hinputs(
 //  immKindToDestructor: Map[KindT, PrototypeT],
 
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  interfaceToEdgeBlueprints: Map[IdT[IInterfaceNameT], InterfaceEdgeBlueprint],
+  interfaceToEdgeBlueprints: Map[IdT[IInterfaceNameT], InterfaceEdgeBlueprintT],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
   interfaceToSubCitizenToEdge: Map[IdT[IInterfaceNameT], Map[IdT[ICitizenNameT], EdgeT]],
 
-  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArguments],
+  instantiationNameToInstantiationBounds: Map[IdT[IInstantiationNameT], InstantiationBoundArgumentsT],
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
@@ -73,7 +73,7 @@ case class Hinputs(
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
-  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArguments = {
+  def getInstantiationBoundArgs(instantiationName: IdT[IInstantiationNameT]): InstantiationBoundArgumentsT = {
     vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
   }
 
@@ -169,7 +169,7 @@ case class Hinputs(
   def lookupUserFunction(humanName: String): FunctionDefinitionT = {
     val matches =
       functions
-        .filter(function => simpleName.unapply(function.header.id).contains(humanName))
+        .filter(function => simpleNameT.unapply(function.header.id).contains(humanName))
         .filter(_.header.isUserFunction)
     if (matches.size == 0) {
       vfail("Not found!")

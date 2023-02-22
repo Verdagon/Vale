@@ -36,7 +36,7 @@ trait IFunctionCompilerDelegate {
     life: LocationInFunctionEnvironment,
     ranges: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -71,8 +71,8 @@ object FunctionCompiler {
   trait IEvaluateFunctionResult
 
   case class EvaluateFunctionSuccess(
-    prototype: PrototypeTemplata,
-    inferences: Map[IRuneS, ITemplata[ITemplataType]]
+    prototype: PrototypeTemplataT,
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
   ) extends IEvaluateFunctionResult
 
   case class EvaluateFunctionFailure(
@@ -83,9 +83,9 @@ object FunctionCompiler {
   trait IStampFunctionResult
 
   case class StampFunctionSuccess(
-    maybeNewRegion: Option[ITemplata[RegionTemplataType]],
-    prototype: PrototypeTemplata,
-    inferences: Map[IRuneS, ITemplata[ITemplataType]]
+    maybeNewRegion: Option[ITemplataT[RegionTemplataType]],
+    prototype: PrototypeTemplataT,
+    inferences: Map[IRuneS, ITemplataT[ITemplataType]]
   ) extends IStampFunctionResult
 
   case class StampFunctionFailure(
@@ -120,11 +120,11 @@ class FunctionCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    functionTemplata: FunctionTemplata,
+    functionTemplata: FunctionTemplataT,
     verifyConclusions: Boolean):
   (FunctionHeaderT) = {
     Profiler.frame(() => {
-      val FunctionTemplata(env, function) = functionTemplata
+      val FunctionTemplataT(env, function) = functionTemplata
       if (function.isLight) {
         closureOrLightLayer.evaluateGenericLightFunctionFromNonCall(
           env, coutputs, function.range :: parentRanges, callLocation, function, verifyConclusions)
@@ -140,13 +140,13 @@ class FunctionCompiler(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    functionTemplata: FunctionTemplata,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    functionTemplata: FunctionTemplataT,
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
-      val FunctionTemplata(declaringEnv, function) = functionTemplata
+      val FunctionTemplataT(declaringEnv, function) = functionTemplata
       closureOrLightLayer.evaluateTemplatedLightBannerFromCall(
         declaringEnv,
         coutputs,
@@ -160,13 +160,13 @@ class FunctionCompiler(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    functionTemplata: FunctionTemplata,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    functionTemplata: FunctionTemplataT,
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     Profiler.frame(() => {
-      val FunctionTemplata(declaringEnv, function) = functionTemplata
+      val FunctionTemplataT(declaringEnv, function) = functionTemplata
       if (function.isLight()) {
         closureOrLightLayer.evaluateTemplatedLightBannerFromCall(
           declaringEnv,
@@ -180,7 +180,7 @@ class FunctionCompiler(
             case _ => vwat()
           }
 
-        val KindTemplata(closureStructRef@StructTT(_)) =
+        val KindTemplataT(closureStructRef@StructTT(_)) =
           vassertOne(
             declaringEnv.lookupNearestWithName(
               lambdaCitizenName2,
@@ -200,14 +200,14 @@ class FunctionCompiler(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
-    functionTemplata: FunctionTemplata,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    functionTemplata: FunctionTemplataT,
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   IEvaluateFunctionResult = {
     Profiler.frame(() => {
-      val FunctionTemplata(env, function) = functionTemplata
+      val FunctionTemplataT(env, function) = functionTemplata
       if (function.isLight()) {
         closureOrLightLayer.evaluateTemplatedLightFunctionFromCallForPrototype2(
           env, coutputs, callingEnv, callRange, callLocation, function, explicitTemplateArgs, contextRegion, argTypes, verifyConclusions)
@@ -217,7 +217,7 @@ class FunctionCompiler(
             case LambdaDeclarationNameS(codeLocation) => interner.intern(LambdaCitizenNameT(interner.intern(LambdaCitizenTemplateNameT(nameTranslator.translateCodeLocation(codeLocation)))))
             case _ => vwat()
           }
-        val KindTemplata(closureStructRef @ StructTT(_)) =
+        val KindTemplataT(closureStructRef @ StructTT(_)) =
           vassertOne(
             env.lookupNearestWithName(
               lambdaCitizenName2,
@@ -235,11 +235,11 @@ class FunctionCompiler(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
-    functionTemplata: FunctionTemplata,
+    functionTemplata: FunctionTemplataT,
     args: Vector[Option[CoordT]]):
   IEvaluateFunctionResult = {
     Profiler.frame(() => {
-      val FunctionTemplata(env, function) = functionTemplata
+      val FunctionTemplataT(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionParentForPrototype2(
         env, coutputs, callingEnv, callRange, callLocation, function, args)
     })
@@ -250,13 +250,13 @@ class FunctionCompiler(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment, // See CSSNCE
-    functionTemplata: FunctionTemplata,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    functionTemplata: FunctionTemplataT,
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT]):
   IEvaluateFunctionResult = {
     Profiler.frame(() => {
-      val FunctionTemplata(env, function) = functionTemplata
+      val FunctionTemplataT(env, function) = functionTemplata
       closureOrLightLayer.evaluateGenericLightFunctionFromCallForPrototype2(
         env, coutputs, callingEnv, callRange, callLocation, function, explicitTemplateArgs,
         contextRegion, args.map(Some(_)))

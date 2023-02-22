@@ -12,9 +12,9 @@ import dev.vale.typing.ast._
 import dev.vale.typing.citizen.WeakableImplingMismatch
 import dev.vale.typing.expression.TookWeakRefOfNonWeakableError
 import dev.vale.typing.names.{FunctionNameT, FunctionTemplateNameT}
-import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types.{CoordT, ImmutableT, IntT, ShareT, contentsRuntimeSizedArrayTT}
-import dev.vale.typing.{Hinputs, ICompileErrorT}
+import dev.vale.typing.{HinputsT, ICompileErrorT}
 import dev.vale.von.{IVonData, VonBool, VonFloat, VonInt}
 import org.scalatest.{FunSuite, Matchers}
 

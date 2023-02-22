@@ -6,7 +6,7 @@ import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionN
 import dev.vale.typing.types._
 import dev.vale.testvm.IntV
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.ITemplata.{expectCoord, expectCoordTemplata}
+import dev.vale.typing.templata.ITemplataT.{expectCoord, expectCoordTemplata}
 import dev.vale.typing.types._
 import dev.vale.von.{VonInt, VonStr}
 import org.scalatest.{FunSuite, Matchers}

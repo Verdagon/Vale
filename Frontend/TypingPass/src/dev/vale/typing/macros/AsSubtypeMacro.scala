@@ -8,7 +8,7 @@ import dev.vale.typing.ast.{ArgLookupTE, AsSubtypeTE, BlockTE, FunctionCallTE, F
 import dev.vale.typing.citizen.{ImplCompiler, IsParent, IsntParent}
 import dev.vale.typing.env.FunctionEnvironment
 import dev.vale.typing.expression.ExpressionCompiler
-import dev.vale.typing.templata.{CoordTemplata, KindTemplata}
+import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.FunctionEnvironmentBox
@@ -43,7 +43,7 @@ class AsSubtypeMacro(
         maybeRetCoord.get,
         Some(env.templata))
 
-    val CoordTemplata(CoordT(_, _, targetKind)) = vassertSome(env.id.localName.templateArgs.headOption)
+    val CoordTemplataT(CoordT(_, _, targetKind)) = vassertSome(env.id.localName.templateArgs.headOption)
     val CoordT(incomingOwnership, _, _) = vassertSome(env.id.localName.parameters.headOption)
 
     val incomingCoord = paramCoords(0).tyype

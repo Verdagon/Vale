@@ -9,7 +9,7 @@ import dev.vale.typing.names.{CodeVarNameT, IdT, RawArrayNameT, StaticSizedArray
 import dev.vale.typing.types._
 import dev.vale.typing._
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types._
 import dev.vale.von.{VonBool, VonInt, VonStr}
 import org.scalatest.{FunSuite, Matchers}
@@ -152,7 +152,7 @@ class ArrayTests extends FunSuite with Matchers {
       case StaticSizedArrayLookupTE(_, arrayExpr,_, _, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
-            mutability shouldEqual MutabilityTemplata(MutableT)
+            mutability shouldEqual MutabilityTemplataT(MutableT)
           }
         }
       }
@@ -169,7 +169,7 @@ class ArrayTests extends FunSuite with Matchers {
       case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
-            mutability shouldEqual MutabilityTemplata(ImmutableT)
+            mutability shouldEqual MutabilityTemplataT(ImmutableT)
           }
         }
       }
@@ -186,7 +186,7 @@ class ArrayTests extends FunSuite with Matchers {
       case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
-            mutability shouldEqual MutabilityTemplata(MutableT)
+            mutability shouldEqual MutabilityTemplataT(MutableT)
           }
         }
       }
@@ -203,7 +203,7 @@ class ArrayTests extends FunSuite with Matchers {
       case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
-            mutability shouldEqual MutabilityTemplata(ImmutableT)
+            mutability shouldEqual MutabilityTemplataT(ImmutableT)
           }
         }
       }
@@ -220,7 +220,7 @@ class ArrayTests extends FunSuite with Matchers {
       case StaticSizedArrayLookupTE(_,arrayExpr,_, _, _) => {
         arrayExpr.result.coord.kind match {
           case StaticSizedArrayTT(IdT(packageCoord, initSteps, StaticSizedArrayNameT(template, size, variability, RawArrayNameT(mutability, elementType, selfRegion)))) => {
-            mutability shouldEqual MutabilityTemplata(MutableT)
+            mutability shouldEqual MutabilityTemplataT(MutableT)
           }
         }
       }
@@ -243,7 +243,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
       case RuntimeSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
+        arrayType.mutability shouldEqual MutabilityTemplataT(MutableT)
       }
     })
 
@@ -256,7 +256,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
       case RuntimeSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(ImmutableT)
+        arrayType.mutability shouldEqual MutabilityTemplataT(ImmutableT)
       }
     })
 
@@ -271,7 +271,7 @@ class ArrayTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
       case RuntimeSizedArrayLookupTE(_,_,arrayType, _, _) => {
-        arrayType.mutability shouldEqual MutabilityTemplata(MutableT)
+        arrayType.mutability shouldEqual MutabilityTemplataT(MutableT)
       }
     })
 
@@ -331,7 +331,7 @@ class ArrayTests extends FunSuite with Matchers {
     Collector.only(main, {
       case NewImmRuntimeSizedArrayTE(
         contentsRuntimeSizedArrayTT(
-          MutabilityTemplata(ImmutableT), CoordT(ShareT, _, IntT(_)), null),
+          MutabilityTemplataT(ImmutableT), CoordT(ShareT, _, IntT(_)), null),
         _, _, _, _) =>
     })
 
@@ -357,7 +357,7 @@ class ArrayTests extends FunSuite with Matchers {
         ReferenceLocalVariableT(
           CodeVarNameT(StrI("a")),
           _,
-          CoordT(OwnT,_,contentsRuntimeSizedArrayTT(MutabilityTemplata(MutableT),CoordT(ShareT,_,IntT(_)), null))), _) =>
+          CoordT(OwnT,_,contentsRuntimeSizedArrayTT(MutabilityTemplataT(MutableT),CoordT(ShareT,_,IntT(_)), null))), _) =>
     })
 
     compile.evalForKind(Vector()) match { case VonInt(42) => }
@@ -381,7 +381,7 @@ class ArrayTests extends FunSuite with Matchers {
     Collector.only(main, {
       case NewImmRuntimeSizedArrayTE(
         contentsRuntimeSizedArrayTT(
-          MutabilityTemplata(ImmutableT),
+          MutabilityTemplataT(ImmutableT),
           CoordT(ShareT, _, IntT(_)),
           null), _, _, _, _) =>
     })

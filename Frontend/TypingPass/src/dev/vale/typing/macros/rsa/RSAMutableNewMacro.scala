@@ -14,8 +14,8 @@ import dev.vale.typing.ast._
 import dev.vale.typing.env.TemplataLookupContext
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.DenizenDefaultRegionNameT
-import dev.vale.typing.templata.ITemplata.expectRegion
-import dev.vale.typing.templata.MutabilityTemplata
+import dev.vale.typing.templata.ITemplataT.expectRegion
+import dev.vale.typing.templata.MutabilityTemplataT
 import dev.vale.typing.types.RuntimeSizedArrayTT
 
 
@@ -48,13 +48,13 @@ class RSAMutableNewMacro(
         Some(env.templata))
     coutputs.declareFunctionReturnType(header.toSignature, header.returnType)
 
-    val CoordTemplata(elementType) =
+    val CoordTemplataT(elementType) =
       vassertSome(
         env.lookupNearestWithImpreciseName(
           interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
 
     val mutability =
-      ITemplata.expectMutability(
+      ITemplataT.expectMutability(
         vassertSome(
           env.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(CodeRuneS(keywords.M))), Set(TemplataLookupContext))))
