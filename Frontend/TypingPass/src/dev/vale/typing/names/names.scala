@@ -1,7 +1,7 @@
 package dev.vale.typing.names
 
 import dev.vale.postparsing.{CodeRuneS, CoordTemplataType, IRuneS, ITemplataType, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, RegionTemplataType, VariabilityTemplataType}
-import dev.vale.typing.ast.LocationInFunctionEnvironment
+import dev.vale.typing.ast.LocationInFunctionEnvironmentT
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.{CodeLocationS, IInterning, Interner, Keywords, PackageCoordinate, RangeS, vassert, vcurious, vimpl, vpass, vwat, _}
 import dev.vale.typing.templata._
@@ -312,12 +312,12 @@ case class OverrideDispatcherCaseNameT(
 }
 
 sealed trait IVarNameT extends INameT
-case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingPassBlockResultVarNameT(life: LocationInFunctionEnvironmentT) extends IVarNameT
 case class TypingPassFunctionResultVarNameT() extends IVarNameT
-case class TypingPassTemporaryVarNameT(life: LocationInFunctionEnvironment) extends IVarNameT
-case class TypingPassPatternMemberNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingPassTemporaryVarNameT(life: LocationInFunctionEnvironmentT) extends IVarNameT
+case class TypingPassPatternMemberNameT(life: LocationInFunctionEnvironmentT) extends IVarNameT
 case class TypingIgnoredParamNameT(num: Int) extends IVarNameT
-case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironment) extends IVarNameT
+case class TypingPassPatternDestructureeNameT(life: LocationInFunctionEnvironmentT) extends IVarNameT
 case class UnnamedLocalNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ClosureParamNameT(codeLocation: CodeLocationS) extends IVarNameT
 case class ConstructingMemberNameT(name: StrI) extends IVarNameT

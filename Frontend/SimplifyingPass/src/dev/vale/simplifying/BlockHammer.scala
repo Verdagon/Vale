@@ -1,21 +1,16 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast.{BlockH, ImmutableBorrowH, ImmutableShareH, MutabilifyH, MutableBorrowH, MutableShareH, NeverHT}
-import dev.vale.typing.HinputsT
-import dev.vale.typing.ast.{BlockTE, FunctionHeaderT}
+import dev.vale.instantiating.ast._
 import dev.vale.{vassert, vcurious, vfail, vimpl, vwat, finalast => m}
-import dev.vale.typing.ast._
-import dev.vale.typing.names.{IdT, RawArrayNameT, StaticSizedArrayNameT}
-import dev.vale.typing.templata.RegionTemplataT
-import dev.vale.typing.types.{IntT, StaticSizedArrayTT}
 
 class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
   def translateBlock(
-    hinputs: HinputsT,
+    hinputs: HinputsI,
     hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
     parentLocals: LocalsBox,
-    block2: BlockTE):
+    block2: BlockIE):
   (BlockH) = {
     val blockLocals = LocalsBox(parentLocals.snapshot)
 
@@ -55,32 +50,33 @@ class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
     BlockH(exprH)
   }
 
-  def translatePure(
-    hinputs: HinputsT,
+  def translateMutabilify(
+    hinputs: HinputsI,
     hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
     locals: LocalsBox,
-    node: PureTE):
+    node: MutabilifyIE):
   MutabilifyH = {
-    val PureTE(_, newDefaultRegion, oldRegionToNewRegion, innerTE, resultCoordT) = node
-    oldRegionToNewRegion.foreach({ case (oldRegion, newRegion) =>
-      vcurious(newRegion == RegionTemplata(true))
-    })
-
-    val innerHE =
-      expressionHammer.translateExpressionsAndDeferreds(
-        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerTE));
-
-    val resultCoordH =
-      typeHammer.translateCoord(hinputs, hamuts, resultCoordT)
-    (innerHE.resultType.ownership, resultCoordH.ownership) match {
-      case (x, y) if x == y =>
-      case (ImmutableShareH, MutableShareH) =>
-      case (ImmutableBorrowH, MutableBorrowH) =>
-      case other => vwat(other)
-    }
-    vassert(innerHE.resultType.kind == resultCoordH.kind)
-
-    MutabilifyH(innerHE)
+    vimpl()
+//    val MutabilifyTE(_, newDefaultRegion, oldRegionToNewRegion, innerIE, resultCoordI) = node
+//    oldRegionToNewRegion.foreach({ case (oldRegion, newRegion) =>
+//      vcurious(newRegion == RegionTemplata(true))
+//    })
+//
+//    val innerHE =
+//      expressionHammer.translateExpressionsAndDeferreds(
+//        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerIE));
+//
+//    val resultCoordH =
+//      typeHammer.translateCoord(hinputs, hamuts, resultCoordI)
+//    (innerHE.resultType.ownership, resultCoordH.ownership) match {
+//      case (x, y) if x == y =>
+//      case (ImmutableShareH, MutableShareH) =>
+//      case (ImmutableBorrowH, MutableBorrowH) =>
+//      case other => vwat(other)
+//    }
+//    vassert(innerHE.resultType.kind == resultCoordH.kind)
+//
+//    MutabilifyH(innerHE)
   }
 }

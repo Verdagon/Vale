@@ -2,80 +2,75 @@ package dev.vale.simplifying
 
 import dev.vale.{CodeLocationS, Collector, FileCoordinate, PackageCoordinate, finalast, vfail, vwat}
 import dev.vale.finalast.IdH
-import dev.vale.typing.HinputsT
-import dev.vale.typing.names._
 import dev.vale.finalast._
 import dev.vale.postparsing.AnonymousSubstructParentInterfaceTemplateRuneS
-import dev.vale.typing._
-import dev.vale.typing.env.PackageEnvironment
-import dev.vale.typing.names._
-import dev.vale.typing.templata._
-import dev.vale.typing.types._
+import dev.vale.instantiating._
+import dev.vale.instantiating.ast._
 import dev.vale.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List
 
-class NameHammer(translateName: (HinputsT, HamutsBox, INameT) => IVonData) {
-  def getReadableName(namePart: INameT): String = {
+class NameHammer(translateName: (HinputsI, HamutsBox, INameI) => IVonData) {
+  def getReadableName(namePart: INameI): String = {
     namePart match {
-      case SelfNameT() => "self"
-      case AnonymousSubstructImplNameT(_, _, _) => "AnonSubstructImpl"
-//      case AbstractVirtualFreeNameT(_, _) => "(abstract vfree)"
-//      case OverrideVirtualFreeNameT(_, _) => "(override vfree)"
-//      case AbstractVirtualDropFunctionNameT(_, _, _) => "vdrop"
-//      case OverrideVirtualDropFunctionNameT(_, _, _) => "vdrop"
-//      case FreeNameT(FreeTemplateNameT(codeLoc), templateArgs, kind) => "Free"
-      case AnonymousSubstructMemberNameT(index) => "anonSubstructMember" + index
-      case AnonymousSubstructConstructorNameT(AnonymousSubstructConstructorTemplateNameT(substruct), templateArgs, params) => "anonSubstructConstructor"
-      case AnonymousSubstructNameT(_, _) => "AnonSubstruct"
-      case BuildingFunctionNameWithClosuredsT(_) => vwat() // Shouldnt see this in hammer
-      case CitizenNameT(templateName, templateArgs) => getReadableName(templateName)
-      case StructTemplateNameT(humanName) => humanName.str
-      case InterfaceTemplateNameT(humanName) => humanName.str
-      case ClosureParamNameT(_) => "closure"
-      case CodeVarNameT(name) => name.str
-      case ConstructingMemberNameT(name) => name.str
-//      case ConstructorNameT(params) => "constructor"
-      case ConstructorTemplateNameT(codeLoc) => "constructorTemplate"
-      case ExternFunctionNameT(humanName, params) => humanName.str
-      case FunctionNameT(FunctionTemplateNameT(humanName, codeLocation), templateArgs, params) => humanName.str
-      case FunctionTemplateNameT(humanName, codeLoc) => humanName.str
-      case PackageTopLevelNameT() => vwat() // Does this ever make it to hammer?
-//      case ImplDeclareNameT(codeLoc) => "impl" + codeLoc
-      case StaticSizedArrayNameT(_, size, variability, arr) => "ssa" + size + "," + variability
-      case LambdaCitizenNameT(codeLoc) => "lam"
-      case LambdaCallFunctionNameT(_, _, _) => "lamCall"
-      case LambdaCallFunctionTemplateNameT(_, _) => "lamTemplate"
-      case LetNameT(codeLoc) => "let"
-      case IterableNameT(range) => "iterable"
-      case IteratorNameT(range) => "iterator"
-      case IterationOptionNameT(range) => "iterationOption"
-      case MagicParamNameT(codeLoc) => "magicParam"
-      case PrimitiveNameT(humanName) => humanName.str
-      case RawArrayNameT(mutability, elementType, region) => "rawArr"
-      case TypingPassBlockResultVarNameT(num) => "blockResult" + num
-      case TypingPassFunctionResultVarNameT() => "funcResult"
-      case TypingPassPatternDestructureeNameT(num) => "patDestr" + num
-      case TypingPassPatternMemberNameT(life) => "patMem" + life
-      case TypingPassTemporaryVarNameT(num) => "tempVar" + num
-      case RuntimeSizedArrayNameT(_, _) => "rsa"
-      case UnnamedLocalNameT(codeLoc) => "unnamedLocal"
-      case ForwarderFunctionTemplateNameT(inner, index) => "fwdt_" + index + "_" + getReadableName(inner)
-      case ForwarderFunctionNameT(ForwarderFunctionTemplateNameT(innerFuncName, index), inner) => "fwd_" + index + "_" + getReadableName(inner)
+      case SelfNameI() => "self"
+      case AnonymousSubstructImplNameI(_, _, _) => "AnonSubstructImpl"
+//      case AbstractVirtualFreeNameI(_, _) => "(abstract vfree)"
+//      case OverrideVirtualFreeNameI(_, _) => "(override vfree)"
+//      case AbstractVirtualDropFunctionNameI(_, _, _) => "vdrop"
+//      case OverrideVirtualDropFunctionNameI(_, _, _) => "vdrop"
+//      case FreeNameI(FreeTemplateNameI(codeLoc), templateArgs, kind) => "Free"
+      case AnonymousSubstructMemberNameI(index) => "anonSubstructMember" + index
+      case AnonymousSubstructConstructorNameI(AnonymousSubstructConstructorTemplateNameI(substruct), templateArgs, params) => "anonSubstructConstructor"
+      case AnonymousSubstructNameI(_, _) => "AnonSubstruct"
+      case BuildingFunctionNameWithClosuredsI(_) => vwat() // Shouldnt see this in hammer
+      case CitizenNameI(templateName, templateArgs) => getReadableName(templateName)
+      case StructTemplateNameI(humanName) => humanName.str
+      case InterfaceTemplateNameI(humanName) => humanName.str
+      case ClosureParamNameI(_) => "closure"
+      case CodeVarNameI(name) => name.str
+      case ConstructingMemberNameI(name) => name.str
+//      case ConstructorNameI(params) => "constructor"
+      case ConstructorTemplateNameI(codeLoc) => "constructorTemplate"
+      case ExternFunctionNameI(humanName, params) => humanName.str
+      case FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, params) => humanName.str
+      case FunctionTemplateNameI(humanName, codeLoc) => humanName.str
+      case PackageTopLevelNameI() => vwat() // Does this ever make it to hammer?
+//      case ImplDeclareNameI(codeLoc) => "impl" + codeLoc
+      case StaticSizedArrayNameI(_, size, variability, arr) => "ssa" + size + "," + variability
+      case LambdaCitizenNameI(codeLoc) => "lam"
+      case LambdaCallFunctionNameI(_, _, _) => "lamCall"
+      case LambdaCallFunctionTemplateNameI(_, _) => "lamTemplate"
+      case LetNameI(codeLoc) => "let"
+      case IterableNameI(range) => "iterable"
+      case IteratorNameI(range) => "iterator"
+      case IterationOptionNameI(range) => "iterationOption"
+      case MagicParamNameI(codeLoc) => "magicParam"
+      case PrimitiveNameI(humanName) => humanName.str
+      case RawArrayNameI(mutability, elementType, region) => "rawArr"
+      case TypingPassBlockResultVarNameI(num) => "blockResult" + num
+      case TypingPassFunctionResultVarNameI() => "funcResult"
+      case TypingPassPatternDestructureeNameI(num) => "patDestr" + num
+      case TypingPassPatternMemberNameI(life) => "patMem" + life
+      case TypingPassTemporaryVarNameI(num) => "tempVar" + num
+      case RuntimeSizedArrayNameI(_, _) => "rsa"
+      case UnnamedLocalNameI(codeLoc) => "unnamedLocal"
+      case ForwarderFunctionTemplateNameI(inner, index) => "fwdt_" + index + "_" + getReadableName(inner)
+      case ForwarderFunctionNameI(ForwarderFunctionTemplateNameI(innerFuncName, index), inner) => "fwd_" + index + "_" + getReadableName(inner)
     }
   }
 
   def translateFullName(
-    hinputs: HinputsT,
+    hinputs: HinputsI,
     hamuts: HamutsBox,
-    fullName2: IdT[INameT]
+    fullName2: IdI[INameI]
   ): IdH = {
-    val IdT(packageCoord@PackageCoordinate(project, packageSteps), _, _) = fullName2
+    val IdI(packageCoord@PackageCoordinate(project, packageSteps), _, _) = fullName2
     val newNameParts = fullName2.steps.map(step => translateName(hinputs, hamuts, step))
     val readableName = getReadableName(fullName2.localName)
 
     val id =
-      if (fullName2.localName.isInstanceOf[ExternFunctionNameT]) {
+      if (fullName2.localName.isInstanceOf[ExternFunctionNameI]) {
         -1
       } else {
         hamuts.getNameId(readableName, packageCoord, newNameParts)

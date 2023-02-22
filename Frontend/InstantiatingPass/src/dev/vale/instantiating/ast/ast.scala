@@ -188,11 +188,11 @@ object getFunctionLastName {
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
-case class LocationInFunctionEnvironment(path: Vector[Int]) {
+case class LocationInFunctionEnvironmentI(path: Vector[Int]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
-  def +(subLocation: Int): LocationInFunctionEnvironment = {
-    LocationInFunctionEnvironment(path :+ subLocation)
+  def +(subLocation: Int): LocationInFunctionEnvironmentI = {
+    LocationInFunctionEnvironmentI(path :+ subLocation)
   }
 
   override def toString: String = path.mkString(".")

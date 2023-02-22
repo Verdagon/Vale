@@ -1,11 +1,8 @@
 package dev.vale.simplifying
 
 import dev.vale.{PackageCoordinate, StrI, vassert, vcurious, vfail, vimpl}
-import dev.vale.finalast.{IdH, FunctionH, InterfaceDefinitionH, InterfaceHT, KindHT, PrototypeH, RuntimeSizedArrayDefinitionHT, RuntimeSizedArrayHT, StaticSizedArrayDefinitionHT, StaticSizedArrayHT, StructDefinitionH, StructHT}
-import dev.vale.typing.ast.PrototypeT
-import dev.vale.typing.types._
 import dev.vale.finalast._
-import dev.vale.typing.types.InterfaceTT
+import dev.vale.instantiating.ast._
 import dev.vale.von.IVonData
 
 
@@ -16,49 +13,49 @@ case class HamutsBox(var inner: Hamuts) {
   def packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]] = inner.packageCoordToExportNameToKind
   def packageCoordToExternNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]] = inner.packageCoordToExternNameToFunction
   def packageCoordToExternNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]] = inner.packageCoordToExternNameToKind
-  def structTToStructH: Map[StructTT, StructHT] = inner.structTToStructH
-  def structTToStructDefH: Map[StructTT, StructDefinitionH] = inner.structTToStructDefH
+  def structTToStructH: Map[StructIT, StructHT] = inner.structTToStructH
+  def structTToStructDefH: Map[StructIT, StructDefinitionH] = inner.structTToStructDefH
   def structDefs: Vector[StructDefinitionH] = inner.structDefs
-  def interfaceTToInterfaceH: Map[InterfaceTT, InterfaceHT] = inner.interfaceTToInterfaceH
-  def interfaceTToInterfaceDefH: Map[InterfaceTT, InterfaceDefinitionH] = inner.interfaceTToInterfaceDefH
-  def functionRefs: Map[PrototypeT, FunctionRefH] = inner.functionRefs
-  def functionDefs: Map[PrototypeT, FunctionH] = inner.functionDefs
-  def staticSizedArrays: Map[StaticSizedArrayTT, StaticSizedArrayDefinitionHT] = inner.staticSizedArrays
-  def runtimeSizedArrays: Map[RuntimeSizedArrayTT, RuntimeSizedArrayDefinitionHT] = inner.runtimeSizedArrays
+  def interfaceTToInterfaceH: Map[InterfaceIT, InterfaceHT] = inner.interfaceTToInterfaceH
+  def interfaceTToInterfaceDefH: Map[InterfaceIT, InterfaceDefinitionH] = inner.interfaceTToInterfaceDefH
+  def functionRefs: Map[PrototypeI, FunctionRefH] = inner.functionRefs
+  def functionDefs: Map[PrototypeI, FunctionH] = inner.functionDefs
+  def staticSizedArrays: Map[StaticSizedArrayIT, StaticSizedArrayDefinitionHT] = inner.staticSizedArrays
+  def runtimeSizedArrays: Map[RuntimeSizedArrayIT, RuntimeSizedArrayDefinitionHT] = inner.runtimeSizedArrays
 
-  def forwardDeclareStruct(structTT: StructTT, structRefH: StructHT): Unit = {
-    inner = inner.forwardDeclareStruct(structTT, structRefH)
+  def forwardDeclareStruct(structIT: StructIT, structRefH: StructHT): Unit = {
+    inner = inner.forwardDeclareStruct(structIT, structRefH)
   }
 
-  def addStructOriginatingFromTypingPass(structTT: StructTT, structDefH: StructDefinitionH): Unit = {
-    inner = inner.addStructOriginatingFromTypingPass(structTT, structDefH)
+  def addStructOriginatingFromTypingPass(structIT: StructIT, structDefH: StructDefinitionH): Unit = {
+    inner = inner.addStructOriginatingFromTypingPass(structIT, structDefH)
   }
 
   def addStructOriginatingFromHammer(structDefH: StructDefinitionH): Unit = {
     inner = inner.addStructOriginatingFromHammer(structDefH)
   }
 
-  def forwardDeclareInterface(interfaceTT: InterfaceTT, interfaceRefH: InterfaceHT): Unit = {
-    inner = inner.forwardDeclareInterface(interfaceTT, interfaceRefH)
+  def forwardDeclareInterface(interfaceIT: InterfaceIT, interfaceRefH: InterfaceHT): Unit = {
+    inner = inner.forwardDeclareInterface(interfaceIT, interfaceRefH)
   }
 
-  def addInterface(interfaceTT: InterfaceTT, interfaceDefH: InterfaceDefinitionH): Unit = {
-    inner = inner.addInterface(interfaceTT, interfaceDefH)
+  def addInterface(interfaceIT: InterfaceIT, interfaceDefH: InterfaceDefinitionH): Unit = {
+    inner = inner.addInterface(interfaceIT, interfaceDefH)
   }
 
-  def addStaticSizedArray(ssaTT: StaticSizedArrayTT, staticSizedArrayDefinitionTH: StaticSizedArrayDefinitionHT): Unit = {
-    inner = inner.addStaticSizedArray(ssaTT, staticSizedArrayDefinitionTH)
+  def addStaticSizedArray(ssaIT: StaticSizedArrayIT, staticSizedArrayDefinitionTH: StaticSizedArrayDefinitionHT): Unit = {
+    inner = inner.addStaticSizedArray(ssaIT, staticSizedArrayDefinitionTH)
   }
 
-  def addRuntimeSizedArray(rsaTT: RuntimeSizedArrayTT, runtimeSizedArrayDefinitionTH: RuntimeSizedArrayDefinitionHT): Unit = {
-    inner = inner.addRuntimeSizedArray(rsaTT, runtimeSizedArrayDefinitionTH)
+  def addRuntimeSizedArray(rsaIT: RuntimeSizedArrayIT, runtimeSizedArrayDefinitionTH: RuntimeSizedArrayDefinitionHT): Unit = {
+    inner = inner.addRuntimeSizedArray(rsaIT, runtimeSizedArrayDefinitionTH)
   }
 
-  def forwardDeclareFunction(functionRef2: PrototypeT, functionRefH: FunctionRefH): Unit = {
+  def forwardDeclareFunction(functionRef2: PrototypeI, functionRefH: FunctionRefH): Unit = {
     inner = inner.forwardDeclareFunction(functionRef2, functionRefH)
   }
 
-  def addFunction(functionRef2: PrototypeT, functionDefH: FunctionH): Unit = {
+  def addFunction(functionRef2: PrototypeI, functionDefH: FunctionH): Unit = {
     inner = inner.addFunction(functionRef2, functionDefH)
   }
 
@@ -94,15 +91,15 @@ case class HamutsBox(var inner: Hamuts) {
 
 case class Hamuts(
     humanNameToFullNameToId: Map[String, Map[String, Int]],
-    structTToStructH: Map[StructTT, StructHT],
-    structTToStructDefH: Map[StructTT, StructDefinitionH],
+    structTToStructH: Map[StructIT, StructHT],
+    structTToStructDefH: Map[StructIT, StructDefinitionH],
     structDefs: Vector[StructDefinitionH],
-    staticSizedArrays: Map[StaticSizedArrayTT, StaticSizedArrayDefinitionHT],
-    runtimeSizedArrays: Map[RuntimeSizedArrayTT, RuntimeSizedArrayDefinitionHT],
-    interfaceTToInterfaceH: Map[InterfaceTT, InterfaceHT],
-    interfaceTToInterfaceDefH: Map[InterfaceTT, InterfaceDefinitionH],
-    functionRefs: Map[PrototypeT, FunctionRefH],
-    functionDefs: Map[PrototypeT, FunctionH],
+    staticSizedArrays: Map[StaticSizedArrayIT, StaticSizedArrayDefinitionHT],
+    runtimeSizedArrays: Map[RuntimeSizedArrayIT, RuntimeSizedArrayDefinitionHT],
+    interfaceTToInterfaceH: Map[InterfaceIT, InterfaceHT],
+    interfaceTToInterfaceDefH: Map[InterfaceIT, InterfaceDefinitionH],
+    functionRefs: Map[PrototypeI, FunctionRefH],
+    functionDefs: Map[PrototypeI, FunctionH],
     packageCoordToExportNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]],
     packageCoordToExportNameToKind: Map[PackageCoordinate, Map[StrI, KindHT]],
     packageCoordToExternNameToFunction: Map[PackageCoordinate, Map[StrI, PrototypeH]],
@@ -113,10 +110,10 @@ case class Hamuts(
   vassert(structDefs.map(_.id).distinct.size == structDefs.size)
   vassert(runtimeSizedArrays.values.map(_.name).toVector.distinct.size == runtimeSizedArrays.size)
 
-  def forwardDeclareStruct(structTT: StructTT, structRefH: StructHT): Hamuts = {
+  def forwardDeclareStruct(structIT: StructIT, structRefH: StructHT): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
-      structTToStructH + (structTT -> structRefH),
+      structTToStructH + (structIT -> structRefH),
       structTToStructDefH,
       structDefs,
       staticSizedArrays,
@@ -131,13 +128,13 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def addStructOriginatingFromTypingPass(structTT: StructTT, structDefH: StructDefinitionH): Hamuts = {
-    vassert(structTToStructH.contains(structTT))
-    vassert(!structTToStructDefH.contains(structTT))
+  def addStructOriginatingFromTypingPass(structIT: StructIT, structDefH: StructDefinitionH): Hamuts = {
+    vassert(structTToStructH.contains(structIT))
+    vassert(!structTToStructDefH.contains(structIT))
     Hamuts(
       humanNameToFullNameToId,
       structTToStructH,
-      structTToStructDefH + (structTT -> structDefH),
+      structTToStructDefH + (structIT -> structDefH),
       structDefs :+ structDefH,
       staticSizedArrays,
       runtimeSizedArrays,
@@ -171,7 +168,7 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def forwardDeclareInterface(interfaceTT: InterfaceTT, interfaceRefH: InterfaceHT): Hamuts = {
+  def forwardDeclareInterface(interfaceIT: InterfaceIT, interfaceRefH: InterfaceHT): Hamuts = {
     Hamuts(
       humanNameToFullNameToId,
       structTToStructH,
@@ -179,7 +176,7 @@ case class Hamuts(
       structDefs,
       staticSizedArrays,
       runtimeSizedArrays,
-      interfaceTToInterfaceH + (interfaceTT -> interfaceRefH),
+      interfaceTToInterfaceH + (interfaceIT -> interfaceRefH),
       interfaceTToInterfaceDefH,
       functionRefs,
       functionDefs,
@@ -189,8 +186,8 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def addInterface(interfaceTT: InterfaceTT, interfaceDefH: InterfaceDefinitionH): Hamuts = {
-    vassert(interfaceTToInterfaceH.contains(interfaceTT))
+  def addInterface(interfaceIT: InterfaceIT, interfaceDefH: InterfaceDefinitionH): Hamuts = {
+    vassert(interfaceTToInterfaceH.contains(interfaceIT))
     Hamuts(
       humanNameToFullNameToId,
       structTToStructH,
@@ -199,7 +196,7 @@ case class Hamuts(
       staticSizedArrays,
       runtimeSizedArrays,
       interfaceTToInterfaceH,
-      interfaceTToInterfaceDefH + (interfaceTT -> interfaceDefH),
+      interfaceTToInterfaceDefH + (interfaceIT -> interfaceDefH),
       functionRefs,
       functionDefs,
       packageCoordToExportNameToFunction,
@@ -208,7 +205,7 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def forwardDeclareFunction(functionRef2: PrototypeT, functionRefH: FunctionRefH): Hamuts = {
+  def forwardDeclareFunction(functionRef2: PrototypeI, functionRefH: FunctionRefH): Hamuts = {
     vassert(!functionRefs.contains(functionRef2))
 
     Hamuts(
@@ -228,7 +225,7 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def addFunction(functionRef2: PrototypeT, functionDefH: FunctionH): Hamuts = {
+  def addFunction(functionRef2: PrototypeI, functionDefH: FunctionH): Hamuts = {
     vassert(functionRefs.contains(functionRef2))
     functionDefs.find(_._2.fullName == functionDefH.fullName) match {
       case None =>
@@ -395,7 +392,7 @@ case class Hamuts(
   }
 
   def addStaticSizedArray(
-    ssaTT: StaticSizedArrayTT,
+    ssaIT: StaticSizedArrayIT,
     staticSizedArrayDefinitionHT: StaticSizedArrayDefinitionHT
   ): Hamuts = {
     Hamuts(
@@ -403,7 +400,7 @@ case class Hamuts(
       structTToStructH,
       structTToStructDefH,
       structDefs,
-      staticSizedArrays + (ssaTT -> staticSizedArrayDefinitionHT),
+      staticSizedArrays + (ssaIT -> staticSizedArrayDefinitionHT),
       runtimeSizedArrays,
       interfaceTToInterfaceH,
       interfaceTToInterfaceDefH,
@@ -416,7 +413,7 @@ case class Hamuts(
   }
 
   def addRuntimeSizedArray(
-    rsaTT: RuntimeSizedArrayTT,
+    rsaIT: RuntimeSizedArrayIT,
     runtimeSizedArrayDefinitionHT: RuntimeSizedArrayDefinitionHT
   ): Hamuts = {
     Hamuts(
@@ -425,7 +422,7 @@ case class Hamuts(
       structTToStructDefH,
       structDefs,
       staticSizedArrays,
-      runtimeSizedArrays + (rsaTT -> runtimeSizedArrayDefinitionHT),
+      runtimeSizedArrays + (rsaIT -> runtimeSizedArrayDefinitionHT),
       interfaceTToInterfaceH,
       interfaceTToInterfaceDefH,
       functionRefs,

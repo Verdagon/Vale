@@ -4,7 +4,7 @@ package dev.vale.typing.expression
 import dev.vale.RangeS
 import dev.vale.postparsing._
 import dev.vale.typing.{CompilerOutputs, TypingPassOptions}
-import dev.vale.typing.ast.{BlockTE, LocationInFunctionEnvironment, ReferenceExpressionTE}
+import dev.vale.typing.ast.{BlockTE, LocationInFunctionEnvironmentT, ReferenceExpressionTE}
 import dev.vale.typing.env.{FunctionEnvironmentBox, NodeEnvironmentT, NodeEnvironmentBox}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{IRegionNameT, IVarNameT, IdT, TypingPassBlockResultVarNameT}
@@ -23,7 +23,7 @@ trait IBlockCompilerDelegate {
   def evaluateAndCoerceToReferenceExpression(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -36,7 +36,7 @@ trait IBlockCompilerDelegate {
     nenv: NodeEnvironmentBox,
     range: List[RangeS],
     callLocation: LocationInDenizen,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     region: ITemplataT[RegionTemplataType],
     unresultifiedUndestructedExpressions: ReferenceExpressionTE):
   ReferenceExpressionTE
@@ -60,7 +60,7 @@ class BlockCompiler(
   def evaluateBlock(
     parentFate: FunctionEnvironmentBox,
     coutputs: CompilerOutputs,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -86,7 +86,7 @@ class BlockCompiler(
     nenv: NodeEnvironmentBox,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     region: ITemplataT[RegionTemplataType],
     blockSE: BlockSE):
   (ReferenceExpressionTE, Set[CoordT]) = {

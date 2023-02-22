@@ -7,7 +7,7 @@ import scala.collection.immutable.Map
 
 // A "citizen" is a struct or an interface.
 trait CitizenDefinitionI {
-  def genericParamTypes: Vector[ITemplataType]
+//  def genericParamTypes: Vector[ITemplataType]
   def instantiatedCitizen: ICitizenIT
 }
 
@@ -17,15 +17,15 @@ case class StructDefinitionI(
   instantiatedCitizen: StructIT,
   attributes: Vector[ICitizenAttributeI],
   weakable: Boolean,
-  mutability: ITemplataI,
+  mutability: MutabilityI,
   members: Vector[StructMemberI],
   isClosure: Boolean,
   runeToFunctionBound: Map[IRuneS, IdI[FunctionBoundNameI]],
   runeToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
 ) extends CitizenDefinitionI {
-  override def genericParamTypes: Vector[ITemplataType] = {
-    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
-  }
+//  override def genericParamTypes: Vector[ITemplataType] = {
+//    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
+//  }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
@@ -92,7 +92,7 @@ case class InterfaceDefinitionI(
 //  ref: InterfaceIT,
   attributes: Vector[ICitizenAttributeI],
   weakable: Boolean,
-  mutability: ITemplataI,
+  mutability: MutabilityI,
   runeToFunctionBound: Map[IRuneS, IdI[FunctionBoundNameI]],
   runeToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
   // This does not include abstract functions declared outside the interface.
@@ -100,9 +100,9 @@ case class InterfaceDefinitionI(
   // See IMRFDI for why we need to remember only the internal methods here.
   internalMethods: Vector[(PrototypeI, Int)]
 ) extends CitizenDefinitionI {
-  override def genericParamTypes: Vector[ITemplataType] = {
-    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
-  }
+//  override def genericParamTypes: Vector[ITemplataType] = {
+//    instantiatedCitizen.id.localName.templateArgs.map(_.tyype)
+//  }
 
   override def instantiatedCitizen: ICitizenIT = instantiatedInterface
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

@@ -17,7 +17,7 @@ import dev.vale.typing.env._
 import FunctionCompiler.IEvaluateFunctionResult
 import dev.vale.highertyping.FunctionA
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, IFunctionGenerator, InferCompiler, TemplataCompiler, TypingPassOptions}
-import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE}
+import dev.vale.typing.ast.{FunctionBannerT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, ReferenceExpressionTE}
 import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{AddressibleClosureVariableT, AddressibleLocalVariableT, FunctionEnvironment, IInDenizenEnvironment, NodeEnvironmentT, NodeEnvironmentBox, ReferenceClosureVariableT, ReferenceLocalVariableT, TemplataLookupContext}
 import dev.vale.typing.names.{IRegionNameT, IdT, LambdaCitizenNameT, LambdaCitizenTemplateNameT, NameTranslator}
@@ -33,7 +33,7 @@ trait IFunctionCompilerDelegate {
     coutputs: CompilerOutputs,
     startingNenv: NodeEnvironmentT,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     ranges: List[RangeS],
     callLocation: LocationInDenizen,
     region: ITemplataT[RegionTemplataType],
@@ -43,7 +43,7 @@ trait IFunctionCompilerDelegate {
   def translatePatternList(
     coutputs: CompilerOutputs,
     nenv: NodeEnvironmentBox,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     ranges: List[RangeS],
     patterns1: Vector[AtomSP],
     patternInputExprs2: Vector[ReferenceExpressionTE]):
@@ -58,7 +58,7 @@ trait IFunctionCompilerDelegate {
     generator: IFunctionGenerator,
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     // We might be able to move these all into the function environment... maybe....
     originFunction: Option[FunctionA],

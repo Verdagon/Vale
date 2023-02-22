@@ -17,7 +17,7 @@ import OverloadResolver.FindFunctionFailure
 import dev.vale
 import dev.vale.highertyping.{ExportAsA, FunctionA, InterfaceA, ProgramA, StructA}
 import dev.vale.typing.Compiler.isPrimitive
-import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironment, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
+import dev.vale.typing.ast.{ConsecutorTE, EdgeT, FunctionHeaderT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, ReferenceExpressionTE, VoidLiteralTE}
 import dev.vale.typing.env.{FunctionEnvEntry, FunctionEnvironment, GlobalEnvironment, IEnvEntry, IInDenizenEnvironment, ImplEnvEntry, InterfaceEnvEntry, NodeEnvironmentBox, NodeEnvironmentT, PackageEnvironment, StructEnvEntry, TemplataEnvEntry, TemplatasStore}
 import dev.vale.typing.macros.{AbstractBodyMacro, AnonymousInterfaceMacro, AsSubtypeMacro, FunctorHelper, IOnImplDefinedMacro, IOnInterfaceDefinedMacro, IOnStructDefinedMacro, LockWeakMacro, SameInstanceMacro, StructConstructorMacro}
 import dev.vale.typing.macros.citizen._
@@ -54,7 +54,7 @@ trait IFunctionGenerator {
     arrayCompiler: ArrayCompiler,
     env: FunctionEnvironment,
     coutputs: CompilerOutputs,
-    life: LocationInFunctionEnvironment,
+    life: LocationInFunctionEnvironmentT,
     callRange: List[RangeS],
     // We might be able to move these all into the function environment... maybe....
     originFunction: Option[FunctionA],
@@ -619,7 +619,7 @@ class Compiler(
         coutputs: CompilerOutputs,
         startingNenv: NodeEnvironmentT,
         nenv: NodeEnvironmentBox,
-        life: LocationInFunctionEnvironment,
+        life: LocationInFunctionEnvironmentT,
         ranges: List[RangeS],
       callLocation: LocationInDenizen,
         region: ITemplataT[RegionTemplataType],
@@ -632,7 +632,7 @@ class Compiler(
     override def translatePatternList(
       coutputs: CompilerOutputs,
       nenv: NodeEnvironmentBox,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       ranges: List[RangeS],
       patterns1: Vector[AtomSP],
       patternInputExprs2: Vector[ReferenceExpressionTE]
@@ -649,7 +649,7 @@ class Compiler(
       generator: IFunctionGenerator,
       fullEnv: FunctionEnvironment,
       coutputs: CompilerOutputs,
-      life: LocationInFunctionEnvironment,
+      life: LocationInFunctionEnvironmentT,
       callRange: List[RangeS],
       originFunction: Option[FunctionA],
       paramCoords: Vector[ParameterT],

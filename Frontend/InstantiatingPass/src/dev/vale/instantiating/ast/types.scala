@@ -154,7 +154,7 @@ case class FloatIT() extends KindIT {
 
 object contentsStaticSizedArrayIT {
   def unapply(ssa: StaticSizedArrayIT):
-  Option[(ITemplataI[IntegerTemplataType], ITemplataI[MutabilityTemplataType], ITemplataI[VariabilityTemplataType], CoordI, ITemplataI[RegionTemplataType])] = {
+  Option[(Long, MutabilityI, VariabilityI, CoordI, RegionTemplataI)] = {
     val IdI(_, _, StaticSizedArrayNameI(_, size, variability, RawArrayNameI(mutability, coord, selfRegion))) = ssa.name
     Some((size, mutability, variability, coord, selfRegion))
   }
@@ -164,7 +164,7 @@ case class StaticSizedArrayIT(
   name: IdI[StaticSizedArrayNameI]
 ) extends KindIT {
   vassert(name.initSteps.isEmpty)
-  def mutability: ITemplataI[MutabilityTemplataType] = name.localName.arr.mutability
+  def mutability: MutabilityI = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
   def size = name.localName.size
   def variability = name.localName.variability
@@ -172,7 +172,7 @@ case class StaticSizedArrayIT(
 
 object contentsRuntimeSizedArrayIT {
   def unapply(rsa: RuntimeSizedArrayIT):
-  Option[(ITemplataI[MutabilityTemplataType], CoordI, ITemplataI[RegionTemplataType])] = {
+  Option[(MutabilityI, CoordI, RegionTemplataI)] = {
     val IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(mutability, coord, selfRegion))) = rsa.name
     Some((mutability, coord, selfRegion))
   }

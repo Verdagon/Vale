@@ -2,19 +2,9 @@ package dev.vale.simplifying
 
 import dev.vale.{Keywords, finalast, vassert, vfail, vimpl}
 import dev.vale.finalast._
-import dev.vale.typing.HinputsT
-import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, SoftLoadTE, StaticSizedArrayLookupTE}
-import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
-import dev.vale.typing.names.{IVarNameT, IdT}
-import dev.vale.typing.types._
 import dev.vale.finalast._
+import dev.vale.instantiating.ast._
 import dev.vale.postparsing.RegionTemplataType
-import dev.vale.typing.{types => t, _}
-import dev.vale.typing.ast._
-import dev.vale.typing.env.ReferenceLocalVariableT
-import dev.vale.typing.names.IVarNameT
-import dev.vale.typing.templata._
-import dev.vale.typing.types._
 
 class LoadHammer(
     keywords: Keywords,
@@ -24,97 +14,97 @@ class LoadHammer(
     expressionHammer: ExpressionHammer) {
 
   def translateLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      load2: SoftLoadTE):
-  (ExpressionH[KindHT], Vector[ExpressionT]) = {
-    val SoftLoadTE(sourceExpr2, targetOwnership) = load2
+      load2: SoftLoadIE):
+  (ExpressionH[KindHT], Vector[ExpressionI]) = {
+    val SoftLoadIE(sourceExpr2, targetOwnership) = load2
 
     val (loadedAccessH, sourceDeferreds) =
       sourceExpr2 match {
-        case LocalLookupTE(_,ReferenceLocalVariableT(varId, variability, reference), sourceRegion) => {
-          // DO NOT SUBMIT combine this with below
+        case LocalLookupIE(_,ReferenceLocalVariableI(varId, variability, reference), sourceRegion) => {
+          // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = targetOwnership
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateMundaneLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, reference, combinedTargetOwnership)
         }
-        case LocalLookupTE(_,AddressibleLocalVariableT(varId, variability, localReference2), sourceRegion) => {
-          // DO NOT SUBMIT combine this with below
+        case LocalLookupIE(_,AddressibleLocalVariableI(varId, variability, localReference2), sourceRegion) => {
+          // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateAddressibleLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, variability, localReference2, combinedTargetOwnership)
         }
-        case ReferenceMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
+        case ReferenceMemberLookupIE(_,structExpr2, memberName, memberType2, _) => {
 //          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
-          // DO NOT SUBMIT combine this with below
+          // DO NOI SUBMII combine this with below
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateMundaneMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberType2, memberName, targetOwnership)
         }
-        case AddressMemberLookupTE(_,structExpr2, memberName, memberType2, _) => {
-          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
-          // DO NOT SUBMIT combine this with below
+        case AddressMemberLookupIE(_,structExpr2, memberName, memberType2, _) => {
+//          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
+          // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateAddressibleMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberName, memberType2, combinedTargetOwnership)
         }
-        case RuntimeSizedArrayLookupTE(_, arrayExpr2, _, indexExpr2, _) => {
-          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
-          // DO NOT SUBMIT combine this with below
+        case RuntimeSizedArrayLookupIE(_, arrayExpr2, _, indexExpr2, _) => {
+//          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
+          // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateMundaneRuntimeSizedArrayLoad(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
         }
-        case StaticSizedArrayLookupTE(_, arrayExpr2, indexExpr2, _, _) => {
-          val sourceRegion: ITemplataT[RegionTemplataType] = vimpl()
-          // DO NOT SUBMIT combine this with below
+        case StaticSizedArrayLookupIE(_, arrayExpr2, indexExpr2, _, _) => {
+//          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
+          // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
-//              case (OwnT, _) => OwnT
-//              case (BorrowT, RegionTemplata(true)) => MutableBorrowT
-//              case (BorrowT, RegionTemplata(false)) => ImmutableBorrowT
-//              case (ShareT, RegionTemplata(true)) => MutableShareT
-//              case (ShareT, RegionTemplata(false)) => ImmutableShareT
-//              case (WeakT, _) => vimpl()
+//              case (OwnI, _) => OwnI
+//              case (BorrowI, RegionTemplata(true)) => MutableBorrowI
+//              case (BorrowI, RegionTemplata(false)) => ImmutableBorrowI
+//              case (ShareI, RegionTemplata(true)) => MutableShareI
+//              case (ShareI, RegionTemplata(false)) => ImmutableShareI
+//              case (WeakI, _) => vimpl()
 //            }
           translateMundaneStaticSizedArrayLoad(
             hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
@@ -127,15 +117,15 @@ class LoadHammer(
   }
 
   private def translateMundaneRuntimeSizedArrayLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      arrayExpr2: ReferenceExpressionTE,
-      indexExpr2: ReferenceExpressionTE,
-      targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+      arrayExpr2: ReferenceExpressionIE,
+      indexExpr2: ReferenceExpressionIE,
+      targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
 
     val (arrayResultLine, arrayDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2);
@@ -178,15 +168,15 @@ class LoadHammer(
   }
 
   private def translateMundaneStaticSizedArrayLoad(
-    hinputs: HinputsT,
+    hinputs: HinputsI,
     hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
     locals: LocalsBox,
-    arrayExpr2: ReferenceExpressionTE,
-    indexExpr2: ReferenceExpressionTE,
-    targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+    arrayExpr2: ReferenceExpressionIE,
+    indexExpr2: ReferenceExpressionIE,
+    targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
 
     val (arrayResultLine, arrayDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2);
@@ -224,31 +214,30 @@ class LoadHammer(
   }
 
   private def translateAddressibleMemberLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      structExpr2: ReferenceExpressionTE,
-      memberName: IVarNameT,
-      expectedType2: CoordT,
-      targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
+      structExpr2: ReferenceExpressionIE,
+      memberName: IVarNameI,
+      expectedType2: CoordI,
+      targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val (structResultLine, structDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
-    val structTT =
+    val structIT =
       structExpr2.result.coord.kind match {
-        case sr @ StructTT(_) => sr
-//        case TupleTT(_, sr) => sr
-//        case PackTT(_, sr) => sr
+        case sr @ StructIT(_) => sr
+//        case TupleIT(_, sr) => sr
+//        case PackIT(_, sr) => sr
       }
-    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(_.name == memberName)
+    val structDefI = structHammer.lookupStruct(hinputs, hamuts, structIT)
+    val memberIndex = structDefI.members.indexWhere(_.name == memberName)
     vassert(memberIndex >= 0)
     val member2 =
-      structDefT.members(memberIndex) match {
-        case n @ NormalStructMemberT(name, variability, tyype) => n
-        case VariadicStructMemberT(name, tyype) => vimpl()
+      structDefI.members(memberIndex) match {
+        case n @ StructMemberI(name, variability, tyype) => n
       }
 
     val variability = member2.variability
@@ -276,7 +265,7 @@ class LoadHammer(
           boxInStructCoord,
           varFullNameH)
 
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
     val loadResultType =
       CoordH(
         targetOwnership,
@@ -293,16 +282,16 @@ class LoadHammer(
   }
 
   private def translateMundaneMemberLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      structExpr2: ReferenceExpressionTE,
-      expectedMemberCoord: CoordT,
-      memberName: IVarNameT,
+      structExpr2: ReferenceExpressionIE,
+      expectedMemberCoord: CoordI,
+      memberName: IVarNameI,
 //      resultCoord: Coord,
-      targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
+      targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val (structResultLine, structDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
@@ -311,17 +300,17 @@ class LoadHammer(
 //    val (resultTypeH) =
 //      typeHammer.translateReference(hinputs, hamuts, resultCoord);
 
-    val structTT =
+    val structIT =
       structExpr2.result.coord.kind match {
-        case sr @ StructTT(_) => sr
-//        case TupleTT(_, sr) => sr
-//        case PackTT(_, sr) => sr
+        case sr @ StructIT(_) => sr
+//        case TupleIT(_, sr) => sr
+//        case PackIT(_, sr) => sr
       }
-    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(_.name == memberName)
+    val structDefI = structHammer.lookupStruct(hinputs, hamuts, structIT)
+    val memberIndex = structDefI.members.indexWhere(_.name == memberName)
     vassert(memberIndex >= 0)
 
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
     val loadResultType = CoordH(targetOwnership, expectedMemberTypeH.location, expectedMemberTypeH.kind)
 
     // We're loading from a regular reference member of a struct.
@@ -336,15 +325,15 @@ class LoadHammer(
   }
 
   def translateAddressibleLocalLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      varId: IVarNameT,
-      variability: VariabilityT,
-      localReference2: CoordT,
-      targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
+      varId: IVarNameI,
+      variability: VariabilityI,
+      localReference2: CoordI,
+      targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val local = locals.get(varId).get
     vassert(!locals.unstackifiedVars.contains(local.id))
 
@@ -365,7 +354,7 @@ class LoadHammer(
           vimpl(/*BorrowH*/),
           varNameH)
 
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
     val loadResultType = CoordH(targetOwnership, localTypeH.location, localTypeH.kind)
 
     val loadedNode =
@@ -379,15 +368,15 @@ class LoadHammer(
   }
 
   def translateMundaneLocalLoad(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      varId: IVarNameT,
-      expectedType2: CoordT,
-      targetOwnershipT: OwnershipT,
-  ): (ExpressionH[KindHT], Vector[ExpressionT]) = {
-    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipT)
+      varId: IVarNameI,
+      expectedType2: CoordI,
+      targetOwnershipI: OwnershipI,
+  ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
+    val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
 
     val local = locals.get(varId) match {
       case Some(x) => x
@@ -411,13 +400,13 @@ class LoadHammer(
   }
 
   def translateLocalAddress(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      lookup2: LocalLookupTE):
+      lookup2: LocalLookupIE):
   (ExpressionH[KindHT]) = {
-    val LocalLookupTE(_,localVar, sourceRegion) = lookup2;
+    val LocalLookupIE(_,localVar, sourceRegion) = lookup2;
     vimpl()
 
     val local = locals.get(localVar.name).get
@@ -438,34 +427,33 @@ class LoadHammer(
   // In this, we're basically taking an addressible lookup, in other words,
   // a reference to a box.
   def translateMemberAddress(
-      hinputs: HinputsT,
+      hinputs: HinputsI,
       hamuts: HamutsBox,
-    currentFunctionHeader: FunctionHeaderT,
+    currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      lookup2: AddressMemberLookupTE):
-  (ExpressionH[KindHT], Vector[ExpressionT]) = {
-    val AddressMemberLookupTE(_,structExpr2, memberName, resultType2, _) = lookup2;
+      lookup2: AddressMemberLookupIE):
+  (ExpressionH[KindHT], Vector[ExpressionI]) = {
+    val AddressMemberLookupIE(_,structExpr2, memberName, resultType2, _) = lookup2;
 
     val (structResultLine, structDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
-    val structTT =
+    val structIT =
       structExpr2.result.coord.kind match {
-        case sr @ StructTT(_) => sr
-//        case TupleTT(_, sr) => sr
-//        case PackTT(_, sr) => sr
+        case sr @ StructIT(_) => sr
+//        case TupleIT(_, sr) => sr
+//        case PackIT(_, sr) => sr
       }
-    val structDefT = structHammer.lookupStruct(hinputs, hamuts, structTT)
-    val memberIndex = structDefT.members.indexWhere(_.name == memberName)
+    val structDefI = structHammer.lookupStruct(hinputs, hamuts, structIT)
+    val memberIndex = structDefI.members.indexWhere(_.name == memberName)
     vassert(memberIndex >= 0)
     val member2 =
-      structDefT.members(memberIndex) match {
-        case n @ NormalStructMemberT(name, variability, tyype) => n
-        case VariadicStructMemberT(name, tyype) => vimpl()
+      structDefI.members(memberIndex) match {
+        case n @ StructMemberI(name, variability, tyype) => n
       }
 
     val variability = member2.variability
-    vassert(variability == VaryingT, "Expected varying for member " + memberName) // curious
+    vassert(variability == VaryingI, "Expected varying for member " + memberName) // curious
 
     val boxedType2 = member2.tyype.expectAddressMember().reference
 
