@@ -30,7 +30,7 @@ trait IBodyCompilerDelegate {
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     exprs: BlockSE):
   (ReferenceExpressionTE, Set[CoordT])
 
@@ -164,7 +164,7 @@ class BodyCompiler(
     coutputs: CompilerOutputs,
     life: LocationInFunctionEnvironment,
     parentRanges: List[RangeS],
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     callLocation: LocationInDenizen,
     params1: Vector[ParameterS],
     params2: Vector[ParameterT],

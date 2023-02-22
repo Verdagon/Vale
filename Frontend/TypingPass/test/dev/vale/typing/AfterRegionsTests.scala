@@ -169,7 +169,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("bork").header.id.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(OwnT, _,_)) =>
+      case CoordTemplataT(CoordT(OwnT, _,_)) =>
     }
   }
 
@@ -198,7 +198,7 @@ class AfterRegionsTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     coutputs.lookupFunction("genericGetFuel").header.id.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(_,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
+      case CoordTemplataT(CoordT(_,_,StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("Firefly")),_))))) =>
     }
   }
 
@@ -265,8 +265,8 @@ class AfterRegionsTests extends FunSuite with Matchers {
       StructNameT(
       StructTemplateNameT(StrI("MyHashSet")),
       Vector(
-      CoordTemplata(CoordT(ShareT,_,BoolT())),
-      IntegerTemplata(5)))))) =>
+      CoordTemplataT(CoordT(ShareT,_,BoolT())),
+      IntegerTemplataT(5)))))) =>
     }
   }
 
@@ -290,8 +290,8 @@ class AfterRegionsTests extends FunSuite with Matchers {
       InterfaceNameT(
       InterfaceTemplateNameT(StrI("MyInterface")),
       Vector(
-      CoordTemplata(CoordT(ShareT,_,BoolT())),
-      IntegerTemplata(5)))))) =>
+      CoordTemplataT(CoordT(ShareT,_,BoolT())),
+      IntegerTemplataT(5)))))) =>
     }
   }
 

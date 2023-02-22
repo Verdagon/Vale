@@ -20,7 +20,7 @@ import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosureds, BuildingFu
 import dev.vale.typing.infer.ITypingPassSolverError
 import dev.vale.typing.{CompilerOutputs, ConvertHelper, InferCompiler, InitialKnown, InitialSend, TemplataCompiler, TypingPassOptions}
 import dev.vale.typing.names._
-import dev.vale.typing.templata.ITemplata.expectRegion
+import dev.vale.typing.templata.ITemplataT.expectRegion
 import dev.vale.typing.templata._
 import dev.vale.typing.types.CoordT
 //import dev.vale.typingpass.infer.{InferSolveFailure, InferSolveSuccess}
@@ -62,8 +62,8 @@ class FunctionCompilerSolvingLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     verifyConclusions: Boolean
   ):
@@ -109,7 +109,7 @@ class FunctionCompilerSolvingLayer(
 
     coutputs.addInstantiationBounds(header.toPrototype.id, runeToFunctionBound)
     EvaluateFunctionSuccess(
-      PrototypeTemplata(function.range, header.toPrototype),
+      PrototypeTemplataT(function.range, header.toPrototype),
       inferredTemplatas)
   }
 
@@ -123,8 +123,8 @@ class FunctionCompilerSolvingLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT]
   ):
   (IEvaluateFunctionResult) = {
@@ -182,8 +182,8 @@ class FunctionCompilerSolvingLayer(
     originalCallingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT]
   ):
   (IEvaluateFunctionResult) = {
@@ -236,7 +236,7 @@ class FunctionCompilerSolvingLayer(
 
   private def assembleKnownTemplatas(
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]]
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]]
   ):
   Vector[InitialKnown] = {
     function.genericParameters.zip(explicitTemplateArgs).map({
@@ -265,9 +265,9 @@ class FunctionCompilerSolvingLayer(
   private def addRunedDataToNearEnv(
     nearEnv: BuildingFunctionEnvironmentWithClosureds,
     identifyingRunes: Vector[IRuneS],
-    templatasByRune: Map[IRuneS, ITemplata[ITemplataType]],
+    templatasByRune: Map[IRuneS, ITemplataT[ITemplataType]],
     defaultRegionRune: IRuneS,
-    reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplata]
+    reachableBoundsFromParamsAndReturn: Vector[PrototypeTemplataT]
     // I suspect we'll eventually need some impl bounds here
   ): BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs = {
     val BuildingFunctionEnvironmentWithClosureds(
@@ -313,8 +313,8 @@ class FunctionCompilerSolvingLayer(
     callingEnv: IInDenizenEnvironment, // See CSSNCE
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[Option[CoordT]]
   ):
   (IEvaluateFunctionResult) = {
@@ -410,7 +410,7 @@ class FunctionCompilerSolvingLayer(
 
     coutputs.addInstantiationBounds(prototype.id, runeToFunctionBound)
 
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferredTemplatas)
+    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferredTemplatas)
   }
 
   def evaluateGenericFunctionParentForPrototype(
@@ -530,7 +530,7 @@ class FunctionCompilerSolvingLayer(
 
     // Usually when we call a function, we add instantiation bounds. However, we're
     // not calling a function here, we're defining it.
-    EvaluateFunctionSuccess(PrototypeTemplata(function.range, prototype), inferences)
+    EvaluateFunctionSuccess(PrototypeTemplataT(function.range, prototype), inferences)
   }
 
   // Preconditions:
@@ -656,7 +656,7 @@ class FunctionCompilerSolvingLayer(
         case ((paramRune, Some(argTemplata)), argIndex) => {
           Some(InitialSend(
             RuneUsage(callRange, ArgumentRuneS(argIndex)), paramRune,
-            CoordTemplata(argTemplata)))
+            CoordTemplataT(argTemplata)))
         }
       })
   }

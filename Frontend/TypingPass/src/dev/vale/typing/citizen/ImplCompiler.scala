@@ -23,8 +23,8 @@ import scala.collection.immutable.Set
 
 sealed trait IsParentResult
 case class IsParent(
-  templata: ITemplata[ImplTemplataType],
-  conclusions: Map[IRuneS, ITemplata[ITemplataType]],
+  templata: ITemplataT[ImplTemplataType],
+  conclusions: Map[IRuneS, ITemplataT[ITemplataType]],
   implId: IdT[IImplNameT]
 ) extends IsParentResult
 case class IsntParent(
@@ -47,11 +47,11 @@ class ImplCompiler(
     callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
-    implTemplata: ImplDefinitionTemplata,
+    implTemplata: ImplDefinitionTemplataT,
     isRootSolve: Boolean,
     verifyConclusions: Boolean):
   ICompilerSolverOutcome = {
-    val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
+    val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata
     val ImplA(
       range,
       name,
@@ -115,11 +115,11 @@ class ImplCompiler(
     callLocation: LocationInDenizen,
     callingEnv: IInDenizenEnvironment,
     initialKnowns: Vector[InitialKnown],
-    implTemplata: ImplDefinitionTemplata,
+    implTemplata: ImplDefinitionTemplataT,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
   Result[CompleteCompilerSolve, IIncompleteOrFailedCompilerSolve] = {
-    val ImplDefinitionTemplata(parentEnv, impl) = implTemplata
+    val ImplDefinitionTemplataT(parentEnv, impl) = implTemplata
     val ImplA(
     range,
     name,
@@ -168,8 +168,8 @@ class ImplCompiler(
 
   // This will just figure out the struct template and interface template,
   // so we can add it to the temputs.
-  def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplDefinitionTemplata): Unit = {
-    val ImplDefinitionTemplata(parentEnv, implA) = implTemplata
+  def compileImpl(coutputs: CompilerOutputs, implTemplata: ImplDefinitionTemplataT): Unit = {
+    val ImplDefinitionTemplataT(parentEnv, implA) = implTemplata
 
     val implTemplateId =
       parentEnv.id.addStep(
@@ -213,7 +213,7 @@ class ImplCompiler(
     val subCitizen =
       inferences.get(implA.subCitizenRune.rune) match {
         case None => vwat()
-        case Some(KindTemplata(s: ICitizenTT)) => s
+        case Some(KindTemplataT(s: ICitizenTT)) => s
         case _ => vwat()
       }
     val subCitizenTemplateFullName =
@@ -222,7 +222,7 @@ class ImplCompiler(
     val superInterface =
       inferences.get(implA.interfaceKindRune.rune) match {
         case None => vwat()
-        case Some(KindTemplata(i@InterfaceTT(_))) => i
+        case Some(KindTemplataT(i@InterfaceTT(_))) => i
         case Some(other) => throw CompileErrorExceptionT(CantImplNonInterface(List(implA.range), other))
       }
     val superInterfaceTemplateFullName =
@@ -271,7 +271,7 @@ class ImplCompiler(
 
   def calculateRunesIndependence(
     coutputs: CompilerOutputs,
-    implTemplata: ImplDefinitionTemplata,
+    implTemplata: ImplDefinitionTemplataT,
     implOuterEnv: IInDenizenEnvironment,
     interface: InterfaceTT,
   ): Vector[Boolean] = {
@@ -288,7 +288,7 @@ class ImplCompiler(
             implTemplata.impl.interfaceKindRune,
             // We may be feeding in something interesting like IObserver<Opt<T>> here should be fine,
             // the impl will receive it and match it to its own unknown runes appropriately.
-            KindTemplata(interface))),
+            KindTemplataT(interface))),
         implTemplata,
         false,
         // Don't verify conclusions, because this will likely be a partial solve, which means we
@@ -296,7 +296,7 @@ class ImplCompiler(
         // function bounds that come from them. We'll check them later.
         false) match {
         case CompleteCompilerSolve(_, conclusions, _, reachableBoundsFromSubCitizen) => (conclusions, reachableBoundsFromSubCitizen)
-        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplata[ITemplataType]]())
+        case IncompleteCompilerSolve(_, _, _, incompleteConclusions) => (incompleteConclusions, Vector[ITemplataT[ITemplataType]]())
         case fcs @ FailedCompilerSolve(_, _, _) => {
           throw CompileErrorExceptionT(CouldntEvaluatImpl(List(implTemplata.impl.range), fcs))
         }
@@ -314,7 +314,7 @@ class ImplCompiler(
 
   def assembleImplName(
     templateName: IdT[IImplTemplateNameT],
-    templateArgs: Vector[ITemplata[ITemplataType]],
+    templateArgs: Vector[ITemplataT[ITemplataType]],
     subCitizen: ICitizenTT):
   IdT[IImplNameT] = {
     templateName.copy(
@@ -492,14 +492,14 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IInDenizenEnvironment,
-    implTemplata: ImplDefinitionTemplata,
+    implTemplata: ImplDefinitionTemplataT,
     parent: InterfaceTT,
     verifyConclusions: Boolean,
     isRootSolve: Boolean):
   Result[ICitizenTT, IIncompleteOrFailedCompilerSolve] = {
     val initialKnowns =
       Vector(
-        InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplata(parent)))
+        InitialKnown(implTemplata.impl.interfaceKindRune, KindTemplataT(parent)))
     val CompleteCompilerSolve(_, conclusions, _, _) =
       solveImplForCall(coutputs, parentRanges, vimpl(), callingEnv, initialKnowns, implTemplata, isRootSolve, true) match {
         case ccs @ CompleteCompilerSolve(_, _, _, _) => ccs
@@ -507,7 +507,7 @@ class ImplCompiler(
       }
     val parentTT = conclusions.get(implTemplata.impl.subCitizenRune.rune)
     vassertSome(parentTT) match {
-      case KindTemplata(i : ICitizenTT) => Ok(i)
+      case KindTemplataT(i : ICitizenTT) => Ok(i)
       case _ => vwat()
     }
   }
@@ -516,13 +516,13 @@ class ImplCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callingEnv: IInDenizenEnvironment,
-    implTemplata: ImplDefinitionTemplata,
+    implTemplata: ImplDefinitionTemplataT,
     child: ICitizenTT,
     verifyConclusions: Boolean):
   Result[InterfaceTT, IIncompleteOrFailedCompilerSolve] = {
     val initialKnowns =
       Vector(
-        InitialKnown(implTemplata.impl.subCitizenRune, KindTemplata(child)))
+        InitialKnown(implTemplata.impl.subCitizenRune, KindTemplataT(child)))
     val childEnv =
       coutputs.getOuterEnvForType(
         parentRanges,
@@ -534,7 +534,7 @@ class ImplCompiler(
       }
     val parentTT = conclusions.get(implTemplata.impl.interfaceKindRune.rune)
     vassertSome(parentTT) match {
-      case KindTemplata(i @ InterfaceTT(_)) => Ok(i)
+      case KindTemplataT(i @ InterfaceTT(_)) => Ok(i)
       case _ => vwat()
     }
   }
@@ -561,12 +561,12 @@ class ImplCompiler(
       subKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
       callingEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
 
-    val implDefsWithDuplicates = new Accumulator[ImplDefinitionTemplata]()
-    val implTemplatasWithDuplicates = new Accumulator[IsaTemplata]()
+    val implDefsWithDuplicates = new Accumulator[ImplDefinitionTemplataT]()
+    val implTemplatasWithDuplicates = new Accumulator[IsaTemplataT]()
 
     matching.foreach({
-      case it@ImplDefinitionTemplata(_, _) => implDefsWithDuplicates.add(it)
-      case it@IsaTemplata(_, _, _, _) => implTemplatasWithDuplicates.add(it)
+      case it@ImplDefinitionTemplataT(_, _) => implDefsWithDuplicates.add(it)
+      case it@IsaTemplataT(_, _, _, _) => implTemplatasWithDuplicates.add(it)
       case _ => vwat()
     })
 
@@ -631,18 +631,18 @@ class ImplCompiler(
       subKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext)) ++
       superKindEnv.lookupAllWithImpreciseName(implImpreciseNameS, Set(TemplataLookupContext))
 
-    val implsDefsWithDuplicates = new Accumulator[ImplDefinitionTemplata]()
-    val implTemplatasWithDuplicatesAcc = new Accumulator[IsaTemplata]()
+    val implsDefsWithDuplicates = new Accumulator[ImplDefinitionTemplataT]()
+    val implTemplatasWithDuplicatesAcc = new Accumulator[IsaTemplataT]()
     matching.foreach({
-      case it@ImplDefinitionTemplata(_, _) => implsDefsWithDuplicates.add(it)
-      case it@IsaTemplata(_, _, _, _) => implTemplatasWithDuplicatesAcc.add(it)
+      case it@ImplDefinitionTemplataT(_, _) => implsDefsWithDuplicates.add(it)
+      case it@IsaTemplataT(_, _, _, _) => implTemplatasWithDuplicatesAcc.add(it)
       case _ => vwat()
     })
     val implTemplatasWithDuplicates = implTemplatasWithDuplicatesAcc.buildArray()
 
     implTemplatasWithDuplicates.find(i => i.subKind == subKindTT && i.superKind == superKindTT) match {
       case Some(impl) => {
-        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArguments(Map(), Map()))
+        coutputs.addInstantiationBounds(impl.implName, InstantiationBoundArgumentsT(Map(), Map()))
         return IsParent(impl, Map(), impl.implName)
       }
       case None =>
@@ -654,8 +654,8 @@ class ImplCompiler(
       impls.map(impl => {
         val initialKnowns =
           Vector(
-            InitialKnown(impl.impl.subCitizenRune, KindTemplata(subKindTT)),
-            InitialKnown(impl.impl.interfaceKindRune, KindTemplata(superKindTT)))
+            InitialKnown(impl.impl.subCitizenRune, KindTemplataT(subKindTT)),
+            InitialKnown(impl.impl.interfaceKindRune, KindTemplataT(superKindTT)))
         solveImplForCall(coutputs, parentRanges, vimpl(), callingEnv, initialKnowns, impl, false, true) match {
           case ccs @ CompleteCompilerSolve(_, _, _, _) => Ok((impl, ccs))
           case x : IIncompleteOrFailedCompilerSolve => Err(x)

@@ -38,11 +38,11 @@ class CompilerMutateTests extends FunSuite with Matchers {
     val main = coutputs.lookupFunction("main")
     Collector.only(main, {
       case MutateTE(
-        LocalLookupTE(_,ReferenceLocalVariableT(CodeVarNameT(StrI("a")), VaryingT, _),_),
-        ConstantIntTE(IntegerTemplata(4), _, _)) =>
+        LocalLookupTE(_,ReferenceLocalVariableT(CodeVarNameT(StrI("a")), VaryingT, _)),
+        ConstantIntTE(IntegerTemplataT(4), _, _)) =>
     })
 
-    val lookup = Collector.only(main, { case l @ LocalLookupTE(_, _, _) => l })
+    val lookup = Collector.only(main, { case l @ LocalLookupTE(_, _) => l })
     val resultCoord = lookup.result.coord
     resultCoord shouldEqual CoordT(ShareT, vimpl(), IntT.i32)
   }
@@ -183,9 +183,9 @@ class CompilerMutateTests extends FunSuite with Matchers {
       case Err(CantMutateFinalElement(_, arrRef2)) => {
         arrRef2.kind match {
           case contentsStaticSizedArrayTT(
-            IntegerTemplata(10),
-            MutabilityTemplata(ImmutableT),
-            VariabilityTemplata(FinalT),
+            IntegerTemplataT(10),
+            MutabilityTemplataT(ImmutableT),
+            VariabilityTemplataT(FinalT),
             CoordT(ShareT,_,IntT(_)),
             _) =>
         }
@@ -219,7 +219,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
         |}
         |""".stripMargin)
     compile.getCompilerOutputs() match {
-      case Err(CantImplNonInterface(_, KindTemplata(IntT(32)))) =>
+      case Err(CantImplNonInterface(_, KindTemplataT(IntT(32)))) =>
       case _ => vfail()
     }
   }
@@ -256,7 +256,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
         interner.intern(KindPlaceholderNameT(
           interner.intern(KindPlaceholderTemplateNameT(
             0, DenizenDefaultRegionRuneS(FunctionNameS(nameStr, tzCodeLoc)))))))
-    val region = PlaceholderTemplata(regionName, RegionTemplataType())
+    val region = PlaceholderTemplataT(regionName, RegionTemplataType())
     val fireflyKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Firefly")), Vector.empty))))
     val fireflyCoord = CoordT(OwnT,region,fireflyKind)
     val serenityKind = StructTT(IdT(testPackageCoord, Vector.empty, interner.intern(StructNameT(StructTemplateNameT(StrI("Serenity")), Vector.empty))))
@@ -349,7 +349,7 @@ class CompilerMutateTests extends FunSuite with Matchers {
       .nonEmpty)
     vassert(CompilerErrorHumanizer.humanize(false, filenamesAndSources,
       CantImplNonInterface(
-        tz, KindTemplata(fireflyKind)))
+        tz, KindTemplataT(fireflyKind)))
       .nonEmpty)
   }
 }

@@ -9,7 +9,7 @@ import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, Function
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{ExternFunctionNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.typing.types._
@@ -40,7 +40,7 @@ class FunctionCompilerCore(
       life: LocationInFunctionEnvironment,
       parentRanges: List[RangeS],
       callLocation: LocationInDenizen,
-      region: ITemplata[RegionTemplataType],
+      region: ITemplataT[RegionTemplataType],
       exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       delegate.evaluateBlockStatements(
@@ -96,7 +96,7 @@ class FunctionCompilerCore(
     val maybeRetCoord =
       maybeRetTemplata match {
         case None => (None)
-        case Some(CoordTemplata(retCoord)) => {
+        case Some(CoordTemplataT(retCoord)) => {
           coutputs.declareFunctionReturnType(signature2, retCoord)
           (Some(retCoord))
         }
@@ -146,7 +146,7 @@ class FunctionCompilerCore(
               translateFunctionAttributes(fullEnv.function.attributes),
               params2,
               retCoord,
-              Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)))
+              Some(FunctionTemplataT(fullEnv.parentEnv, fullEnv.function)))
           (header)
         }
         case AbstractBodyS | GeneratedBodyS(_) => {
@@ -245,7 +245,7 @@ class FunctionCompilerCore(
       fullEnv.lookupNearestWithImpreciseName(
         interner.intern(RuneNameS(retCoordRune.rune)),
         Set(TemplataLookupContext))  match {
-        case Some(CoordTemplata(retCoord)) => retCoord
+        case Some(CoordTemplataT(retCoord)) => retCoord
         case other => vwat(other)
       }
     PrototypeT(id, returnCoord)
@@ -265,7 +265,7 @@ class FunctionCompilerCore(
 //        vimpl(),
         paramsT,
         returnCoord,
-        Some(FunctionTemplata(fullEnv.parentEnv, fullEnv.function)));
+        Some(FunctionTemplataT(fullEnv.parentEnv, fullEnv.function)));
     coutputs.declareFunctionReturnType(header.toSignature, returnCoord)
     header
   }
@@ -333,15 +333,14 @@ class FunctionCompilerCore(
       attributes: Vector[IFunctionAttributeT],
       params2: Vector[ParameterT],
       returnType2: CoordT,
-      maybeOrigin: Option[FunctionTemplata]):
+      maybeOrigin: Option[FunctionTemplataT]):
   (FunctionHeaderT) = {
     env.id.localName match {
       case FunctionNameT(FunctionTemplateNameT(humanName, _), templateArgs, params) => {
         // Exports' template args can only be regions
         val allTemplateArgsAreRegions =
           templateArgs.forall({
-            case RegionTemplata(_) => true
-            case PlaceholderTemplata(_, RegionTemplataType()) => true
+            case PlaceholderTemplataT(_, RegionTemplataType()) => true
             case _ => false
           })
         if (!allTemplateArgsAreRegions) {
@@ -360,7 +359,7 @@ class FunctionCompilerCore(
         val externFullName = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFullName, header.returnType)
         coutputs.addFunctionExtern(range, externPrototype, env.id.packageCoord, humanName)
-        coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArguments(Map(), Map()))
+        coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArgumentsT(Map(), Map()))
 
         val argLookups =
           header.params.zipWithIndex.map({ case (param2, index) => ArgLookupTE(index, param2.tyype) })

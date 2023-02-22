@@ -1,17 +1,17 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast.{BlockH, ImmutableBorrowH, ImmutableShareH, MutabilifyH, MutableBorrowH, MutableShareH, NeverHT}
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{BlockTE, FunctionHeaderT}
 import dev.vale.{vassert, vcurious, vfail, vimpl, vwat, finalast => m}
 import dev.vale.typing.ast._
 import dev.vale.typing.names.{IdT, RawArrayNameT, StaticSizedArrayNameT}
-import dev.vale.typing.templata.RegionTemplata
+import dev.vale.typing.templata.RegionTemplataT
 import dev.vale.typing.types.{IntT, StaticSizedArrayTT}
 
 class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
   def translateBlock(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     parentLocals: LocalsBox,
@@ -56,7 +56,7 @@ class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
   }
 
   def translatePure(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,

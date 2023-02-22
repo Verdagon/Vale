@@ -20,7 +20,7 @@ import dev.vale.typing.env.PackageEnvironment
 import dev.vale.typing.function.FunctionCompilerCore
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.names.AnonymousSubstructImplNameT
-import dev.vale.typing.templata.ExternFunctionTemplata
+import dev.vale.typing.templata.ExternFunctionTemplataT
 import dev.vale.typing.ast
 import dev.vale.typing.types.CoordT
 

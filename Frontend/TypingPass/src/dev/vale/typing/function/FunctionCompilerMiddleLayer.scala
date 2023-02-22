@@ -10,7 +10,7 @@ import dev.vale.typing.citizen.StructCompiler
 import dev.vale.typing.env.{BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs, ExpressionLookupContext, FunctionEnvironment, IInDenizenEnvironment, TemplataLookupContext}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names.{AnonymousSubstructConstructorNameT, IdT, IFunctionNameT, IFunctionTemplateNameT, NameTranslator, TypingIgnoredParamNameT}
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.typing.types._
 import dev.vale.typing.templata._
@@ -118,7 +118,7 @@ class FunctionCompilerMiddleLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function1: FunctionA):
-  (PrototypeTemplata) = {
+  (PrototypeTemplataT) = {
     // Check preconditions
     function1.runeToType.keySet.foreach(templateParam => {
       vassert(runedEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(templateParam)), Set(TemplataLookupContext, ExpressionLookupContext)).nonEmpty);
@@ -132,7 +132,7 @@ class FunctionCompilerMiddleLayer(
 
     coutputs.lookupFunction(SignatureT(banner.name)) match {
       case Some(FunctionDefinitionT(header, _, _, _)) => {
-        PrototypeTemplata(function1.range, header.toPrototype)
+        PrototypeTemplataT(function1.range, header.toPrototype)
       }
       case None => {
         coutputs.declareFunction(callRange, namedEnv.id)
@@ -148,7 +148,7 @@ class FunctionCompilerMiddleLayer(
 
         //        delegate.evaluateParent(namedEnv, coutputs, callRange, header)
 
-        PrototypeTemplata(function1.range, header.toPrototype)
+        PrototypeTemplataT(function1.range, header.toPrototype)
       }
     }
   }
@@ -275,7 +275,7 @@ class FunctionCompilerMiddleLayer(
     params1: Vector[ParameterS]):
   Vector[CoordT] = {
     params1.map(param1 => {
-      val CoordTemplata(coord) =
+      val CoordTemplataT(coord) =
         env
           .lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(param1.pattern.coordRune.get.rune)),
@@ -292,7 +292,7 @@ class FunctionCompilerMiddleLayer(
     params1: Vector[ParameterS]):
   (Vector[ParameterT]) = {
     params1.zipWithIndex.map({ case (param1, index) =>
-        val CoordTemplata(coord) =
+        val CoordTemplataT(coord) =
           vassertSome(
             env
               .lookupNearestWithImpreciseName(
@@ -327,7 +327,7 @@ class FunctionCompilerMiddleLayer(
     maybeRetCoordRune.map(retCoordRuneA => {
       val retCoordRune = (retCoordRuneA)
       nearEnv.lookupNearestWithImpreciseName(interner.intern(RuneNameS(retCoordRune)), Set(TemplataLookupContext)) match {
-        case Some(CoordTemplata(coord)) => coord
+        case Some(CoordTemplataT(coord)) => coord
         case other => vwat(retCoordRune, other)
       }
     })
@@ -341,7 +341,7 @@ class FunctionCompilerMiddleLayer(
     runedEnv: BuildingFunctionEnvironmentWithClosuredsAndTemplateArgs,
     coutputs: CompilerOutputs,
     callRange: List[RangeS],
-    functionTemplata: FunctionTemplata):
+    functionTemplata: FunctionTemplataT):
   (FunctionBannerT) = {
     val function1 = functionTemplata.function
 
@@ -454,7 +454,7 @@ class FunctionCompilerMiddleLayer(
 
   def assembleName(
       templateName: IdT[IFunctionTemplateNameT],
-      templateArgs: Vector[ITemplata[ITemplataType]],
+      templateArgs: Vector[ITemplataT[ITemplataType]],
       paramTypes: Vector[CoordT]):
   IdT[IFunctionNameT] = {
     templateName.copy(

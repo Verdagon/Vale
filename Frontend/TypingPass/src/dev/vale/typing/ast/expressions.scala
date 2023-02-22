@@ -10,7 +10,7 @@ import dev.vale.options.GlobalOptions.test
 import dev.vale.postparsing.{IRuneS, IntegerTemplataType, LocationInDenizen, MutabilityTemplataType, PureCallRegionRuneS, RegionTemplataType}
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.{ITemplata, IntegerTemplata, MutabilityTemplata, PlaceholderTemplata, PrototypeTemplata, RegionTemplata, VariabilityTemplata}
+import dev.vale.typing.templata._
 
 trait IExpressionResultT  {
   def expectReference(): ReferenceResultT = {
@@ -132,10 +132,7 @@ case class LetNormalTE(
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
-    expr.result.coord.region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), VoidT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
-    }
+    ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
   }
 
   expr.kind match {
@@ -175,18 +172,12 @@ case class DiscardTE(
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {
-    expr.result.coord.region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), VoidT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
-    }
+    ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
   }
 
   expr.result.coord.ownership match {
     case BorrowT =>
-    case MutableBorrowT =>
-    case ImmutableBorrowT =>
     case ShareT =>
-    case MutableShareT | ImmutableShareT =>
     case WeakT =>
   }
 
@@ -227,7 +218,7 @@ case class IfTE(
   private val elseResultCoord = elseCall.result.coord
 
   conditionResultCoord match {
-    case CoordT(ShareT | MutableShareT | ImmutableShareT, _, BoolT()) =>
+    case CoordT(ShareT, _, BoolT()) =>
     case other => vfail(other)
   }
 
@@ -280,20 +271,14 @@ case class ReturnTE(
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {
-    sourceExpr.result.coord.region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), NeverT(false)))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, sourceExpr.result.coord.region, NeverT(false)))
-    }
+    ReferenceResultT(CoordT(ShareT, sourceExpr.result.coord.region, NeverT(false)))
   }
 }
 
-case class BreakTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
+case class BreakTE(region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
-    region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), NeverT(true)))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, region, NeverT(true)))
-    }
+    ReferenceResultT(CoordT(ShareT, region, NeverT(true)))
   }
 }
 
@@ -322,8 +307,8 @@ case class BlockTE(
 case class PureTE(
   location: LocationInDenizen,
 //  newDefaultRegionName: IdT[INameT],
-  newDefaultRegion: ITemplata[RegionTemplataType],
-  oldRegionToNewRegion: Vector[(ITemplata[RegionTemplataType], ITemplata[RegionTemplataType])],
+  newDefaultRegion: ITemplataT[RegionTemplataType],
+  oldRegionToNewRegion: Vector[(ITemplataT[RegionTemplataType], ITemplataT[RegionTemplataType])],
   inner: ReferenceExpressionTE,
   resultType: CoordT
 ) extends ReferenceExpressionTE {
@@ -452,51 +437,29 @@ case class AsSubtypeTE(
   override def result = ReferenceResultT(resultResultType)
 }
 
-case class VoidLiteralTE(region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
+case class VoidLiteralTE(region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
+  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+  override def result = ReferenceResultT(CoordT(ShareT, region, VoidT()))
+}
+
+case class ConstantIntTE(value: ITemplataT[IntegerTemplataType], bits: Int, region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = {
-    val ownership =
-      region match {
-        case RegionTemplata(_) => MutableShareT
-        case PlaceholderTemplata(_, RegionTemplataType()) => ShareT
-      }
-    ReferenceResultT(CoordT(ownership, region, VoidT()))
+    ReferenceResultT(CoordT(ShareT, region, IntT(bits)))
   }
 }
 
-case class ConstantIntTE(value: ITemplata[IntegerTemplataType], bits: Int, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
+case class ConstantBoolTE(value: Boolean, region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    val newOwnership =
-      region match {
-        case PlaceholderTemplata(_, _) => ShareT
-        case RegionTemplata(_) => MutableShareT
-      }
-    ReferenceResultT(CoordT(newOwnership, region, IntT(bits)))
-  }
+  override def result: ReferenceResultT = ReferenceResultT(CoordT(ShareT, region, BoolT()))
 }
 
-case class ConstantBoolTE(value: Boolean, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
+case class ConstantStrTE(value: String, region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), BoolT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, region, BoolT()))
-    }
-  }
+  override def result: ReferenceResultT = ReferenceResultT(CoordT(ShareT, region, StrT()))
 }
 
-case class ConstantStrTE(value: String, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    region match {
-      case RegionTemplata(pureHeight) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(pureHeight), StrT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, region, StrT()))
-    }
-  }
-}
-
-case class ConstantFloatTE(value: Double, region: ITemplata[RegionTemplataType]) extends ReferenceExpressionTE {
+case class ConstantFloatTE(value: Double, region: ITemplataT[RegionTemplataType]) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result = ReferenceResultT(CoordT(ShareT, region, FloatT()))
 }
@@ -504,30 +467,10 @@ case class ConstantFloatTE(value: Double, region: ITemplata[RegionTemplataType])
 case class LocalLookupTE(
   range: RangeS,
   // This is the local variable at the time it was created
-  localVariable: ILocalVariableT,
-  // The instantiator might want to load this as a different region mutability than the mutability
-  // when originally created, so tihs field will be able to hold that.
-  // Conceptually, it's the current mutability of the source region at the time of the local lookup.
-  pureHeight: Int,
-//  reference: CoordT,
-//  variability: VariabilityT
+  localVariable: ILocalVariableT
 ) extends AddressExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: AddressResultT = {
-    val CoordT(localVarOwnership, localVarRegion, kind) = localVariable.coord
-    AddressResultT(
-      localVarRegion match {
-        case PlaceholderTemplata(_, RegionTemplataType()) => localVariable.coord
-        case RegionTemplata(localVarPureHeight) => {
-          val resultOwnership =
-            (localVarOwnership, localVarPureHeight == pureHeight) match {
-              case (OwnT, _) => OwnT
-              case other => vimpl(other)
-            }
-          CoordT(resultOwnership, localVarRegion, kind)
-        }
-      })
-  }
+  override def result: AddressResultT = AddressResultT(localVariable.coord)
   override def variability: VariabilityT = localVariable.variability
 }
 
@@ -574,12 +517,7 @@ case class RuntimeSizedArrayLookupTE(
 
 case class ArrayLengthTE(arrayExpr: ReferenceExpressionTE) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    arrayExpr.result.coord.region match {
-      case RegionTemplata(_) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), IntT.i32))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, arrayExpr.result.coord.region, IntT.i32))
-    }
-  }
+  override def result: ReferenceResultT = ReferenceResultT(CoordT(ShareT, arrayExpr.result.coord.region, IntT.i32))
 }
 
 case class ReferenceMemberLookupTE(
@@ -694,7 +632,7 @@ case class ConstructTE(
 // it's up to later stages to replace that with an actual index
 case class NewMutRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
-  region: ITemplata[RegionTemplataType],
+  region: ITemplataT[RegionTemplataType],
   capacityExpr: ReferenceExpressionTE,
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -702,9 +640,9 @@ case class NewMutRuntimeSizedArrayTE(
     ReferenceResultT(
       CoordT(
         arrayType.mutability match {
-          case MutabilityTemplata(MutableT) => OwnT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case MutabilityTemplataT(MutableT) => OwnT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => vimpl()
         },
         region,
         arrayType))
@@ -713,7 +651,7 @@ case class NewMutRuntimeSizedArrayTE(
 
 case class StaticArrayFromCallableTE(
   arrayType: StaticSizedArrayTT,
-  region: ITemplata[RegionTemplataType],
+  region: ITemplataT[RegionTemplataType],
   generator: ReferenceExpressionTE,
   generatorMethod: PrototypeT,
 ) extends ReferenceExpressionTE {
@@ -722,9 +660,9 @@ case class StaticArrayFromCallableTE(
     ReferenceResultT(
       CoordT(
         arrayType.mutability match {
-          case MutabilityTemplata(MutableT) => OwnT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(fullNameT, MutabilityTemplataType()) => vimpl()
+          case MutabilityTemplataT(MutableT) => OwnT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(fullNameT, MutabilityTemplataType()) => vimpl()
         },
         region,
         arrayType))
@@ -778,10 +716,7 @@ case class DestroyMutRuntimeSizedArrayTE(
   arrayExpr: ReferenceExpressionTE,
 ) extends ReferenceExpressionTE {
   override def result: ReferenceResultT = {
-    arrayExpr.result.coord.region match {
-      case RegionTemplata(_) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), VoidT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, arrayExpr.result.coord.region, VoidT()))
-    }
+    ReferenceResultT(CoordT(ShareT, arrayExpr.result.coord.region, VoidT()))
   }
 }
 
@@ -879,10 +814,7 @@ case class DestroyTE(
 ) extends ReferenceExpressionTE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   override def result: ReferenceResultT = {
-    expr.result.coord.region match {
-      case RegionTemplata(_) => ReferenceResultT(CoordT(MutableShareT, RegionTemplata(true), VoidT()))
-      case PlaceholderTemplata(_, _) => ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
-    }
+    ReferenceResultT(CoordT(ShareT, expr.result.coord.region, VoidT()))
   }
 
   if (expr.result.coord.ownership == BorrowT) {
@@ -897,7 +829,7 @@ case class DestroyImmRuntimeSizedArrayTE(
   consumerMethod: PrototypeT,
 ) extends ReferenceExpressionTE {
   arrayType.mutability match {
-    case MutabilityTemplata(ImmutableT) =>
+    case MutabilityTemplataT(ImmutableT) =>
     case _ => vwat()
   }
 
@@ -919,13 +851,13 @@ case class DestroyImmRuntimeSizedArrayTE(
 // it's up to later stages to replace that with an actual index
 case class NewImmRuntimeSizedArrayTE(
   arrayType: RuntimeSizedArrayTT,
-  region: ITemplata[RegionTemplataType],
+  region: ITemplataT[RegionTemplataType],
   sizeExpr: ReferenceExpressionTE,
   generator: ReferenceExpressionTE,
   generatorMethod: PrototypeT,
 ) extends ReferenceExpressionTE {
   arrayType.mutability match {
-    case MutabilityTemplata(ImmutableT) =>
+    case MutabilityTemplataT(ImmutableT) =>
     case _ => vwat()
   }
   // We dont want to own the generator
@@ -943,9 +875,9 @@ case class NewImmRuntimeSizedArrayTE(
     ReferenceResultT(
       CoordT(
         arrayType.mutability match {
-          case MutabilityTemplata(MutableT) => OwnT
-          case MutabilityTemplata(ImmutableT) => ShareT
-          case PlaceholderTemplata(_, MutabilityTemplataType()) => vimpl()
+          case MutabilityTemplataT(MutableT) => OwnT
+          case MutabilityTemplataT(ImmutableT) => ShareT
+          case PlaceholderTemplataT(_, MutabilityTemplataType()) => vimpl()
         },
         region,
         arrayType))

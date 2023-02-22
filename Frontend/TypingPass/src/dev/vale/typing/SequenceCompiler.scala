@@ -41,7 +41,7 @@ class SequenceCompiler(
     callLocation: LocationInDenizen,
     types2: Vector[CoordT]):
   StructTT = {
-    val tupleTemplate @ StructDefinitionTemplata(_, _) =
+    val tupleTemplate @ StructDefinitionTemplataT(_, _) =
       vassertSome(
         env.lookupNearestWithName(
           interner.intern(StructTemplateNameT(keywords.tupleHumanName)), Set(TemplataLookupContext)))
@@ -52,7 +52,7 @@ class SequenceCompiler(
       callLocation,
       tupleTemplate,
 //      Vector(CoordListTemplata(types2))).kind
-      types2.map(CoordTemplata),
+      types2.map(CoordTemplataT),
       vimpl()).expect().kind
   }
 
@@ -61,7 +61,7 @@ class SequenceCompiler(
     coutputs: CompilerOutputs,
     parentRanges: List[RangeS],
     callLocation: LocationInDenizen,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     types2: Vector[CoordT]):
   CoordT = {
     templataCompiler.coerceKindToCoord(

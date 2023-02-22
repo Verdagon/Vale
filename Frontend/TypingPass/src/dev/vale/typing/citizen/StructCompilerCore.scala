@@ -22,7 +22,6 @@ import dev.vale.typing.names._
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
 import dev.vale.typing.ast._
-import dev.vale.typing.templata.ITemplata.{expectMutabilityTemplata, expectRegion, expectRegionTemplata}
 
 import scala.collection.immutable.List
 
@@ -62,7 +61,7 @@ class StructCompilerCore(
       structRunesEnv.lookupNearestWithImpreciseName(
         interner.intern(RuneNameS(structA.mutabilityRune.rune)),
         Set(TemplataLookupContext)).toList match {
-        case List(m) => ITemplata.expectMutability(m)
+        case List(m) => ITemplataT.expectMutability(m)
         case _ => vwat()
       }
 
@@ -93,7 +92,7 @@ class StructCompilerCore(
 
     val members = makeStructMembers(structInnerEnv, coutputs, structA.members)
 
-    if (mutability == MutabilityTemplata(ImmutableT)) {
+    if (mutability == MutabilityTemplataT(ImmutableT)) {
       members.zipWithIndex.foreach({
         case (VariadicStructMemberT(name, tyype), index) => {
           vimpl() // Dont have imm variadics yet
@@ -135,7 +134,7 @@ class StructCompilerCore(
             outerEnv.id.addStep(name),
             (coutputs) => {
               delegate.evaluateGenericFunctionFromNonCallForHeader(
-                coutputs, parentRanges, callLocation, FunctionTemplata(outerEnv, functionA), true)
+                coutputs, parentRanges, callLocation, FunctionTemplataT(outerEnv, functionA), true)
             }))
       }
       case _ => vcurious()
@@ -201,7 +200,7 @@ class StructCompilerCore(
       interfaceA.attributes.collectFirst { case e@ExportS(_, _) => e }
 
     val mutability =
-      ITemplata.expectMutability(
+      ITemplataT.expectMutability(
         vassertSome(
           interfaceRunesEnv.lookupNearestWithImpreciseName(
             interner.intern(RuneNameS(interfaceA.mutabilityRune.rune)),
@@ -212,7 +211,7 @@ class StructCompilerCore(
         case (name, FunctionEnvEntry(functionA)) => {
           val header =
             delegate.evaluateGenericFunctionFromNonCallForHeader(
-              coutputs, parentRanges, callLocation, FunctionTemplata(outerEnv, functionA), true)
+              coutputs, parentRanges, callLocation, FunctionTemplataT(outerEnv, functionA), true)
           header.toPrototype -> vassertSome(header.getVirtualIndex)
         }
       }).toVector
@@ -273,7 +272,7 @@ class StructCompilerCore(
     val variabilityT = Conversions.evaluateVariability(member.variability)
     member match {
       case NormalStructMemberS(_, name, _, _) => {
-        val CoordTemplata(coord) = typeTemplata
+        val CoordTemplataT(coord) = typeTemplata
         NormalStructMemberT(
           interner.intern(CodeVarNameT(name)),
           variabilityT,
@@ -282,8 +281,8 @@ class StructCompilerCore(
       case VariadicStructMemberS(_, variability, coordListRune) => {
         val placeholderTemplata =
           env.lookupNearestWithName(interner.intern(RuneNameT(coordListRune.rune)), Set(TemplataLookupContext)) match {
-            case Some(PlaceholderTemplata(fullNameT, PackTemplataType(CoordTemplataType()))) => {
-              PlaceholderTemplata(fullNameT, PackTemplataType(CoordTemplataType()))
+            case Some(PlaceholderTemplataT(fullNameT, PackTemplataType(CoordTemplataType()))) => {
+              PlaceholderTemplataT(fullNameT, PackTemplataType(CoordTemplataType()))
             }
             case _ => vwat()
           }
@@ -303,7 +302,7 @@ class StructCompilerCore(
     name: IFunctionDeclarationNameS,
     functionA: FunctionA,
     members: Vector[NormalStructMemberT]):
-  (StructTT, MutabilityT, FunctionTemplata) = {
+  (StructTT, MutabilityT, FunctionTemplataT) = {
     val isMutable =
       members.exists({ case NormalStructMemberT(name, variability, tyype) =>
         if (variability == VaryingT) {
@@ -335,7 +334,7 @@ class StructCompilerCore(
       containingFunctionEnv.id.addStep(understructInstantiatedNameT)
 
     // Lambdas have no bounds, so we just supply Map()
-    coutputs.addInstantiationBounds(understructInstantiatedId, InstantiationBoundArguments(Map(), Map()))
+    coutputs.addInstantiationBounds(understructInstantiatedId, InstantiationBoundArgumentsT(Map(), Map()))
     val understructStructTT = interner.intern(StructTT(understructInstantiatedId))
 
     val dropFuncNameT =
@@ -361,8 +360,8 @@ class StructCompilerCore(
                 FunctionEnvEntry(
                   containingFunctionEnv.globalEnv.structDropMacro.makeImplicitDropFunction(
                     interner.intern(FunctionNameS(keywords.drop, functionA.range.begin)), functionA.range)),
-              understructInstantiatedNameT -> TemplataEnvEntry(KindTemplata(understructStructTT)),
-              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplata(understructStructTT)))))
+              understructInstantiatedNameT -> TemplataEnvEntry(KindTemplataT(understructStructTT)),
+              interner.intern(SelfNameT()) -> TemplataEnvEntry(KindTemplataT(understructStructTT)))))
 
     val structInnerEnv =
       CitizenEnvironment(
@@ -377,12 +376,12 @@ class StructCompilerCore(
 
     // We return this from the function in case we want to eagerly compile it (which we do
     // if it's not a template).
-    val functionTemplata = FunctionTemplata(structInnerEnv, functionA)
+    val functionTemplata = FunctionTemplataT(structInnerEnv, functionA)
 
     coutputs.declareType(understructTemplatedId)
     coutputs.declareTypeOuterEnv(understructTemplatedId, structOuterEnv)
     coutputs.declareTypeInnerEnv(understructTemplatedId, structInnerEnv)
-    coutputs.declareTypeMutability(understructTemplatedId, MutabilityTemplata(mutability))
+    coutputs.declareTypeMutability(understructTemplatedId, MutabilityTemplataT(mutability))
 
     val closureStructDefinition =
       StructDefinitionT(
@@ -390,7 +389,7 @@ class StructCompilerCore(
         understructStructTT,
         Vector.empty,
         false,
-        MutabilityTemplata(mutability),
+        MutabilityTemplataT(mutability),
         members,
         true,
         // Closures have no function bounds or impl bounds
@@ -412,7 +411,7 @@ class StructCompilerCore(
         parentRanges,
         callLocation,
         structInnerEnv.lookupNearestWithName(dropFuncNameT, Set(ExpressionLookupContext)) match {
-          case Some(ft@FunctionTemplata(_, _)) => ft
+          case Some(ft@FunctionTemplataT(_, _)) => ft
           case _ => throw CompileErrorExceptionT(RangedInternalErrorT(functionA.range :: parentRanges, "Couldn't find closure drop function we just added!"))
         },
         true)

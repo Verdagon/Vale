@@ -64,7 +64,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     // Only identifying template arg coord should be of PlaceholderT(0)
     bork.header.id.localName.templateArgs match {
-      case Vector(CoordTemplata(CoordT(OwnT,_,KindPlaceholderT(IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))))
+      case Vector(CoordTemplataT(CoordT(OwnT,_,KindPlaceholderT(IdT(_, _, KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))))
       =>
     }
 
@@ -112,10 +112,10 @@ class CompilerSolverTests extends FunSuite with Matchers {
             _,
             FunctionNameT(
               FunctionTemplateNameT(StrI("bork"), _),
-              Vector(CoordTemplata(CoordT(ShareT,_,IntT(32)))),
+              Vector(CoordTemplataT(CoordT(ShareT,_,IntT(32)))),
               Vector(CoordT(ShareT,_,IntT(32))))),
           CoordT(ShareT,_,IntT(32))),
-        Vector(ConstantIntTE(IntegerTemplata(3),32, _))) =>
+        Vector(ConstantIntTE(IntegerTemplataT(3),32, _))) =>
     }
   }
 
@@ -127,7 +127,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val main = coutputs.lookupFunction("bork")
     main.header.id.localName.templateArgs match {
-      case Vector(PlaceholderTemplata(_, IntegerTemplataType())) =>
+      case Vector(PlaceholderTemplataT(_, IntegerTemplataType())) =>
     }
   }
 
@@ -177,7 +177,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
             _,_,
             FunctionNameT(
               FunctionTemplateNameT(StrI("bork"), _),
-              Vector(CoordTemplata(templateArgCoord)),
+              Vector(CoordTemplataT(templateArgCoord)),
               Vector(arg))),
           CoordT(ShareT,_,VoidT())) => {
 
@@ -205,7 +205,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val funcTemplateId = IdT(testPackageCoord, Vector(), funcTemplateName)
     val funcName = IdT(testPackageCoord, Vector(), FunctionNameT(FunctionTemplateNameT(interner.intern(StrI("main")), tzCodeLoc), Vector(), Vector()))
     val regionName = funcTemplateId.addStep(interner.intern(KindPlaceholderNameT(interner.intern(KindPlaceholderTemplateNameT(0, DenizenDefaultRegionRuneS(FunctionNameS(funcTemplateName.humanName, funcTemplateName.codeLocation)))))))
-    val region = PlaceholderTemplata(regionName, RegionTemplataType())
+    val region = PlaceholderTemplataT(regionName, RegionTemplataType())
 
 
     val fireflyKind = StructTT(IdT(testPackageCoord, Vector(), StructNameT(StructTemplateNameT(StrI("Firefly")), Vector())))
@@ -244,12 +244,12 @@ class CompilerSolverTests extends FunSuite with Matchers {
         tz,
         FailedCompilerSolve(
           Vector(
-            Step[IRulexSR, IRuneS, ITemplata[ITemplataType]](
+            Step[IRulexSR, IRuneS, ITemplataT[ITemplataType]](
               false,
               Vector(),
               Vector(),
               Map(
-                CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))).toStream,
+                CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplataT(OwnT)))).toStream,
           unsolvedRules,
           RuleError(KindIsNotConcrete(ispaceshipKind)))))
       .nonEmpty)
@@ -260,12 +260,12 @@ class CompilerSolverTests extends FunSuite with Matchers {
           tz,
           IncompleteCompilerSolve(
             Vector(
-              Step[IRulexSR, IRuneS, ITemplata[ITemplataType]](
+              Step[IRulexSR, IRuneS, ITemplataT[ITemplataType]](
                 false,
                 Vector(),
                 Vector(),
                 Map(
-                  CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplata(OwnT)))).toStream,
+                  CodeRuneS(interner.intern(StrI("A"))) -> OwnershipTemplataT(OwnT)))).toStream,
             unsolvedRules,
             Set(
               CodeRuneS(interner.intern(StrI("I"))),
@@ -290,7 +290,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32, _) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 
   test("Equals transitive") {
@@ -303,7 +303,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32, _) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 
   test("OneOf") {
@@ -316,7 +316,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplata(3), 32, _) => })
+    Collector.only(coutputs.lookupFunction("main"), { case ConstantIntTE(IntegerTemplataT(3), 32, _) => })
   }
 
   test("Components") {
@@ -352,7 +352,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case FunctionCallTE(PrototypeT(simpleName("moo"), _), _) =>
+      case FunctionCallTE(PrototypeT(simpleNameT("moo"), _), _) =>
     })
   }
 
@@ -370,7 +370,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     )
     val coutputs = compile.expectCompilerOutputs()
     Collector.only(coutputs.lookupFunction("main"), {
-      case FunctionCallTE(PrototypeT(simpleName("moo"), _), _) =>
+      case FunctionCallTE(PrototypeT(simpleNameT("moo"), _), _) =>
     })
   }
 
@@ -449,7 +449,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     main.body shouldHave {
       case FunctionCallTE(prototype, Vector(_, _)) => {
         prototype.id.localName.templateArgs.head match {
-          case CoordTemplata(CoordT(_, _, InterfaceTT(_))) =>
+          case CoordTemplataT(CoordT(_, _, InterfaceTT(_))) =>
         }
       }
     }
@@ -474,7 +474,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
     val coutputs = compile.expectCompilerOutputs()
     val moo = coutputs.lookupFunction("moo")
     moo.header.params.head.tyype match {
-      case CoordT(_, _,InterfaceTT(IdT(_, _, CitizenNameT(_, Vector(CoordTemplata(CoordT(_, _,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _))))))))))) =>
+      case CoordT(_, _,InterfaceTT(IdT(_, _, CitizenNameT(_, Vector(CoordTemplataT(CoordT(_, _,KindPlaceholderT(IdT(_,_,KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _))))))))))) =>
     }
     val main = coutputs.lookupFunction("main")
     main.body shouldHave {
@@ -483,7 +483,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         Vector(
           UpcastTE(
             _,
-            InterfaceTT(IdT(_,_,InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector(CoordTemplata(CoordT(ShareT,_,IntT(32))))))),
+            InterfaceTT(IdT(_,_,InterfaceNameT(InterfaceTemplateNameT(StrI("IShip")),Vector(CoordTemplataT(CoordT(ShareT,_,IntT(32))))))),
             _))) =>
     }
   }
@@ -560,10 +560,10 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     compile.getCompilerOutputs() match {
-      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, SolverConflict(_, KindTemplata(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipA")),_)))), KindTemplata(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipB")),_)))))))) =>
-      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, SolverConflict(_, KindTemplata(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipB")),_)))), KindTemplata(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipA")),_)))))))) =>
-      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, RuleError(CallResultWasntExpectedType(_,KindTemplata(StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("ShipB")),Vector()))))))))) =>
-      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, RuleError(CallResultWasntExpectedType(_,KindTemplata(StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("ShipA")),Vector()))))))))) =>
+      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, SolverConflict(_, KindTemplataT(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipA")),_)))), KindTemplataT(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipB")),_)))))))) =>
+      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, SolverConflict(_, KindTemplataT(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipB")),_)))), KindTemplataT(StructTT(IdT(_,_,StructNameT(StructTemplateNameT(StrI("ShipA")),_)))))))) =>
+      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, RuleError(CallResultWasntExpectedType(_,KindTemplataT(StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("ShipB")),Vector()))))))))) =>
+      case Err(TypingPassSolverError(_, FailedCompilerSolve(_, _, RuleError(CallResultWasntExpectedType(_,KindTemplataT(StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("ShipA")),Vector()))))))))) =>
       case other => vfail(other)
     }
   }
@@ -587,7 +587,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         |""".stripMargin
     )
     val coutputs = compile.expectCompilerOutputs()
-    coutputs.lookupFunction("bork").header.id.localName.templateArgs.last shouldEqual CoordTemplata(CoordT(ShareT, vimpl(), IntT(32)))
+    coutputs.lookupFunction("bork").header.id.localName.templateArgs.last shouldEqual CoordTemplataT(CoordT(ShareT, vimpl(), IntT(32)))
   }
 
   test("Can destructure and assemble static sized array") {
@@ -611,7 +611,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
 
     val swap = coutputs.lookupFunction("swap")
     swap.header.id.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(OwnT,_,KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))) =>
+      case CoordTemplataT(CoordT(OwnT,_,KindPlaceholderT(IdT(_,Vector(FunctionTemplateNameT(StrI("swap"),_)),KindPlaceholderNameT(KindPlaceholderTemplateNameT(0, _)))))) =>
     }
 
     val main = coutputs.lookupFunction("main")
@@ -620,7 +620,7 @@ class CompilerSolverTests extends FunSuite with Matchers {
         case call @ FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("swap"), _), _, _)), _), _) => call
       })
     call.callable.id.localName.templateArgs.last match {
-      case CoordTemplata(CoordT(ShareT, _,IntT(32))) =>
+      case CoordTemplataT(CoordT(ShareT, _,IntT(32))) =>
     }
   }
 

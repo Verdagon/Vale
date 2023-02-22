@@ -2,7 +2,7 @@ package dev.vale.simplifying
 
 import dev.vale.{Builtins, FileCoordinateMap, IPackageResolver, Interner, Keywords, PackageCoordinate, PackageCoordinateMap, Profiler, Result, finalast, vassert, vcurious, vfail, vwat}
 import dev.vale.finalast.{ConsecutorH, ConstantVoidH, ExpressionH, Final, IdH, KindHT, Local, NeverHT, PackageH, ProgramH, PrototypeH, CoordH, StackifyH, Variability, VariableIdH, VoidHT}
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, KindExportT, KindExternT}
 import dev.vale.typing.names.{IdT, IVarNameT}
 import dev.vale.highertyping.ICompileErrorA
@@ -164,8 +164,8 @@ class Hammer(interner: Interner, keywords: Keywords) {
   val functionHammer = new FunctionHammer(keywords, typeHammer, nameHammer, structHammer)
   val vonHammer = new VonHammer(nameHammer, typeHammer)
 
-  def translate(hinputs: Hinputs): ProgramH = {
-    val Hinputs(
+  def translate(hinputs: HinputsT): ProgramH = {
+    val HinputsT(
     interfaces,
     structs,
     functions,

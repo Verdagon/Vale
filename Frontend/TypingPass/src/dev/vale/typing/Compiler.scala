@@ -36,7 +36,7 @@ import dev.vale.typing.function.FunctionCompiler.{EvaluateFunctionFailure, Evalu
 import dev.vale.typing.macros.citizen.StructDropMacro
 import dev.vale.typing.macros.rsa.RSALenMacro
 import dev.vale.typing.macros.ssa.SSALenMacro
-import dev.vale.typing.templata.ITemplata.expectRegion
+import dev.vale.typing.templata.ITemplataT.expectRegion
 
 import scala.collection.immutable.{List, ListMap, Map, Set}
 import scala.collection.mutable
@@ -101,10 +101,10 @@ class Compiler(
           callingEnv: IInDenizenEnvironment,
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          structTemplata: StructDefinitionTemplata,
-          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+          structTemplata: StructDefinitionTemplataT,
+          uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
-          contextRegion: ITemplata[RegionTemplataType]):
+          contextRegion: ITemplataT[RegionTemplataType]):
         IResolveOutcome[StructTT] = {
           structCompiler.resolveStruct(
             coutputs, callingEnv, callRange, callLocation, structTemplata, uncoercedTemplateArgs, contextRegion)
@@ -115,10 +115,10 @@ class Compiler(
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          interfaceTemplata: InterfaceDefinitionTemplata,
-          uncoercedTemplateArgs: Vector[ITemplata[ITemplataType]],
+          interfaceTemplata: InterfaceDefinitionTemplataT,
+          uncoercedTemplateArgs: Vector[ITemplataT[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
-          contextRegion: ITemplata[RegionTemplataType]):
+          contextRegion: ITemplataT[RegionTemplataType]):
         IResolveOutcome[InterfaceTT] = {
           structCompiler.resolveInterface(
             coutputs, callingEnv, callRange, callLocation, interfaceTemplata, uncoercedTemplateArgs, contextRegion)
@@ -162,31 +162,30 @@ class Compiler(
           }
         }
 
-        def getPlaceholdersInTemplata(accum: Accumulator[IdT[INameT]], templata: ITemplata[ITemplataType]): Unit = {
+        def getPlaceholdersInTemplata(accum: Accumulator[IdT[INameT]], templata: ITemplataT[ITemplataType]): Unit = {
           templata match {
-            case KindTemplata(kind) => getPlaceholdersInKind(accum, kind)
-            case CoordTemplata(CoordT(_, _, kind)) => getPlaceholdersInKind(accum, kind)
-            case CoordTemplata(CoordT(_, _, _)) =>
-            case PlaceholderTemplata(fullNameT, _) => accum.add(fullNameT)
-            case IntegerTemplata(_) =>
-            case BooleanTemplata(_) =>
-            case StringTemplata(_) =>
-            case RuntimeSizedArrayTemplateTemplata() =>
-            case StaticSizedArrayTemplateTemplata() =>
-            case VariabilityTemplata(_) =>
-            case OwnershipTemplata(_) =>
-            case MutabilityTemplata(_) =>
-            case RegionTemplata(_) =>
-            case InterfaceDefinitionTemplata(_,_) =>
-            case StructDefinitionTemplata(_,_) =>
-            case ImplDefinitionTemplata(_,_) =>
-            case CoordListTemplata(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
-            case PrototypeTemplata(_, prototype) => {
+            case KindTemplataT(kind) => getPlaceholdersInKind(accum, kind)
+            case CoordTemplataT(CoordT(_, _, kind)) => getPlaceholdersInKind(accum, kind)
+            case CoordTemplataT(CoordT(_, _, _)) =>
+            case PlaceholderTemplataT(fullNameT, _) => accum.add(fullNameT)
+            case IntegerTemplataT(_) =>
+            case BooleanTemplataT(_) =>
+            case StringTemplataT(_) =>
+            case RuntimeSizedArrayTemplateTemplataT() =>
+            case StaticSizedArrayTemplateTemplataT() =>
+            case VariabilityTemplataT(_) =>
+            case OwnershipTemplataT(_) =>
+            case MutabilityTemplataT(_) =>
+            case InterfaceDefinitionTemplataT(_,_) =>
+            case StructDefinitionTemplataT(_,_) =>
+            case ImplDefinitionTemplataT(_,_) =>
+            case CoordListTemplataT(coords) => coords.foreach(c => getPlaceholdersInKind(accum, c.kind))
+            case PrototypeTemplataT(_, prototype) => {
               getPlaceholdersInFullName(accum, prototype.id)
               prototype.paramTypes.foreach(c => getPlaceholdersInKind(accum, c.kind))
               getPlaceholdersInKind(accum, prototype.returnType.kind)
             }
-            case IsaTemplata(_, _, subKind, superKind) => {
+            case IsaTemplataT(_, _, subKind, superKind) => {
               getPlaceholdersInKind(accum, subKind)
               getPlaceholdersInKind(accum, superKind)
             }
@@ -222,7 +221,7 @@ class Compiler(
           }
         }
 
-        override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplata[ITemplataType]): Unit = {
+        override def sanityCheckConclusion(env: InferEnv, state: CompilerOutputs, rune: IRuneS, templata: ITemplataT[ITemplataType]): Unit = {
           val accum = new Accumulator[IdT[INameT]]()
           getPlaceholdersInTemplata(accum, templata)
 
@@ -258,7 +257,7 @@ class Compiler(
           coutputs: CompilerOutputs,
           range: List[RangeS],
           name: INameT):
-        ITemplata[ITemplataType] = {
+        ITemplataT[ITemplataType] = {
           templataCompiler.lookupTemplata(envs.selfEnv, coutputs, range, name)
         }
 
@@ -297,7 +296,7 @@ class Compiler(
           subKindTT: ISubKindTT,
           superKindTT: ISuperKindTT,
           includeSelf: Boolean):
-        Option[ITemplata[ImplTemplataType]] = {
+        Option[ITemplataT[ImplTemplataType]] = {
           implCompiler.isParent(coutputs, env.originalCallingEnv, parentRanges, subKindTT, superKindTT) match {
             case IsParent(implTemplata, _, _) => Some(implTemplata)
             case IsntParent(candidates) => None
@@ -308,28 +307,28 @@ class Compiler(
           envs: InferEnv,
           state: CompilerOutputs,
           range: List[RangeS],
-          templata: ITemplata[ITemplataType],
-          region: ITemplata[RegionTemplataType]):
-        ITemplata[ITemplataType] = {
+          templata: ITemplataT[ITemplataType],
+          region: ITemplataT[RegionTemplataType]):
+        ITemplataT[ITemplataType] = {
           templataCompiler.coerceToCoord(state, envs.originalCallingEnv, range, templata, region)
         }
 
-        override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplata[ITemplataType]] = {
+        override def lookupTemplataImprecise(envs: InferEnv, state: CompilerOutputs, range: List[RangeS], name: IImpreciseNameS): Option[ITemplataT[ITemplataType]] = {
           templataCompiler.lookupTemplata(envs.selfEnv, state, range, name)
         }
 
-        override def getMutability(state: CompilerOutputs, kind: KindT): ITemplata[MutabilityTemplataType] = {
+        override def getMutability(state: CompilerOutputs, kind: KindT): ITemplataT[MutabilityTemplataType] = {
           Compiler.getMutability(state, kind)
         }
 
         override def predictStaticSizedArrayKind(
           envs: InferEnv,
           state: CompilerOutputs,
-          mutability: ITemplata[MutabilityTemplataType],
-          variability: ITemplata[VariabilityTemplataType],
-          size: ITemplata[IntegerTemplataType],
+          mutability: ITemplataT[MutabilityTemplataType],
+          variability: ITemplataT[VariabilityTemplataType],
+          size: ITemplataT[IntegerTemplataType],
           element: CoordT,
-          region: ITemplata[RegionTemplataType]):
+          region: ITemplataT[RegionTemplataType]):
         StaticSizedArrayTT = {
           arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element, region)
         }
@@ -338,8 +337,8 @@ class Compiler(
           envs: InferEnv,
           state: CompilerOutputs,
           element: CoordT,
-          arrayMutability: ITemplata[MutabilityTemplataType],
-          region: ITemplata[RegionTemplataType]):
+          arrayMutability: ITemplataT[MutabilityTemplataType],
+          region: ITemplataT[RegionTemplataType]):
         RuntimeSizedArrayTT = {
             arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
         }
@@ -347,10 +346,10 @@ class Compiler(
         override def predictInterface(
           env: InferEnv,
           state: CompilerOutputs,
-          templata: InterfaceDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]],
+          templata: InterfaceDefinitionTemplataT,
+          templateArgs: Vector[ITemplataT[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
-          contextRegion: ITemplata[RegionTemplataType]):
+          contextRegion: ITemplataT[RegionTemplataType]):
         (KindT) = {
             structCompiler.predictInterface(
               state, env.originalCallingEnv, env.parentRanges, env.callLocation, templata, templateArgs, contextRegion)
@@ -359,9 +358,9 @@ class Compiler(
         override def predictStruct(
           env: InferEnv,
           state: CompilerOutputs,
-          templata: StructDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]],
-          contextRegion: ITemplata[RegionTemplataType]):
+          templata: StructDefinitionTemplataT,
+          templateArgs: Vector[ITemplataT[ITemplataType]],
+          contextRegion: ITemplataT[RegionTemplataType]):
         (KindT) = {
           structCompiler.predictStruct(
             state, env.originalCallingEnv, env.parentRanges, env.callLocation, templata, templateArgs, contextRegion)
@@ -370,12 +369,12 @@ class Compiler(
         override def kindIsFromTemplate(
           coutputs: CompilerOutputs,
           actualCitizenRef: KindT,
-          expectedCitizenTemplata: ITemplata[ITemplataType]):
+          expectedCitizenTemplata: ITemplataT[ITemplataType]):
         Boolean = {
           actualCitizenRef match {
             case s : ICitizenTT => templataCompiler.citizenIsFromTemplate(s, expectedCitizenTemplata)
-            case contentsRuntimeSizedArrayTT(_, _, _) => (expectedCitizenTemplata == RuntimeSizedArrayTemplateTemplata())
-            case contentsStaticSizedArrayTT(_, _, _, _, _) => (expectedCitizenTemplata == StaticSizedArrayTemplateTemplata())
+            case contentsRuntimeSizedArrayTT(_, _, _) => (expectedCitizenTemplata == RuntimeSizedArrayTemplateTemplataT())
+            case contentsStaticSizedArrayTT(_, _, _, _, _) => (expectedCitizenTemplata == StaticSizedArrayTemplateTemplataT())
             case _ => false
           }
         }
@@ -409,8 +408,8 @@ class Compiler(
           name: StrI,
           paramCoords: Vector[CoordT],
           returnCoord: CoordT):
-        PrototypeTemplata = {
-          PrototypeTemplata(
+        PrototypeTemplataT = {
+          PrototypeTemplataT(
             functionRange,
             PrototypeT(
               envs.selfEnv.id.addStep(
@@ -438,13 +437,13 @@ class Compiler(
               returnType)
 
           // This is a function bound, and there's no such thing as a function bound with function bounds.
-          state.addInstantiationBounds(result.id, InstantiationBoundArguments(Map(), Map()))
+          state.addInstantiationBounds(result.id, InstantiationBoundArgumentsT(Map(), Map()))
 
           result
         }
 
-        override def assembleImpl(env: InferEnv, range: RangeS, subKind: KindT, superKind: KindT): IsaTemplata = {
-          IsaTemplata(
+        override def assembleImpl(env: InferEnv, range: RangeS, subKind: KindT, superKind: KindT): IsaTemplataT = {
+          IsaTemplataT(
             range,
             env.selfEnv.id.addStep(
               interner.intern(
@@ -461,10 +460,10 @@ class Compiler(
           state: CompilerOutputs,
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          templata: InterfaceDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]],
+          templata: InterfaceDefinitionTemplataT,
+          templateArgs: Vector[ITemplataT[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
-          contextRegion: ITemplata[RegionTemplataType],
+          contextRegion: ITemplataT[RegionTemplataType],
           verifyConclusions: Boolean):
         IResolveOutcome[InterfaceTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
@@ -476,10 +475,10 @@ class Compiler(
           state: CompilerOutputs,
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          templata: StructDefinitionTemplata,
-          templateArgs: Vector[ITemplata[ITemplataType]],
+          templata: StructDefinitionTemplataT,
+          templateArgs: Vector[ITemplataT[ITemplataType]],
           // Context region is the only implicit generic parameter, see DROIGP.
-          contextRegion: ITemplata[RegionTemplataType],
+          contextRegion: ITemplataT[RegionTemplataType],
           verifyConclusions: Boolean):
         IResolveOutcome[StructTT] = {
           vassert(verifyConclusions) // If we dont want to be verifying, we shouldnt be calling this func
@@ -493,7 +492,7 @@ class Compiler(
           callLocation: LocationInDenizen,
           name: StrI,
           coords: Vector[CoordT],
-          contextRegion: ITemplata[RegionTemplataType],
+          contextRegion: ITemplataT[RegionTemplataType],
           verifyConclusions: Boolean):
         Result[StampFunctionSuccess, FindFunctionFailure] = {
           overloadResolver.findFunction(
@@ -513,11 +512,11 @@ class Compiler(
 
         override def resolveStaticSizedArrayKind(
           coutputs: CompilerOutputs,
-          mutability: ITemplata[MutabilityTemplataType],
-          variability: ITemplata[VariabilityTemplataType],
-          size: ITemplata[IntegerTemplataType],
+          mutability: ITemplataT[MutabilityTemplataType],
+          variability: ITemplataT[VariabilityTemplataType],
+          size: ITemplataT[IntegerTemplataType],
           element: CoordT,
-          region: ITemplata[RegionTemplataType]):
+          region: ITemplataT[RegionTemplataType]):
         StaticSizedArrayTT = {
           arrayCompiler.resolveStaticSizedArray(mutability, variability, size, element, region)
         }
@@ -525,8 +524,8 @@ class Compiler(
         override def resolveRuntimeSizedArrayKind(
           coutputs: CompilerOutputs,
           element: CoordT,
-          arrayMutability: ITemplata[MutabilityTemplataType],
-          region: ITemplata[RegionTemplataType]):
+          arrayMutability: ITemplataT[MutabilityTemplataType],
+          region: ITemplataT[RegionTemplataType]):
         RuntimeSizedArrayTT = {
           arrayCompiler.resolveRuntimeSizedArray(element, arrayMutability, region)
         }
@@ -570,7 +569,7 @@ class Compiler(
           coutputs: CompilerOutputs,
           parentRanges: List[RangeS],
           callLocation: LocationInDenizen,
-          functionTemplata: FunctionTemplata,
+          functionTemplata: FunctionTemplataT,
           verifyConclusions: Boolean):
         FunctionHeaderT = {
           functionCompiler.evaluateGenericFunctionFromNonCall(
@@ -585,7 +584,7 @@ class Compiler(
           functionName: IImpreciseNameS,
           explicitTemplateArgRulesS: Vector[IRulexSR],
           explicitTemplateArgRunesS: Vector[IRuneS],
-          contextRegion: ITemplata[RegionTemplataType],
+          contextRegion: ITemplataT[RegionTemplataType],
           args: Vector[CoordT],
           extraEnvsToLookIn: Vector[IInDenizenEnvironment],
           exact: Boolean,
@@ -623,7 +622,7 @@ class Compiler(
         life: LocationInFunctionEnvironment,
         ranges: List[RangeS],
       callLocation: LocationInDenizen,
-        region: ITemplata[RegionTemplataType],
+        region: ITemplataT[RegionTemplataType],
         exprs: BlockSE
     ): (ReferenceExpressionTE, Set[CoordT]) = {
       expressionCompiler.evaluateBlockStatements(
@@ -700,9 +699,9 @@ class Compiler(
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          functionTemplata: FunctionTemplata,
-          explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-          contextRegion: ITemplata[RegionTemplataType],
+          functionTemplata: FunctionTemplataT,
+          explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+          contextRegion: ITemplataT[RegionTemplataType],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
@@ -714,9 +713,9 @@ class Compiler(
           callingEnv: IInDenizenEnvironment, // See CSSNCE
           callRange: List[RangeS],
           callLocation: LocationInDenizen,
-          functionTemplata: FunctionTemplata,
-          explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-          contextRegion: ITemplata[RegionTemplataType],
+          functionTemplata: FunctionTemplataT,
+          explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+          contextRegion: ITemplataT[RegionTemplataType],
           args: Vector[CoordT]):
         FunctionCompiler.IEvaluateFunctionResult = {
           functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
@@ -764,7 +763,7 @@ class Compiler(
       opts, interner, keywords, nameTranslator, overloadResolver, structCompiler, structConstructorMacro, structDropMacro)
 
 
-  def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[Hinputs, ICompileErrorT] = {
+  def evaluate(packageToProgramA: PackageCoordinateMap[ProgramA]): Result[HinputsT, ICompileErrorT] = {
     try {
       Profiler.frame(() => {
         val nameToStructDefinedMacro =
@@ -851,15 +850,15 @@ class Compiler(
             env.TemplatasStore(IdT(PackageCoordinate.BUILTIN(interner, keywords), Vector(), interner.intern(PackageTopLevelNameT())), Map(), Map()).addEntries(
               interner,
               Vector[(INameT, IEnvEntry)](
-                interner.intern(PrimitiveNameT(keywords.int)) -> TemplataEnvEntry(KindTemplata(IntT.i32)),
-                interner.intern(PrimitiveNameT(keywords.i64)) -> TemplataEnvEntry(KindTemplata(IntT.i64)),
-                interner.intern(PrimitiveNameT(keywords.Array)) -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplata()),
-                interner.intern(PrimitiveNameT(keywords.StaticArray)) -> TemplataEnvEntry(StaticSizedArrayTemplateTemplata()),
-                interner.intern(PrimitiveNameT(keywords.bool)) -> TemplataEnvEntry(KindTemplata(BoolT())),
-                interner.intern(PrimitiveNameT(keywords.float)) -> TemplataEnvEntry(KindTemplata(FloatT())),
-                interner.intern(PrimitiveNameT(keywords.__Never)) -> TemplataEnvEntry(KindTemplata(NeverT(false))),
-                interner.intern(PrimitiveNameT(keywords.str)) -> TemplataEnvEntry(KindTemplata(StrT())),
-                interner.intern(PrimitiveNameT(keywords.void)) -> TemplataEnvEntry(KindTemplata(VoidT())))))
+                interner.intern(PrimitiveNameT(keywords.int)) -> TemplataEnvEntry(KindTemplataT(IntT.i32)),
+                interner.intern(PrimitiveNameT(keywords.i64)) -> TemplataEnvEntry(KindTemplataT(IntT.i64)),
+                interner.intern(PrimitiveNameT(keywords.Array)) -> TemplataEnvEntry(RuntimeSizedArrayTemplateTemplataT()),
+                interner.intern(PrimitiveNameT(keywords.StaticArray)) -> TemplataEnvEntry(StaticSizedArrayTemplateTemplataT()),
+                interner.intern(PrimitiveNameT(keywords.bool)) -> TemplataEnvEntry(KindTemplataT(BoolT())),
+                interner.intern(PrimitiveNameT(keywords.float)) -> TemplataEnvEntry(KindTemplataT(FloatT())),
+                interner.intern(PrimitiveNameT(keywords.__Never)) -> TemplataEnvEntry(KindTemplataT(NeverT(false))),
+                interner.intern(PrimitiveNameT(keywords.str)) -> TemplataEnvEntry(KindTemplataT(StrT())),
+                interner.intern(PrimitiveNameT(keywords.void)) -> TemplataEnvEntry(KindTemplataT(VoidT())))))
 
         val coutputs = CompilerOutputs()
 
@@ -887,11 +886,11 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
-                val templata = StructDefinitionTemplata(env, structA)
+                val templata = StructDefinitionTemplataT(env, structA)
                 structCompiler.precompileStruct(coutputs, templata)
               }
               case InterfaceEnvEntry(interfaceA) => {
-                val templata = InterfaceDefinitionTemplata(env, interfaceA)
+                val templata = InterfaceDefinitionTemplataT(env, interfaceA)
                 structCompiler.precompileInterface(coutputs, templata)
               }
               case _ =>
@@ -906,7 +905,7 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case StructEnvEntry(structA) => {
-                val templata = StructDefinitionTemplata(packageEnv, structA)
+                val templata = StructDefinitionTemplataT(packageEnv, structA)
                 structCompiler.compileStruct(coutputs, List(), LocationInDenizen(Vector()), templata)
 
                 val maybeExport =
@@ -951,7 +950,7 @@ class Compiler(
                 }
               }
               case InterfaceEnvEntry(interfaceA) => {
-                val templata = InterfaceDefinitionTemplata(packageEnv, interfaceA)
+                val templata = InterfaceDefinitionTemplataT(packageEnv, interfaceA)
                 structCompiler.compileInterface(coutputs, List(), LocationInDenizen(Vector()), templata)
               }
               case _ =>
@@ -964,7 +963,7 @@ class Compiler(
           templatas.entriesByNameT.map({ case (name, entry) =>
             entry match {
               case ImplEnvEntry(impl) => {
-                implCompiler.compileImpl(coutputs, ImplDefinitionTemplata(env, impl))
+                implCompiler.compileImpl(coutputs, ImplDefinitionTemplataT(env, impl))
               }
               case _ =>
             }
@@ -978,7 +977,7 @@ class Compiler(
             templatas.entriesByNameT.map({ case (name, entry) =>
               entry match {
                 case FunctionEnvEntry(functionA) => {
-                  val templata = FunctionTemplata(packageEnv, functionA)
+                  val templata = FunctionTemplataT(packageEnv, functionA)
                   functionCompiler.evaluateGenericFunctionFromNonCall(
                     coutputs, List(), LocationInDenizen(Vector()), templata, true)
 
@@ -1061,7 +1060,7 @@ class Compiler(
                 coutputs, rules, runeToType, List(range),
                 LocationInDenizen(Vector()), Vector(), Vector(), true, true, Vector())
             templataByRune.get(typeRuneT.rune) match {
-              case Some(KindTemplata(kind)) => {
+              case Some(KindTemplataT(kind)) => {
                 coutputs.addKindExport(range, kind, placeholderedExportId, exportedName)
               }
               case Some(prototype) => {
@@ -1229,7 +1228,7 @@ class Compiler(
 //      val reachableImmKindToDestructor = reachableImmKinds.zip(reachableImmKinds.map(coutputs.findImmDestructor)).toMap
 
       val hinputs =
-          vale.typing.Hinputs(
+          vale.typing.HinputsT(
             reachableInterfaces.toVector,
             reachableStructs.toVector,
             reachableFunctions.toVector,
@@ -1489,20 +1488,20 @@ object Compiler {
   }
 
   def getMutabilities(coutputs: CompilerOutputs, concreteValues2: Vector[KindT]):
-  Vector[ITemplata[MutabilityTemplataType]] = {
+  Vector[ITemplataT[MutabilityTemplataType]] = {
     concreteValues2.map(concreteValue2 => getMutability(coutputs, concreteValue2))
   }
 
   def getMutability(coutputs: CompilerOutputs, concreteValue2: KindT):
-  ITemplata[MutabilityTemplataType] = {
+  ITemplataT[MutabilityTemplataType] = {
     concreteValue2 match {
       case KindPlaceholderT(fullName) => coutputs.lookupMutability(TemplataCompiler.getPlaceholderTemplate(fullName))
-      case NeverT(_) => MutabilityTemplata(ImmutableT)
-      case IntT(_) => MutabilityTemplata(ImmutableT)
-      case FloatT() => MutabilityTemplata(ImmutableT)
-      case BoolT() => MutabilityTemplata(ImmutableT)
-      case StrT() => MutabilityTemplata(ImmutableT)
-      case VoidT() => MutabilityTemplata(ImmutableT)
+      case NeverT(_) => MutabilityTemplataT(ImmutableT)
+      case IntT(_) => MutabilityTemplataT(ImmutableT)
+      case FloatT() => MutabilityTemplataT(ImmutableT)
+      case BoolT() => MutabilityTemplataT(ImmutableT)
+      case StrT() => MutabilityTemplataT(ImmutableT)
+      case VoidT() => MutabilityTemplataT(ImmutableT)
       case contentsRuntimeSizedArrayTT(mutability, _, _) => mutability
       case contentsStaticSizedArrayTT(_, mutability, _, _, _) => mutability
       case sr @ StructTT(name) => coutputs.lookupMutability(TemplataCompiler.getStructTemplate(name))
@@ -1511,7 +1510,7 @@ object Compiler {
 //      case TupleTT(_, sr) => coutputs.lookupMutability(sr)
       case OverloadSetT(_, _) => {
         // Just like FunctionT2
-        MutabilityTemplata(ImmutableT)
+        MutabilityTemplataT(ImmutableT)
       }
     }
   }

@@ -2,9 +2,9 @@ package dev.vale
 
 import dev.vale.typing.ast.{FunctionCallTE, ParameterT, PrototypeT}
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, CodeVarNameT, IdT, FunctionNameT, FunctionTemplateNameT, StructNameT, StructTemplateNameT}
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.simpleName
+import dev.vale.typing.templata.simpleNameT
 import dev.vale.typing.types.StructTT
 import dev.vale.von.VonInt
 import org.scalatest.{FunSuite, Matchers}
@@ -29,7 +29,7 @@ class InferTemplateTests extends FunSuite with Matchers {
     Collector.only(main, {
       case FunctionCallTE(PrototypeT(IdT(_, _, FunctionNameT(FunctionTemplateNameT(StrI("moo"), _), templateArgs, _)), _), _) => {
         templateArgs match {
-          case Vector(CoordTemplata(CoordT(OwnT, _, StructTT(IdT(x, Vector(), StructNameT(StructTemplateNameT(StrI("Muta")), Vector())))))) => {
+          case Vector(CoordTemplataT(CoordT(OwnT, _, StructTT(IdT(x, Vector(), StructNameT(StructTemplateNameT(StrI("Muta")), Vector())))))) => {
             vassert(x.isTest)
           }
         }

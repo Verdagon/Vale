@@ -17,7 +17,7 @@ import dev.vale.typing.ast._
 import dev.vale.typing.macros.IOnStructDefinedMacro
 import dev.vale.typing.names.INameT
 import dev.vale.typing.types._
-import dev.vale.typing.templata.{ITemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata._
 
 import scala.collection.mutable
 
@@ -220,8 +220,8 @@ class StructDropMacro(
         Compiler.consecutive(
           Vector(
             structDef.mutability match {
-              case MutabilityTemplata(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
-              case MutabilityTemplata(MutableT) | PlaceholderTemplata(_, _) => {
+              case MutabilityTemplataT(ImmutableT) => DiscardTE(ArgLookupTE(0, structType))
+              case MutabilityTemplataT(MutableT) | PlaceholderTemplataT(_, _) => {
                 val memberLocalVariables =
                   structDef.members.flatMap({
                     case NormalStructMemberT(name, _, ReferenceMemberTypeT(unsubstitutedReference)) => {

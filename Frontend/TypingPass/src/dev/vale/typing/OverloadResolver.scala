@@ -98,7 +98,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
@@ -162,7 +162,7 @@ class OverloadResolver(
   case class SearchedEnvironment(
     needle: IImpreciseNameS,
     environment: IInDenizenEnvironment,
-    matchingTemplatas: Vector[ITemplata[ITemplataType]])
+    matchingTemplatas: Vector[ITemplataT[ITemplataType]])
 
   private def getCandidateBanners(
     env: IInDenizenEnvironment,
@@ -193,28 +193,28 @@ class OverloadResolver(
       env.lookupAllWithImpreciseName(functionName, Set(ExpressionLookupContext)).toVector.distinct
     searchedEnvs.add(SearchedEnvironment(functionName, env, candidates))
     candidates.foreach({
-      case KindTemplata(OverloadSetT(overloadsEnv, nameInOverloadsEnv)) => {
+      case KindTemplataT(OverloadSetT(overloadsEnv, nameInOverloadsEnv)) => {
         getCandidateBannersInner(
           overloadsEnv, coutputs, range, nameInOverloadsEnv, searchedEnvs, results)
       }
-      case KindTemplata(sr@StructTT(_)) => {
+      case KindTemplataT(sr@StructTT(_)) => {
         val structEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getStructTemplate(sr.id))
         getCandidateBannersInner(
           structEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
-      case KindTemplata(sr@InterfaceTT(_)) => {
+      case KindTemplataT(sr@InterfaceTT(_)) => {
         val interfaceEnv = coutputs.getOuterEnvForType(range, TemplataCompiler.getInterfaceTemplate(sr.id))
         getCandidateBannersInner(
           interfaceEnv, coutputs, range, interner.intern(CodeNameS(keywords.underscoresCall)), searchedEnvs, results)
       }
-      case ExternFunctionTemplata(header) => {
+      case ExternFunctionTemplataT(header) => {
         results.add(HeaderCalleeCandidate(header))
       }
-      case PrototypeTemplata(declarationRange, prototype) => {
+      case PrototypeTemplataT(declarationRange, prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
         results.add(PrototypeTemplataCalleeCandidate(declarationRange, prototype))
       }
-      case ft@FunctionTemplata(_, _) => {
+      case ft@FunctionTemplataT(_, _) => {
         results.add(FunctionCalleeCandidate(ft))
       }
     })
@@ -227,7 +227,7 @@ class OverloadResolver(
     callLocation: LocationInDenizen,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     candidate: ICalleeCandidate,
     exact: Boolean,
@@ -235,7 +235,7 @@ class OverloadResolver(
     //maybeLatestPureBlockLocation: Option[Vector[Int]]):
   Result[IValidCalleeCandidate, IFindFunctionFailureReason] = {
     candidate match {
-      case FunctionCalleeCandidate(ft@FunctionTemplata(declaringEnv, function)) => {
+      case FunctionCalleeCandidate(ft@FunctionTemplataT(declaringEnv, function)) => {
         val identifyingRuneTemplataTypes = function.tyype.paramTypes
         if (explicitTemplateArgRunesS.size > identifyingRuneTemplataTypes.size) {
           Err(WrongNumberOfTemplateArguments(explicitTemplateArgRunesS.size, identifyingRuneTemplataTypes.size))
@@ -293,7 +293,7 @@ class OverloadResolver(
                   Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
                     // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
                     callingEnv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                      case Some(CitizenDefinitionTemplata(environment, a)) => {
+                      case Some(CitizenDefinitionTemplataT(environment, a)) => {
                         Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
                       }
                       case Some(x) => Ok(TemplataLookupResult(x.tyype))
@@ -386,7 +386,7 @@ class OverloadResolver(
                       if (isPure) {
                         val newPureHeight = callingEnv.pureHeight + 1
                         val calleeContextRegion =
-                          PlaceholderTemplata(
+                          PlaceholderTemplataT(
                             callingEnv.denizenId
                               .addStep(
                                 interner.intern(RegionPlaceholderNameT(
@@ -464,10 +464,10 @@ class OverloadResolver(
             // We're calling a function that came from a bound.
             // Function bounds (like the `func drop(T)void` don't have bounds themselves)
             // so we just supply an empty map here.
-            val bounds = Map[IRuneS, PrototypeTemplata]()
+            val bounds = Map[IRuneS, PrototypeTemplataT]()
 
             vassert(coutputs.getInstantiationBounds(prototype.id).nonEmpty)
-            Ok(ValidPrototypeTemplataCalleeCandidate(vimpl(), PrototypeTemplata(declarationRange, prototype)))
+            Ok(ValidPrototypeTemplataCalleeCandidate(vimpl(), PrototypeTemplataT(declarationRange, prototype)))
           }
           case Err(fff) => Err(fff)
         }
@@ -476,9 +476,9 @@ class OverloadResolver(
   }
 
   private def checkRegions(
-    ft: FunctionTemplata,
+    ft: FunctionTemplataT,
     callSitePureHeight: Int,
-    conclusions: Map[IRuneS, ITemplata[ITemplataType]]):
+    conclusions: Map[IRuneS, ITemplataT[ITemplataType]]):
   Result[Unit, IFindFunctionFailureReason] = {
     // The only place we can specify a region's mutability in the receiving function
     // is in the generic parameter declaration. So all we need to do is loop
@@ -494,7 +494,7 @@ class OverloadResolver(
             case ReadWriteRegionS | ImmutableRegionS => {
               val expectedMutable = (mutability == ReadWriteRegionS)
               conclusions.get(genericParam.rune.rune) match {
-                case Some(PlaceholderTemplata(IdT(_, _, RegionPlaceholderNameT(index, rune, regionPureHeight)), RegionTemplataType())) => {
+                case Some(PlaceholderTemplataT(IdT(_, _, RegionPlaceholderNameT(index, rune, regionPureHeight)), RegionTemplataType())) => {
                   // Someday we'll also want to check if there were any pure blocks since the
                   // region was created.
                   // Until then, it's only mutable if it originally was and this isn't a pure call.
@@ -544,7 +544,7 @@ class OverloadResolver(
     functionName: IImpreciseNameS,
     explicitTemplateArgRulesS: Vector[IRulexSR],
     explicitTemplateArgRunesS: Vector[IRuneS],
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     extraEnvsToLookIn: Vector[IInDenizenEnvironment],
     exact: Boolean,
@@ -694,7 +694,7 @@ class OverloadResolver(
       survivingBannerIndices
         .groupBy(index => {
           banners(index) match {
-            case ValidPrototypeTemplataCalleeCandidate(_, PrototypeTemplata(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
+            case ValidPrototypeTemplataCalleeCandidate(_, PrototypeTemplataT(_, PrototypeT(IdT(_, _, FunctionBoundNameT(FunctionBoundTemplateNameT(firstHumanName, _), firstTemplateArgs, firstParameters)), firstReturnType))) => {
               Some((firstHumanName, firstParameters, firstReturnType))
             }
             case _ => None
@@ -740,11 +740,11 @@ class OverloadResolver(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     potentialBanner: IValidCalleeCandidate,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     verifyConclusions: Boolean):
-  (PrototypeTemplata) = {
+  (PrototypeTemplataT) = {
     potentialBanner match {
-      case ValidCalleeCandidate(banner, _, ft @ FunctionTemplata(_, _)) => {
+      case ValidCalleeCandidate(banner, _, ft @ FunctionTemplataT(_, _)) => {
 //        if (ft.function.isTemplate) {
           val (EvaluateFunctionSuccess(successBanner, conclusions)) =
             functionCompiler.evaluateTemplatedLightFunctionFromCallForPrototype(
@@ -757,7 +757,7 @@ class OverloadResolver(
       }
       case ValidHeaderCalleeCandidate(header) => {
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        PrototypeTemplata(vassertSome(header.maybeOriginFunctionTemplata).function.range, header.toPrototype)
+        PrototypeTemplataT(vassertSome(header.maybeOriginFunctionTemplata).function.range, header.toPrototype)
       }
     }
   }
@@ -768,12 +768,12 @@ class OverloadResolver(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     potentialBanner: IValidCalleeCandidate,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[CoordT],
     verifyConclusions: Boolean):
   StampFunctionSuccess = {
     potentialBanner match {
-      case ValidCalleeCandidate(header, templateArgs, ft @ FunctionTemplata(_, _)) => {
+      case ValidCalleeCandidate(header, templateArgs, ft @ FunctionTemplataT(_, _)) => {
         if (ft.function.isLambda()) {
 //          if (ft.function.isTemplate) {
             functionCompiler.evaluateTemplatedFunctionFromCallForPrototype(
@@ -802,7 +802,7 @@ class OverloadResolver(
       case ValidHeaderCalleeCandidate(header) => {
         val declarationRange = vassertSome(header.maybeOriginFunctionTemplata).function.range
         vassert(coutputs.getInstantiationBounds(header.toPrototype.id).nonEmpty)
-        StampFunctionSuccess(vimpl(), PrototypeTemplata(declarationRange, header.toPrototype), Map())
+        StampFunctionSuccess(vimpl(), PrototypeTemplataT(declarationRange, header.toPrototype), Map())
       }
       case ValidPrototypeTemplataCalleeCandidate(maybeNewRegion, prototype) => {
         vassert(coutputs.getInstantiationBounds(prototype.prototype.id).nonEmpty)
@@ -817,7 +817,7 @@ class OverloadResolver(
     range: List[RangeS],
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))
@@ -840,7 +840,7 @@ class OverloadResolver(
     callLocation: LocationInDenizen,
     callableTE: ReferenceExpressionTE,
     elementType: CoordT,
-    contextRegion: ITemplata[RegionTemplataType],
+    contextRegion: ITemplataT[RegionTemplataType],
     verifyConclusions: Boolean):
   PrototypeT = {
     val funcName = interner.intern(CodeNameS(keywords.underscoresCall))

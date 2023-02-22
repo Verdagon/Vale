@@ -21,8 +21,8 @@ import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.function.FunctionCompiler.EvaluateFunctionSuccess
 import dev.vale.typing.function.{DestructorCompiler, FunctionCompilerCore}
 import dev.vale.typing.infer.CouldntFindFunction
-import dev.vale.typing.templata.ITemplata.expectMutability
-import dev.vale.typing.templata.{CoordTemplata, ITemplata, KindTemplata, MutabilityTemplata, PlaceholderTemplata}
+import dev.vale.typing.templata.ITemplataT.expectMutability
+import dev.vale.typing.templata._
 import dev.vale.typing.types.InterfaceTT
 
 import scala.collection.mutable

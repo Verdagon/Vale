@@ -10,7 +10,7 @@ import dev.vale.typing.ast.{ConstantIntTE, DestroyMutRuntimeSizedArrayTE, Destro
 import dev.vale.typing.env.{ILocalVariableT, NodeEnvironmentBox, TemplataEnvEntry}
 import dev.vale.typing.function.DestructorCompiler
 import dev.vale.typing.names.{IRegionNameT, IdT, RuneNameT}
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.highertyping._
 import dev.vale.parsing.ast.LoadAsBorrowP
@@ -137,7 +137,7 @@ class PatternCompiler(
                 Result[IRuneTypeSolverLookupResult, IRuneTypingLookupFailedError] = {
                   // DO NOT SUBMIT merge with other lookup overrides. maybe make some kind of adapter.
                   nenv.lookupNearestWithImpreciseName(nameS, Set(TemplataLookupContext)) match {
-                    case Some(CitizenDefinitionTemplata(environment, a)) => {
+                    case Some(CitizenDefinitionTemplataT(environment, a)) => {
                       Ok(CitizenRuneTypeSolverLookupResult(a.tyype, a.genericParameters))
                     }
                     case Some(x) => Ok(TemplataLookupResult(x.tyype))
@@ -173,7 +173,7 @@ class PatternCompiler(
                   InitialSend(
                     RuneUsage(pattern.range, PatternInputRuneS(pattern.range.begin)),
                     receiverRune,
-                    CoordTemplata(unconvertedInputExpr.result.coord))),
+                    CoordTemplataT(unconvertedInputExpr.result.coord))),
                 true,
                 true,
                 Vector())
@@ -182,7 +182,7 @@ class PatternCompiler(
               interner,
               templatasByRune.toVector
                 .map({ case (key, value) => (interner.intern(RuneNameT(key)), TemplataEnvEntry(value)) }))
-            val CoordTemplata(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))
+            val CoordTemplataT(expectedCoord) = vassertSome(templatasByRune.get(receiverRune.rune))
 
             // Now we convert m to a Marine. This also checks that it *can* be
             // converted to a Marine.
@@ -232,7 +232,7 @@ class PatternCompiler(
           val localT = localHelper.makeUserLocalVariable(coutputs, nenv, range :: parentRanges, localS, inputExpr.result.coord)
           currentInstructions = currentInstructions :+ LetNormalTE(localT, inputExpr)
           val capturedLocalAliasTE =
-            localHelper.softLoad(nenv, range :: parentRanges, LocalLookupTE(range, localT, localT.coord.region), LoadAsBorrowP)
+            localHelper.softLoad(nenv, range :: parentRanges, LocalLookupTE(range, localT), LoadAsBorrowP)
           (Some(localT), capturedLocalAliasTE)
         }
       }
@@ -296,10 +296,10 @@ class PatternCompiler(
       case staticSizedArrayT @ contentsStaticSizedArrayTT(sizeTemplata, _, _, elementType, _) => {
         val size =
           sizeTemplata match {
-            case PlaceholderTemplata(_, IntegerTemplataType()) => {
+            case PlaceholderTemplataT(_, IntegerTemplataType()) => {
               throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Can't create static sized array by values, can't guarantee size is correct!"))
             }
-            case IntegerTemplata(size) => {
+            case IntegerTemplataT(size) => {
               if (size != listOfMaybeDestructureMemberPatterns.size) {
                 throw CompileErrorExceptionT(RangedInternalErrorT(parentRanges, "Wrong num exprs!"))
               }
@@ -345,7 +345,7 @@ class PatternCompiler(
     val localT = localHelper.makeTemporaryLocal(nenv, life + 0, containerTE.result.coord)
     val letTE = LetNormalTE(localT, containerTE)
     val containerAliasingExprTE =
-      localHelper.softLoad(nenv, range, LocalLookupTE(range.head, localT, localT.coord.region), LoadAsBorrowP)
+      localHelper.softLoad(nenv, range, LocalLookupTE(range.head, localT), LoadAsBorrowP)
 
     Compiler.consecutive(
       Vector(
@@ -530,7 +530,7 @@ class PatternCompiler(
     coutputs: CompilerOutputs,
     env: IInDenizenEnvironment,
     loadRange: RangeS,
-    region: ITemplata[RegionTemplataType],
+    region: ITemplataT[RegionTemplataType],
     containerAlias: ReferenceExpressionTE,
     structTT: StructTT,
     index: Int):
@@ -574,6 +574,6 @@ class PatternCompiler(
       containerAlias: ReferenceExpressionTE,
       index: Int): StaticSizedArrayLookupTE = {
     arrayCompiler.lookupInStaticSizedArray(
-      range, containerAlias, ConstantIntTE(IntegerTemplata(index), 32, vimpl()), staticSizedArrayT)
+      range, containerAlias, ConstantIntTE(IntegerTemplataT(index), 32, vimpl()), staticSizedArrayT)
   }
 }

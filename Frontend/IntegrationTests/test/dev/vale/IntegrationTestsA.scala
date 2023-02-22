@@ -9,7 +9,7 @@ import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing._
 import dev.vale.typing.ast._
 import dev.vale.typing.names.{IdT, FunctionNameT, FunctionTemplateNameT}
-import dev.vale.typing.{Hinputs, ICompileErrorT, ast}
+import dev.vale.typing.{HinputsT, ICompileErrorT, ast}
 import dev.vale.typing.types._
 import dev.vale.testvm.{ConstraintViolatedException, Heap, IntV, PrimitiveKindV, ReferenceV, StructInstanceV, Vivem}
 import dev.vale.highertyping.ICompileErrorA
@@ -68,9 +68,9 @@ class RunCompilation(
   def getVpstMap(): Result[FileCoordinateMap[String], FailedParse] = fullCompilation.getVpstMap()
   def getScoutput(): Result[FileCoordinateMap[ProgramS], ICompileErrorS] = fullCompilation.getScoutput()
   def getAstrouts(): Result[PackageCoordinateMap[ProgramA], ICompileErrorA] = fullCompilation.getAstrouts()
-  def getCompilerOutputs(): Result[Hinputs, ICompileErrorT] = fullCompilation.getCompilerOutputs()
-  def expectCompilerOutputs(): Hinputs = fullCompilation.expectCompilerOutputs()
-  def getMonouts(): Hinputs = fullCompilation.getMonouts()
+  def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = fullCompilation.getCompilerOutputs()
+  def expectCompilerOutputs(): HinputsT = fullCompilation.expectCompilerOutputs()
+  def getMonouts(): HinputsT = fullCompilation.getMonouts()
   def getHamuts(): ProgramH = {
     val hamuts = fullCompilation.getHamuts()
     fullCompilation.getVonHammer().vonifyProgram(hamuts)

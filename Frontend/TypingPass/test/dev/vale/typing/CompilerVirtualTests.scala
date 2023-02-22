@@ -2,7 +2,7 @@ package dev.vale.typing
 
 import dev.vale.typing.ast.{AsSubtypeTE, FunctionHeaderT, PrototypeT, SignatureT}
 import dev.vale.typing.names._
-import dev.vale.typing.templata.CoordTemplata
+import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.{Collector, StrI, Tests, vassert}
 import dev.vale.typing.types.InterfaceTT

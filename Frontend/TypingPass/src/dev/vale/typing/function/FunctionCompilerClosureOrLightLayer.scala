@@ -85,8 +85,8 @@ class FunctionCompilerClosureOrLightLayer(
     callLocation: LocationInDenizen,
     closureStructRef: StructTT,
     function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     val (variables, entries) = makeClosureVariablesAndEntries(coutputs, closureStructRef)
@@ -115,8 +115,8 @@ class FunctionCompilerClosureOrLightLayer(
     callLocation: LocationInDenizen,
     closureStructRef: StructTT,
     function: FunctionA,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   (IEvaluateFunctionResult) = {
@@ -142,8 +142,8 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT],
     verifyConclusions: Boolean):
   (IEvaluateFunctionResult) = {
@@ -163,8 +163,8 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     args: Vector[Option[CoordT]]):
   (IEvaluateFunctionResult) = {
     checkNotClosure(function);
@@ -385,8 +385,8 @@ class FunctionCompilerClosureOrLightLayer(
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
     function: FunctionA,
-    explicitTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    explicitTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     checkNotClosure(function)
@@ -404,8 +404,8 @@ class FunctionCompilerClosureOrLightLayer(
     function: FunctionA,
     callRange: List[RangeS],
     callLocation: LocationInDenizen,
-    alreadySpecifiedTemplateArgs: Vector[ITemplata[ITemplataType]],
-    contextRegion: ITemplata[RegionTemplataType],
+    alreadySpecifiedTemplateArgs: Vector[ITemplataT[ITemplataType]],
+    contextRegion: ITemplataT[RegionTemplataType],
     argTypes: Vector[CoordT]):
   (IEvaluateFunctionResult) = {
     val outerEnvFullName = parentEnv.id.addStep(nameTranslator.translateGenericFunctionName(function.name))
@@ -474,7 +474,7 @@ class FunctionCompilerClosureOrLightLayer(
     val entries =
       Vector[(INameT, IEnvEntry)](
         closureStructRef.id.localName ->
-          TemplataEnvEntry(KindTemplata(closureStructRef)))
+          TemplataEnvEntry(KindTemplataT(closureStructRef)))
     (variables, entries)
   }
 }

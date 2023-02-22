@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast.{FunctionH, Local, NeverHT, PureH, UserFunctionH, VariableIdH}
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{ExternT, FunctionHeaderT, FunctionDefinitionT, IFunctionAttributeT, PrototypeT, PureT, UserFunctionT}
 import dev.vale.typing.names.{IdT, IVarNameT}
 import dev.vale.{Keywords, vassert, vfail, vimpl, vwat, finalast => m}
@@ -19,7 +19,7 @@ class FunctionHammer(
     new ExpressionHammer(keywords, typeHammer, nameHammer, structHammer, this)
 
   def translateFunctions(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     functions2: Vector[FunctionDefinitionT]):
   (Vector[FunctionRefH]) = {
@@ -32,7 +32,7 @@ class FunctionHammer(
   }
 
   def translateFunction(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     function2: FunctionDefinitionT):
   (FunctionRefH) = {
@@ -94,7 +94,7 @@ class FunctionHammer(
   }
 
   def translateFunctionRef(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       prototype2: PrototypeT):

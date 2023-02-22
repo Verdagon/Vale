@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.finalast._
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{DestroyStaticSizedArrayIntoLocalsTE, DestroyTE, FunctionHeaderT, LetAndLendTE, LetNormalTE, ReferenceExpressionTE, UnletTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{IdT, IVarNameT}
@@ -12,7 +12,7 @@ import dev.vale.typing._
 import dev.vale.typing.ast._
 import dev.vale.typing.env.ReferenceLocalVariableT
 import dev.vale.typing.names.IVarNameT
-import dev.vale.typing.templata.ITemplata.expectIntegerTemplata
+import dev.vale.typing.templata.ITemplataT.expectIntegerTemplata
 import dev.vale.typing.types._
 
 object LetHammer {
@@ -27,7 +27,7 @@ class LetHammer(
     loadHammer: LoadHammer) {
 
   def translateLet(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -63,7 +63,7 @@ class LetHammer(
   }
 
   def translateLetAndPoint(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -93,7 +93,7 @@ class LetHammer(
   }
 
   private def translateAddressibleLet(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -122,7 +122,7 @@ class LetHammer(
   }
 
   private def translateAddressibleLetAndPoint(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
       currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -151,7 +151,7 @@ class LetHammer(
   }
 
   private def translateMundaneLet(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -176,7 +176,7 @@ class LetHammer(
   }
 
     private def translateMundaneLetAndPoint(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
       currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -212,7 +212,7 @@ class LetHammer(
   }
 
   def translateUnlet(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -258,7 +258,7 @@ class LetHammer(
   }
 
   def translateDestructureStaticSizedArray(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
       currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -309,7 +309,7 @@ class LetHammer(
   }
 
   def translateDestroy(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,

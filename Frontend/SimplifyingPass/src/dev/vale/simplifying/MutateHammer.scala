@@ -1,7 +1,7 @@
 package dev.vale.simplifying
 
 import dev.vale.{Keywords, finalast, vassert, vimpl}
-import dev.vale.typing.Hinputs
+import dev.vale.typing.HinputsT
 import dev.vale.typing.ast.{AddressMemberLookupTE, ExpressionT, FunctionHeaderT, LocalLookupTE, MutateTE, ReferenceExpressionTE, ReferenceMemberLookupTE, RuntimeSizedArrayLookupTE, StaticSizedArrayLookupTE}
 import dev.vale.typing.env.{AddressibleLocalVariableT, ReferenceLocalVariableT}
 import dev.vale.typing.names.{IdT, IVarNameT}
@@ -21,7 +21,7 @@ class MutateHammer(
     expressionHammer: ExpressionHammer) {
 
   def translateMutate(
-      hinputs: Hinputs,
+      hinputs: HinputsT,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
       locals: LocalsBox,
@@ -62,7 +62,7 @@ class MutateHammer(
   }
 
   private def translateMundaneRuntimeSizedArrayMutate(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -90,7 +90,7 @@ class MutateHammer(
   }
 
   private def translateMundaneStaticSizedArrayMutate(
-                                                    hinputs: Hinputs,
+                                                    hinputs: HinputsT,
                                                     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
                                                     locals: LocalsBox,
@@ -118,7 +118,7 @@ class MutateHammer(
   }
 
   private def translateAddressibleMemberMutate(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -183,7 +183,7 @@ class MutateHammer(
   }
 
   private def translateMundaneMemberMutate(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -218,7 +218,7 @@ class MutateHammer(
   }
 
   private def translateAddressibleLocalMutate(
-    hinputs: Hinputs,
+    hinputs: HinputsT,
     hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
     locals: LocalsBox,
@@ -253,7 +253,7 @@ class MutateHammer(
   }
 
   private def translateMundaneLocalMutate(
-                                           hinputs: Hinputs,
+                                           hinputs: HinputsT,
                                            hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderT,
                                            locals: LocalsBox,
