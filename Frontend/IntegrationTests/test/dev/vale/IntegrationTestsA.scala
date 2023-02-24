@@ -8,6 +8,7 @@ import dev.vale.options.GlobalOptions
 import dev.vale.parsing.ast.FileP
 import dev.vale.postparsing._
 import dev.vale.typing.ast._
+import dev.vale.instantiating.ast._
 import dev.vale.typing.names.{IdT, FunctionNameT, FunctionTemplateNameT}
 import dev.vale.typing.{HinputsT, ICompileErrorT, ast}
 import dev.vale.typing.types._
@@ -70,7 +71,7 @@ class RunCompilation(
   def getAstrouts(): Result[PackageCoordinateMap[ProgramA], ICompileErrorA] = fullCompilation.getAstrouts()
   def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = fullCompilation.getCompilerOutputs()
   def expectCompilerOutputs(): HinputsT = fullCompilation.expectCompilerOutputs()
-  def getMonouts(): HinputsT = fullCompilation.getMonouts()
+  def getMonouts(): HinputsI = fullCompilation.getMonouts()
   def getHamuts(): ProgramH = {
     val hamuts = fullCompilation.getHamuts()
     fullCompilation.getVonHammer().vonifyProgram(hamuts)
@@ -787,13 +788,13 @@ class IntegrationTestsA extends FunSuite with Matchers {
 
     vassert(
       hinputs.functions.filter(func => func.header.id.localName match {
-        case FunctionNameT(FunctionTemplateNameT(StrI("bork"), _), _, _) => true
+        case FunctionNameIX(FunctionTemplateNameI(StrI("bork"), _), _, _) => true
         case _ => false
       }).isEmpty)
 
     vassert(
       hinputs.functions.find(func => func.header.id.localName match {
-        case FunctionNameT(FunctionTemplateNameT(StrI("helperFunc"), _), _, _) => true
+        case FunctionNameIX(FunctionTemplateNameI(StrI("helperFunc"), _), _, _) => true
         case _ => false
       }).size == 1)
   }

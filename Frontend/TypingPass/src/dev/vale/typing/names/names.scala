@@ -276,7 +276,9 @@ case class RegionPlaceholderNameT(
 //  originalMaybeNearestPureLocation: Option[LocationInDenizen],
 //  originallyIntroducedLocation: LocationInDenizen,
 //  originallyMutable: Boolean
-  pureHeight: Int
+
+  // If None, it comes from a template parameter
+  pureHeight: Option[Int]
 ) extends IRegionNameT with IPlaceholderNameT
 
 // See NNSPAFOC.
@@ -345,6 +347,15 @@ case class BuildingFunctionNameWithClosuredsT(
 
 
 }
+
+case class ExternTemplateNameT(
+  codeLoc: CodeLocationS,
+) extends ITemplateNameT
+
+case class ExternNameT(
+  template: ExportTemplateNameT,
+  templateArgs: Vector[ITemplataT[ITemplataType]]
+) extends IInstantiationNameT
 
 case class ExternFunctionNameT(
   humanName: StrI,

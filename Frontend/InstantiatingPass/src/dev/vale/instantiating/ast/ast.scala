@@ -70,19 +70,19 @@ case class FunctionExportI(
   vpass()
 }
 
-case class KindExternI(
-  tyype: KindIT,
-  packageCoordinate: PackageCoordinate,
-  externName: StrI
-)  {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-
-}
+//case class KindExternI(
+//  tyype: KindIT,
+//  packageCoordinate: PackageCoordinate,
+//  externName: StrI
+//)  {
+//  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+//
+//}
 
 case class FunctionExternI(
-  range: RangeS,
+//  range: RangeS,
   prototype: PrototypeI,
-  packageCoordinate: PackageCoordinate,
+//  packageCoordinate: PackageCoordinate,
   externName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()

@@ -23,5 +23,6 @@
     <orderEntry type="module" module-name="CompileOptions" />
     <orderEntry type="library" name="lift-json_2.12-3.4.3" level="project" />
     <orderEntry type="module" module-name="LexingPass" />
+    <orderEntry type="module" module-name="InstantiatingPass" />
   </component>
 </module>

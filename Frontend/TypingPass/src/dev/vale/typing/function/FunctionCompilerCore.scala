@@ -5,10 +5,10 @@ import dev.vale.{Err, Interner, Keywords, Ok, Profiler, RangeS, vassert, vassert
 import dev.vale.postparsing._
 import dev.vale.postparsing.patterns.AtomSP
 import dev.vale.typing.{CompileErrorExceptionT, CompilerOutputs, ConvertHelper, DeferredEvaluatingFunctionBody, RangedInternalErrorT, TemplataCompiler, TypingPassOptions, ast}
-import dev.vale.typing.ast.{ArgLookupTE, ExternFunctionCallTE, ExternT, FunctionDefinitionT, FunctionHeaderT, IFunctionAttributeT, LocationInFunctionEnvironmentT, ParameterT, PrototypeT, PureT, ReferenceExpressionTE, ReturnTE, SignatureT, UserFunctionT}
+import dev.vale.typing.ast._
 import dev.vale.typing.env._
 import dev.vale.typing.expression.CallCompiler
-import dev.vale.typing.names.{ExternFunctionNameT, DenizenDefaultRegionNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
+import dev.vale.typing.names.{DenizenDefaultRegionNameT, ExportTemplateNameT, ExternFunctionNameT, ExternNameT, FunctionNameT, FunctionTemplateNameT, IFunctionNameT, IRegionNameT, IdT, NameTranslator, RegionNameT, RuneNameT}
 import dev.vale.typing.templata.CoordTemplataT
 import dev.vale.typing.types._
 import dev.vale.highertyping._
@@ -143,7 +143,11 @@ class FunctionCompilerCore(
               coutputs,
               fullEnv,
               fullEnv.function.range,
-              translateFunctionAttributes(fullEnv.function.attributes),
+              translateFunctionAttributes(
+                fullEnv.function.attributes.filter({
+                  case ExternS(_) => false
+                  case _ => true
+                })),
               params2,
               retCoord,
               Some(FunctionTemplataT(fullEnv.parentEnv, fullEnv.function)))
@@ -336,7 +340,7 @@ class FunctionCompilerCore(
       maybeOrigin: Option[FunctionTemplataT]):
   (FunctionHeaderT) = {
     env.id.localName match {
-      case FunctionNameT(FunctionTemplateNameT(humanName, _), templateArgs, params) => {
+      case FunctionNameT(FunctionTemplateNameT(humanName, codeLoc), templateArgs, params) => {
         // Exports' template args can only be regions
         val allTemplateArgsAreRegions =
           templateArgs.forall({
@@ -350,15 +354,27 @@ class FunctionCompilerCore(
         val header =
           ast.FunctionHeaderT(
             env.id,
-            Vector(ExternT(range.file.packageCoordinate)) ++ attributes,
+            attributes,
 //            Vector(RegionT(env.defaultRegion.localName, true)),
             params2,
             returnType2,
             maybeOrigin)
 
-        val externFullName = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
-        val externPrototype = PrototypeT(externFullName, header.returnType)
-        coutputs.addFunctionExtern(range, externPrototype, env.id.packageCoord, humanName)
+        val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
+        val externPrototype = PrototypeT(externFunctionId, header.returnType)
+
+//        val externId =
+//          IdT(
+//            env.id.packageCoord,
+//            Vector.empty,
+//            interner.intern(ExternNameT(
+//              interner.intern(ExportTemplateNameT(codeLoc)),
+//              Vector(
+//                PlaceholderTemplataT()
+//              )
+//            )))
+
+        coutputs.addFunctionExtern(range, vimpl(), externPrototype, humanName)
         coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArgumentsT(Map(), Map()))
 
         val argLookups =
@@ -383,7 +399,7 @@ class FunctionCompilerCore(
   def translateFunctionAttributes(a: Vector[IFunctionAttributeS]): Vector[IFunctionAttributeT] = {
     a.map({
       case UserFunctionS => UserFunctionT
-      case ExternS(packageCoord) => ExternT(packageCoord)
+//      case ExternS(packageCoord) => ExternT(packageCoord)
       case x => vimpl(x.toString)
     })
   }

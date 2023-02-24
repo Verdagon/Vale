@@ -392,7 +392,7 @@ class OverloadResolver(
                                 interner.intern(RegionPlaceholderNameT(
                                   -1,
                                   PureCallRegionRuneS(callLocation),
-                                  newPureHeight
+                                  Some(newPureHeight)
 //                                  Some(callLocation),
 //                                  callLocation,
 //                                  true
@@ -498,7 +498,8 @@ class OverloadResolver(
                   // Someday we'll also want to check if there were any pure blocks since the
                   // region was created.
                   // Until then, it's only mutable if it originally was and this isn't a pure call.
-                  val actuallyMutable = callSitePureHeight == regionPureHeight
+                  // See RGPPHASZ, this assumes that mutable region generic params are Some(0).
+                  val actuallyMutable = Some(callSitePureHeight) == regionPureHeight
 
                   if (actuallyMutable != expectedMutable) {
                     // DO NOT SUBMIT test this

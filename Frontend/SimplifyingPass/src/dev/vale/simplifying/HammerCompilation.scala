@@ -11,6 +11,7 @@ import dev.vale.instantiating.ast.HinputsI
 import dev.vale.lexing.{FailedParse, RangeL}
 import dev.vale.instantiating.{InstantiatedCompilation, InstantiatorCompilationOptions}
 import dev.vale.postparsing.ICompileErrorS
+import dev.vale.typing.{HinputsT, ICompileErrorT}
 
 import scala.collection.immutable.List
 

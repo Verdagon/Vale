@@ -1,7 +1,7 @@
 package dev.vale.instantiating.ast
 
 import dev.vale.postparsing.IRuneS
-import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionDefinitionT, InterfaceEdgeBlueprintT, KindExportT, KindExternT, PrototypeT, SignatureT}
+import dev.vale.typing.ast._
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -32,7 +32,7 @@ case class HinputsI(
 
   kindExports: Vector[KindExportI],
   functionExports: Vector[FunctionExportI],
-  kindExterns: Vector[KindExternI],
+//  kindExterns: Vector[KindExternI],
   functionExterns: Vector[FunctionExternI],
 ) {
 

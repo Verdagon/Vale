@@ -348,7 +348,8 @@ class StructCompilerGenericArgsLayer(
           structTemplateFullName,
           defaultRegionGenericParamIndex,
           defaultRegionGenericParam.rune.rune,
-          0)
+          // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
+          Some(0))
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(structA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
@@ -454,9 +455,12 @@ class StructCompilerGenericArgsLayer(
       })
       vassert(defaultRegionGenericParamIndex >= 0)
       val defaultRegionGenericParam = interfaceA.genericParameters(defaultRegionGenericParamIndex)
+
       val defaultRegionPlaceholderTemplata =
         templataCompiler.createRegionPlaceholderInner(
-          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune, 0)
+          interfaceTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
+          // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
+          Some(0))
       // we inform the solver of this placeholder below.
 
       val envs = InferEnv(outerEnv, List(interfaceA.range), LocationInDenizen(Vector()), outerEnv, defaultRegionPlaceholderTemplata)
