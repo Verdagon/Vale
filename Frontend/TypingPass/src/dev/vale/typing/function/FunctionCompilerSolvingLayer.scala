@@ -568,11 +568,10 @@ class FunctionCompilerSolvingLayer(
 //    val defaultRegionGenericParamType = IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype)
 //    val defaultRegionMutable = vimpl()//defaultRegionGenericParamType.mutability == ReadWriteRegionS
     vassert(IGenericParameterTypeS.expectRegion(defaultRegionGenericParam.tyype).mutability == ReadWriteRegionS)
-    val defaultRegionPureHeight = 0
     val defaultRegionPlaceholderTemplata =
       templataCompiler.createRegionPlaceholderInner(
         functionTemplateFullName, defaultRegionGenericParamIndex, defaultRegionGenericParam.rune.rune,
-        defaultRegionPureHeight)
+        TemplataCompiler.getRegionPlaceholderPureHeight(defaultRegionGenericParam))
 //        None,
 //        LocationInDenizen(Vector()),
 //        defaultRegionMutable)
@@ -596,20 +595,7 @@ class FunctionCompilerSolvingLayer(
           case None => false
           case Some((genericParam, index)) => {
             val placeholderPureHeight =
-              genericParam.tyype match {
-                case OtherGenericParameterTypeS(_) => 0
-                case CoordGenericParameterTypeS(coordRegion, mutable) => {
-                  if (coordRegion.nonEmpty) vimpl()
-                  if (mutable) 0 else -1
-                }
-                case RegionGenericParameterTypeS(mutability) => {
-                  mutability match {
-                    case ReadWriteRegionS => 0
-                    case ImmutableRegionS => -1
-                    case ReadOnlyRegionS => -1
-                  }
-                }
-              }
+              TemplataCompiler.getRegionPlaceholderPureHeight(genericParam)
             // Make a placeholder for every argument even if it has a default, see DUDEWCD.
             val templata =
               templataCompiler.createPlaceholder(

@@ -170,7 +170,6 @@ class Hammer(interner: Interner, keywords: Keywords) {
     _,
     kindExports,
     functionExports,
-    kindExterns,
     functionExterns) = hinputs
 
 
@@ -188,14 +187,14 @@ class Hammer(interner: Interner, keywords: Keywords) {
       hamuts.addFunctionExport(prototypeH, exportId.packageCoord, exportName)
     })
 
-    kindExterns.foreach({ case KindExternI(tyype, packageCoordinate, exportName) =>
-      val kindH = typeHammer.translateKind(hinputs, hamuts, tyype)
-      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
-    })
+//    kindExterns.foreach({ case KindExternI(tyype, packageCoordinate, exportName) =>
+//      val kindH = typeHammer.translateKind(hinputs, hamuts, tyype)
+//      hamuts.addKindExtern(kindH, packageCoordinate, exportName)
+//    })
 
-    functionExterns.foreach({ case FunctionExternI(_, prototype, packageCoordinate, exportName) =>
+    functionExterns.foreach({ case FunctionExternI(prototype, exportName) =>
       val prototypeH = typeHammer.translatePrototype(hinputs, hamuts, prototype)
-      hamuts.addFunctionExtern(prototypeH, packageCoordinate, exportName)
+      hamuts.addFunctionExtern(prototypeH, exportName)
     })
 
     // We generate the names here first, so that externs get the first chance at having

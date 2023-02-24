@@ -12,6 +12,7 @@ import dev.vale.highertyping.{ICompileErrorA, ProgramA}
 import dev.vale.lexing.{FailedParse, RangeL}
 import dev.vale.simplifying.{HammerCompilation, HammerCompilationOptions, VonHammer}
 import dev.vale.typing.{HinputsT, ICompileErrorT}
+import dev.vale.instantiating.ast.HinputsI
 import dev.vale.postparsing.PostParser
 import dev.vale.typing.ICompileErrorT
 import dev.vale.testvm.ReferenceV
@@ -51,5 +52,5 @@ class FullCompilation(
   def getCompilerOutputs(): Result[HinputsT, ICompileErrorT] = hammerCompilation.getCompilerOutputs()
   def expectCompilerOutputs(): HinputsT = hammerCompilation.expectCompilerOutputs()
   def getHamuts(): ProgramH = hammerCompilation.getHamuts()
-  def getMonouts(): HinputsT = hammerCompilation.getMonouts()
+  def getMonouts(): HinputsI = hammerCompilation.getMonouts()
 }

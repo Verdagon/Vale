@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.postparsing.{IRuneS, IntegerTemplataType, MutabilityTemplataType, VariabilityTemplataType}
-import dev.vale.typing.ast.{FunctionExportT, FunctionExternT, FunctionDefinitionT, ImplT, KindExportT, KindExternT, PrototypeT, SignatureT, getFunctionLastName}
+import dev.vale.typing.ast._
 import dev.vale.typing.env.{CitizenEnvironment, FunctionEnvironment, IInDenizenEnvironment}
 import dev.vale.typing.expression.CallCompiler
 import dev.vale.typing.names._
@@ -75,7 +75,7 @@ case class CompilerOutputs() {
 
   private val kindExports: mutable.ArrayBuffer[KindExportT] = mutable.ArrayBuffer()
   private val functionExports: mutable.ArrayBuffer[FunctionExportT] = mutable.ArrayBuffer()
-  private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
+//  private val kindExterns: mutable.ArrayBuffer[KindExternT] = mutable.ArrayBuffer()
   private val functionExterns: mutable.ArrayBuffer[FunctionExternT] = mutable.ArrayBuffer()
 
   // When we call a function, for example this one:
@@ -369,12 +369,12 @@ case class CompilerOutputs() {
     functionExports += FunctionExportT(range, function, exportId, exportedName)
   }
 
-  def addKindExtern(kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
-    kindExterns += KindExternT(kind, packageCoord, exportedName)
-  }
+//  def addKindExtern(kind: KindT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
+//    kindExterns += KindExternT(kind, packageCoord, exportedName)
+//  }
 
-  def addFunctionExtern(range: RangeS, function: PrototypeT, packageCoord: PackageCoordinate, exportedName: StrI): Unit = {
-    functionExterns += FunctionExternT(range, function, packageCoord, exportedName)
+  def addFunctionExtern(range: RangeS, externPlaceholderedId: IdT[ExternNameT], function: PrototypeT, exportedName: StrI): Unit = {
+    functionExterns += FunctionExternT(range, externPlaceholderedId, function, exportedName)
   }
 
   def deferEvaluatingFunctionBody(devf: DeferredEvaluatingFunctionBody): Unit = {
@@ -507,9 +507,9 @@ case class CompilerOutputs() {
   def getFunctionExports: Vector[FunctionExportT] = {
     functionExports.toVector
   }
-  def getKindExterns: Vector[KindExternT] = {
-    kindExterns.toVector
-  }
+//  def getKindExterns: Vector[KindExternT] = {
+//    kindExterns.toVector
+//  }
   def getFunctionExterns: Vector[FunctionExternT] = {
     functionExterns.toVector
   }

@@ -1,7 +1,7 @@
 package dev.vale.typing
 
 import dev.vale.postparsing.IRuneS
-import dev.vale.typing.ast.{EdgeT, FunctionExportT, FunctionExternT, FunctionDefinitionT, InterfaceEdgeBlueprintT, KindExportT, KindExternT, PrototypeT, SignatureT}
+import dev.vale.typing.ast._
 import dev.vale.typing.names.{CitizenNameT, CitizenTemplateNameT, IdT, FunctionNameT, IFunctionNameT, LambdaCitizenNameT}
 import dev.vale.typing.templata._
 import dev.vale.typing.types._
@@ -32,7 +32,7 @@ case class HinputsT(
 
   kindExports: Vector[KindExportT],
   functionExports: Vector[FunctionExportT],
-  kindExterns: Vector[KindExternT],
+//  kindExterns: Vector[KindExternT],
   functionExterns: Vector[FunctionExternT],
 ) {
 
@@ -199,10 +199,6 @@ case class HinputsT(
 
   def lookupLambdaIn(needleFunctionHumanName: String): FunctionDefinitionT = {
     vassertOne(lookupLambdasIn(needleFunctionHumanName))
-  }
-
-  def getAllNonExternFunctions: Iterable[FunctionDefinitionT] = {
-    functions.filter(!_.header.isExtern)
   }
 
   def getAllUserFunctions: Iterable[FunctionDefinitionT] = {

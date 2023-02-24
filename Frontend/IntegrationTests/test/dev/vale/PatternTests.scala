@@ -1,5 +1,6 @@
 package dev.vale
 
+import dev.vale.instantiating.ast.{CoordI, IdI, IntIT, MutableBorrowI, MutableShareI, StructIT, StructMemberI, StructNameI, StructTemplateNameI}
 import dev.vale.parsing.ast.FinalP
 import dev.vale.postparsing.CodeRuneS
 import dev.vale.typing.env.ReferenceLocalVariableT
@@ -72,11 +73,11 @@ class PatternTests extends FunSuite with Matchers {
     val monouts = compile.getMonouts()
     val tupDef = monouts.lookupStruct("Tup")
     val tupDefMemberTypes =
-      tupDef.members.collect({ case NormalStructMemberT(_, _, tyype) => tyype.reference })
+      tupDef.members.collect({ case StructMemberI(_, _, tyype) => tyype.reference })
     tupDefMemberTypes match {
       case Vector(
-        CoordT(ShareT,null,IntT(32)),
-        CoordT(BorrowT,null,StructTT(IdT(_,Vector(),StructNameT(StructTemplateNameT(StrI("Marine")),Vector()))))) =>
+        CoordI(MutableShareI,IntIT(32)),
+        CoordI(MutableBorrowI,StructIT(IdI(_,Vector(),StructNameI(StructTemplateNameI(StrI("Marine")),Vector()))))) =>
     }
     compile.evalForKind(Vector()) match { case VonInt(8) => }
   }

@@ -81,19 +81,19 @@ case class FunctionExportT(
   vpass()
 }
 
-case class KindExternT(
-  tyype: KindT,
-  packageCoordinate: PackageCoordinate,
-  externName: StrI
-)  {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-
-}
+//case class KindExternT(
+//  tyype: KindT,
+//  externId: IdT[KindExternNameT],
+//  externName: StrI
+//)  {
+//  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+//
+//}
 
 case class FunctionExternT(
   range: RangeS,
+  externPlaceholderedId: IdT[ExternNameT],
   prototype: PrototypeT,
-  packageCoordinate: PackageCoordinate,
   externName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -316,9 +316,9 @@ case class FunctionBannerT(
 
 sealed trait IFunctionAttributeT
 sealed trait ICitizenAttributeT
-case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
-  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-}
+//case class ExternT(packageCoord: PackageCoordinate) extends IFunctionAttributeT with ICitizenAttributeT { // For optimization later
+//  val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
+//}
 // There's no Export2 here, we use separate KindExport and FunctionExport constructs.
 //case class Export2(packageCoord: PackageCoordinate) extends IFunctionAttribute2 with ICitizenAttribute2
 case object PureT extends IFunctionAttributeT
@@ -441,7 +441,6 @@ case class FunctionHeaderT(
 
   vassert(id.localName.parameters == paramTypes)
 
-  def isExtern = attributes.exists({ case ExternT(_) => true case _ => false })
   //  def isExport = attributes.exists({ case Export2(_) => true case _ => false })
   def isUserFunction = attributes.contains(UserFunctionT)
 //  def getAbstractInterface: Option[InterfaceTT] = toBanner.getAbstractInterface

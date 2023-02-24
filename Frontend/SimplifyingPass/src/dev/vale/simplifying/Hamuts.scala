@@ -63,16 +63,16 @@ case class HamutsBox(var inner: Hamuts) {
     inner = inner.addKindExport(kind, packageCoordinate, exportedName)
   }
 
-  def addKindExtern(kind: KindHT, packageCoordinate: PackageCoordinate, exportedName: StrI): Unit = {
-    inner = inner.addKindExtern(kind, packageCoordinate, exportedName)
-  }
+//  def addKindExtern(kind: KindHT, packageCoordinate: PackageCoordinate, exportedName: StrI): Unit = {
+//    inner = inner.addKindExtern(kind, packageCoordinate, exportedName)
+//  }
 
   def addFunctionExport(prototype: PrototypeH, packageCoordinate: PackageCoordinate, exportedName: StrI): Unit = {
     inner = inner.addFunctionExport(prototype, packageCoordinate, exportedName)
   }
 
-  def addFunctionExtern(prototype: PrototypeH, packageCoordinate: PackageCoordinate, exportedName: StrI): Unit = {
-    inner = inner.addFunctionExtern(prototype, packageCoordinate, exportedName)
+  def addFunctionExtern(prototype: PrototypeH, exportedName: StrI): Unit = {
+    inner = inner.addFunctionExtern(prototype, exportedName)
   }
 
   def getNameId(readableName: String, packageCoordinate: PackageCoordinate, parts: Vector[IVonData]): Int = {
@@ -321,42 +321,43 @@ case class Hamuts(
       packageCoordToExternNameToKind)
   }
 
-  def addKindExtern(kind: KindHT, packageCoordinate: PackageCoordinate, exportedName: StrI): Hamuts = {
-    val newPackageCoordToExternNameToKind =
-      packageCoordToExternNameToKind.get(packageCoordinate) match {
-        case None => {
-          packageCoordToExternNameToKind + (packageCoordinate -> Map(exportedName -> kind))
-        }
-        case Some(exportNameToFullName) => {
-          exportNameToFullName.get(exportedName) match {
-            case None => {
-              packageCoordToExternNameToKind + (packageCoordinate -> (exportNameToFullName + (exportedName -> kind)))
-            }
-            case Some(existingFullName) => {
-              vfail("Already exported a `" + exportedName + "` from package `" + packageCoordinate + " : " + existingFullName)
-            }
-          }
-        }
-      }
+//  def addKindExtern(kind: KindHT, packageCoordinate: PackageCoordinate, exportedName: StrI): Hamuts = {
+//    val newPackageCoordToExternNameToKind =
+//      packageCoordToExternNameToKind.get(packageCoordinate) match {
+//        case None => {
+//          packageCoordToExternNameToKind + (packageCoordinate -> Map(exportedName -> kind))
+//        }
+//        case Some(exportNameToFullName) => {
+//          exportNameToFullName.get(exportedName) match {
+//            case None => {
+//              packageCoordToExternNameToKind + (packageCoordinate -> (exportNameToFullName + (exportedName -> kind)))
+//            }
+//            case Some(existingFullName) => {
+//              vfail("Already exported a `" + exportedName + "` from package `" + packageCoordinate + " : " + existingFullName)
+//            }
+//          }
+//        }
+//      }
+//
+//    Hamuts(
+//      humanNameToFullNameToId,
+//      structTToStructH,
+//      structTToStructDefH,
+//      structDefs,
+//      staticSizedArrays,
+//      runtimeSizedArrays,
+//      interfaceTToInterfaceH,
+//      interfaceTToInterfaceDefH,
+//      functionRefs,
+//      functionDefs,
+//      packageCoordToExportNameToFunction,
+//      packageCoordToExportNameToKind,
+//      packageCoordToExternNameToFunction,
+//      newPackageCoordToExternNameToKind)
+//  }
 
-    Hamuts(
-      humanNameToFullNameToId,
-      structTToStructH,
-      structTToStructDefH,
-      structDefs,
-      staticSizedArrays,
-      runtimeSizedArrays,
-      interfaceTToInterfaceH,
-      interfaceTToInterfaceDefH,
-      functionRefs,
-      functionDefs,
-      packageCoordToExportNameToFunction,
-      packageCoordToExportNameToKind,
-      packageCoordToExternNameToFunction,
-      newPackageCoordToExternNameToKind)
-  }
-
-  def addFunctionExtern(function: PrototypeH, packageCoordinate: PackageCoordinate, exportedName: StrI): Hamuts = {
+  def addFunctionExtern(function: PrototypeH, exportedName: StrI): Hamuts = {
+    val packageCoordinate = function.id.packageCoordinate
     val newPackageCoordToExternNameToFunction =
       packageCoordToExternNameToFunction.get(packageCoordinate) match {
         case None => {

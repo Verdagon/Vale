@@ -1558,7 +1558,7 @@ class ExpressionCompiler(
             TemplataCompiler.getFunctionTemplate(nenv.snapshot.id)
               .addStep(
                 interner.intern(RegionPlaceholderNameT(
-                  -1, PureBlockRegionRuneS(location), newPureHeight)))
+                  -1, PureBlockRegionRuneS(location), Some(newPureHeight))))
           val newRegion = PlaceholderTemplataT(newRegionId, RegionTemplataType())
 
           // We'll restore these things at the end. We're reusing the same nenv because any locals

@@ -227,12 +227,39 @@ If x' is 1 and y' is 1, then both are immutable, and y is mutable to x.
 
 
 
-# After Instantiator There Are No Regions
+# After Instantiator There Are No Regions (AITANR)
 
 Under the hood, the instantiator is really just trying to figure out what references are currently immutable. The RegionTemplata(int) is mostly just an abstraction that helps humans reason about it better.
 
 Well, "mostly" because there is one thing regions help us do that coding with `imm&` and `&` can't do: it helps the compiler know when it's safe to cast from `imm&` back to `&`, such as when we come back from a pure block. The compiler knows that if a pure block is returning something created just before itself, it can safely cast that to a mutable reference... but if a pure block is returning something created three pure blocks up, then it shouldn't cast that to a mutable reference.
 
+
+
+the instantiator will still instantiate RegionTemplata(int) and hand them in as function signatures
+
+when we do a function call, we'll map the local int to a receiver int. likely just an array. start at zero for the most immutable region. that will determine the template arguments
+
+however, the CoordI will have no region, it will just have an immutability in its ownership.
+
+we could mimic this by just always having RegionTemplata(-1) in the coords _produced_ by the instantiator.
+
+
+
+we cant do that rewrite in instantiator because we dont have the right bound arguments registered for the thing we translate.
+
+
+regiontemplata *must* be integers because otherwise the instantiator has no idea what the *actual* heights are. 1 2 3 or 1 2 2 or 1 1 1 etc. templar might say theyre all -1 -1 -1 in the definition site, needs actual heights.
+
+inside the function we'll still have those RegionTemplata(1) RegionTemplata(2) RegionTemplata(3) etc.
+
+
+# Region Generic Params Pure Heights Are Some Zero (RGPPHASZ)
+
+(Some Zero means `Some(0)`)
+
+A few places in the typing stage will need to know whether a region is mutable or not.
+
+We could have put a `initiallyMutable` boolean in `RegionPlaceholderNameT` but it seemed nice to just use `Some(0)` for the pure height instead. It does however mean that not all region generic params are None.
 
 
 

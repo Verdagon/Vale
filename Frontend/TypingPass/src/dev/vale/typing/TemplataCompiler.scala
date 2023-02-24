@@ -89,6 +89,24 @@ trait ITemplataCompilerDelegate {
 }
 
 object TemplataCompiler {
+  def getRegionPlaceholderPureHeight(genericParam: GenericParameterS): Option[Int] = {
+    // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
+    genericParam.tyype match {
+      case OtherGenericParameterTypeS(_) => None
+      case CoordGenericParameterTypeS(coordRegion, mutable) => {
+        if (coordRegion.nonEmpty) vimpl()
+        if (mutable) Some(0) else None
+      }
+      case RegionGenericParameterTypeS(mutability) => {
+        mutability match {
+          case ReadWriteRegionS => Some(0)
+          case ImmutableRegionS => None
+          case ReadOnlyRegionS => None
+        }
+      }
+    }
+  }
+
   def getTopLevelDenizenId(
     id: IdT[INameT],
   ): IdT[IInstantiationNameT] = {
@@ -1249,7 +1267,7 @@ class TemplataCompiler(
     genericParam: GenericParameterS,
     index: Int,
     runeToType: Map[IRuneS, ITemplataType],
-    pureHeight: Int,
+    pureHeight: Option[Int],
     registerWithCompilerOutputs: Boolean,
     originallyIntroducedLocation: LocationInDenizen,
   ):
@@ -1326,14 +1344,12 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    pureHeight: Int,
+    pureHeight: Option[Int],
     immutable: Boolean,
     registerWithCompilerOutputs: Boolean
   ) = {
     // Not sure this really matters, because we can't mutate a generic argument. We can only
     // mutate a struct or array, and a generic argument isn't seen as either.
-    val regionOriginallyMutable = true
-    val regionIntroducedLocation = LocationInDenizen(Vector())
     val regionPlaceholderTemplata =
       createRegionPlaceholderInner(
         namePrefix, index, rune,  pureHeight)
@@ -1389,7 +1405,7 @@ class TemplataCompiler(
     namePrefix: IdT[INameT],
     index: Int,
     rune: IRuneS,
-    pureHeight: Int):
+    pureHeight: Option[Int]):
   PlaceholderTemplataT[RegionTemplataType] = {
     val idT =
       namePrefix.addStep(

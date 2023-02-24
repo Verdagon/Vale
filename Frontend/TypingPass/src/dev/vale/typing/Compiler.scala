@@ -919,9 +919,10 @@ class Compiler(
                       ExportEnvironment(
                         globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
+                    // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
                     val regionPlaceholder =
                       templataCompiler.createRegionPlaceholderInner(
-                        templateId, 0, defaultRegionRune, 0)
+                        templateId, 0, defaultRegionRune, Some(0))
 
                     val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                     val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -992,9 +993,10 @@ class Compiler(
                         ExportEnvironment(
                           globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
+                      // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
                       val regionPlaceholder =
                         templataCompiler.createRegionPlaceholderInner(
-                          templateId, 0, defaultRegionRune, 0)
+                          templateId, 0, defaultRegionRune, Some(0))
 
                       val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
                       val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1044,9 +1046,10 @@ class Compiler(
               ExportEnvironment(
                 globalEnv, packageEnv, templateId, TemplatasStore(templateId, Map(), Map()))
 
+            // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
             val regionPlaceholder =
               templataCompiler.createRegionPlaceholderInner(
-                templateId, 0, defaultRegionRune, 0)
+                templateId, 0, defaultRegionRune, Some(0))
 
             val placeholderedExportName = interner.intern(ExportNameT(templateName, regionPlaceholder))
             val placeholderedExportId = templateId.copy(localName = placeholderedExportName)
@@ -1238,7 +1241,7 @@ class Compiler(
             coutputs.getInstantiationNameToFunctionBoundToRune(),
             coutputs.getKindExports,
             coutputs.getFunctionExports,
-            coutputs.getKindExterns,
+//            coutputs.getKindExterns,
             coutputs.getFunctionExterns)
 
         vassert(reachableFunctions.toVector.map(_.header.id).distinct.size == reachableFunctions.toVector.map(_.header.id).size)

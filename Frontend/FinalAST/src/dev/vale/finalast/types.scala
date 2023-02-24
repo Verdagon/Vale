@@ -1,6 +1,5 @@
 package dev.vale.finalast
 
-import dev.vale.typing.types.{ImmutableShareT, MutableShareT}
 import dev.vale.{FileCoordinate, Interner, Keywords, PackageCoordinate, vassert, vfail, vimpl}
 
 // Represents a reference type.
