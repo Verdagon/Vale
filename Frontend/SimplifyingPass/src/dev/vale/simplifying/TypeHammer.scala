@@ -10,7 +10,7 @@ class TypeHammer(
     keywords: Keywords,
     nameHammer: NameHammer,
     structHammer: StructHammer) {
-  def translateKind(hinputs: HinputsI, hamuts: HamutsBox, tyype: KindIT):
+  def translateKind(hinputs: HinputsI, hamuts: HamutsBox, tyype: KindIT[cI]):
   (KindHT) = {
     tyype match {
       case NeverIT(fromBreak) => NeverHT(fromBreak)
@@ -43,7 +43,7 @@ class TypeHammer(
   def translateRegion(
     hinputs: HinputsI,
     hamuts: HamutsBox,
-    region: RegionTemplataI):
+    region: RegionTemplataI[cI]):
   RegionH = {
     RegionH()
   }
@@ -51,7 +51,7 @@ class TypeHammer(
   def translateCoord(
       hinputs: HinputsI,
       hamuts: HamutsBox,
-      coord: CoordI):
+      coord: CoordI[cI]):
   (CoordH[KindHT]) = {
     val CoordI(ownership, innerType) = coord;
     val location = {
@@ -75,7 +75,7 @@ class TypeHammer(
   def translateCoords(
       hinputs: HinputsI,
       hamuts: HamutsBox,
-      references2: Vector[CoordI]):
+      references2: Vector[CoordI[cI]]):
   (Vector[CoordH[KindHT]]) = {
     references2.map(translateCoord(hinputs, hamuts, _))
   }
@@ -89,7 +89,7 @@ class TypeHammer(
   def translateStaticSizedArray(
       hinputs: HinputsI,
       hamuts: HamutsBox,
-      ssaIT: StaticSizedArrayIT):
+      ssaIT: StaticSizedArrayIT[cI]):
   StaticSizedArrayHT = {
     hamuts.staticSizedArrays.get(ssaIT) match {
       case Some(x) => x.kind
@@ -108,7 +108,7 @@ class TypeHammer(
     }
   }
 
-  def translateRuntimeSizedArray(hinputs: HinputsI, hamuts: HamutsBox, rsaIT: RuntimeSizedArrayIT): RuntimeSizedArrayHT = {
+  def translateRuntimeSizedArray(hinputs: HinputsI, hamuts: HamutsBox, rsaIT: RuntimeSizedArrayIT[cI]): RuntimeSizedArrayHT = {
     hamuts.runtimeSizedArrays.get(rsaIT) match {
       case Some(x) => x.kind
       case None => {
@@ -127,7 +127,7 @@ class TypeHammer(
 
   def translatePrototype(
     hinputs: HinputsI, hamuts: HamutsBox,
-    prototype2: PrototypeI):
+    prototype2: PrototypeI[cI]):
   (PrototypeH) = {
     val PrototypeI(fullName2, returnType2) = prototype2;
     val (paramsTypesH) = translateCoords(hinputs, hamuts, prototype2.paramTypes)

@@ -12,6 +12,14 @@ object U {
       i = i + 1
     }
   }
+  def foreachI[T](vec: Vector[T], func: scala.Function2[Int, T, Unit]): Unit = {
+    //    vec.zipWithIndex.foreach(func)
+    var i = 0
+    while (i < vec.length) {
+      func(i, vec(i))
+      i = i + 1
+    }
+  }
   def foreachIterable[T](vec: Iterable[T], func: scala.Function1[T, Unit]): Unit = {
     //    vec.foreach(func)
     val it = vec.iterator

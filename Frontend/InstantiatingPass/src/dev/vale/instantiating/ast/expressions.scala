@@ -3,63 +3,53 @@ package dev.vale.instantiating.ast
 import dev.vale._
 import dev.vale.postparsing._
 
-trait IExpressionResulIT  {
-  def expectReference(): ReferenceResulIT = {
-    this match {
-      case r @ ReferenceResulIT(_) => r
-      case AddressResultI(_) => vfail("Expected a reference as a result, but got an address!")
-    }
-  }
-  def expectAddress(): AddressResultI = {
-    this match {
-      case a @ AddressResultI(_) => a
-      case ReferenceResulIT(_) => vfail("Expected an address as a result, but got a reference!")
-    }
-  }
-  def underlyingCoord: CoordI
-  def kind: KindIT
-}
-case class AddressResultI(coord: CoordI) extends IExpressionResulIT {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+//trait IExpressionResultI  {
+//  def expectReference(): ReferenceResultI = {
+//    this match {
+//      case r @ ReferenceResultI(_) => r
+//      case AddressResultI(_) => vfail("Expected a reference as a result, but got an address!")
+//    }
+//  }
+//  def expectAddress(): AddressResultI = {
+//    this match {
+//      case a @ AddressResultI(_) => a
+//      case ReferenceResultI(_) => vfail("Expected an address as a result, but got a reference!")
+//    }
+//  }
+//  // DO NOT SUBMIT rename back to coord
+//  def collapsedCoord: CoordI[cI]
+//}
+//// This is only the collapsed coord, see HCCSCS.
+//case class ReferenceResultI(collapsedCoord: CoordI[cI]) extends IExpressionResultI {
+//  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+//}
+//case class AddressResultI(collapsedCoord: CoordI[cI]) extends IExpressionResultI {
+//  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
+//}
 
-  override def underlyingCoord: CoordI = coord
-  override def kind = coord.kind
-}
-case class ReferenceResulIT(coord: CoordI) extends IExpressionResulIT {
-  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-
-  override def underlyingCoord: CoordI = coord
-  override def kind = coord.kind
-}
 trait ExpressionI  {
-  def result: IExpressionResulIT
-  def kind: KindIT
+  def result: CoordI[cI]
 }
-trait ReferenceExpressionIE extends ExpressionI {
-  override def result: ReferenceResulIT
-  override def kind = result.coord.kind
-}
+trait ReferenceExpressionIE extends ExpressionI { }
 // This is an Expression2 because we sometimes take an address and throw it
 // directly into a struct (closures!), which can have addressible members.
 trait AddressExpressionIE extends ExpressionI {
-  override def result: AddressResultI
-  override def kind = result.coord.kind
+//  def range: RangeS
 
-  def range: RangeS
-
-  // Whether or not we can change where this address points to
-  def variability: VariabilityI
+//  // Whether or not we can change where this address points to
+//  def variability: VariabilityI
 }
 
 case class LetAndLendIE(
   variable: ILocalVariableI,
   expr: ReferenceExpressionIE,
-  targetOwnership: OwnershipI
+  targetOwnership: OwnershipI,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vassert(variable.coord == expr.result.coord)
+  vassert(variable.collapsedCoord == expr.result)
 
-  (expr.result.coord.ownership, targetOwnership) match {
+  (expr.result.ownership, targetOwnership) match {
     case (MutableShareI, MutableShareI) =>
     case (ImmutableShareI, ImmutableShareI) =>
     case (OwnI | MutableBorrowI | WeakI, MutableBorrowI) =>
@@ -70,72 +60,66 @@ case class LetAndLendIE(
     case BreakIE() | ReturnIE(_) => vwat() // See BRCOBS
     case _ =>
   }
-
-  override def result: ReferenceResulIT = {
-    val CoordI(oldOwnership, kind) = expr.result.coord
-    ReferenceResulIT(CoordI(targetOwnership, kind))
-  }
 }
 
 case class LockWeakIE(
   innerExpr: ReferenceExpressionIE,
   // We could just calculaIE this, but it feels better to let the StructCompiler
   // make it, so we're sure it's created.
-  resultOptBorrowType: CoordI,
+  resultOptBorrowType: CoordI[cI],
 
   // Function to give a borrow ref to to make a Some(borrow ref)
-  someConstructor: PrototypeI,
+  someConstructor: PrototypeI[cI],
   // Function to make a None of the right type
-  noneConstructor: PrototypeI,
+  noneConstructor: PrototypeI[cI],
 
   // This is the impl we use to allow/permit the upcast from the some to the none.
   // It'll be useful for monomorphization and later on for locating the itable ptr to put in fat pointers.
-  someImplName: IdI[IImplNameI],
+  someImplName: IdI[cI, IImplNameI[cI]],
   // This is the impl we use to allow/permit the upcast from the some to the none.
   // It'll be useful for monomorphization and later on for locating the itable ptr to put in fat pointers.
-  noneImplName: IdI[IImplNameI],
+  noneImplName: IdI[cI, IImplNameI[cI]],
+
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(resultOptBorrowType)
-  }
+//  override def resultRemoveMe: CoordI[cI] = resultOptBorrowType
 }
 
 // Turns a borrow ref into a weak ref
 // NoIE that we can also get a weak ref from LocalLoad2'ing a
 // borrow ref local into a weak ref.
 case class BorrowToWeakIE(
-  innerExpr: ReferenceExpressionIE
+  innerExpr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   vassert(
-    innerExpr.result.coord.ownership == ImmutableBorrowI ||
-      innerExpr.result.coord.ownership == MutableBorrowI)
+    innerExpr.result.ownership == ImmutableBorrowI ||
+      innerExpr.result.ownership == MutableBorrowI)
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  innerExpr.result.coord.ownership match {
+  innerExpr.result.ownership match {
     case MutableBorrowI | ImmutableBorrowI =>
   }
 
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(WeakI, innerExpr.kind))
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    vimpl()//ReferenceResultI(CoordI[cI](WeakI, innerExpr.kind))
+//  }
 }
 
 case class LetNormalIE(
   variable: ILocalVariableI,
-  expr: ReferenceExpressionIE
+  expr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
-  }
 
-  expr.kind match {
+  expr.result.kind match {
     case NeverIT(_) => // then we can put it into whatever type we want
     case _ => {
-      variable.coord.kind match {
+      variable.collapsedCoord.kind match {
         case NeverIT(_) => vfail() // can't receive into a never
-        case _ => vassert(variable.coord == expr.result.coord)
+        case _ => vassert(variable.collapsedCoord == expr.result)
       }
     }
   }
@@ -147,9 +131,12 @@ case class LetNormalIE(
 }
 
 // Only ExpressionCompiler.unletLocal should make these
-case class UnletIE(variable: ILocalVariableI) extends ReferenceExpressionIE {
+case class UnletIE(
+  variable: ILocalVariableI,
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(variable.coord)
+//  override def resultRemoveMe = variable.collapsedCoord
 
   vpass()
 }
@@ -166,11 +153,9 @@ case class DiscardIE(
   expr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 
-  expr.result.coord.ownership match {
+  expr.result.ownership match {
     case MutableBorrowI =>
     case ImmutableBorrowI =>
     case MutableShareI | ImmutableShareI =>
@@ -178,7 +163,7 @@ case class DiscardIE(
   }
 
   expr match {
-    case ConsecutorIE(exprs) => {
+    case ConsecutorIE(exprs, _) => {
       exprs.last match {
         case DiscardIE(_) => vwat()
         case _ =>
@@ -191,13 +176,14 @@ case class DiscardIE(
 case class DeferIE(
   innerExpr: ReferenceExpressionIE,
   // Every deferred expression should discard its result, IOW, return Void.
-  deferredExpr: ReferenceExpressionIE
+  deferredExpr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
-  override def result = ReferenceResulIT(innerExpr.result.coord)
+//  override def resultRemoveMe = ReferenceResultI(innerExpr.result)
 
-  vassert(deferredExpr.result.coord == CoordI(MutableShareI, VoidIT()))
+  vassert(deferredExpr.result == CoordI[cI](MutableShareI, VoidIT()))
 }
 
 
@@ -207,11 +193,13 @@ case class DeferIE(
 case class IfIE(
   condition: ReferenceExpressionIE,
   thenCall: ReferenceExpressionIE,
-  elseCall: ReferenceExpressionIE) extends ReferenceExpressionIE {
+  elseCall: ReferenceExpressionIE,
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  private val conditionResultCoord = condition.result.coord
-  private val thenResultCoord = thenCall.result.coord
-  private val elseResultCoord = elseCall.result.coord
+  private val conditionResultCoord = condition.result
+  private val thenResultCoord = thenCall.result
+  private val elseResultCoord = elseCall.result
 
   conditionResultCoord match {
     case CoordI(MutableShareI | ImmutableShareI, BoolIT()) =>
@@ -231,34 +219,38 @@ case class IfIE(
       case _ => thenResultCoord
     }
 
-  override def result = ReferenceResulIT(commonSupertype)
+//  override def resultRemoveMe = ReferenceResultI(commonSupertype)
 }
 
 // The block is expected to return a boolean (false = stop, true = keep going).
 // The block will probably contain an If2(the condition, the body, false)
-case class WhileIE(block: BlockIE) extends ReferenceExpressionIE {
+case class WhileIE(
+  block: BlockIE,
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   // While loops must always produce void.
   // If we want a foreach/map/whatever construct, the loop should instead
   // add things to a list inside; WhileIE shouldnt do it for it.
   val resultCoord =
-  block.result.coord match {
-    case CoordI(_, VoidIT()) => block.result.coord
-    case CoordI(_, NeverIT(true)) => CoordI(MutableShareI, VoidIT())
-    case CoordI(_, NeverIT(false)) => block.result.coord
+  block.result match {
+    case CoordI(_, VoidIT()) => block.result
+    case CoordI(_, NeverIT(true)) => CoordI[cI](MutableShareI, VoidIT())
+    case CoordI(_, NeverIT(false)) => block.result
     case _ => vwat()
   }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(resultCoord)
+//  override def resultRemoveMe = ReferenceResultI(resultCoord)
   vpass()
 }
 
 case class MutateIE(
   destinationExpr: AddressExpressionIE,
-  sourceExpr: ReferenceExpressionIE
+  sourceExpr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(destinationExpr.result.coord)
+//  override def resultRemoveMe = ReferenceResultI(destinationExpr.result)
 }
 
 
@@ -266,16 +258,13 @@ case class ReturnIE(
   sourceExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(MutableShareI, NeverIT(false)))
-  }
+
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, NeverIT(false))
 }
 
 case class BreakIE() extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, NeverIT(true)))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, NeverIT(true))
 }
 
 // when we make a closure, we make a struct full of pointers to all our variables
@@ -285,12 +274,13 @@ case class BreakIE() extends ReferenceExpressionIE {
 
 // Block2 is required to unlet all the variables it introduces.
 case class BlockIE(
-  inner: ReferenceExpressionIE
+  inner: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = inner.result
+//  override def resultRemoveMe = inner.result
 }
 
 // A pure block will:
@@ -301,82 +291,30 @@ case class BlockIE(
 // 5. Merge (transmigraIE) any results from the new region into the existing region
 // 6. Destroy the new region
 case class MutabilifyIE(
-  inner: ReferenceExpressionIE
+  inner: ReferenceExpressionIE,
+  result: CoordI[cI] // See HCCSCS
 ) extends ReferenceExpressionIE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    val innerCoord = inner.result.coord
-    val newOwnership =
-      innerCoord.ownership match {
-        case ImmutableShareI => MutableShareI
-        case ImmutableBorrowI => MutableBorrowI
-        case MutableShareI => vwat()
-        case MutableBorrowI => vwat()
-        case OwnI => vwat()
-        case WeakI => vimpl()
-      }
-    ReferenceResulIT(innerCoord.copy(ownership = newOwnership))
-  }
 }
 
-case class ConsecutorIE(exprs: Vector[ReferenceExpressionIE]) extends ReferenceExpressionIE {
+case class ConsecutorIE(
+  exprs: Vector[ReferenceExpressionIE],
+  result: CoordI[cI]
+  ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   // There shouldn't be a 0-element consecutor.
   // If we want a consecutor that returns nothing, put a VoidLiteralIE in it.
   vassert(exprs.nonEmpty)
-
-  if (exprs.size > 1) {
-    vassert(exprs.init.collect({ case VoidLiteralIE() => }).isEmpty)
-  }
-
-  // There shouldn't be a 1-element consecutor.
-  // This isn't a hard technical requirement, but it does simplify the resulting ASI a bit.
-  // Call Compiler.consecutive to conform to this.
-  vassert(exprs.size >= 2)
-
-  // A consecutor should never contain another consecutor.
-  // This isn't a hard technical requirement, but it does simplify the resulting ASI a bit.
-  // Call Compiler.consecutive to make new consecutors in a way that conforms to this.
-  exprs.collect({ case ConsecutorIE(_) => vfail() })
-
-  // Everything but the last should result in a Void or a Never.
-  // The last can be anything, even a Void or a Never.
-  exprs.init.foreach(expr => {
-    expr.kind match {
-      case VoidIT() | NeverIT(_) =>
-      case _ => vwat()
-    }
-  })
-
-  //  // If there's a Never2() anywhere, then the entire block should end in an unreachable
-  //  // or panic or something.
-  //  if (exprs.exists(_.kind == NeverI())) {
-  //    vassert(exprs.last.kind == NeverI())
-  //  }
-  // Nevermind, we made it so the consecutor's result is Never if there's
-  // a Never *anywhere* inside it.
-
-  vassert(exprs.collect({
-    case ReturnIE(_) =>
-  }).size <= 1)
-
-  override val result: ReferenceResulIT =
-    exprs.map(_.result.coord)
-      .collectFirst({ case n @ CoordI(MutableShareI, NeverIT(_)) => n }) match {
-      case Some(n) => ReferenceResulIT(n)
-      case None => exprs.last.result
-    }
-
-  def lastReferenceExpr = exprs.last
 }
 
 case class TupleIE(
   elements: Vector[ReferenceExpressionIE],
-  resultReference: CoordI) extends ReferenceExpressionIE {
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(resultReference)
+//  override def resultRemoveMe = ReferenceResultI(resultReference)
 }
 
 //// Discards a reference, whether it be owned or borrow or whatever.
@@ -389,120 +327,114 @@ case class TupleIE(
 ////   }
 //case class UnreachableMootIE(innerExpr: ReferenceExpressionIE) extends ReferenceExpressionIE {
 //  override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-//  override def result = ReferenceResulIT(CoordI(MutableShareI, NeverI()))
+//  override def resultRemoveMe = ReferenceResulIT(CoordI[cI](MutableShareI, NeverI()))
 //}
 
 case class StaticArrayFromValuesIE(
   elements: Vector[ReferenceExpressionIE],
-  resultReference: CoordI,
-  arrayType: StaticSizedArrayIT,
+  resultReference: CoordI[cI],
+  arrayType: StaticSizedArrayIT[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(resultReference)
+
+  override def result: CoordI[cI] = resultReference
 }
 
-case class ArraySizeIE(array: ReferenceExpressionIE) extends ReferenceExpressionIE {
+case class ArraySizeIE(
+  array: ReferenceExpressionIE,
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(CoordI(MutableShareI, IntIT.i32))
+//  override def resultRemoveMe = ReferenceResultI(CoordI[cI](MutableShareI, IntIT.i32))
 }
 
 // Can we do an === of objects in two regions? It could be pretty useful.
-case class IsSameInstanceIE(left: ReferenceExpressionIE, right: ReferenceExpressionIE) extends ReferenceExpressionIE {
+case class IsSameInstanceIE(
+  left: ReferenceExpressionIE,
+  right: ReferenceExpressionIE
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vassert(left.result.coord == right.result.coord)
+  vassert(left.result == right.result)
 
-  override def result = ReferenceResulIT(CoordI(MutableShareI, BoolIT()))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, BoolIT())
 }
 
 case class AsSubtypeIE(
   sourceExpr: ReferenceExpressionIE,
-  targetType: CoordI,
+  targetType: CoordI[cI],
 
   // We could just calculaIE this, but it feels better to let the StructCompiler
   // make it, so we're sure it's created.
-  resultResultType: CoordI,
+  resultResultType: CoordI[cI],
   // Function to give a borrow ref to to make a Some(borrow ref)
-  okConstructor: PrototypeI,
+  okConstructor: PrototypeI[cI],
   // Function to make a None of the right type
-  errConstructor: PrototypeI,
+  errConstructor: PrototypeI[cI],
 
   // This is the impl we use to allow/permit the downcast. It'll be useful for monomorphization.
-  implName: IdI[IImplNameI],
+  implName: IdI[cI, IImplNameI[cI]],
 
   // These are the impls that we conceptually use to upcast the created Ok/Err to Result.
   // Really they're here so the instantiator can know what impls it needs to instantiaIE.
-  okImplName: IdI[IImplNameI],
-  errImplName: IdI[IImplNameI],
+  okImplName: IdI[cI, IImplNameI[cI]],
+  errImplName: IdI[cI, IImplNameI[cI]],
+
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(resultResultType)
+//  override def resultRemoveMe = ReferenceResultI(resultResultType)
 }
 
 case class VoidLiteralIE() extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 case class ConstantIntIE(value: Long, bits: Int) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, IntIT(bits)))
-  }
+  override def result = CoordI[cI](MutableShareI, IntIT(bits))
 }
 
 case class ConstantBoolIE(value: Boolean) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, BoolIT()))
-  }
+  override def result = CoordI[cI](MutableShareI, BoolIT())
 }
 
 case class ConstantStrIE(value: String) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, StrIT()))
-  }
+  override def result = CoordI[cI](MutableShareI, StrIT())
 }
 
 case class ConstantFloatIE(value: Double) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(CoordI(MutableShareI, FloatIT()))
+  override def result = CoordI[cI](MutableShareI, FloatIT())
 }
 
 case class LocalLookupIE(
-  range: RangeS,
   // This is the local variable at the time it was created
   localVariable: ILocalVariableI,
-  // The instantiator might want to load this as a different region mutability than the mutability
-  // when originally created, so tihs field will be able to hold that.
-  // Conceptually, it's the current mutability of the source region at the time of the local lookup.
-  pureHeight: Int,
-  //  reference: CoordI,
+//  // The instantiator might want to load this as a different region mutability than the mutability
+//  // when originally created, so tihs field will be able to hold that.
+//  // Conceptually, it's the current mutability of the source region at the time of the local lookup.
+//  pureHeight: Int,
+  // nevermind, we leave it to SoftLoad to figure out the target ownership/immutability
+
+  //  reference: CoordI[cI],
   //  variability: VariabilityI
+  result: CoordI[cI]
 ) extends AddressExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: AddressResultI = {
-//    val CoordI(localVarOwnership, localVarRegion, kind) = localVariable.coord
-//    AddressResultI(
-//      CoordI((localVarOwnership, localVarPureHeight == pureHeight) match {
-//        case (OwnI, _) => OwnI
-//        case other => vimpl(other)
-//      }, localVarRegion, kind)
-    vimpl()
-  }
-  override def variability: VariabilityI = localVariable.variability
+//  override def variability: VariabilityI = localVariable.variability
 }
 
 case class ArgLookupIE(
   paramIndex: Int,
-  coord: CoordI
+  coord: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = ReferenceResulIT(coord)
+  override def result: CoordI[cI] = coord
 }
 
 case class StaticSizedArrayLookupIE(
@@ -510,79 +442,81 @@ case class StaticSizedArrayLookupIE(
   arrayExpr: ReferenceExpressionIE,
   indexExpr: ReferenceExpressionIE,
   // See RMLRMO for why this is the same ownership as the original field.
-  elementType: CoordI,
+  elementType: CoordI[cI],
   // See RMLRMO for why we dont have a targetOwnership field here.
   variability: VariabilityI
 ) extends AddressExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
-  override def result = {
-    // See RMLRMO why we just return the element type.
-    AddressResultI(elementType)
-  }
+  // See RMLRMO why we just return the element type.
+  override def result: CoordI[cI] = elementType
 }
 
 case class RuntimeSizedArrayLookupIE(
-  range: RangeS,
   arrayExpr: ReferenceExpressionIE,
-  arrayType: RuntimeSizedArrayIT,
+//  arrayType: RuntimeSizedArrayIT[cI],
   indexExpr: ReferenceExpressionIE,
+  // See RMLRMO for why this is the same ownership as the original field.
+  elementType: CoordI[cI],
   // See RMLRMO for why we dont have a targetOwnership field here.
   variability: VariabilityI
 ) extends AddressExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vassert(arrayExpr.result.coord.kind == arrayType)
+//  vassert(arrayExpr.result.kind == arrayType)
 
-  override def result = {
-    AddressResultI(arrayType.elementType)
-  }
+  // See RMLRMO why we just return the element type.
+  override def result: CoordI[cI] = elementType
 }
 
 case class ArrayLengthIE(arrayExpr: ReferenceExpressionIE) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    ReferenceResulIT(CoordI(MutableShareI, IntIT.i32))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, IntIT(32))
 }
 
 case class ReferenceMemberLookupIE(
   range: RangeS,
   structExpr: ReferenceExpressionIE,
-  memberName: IVarNameI,
+  memberName: IVarNameI[cI],
   // See RMLRMO for why this is the same ownership as the original field.
-  memberReference: CoordI,
+  memberReference: CoordI[cI],
   // See RMLRMO for why we dont have a targetOwnership field here.
-  variability: VariabilityI) extends AddressExpressionIE {
+  variability: VariabilityI
+) extends AddressExpressionIE {
   vpass()
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = {
-    // See RMLRMO why we just return the member type.
-    AddressResultI(memberReference)
-  }
+
+  // See RMLRMO why we just return the member type.
+  override def result: CoordI[cI] = memberReference
 }
 case class AddressMemberLookupIE(
-  range: RangeS,
   structExpr: ReferenceExpressionIE,
-  memberName: IVarNameI,
-  resultType2: CoordI,
-  variability: VariabilityI) extends AddressExpressionIE {
+  memberName: IVarNameI[cI],
+  // See RMLRMO for why this is the same ownership as the original field.
+  memberReference: CoordI[cI],
+  variability: VariabilityI
+) extends AddressExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result = AddressResultI(resultType2)
+
+  // See RMLRMO why we just return the member type.
+  override def result: CoordI[cI] = memberReference
 }
 
 case class InterfaceFunctionCallIE(
-  superFunctionPrototype: PrototypeI,
+  superFunctionPrototype: PrototypeI[cI],
   virtualParamIndex: Int,
-  resultReference: CoordI,
-  args: Vector[ReferenceExpressionIE]) extends ReferenceExpressionIE {
+  args: Vector[ReferenceExpressionIE],
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = ReferenceResulIT(resultReference)
+//  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(resultReference)
 }
 
 case class ExternFunctionCallIE(
-  prototype2: PrototypeI,
-  args: Vector[ReferenceExpressionIE]) extends ReferenceExpressionIE {
+  prototype2: PrototypeI[cI],
+  args: Vector[ReferenceExpressionIE],
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   // We dont:
   //   vassert(prototype2.fullName.last.templateArgs.isEmpty)
@@ -597,24 +531,25 @@ case class ExternFunctionCallIE(
 
 
 
-  override def result = ReferenceResulIT(prototype2.returnType)
+//  override def resultRemoveMe = ReferenceResultI(prototype2.returnType)
 }
 
 case class FunctionCallIE(
-  callable: PrototypeI,
-  args: Vector[ReferenceExpressionIE]
+  callable: PrototypeI[cI],
+  args: Vector[ReferenceExpressionIE],
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   vassert(callable.paramTypes.size == args.size)
-  args.map(_.result.coord).zip(callable.paramTypes).foreach({
+  args.map(_.result).zip(callable.paramTypes).foreach({
     case (CoordI(_, NeverIT(_)), _) =>
     case (a, b) => vassert(a == b)
   })
 
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(callable.returnType)
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    ReferenceResultI(callable.returnType)
+//  }
 }
 
 // A typingpass reinterpret is interpreting a type as a different one which is hammer-equivalent.
@@ -624,17 +559,19 @@ case class FunctionCallIE(
 // between hammer-equivalent things as it wants.
 case class ReinterpretIE(
   expr: ReferenceExpressionIE,
-  resultReference: CoordI) extends ReferenceExpressionIE {
+  resultReference: CoordI[cI],
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  vassert(expr.result.coord != resultReference)
+  vassert(expr.result != resultReference)
 
-  override def result = ReferenceResulIT(resultReference)
+//  override def resultRemoveMe = ReferenceResultI(resultReference)
 
-  expr.result.coord.kind match {
+  expr.result.kind match {
     // Unless it's a Never...
     case NeverIT(_) =>
     case _ => {
-      if (resultReference.ownership != expr.result.coord.ownership) {
+      if (resultReference.ownership != expr.result.ownership) {
         // Cant reinterpret to a different ownership!
         vfail("wat");
       }
@@ -643,49 +580,51 @@ case class ReinterpretIE(
 }
 
 case class ConstructIE(
-  structTT: StructIT,
-  resultReference: CoordI,
-  args: Vector[ExpressionI],
+  structTT: StructIT[cI],
+  result: CoordI[cI],
+  args: Vector[ExpressionI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vpass()
 
-  override def result = ReferenceResulIT(resultReference)
+//  override def resultRemoveMe = ReferenceResultI(resultReference)
 }
 
 // NoIE: the functionpointercall's last argument is a Placeholder2,
 // it's up to later stages to replace that with an actual index
 case class NewMutRuntimeSizedArrayIE(
-  arrayType: RuntimeSizedArrayIT,
+  arrayType: RuntimeSizedArrayIT[cI],
   capacityExpr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(
-      CoordI(
-        arrayType.mutability match {
-          case MutableI => OwnI
-          case ImmutableI => MutableShareI
-        },
-        arrayType))
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    ReferenceResultI(
+//      CoordI[cI](
+//        arrayType.mutability match {
+//          case MutableI => OwnI
+//          case ImmutableI => MutableShareI
+//        },
+//        arrayType))
+//  }
 }
 
 case class StaticArrayFromCallableIE(
-  arrayType: StaticSizedArrayIT,
+  arrayType: StaticSizedArrayIT[cI],
   generator: ReferenceExpressionIE,
-  generatorMethod: PrototypeI,
+  generatorMethod: PrototypeI[cI],
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(
-      CoordI(
-        arrayType.mutability match {
-          case MutableI => OwnI
-          case ImmutableI => MutableShareI
-        },
-        arrayType))
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    ReferenceResultI(
+//      CoordI[cI](
+//        arrayType.mutability match {
+//          case MutableI => OwnI
+//          case ImmutableI => MutableShareI
+//        },
+//        arrayType))
+//  }
 }
 
 // NoIE: the functionpointercall's last argument is a Placeholder2,
@@ -694,12 +633,13 @@ case class StaticArrayFromCallableIE(
 // sequence of results from the call.
 case class DestroyStaticSizedArrayIntoFunctionIE(
   arrayExpr: ReferenceExpressionIE,
-  arrayType: StaticSizedArrayIT,
+  arrayType: StaticSizedArrayIT[cI],
   consumer: ReferenceExpressionIE,
-  consumerMethod: PrototypeI) extends ReferenceExpressionIE {
+  consumerMethod: PrototypeI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vassert(consumerMethod.paramTypes.size == 2)
-  vassert(consumerMethod.paramTypes(0) == consumer.result.coord)
+//  vassert(consumerMethod.paramTypes(0) == consumer.result)
   vassert(consumerMethod.paramTypes(1) == arrayType.elementType)
 
   // See https://github.com/ValeLang/Vale/issues/375
@@ -711,7 +651,7 @@ case class DestroyStaticSizedArrayIntoFunctionIE(
     case _ => vwat()
   }
 
-  override def result: ReferenceResulIT = ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 // We destroy both Share and Own things
@@ -719,59 +659,61 @@ case class DestroyStaticSizedArrayIntoFunctionIE(
 // in the destination variables, which is why it's a list of ReferenceLocalVariable2.
 case class DestroyStaticSizedArrayIntoLocalsIE(
   expr: ReferenceExpressionIE,
-  staticSizedArray: StaticSizedArrayIT,
+  staticSizedArray: StaticSizedArrayIT[cI],
   destinationReferenceVariables: Vector[ReferenceLocalVariableI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 
-  vassert(expr.kind == staticSizedArray)
+  vassert(expr.result.kind == staticSizedArray)
 }
 
 case class DestroyMutRuntimeSizedArrayIE(
-  arrayExpr: ReferenceExpressionIE,
+  arrayExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 case class RuntimeSizedArrayCapacityIE(
   arrayExpr: ReferenceExpressionIE
 ) extends ReferenceExpressionIE {
-  override def result: ReferenceResulIT = ReferenceResulIT(CoordI(MutableShareI, IntIT(32)))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, IntIT(32))
+//  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(CoordI[cI](MutableShareI, IntIT(32)))
 }
 
 case class PushRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE,
-  //  arrayType: RuntimeSizedArrayIT,
+  //  arrayType: RuntimeSizedArrayIT[cI],
   newElementExpr: ReferenceExpressionIE,
-  //  newElementType: CoordI,
+  //  newElementType: CoordI[cI]
 ) extends ReferenceExpressionIE {
-  override def result: ReferenceResulIT = ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 case class PopRuntimeSizedArrayIE(
-  arrayExpr: ReferenceExpressionIE
+  arrayExpr: ReferenceExpressionIE,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   private val elementType =
-    arrayExpr.result.coord.kind match {
+    arrayExpr.result.kind match {
       case contentsRuntimeSizedArrayIT(_, e, _) => e
       case other => vwat(other)
     }
-  override def result: ReferenceResulIT = ReferenceResulIT(elementType)
+//  override def resultRemoveMe: CoordI[cI] = ReferenceResultI(elementType)
 }
 
 case class InterfaceToInterfaceUpcastIE(
   innerExpr: ReferenceExpressionIE,
-  targetInterface: InterfaceIT) extends ReferenceExpressionIE {
+  targetInterface: InterfaceIT[cI],
+  result: CoordI[cI]
+) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  def result: ReferenceResulIT = {
-    ReferenceResulIT(
-      CoordI(
-        innerExpr.result.coord.ownership,
-        targetInterface))
-  }
+//  def result: ReferenceResultI = {
+//    ReferenceResultI(
+//      CoordI[cI](
+//        innerExpr.result.ownership,
+//        targetInterface))
+//  }
 }
 
 // This used to be StructToInterfaceUpcastIE, and then we added generics.
@@ -781,18 +723,19 @@ case class InterfaceToInterfaceUpcastIE(
 // So, the target kind can be anything, not just an interface.
 case class UpcastIE(
   innerExpr: ReferenceExpressionIE,
-  targetSuperKind: ISuperKindIT,
+  targetSuperKind: ISuperKindIT[cI],
   // This is the impl we use to allow/permit the upcast. It'll be useful for monomorphization
   // and later on for locating the itable ptr to put in fat pointers.
-  implName: IdI[IImplNameI],
+  implName: IdI[cI, IImplNameI[cI]],
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  def result: ReferenceResulIT = {
-    ReferenceResulIT(
-      CoordI(
-        innerExpr.result.coord.ownership,
-        targetSuperKind))
-  }
+//  def result: ReferenceResultI = {
+//    ReferenceResultI(
+//      CoordI[cI](
+//        innerExpr.result.ownership,
+//        targetSuperKind))
+//  }
 }
 
 // A soft load is one that turns an int&& into an int*. a hard load turns an int* into an int.
@@ -802,19 +745,20 @@ case class UpcastIE(
 
 case class SoftLoadIE(
   expr: AddressExpressionIE,
-  targetOwnership: OwnershipI
+  targetOwnership: OwnershipI,
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
-  vassert((targetOwnership == MutableShareI) == (expr.result.coord.ownership == MutableShareI))
-  vassert((targetOwnership == ImmutableShareI) == (expr.result.coord.ownership == ImmutableShareI))
+  vassert((targetOwnership == MutableShareI) == (expr.result.ownership == MutableShareI))
+  vassert((targetOwnership == ImmutableShareI) == (expr.result.ownership == ImmutableShareI))
   vassert(targetOwnership != OwnI) // need to unstackify or destroy to get an owning reference
   // This is just here to try the asserts inside Coord's constructor
-  CoordI(targetOwnership, expr.result.coord.kind)
+  CoordI[cI](targetOwnership, expr.result.kind)
 
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(targetOwnership, expr.result.coord.kind))
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    ReferenceResultI(CoordI[cI](targetOwnership, expr.result.kind))
+//  }
 }
 
 // Destroy an object.
@@ -824,20 +768,18 @@ case class SoftLoadIE(
 // We also destroy shared things with this, see DDSOT.
 case class DestroyIE(
   expr: ReferenceExpressionIE,
-  structTT: StructIT,
+  structTT: StructIT[cI],
   destinationReferenceVariables: Vector[ReferenceLocalVariableI]
 ) extends ReferenceExpressionIE {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
-  }
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 case class DestroyImmRuntimeSizedArrayIE(
   arrayExpr: ReferenceExpressionIE,
-  arrayType: RuntimeSizedArrayIT,
+  arrayType: RuntimeSizedArrayIT[cI],
   consumer: ReferenceExpressionIE,
-  consumerMethod: PrototypeI,
+  consumerMethod: PrototypeI[cI]
 ) extends ReferenceExpressionIE {
   arrayType.mutability match {
     case ImmutableI =>
@@ -846,7 +788,7 @@ case class DestroyImmRuntimeSizedArrayIE(
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
   vassert(consumerMethod.paramTypes.size == 2)
-  vassert(consumerMethod.paramTypes(0) == consumer.result.coord)
+  vassert(consumerMethod.paramTypes(0) == consumer.result)
   //  vassert(consumerMethod.paramTypes(1) == Program2.intType)
   vassert(consumerMethod.paramTypes(1) == arrayType.elementType)
 
@@ -855,23 +797,24 @@ case class DestroyImmRuntimeSizedArrayIE(
     case VoidIT() =>
   }
 
-  override def result: ReferenceResulIT = ReferenceResulIT(CoordI(MutableShareI, VoidIT()))
+  override def result: CoordI[cI] = CoordI[cI](MutableShareI, VoidIT())
 }
 
 // NoIE: the functionpointercall's last argument is a Placeholder2,
 // it's up to later stages to replace that with an actual index
 case class NewImmRuntimeSizedArrayIE(
-  arrayType: RuntimeSizedArrayIT,
+  arrayType: RuntimeSizedArrayIT[cI],
   sizeExpr: ReferenceExpressionIE,
   generator: ReferenceExpressionIE,
-  generatorMethod: PrototypeI,
+  generatorMethod: PrototypeI[cI],
+  result: CoordI[cI]
 ) extends ReferenceExpressionIE {
   arrayType.mutability match {
     case ImmutableI =>
     case _ => vwat()
   }
   // We dont want to own the generator
-  generator.result.coord.ownership match {
+  generator.result.ownership match {
     case MutableBorrowI | ImmutableBorrowI | ImmutableShareI | MutableShareI =>
     case other => vwat(other)
   }
@@ -881,20 +824,20 @@ case class NewImmRuntimeSizedArrayIE(
   }
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
-  override def result: ReferenceResulIT = {
-    ReferenceResulIT(
-      CoordI(
-        arrayType.mutability match {
-          case MutableI => OwnI
-          case ImmutableI => MutableShareI
-        },
-        arrayType))
-  }
+//  override def resultRemoveMe: CoordI[cI] = {
+//    ReferenceResultI(
+//      CoordI[cI](
+//        arrayType.mutability match {
+//          case MutableI => OwnI
+//          case ImmutableI => MutableShareI
+//        },
+//        arrayType))
+//  }
 }
 
 object referenceExprResultStructName {
   def unapply(expr: ReferenceExpressionIE): Option[StrI] = {
-    expr.result.coord.kind match {
+    expr.result.kind match {
       case StructIT(IdI(_, _, StructNameI(StructTemplateNameI(name), _))) => Some(name)
       case _ => None
     }
@@ -902,7 +845,7 @@ object referenceExprResultStructName {
 }
 
 object referenceExprResultKind {
-  def unapply(expr: ReferenceExpressionIE): Option[KindIT] = {
-    Some(expr.result.coord.kind)
+  def unapply(expr: ReferenceExpressionIE): Option[KindIT[cI]] = {
+    Some(expr.result.kind)
   }
 }

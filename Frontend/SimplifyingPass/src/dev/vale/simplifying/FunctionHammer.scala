@@ -48,7 +48,7 @@ class FunctionHammer(
         val locals =
           LocalsBox(
             Locals(
-              Map[IVarNameI, VariableIdH](),
+              Map[IVarNameI[cI], VariableIdH](),
               Set[VariableIdH](),
               Map[VariableIdH,Local](),
               1));
@@ -92,7 +92,7 @@ class FunctionHammer(
       hinputs: HinputsI,
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderI,
-      prototype2: PrototypeI):
+      prototype2: PrototypeI[cI]):
   (FunctionRefH) = {
     val (prototypeH) = typeHammer.translatePrototype(hinputs, hamuts, prototype2);
     val functionRefH = FunctionRefH(prototypeH);

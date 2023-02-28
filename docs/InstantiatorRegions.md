@@ -1,6 +1,8 @@
 
 # How Regions Are Lowered In Instantiator (HRALII)
 
+(Note from later: this might be obsolete, we have heights now)
+
 Note from later: we dont change the coord's ownership anymore, they stay borrow and share. To know the mutability we need to look at the current pure stack height and compare it to the coord's region's pure stack height.
 
 Instantiator lowers region placeholders to RegionTemplata(mutable). However, this is the mutability of the region _at the time the thing was created_. A `List<mut&Ship>` is not a list of mutable references to ships, it's a List of references that it regards as mutable, but might not be mutable right now. Rather, it tracks what's mutable right now by putting that information in the coord's ownership, which can be owning, mutable borrow, or immutable borrow.
@@ -180,6 +182,8 @@ So generally speaking, we shouldn't translate anything outside the pure block fr
 
 # Time Travel To Determining Region Mutabilities (TTTDRM)
 
+(Note from later: this might be obsolete, we have heights now)
+
 Recall HRALII, where a template argument that's a region becomes the mutability at the time the template was created.
 
 Of course, that's difficult to do. If we mess it up we run into the CTOTFIPB problem.
@@ -219,38 +223,14 @@ Conceptually, we need to figure out if there was a pure block introduced between
 
 RegionTemplata(boolean) didnt quite work, because we couldn't determine (from just regions' booleans) the relationship between all the regions. We need to know what region is pure from what region's perspective, not just whether a region is mutable or not. When a function can only receive one boolean per region, it can't tell if one immutable region is immutable to another immutable region. (DO NOT SUBMIT TODO explain this more)
 
-So instead, we'll have a RegionTemplata(int) where the int is how many pure blocks between here and there. Zero means mutable. One means there's one pure block between us and this region, and two means there are two pure blocks between us and this region.
+So instead, we'll have a `RegionTemplata(Option[Int])` where the int is how many pure blocks between here and there. Zero means mutable. One means there's one pure block between us and this region, and two means there are two pure blocks between us and this region.
 
 If x' is 1 and y' is 2, then both are immutable, and y is immutable to x.
 
 If x' is 1 and y' is 1, then both are immutable, and y is mutable to x.
 
+None means that we don't know yet, because it was a region that was handed in and we don't know whether it's mutable or how immutable it might be.
 
-
-# After Instantiator There Are No Regions (AITANR)
-
-Under the hood, the instantiator is really just trying to figure out what references are currently immutable. The RegionTemplata(int) is mostly just an abstraction that helps humans reason about it better.
-
-Well, "mostly" because there is one thing regions help us do that coding with `imm&` and `&` can't do: it helps the compiler know when it's safe to cast from `imm&` back to `&`, such as when we come back from a pure block. The compiler knows that if a pure block is returning something created just before itself, it can safely cast that to a mutable reference... but if a pure block is returning something created three pure blocks up, then it shouldn't cast that to a mutable reference.
-
-
-
-the instantiator will still instantiate RegionTemplata(int) and hand them in as function signatures
-
-when we do a function call, we'll map the local int to a receiver int. likely just an array. start at zero for the most immutable region. that will determine the template arguments
-
-however, the CoordI will have no region, it will just have an immutability in its ownership.
-
-we could mimic this by just always having RegionTemplata(-1) in the coords _produced_ by the instantiator.
-
-
-
-we cant do that rewrite in instantiator because we dont have the right bound arguments registered for the thing we translate.
-
-
-regiontemplata *must* be integers because otherwise the instantiator has no idea what the *actual* heights are. 1 2 3 or 1 2 2 or 1 1 1 etc. templar might say theyre all -1 -1 -1 in the definition site, needs actual heights.
-
-inside the function we'll still have those RegionTemplata(1) RegionTemplata(2) RegionTemplata(3) etc.
 
 
 # Region Generic Params Pure Heights Are Some Zero (RGPPHASZ)
@@ -261,5 +241,55 @@ A few places in the typing stage will need to know whether a region is mutable o
 
 We could have put a `initiallyMutable` boolean in `RegionPlaceholderNameT` but it seemed nice to just use `Some(0)` for the pure height instead. It does however mean that not all region generic params are None.
 
+
+# Instantiator Collapses Region Heights (ICRH)
+
+When we're in a function in the instantiator, we might have a reference to a 7'List<5'Ship>. In a different function in the instantiator, we might have a reference to a 4'List<1'Ship>.
+
+Both of those want to call List.add. So we might stamp a version of add for 7'List<5'Ship> and a version for 4'List<1'Ship>.
+
+But wait, that would lead to a codesize explosion; there are two add functions. It's especially ironic because those two Lists have identical layouts: they're both just a list of immutable references.
+
+So it would be nice to have those call the same function.
+
+However, we don't want to confuse the backend. The first one might be mangled to be List_Ship_5_7 or something and the second one might be mangled to List_Ship_1_4. The exact names don't matter, but what matters is that they're different. We'd have to do some casting in the backend, which seems... unfortunate.
+
+The answer is to have a distinction between a "subjective type" (7'List<5'Ship>, 4'List<1'Ship>) and a "collapsed type".
+
+The collapsed type is something they can both simplify to, in this case `0'List<-1'Ship>`. Basically we only use contiguous integers, in the same direction relative to each other. -1 is less than 0 in the same way that 5 is less than 7 and 1 is less than 4.
+
+We use negative numbers just as a convention: negative for function incoming regions that are immutable, zero for mutable at call-time. The default scope for the function will then be zero, which seems nice.
+
+
+# Handling Collapsed Coords and Subjective Coords Simultaneously (HCCSCS)
+
+If we want to avoid any casting in the backend (see ICRH), then we have to do the region collapsing eagerly.
+
+The naive approach would be to collapse all regions eagerly when we create the instantiated nodes. However, that can lead to some confusion later. For example, when we translate a FunctionCallTE, we translate its arguments and look at the result types. Those result types, if collapsed already, could be referring to nonsense regions; if our function has subjective regions 0 1 2 3 4 5, the collapsed nodes might refer to collapsed regions -2 -1 0 which makes zero sense to the function. The function has no idea what those regions are.
+
+We can't just look at the typing phase to know the regions either... those often contain None and defer knowledge of the actual region to the instantiator (which combines the typing phase's RegionPlaceholderNameT with the actual function argument RegionTemplataI, and the only reasonable combination of those data is instantiated nodes).
+
+So we have a bit of a conflict. The mere act of figuring out something's actual subjective regions produces an AST... but we want a _final_ AST with collapsed regions.
+
+The next naive approach would be to just have two separate compiler stages. First we produce an entire program with all subjective regions. Then we take that result and collapse everything down to collapsed regions. However, this doesn't work: we'd run into a code size explosion without collapsing.
+
+So they need to happen at the same time.
+
+The next approach would be to have the AST just contain both. This works, but it's a little awkward to have internal implementation details (the subjective regions) in the resulting AST when the receiver (the backend) doesn't care about them.
+
+The final approach is to make it so the resulting AST only thinks in terms of collapsed regions, and takes things in via constructor to never calculate them on their own. The instantiator will have to produce its own correct temporary information (such as an extra return from translateRefExpr) and also be responsible for populating the collapsed regions into the final AST.
+
+
+# Backend Doesnt Care About Regions (BDCAR, AITANR)
+
+Under the hood, the instantiator is really just trying to figure out what references are currently immutable. The RegionTemplata(int) is mostly just an abstraction that helps humans reason about it better.
+
+The backend doesn't know anything about regions. It just knows about ownership, for example immutable_borrow vs mutable_borrow.
+
+The frontend might know about `x'List<y'Ship>` which might lower to `1'List<0'Ship>` and `0'List<0'Ship>` but it's responsible for assembling those into two completely distinct types that are completely separate from the backend's perspective, for example `List_Ship_-1_0` and `List_Ship_0_0`.
+
+This doesn't seem to be a hard requirement, but it makes the backend pretty clean.
+
+Well, there is one corner case. One thing regions helps with that coding with `imm&` and `&` can't do: it helps the compiler know when it's safe to cast from `imm&` back to `&`, such as when we come back from a pure block. The compiler knows that if a pure block is returning something created just before itself, it can safely cast that to a mutable reference... but if a pure block is returning something created three pure blocks up, then it shouldn't cast that to a mutable reference. The instantiator is responsible for figuring this out and generating Mutabilify nodes.
 
 

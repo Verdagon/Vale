@@ -13,8 +13,8 @@ import dev.vale.typing.types._
 import scala.collection.mutable
 
 case class InstantiationBoundArgumentsI(
-  runeToFunctionBoundArg: Map[IRuneS, PrototypeI],
-  runeToImplBoundArg: Map[IRuneS, IdI[IImplNameI]])
+  runeToFunctionBoundArg: Map[IRuneS, PrototypeI[sI]],
+  runeToImplBoundArg: Map[IRuneS, IdI[sI, IImplNameI[sI]]])
 
 case class HinputsI(
   interfaces: Vector[InterfaceDefinitionI],
@@ -24,11 +24,11 @@ case class HinputsI(
 //  immKindToDestructor: Map[KindT, PrototypeI],
 
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  interfaceToEdgeBlueprints: Map[IdI[IInterfaceNameI], InterfaceEdgeBlueprintI],
+  interfaceToEdgeBlueprints: Map[IdI[cI, IInterfaceNameI[cI]], InterfaceEdgeBlueprintI],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  interfaceToSubCitizenToEdge: Map[IdI[IInterfaceNameI], Map[IdI[ICitizenNameI], EdgeI]],
+  interfaceToSubCitizenToEdge: Map[IdI[cI, IInterfaceNameI[cI]], Map[IdI[cI, ICitizenNameI[cI]], EdgeI]],
 
-  instantiationNameToInstantiationBounds: Map[IdI[IInstantiationNameI], InstantiationBoundArgumentsI],
+//  instantiationNameToInstantiationBounds: Map[IdI[cI, IInstantiationNameI[cI]], InstantiationBoundArgumentsI],
 
   kindExports: Vector[KindExportI],
   functionExports: Vector[FunctionExportI],
@@ -36,46 +36,46 @@ case class HinputsI(
   functionExterns: Vector[FunctionExternI],
 ) {
 
-  private val subCitizenToInterfaceToEdgeMutable = mutable.HashMap[IdI[ICitizenNameI], mutable.HashMap[IdI[IInterfaceNameI], EdgeI]]()
+  private val subCitizenToInterfaceToEdgeMutable = mutable.HashMap[IdI[cI, ICitizenNameI[cI]], mutable.HashMap[IdI[cI, IInterfaceNameI[cI]], EdgeI]]()
   interfaceToSubCitizenToEdge.foreach({ case (interface, subCitizenToEdge) =>
     subCitizenToEdge.foreach({ case (subCitizen, edge) =>
       subCitizenToInterfaceToEdgeMutable
-        .getOrElseUpdate(subCitizen, mutable.HashMap[IdI[IInterfaceNameI], EdgeI]())
+        .getOrElseUpdate(subCitizen, mutable.HashMap[IdI[cI, IInterfaceNameI[cI]], EdgeI]())
         .put(interface, edge)
     })
   })
-  val subCitizenToInterfaceToEdge: Map[IdI[ICitizenNameI], Map[IdI[IInterfaceNameI], EdgeI]] =
+  val subCitizenToInterfaceToEdge: Map[IdI[cI, ICitizenNameI[cI]], Map[IdI[cI, IInterfaceNameI[cI]], EdgeI]] =
     subCitizenToInterfaceToEdgeMutable.mapValues(_.toMap).toMap
 
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vfail() // Would need a really good reason to hash something this big
 
-  def lookupStruct(structId: IdI[IStructNameI]): StructDefinitionI = {
+  def lookupStruct(structId: IdI[cI, IStructNameI[cI]]): StructDefinitionI = {
     vassertSome(structs.find(_.instantiatedCitizen.id == structId))
   }
 
-  def lookupInterface(interfaceId: IdI[IInterfaceNameI]): InterfaceDefinitionI = {
+  def lookupInterface(interfaceId: IdI[cI, IInterfaceNameI[cI]]): InterfaceDefinitionI = {
     vassertSome(interfaces.find(_.instantiatedCitizen.id == interfaceId))
   }
 
-  def lookupStructByTemplate(structTemplateName: IStructTemplateNameI): StructDefinitionI = {
+  def lookupStructByTemplate(structTemplateName: IStructTemplateNameI[cI]): StructDefinitionI = {
     vassertSome(structs.find(_.instantiatedCitizen.id.localName.template == structTemplateName))
   }
 
-  def lookupInterfaceByTemplate(interfaceTemplateName: IInterfaceTemplateNameI): InterfaceDefinitionI = {
+  def lookupInterfaceByTemplate(interfaceTemplateName: IInterfaceTemplateNameI[cI]): InterfaceDefinitionI = {
     vassertSome(interfaces.find(_.instantiatedCitizen.id.localName.template == interfaceTemplateName))
   }
 
-  def lookupImplByTemplate(implTemplateName: IImplTemplateNameI): EdgeI = {
+  def lookupImplByTemplate(implTemplateName: IImplTemplateNameI[cI]): EdgeI = {
     vassertSome(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId.localName.template == implTemplateName))
   }
 
-  def lookupEdge(implId: IdI[IImplNameI]): EdgeI = {
+  def lookupEdge(implId: IdI[cI, IImplNameI[cI]]): EdgeI = {
     vassertOne(interfaceToSubCitizenToEdge.flatMap(_._2.values).find(_.edgeId == implId))
   }
 
-  def getInstantiationBoundArgs(instantiationName: IdI[IInstantiationNameI]): InstantiationBoundArgumentsI = {
-    vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
-  }
+//  def getInstantiationBoundArgs(instantiationName: IdI[cI, IInstantiationNameI[cI]]): InstantiationBoundArgumentsI = {
+//    vassertSome(instantiationNameToInstantiationBounds.get(instantiationName))
+//  }
 
 //  def lookupStructByTemplateFullName(structTemplateId: IdI[IStructTemplateNameI]): StructDefinitionI = {
 //    vassertSome(structs.find(_.templateName == structTemplateId))
@@ -104,11 +104,11 @@ case class HinputsI(
 //    vassertSome(interfaces.find(_.templateName.localName == interfaceTemplateName))
 //  }
 
-  def lookupFunction(signature2: SignatureI): Option[FunctionDefinitionI] = {
+  def lookupFunction(signature2: SignatureI[cI]): Option[FunctionDefinitionI] = {
     functions.find(_.header.toSignature == signature2).headOption
   }
 
-  def lookupFunction(funcTemplateName: IFunctionTemplateNameI): Option[FunctionDefinitionI] = {
+  def lookupFunction(funcTemplateName: IFunctionTemplateNameI[cI]): Option[FunctionDefinitionI] = {
     functions.find(_.header.id.localName.template == funcTemplateName).headOption
   }
 
@@ -143,8 +143,8 @@ case class HinputsI(
   }
 
   def lookupImpl(
-    subCitizenIT: IdI[ICitizenNameI],
-    interfaceIT: IdI[IInterfaceNameI]):
+    subCitizenIT: IdI[cI, ICitizenNameI[cI]],
+    interfaceIT: IdI[cI, IInterfaceNameI[cI]]):
   EdgeI = {
     vassertSome(
       vassertSome(interfaceToSubCitizenToEdge.get(interfaceIT))
@@ -179,27 +179,27 @@ case class HinputsI(
     matches.head
   }
 
-  def nameIsLambdaIn(name: IdI[IFunctionNameI], needleFunctionHumanName: String): Boolean = {
-    val first = name.steps.head
-    val lastTwo = name.steps.slice(name.steps.size - 2, name.steps.size)
-    (first, lastTwo) match {
-      case (
-        FunctionNameIX(FunctionTemplateNameI(StrI(hayFunctionHumanName), _), _, _),
-        Vector(
-          LambdaCitizenTemplateNameI(_),
-          LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(_, _), _, _)))
-        if hayFunctionHumanName == needleFunctionHumanName => true
-      case _ => false
-    }
-  }
+//  def nameIsLambdaIn(name: IdI[cI, IFunctionNameI[cI]], needleFunctionHumanName: String): Boolean = {
+//    val first = name.steps.head
+//    val lastTwo = name.steps.slice(name.steps.size - 2, name.steps.size)
+//    (first, lastTwo) match {
+//      case (
+//        FunctionNameIX(FunctionTemplateNameI(StrI(hayFunctionHumanName), _), _, _),
+//        Vector(
+//          LambdaCitizenTemplateNameI(_),
+//          LambdaCallFunctionNameI(LambdaCallFunctionTemplateNameI(_, _), _, _)))
+//        if hayFunctionHumanName == needleFunctionHumanName => true
+//      case _ => false
+//    }
+//  }
 
-  def lookupLambdasIn(needleFunctionHumanName: String): Vector[FunctionDefinitionI] = {
-    functions.filter(f => nameIsLambdaIn(f.header.id, needleFunctionHumanName)).toVector
-  }
+//  def lookupLambdasIn(needleFunctionHumanName: String): Vector[FunctionDefinitionI] = {
+//    functions.filter(f => nameIsLambdaIn(f.header.id, needleFunctionHumanName)).toVector
+//  }
 
-  def lookupLambdaIn(needleFunctionHumanName: String): FunctionDefinitionI = {
-    vassertOne(lookupLambdasIn(needleFunctionHumanName))
-  }
+//  def lookupLambdaIn(needleFunctionHumanName: String): FunctionDefinitionI = {
+//    vassertOne(lookupLambdasIn(needleFunctionHumanName))
+//  }
 
   def getAllNonExternFunctions: Iterable[FunctionDefinitionI] = {
     functions.filter(!_.header.isExtern)

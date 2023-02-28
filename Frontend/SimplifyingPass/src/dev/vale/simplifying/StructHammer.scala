@@ -11,8 +11,8 @@ class StructHammer(
     interner: Interner,
     keywords: Keywords,
     nameHammer: NameHammer,
-    translatePrototype: (HinputsI, HamutsBox, PrototypeI) => PrototypeH,
-    translateReference: (HinputsI, HamutsBox, CoordI) => CoordH[KindHT]) {
+    translatePrototype: (HinputsI, HamutsBox, PrototypeI[cI]) => PrototypeH,
+    translateReference: (HinputsI, HamutsBox, CoordI[cI]) => CoordH[KindHT]) {
   def translateInterfaces(hinputs: HinputsI, hamuts: HamutsBox): Unit = {
     hinputs.interfaces.foreach(interface => translateInterface(hinputs, hamuts, interface.instantiatedInterface))
   }
@@ -20,7 +20,7 @@ class StructHammer(
   def translateInterfaceMethods(
       hinputs: HinputsI,
       hamuts: HamutsBox,
-      interfaceTT: InterfaceIT):
+      interfaceTT: InterfaceIT[cI]):
   Vector[InterfaceMethodH] = {
 
     val edgeBlueprint = vassertSome(hinputs.interfaceToEdgeBlueprints.get(interfaceTT.id))
@@ -38,7 +38,7 @@ class StructHammer(
   def translateInterface(
     hinputs: HinputsI,
     hamuts: HamutsBox,
-    interfaceIT: InterfaceIT):
+    interfaceIT: InterfaceIT[cI]):
   InterfaceHT = {
     hamuts.interfaceTToInterfaceH.get(interfaceIT) match {
       case Some(structRefH) => structRefH
@@ -88,7 +88,7 @@ class StructHammer(
   def translateStructI(
       hinputs: HinputsI,
       hamuts: HamutsBox,
-      structIT: StructIT):
+      structIT: StructIT[cI]):
   (StructHT) = {
     hamuts.structTToStructH.get(structIT) match {
       case Some(structRefH) => structRefH
@@ -133,12 +133,12 @@ class StructHammer(
     }
   }
 
-  def translateMembers(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[INameI], members: Vector[StructMemberI]):
+  def translateMembers(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], members: Vector[StructMemberI]):
   (Vector[StructMemberH]) = {
     members.map(translateMember(hinputs, hamuts, structName, _))
   }
 
-  def translateMember(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[INameI], member2: StructMemberI):
+  def translateMember(hinputs: HinputsI, hamuts: HamutsBox, structName: IdI[cI, INameI[cI]], member2: StructMemberI):
   (StructMemberH) = {
     val (variability, memberType) =
       member2 match {
@@ -165,16 +165,16 @@ class StructHammer(
     hinputs: HinputsI,
     hamuts: HamutsBox,
     conceptualVariability: VariabilityI,
-    type2: CoordI,
+    type2: CoordI[cI],
     typeH: CoordH[KindHT]):
   (StructHT) = {
     val boxFullName2 =
       IdI(
         PackageCoordinate.BUILTIN(interner, keywords),
-        Vector.empty,
-        StructNameI(
-          StructTemplateNameI(keywords.BOX_HUMAN_NAME),
-          Vector(CoordTemplataI(type2))))
+        Vector[INameI[cI]](),
+        StructNameI[cI](
+          StructTemplateNameI[cI](keywords.BOX_HUMAN_NAME),
+          Vector(CoordTemplataI[cI](type2))))
     val boxFullNameH = nameHammer.translateFullName(hinputs, hamuts, boxFullName2)
     hamuts.structDefs.find(_.id == boxFullNameH) match {
       case Some(structDefH) => (structDefH.getRef)
@@ -208,7 +208,7 @@ class StructHammer(
   private def translateEdgesForStruct(
       hinputs: HinputsI, hamuts: HamutsBox,
       structRefH: StructHT,
-      structTT: StructIT):
+      structTT: StructIT[cI]):
   (Vector[EdgeH]) = {
     val edges2 = hinputs.interfaceToSubCitizenToEdge.values.flatMap(_.values).filter(_.subCitizen.id == structTT.id)
     translateEdgesForStruct(hinputs, hamuts, structRefH, edges2.toVector)
@@ -223,7 +223,7 @@ class StructHammer(
   }
 
 
-  private def translateEdge(hinputs: HinputsI, hamuts: HamutsBox, structRefH: StructHT, interfaceIT: InterfaceIT, edge2: EdgeI):
+  private def translateEdge(hinputs: HinputsI, hamuts: HamutsBox, structRefH: StructHT, interfaceIT: InterfaceIT[cI], edge2: EdgeI):
   (EdgeH) = {
     // Purposefully not trying to translate the entire struct here, because we might hit a circular dependency
     val interfaceRefH = translateInterface(hinputs, hamuts, interfaceIT)
@@ -243,11 +243,11 @@ class StructHammer(
     (EdgeH(structRefH, interfaceRefH, structPrototypesByInterfacePrototype))
   }
 
-  def lookupStruct(hinputs: HinputsI, hamuts: HamutsBox, structTT: StructIT): StructDefinitionI = {
+  def lookupStruct(hinputs: HinputsI, hamuts: HamutsBox, structTT: StructIT[cI]): StructDefinitionI = {
     hinputs.lookupStruct(structTT.id)
   }
 
-  def lookupInterface(hinputs: HinputsI, hamuts: HamutsBox, interfaceTT: InterfaceIT): InterfaceDefinitionI = {
+  def lookupInterface(hinputs: HinputsI, hamuts: HamutsBox, interfaceTT: InterfaceIT[cI]): InterfaceDefinitionI = {
     hinputs.lookupInterface(interfaceTT.id)
   }
 }

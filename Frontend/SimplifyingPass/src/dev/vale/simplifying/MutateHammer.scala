@@ -18,33 +18,33 @@ class MutateHammer(
       locals: LocalsBox,
       mutate2: MutateIE):
   (ExpressionH[KindHT]) = {
-    val MutateIE(destinationExpr2, sourceExpr2) = mutate2
+    val MutateIE(destinationExpr2, sourceExpr2, _) = mutate2
 
     val (sourceExprResultLine, sourceDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result.coord)
+      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result)
 
     val (oldValueAccess, destinationDeferreds) =
       destinationExpr2 match {
-        case LocalLookupIE(_,ReferenceLocalVariableI(varId, variability, reference), sourceRegion) => {
+        case LocalLookupIE(ReferenceLocalVariableI(varId, variability, reference), _) => {
           vimpl()
           translateMundaneLocalMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, varId)
         }
-        case LocalLookupIE(_,AddressibleLocalVariableI(varId, variability, reference), sourceRegion) => {
+        case LocalLookupIE(AddressibleLocalVariableI(varId, variability, reference), _) => {
           vimpl()
           translateAddressibleLocalMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, sourceResultPointerTypeH, varId, variability, reference)
         }
         case ReferenceMemberLookupIE(_,structExpr2, memberName, _, _) => {
           translateMundaneMemberMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, structExpr2, memberName)
         }
-        case AddressMemberLookupIE(_,structExpr2, memberName, memberType2, _) => {
+        case AddressMemberLookupIE(structExpr2, memberName, memberType2, _) => {
           translateAddressibleMemberMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, structExpr2, memberName)
         }
         case StaticSizedArrayLookupIE(_, arrayExpr2, indexExpr2, _, _) => {
           translateMundaneStaticSizedArrayMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, arrayExpr2, indexExpr2)
         }
-        case RuntimeSizedArrayLookupIE(_, arrayExpr2, _, indexExpr2, _) => {
+        case RuntimeSizedArrayLookupIE(arrayExpr2, indexExpr2, _, _) => {
           translateMundaneRuntimeSizedArrayMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, arrayExpr2, indexExpr2)
         }
       }
@@ -115,13 +115,13 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     structExpr2: ReferenceExpressionIE,
-    memberName: IVarNameI
+    memberName: IVarNameI[cI]
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val (destinationResultLine, destinationDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structIT =
-      structExpr2.result.coord.kind match {
+      structExpr2.result.kind match {
         case sr @ StructIT(_) => sr
 //        case TupleIT(_, sr) => sr
 //        case PackIT(_, sr) => sr
@@ -179,13 +179,13 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     structExpr2: ReferenceExpressionIE,
-    memberName: IVarNameI
+    memberName: IVarNameI[cI],
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val (destinationResultLine, destinationDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structIT =
-      structExpr2.result.coord.kind match {
+      structExpr2.result.kind match {
         case sr @ StructIT(_) => sr
       }
     val structDefI = hinputs.lookupStruct(structIT.id)
@@ -214,9 +214,9 @@ class MutateHammer(
     locals: LocalsBox,
     sourceExprResultLine: ExpressionH[KindHT],
     sourceResultPointerTypeH: CoordH[KindHT],
-    varId: IVarNameI,
+    varId: IVarNameI[cI],
     variability: VariabilityI,
-    reference: CoordI
+    reference: CoordI[cI]
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val local = locals.get(varId).get
     val (boxStructRefH) =
@@ -243,12 +243,12 @@ class MutateHammer(
   }
 
   private def translateMundaneLocalMutate(
-                                           hinputs: HinputsI,
-                                           hamuts: HamutsBox,
+    hinputs: HinputsI,
+    hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderI,
-                                           locals: LocalsBox,
-                                           sourceExprResultLine: ExpressionH[KindHT],
-                                           varId: IVarNameI
+    locals: LocalsBox,
+    sourceExprResultLine: ExpressionH[KindHT],
+    varId: IVarNameI[cI]
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val local = locals.get(varId).get
     vassert(!locals.unstackifiedVars.contains(local.id))

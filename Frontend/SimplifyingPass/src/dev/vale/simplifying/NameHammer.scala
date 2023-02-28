@@ -10,8 +10,8 @@ import dev.vale.von.{IVonData, VonArray, VonInt, VonMember, VonObject, VonStr}
 
 import scala.collection.immutable.List
 
-class NameHammer(translateName: (HinputsI, HamutsBox, INameI) => IVonData) {
-  def getReadableName(namePart: INameI): String = {
+class NameHammer(translateName: (HinputsI, HamutsBox, INameI[cI]) => IVonData) {
+  def getReadableName(namePart: INameI[cI]): String = {
     namePart match {
       case SelfNameI() => "self"
       case AnonymousSubstructImplNameI(_, _, _) => "AnonSubstructImpl"
@@ -63,14 +63,14 @@ class NameHammer(translateName: (HinputsI, HamutsBox, INameI) => IVonData) {
   def translateFullName(
     hinputs: HinputsI,
     hamuts: HamutsBox,
-    fullName2: IdI[INameI]
+    fullName2: IdI[cI, INameI[cI]]
   ): IdH = {
     val IdI(packageCoord@PackageCoordinate(project, packageSteps), _, _) = fullName2
     val newNameParts = fullName2.steps.map(step => translateName(hinputs, hamuts, step))
     val readableName = getReadableName(fullName2.localName)
 
     val id =
-      if (fullName2.localName.isInstanceOf[ExternFunctionNameI]) {
+      if (fullName2.localName.isInstanceOf[ExternFunctionNameI[cI]]) {
         -1
       } else {
         hamuts.getNameId(readableName, packageCoord, newNameParts)

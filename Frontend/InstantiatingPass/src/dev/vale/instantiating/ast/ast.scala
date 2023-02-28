@@ -20,20 +20,20 @@ case class ImplI(
   // We do this because a struct might implement an interface in multiple ways, see SCIIMT.
   // We have the template names as well as the placeholders for better searching, see MLUIBTN.
 
-  templata: ImplDefinitionTemplataI,
+  templata: ImplDefinitionTemplataI[cI],
 
-  instantiatedId: IdI[IImplNameI],
-  templateId: IdI[IImplTemplateNameI],
+  instantiatedId: IdI[cI, IImplNameI[cI]],
+  templateId: IdI[cI, IImplTemplateNameI[cI]],
 
-  subCitizenTemplateId: IdI[ICitizenTemplateNameI],
-  subCitizen: ICitizenIT,
+  subCitizenTemplateId: IdI[cI, ICitizenTemplateNameI[cI]],
+  subCitizen: ICitizenIT[cI],
 
-  superInterface: InterfaceIT,
-  superInterfaceTemplateId: IdI[IInterfaceTemplateNameI],
+  superInterface: InterfaceIT[cI],
+  superInterfaceTemplateId: IdI[cI, IInterfaceTemplateNameI[cI]],
 
   // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdI[FunctionBoundNameI]],
-  runeToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
+  runeToFuncBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
+  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
 
   runeIndexToIndependence: Vector[Boolean],
 
@@ -41,7 +41,7 @@ case class ImplI(
   // citizen, and a case block from its receiving kind.
   // We'll need to remember those, so the instantiator can do its thing.
   // See TIBANFC for more.
-  reachableBoundsFromSubCitizen: Vector[PrototypeI]
+  reachableBoundsFromSubCitizen: Vector[PrototypeI[cI]]
 
 //  // Starting from a placeholdered super interface, this is the interface that would result.
 //  // We get this by solving the impl, given a placeholdered sub citizen.
@@ -50,10 +50,10 @@ case class ImplI(
 
 case class KindExportI(
   range: RangeS,
-  tyype: KindIT,
+  tyype: KindIT[cI],
   // Good for knowing the package of this export for later prefixing the exportedName, also good
   // for getting its region.
-  id: IdI[ExportNameI],
+  id: IdI[cI, ExportNameI[cI]],
   exportedName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -62,8 +62,8 @@ case class KindExportI(
 
 case class FunctionExportI(
   range: RangeS,
-  prototype: PrototypeI,
-  exportId: IdI[ExportNameI],
+  prototype: PrototypeI[cI],
+  exportId: IdI[cI, ExportNameI[cI]],
   exportedName: StrI
 )  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
@@ -81,7 +81,7 @@ case class FunctionExportI(
 
 case class FunctionExternI(
 //  range: RangeS,
-  prototype: PrototypeI,
+  prototype: PrototypeI[cI],
 //  packageCoordinate: PackageCoordinate,
   externName: StrI
 )  {
@@ -91,8 +91,8 @@ case class FunctionExternI(
 
 case class InterfaceEdgeBlueprintI(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  interface: IdI[IInterfaceNameI],
-  superFamilyRootHeaders: Vector[(PrototypeI, Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
+  interface: IdI[cI, IInterfaceNameI[cI]],
+  superFamilyRootHeaders: Vector[(PrototypeI[cI], Int)]) { val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious(); }
 
 case class OverrideI(
   // it seems right here we'll need some sort of mapping of abstract func placeholder to the
@@ -115,45 +115,45 @@ case class OverrideI(
   //   func add<Opt<int>>(self &IObserver<Opt<int>>, event Opt<int>) void
   // as you can see there may be some interesting templatas in there like that Opt<int>, they
   // might not be simple placeholders
-  dispatcherCallId: IdI[OverrideDispatcherNameI],
+  dispatcherCallId: IdI[cI, OverrideDispatcherNameI[cI]],
 
-  implPlaceholderToDispatcherPlaceholder: Vector[(IdI[IPlaceholderNameI], ITemplataI)],
-  implPlaceholderToCasePlaceholder: Vector[(IdI[IPlaceholderNameI], ITemplataI)],
+//  implPlaceholderToDispatcherPlaceholder: Vector[(IdI[cI, IPlaceholderNameI[cI]], ITemplataI)],
+//  implPlaceholderToCasePlaceholder: Vector[(IdI[cI, IPlaceholderNameI[cI]], ITemplataI)],
 
   // This is needed for bringing in the impl's bound args for the override dispatcher's case, see
   // TIBANFC.
-  implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[IdI[FunctionBoundNameI], IdI[FunctionBoundNameI]],
+  implSubCitizenReachableBoundsToCaseSubCitizenReachableBounds: Map[IdI[cI, FunctionBoundNameI[cI]], IdI[cI, FunctionBoundNameI[cI]]],
 
   // Any FunctionI has a runeToFunctionBound, which is a map of the function's rune to its required
   // bounds. This is the one for our conceptual dispatcher function.
-  dispatcherRuneToFunctionBound: Map[IRuneS, IdI[FunctionBoundNameI]],
-  dispatcherRuneToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
+  dispatcherRuneToFunctionBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
+  dispatcherRuneToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
 
   // This is the name of the conceptual case that's calling the override prototype. It'll have
   // template args inherited from the dispatcher function and template args inherited from the
   // impl. After typing pass these will be placeholders, and after instantiator these will be
   // actual real templatas.
   // This will have some placeholders from the impl; this is the impl calling the case, kind of.
-  caseId: IdI[OverrideDispatcherCaseNameI],
+  caseId: IdI[cI, OverrideDispatcherCaseNameI[cI]],
 
   // The override function we're calling.
   // Conceptually, this is being called from the case's environment. It might even have some complex stuff
   // in the template args.
-  overridePrototype: PrototypeI
+  overridePrototype: PrototypeI[cI]
 )
 
 case class EdgeI(
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  edgeId: IdI[IImplNameI],
+  edgeId: IdI[cI, IImplNameI[cI]],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  subCitizen: ICitizenIT,
+  subCitizen: ICitizenIT[cI],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  superInterface: IdI[IInterfaceNameI],
+  superInterface: IdI[cI, IInterfaceNameI[cI]],
   // This is similar to FunctionT.runeToFuncBound
-  runeToFuncBound: Map[IRuneS, IdI[FunctionBoundNameI]],
-  runeToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
+  runeToFuncBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
+  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
   // The typing pass keys this by placeholdered name, and the instantiator keys this by non-placeholdered names
-  abstractFuncToOverrideFunc: Map[IdI[IFunctionNameI], OverrideI]
+  abstractFuncToOverrideFunc: Map[IdI[cI, IFunctionNameI[cI]], OverrideI]
 ) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -172,19 +172,19 @@ case class EdgeI(
 
 case class FunctionDefinitionI(
   header: FunctionHeaderI,
-  runeToFuncBound: Map[IRuneS, IdI[FunctionBoundNameI]],
-  runeToImplBound: Map[IRuneS, IdI[ImplBoundNameI]],
+  runeToFuncBound: Map[IRuneS, IdI[cI, FunctionBoundNameI[cI]]],
+  runeToImplBound: Map[IRuneS, IdI[cI, ImplBoundNameI[cI]]],
   body: ReferenceExpressionIE)  {
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
   // We always end a function with a ret, whose result is a Never.
-  vassert(body.result.kind == NeverIT(false))
+  vassert(body.result.kind == NeverIT[cI](false))
 
   def isPure: Boolean = header.isPure
 }
 
 object getFunctionLastName {
-  def unapply(f: FunctionDefinitionI): Option[IFunctionNameI] = Some(f.header.id.localName)
+  def unapply(f: FunctionDefinitionI): Option[IFunctionNameI[cI]] = Some(f.header.id.localName)
 }
 
 // A unique location in a function. Environment is in the name so it spells LIFE!
@@ -201,9 +201,9 @@ case class LocationInFunctionEnvironmentI(path: Vector[Int]) {
 case class AbstractI()
 
 case class ParameterI(
-  name: IVarNameI,
+  name: IVarNameI[cI],
   virtuality: Option[AbstractI],
-  tyype: CoordI)  {
+  tyype: CoordI[cI])  {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
   // Use same instead, see EHCFBD for why we dont like equals.
@@ -228,9 +228,9 @@ case class ParameterI(
 // function headers, because functions don't have to specify their return types and
 // it takes a complete typingpass evaluate to deduce a function's return type.
 
-case class SignatureI(id: IdI[IFunctionNameI]) {
+case class SignatureI[R <: IRegionsModeI](id: IdI[R, IFunctionNameI[R]]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def paramTypes: Vector[CoordI] = id.localName.parameters
+  def paramTypes: Vector[CoordI[R]] = id.localName.parameters
 }
 
 sealed trait IFunctionAttributeI
@@ -245,16 +245,16 @@ case object SealedI extends ICitizenAttributeI
 case object UserFunctionI extends IFunctionAttributeI // Whether it was written by a human. Mostly for tests right now.
 
 case class RegionI(
-  name: IRegionNameI,
+  name: IRegionNameI[cI],
   mutable: Boolean)
 
 case class FunctionHeaderI(
   // This one little name field can illuminate much of how the compiler works, see UINIT.
-  id: IdI[IFunctionNameI],
+  id: IdI[cI, IFunctionNameI[cI]],
   attributes: Vector[IFunctionAttributeI],
-//  regions: Vector[RegionI],
+//  regions: Vector[cIegionI],
   params: Vector[ParameterI],
-  returnType: CoordI) {
+  returnType: CoordI[cI]) {
 
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
 
@@ -298,9 +298,9 @@ case class FunctionHeaderI(
 //    SignatureI(fullName)
 //
 //  }
-//  def paramTypes: Vector[CoordI] = params.map(_.tyype)
+//  def paramTypes: Vector[CoordI[cI]] = params.map(_.tyype)
 
-  def getAbstractInterface: Option[InterfaceIT] = {
+  def getAbstractInterface: Option[InterfaceIT[cI]] = {
     val abstractInterfaces =
       params.collect({
         case ParameterI(_, Some(AbstractI()), CoordI(_, ir @ InterfaceIT(_))) => ir
@@ -324,20 +324,20 @@ case class FunctionHeaderI(
 //    }
 //  })
 
-  def toPrototype: PrototypeI = {
+  def toPrototype: PrototypeI[cI] = {
 //    val substituter = TemplataCompiler.getPlaceholderSubstituter(interner, fullName, templateArgs)
 //    val paramTypes = params.map(_.tyype).map(substituter.substituteForCoord)
 //    val newLastStep = fullName.last.makeFunctionName(interner, keywords, templateArgs, paramTypes)
 //    val newName = FullNameI(fullName.packageCoord, fullName.initSteps, newLastStep)
     PrototypeI(id, returnType)
   }
-  def toSignature: SignatureI = {
+  def toSignature: SignatureI[cI] = {
     toPrototype.toSignature
   }
 
-  def paramTypes: Vector[CoordI] = id.localName.parameters
+  def paramTypes: Vector[CoordI[cI]] = id.localName.parameters
 
-  def unapply(arg: FunctionHeaderI): Option[(IdI[IFunctionNameI], Vector[ParameterI], CoordI)] = {
+  def unapply(arg: FunctionHeaderI): Option[(IdI[cI, IFunctionNameI[cI]], Vector[ParameterI], CoordI[cI])] = {
     Some(id, params, returnType)
   }
 
@@ -346,23 +346,22 @@ case class FunctionHeaderI(
   }
 }
 
-case class PrototypeI(
-    id: IdI[IFunctionNameI],
-    returnType: CoordI) {
+case class PrototypeI[R <: IRegionsModeI](
+    id: IdI[R, IFunctionNameI[R]],
+    returnType: CoordI[R]) {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash;
-  def paramTypes: Vector[CoordI] = id.localName.parameters
-  def toSignature: SignatureI = SignatureI(id)
+  def paramTypes: Vector[CoordI[R]] = id.localName.parameters
+  def toSignature: SignatureI[R] = SignatureI[R](id)
 }
-
 
 sealed trait IVariableI  {
-  def name: IVarNameI
+  def name: IVarNameI[cI]
   def variability: VariabilityI
-  def coord: CoordI
+  def collapsedCoord: CoordI[cI]
 }
 sealed trait ILocalVariableI extends IVariableI {
-  def name: IVarNameI
-  def coord: CoordI
+  def name: IVarNameI[cI]
+  def collapsedCoord: CoordI[cI]
 }
 // Why the difference between reference and addressible:
 // If we mutate/move a variable from inside a closure, we need to put
@@ -371,34 +370,33 @@ sealed trait ILocalVariableI extends IVariableI {
 // Lucky for us, the parser figured out if any of our child closures did
 // any mutates/moves/borrows.
 case class AddressibleLocalVariableI(
-  name: IVarNameI,
+  name: IVarNameI[cI],
   variability: VariabilityI,
-  coord: CoordI
+  collapsedCoord: CoordI[cI]
 ) extends ILocalVariableI {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
-
 }
 case class ReferenceLocalVariableI(
-  name: IVarNameI,
+  name: IVarNameI[cI],
   variability: VariabilityI,
-  coord: CoordI
+  collapsedCoord: CoordI[cI]
 ) extends ILocalVariableI {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   vpass()
 }
 case class AddressibleClosureVariableI(
-  name: IVarNameI,
-  closuredVarsStructType: StructIT,
+  name: IVarNameI[cI],
+  closuredVarsStructType: StructIT[cI],
   variability: VariabilityI,
-  coord: CoordI
+  collapsedCoord: CoordI[cI]
 ) extends IVariableI {
   vpass()
 }
 case class ReferenceClosureVariableI(
-  name: IVarNameI,
-  closuredVarsStructType: StructIT,
+  name: IVarNameI[cI],
+  closuredVarsStructType: StructIT[cI],
   variability: VariabilityI,
-  coord: CoordI
+  collapsedCoord: CoordI[cI]
 ) extends IVariableI {
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
 
