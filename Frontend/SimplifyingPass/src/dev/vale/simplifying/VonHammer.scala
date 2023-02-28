@@ -900,7 +900,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
     }
   }
 
-  def vonifyTypingPassName(hinputs: HinputsI, hamuts: HamutsBox, fullName2: IdI[INameI]): VonStr = {
+  def vonifyTypingPassName(hinputs: HinputsI, hamuts: HamutsBox, fullName2: IdI[cI, INameI[cI]]): VonStr = {
     val str = IdH.namePartsToString(fullName2.packageCoord, fullName2.steps.map(step => translateName(hinputs, hamuts, step)))
     VonStr(str)
   }
@@ -908,7 +908,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   def vonifyTemplata(
     hinputs: HinputsI,
     hamuts: HamutsBox,
-    templata: ITemplataI,
+    templata: ITemplataI[cI],
   ): IVonData = {
     templata match {
       case CoordTemplataI(coord) => {
@@ -1043,7 +1043,7 @@ class VonHammer(nameHammer: NameHammer, typeHammer: TypeHammer) {
   def translateName(
     hinputs: HinputsI,
     hamuts: HamutsBox,
-    name: INameI
+    name: INameI[cI]
   ): IVonData = {
     name match {
       case ConstructingMemberNameI(name) => {

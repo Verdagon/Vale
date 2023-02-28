@@ -40,7 +40,7 @@ case object MutableBorrowI extends OwnershipI {
   override def toString: String = "mutborrow"
 }
 
-sealed trait MutabilityI  {
+sealed trait MutabilityI {
 }
 case object MutableI extends MutabilityI {
   override def toString: String = "mut"
@@ -49,7 +49,7 @@ case object ImmutableI extends MutabilityI {
   override def toString: String = "imm"
 }
 
-sealed trait VariabilityI  {
+sealed trait VariabilityI {
 }
 case object FinalI extends VariabilityI {
   override def toString: String = "final"
@@ -58,7 +58,7 @@ case object VaryingI extends VariabilityI {
   override def toString: String = "vary"
 }
 
-sealed trait LocationI  {
+sealed trait LocationI {
 }
 case object InlineI extends LocationI {
   override def toString: String = "inl"
@@ -67,10 +67,17 @@ case object YonderI extends LocationI {
   override def toString: String = "heap"
 }
 
+sealed trait IRegionsModeI
+case class sI() extends IRegionsModeI
+case class cI() extends IRegionsModeI
 
-case class CoordI(
+object CoordI {
+  def void[R <: IRegionsModeI]: CoordI[R] = CoordI[R](MutableShareI, VoidIT())
+}
+
+case class CoordI[R <: IRegionsModeI](
   ownership: OwnershipI,
-  kind: KindIT)  {
+  kind: KindIT[R])  {
 
   vpass()
 
@@ -90,26 +97,26 @@ case class CoordI(
   }
 }
 
-sealed trait KindIT {
+sealed trait KindIT[R <: IRegionsModeI] {
   // Note, we don't have a mutability: Mutability in here because this Kind
   // should be enough to uniquely identify a type, and no more.
   // We can always get the mutability for a struct from the coutputs.
 
-  def expectCitizen(): ICitizenIT = {
+  def expectCitizen(): ICitizenIT[R] = {
     this match {
-      case c : ICitizenIT => c
+      case c : ICitizenIT[R] => c
       case _ => vfail()
     }
   }
 
-  def expectInterface(): InterfaceIT = {
+  def expectInterface(): InterfaceIT[R] = {
     this match {
       case c @ InterfaceIT(_) => c
       case _ => vfail()
     }
   }
 
-  def expectStruct(): StructIT = {
+  def expectStruct(): StructIT[R] = {
     this match {
       case c @ StructIT(_) => c
       case _ => vfail()
@@ -118,51 +125,47 @@ sealed trait KindIT {
 }
 
 // like Scala's Nothing. No instance of this can ever happen.
-case class NeverIT(
+case class NeverIT[R <: IRegionsModeI](
   // True if this Never came from a break.
   // While will have to know about this; if IT's a Never from a ret, IT should
   // propagate IT, but if its body is a break never, the while produces a void.
   // See BRCOBS.
   fromBreak: Boolean
-) extends KindIT {
+) extends KindIT[R] {
 
 }
 
 // Mostly for interoperability with extern functions
-case class VoidIT() extends KindIT {
+case class VoidIT[R <: IRegionsModeI]() extends KindIT[R] {
 
 }
 
-object IntIT {
-  val i32: IntIT = IntIT(32)
-  val i64: IntIT = IntIT(64)
-}
-case class IntIT(bits: Int) extends KindIT {
+case class IntIT[R <: IRegionsModeI](bits: Int) extends KindIT[R] {
 }
 
-case class BoolIT() extends KindIT {
+case class BoolIT[R <: IRegionsModeI]() extends KindIT[R] {
 
 }
 
-case class StrIT() extends KindIT {
+case class StrIT[R <: IRegionsModeI]() extends KindIT[R] {
 
 }
 
-case class FloatIT() extends KindIT {
+case class FloatIT[R <: IRegionsModeI]() extends KindIT[R] {
 
 }
 
 object contentsStaticSizedArrayIT {
-  def unapply(ssa: StaticSizedArrayIT):
-  Option[(Long, MutabilityI, VariabilityI, CoordI, RegionTemplataI)] = {
+  def unapply[R <: IRegionsModeI](ssa: StaticSizedArrayIT[R]):
+  Option[(Long, MutabilityI, VariabilityI, CoordI[R], RegionTemplataI[R])] = {
     val IdI(_, _, StaticSizedArrayNameI(_, size, variability, RawArrayNameI(mutability, coord, selfRegion))) = ssa.name
     Some((size, mutability, variability, coord, selfRegion))
   }
 }
 
-case class StaticSizedArrayIT(
-  name: IdI[StaticSizedArrayNameI]
-) extends KindIT {
+case class StaticSizedArrayIT[R <: IRegionsModeI](
+  name: IdI[R, StaticSizedArrayNameI[R]]
+) extends KindIT[R] {
   vassert(name.initSteps.isEmpty)
   def mutability: MutabilityI = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
@@ -171,15 +174,15 @@ case class StaticSizedArrayIT(
 }
 
 object contentsRuntimeSizedArrayIT {
-  def unapply(rsa: RuntimeSizedArrayIT):
-  Option[(MutabilityI, CoordI, RegionTemplataI)] = {
+  def unapply[R <: IRegionsModeI](rsa: RuntimeSizedArrayIT[R]):
+  Option[(MutabilityI, CoordI[R], RegionTemplataI[R])] = {
     val IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(mutability, coord, selfRegion))) = rsa.name
     Some((mutability, coord, selfRegion))
   }
 }
-case class RuntimeSizedArrayIT(
-  name: IdI[RuntimeSizedArrayNameI]
-) extends KindIT {
+case class RuntimeSizedArrayIT[R <: IRegionsModeI](
+  name: IdI[R, RuntimeSizedArrayNameI[R]]
+) extends KindIT[R] {
   def mutability = name.localName.arr.mutability
   def elementType = name.localName.arr.elementType
 
@@ -190,33 +193,33 @@ case class RuntimeSizedArrayIT(
 }
 
 object ICitizenIT {
-  def unapply(self: ICitizenIT): Option[IdI[ICitizenNameI]] = {
+  def unapply[R <: IRegionsModeI](self: ICitizenIT[R]): Option[IdI[R, ICitizenNameI[R]]] = {
     Some(self.id)
   }
 }
 
 // Structs, interfaces, and placeholders
-sealed trait ISubKindIT extends KindIT {
-  def id: IdI[ISubKindNameI]
+sealed trait ISubKindIT[R <: IRegionsModeI] extends KindIT[R] {
+  def id: IdI[R, ISubKindNameI[R]]
 }
 // Interfaces and placeholders
-sealed trait ISuperKindIT extends KindIT {
-  def id: IdI[ISuperKindNameI]
+sealed trait ISuperKindIT[R <: IRegionsModeI] extends KindIT[R] {
+  def id: IdI[R, ISuperKindNameI[R]]
 }
 
-sealed trait ICitizenIT extends ISubKindIT {
-  def id: IdI[ICitizenNameI]
+sealed trait ICitizenIT[R <: IRegionsModeI] extends ISubKindIT[R] {
+  def id: IdI[R, ICitizenNameI[R]]
 }
 
 // These should only be made by StructCompiler, which puts the definition and bounds into coutputs at the same time
-case class StructIT(id: IdI[IStructNameI]) extends ICitizenIT {
+case class StructIT[R <: IRegionsModeI](id: IdI[R, IStructNameI[R]]) extends ICitizenIT[R] {
   (id.initSteps.lastOption, id.localName) match {
     case (Some(StructTemplateNameI(_)), StructNameI(_, _)) => vfail()
     case _ =>
   }
 }
 
-case class InterfaceIT(id: IdI[IInterfaceNameI]) extends ICitizenIT with ISuperKindIT {
+case class InterfaceIT[R <: IRegionsModeI](id: IdI[R, IInterfaceNameI[R]]) extends ICitizenIT[R] with ISuperKindIT[R] {
   (id.initSteps.lastOption, id.localName) match {
     case (Some(InterfaceTemplateNameI(_)), InterfaceNameI(_, _)) => vfail()
     case _ =>
@@ -226,15 +229,11 @@ case class InterfaceIT(id: IdI[IInterfaceNameI]) extends ICitizenIT with ISuperK
 // Represents a bunch of functions that have the same name.
 // See ROS.
 // Lowers to an empty struct.
-case class OverloadSeIT(
+case class OverloadSeIT[R <: IRegionsModeI](
   env: IInDenizenEnvironment,
   // The name to look for in the environment.
   name: IImpreciseNameS
-) extends KindIT {
+) extends KindIT[R] {
   vpass()
 
 }
-
-// At some point IT'd be nice to make Coord.kind into a templata so we can directly have a
-// placeholder templata instead of needing this special kind.
-case class KindPlaceholderIT(id: IdI[KindPlaceholderNameI]) extends ISubKindIT with ISuperKindIT

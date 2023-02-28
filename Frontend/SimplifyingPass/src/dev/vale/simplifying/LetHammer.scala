@@ -23,12 +23,12 @@ class LetHammer(
       locals: LocalsBox,
       let2: LetNormalIE):
   ExpressionH[KindHT] = {
-    val LetNormalIE(localVariable, sourceExpr2) = let2
+    val LetNormalIE(localVariable, sourceExpr2, _) = let2
 
     val (sourceExprHE, deferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result.coord)
+      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result)
 
     sourceExprHE.resultType.kind match {
       // We'll never get to this let, so strip it out. See BRCOBS.
@@ -59,12 +59,12 @@ class LetHammer(
     locals: LocalsBox,
     letIE: LetAndLendIE):
   (ExpressionH[KindHT]) = {
-    val LetAndLendIE(localVariable, sourceExpr2, targetOwnership) = letIE
+    val LetAndLendIE(localVariable, sourceExpr2, targetOwnership, _) = letIE
 
     val (sourceExprHE, deferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, sourceExpr2);
     val (sourceResultPointerTypeH) =
-      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result.coord)
+      typeHammer.translateCoord(hinputs, hamuts, sourceExpr2.result)
 
     val borrowAccess =
       localVariable match {
@@ -89,9 +89,9 @@ class LetHammer(
     locals: LocalsBox,
     sourceExprHE: ExpressionH[KindHT],
     sourceResultPointerTypeH: CoordH[KindHT],
-    varId: IVarNameI,
+    varId: IVarNameI[cI],
     variability: VariabilityI,
-    reference: CoordI):
+    reference: CoordI[cI]):
   ExpressionH[KindHT] = {
     val (boxStructRefH) =
       structHammer.makeBox(hinputs, hamuts, variability, reference, sourceResultPointerTypeH)
@@ -120,9 +120,9 @@ class LetHammer(
     sourceExprHE: ExpressionH[KindHT],
     sourceResultPointerTypeH: CoordH[KindHT],
     letIE: LetAndLendIE,
-    varId: IVarNameI,
+    varId: IVarNameI[cI],
     variability: VariabilityI,
-    reference: CoordI):
+    reference: CoordI[cI]):
   (ExpressionH[KindHT]) = {
     val stackifyH =
       translateAddressibleLet(
@@ -135,8 +135,8 @@ class LetHammer(
         locals,
         varId,
         variability,
-        sourceExpr2.result.coord,
-        letIE.result.coord.ownership)
+        sourceExpr2.result,
+        letIE.result.ownership)
     ConsecutorH(Vector(stackifyH, borrowAccess))
   }
 
@@ -147,7 +147,7 @@ class LetHammer(
     locals: LocalsBox,
     sourceExprHE: ExpressionH[KindHT],
     sourceResultPointerTypeH: CoordH[KindHT],
-    varId: IVarNameI,
+    varId: IVarNameI[cI],
     variability: VariabilityI):
   StackifyH = {
     sourceExprHE.resultType.kind match {
@@ -174,7 +174,7 @@ class LetHammer(
       sourceExprHE: ExpressionH[KindHT],
       sourceResultPointerTypeH: CoordH[KindHT],
       letIE: LetAndLendIE,
-      varId: IVarNameI,
+      varId: IVarNameI[cI],
       variability: VariabilityI):
     ExpressionH[KindHT] = {
     val stackifyH =
@@ -195,8 +195,8 @@ class LetHammer(
         currentFunctionHeader,
         locals,
         varId,
-        sourceExpr2.result.coord,
-        letIE.result.coord.ownership)
+        sourceExpr2.result,
+        letIE.result.ownership)
 
       ConsecutorH(Vector(stackifyH, borrowAccess))
   }

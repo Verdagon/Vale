@@ -20,11 +20,11 @@ class LoadHammer(
       locals: LocalsBox,
       load2: SoftLoadIE):
   (ExpressionH[KindHT], Vector[ExpressionI]) = {
-    val SoftLoadIE(sourceExpr2, targetOwnership) = load2
+    val SoftLoadIE(sourceExpr2, targetOwnership, _) = load2
 
     val (loadedAccessH, sourceDeferreds) =
       sourceExpr2 match {
-        case LocalLookupIE(_,ReferenceLocalVariableI(varId, variability, reference), sourceRegion) => {
+        case LocalLookupIE(ReferenceLocalVariableI(varId, variability, reference), _) => {
           // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = targetOwnership
 //            (targetOwnership, sourceRegion) match {
@@ -37,7 +37,7 @@ class LoadHammer(
 //            }
           translateMundaneLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, reference, combinedTargetOwnership)
         }
-        case LocalLookupIE(_,AddressibleLocalVariableI(varId, variability, localReference2), sourceRegion) => {
+        case LocalLookupIE(AddressibleLocalVariableI(varId, variability, localReference2), _) => {
           // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
@@ -64,7 +64,7 @@ class LoadHammer(
 //            }
           translateMundaneMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberType2, memberName, targetOwnership)
         }
-        case AddressMemberLookupIE(_,structExpr2, memberName, memberType2, _) => {
+        case AddressMemberLookupIE(structExpr2, memberName, memberType2, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
           // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
@@ -79,7 +79,7 @@ class LoadHammer(
 //            }
           translateAddressibleMemberLoad(hinputs, hamuts, currentFunctionHeader, locals, structExpr2, memberName, memberType2, combinedTargetOwnership)
         }
-        case RuntimeSizedArrayLookupIE(_, arrayExpr2, _, indexExpr2, _) => {
+        case RuntimeSizedArrayLookupIE(arrayExpr2, indexExpr2, _, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
           // DO NOI SUBMII combine this with below
           val combinedTargetOwnership = vimpl()
@@ -219,15 +219,15 @@ class LoadHammer(
     currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
       structExpr2: ReferenceExpressionIE,
-      memberName: IVarNameI,
-      expectedType2: CoordI,
+      memberName: IVarNameI[cI],
+      expectedType2: CoordI[cI],
       targetOwnershipI: OwnershipI,
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val (structResultLine, structDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structIT =
-      structExpr2.result.coord.kind match {
+      structExpr2.result.kind match {
         case sr @ StructIT(_) => sr
 //        case TupleIT(_, sr) => sr
 //        case PackIT(_, sr) => sr
@@ -287,8 +287,8 @@ class LoadHammer(
     currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
       structExpr2: ReferenceExpressionIE,
-      expectedMemberCoord: CoordI,
-      memberName: IVarNameI,
+      expectedMemberCoord: CoordI[cI],
+      memberName: IVarNameI[cI],
 //      resultCoord: Coord,
       targetOwnershipI: OwnershipI,
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
@@ -301,7 +301,7 @@ class LoadHammer(
 //      typeHammer.translateReference(hinputs, hamuts, resultCoord);
 
     val structIT =
-      structExpr2.result.coord.kind match {
+      structExpr2.result.kind match {
         case sr @ StructIT(_) => sr
 //        case TupleIT(_, sr) => sr
 //        case PackIT(_, sr) => sr
@@ -329,9 +329,9 @@ class LoadHammer(
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      varId: IVarNameI,
+      varId: IVarNameI[cI],
       variability: VariabilityI,
-      localReference2: CoordI,
+      localReference2: CoordI[cI],
       targetOwnershipI: OwnershipI,
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val local = locals.get(varId).get
@@ -372,8 +372,8 @@ class LoadHammer(
       hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderI,
       locals: LocalsBox,
-      varId: IVarNameI,
-      expectedType2: CoordI,
+      varId: IVarNameI[cI],
+      expectedType2: CoordI[cI],
       targetOwnershipI: OwnershipI,
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
@@ -406,13 +406,13 @@ class LoadHammer(
       locals: LocalsBox,
       lookup2: LocalLookupIE):
   (ExpressionH[KindHT]) = {
-    val LocalLookupIE(_,localVar, sourceRegion) = lookup2;
+    val LocalLookupIE(localVar, _) = lookup2;
     vimpl()
 
     val local = locals.get(localVar.name).get
     vassert(!locals.unstackifiedVars.contains(local.id))
     val (boxStructRefH) =
-      structHammer.makeBox(hinputs, hamuts, localVar.variability, localVar.coord, local.typeH)
+      structHammer.makeBox(hinputs, hamuts, localVar.variability, localVar.collapsedCoord, local.typeH)
 
     // This means we're trying to load from a local variable that holds a box.
     // We need to load the box, then mutate its contents.
@@ -433,13 +433,13 @@ class LoadHammer(
       locals: LocalsBox,
       lookup2: AddressMemberLookupIE):
   (ExpressionH[KindHT], Vector[ExpressionI]) = {
-    val AddressMemberLookupIE(_,structExpr2, memberName, resultType2, _) = lookup2;
+    val AddressMemberLookupIE(structExpr2, memberName, resultType2, _) = lookup2;
 
     val (structResultLine, structDeferreds) =
       expressionHammer.translate(hinputs, hamuts, currentFunctionHeader, locals, structExpr2);
 
     val structIT =
-      structExpr2.result.coord.kind match {
+      structExpr2.result.kind match {
         case sr @ StructIT(_) => sr
 //        case TupleIT(_, sr) => sr
 //        case PackIT(_, sr) => sr

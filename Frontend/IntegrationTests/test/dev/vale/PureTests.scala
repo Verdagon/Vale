@@ -43,7 +43,7 @@ class PureTests extends FunSuite with Matchers {
 
     val xType =
       Collector.only(main, {
-        case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _) => coord
+        case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _, _) => coord
       })
     xType match {
       case CoordI(null,StructIT(IdI(_,_,StructNameI(StructTemplateNameI(StrI("Engine")),Vector(RegionTemplataI(7777)))))) =>
@@ -51,7 +51,7 @@ class PureTests extends FunSuite with Matchers {
 
     val yType =
       Collector.only(main, {
-        case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("y")), _, coord), _) => coord
+        case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("y")), _, coord), _, _) => coord
       })
     yType match {
       case CoordI(MutableShareI,IntIT(32)) =>
