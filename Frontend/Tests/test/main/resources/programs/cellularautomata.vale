@@ -35,7 +35,7 @@ pure func Display<r' imm>(map &r'[][]bool) {
       } else {
         print("#");
       }
-      set col_i = col_i;
+      set col_i = col_i + 1;
     }
     print("\n");
     set row_i = row_i + 1;
