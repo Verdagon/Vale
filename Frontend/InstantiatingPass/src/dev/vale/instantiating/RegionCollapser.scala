@@ -42,10 +42,13 @@ object RegionCollapser {
   IFunctionNameI[cI] = {
     name match {
       case FunctionNameIX(FunctionTemplateNameI(humanName, codeLocation), templateArgs, parameters) => {
-        FunctionNameIX(
-          FunctionTemplateNameI(humanName, codeLocation),
-          templateArgs.map(collapseTemplata(map, _)),
-          parameters.map(collapseCoord(map, _)))
+        val templateC = FunctionTemplateNameI[cI](humanName, codeLocation)
+        val templateArgsC = templateArgs.map(collapseTemplata(map, _))
+        val paramsC =
+          parameters.map(param => {
+            collapseCoord(RegionCounter.countCoord(param), param)
+          })
+        FunctionNameIX[cI](templateC, templateArgsC, paramsC)
       }
     }
   }
@@ -57,6 +60,8 @@ object RegionCollapser {
     name match {
       case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
       case CodeVarNameI(name) => CodeVarNameI(name)
+      case TypingPassTemporaryVarNameI(life) => TypingPassTemporaryVarNameI(life)
+      case TypingPassFunctionResultVarNameI() => TypingPassFunctionResultVarNameI()
     }
   }
 
@@ -68,6 +73,7 @@ object RegionCollapser {
       case n @ FunctionNameIX(_, _, _) => {
         collapseFunctionName(map, n)
       }
+      case StructTemplateNameI(humanName) => StructTemplateNameI(humanName)
       case other => vimpl(other)
     }
   }
@@ -79,12 +85,20 @@ object RegionCollapser {
     templata match {
       case CoordTemplataI(coord) => CoordTemplataI(collapseCoord(map, coord))
       case KindTemplataI(kind) => KindTemplataI(collapseKind(map, kind))
-      case RegionTemplataI(oldPureHeight) => {
-        RegionTemplataI[cI](vassertSome(map.get(oldPureHeight)))
-      }
+      case r @ RegionTemplataI(_) => collapseRegionTemplata(map, r)
+      case MutabilityTemplataI(mutability) => MutabilityTemplataI(mutability)
       case other => vimpl(other)
     }
   }
+
+  def collapseRegionTemplata(
+    map: Map[Int, Int],
+    templata: RegionTemplataI[sI]):
+  RegionTemplataI[cI] = {
+    val RegionTemplataI(oldPureHeight) = templata
+    RegionTemplataI[cI](vassertSome(map.get(oldPureHeight)))
+  }
+
 
   def collapseCoord(
     map: Map[Int, Int],
@@ -103,6 +117,8 @@ object RegionCollapser {
       case VoidIT() => VoidIT()
       case IntIT(x) => IntIT(x)
       case StructIT(id) => StructIT(collapseStructId(map, id))
+      case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(map, ssa)
+      case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(map, rsa)
     }
   }
 
@@ -110,14 +126,40 @@ object RegionCollapser {
     map: Map[Int, Int],
     rsa: RuntimeSizedArrayIT[sI]):
   RuntimeSizedArrayIT[cI] = {
-    vimpl()
+    val RuntimeSizedArrayIT(ssaId) = rsa
+    RuntimeSizedArrayIT(
+      collapseId[RuntimeSizedArrayNameI[sI], RuntimeSizedArrayNameI[cI]](
+        map,
+        ssaId,
+        { case RuntimeSizedArrayNameI(RuntimeSizedArrayTemplateNameI(), RawArrayNameI(mutability, elementType, selfRegion)) =>
+          RuntimeSizedArrayNameI(
+            RuntimeSizedArrayTemplateNameI(),
+            RawArrayNameI(
+              mutability,
+              collapseCoord(map, elementType),
+              collapseRegionTemplata(map, selfRegion)))
+        }))
   }
 
   def collapseStaticSizedArray(
     map: Map[Int, Int],
-    rsa: StaticSizedArrayIT[sI]):
+    ssa: StaticSizedArrayIT[sI]):
   StaticSizedArrayIT[cI] = {
-    vimpl()
+    val StaticSizedArrayIT(ssaId) = ssa
+    StaticSizedArrayIT(
+      collapseId[StaticSizedArrayNameI[sI], StaticSizedArrayNameI[cI]](
+        map,
+        ssaId,
+        { case StaticSizedArrayNameI(StaticSizedArrayTemplateNameI(), size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
+          StaticSizedArrayNameI(
+            StaticSizedArrayTemplateNameI(),
+            size,
+            variability,
+            RawArrayNameI(
+              mutability,
+              collapseCoord(map, elementType),
+              collapseRegionTemplata(map, selfRegion)))
+        }))
   }
 
   def collapseStructId(

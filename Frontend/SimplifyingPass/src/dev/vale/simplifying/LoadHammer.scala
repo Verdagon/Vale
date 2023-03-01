@@ -25,7 +25,7 @@ class LoadHammer(
     val (loadedAccessH, sourceDeferreds) =
       sourceExpr2 match {
         case LocalLookupIE(ReferenceLocalVariableI(varId, variability, reference), _) => {
-          // DO NOI SUBMII combine this with below
+          // DO NOI SUBMIT combine this with below
           val combinedTargetOwnership = targetOwnership
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
@@ -38,7 +38,7 @@ class LoadHammer(
           translateMundaneLocalLoad(hinputs, hamuts, currentFunctionHeader, locals, varId, reference, combinedTargetOwnership)
         }
         case LocalLookupIE(AddressibleLocalVariableI(varId, variability, localReference2), _) => {
-          // DO NOI SUBMII combine this with below
+          // DO NOI SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
@@ -52,7 +52,7 @@ class LoadHammer(
         }
         case ReferenceMemberLookupIE(_,structExpr2, memberName, memberType2, _) => {
 //          val sourceRegion: ITemplata[RegionTemplataType] = vimpl()
-          // DO NOI SUBMII combine this with below
+          // DO NOI SUBMIT combine this with below
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
@@ -66,7 +66,7 @@ class LoadHammer(
         }
         case AddressMemberLookupIE(structExpr2, memberName, memberType2, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
-          // DO NOI SUBMII combine this with below
+          // DO NOI SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
@@ -81,7 +81,7 @@ class LoadHammer(
         }
         case RuntimeSizedArrayLookupIE(arrayExpr2, indexExpr2, _, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
-          // DO NOI SUBMII combine this with below
+          // DO NOI SUBMIT combine this with below
           val combinedTargetOwnership = vimpl()
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
@@ -95,8 +95,7 @@ class LoadHammer(
         }
         case StaticSizedArrayLookupIE(_, arrayExpr2, indexExpr2, _, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
-          // DO NOI SUBMII combine this with below
-          val combinedTargetOwnership = vimpl()
+          // DO NOI SUBMIT combine this with below
 //          val combinedTargetOwnership =
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
@@ -107,7 +106,7 @@ class LoadHammer(
 //              case (WeakI, _) => vimpl()
 //            }
           translateMundaneStaticSizedArrayLoad(
-            hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, combinedTargetOwnership)
+            hinputs, hamuts, currentFunctionHeader, locals, arrayExpr2, indexExpr2, targetOwnership)
         }
       }
 
@@ -368,13 +367,13 @@ class LoadHammer(
   }
 
   def translateMundaneLocalLoad(
-      hinputs: HinputsI,
-      hamuts: HamutsBox,
+    hinputs: HinputsI,
+    hamuts: HamutsBox,
     currentFunctionHeader: FunctionHeaderI,
-      locals: LocalsBox,
-      varId: IVarNameI[cI],
-      expectedType2: CoordI[cI],
-      targetOwnershipI: OwnershipI,
+    locals: LocalsBox,
+    varId: IVarNameI[cI],
+    localType: CoordI[cI],
+    targetOwnershipI: OwnershipI,
   ): (ExpressionH[KindHT], Vector[ExpressionI]) = {
     val targetOwnership = Conversions.evaluateOwnership(targetOwnershipI)
 
@@ -386,9 +385,9 @@ class LoadHammer(
     }
     vassert(!locals.unstackifiedVars.contains(local.id))
 
-    val (expectedTypeH) =
-      typeHammer.translateCoord(hinputs, hamuts, expectedType2);
-    vassert(expectedTypeH == local.typeH.copy(ownership = targetOwnership))
+//    val (expectedTypeH) =
+//      typeHammer.translateCoord(hinputs, hamuts, expectedType2);
+//    vassert(localType == local.typeH)
 
     val loadedNode =
         LocalLoadH(

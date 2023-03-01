@@ -100,8 +100,10 @@ object RegionCounter {
     name: IVarNameI[sI]):
   Unit = {
     name match {
-      case CodeVarNameI(name) => CodeVarNameI(name)
-      case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
+      case CodeVarNameI(name) =>
+      case TypingPassBlockResultVarNameI(life) =>
+      case TypingPassTemporaryVarNameI(life) =>
+      case TypingPassFunctionResultVarNameI() =>
     }
   }
 
@@ -121,6 +123,7 @@ object RegionCounter {
       case StructNameI(template, templateArgs) => {
         templateArgs.foreach(arg => countTemplata(counter, arg))
       }
+      case StructTemplateNameI(_) =>
       case other => vimpl(other)
     }
   }
@@ -133,6 +136,7 @@ object RegionCounter {
       case CoordTemplataI(coord) => countCoord(counter, coord)
       case KindTemplataI(kind) => countKind(counter, kind)
       case r @ RegionTemplataI(_) => counter.count(r)
+      case MutabilityTemplataI(mutability) =>
       case other => vimpl(other)
     }
   }
@@ -160,6 +164,24 @@ object RegionCounter {
       case VoidIT() =>
       case IntIT(_) =>
       case StructIT(id) => countStructId(counter, id)
+      case StaticSizedArrayIT(ssaId) => {
+        countId[StaticSizedArrayNameI[sI]](
+          counter,
+          ssaId,
+          { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
+            countCoord(elementType)
+            counter.count(selfRegion)
+          })
+      }
+      case RuntimeSizedArrayIT(ssaId) => {
+        countId[RuntimeSizedArrayNameI[sI]](
+          counter,
+          ssaId,
+          { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
+            countCoord(elementType)
+            counter.count(selfRegion)
+          })
+      }
     }
   }
 
@@ -167,14 +189,28 @@ object RegionCounter {
     counter: Counter,
     rsa: RuntimeSizedArrayIT[sI]):
   Unit = {
-    vimpl()
+    val RuntimeSizedArrayIT(rsaId) = rsa
+    countId[RuntimeSizedArrayNameI[sI]](
+      counter,
+      rsaId,
+      { case RuntimeSizedArrayNameI(template, RawArrayNameI(mutability, elementType, selfRegion)) =>
+        countCoord(elementType)
+        counter.count(selfRegion)
+      })
   }
 
   def countStaticSizedArray(
     counter: Counter,
-    rsa: StaticSizedArrayIT[sI]):
+    ssa: StaticSizedArrayIT[sI]):
   Unit = {
-    vimpl()
+    val StaticSizedArrayIT(ssaId) = ssa
+    countId[StaticSizedArrayNameI[sI]](
+      counter,
+      ssaId,
+      { case StaticSizedArrayNameI(template, size, variability, RawArrayNameI(mutability, elementType, selfRegion)) =>
+        countCoord(elementType)
+        counter.count(selfRegion)
+      })
   }
 
   def countStructId(
