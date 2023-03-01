@@ -388,7 +388,7 @@ class LoadHammer(
 
     val (expectedTypeH) =
       typeHammer.translateCoord(hinputs, hamuts, expectedType2);
-    vassert(expectedTypeH == local.typeH)
+    vassert(expectedTypeH == local.typeH.copy(ownership = targetOwnership))
 
     val loadedNode =
         LocalLoadH(
