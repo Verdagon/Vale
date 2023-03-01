@@ -57,7 +57,24 @@ class BlockHammer(expressionHammer: ExpressionHammer, typeHammer: TypeHammer) {
     locals: LocalsBox,
     node: MutabilifyIE):
   MutabilifyH = {
-    vimpl()
+    val MutabilifyIE(innerIE, resultCoordI) = node
+
+    val innerHE =
+      expressionHammer.translateExpressionsAndDeferreds(
+        hinputs, hamuts, currentFunctionHeader, locals, Vector(innerIE))
+
+    val resultCoordH =
+      typeHammer.translateCoord(hinputs, hamuts, resultCoordI)
+
+    vassert(
+      resultCoordH.ownership ==
+        (innerHE.resultType.ownership match {
+          case ImmutableShareH => MutableShareH
+          case ImmutableBorrowH => MutableBorrowH
+          case other => other
+        }))
+
+    MutabilifyH(innerHE)
 //    val MutabilifyTE(_, newDefaultRegion, oldRegionToNewRegion, innerIE, resultCoordI) = node
 //    oldRegionToNewRegion.foreach({ case (oldRegion, newRegion) =>
 //      vcurious(newRegion == RegionTemplata(true))
