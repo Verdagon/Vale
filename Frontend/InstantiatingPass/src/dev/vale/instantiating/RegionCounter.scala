@@ -101,6 +101,7 @@ object RegionCounter {
   Unit = {
     name match {
       case CodeVarNameI(name) => CodeVarNameI(name)
+      case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
     }
   }
 
@@ -155,7 +156,9 @@ object RegionCounter {
     kind: KindIT[sI]):
   Unit = {
     kind match {
-      case IntIT(x) =>
+      case NeverIT(_) =>
+      case VoidIT() =>
+      case IntIT(_) =>
       case StructIT(id) => countStructId(counter, id)
     }
   }

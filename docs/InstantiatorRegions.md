@@ -293,3 +293,11 @@ This doesn't seem to be a hard requirement, but it makes the backend pretty clea
 Well, there is one corner case. One thing regions helps with that coding with `imm&` and `&` can't do: it helps the compiler know when it's safe to cast from `imm&` back to `&`, such as when we come back from a pure block. The compiler knows that if a pure block is returning something created just before itself, it can safely cast that to a mutable reference... but if a pure block is returning something created three pure blocks up, then it shouldn't cast that to a mutable reference. The instantiator is responsible for figuring this out and generating Mutabilify nodes.
 
 
+# Can Cast From Collapsed To Subjective (CCFCTS)
+
+A collapsed function will have region templatas containing negative numbers or zero (the default region is zero). From there, it can start using those negative numbers and zero just fine as subjective regions. When we hit the first pure block, we're then at height 1, and so on.
+
+So, when we start translating the function, we can treat the collapsed regions as subjective regions.
+
+In the code, this can literally be a type-cast, because the AST with collapsed regions is the same as the AST with the subjective regions, just with a different zero-size generic arg.
+
