@@ -68,6 +68,8 @@ case object YonderI extends LocationI {
 }
 
 sealed trait IRegionsModeI
+// See CCFCTS, these need to have zero members. If we need to have members, we'll need to stop
+// casting from collapsed to subjective ASTs.
 case class sI() extends IRegionsModeI
 case class cI() extends IRegionsModeI
 

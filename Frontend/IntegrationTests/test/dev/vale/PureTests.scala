@@ -38,7 +38,7 @@ class PureTests extends FunSuite with Matchers {
       })
     rml.memberReference match {
       // See RMLRMO for why this is OwnI
-      case CoordI(OwnI,StructIT(IdI(_,_,StructNameI(StructTemplateNameI(StrI("Engine")),Vector(RegionTemplataI(7777)))))) =>
+      case CoordI(OwnI,StructIT(IdI(_,_,StructNameI(StructTemplateNameI(StrI("Engine")),Vector(RegionTemplataI(0)))))) =>
     }
 
     val xType =
@@ -46,7 +46,8 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("x")), _, coord), _, _) => coord
       })
     xType match {
-      case CoordI(null,StructIT(IdI(_,_,StructNameI(StructTemplateNameI(StrI("Engine")),Vector(RegionTemplataI(7777)))))) =>
+      // The ImmutableBorrowI is the important part here
+      case CoordI(ImmutableBorrowI,StructIT(IdI(_,_,StructNameI(StructTemplateNameI(StrI("Engine")),Vector(RegionTemplataI(0)))))) =>
     }
 
     val yType =
@@ -54,7 +55,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("y")), _, coord), _, _) => coord
       })
     yType match {
-      case CoordI(MutableShareI,IntIT(32)) =>
+      case CoordI(ImmutableShareI,IntIT(32)) =>
     }
 
     // We don't evaluate the program, its main takes in a struct which is impossible

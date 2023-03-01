@@ -55,6 +55,7 @@ object RegionCollapser {
     name: IVarNameI[sI]):
   IVarNameI[cI] = {
     name match {
+      case TypingPassBlockResultVarNameI(life) => TypingPassBlockResultVarNameI(life)
       case CodeVarNameI(name) => CodeVarNameI(name)
     }
   }
@@ -98,6 +99,8 @@ object RegionCollapser {
     kind: KindIT[sI]):
   KindIT[cI] = {
     kind match {
+      case NeverIT(fromBreak) => NeverIT(fromBreak)
+      case VoidIT() => VoidIT()
       case IntIT(x) => IntIT(x)
       case StructIT(id) => StructIT(collapseStructId(map, id))
     }
