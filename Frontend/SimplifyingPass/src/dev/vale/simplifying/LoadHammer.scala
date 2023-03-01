@@ -82,7 +82,7 @@ class LoadHammer(
         case RuntimeSizedArrayLookupIE(arrayExpr2, indexExpr2, _, _) => {
 //          val sourceRegion: ITemplataI[RegionTemplataType] = vimpl()
           // DO NOI SUBMIT combine this with below
-          val combinedTargetOwnership = vimpl()
+          val combinedTargetOwnership = targetOwnership
 //            (targetOwnership, sourceRegion) match {
 //              case (OwnI, _) => OwnI
 //              case (BorrowI, RegionTemplata(true)) => MutableBorrowI

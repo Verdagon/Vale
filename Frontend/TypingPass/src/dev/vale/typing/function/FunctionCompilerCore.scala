@@ -363,18 +363,6 @@ class FunctionCompilerCore(
         val externFunctionId = IdT(env.id.packageCoord, Vector.empty, interner.intern(ExternFunctionNameT(humanName, params)))
         val externPrototype = PrototypeT(externFunctionId, header.returnType)
 
-//        val externId =
-//          IdT(
-//            env.id.packageCoord,
-//            Vector.empty,
-//            interner.intern(ExternNameT(
-//              interner.intern(ExportTemplateNameT(codeLoc)),
-//              Vector(
-//                PlaceholderTemplataT()
-//              )
-//            )))
-
-        coutputs.addFunctionExtern(range, vimpl(), externPrototype, humanName)
         coutputs.addInstantiationBounds(externPrototype.id, InstantiationBoundArgumentsT(Map(), Map()))
 
         val argLookups =

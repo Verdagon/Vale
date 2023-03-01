@@ -792,6 +792,6 @@ class ArrayTests extends FunSuite with Matchers {
         Tests.loadExpected("programs/cellularautomata.vale"),
         false)
     compile.getMonouts()
-//    compile.evalForKind(Vector()) shouldEqual null
+    compile.evalForKind(Vector()) shouldEqual null
   }
 }

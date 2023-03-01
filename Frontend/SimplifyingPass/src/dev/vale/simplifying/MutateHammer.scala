@@ -28,7 +28,6 @@ class MutateHammer(
     val (oldValueAccess, destinationDeferreds) =
       destinationExpr2 match {
         case LocalLookupIE(ReferenceLocalVariableI(varId, variability, reference), _) => {
-          vimpl()
           translateMundaneLocalMutate(hinputs, hamuts, currentFunctionHeader, locals, sourceExprResultLine, varId)
         }
         case LocalLookupIE(AddressibleLocalVariableI(varId, variability, reference), _) => {

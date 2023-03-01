@@ -85,7 +85,9 @@ case class CoordI[R <: IRegionsModeI](
 
   kind match {
     case IntIT(_) | BoolIT() | StrIT() | FloatIT() | VoidIT() | NeverIT(_) => {
-      vassert(ownership == MutableShareI || ownership == ImmutableShareI)
+      // We don't want any ImmutableShareH, it's better to only ever have one ownership for
+      // primitives.
+      vassert(ownership == MutableShareI)
     }
     case RuntimeSizedArrayIT(IdI(_, _, RuntimeSizedArrayNameI(_, RawArrayNameI(_, _, arrRegion)))) =>
     case StaticSizedArrayIT(IdI(_, _, StaticSizedArrayNameI(_, _, _, RawArrayNameI(_, _, arrRegion)))) =>

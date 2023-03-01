@@ -1033,13 +1033,20 @@ class Instantiator(
       placeholderedName.localName.templateArgs
         .zip(idI.localName.templateArgs)
         .flatMap({
-          case (CoordTemplataT(CoordT(placeholderOwnership, PlaceholderTemplataT(regionPlaceholderId, RegionTemplataType()), KindPlaceholderT(kindPlaceholderId))), c @ CoordTemplataI(_)) => {
+          case (CoordTemplataT(CoordT(placeholderOwnership, PlaceholderTemplataT(regionPlaceholderId @ IdT(_, _, RegionPlaceholderNameT(_, _, maybeRegionPureHeight)), RegionTemplataType()), KindPlaceholderT(kindPlaceholderId))), c @ CoordTemplataI(_)) => {
             vassert(placeholderOwnership == OwnT || placeholderOwnership == ShareT)
             // We might need to do something with placeholderRegion here, but I think we can just
             // assume it correctly matches up with the coord's region. The typing phase should have
             // made sure it matches up nicely.
+            // If we hit this vimpl, then we might need to find some way to hand in the region,
+            // even though we lost that in the translation to IdI which has no regions. We might be
+            // able to scavenge it from the name, though it might be tricky to get the region of
+            // region-less primitives. Perhaps we can assume theyre the same region as their
+            // parent template?
+            val regionTemplata =
+              maybeRegionPureHeight.map(x => RegionTemplataI[sI](x)).getOrElse(vimpl())
             List(
-//              (regionPlaceholderId -> vimpl(/*c.coord.region*/)),
+              (regionPlaceholderId -> regionTemplata),// vimpl(/*c.coord.region*/)),
               (kindPlaceholderId -> c))
           }
           case (KindTemplataT(KindPlaceholderT(placeholderId)), kindTemplataI) => {
@@ -1272,7 +1279,11 @@ class Instantiator(
         if (opts.sanityCheck) {
           vassert(Collector.all(uncollapsedDesiredPrototypeI, { case KindPlaceholderTemplateNameT(_, _) => }).isEmpty)
         }
-        (uncollapsedDesiredPrototypeI, vimpl())
+        val collapsedDesiredPrototypeI =
+          RegionCollapser.collapsePrototype(
+            RegionCounter.countPrototype(uncollapsedDesiredPrototypeI),
+            uncollapsedDesiredPrototypeI)
+        (uncollapsedDesiredPrototypeI, collapsedDesiredPrototypeI)
       }
       case IdT(_, _, last) => {
         last match {
@@ -1285,19 +1296,19 @@ class Instantiator(
           case _ =>
         }
 
-        // Let's say we want to call 1'myPureDisplay(0'board).
-        // We want that to become 0'myPureDisplay(-1'board).
-        // The default region we send should always be zero, and all incoming imms should be negative.
-        // DO NOT SUBMIT centralize docs
-        // TODO use an array instead of a map here
-        val oldRegionPureHeights =
-          Collector.all(uncollapsedDesiredPrototypeI, {
-            case RegionTemplataI(pureHeight) => pureHeight
-          }).toVector.distinct.sorted
-        val oldToNewRegionPureHeight =
-          oldRegionPureHeights.zipWithIndex.map({ case (oldRegionPureHeight, index) =>
-            (oldRegionPureHeight, index - (oldRegionPureHeights.length - 1))
-          }).toMap
+//        // Let's say we want to call 1'myPureDisplay(0'board).
+//        // We want that to become 0'myPureDisplay(-1'board).
+//        // The default region we send should always be zero, and all incoming imms should be negative.
+//        // DO NOT SUBMIT centralize docs
+//        // TODO use an array instead of a map here
+//        val oldRegionPureHeights =
+//          Collector.all(uncollapsedDesiredPrototypeI, {
+//            case RegionTemplataI(pureHeight) => pureHeight
+//          }).toVector.distinct.sorted
+//        val oldToNewRegionPureHeight =
+//          oldRegionPureHeights.zipWithIndex.map({ case (oldRegionPureHeight, index) =>
+//            (oldRegionPureHeight, index - (oldRegionPureHeights.length - 1))
+//          }).toMap
         val collapsedDesiredPrototypeI =
           RegionCollapser.collapsePrototype(
             RegionCounter.countPrototype(uncollapsedDesiredPrototypeI),
@@ -1801,19 +1812,24 @@ class Instantiator(
             variabilityI)
         (resultIT, resultCE)
       }
-      case RuntimeSizedArrayLookupTE(range, arrayExpr, arrayType, indexExpr, variability) => {
+      case RuntimeSizedArrayLookupTE(range, arrayExpr, rsaTT, indexExpr, variability) => {
         val (arrayIT, arrayCE) =
           translateRefExpr(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, arrayExpr)
         val rsaIT =
           translateRuntimeSizedArray(
-            denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, arrayType)
+            denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, rsaTT)
         val (indexIT, indexCE) =
           translateRefExpr(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, indexExpr)
         val variabilityI = translateVariability(variability)
 
-        val elementIT = rsaIT.elementType
+        // We can't just say rsaIT.elementType here because that's the element from the array's own
+        // perspective.
+        val elementIT =
+          translateCoord(
+            denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, rsaTT.elementType)
+
         val resultIT = elementIT
         val resultCE =
           RuntimeSizedArrayLookupIE(
@@ -2287,7 +2303,12 @@ class Instantiator(
           val (elseIT, elseCE) =
             translateRefExpr(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, elseCall)
-          vassert(thenIT == elseIT)
+          (thenIT, elseIT) match {
+            case (a, b) if a == b =>
+            case (_, CoordI(_, NeverIT(_))) =>
+            case (CoordI(_, NeverIT(_)), _) =>
+            case other => vwat(other)
+          }
           val resultIT = thenIT
 
           val resultCE = IfIE(conditionCE, thenCE, elseCE, collapseCoord(RegionCounter.countCoord(resultIT), resultIT))
@@ -2377,7 +2398,26 @@ class Instantiator(
           vimpl()//BorrowToWeakIE(translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, innerExpr))
         }
         case WhileTE(BlockTE(inner)) => {
-          vimpl()//WhileIE(BlockIE(translateRefExpr(denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)))
+          val (innerIT, innerCE) =
+            translateRefExpr(
+              denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, inner)
+
+          // While loops must always produce void.
+          // If we want a foreach/map/whatever construct, the loop should instead
+          // add things to a list inside; WhileIE shouldnt do it for it.
+          val resultIT =
+            innerIT match {
+              case CoordI(_, VoidIT()) => innerIT
+              case CoordI(_, NeverIT(true)) => CoordI[sI](MutableShareI, VoidIT())
+              case CoordI(_, NeverIT(false)) => innerIT
+              case _ => vwat()
+            }
+
+          val resultCE =
+            WhileIE(
+              BlockIE(innerCE, collapseCoord(RegionCounter.countCoord(innerIT), innerIT)),
+              collapseCoord(RegionCounter.countCoord(resultIT), resultIT))
+          (resultIT, resultCE)
         }
         case BreakTE(region) => {
           val resultCE = BreakIE()
@@ -2907,7 +2947,14 @@ class Instantiator(
           case CoordTemplataI(CoordI(innerOwnership, kind)) => {
             val combinedOwnership =
               ((outerOwnership, innerOwnership) match {
-                case (OwnT, OwnI) => OwnT
+                case (OwnT, OwnI) => OwnI
+                case (OwnT, MutableShareI) => {
+                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
+                    MutableShareI
+                  } else {
+                    ImmutableShareI
+                  }
+                }
 //                case (OwnT, BorrowT) => BorrowT
 //                case (BorrowT, OwnT) => BorrowT
 //                case (BorrowT, BorrowT) => BorrowT
@@ -2921,24 +2968,7 @@ class Instantiator(
 //                case (OwnT, ShareT) => ShareT
                 case other => vwat(other)
                   // DO NOT SUBMIT combine this with what's elsewhere in this file
-              }) match { // Now  if it's a borrow, figure out whether it's mutable or immutable
-//                case BorrowT => {
-//                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
-//                    MutableBorrowI
-//                  } else {
-//                    ImmutableBorrowI
-//                  }
-//                }
-//                case ShareT => {
-//                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
-//                    MutableShareI
-//                  } else {
-//                    ImmutableShareI
-//                  }
-//                }
-                case OwnT => OwnI
-                case other => vimpl(other)
-              }
+              })
 //            vassert(innerRegion == translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
             CoordI(combinedOwnership, kind)
           }
@@ -2957,33 +2987,42 @@ class Instantiator(
         // to an Vector<imm, int> (which is immutable).
         // So, we have to check for that here and possibly make the ownership share.
         val kind = translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other)
-        val mutability = getMutability(RegionCollapser.collapseKind(RegionCounter.countKind(kind), kind))
         val newOwnership =
-          ((outerOwnership, mutability) match {
-            case (_, ImmutableI) => ShareT
-            case (other, MutableI) => other
-          }) match { // Now  if it's a borrow, figure out whether it's mutable or immutable
-            case BorrowT => {
-              if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
-                MutableBorrowI
-              } else {
-                ImmutableBorrowI
+          kind match {
+            case IntIT(_) | BoolIT() | VoidIT() => {
+              // We don't want any ImmutableShareH for primitives, it's better to only ever have one
+              // ownership for primitives.
+              MutableShareI
+            }
+            case _ => {
+              val mutability = getMutability(RegionCollapser.collapseKind(RegionCounter.countKind(kind), kind))
+              ((outerOwnership, mutability) match {
+                case (_, ImmutableI) => ShareT
+                case (other, MutableI) => other
+              }) match { // Now  if it's a borrow, figure out whether it's mutable or immutable
+                case BorrowT => {
+                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
+                    MutableBorrowI
+                  } else {
+                    ImmutableBorrowI
+                  }
+                }
+                case ShareT => {
+                  if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
+                    MutableShareI
+                  } else {
+                    ImmutableShareI
+                  }
+                }
+                case OwnT => {
+                  // We don't have this assert because we sometimes can see owning references even
+                  // though we dont hold them, see RMLRMO.
+                  // vassert(regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion)))
+                  OwnI
+                }
+                case WeakT => vimpl()
               }
             }
-            case ShareT => {
-              if (regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion))) {
-                MutableShareI
-              } else {
-                ImmutableShareI
-              }
-            }
-            case OwnT => {
-              // We don't have this assert because we sometimes can see owning references even
-              // though we dont hold them, see RMLRMO.
-              // vassert(regionIsMutable(substitutions, perspectiveRegionT, expectRegionPlaceholder(outerRegion)))
-              OwnI
-            }
-            case WeakT => vimpl()
           }
 //        val newRegion = expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
         CoordI(newOwnership, translateKind(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, other))
