@@ -90,6 +90,39 @@ object ExpressionVivem {
         val ref = heap.void
         NodeContinue(ref)
       }
+      case ExternCallH(prototypeH, argsExprs) => {
+        val externFunction = FunctionVivem.getExternFunction(programH, prototypeH)
+
+        val argRefs =
+          argsExprs.zipWithIndex.map({ case (argExpr, i) =>
+            executeNode(programH, stdin, stdout, heap, expressionId.addStep(i), argExpr) match {
+              case NodeBreak() | NodeReturn(_) => {
+                // This shouldnt be possible because break and return can only
+                // be statements, not expressions, see BRCOBS.
+                vwat()
+              }
+              case NodeContinue(r) => r
+            }
+          })
+
+        val resultRef =
+          externFunction(
+            new AdapterForExterns(
+              programH,
+              heap,
+              CallId(expressionId.callId.callDepth + 1, prototypeH),
+              stdin,
+              stdout),
+            argRefs.toVector)
+        heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, resultRef.ownership), resultRef)
+
+        // Special case for externs; externs arent allowed to change ref counts at all.
+        // So, we just drop these normally.
+        argRefs.zip(argsExprs.map(_.resultType))
+          .foreach({ case (r, expectedType) => discard(programH, heap, stdout, stdin, callId, expectedType, r) })
+
+        NodeContinue(resultRef)
+      }
       case ConstantIntH(value, bits) => {
         val ref = makePrimitive(heap, callId, InlineH, IntV(value, bits))
         NodeContinue(ref)
@@ -499,27 +532,27 @@ object ExpressionVivem {
           })
 
         val functionH = programH.lookupFunction(prototypeH)
-        if (functionH.isExtern) {
-          val externFunction = FunctionVivem.getExternFunction(programH, prototypeH)
-
-          val resultRef =
-            externFunction(
-              new AdapterForExterns(
-                programH,
-                heap,
-                CallId(expressionId.callId.callDepth + 1, prototypeH),
-                stdin,
-                stdout),
-              argRefs.toVector)
-          heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, resultRef.ownership), resultRef)
-
-          // Special case for externs; externs arent allowed to change ref counts at all.
-          // So, we just drop these normally.
-          argRefs.zip(argsExprs.map(_.resultType))
-            .foreach({ case (r, expectedType) => discard(programH, heap, stdout, stdin, callId, expectedType, r) })
-
-          NodeContinue(resultRef)
-        } else {
+//        if (functionH.isExtern) {
+//          val externFunction = FunctionVivem.getExternFunction(programH, prototypeH)
+//
+//          val resultRef =
+//            externFunction(
+//              new AdapterForExterns(
+//                programH,
+//                heap,
+//                CallId(expressionId.callId.callDepth + 1, prototypeH),
+//                stdin,
+//                stdout),
+//              argRefs.toVector)
+//          heap.incrementReferenceRefCount(RegisterToObjectReferrer(callId, resultRef.ownership), resultRef)
+//
+//          // Special case for externs; externs arent allowed to change ref counts at all.
+//          // So, we just drop these normally.
+//          argRefs.zip(argsExprs.map(_.resultType))
+//            .foreach({ case (r, expectedType) => discard(programH, heap, stdout, stdin, callId, expectedType, r) })
+//
+//          NodeContinue(resultRef)
+//        } else {
           heap.vivemDout.println()
           heap.vivemDout.println("  " * expressionId.callId.callDepth + "Making new stack frame (call)")
 
@@ -533,7 +566,7 @@ object ExpressionVivem {
 
           val returnRef = possessCalleeReturn(heap, callId, calleeCallId, retuurn)
           NodeContinue(returnRef)
-        }
+//        }
       }
       case InterfaceCallH(argsExprs, virtualParamIndex, interfaceRefH, indexInEdge, functionType) => {
         // undeviewed = not deviewed = the virtual param is still a view and we want it to

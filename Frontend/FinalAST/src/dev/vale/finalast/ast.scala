@@ -1,6 +1,6 @@
 package dev.vale.finalast
 
-import dev.vale.{PackageCoordinate, PackageCoordinateMap, StrI, vassert, vassertSome, vcurious, vfail, vimpl}
+import dev.vale.{PackageCoordinate, PackageCoordinateMap, StrI, vassert, vassertSome, vcurious, vfail, vimpl, vpass}
 import dev.vale.von.IVonData
 
 import scala.collection.immutable.ListMap
@@ -219,6 +219,8 @@ case class FunctionH(
 
   // The body of the function that contains the actual instructions.
   body: ExpressionH[KindHT]) {
+  vpass()
+
   val hash = runtime.ScalaRunTime._hashCode(this); override def hashCode(): Int = hash; override def equals(obj: Any): Boolean = vcurious();
   def fullName = prototype.id
   def isUserFunction = attributes.contains(UserFunctionH)

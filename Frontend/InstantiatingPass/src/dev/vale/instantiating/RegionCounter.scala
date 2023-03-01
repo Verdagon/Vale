@@ -92,6 +92,9 @@ object RegionCounter {
         templateArgs.foreach(countTemplata(counter, _))
         parameters.foreach(countCoord(counter, _))
       }
+      case ExternFunctionNameI(humanName, parameters) => {
+        parameters.foreach(countCoord(counter, _))
+      }
     }
   }
 
@@ -163,6 +166,8 @@ object RegionCounter {
       case NeverIT(_) =>
       case VoidIT() =>
       case IntIT(_) =>
+      case BoolIT() =>
+      case StrIT() =>
       case StructIT(id) => countStructId(counter, id)
       case StaticSizedArrayIT(ssaId) => {
         countId[StaticSizedArrayNameI[sI]](

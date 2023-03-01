@@ -228,17 +228,6 @@ case class WhileIE(
   block: BlockIE,
   result: CoordI[cI]
 ) extends ReferenceExpressionIE {
-  // While loops must always produce void.
-  // If we want a foreach/map/whatever construct, the loop should instead
-  // add things to a list inside; WhileIE shouldnt do it for it.
-  val resultCoord =
-  block.result match {
-    case CoordI(_, VoidIT()) => block.result
-    case CoordI(_, NeverIT(true)) => CoordI[cI](MutableShareI, VoidIT())
-    case CoordI(_, NeverIT(false)) => block.result
-    case _ => vwat()
-  }
-
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 //  override def resultRemoveMe = ReferenceResultI(resultCoord)
   vpass()

@@ -50,6 +50,13 @@ object RegionCollapser {
           })
         FunctionNameIX[cI](templateC, templateArgsC, paramsC)
       }
+      case ExternFunctionNameI(humanName, parameters) => {
+        val paramsC =
+          parameters.map(param => {
+            collapseCoord(RegionCounter.countCoord(param), param)
+          })
+        ExternFunctionNameI[cI](humanName, paramsC)
+      }
     }
   }
 
@@ -116,6 +123,8 @@ object RegionCollapser {
       case NeverIT(fromBreak) => NeverIT(fromBreak)
       case VoidIT() => VoidIT()
       case IntIT(x) => IntIT(x)
+      case BoolIT() => BoolIT()
+      case StrIT() => StrIT()
       case StructIT(id) => StructIT(collapseStructId(map, id))
       case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(map, ssa)
       case rsa @ RuntimeSizedArrayIT(_) => collapseRuntimeSizedArray(map, rsa)
