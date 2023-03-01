@@ -1039,7 +1039,7 @@ class Instantiator(
             // assume it correctly matches up with the coord's region. The typing phase should have
             // made sure it matches up nicely.
             List(
-              (regionPlaceholderId -> vimpl(/*c.coord.region*/)),
+//              (regionPlaceholderId -> vimpl(/*c.coord.region*/)),
               (kindPlaceholderId -> c))
           }
           case (KindTemplataT(KindPlaceholderT(placeholderId)), kindTemplataI) => {
@@ -1048,13 +1048,14 @@ class Instantiator(
           case (PlaceholderTemplataT(placeholderId, tyype), templataI) => {
             List((placeholderId -> templataI))
           }
-          case (a, b) => {
+          case (MutabilityTemplataT(MutableT),MutabilityTemplataI(MutableI)) |
+               (MutabilityTemplataT(ImmutableT),MutabilityTemplataI(ImmutableI)) => {
             // We once got a `mut` for the placeholdered name's templata.
             // That's because we do some specialization for arrays still.
             // They don't come with a placeholder, so ignore them.
-            vimpl()//vassert(a == b)
             List()
           }
+          case other => vimpl(other)
         })
         .toMap
   }
@@ -1534,6 +1535,7 @@ class Instantiator(
   def translateFunctionAttribute(x: IFunctionAttributeT): IFunctionAttributeI = {
     x match {
       case UserFunctionT => UserFunctionI
+      case PureT => PureI
       case other => vimpl(other)
     }
   }
@@ -1761,6 +1763,10 @@ class Instantiator(
           translateCoord(
             denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, elementTypeT)
 
+        val (indexIT, indexCE) =
+          translateRefExpr(
+            denizenName, denizenBoundToDenizenCallerSuppliedThing, env, substitutions, perspectiveRegionT, indexExprT)
+
 //        // However, the resulting coord's region *should* have the current mutability.
 //        val resultRegion =
 //          ITemplataI.expectRegionTemplata(
@@ -1770,7 +1776,11 @@ class Instantiator(
 
         val resultIE =
           StaticSizedArrayLookupIE(
-            range, arrayIE, vimpl(indexExprT), RegionCollapser.collapseCoord(RegionCounter.countCoord(resultCoord), resultCoord), translateVariability(variability))
+            range,
+            arrayIE,
+            indexCE,
+            RegionCollapser.collapseCoord(RegionCounter.countCoord(resultCoord), resultCoord),
+            translateVariability(variability))
         (resultCoord, resultIE)
       }
       case AddressMemberLookupTE(range, structExpr, memberName, resultType2, variability) => {
@@ -1888,15 +1898,23 @@ class Instantiator(
             translateRefExpr(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, env, newSubstitutions, newPerspectiveRegionT, inner)
 
-          val resultFromWithinPure = innerSubjectiveIT
-          val resultFromOutsidePure =
+          val resultFromWithinPureIT = innerSubjectiveIT
+          val resultFromWithinPureCE =
+            RegionCollapser.collapseCoord(
+              RegionCounter.countCoord(resultFromWithinPureIT), resultFromWithinPureIT)
+          val resultFromOutsidePureIT =
             translateCoord(
               denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, oldPerspectiveRegionT, resultCoordT)
+          val resultFromOutsidePureCE =
+            RegionCollapser.collapseCoord(
+              RegionCounter.countCoord(resultFromOutsidePureIT), resultFromOutsidePureIT)
 
-          vassert(resultFromWithinPure.kind == resultFromOutsidePure.kind)
+          if (resultFromWithinPureCE.kind != resultFromOutsidePureCE.kind) {
+            vimpl("Transmigration unimplemented!")
+          }
 
           val mutabilifyNeeded =
-            (resultFromWithinPure.ownership, resultFromOutsidePure.ownership) match {
+            (resultFromWithinPureIT.ownership, resultFromOutsidePureIT.ownership) match {
               case (x, y) if x == y => false
               case (ImmutableBorrowI, MutableBorrowI) => true
               case (ImmutableShareI, MutableShareI) => true
@@ -1905,12 +1923,12 @@ class Instantiator(
 
           val resultIE =
             if (mutabilifyNeeded) {
-              MutabilifyIE(innerIE, collapseCoord(RegionCounter.countCoord(resultFromOutsidePure), resultFromOutsidePure))
+              MutabilifyIE(innerIE, collapseCoord(RegionCounter.countCoord(resultFromOutsidePureIT), resultFromOutsidePureIT))
             } else {
               innerIE
             }
 
-          (resultFromOutsidePure, resultIE)
+          (resultFromOutsidePureIT, resultIE)
 
 //          MutabilifyIE(
 ////            location,
@@ -2180,17 +2198,11 @@ class Instantiator(
             DestroyIE(
               sourceIE,
               StructIT(RegionCollapser.collapseStructId(RegionCounter.countStructId(structIT), structIT)),
-              vimpl())
-//            structDef.members.zip(destinationReferenceVariables).map({
-//              case (NormalStructMemberT(_, _, ReferenceMemberTypeT(memberCoord)), destRefVarT) => {
-//                val destRefVar =
-//                  translateReferenceLocalVariable(
-//                    perspectiveRegionT, destRefVarT, memberCoord)
-//                env.addTranslatedVariable(destRefVar.name, destRefVar)
-//                destRefVar
-//              }
-//              case other => vimpl(other)
-//            }))
+              destinationReferenceVariables.map(destRefVarT => {
+                translateReferenceLocalVariable(
+                  denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions,
+                  perspectiveRegionT, destRefVarT)._2
+              }))
           (CoordI[sI](MutableShareI, VoidIT()), resultIE)
         }
         case DestroyStaticSizedArrayIntoLocalsTE(exprT, ssaTT, destinationReferenceVariables) => {
@@ -2206,15 +2218,11 @@ class Instantiator(
             DestroyStaticSizedArrayIntoLocalsIE(
               sourceIE,
               RegionCollapser.collapseStaticSizedArray(RegionCounter.countStaticSizedArray(ssaIT), ssaIT),
-              vimpl())
-//            destinationReferenceVariables.map(destRefVarT => {
-//              val destRefVar =
-//                translateReferenceLocalVariable(
-//                  perspectiveRegionT, destRefVarT, ssaTT.elementType)
-//              env.addTranslatedVariable(destRefVar.name, destRefVar)
-//              destRefVar
-//            }))
-          vimpl()
+            destinationReferenceVariables.map(destRefVarT => {
+              translateReferenceLocalVariable(
+                denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, destRefVarT)._2
+            }))
+          (CoordI[sI](MutableShareI, VoidIT()), resultCE)
         }
         case MutateTE(destinationTT, sourceExpr) => {
           // DO NOT SUBMIT change all IE to CE like this one
@@ -2899,7 +2907,7 @@ class Instantiator(
           case CoordTemplataI(CoordI(innerOwnership, kind)) => {
             val combinedOwnership =
               ((outerOwnership, innerOwnership) match {
-//                case (OwnT, OwnT) => OwnT
+                case (OwnT, OwnI) => OwnT
 //                case (OwnT, BorrowT) => BorrowT
 //                case (BorrowT, OwnT) => BorrowT
 //                case (BorrowT, BorrowT) => BorrowT
@@ -2928,11 +2936,11 @@ class Instantiator(
 //                    ImmutableShareI
 //                  }
 //                }
-                case other => other
+                case OwnT => OwnI
+                case other => vimpl(other)
               }
-            vimpl()
 //            vassert(innerRegion == translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, outerRegion))
-//            CoordT(combinedOwnership, innerRegion, kind)
+            CoordI(combinedOwnership, kind)
           }
           case KindTemplataI(kind) => {
 //            val newOwnership =
@@ -3118,10 +3126,9 @@ class Instantiator(
 
     // We use newPerspectiveRegionT for these because of TTTDRM.
     val ssaRegion = ITemplataI.expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, ssaRegionT))
-    if (ssaRegion != vimpl()) {//RegionTemplataI(true)) {
-      expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, ssaRegionT))
-    }
-    vassert(ssaRegion == RegionTemplataI(vimpl()))//true)) // Everything sees itself as mutable, see TTTDRM and CTOTFIPB.
+    // We dont have this assert because this might be a templata deep in a struct or function's
+    // name, so the heights might actually be negative.
+    // vassert(Some(ssaRegion.pureHeight) == newPerspectiveRegionT.localName.pureHeight)
     val intTemplata = ITemplataI.expectIntegerTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, sizeT)).value
     val variabilityTemplata = ITemplataI.expectVariabilityTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, variabilityT)).variability
     val mutabilityTemplata =
@@ -3166,7 +3173,9 @@ class Instantiator(
 
     // We use newPerspectiveRegionT for these because of TTTDRM.
     val rsaRegion = ITemplataI.expectRegionTemplata(translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, rsaRegionT))
-    vassert(rsaRegion == vimpl())//RegionTemplataI(true)) // Everything sees itself as mutable, see TTTDRM and CTOTFIPB.
+    // We dont have this assert because this might be a templata deep in a struct or function's
+    // name, so the heights might actually be negative.
+    // vassert(Some(ssaRegion.pureHeight) == newPerspectiveRegionT.localName.pureHeight)
     val mutabilityTemplata =
       ITemplataI.expectMutabilityTemplata(
         translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, newPerspectiveRegionT, mutabilityT)).mutability
