@@ -1736,16 +1736,16 @@ class Instantiator(
           ITemplataI.expectRegionTemplata(
             translateTemplata(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, memberCoordT.region))
 
-        val resultOwnership =
-          (memberCoordI.ownership, resultRegion) match {
-            case (OwnI, RegionTemplataI(_)) => OwnI
-//            case (MutableShareI, RegionTemplataI(true)) => MutableShareI
-//            case (MutableShareI, RegionTemplataI(false)) => ImmutableShareI
-            case (ImmutableShareI, _) => ImmutableShareI
-            case other => vimpl(other)
-          }
+//        val resultOwnership =
+//          (memberCoordI.ownership, resultRegion) match {
+//            case (OwnI, RegionTemplataI(_)) => OwnI
+////            case (MutableShareI, RegionTemplataI(true)) => MutableShareI
+////            case (MutableShareI, RegionTemplataI(false)) => ImmutableShareI
+//            case (ImmutableShareI, _) => ImmutableShareI
+//            case other => vimpl(other)
+//          }
 
-        val resultSubjectiveIT = CoordI(resultOwnership, memberCoordI.kind)
+        val resultSubjectiveIT = memberCoordI
         val resultIE =
           ReferenceMemberLookupIE(
             range,

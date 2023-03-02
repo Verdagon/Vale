@@ -55,7 +55,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("y")), _, coord), _, _) => coord
       })
     yType match {
-      case CoordI(ImmutableShareI,IntIT(32)) =>
+      case CoordI(MutableShareI,IntIT(32)) =>
     }
 
     // We don't evaluate the program, its main takes in a struct which is impossible
@@ -104,7 +104,7 @@ class PureTests extends FunSuite with Matchers {
         case LetNormalIE(ReferenceLocalVariableI(CodeVarNameI(StrI("y")), _, coord), _, _) => coord
       })
     yType match {
-      case CoordI(ImmutableShareI,IntIT(32)) =>
+      case CoordI(MutableShareI,IntIT(32)) =>
     }
 
     compile.evalForKind(Vector()) match { case VonInt(10) => }

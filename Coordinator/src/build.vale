@@ -287,7 +287,10 @@ func build_stuff(compiler_dir &Path, all_args &Array<imm, str>) {
   project_non_vale_input_declarations = List<ProjectNonValeInputDeclaration>();
 
   if not no_std {
+    println("including stdlib!");
     project_directory_declarations.add(ProjectDirectoryDeclaration("stdlib", compiler_dir./("stdlib")./("src")));
+  } else {
+    println("not including stdlib!");
   }
 
 

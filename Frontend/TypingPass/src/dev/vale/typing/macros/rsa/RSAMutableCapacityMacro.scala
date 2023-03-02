@@ -45,7 +45,6 @@ class RSAMutableCapacityMacro(interner: Interner, keywords: Keywords) extends IF
 //        env.lookupNearestWithImpreciseName(
 //          interner.intern(RuneNameS(CodeRuneS(keywords.E))), Set(TemplataLookupContext)))
 
-    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(

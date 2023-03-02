@@ -6,12 +6,12 @@ import v.builtins.runtime_sized_array_pop.*;
 import v.builtins.runtime_sized_array_len.*;
 
 func MakeBoard(rand_seed int) [][]bool {
-  rows = [][]bool(2);
+  rows = [][]bool(5);
   row_i = 0;
-  while row_i < 2 {
-    row = []bool(2);
+  while row_i < 5 {
+    row = []bool(5);
     col_i = 0;
-    while col_i < 2 {
+    while col_i < 5 {
       random_bool = true;
       // Implicit & causes a gen check in push. Inlining will fix.
       row.push(random_bool);
@@ -25,10 +25,10 @@ func MakeBoard(rand_seed int) [][]bool {
 
 pure func Display<r' imm>(map &r'[][]bool) {
   row_i = 0;
-  while row_i < 2 {
+  while row_i < 5 {
     row = map[row_i];
     col_i = 0;
-    while col_i < 2 {
+    while col_i < 5 {
       walkable = row[col_i];
       if walkable {
         print(".");
