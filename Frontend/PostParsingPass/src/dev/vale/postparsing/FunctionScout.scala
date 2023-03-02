@@ -436,7 +436,7 @@ class FunctionScout(
                     GenericParameterS(
                       param.pattern.range,
                       coordRune,
-                      OtherGenericParameterTypeS(CoordTemplataType()),
+                      CoordGenericParameterTypeS(None, true),
                       None))
                 })
               (extraGenericParamsFromBodyS, Some(closureParamS), magicParams)

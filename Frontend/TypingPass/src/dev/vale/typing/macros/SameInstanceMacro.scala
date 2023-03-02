@@ -34,7 +34,6 @@ class SameInstanceMacro(keywords: Keywords) extends IFunctionBodyMacro {
         paramCoords,
         maybeRetCoord.get,
         Some(env.templata))
-    vimpl() // pure?
     val body =
       BlockTE(
         ReturnTE(
