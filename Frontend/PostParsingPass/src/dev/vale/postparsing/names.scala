@@ -157,6 +157,7 @@ case class LocalDefaultRegionRuneS(lid: LocationInDenizen) extends IRuneS
 // but it's also evaluating the rules for the struct. Best not mix them up.
 case class DenizenDefaultRegionRuneS(denizenName: INameS) extends IRuneS
 case class ExportDefaultRegionRuneS(denizenName: INameS) extends IRuneS
+case class ExternDefaultRegionRuneS(denizenName: INameS) extends IRuneS
 case class ImplicitCoercionOwnershipRuneS(range: RangeS, originalCoordRune: IRuneS) extends IRuneS {  }
 case class ImplicitCoercionKindRuneS(range: RangeS, originalCoordRune: IRuneS) extends IRuneS {  }
 case class ImplicitCoercionTemplateRuneS(range: RangeS, originalKindRune: IRuneS) extends IRuneS {  }

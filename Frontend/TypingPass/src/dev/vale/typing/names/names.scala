@@ -353,9 +353,11 @@ case class ExternTemplateNameT(
 ) extends ITemplateNameT
 
 case class ExternNameT(
-  template: ExportTemplateNameT,
-  templateArgs: Vector[ITemplataT[ITemplataType]]
-) extends IInstantiationNameT
+  template: ExternTemplateNameT,
+  templateArg: ITemplataT[ITemplataType]
+) extends IInstantiationNameT {
+  override def templateArgs: Vector[ITemplataT[ITemplataType]] = Vector(templateArg)
+}
 
 case class ExternFunctionNameT(
   humanName: StrI,

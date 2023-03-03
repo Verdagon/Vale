@@ -471,7 +471,7 @@ class FunctionScout(
       filteredAttrs.map({
         case AbstractAttributeP(_) => vwat() // Should have been filtered out, typingpass cares about abstract directly
         case ExportAttributeP(_) => ExportS(file.packageCoordinate, ExportDefaultRegionRuneS(funcName))
-        case ExternAttributeP(_) => ExternS(file.packageCoordinate)
+        case ExternAttributeP(_) => ExternS(file.packageCoordinate, ExternDefaultRegionRuneS(funcName))
         case PureAttributeP(_) => PureS
         case BuiltinAttributeP(_, generatorName) => BuiltinS(generatorName.str)
         case x => vimpl(x.toString)

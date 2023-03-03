@@ -145,7 +145,7 @@ class FunctionCompilerCore(
               fullEnv.function.range,
               translateFunctionAttributes(
                 fullEnv.function.attributes.filter({
-                  case ExternS(_) => false
+                  case ExternS(_, _) => false
                   case _ => true
                 })),
               params2,

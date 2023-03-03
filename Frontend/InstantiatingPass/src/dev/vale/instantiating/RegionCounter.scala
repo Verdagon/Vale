@@ -123,6 +123,9 @@ object RegionCounter {
       case ExportNameI(template, region) => {
         counter.count(region)
       }
+      case ExternNameI(template, region) => {
+        counter.count(region)
+      }
       case StructNameI(template, templateArgs) => {
         templateArgs.foreach(arg => countTemplata(counter, arg))
       }
@@ -167,6 +170,7 @@ object RegionCounter {
       case VoidIT() =>
       case IntIT(_) =>
       case BoolIT() =>
+      case FloatIT() =>
       case StrIT() =>
       case StructIT(id) => countStructId(counter, id)
       case StaticSizedArrayIT(ssaId) => {
@@ -266,6 +270,12 @@ object RegionCounter {
   def countExportId(idI: IdI[sI, ExportNameI[sI]]): Map[Int, Int] = {
     val counter = new RegionCounter.Counter()
     RegionCounter.countId(counter, idI, (x: ExportNameI[sI]) => RegionCounter.countName(counter, x))
+    counter.assembleMap()
+  }
+
+  def countExternId(idI: IdI[sI, ExternNameI[sI]]): Map[Int, Int] = {
+    val counter = new RegionCounter.Counter()
+    RegionCounter.countId(counter, idI, (x: ExternNameI[sI]) => RegionCounter.countName(counter, x))
     counter.assembleMap()
   }
 

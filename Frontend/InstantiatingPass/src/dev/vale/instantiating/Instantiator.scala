@@ -151,11 +151,6 @@ class Instantiator(
 
     val functionExportsI =
       functionExportsT.map({ case FunctionExportT(range, prototypeT, exportPlaceholderedIdT, exportedName) =>
-        //      val packageName = IdT(exportId.packageCoord, Vector(), interner.intern(PackageTopLevelNameT()))
-        //      val exportName =
-        //        packageName.addStep(
-        //          interner.intern(ExportNameT(interner.intern(ExportTemplateNameT(range.begin)), )))
-
         val perspectiveRegionT =
           exportPlaceholderedIdT.localName.templateArgs.last match {
             case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
@@ -163,16 +158,6 @@ class Instantiator(
             }
             case _ => vwat()
           }
-        val currentPureHeight = 0
-
-        val functionTemplateId = TemplataCompiler.getFunctionTemplate(prototypeT.toSignature.id)
-        val functionTemplate =
-          vassertSome(hinputs.lookupFunction(functionTemplateId.localName))
-        val maybeNearestPureBlockLocation =
-          if (functionTemplate.isPure) Some(LocationInDenizen(Vector())) else None
-
-
-//        val IdT(packageCoord, steps,  = exportPlaceholderedIdT
 
         val exportIdI =
           translateId[ExportNameT, ExportNameI[sI]](
@@ -181,33 +166,14 @@ class Instantiator(
               ExportNameI(ExportTemplateNameI(codeLoc), RegionTemplataI(0))
             })
         val exportIdC =
-          RegionCollapser.collapseId[ExportNameI[sI], ExportNameI[cI]](
-            RegionCounter.countExportId(exportIdI),
-            exportIdI,
-            { case ExportNameI(ExportTemplateNameI(codeLoc), RegionTemplataI(pureHeight)) =>
-              ExportNameI(ExportTemplateNameI(codeLoc), RegionTemplataI(pureHeight))
-            })
+          RegionCollapser.collapseExportId(RegionCounter.countExportId(exportIdI), exportIdI)
 
         val exportTemplateIdT = TemplataCompiler.getExportTemplate(exportPlaceholderedIdT)
-//        val exportTemplateNameT = exportTemplateIdT.localName
-//        val exportTemplateIdI = translateId(exportTemplateIdT, translateExportTemplateName)
 
-        //        val instantiator =
-        //          new Instantiator(
-        //            opts,
-        //            interner,
-        //            keywords,
-        //            hinputs,
-        //            monouts,
-        //            exportTemplateIdT,
-        //            exportPlaceholderedIdT,
-        //            DenizenBoundToDenizenCallerBoundArgI(Map(), Map()))
         val substitutions =
           Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
             exportTemplateIdT -> assemblePlaceholderMap(exportPlaceholderedIdT, exportIdI))
-        //            exportTemplateIdT -> instantiator.assemblePlaceholderMap(hinputs, exportPlaceholderedIdT))
-//        Collector.all(exportIdI, { case PlaceholderTemplataT(_, _) => vwat() })
-        //        val prototype = instantiator.translatePrototype(denizenName, denizenBoundToDenizenCallerSuppliedThing, substitutions, perspectiveRegionT, prototypeT)
+
         val (_, prototypeC) =
           translatePrototype(
             exportPlaceholderedIdT,
@@ -216,22 +182,44 @@ class Instantiator(
             perspectiveRegionT,
             prototypeT)
         Collector.all(prototypeC, { case PlaceholderTemplataT(_, _) => vwat() })
-        FunctionExportI(
-          range,
-          prototypeC,
-          exportIdC,
-          exportedName)
+        FunctionExportI(range, prototypeC, exportIdC, exportedName)
       })
 
-    val functionExternsI = Vector()
-//    val funcExternsI =
-//      functionExternsT.map({ case FunctionExternT(_, prototypeT, externName) =>
-//        FunctionExternI(
-//          translatePrototype(
-//
-//          )
-//        )
-//      })
+    val funcExternsI =
+      functionExternsT.map({ case FunctionExternT(range, externPlaceholderedIdT, prototypeT, externedName) =>
+        val perspectiveRegionT =
+          externPlaceholderedIdT.localName.templateArgs.last match {
+            case PlaceholderTemplataT(IdT(packageCoord, initSteps, r @ RegionPlaceholderNameT(_, _, _)), RegionTemplataType()) => {
+              IdT(packageCoord, initSteps, r)
+            }
+            case _ => vwat()
+          }
+
+        val externIdI =
+          translateId[ExternNameT, ExternNameI[sI]](
+            externPlaceholderedIdT,
+            { case ExternNameT(ExternTemplateNameT(codeLoc), PlaceholderTemplataT(_, RegionTemplataType())) =>
+              ExternNameI(ExternTemplateNameI(codeLoc), RegionTemplataI(0))
+            })
+        val externIdC =
+          RegionCollapser.collapseExternId(RegionCounter.countExternId(externIdI), externIdI)
+
+        val externTemplateIdT = TemplataCompiler.getExternTemplate(externPlaceholderedIdT)
+
+        val substitutions =
+          Map[IdT[INameT], Map[IdT[IPlaceholderNameT], ITemplataI[sI]]](
+            externTemplateIdT -> assemblePlaceholderMap(externPlaceholderedIdT, externIdI))
+
+        val (_, prototypeC) =
+          translatePrototype(
+            externPlaceholderedIdT,
+            DenizenBoundToDenizenCallerBoundArgI(Map(), Map()),
+            substitutions,
+            perspectiveRegionT,
+            prototypeT)
+        Collector.all(prototypeC, { case PlaceholderTemplataT(_, _) => vwat() })
+        FunctionExternI(prototypeC, externedName)
+      })
 
     while ({
       // We make structs and interfaces eagerly as we come across them
@@ -333,7 +321,7 @@ class Instantiator(
 //        Map(),
         kindExportsI,
         functionExportsI,
-        functionExternsI)
+        funcExternsI)
 
     if (opts.sanityCheck) {
       Collector.all(resultHinputs, {

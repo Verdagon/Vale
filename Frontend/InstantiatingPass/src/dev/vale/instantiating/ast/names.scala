@@ -132,6 +132,14 @@ case class ExportNameI[R <: IRegionsModeI](
   override def templateArgs: Vector[ITemplataI[R]] = Vector(region)
 }
 
+case class ExternTemplateNameI[R <: IRegionsModeI](codeLoc: CodeLocationS) extends ITemplateNameI[R]
+case class ExternNameI[R <: IRegionsModeI](
+  template: ExternTemplateNameI[R],
+  region: RegionTemplataI[R]
+) extends IInstantiationNameI[R] {
+  override def templateArgs: Vector[ITemplataI[R]] = Vector(region)
+}
+
 case class ImplTemplateNameI[R <: IRegionsModeI](codeLocationS: CodeLocationS) extends IImplTemplateNameI[R] {
   vpass()
 //  override def makeImplName(templateArgs: Vector[ITemplataI[R]], subCitizen: ICitizenIT): ImplNameI = {

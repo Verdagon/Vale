@@ -280,10 +280,9 @@ LLVMValueRef HybridGenerationalMemory::lockGenFatPtr(
 //  auto fatPtrLE = weakRefLE;
   auto innerLE = fatWeaks.getInnerRefFromWeakRef(functionState, builder, refM, weakFatPtrLE);
 
-  if (knownLive && elideChecksForKnownLive) {
+  if ((knownLive || refM->ownership == Ownership::IMMUTABLE_SHARE || refM->ownership == Ownership::IMMUTABLE_BORROW) && elideChecksForKnownLive) {
     globalState->getRegion(refM)
         ->checkValidReference(FL(), functionState, builder, true, refM, ref);
-
     // Do nothing
   } else {
     if (globalState->opt->printMemOverhead) {

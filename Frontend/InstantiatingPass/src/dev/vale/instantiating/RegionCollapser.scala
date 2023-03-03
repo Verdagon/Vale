@@ -124,6 +124,7 @@ object RegionCollapser {
       case VoidIT() => VoidIT()
       case IntIT(x) => IntIT(x)
       case BoolIT() => BoolIT()
+      case FloatIT() => FloatIT()
       case StrIT() => StrIT()
       case StructIT(id) => StructIT(collapseStructId(map, id))
       case ssa @ StaticSizedArrayIT(_) => collapseStaticSizedArray(map, ssa)
@@ -182,6 +183,34 @@ object RegionCollapser {
         StructNameI(
           collapseStructTemplateName(map, template),
           templateArgs.map(collapseTemplata(map, _)))
+      })
+  }
+
+  def collapseExportId(
+    map: Map[Int, Int],
+    structId: IdI[sI, ExportNameI[sI]]):
+  IdI[cI, ExportNameI[cI]] = {
+    collapseId[ExportNameI[sI], ExportNameI[cI]](
+      map,
+      structId,
+      { case ExportNameI(ExportTemplateNameI(codeLoc), templateArg) =>
+        ExportNameI(
+          ExportTemplateNameI(codeLoc),
+          collapseRegionTemplata(map, templateArg))
+      })
+  }
+
+  def collapseExternId(
+    map: Map[Int, Int],
+    structId: IdI[sI, ExternNameI[sI]]):
+  IdI[cI, ExternNameI[cI]] = {
+    collapseId[ExternNameI[sI], ExternNameI[cI]](
+      map,
+      structId,
+      { case ExternNameI(ExternTemplateNameI(codeLoc), templateArg) =>
+        ExternNameI(
+          ExternTemplateNameI(codeLoc),
+          collapseRegionTemplata(map, templateArg))
       })
   }
 

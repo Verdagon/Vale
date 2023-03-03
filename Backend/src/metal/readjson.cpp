@@ -217,13 +217,13 @@ Ownership readUnconvertedOwnership(MetalCache* cache, const json& ownership) {
   if (ownership["__type"].get<std::string>() == "Own") {
     return Ownership::OWN;
   } else if (ownership["__type"].get<std::string>() == "ImmutableBorrow") {
-//    return Ownership::IMMUTABLE_BORROW;
-    return Ownership::MUTABLE_BORROW;
+    return Ownership::IMMUTABLE_BORROW;
+//    return Ownership::MUTABLE_BORROW;
   } else if (ownership["__type"].get<std::string>() == "MutableBorrow") {
     return Ownership::MUTABLE_BORROW;
   } else if (ownership["__type"].get<std::string>() == "ImmutableShare") {
-//    return Ownership::IMMUTABLE_SHARE;
-    return Ownership::MUTABLE_SHARE;
+    return Ownership::IMMUTABLE_SHARE;
+//    return Ownership::MUTABLE_SHARE;
   } else if (ownership["__type"].get<std::string>() == "MutableShare") {
     return Ownership::MUTABLE_SHARE;
   } else if (ownership["__type"].get<std::string>() == "Weak") {

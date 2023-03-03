@@ -542,6 +542,36 @@ case class ExportEnvironment(
   }
 }
 
+case class ExternEnvironment(
+  globalEnv: GlobalEnvironment,
+  parentEnv: PackageEnvironment[INameT],
+  id: IdT[INameT],
+  //  defaultRegion: ITemplata[RegionTemplataType],
+  templatas: TemplatasStore
+) extends IInDenizenEnvironment {
+  override def rootCompilingDenizenEnv: IInDenizenEnvironment = this
+  override def denizenId: IdT[INameT] = id
+  override def pureHeight: Int = 0
+
+  override def lookupWithNameInner(
+    name: INameT,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplataT[ITemplataType]] = {
+    EnvironmentHelper.lookupWithNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+  }
+
+  override def lookupWithImpreciseNameInner(
+    name: IImpreciseNameS,
+    lookupFilter: Set[ILookupContext],
+    getOnlyNearest: Boolean):
+  Iterable[ITemplataT[ITemplataType]] = {
+    EnvironmentHelper.lookupWithImpreciseNameInner(
+      this, templatas, parentEnv, name, lookupFilter, getOnlyNearest)
+  }
+}
+
 case class GeneralEnvironment[+T <: INameT](
   globalEnv: GlobalEnvironment,
   parentEnv: IInDenizenEnvironment,
