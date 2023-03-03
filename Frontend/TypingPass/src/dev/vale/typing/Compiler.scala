@@ -979,8 +979,100 @@ class Compiler(
               entry match {
                 case FunctionEnvEntry(functionA) => {
                   val templata = FunctionTemplataT(packageEnv, functionA)
-                  functionCompiler.evaluateGenericFunctionFromNonCall(
-                    coutputs, List(), LocationInDenizen(Vector()), templata, true)
+                  val header =
+                    functionCompiler.evaluateGenericFunctionFromNonCall(
+                      coutputs, List(), LocationInDenizen(Vector()), templata, true)
+
+                  functionA.attributes.collectFirst({ case e @ ExternS(_, _) => e }) match {
+                    case None =>
+                    case Some(ExternS(packageCoord, defaultRegionRune)) => {
+                      val externName =
+                        functionA.name match {
+                          case FunctionNameS(name, range) => name
+                          case other => vwat(other)
+                        }
+
+                      val templateName = interner.intern(ExternTemplateNameT(functionA.range.begin))
+                      val templateId = IdT(packageId.packageCoord, Vector(), templateName)
+
+                      // We later look for Some(0) to know if a region is mutable or not, see RGPPHASZ.
+                      val regionPlaceholder =
+                        templataCompiler.createRegionPlaceholderInner(
+                          templateId, 0, defaultRegionRune, Some(0))
+
+                      val placeholderedExternName = interner.intern(ExternNameT(templateName, regionPlaceholder))
+                      val placeholderedExternId = templateId.copy(localName = placeholderedExternName)
+                      val externEnv =
+                        ExternEnvironment(
+                          globalEnv, packageEnv, placeholderedExternId, TemplatasStore(placeholderedExternId, Map(), Map()))
+                      // We evaluate this and then don't do anything for it on purpose, we just do
+                      // this to cause the compiler to make instantiation bounds for all the types
+                      // in terms of this extern. That way, further below, when we do the
+                      // substituting templatas, the bounds are already made for these types.
+                      val externPlaceholderedWrapperPrototype =
+                        functionCompiler.evaluateGenericLightFunctionFromCallForPrototype(
+                          coutputs, List(functionA.range), LocationInDenizen(Vector()), externEnv, templata, Vector(regionPlaceholder), regionPlaceholder, Vector()) match {
+                          case EvaluateFunctionSuccess(prototype, inferences) => prototype.prototype
+                          case EvaluateFunctionFailure(reason) => {
+                            throw CompileErrorExceptionT(CouldntEvaluateFunction(List(functionA.range), reason))
+                          }
+                        }
+
+//                      val externPerspectivedParams =
+//                        header.params.map(_.tyype).map(typeT => {
+//                          TemplataCompiler.substituteTemplatasInCoord(
+//                            coutputs,
+//                            interner,
+//                            keywords,
+//                            TemplataCompiler.getTemplate(header.id),
+//                            Vector(regionPlaceholder),
+//                            InheritBoundsFromTypeItself,
+//                            typeT)
+//                        })
+//                      val externPerspectivedReturn =
+//                        TemplataCompiler.substituteTemplatasInCoord(
+//                          coutputs,
+//                          interner,
+//                          keywords,
+//                          TemplataCompiler.getTemplate(header.id),
+//                          Vector(regionPlaceholder),
+//                          InheritBoundsFromTypeItself,
+//                          header.returnType)
+//                      val externFunctionId =
+//                        IdT(
+//                          packageCoord,
+//                          Vector.empty,
+//                          interner.intern(ExternFunctionNameT(
+//                            externName, externPerspectivedParams)))
+//                      val externPrototype = PrototypeT(externFunctionId, externPerspectivedReturn)
+
+                      // We don't actually want to call the wrapper function, we want to call the extern.
+                      // The extern's prototype is always similar to the wrapper function, so we do
+                      // a straightforward replace of the names.
+                      // We don't have to worry about placeholders, they're already phrased in terms
+                      // of the calling FunctionExternT.
+                      val externPrototype =
+                        externPlaceholderedWrapperPrototype match {
+                          case PrototypeT(IdT(packageCoord, steps, FunctionNameT(FunctionTemplateNameT(humanName, codeLocation), templateArgs, params)), returnType) => {
+                            PrototypeT(
+                              IdT(
+                                packageCoord,
+                                steps,
+                                interner.intern(ExternFunctionNameT(humanName, params))),
+                              returnType)
+                          }
+                          case other => vwat(other)
+                        }
+                      // Though, we do need to add some instantiation bounds for this new IdT we
+                      // just made.
+                      coutputs.addInstantiationBounds(
+                        externPrototype.id,
+                        vassertSome(coutputs.getInstantiationBounds(externPlaceholderedWrapperPrototype.id)))
+
+                      coutputs.addFunctionExtern(
+                        functionA.range, placeholderedExternId, externPrototype, externName)
+                    }
+                  }
 
                   val maybeExport =
                     functionA.attributes.collectFirst { case e@ExportS(_, _) => e }
@@ -1434,7 +1526,7 @@ class Compiler(
     }
     functionA.attributes.exists({
       case ExportS(_, _) => true
-      case ExternS(_) => true
+      case ExternS(_, _) => true
       case _ => false
     })
   }

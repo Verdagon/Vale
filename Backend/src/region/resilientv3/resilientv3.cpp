@@ -217,9 +217,10 @@ WrapperPtrLE ResilientV3::lockWeakRef(
     Ref weakRefLE,
     bool weakRefKnownLive) {
   switch (refM->ownership) {
-    case Ownership::OWN:
     case Ownership::IMMUTABLE_SHARE:
-    case Ownership::MUTABLE_SHARE: {
+    case Ownership::MUTABLE_SHARE:
+      assert(false); // curious
+    case Ownership::OWN: {
       auto objPtrLE = weakRefLE;
       auto weakFatPtrLE =
           checkValidReference(
@@ -829,9 +830,10 @@ Ref ResilientV3::loadMember(
               builder, structRefLE, memberIndex, memberName.c_str()));
     } else {
       switch (structRefMT->ownership) {
-        case Ownership::OWN:
         case Ownership::IMMUTABLE_SHARE:
-        case Ownership::MUTABLE_SHARE: {
+        case Ownership::MUTABLE_SHARE:
+          assert(false); // curious
+        case Ownership::OWN: {
           globalState->getRegion(structRefMT)
               ->checkValidReference(FL(), functionState, builder, true, structRefMT, structRef);
           auto unupgradedMemberLE =

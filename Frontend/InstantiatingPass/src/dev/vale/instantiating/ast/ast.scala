@@ -85,6 +85,8 @@ case class FunctionExternI(
 //  packageCoordinate: PackageCoordinate,
   externName: StrI
 )  {
+  vpass()
+
   override def equals(obj: Any): Boolean = vcurious(); override def hashCode(): Int = vcurious()
 
 }

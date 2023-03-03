@@ -1,7 +1,6 @@
 package dev.vale.finalast
 
-import dev.vale.{vassert, vcurious, vfail, vwat}
-import dev.vale.vimpl
+import dev.vale.{vassert, vcurious, vfail, vimpl, vpass, vwat}
 
 // Common trait for all instructions.
 sealed trait ExpressionH[+T <: KindHT] {
@@ -468,6 +467,8 @@ case class ExternCallH(
   // Expressions containing the arguments to pass to the function.
   argsExpressions: Vector[ExpressionH[KindHT]]
 ) extends ExpressionH[KindHT] {
+  vpass()
+
   // See BRCOBS, no arguments should be Never.
   argsExpressions.foreach(expr => {
     expr.resultType.kind match { case NeverHT(_) => vwat() case _ => }

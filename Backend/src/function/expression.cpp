@@ -792,6 +792,9 @@ Ref translateExpressionInner(
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name());
     return translateStaticArrayFromCallable(globalState, functionState, blockState, builder, staticArrayFromCallable);
   } else if (auto call = dynamic_cast<Call*>(expr)) {
+    if (call->function->name->name == "len_1" || call->function->name->name == "len_2") {
+      std::cout << "calling length!" << std::endl; // DO NOT SUBMIT
+    }
     buildFlare(FL(), globalState, functionState, builder, typeid(*expr).name(), " ", call->function->name->name);
     auto resultLE = translateCall(globalState, functionState, blockState, builder, call);
 //    buildFlare(FL(), globalState, functionState, builder, "/", typeid(*expr).name(), " ", call->function->name->name);

@@ -385,6 +385,14 @@ object TemplataCompiler {
       last.template)
   }
 
+  def getExternTemplate(id: IdT[ExternNameT]): IdT[ExternTemplateNameT] = {
+    val IdT(packageCoord, initSteps, last) = id
+    IdT(
+      packageCoord,
+      initSteps, //.map(getNameTemplate), // See GLIOGN for why we map the initSteps names too
+      last.template)
+  }
+
   def getImplTemplate(id: IdT[IImplNameT]): IdT[IImplTemplateNameT] = {
     val IdT(packageCoord, initSteps, last) = id
     IdT(

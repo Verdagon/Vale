@@ -5,54 +5,11 @@ import v.builtins.runtime_sized_array_push.*;
 import v.builtins.runtime_sized_array_pop.*;
 import v.builtins.runtime_sized_array_len.*;
 
-func MakeBoard(rand_seed int) [][]bool {
-  rows = [][]bool(5);
-  row_i = 0;
-  while row_i < 5 {
-    row = []bool(5);
-    col_i = 0;
-    while col_i < 5 {
-      random_bool = true;
-      // Implicit & causes a gen check in push. Inlining will fix.
-      row.push(random_bool);
-      set col_i = col_i + 1;
-    }
-    rows.push(row); // Same here.
-    set row_i = row_i + 1;
-  }
-  return rows;
-}
-
-pure func Display<r' imm>(map &r'[][]bool) {
-  row_i = 0;
-  while row_i < 5 {
-    row = map[row_i];
-    col_i = 0;
-    while col_i < 5 {
-      walkable = row[col_i];
-      if walkable {
-        print(".");
-      } else {
-        print("#");
-      }
-      set col_i = col_i + 1;
-    }
-    print("\n");
-    set row_i = row_i + 1;
-  }
-}
-
 exported func main() int {
   random_seed = 1337;
-  board_0 = MakeBoard(random_seed);
-  Display(&board_0);
-  while board_0.len() > 0 {
-    row = board_0.pop();
-    while row.len() > 0 {
-      row.pop();
-    }
-    [] = row;
-  }
+  board_0 = []bool(1);
+  board_0.push(true);
+  board_0.pop();
   [] = board_0;
   return 0;
 }

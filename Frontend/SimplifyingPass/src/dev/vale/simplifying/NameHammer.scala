@@ -70,10 +70,9 @@ class NameHammer(translateName: (HinputsI, HamutsBox, INameI[cI]) => IVonData) {
     val readableName = getReadableName(fullName2.localName)
 
     val id =
-      if (fullName2.localName.isInstanceOf[ExternFunctionNameI[cI]]) {
-        -1
-      } else {
-        hamuts.getNameId(readableName, packageCoord, newNameParts)
+      fullName2.localName match {
+        case ExternFunctionNameI(_, _) | ExternNameI(_, _) => -1
+        case _ => hamuts.getNameId(readableName, packageCoord, newNameParts)
       }
     finalast.IdH(readableName, id, packageCoord, newNameParts)
   }

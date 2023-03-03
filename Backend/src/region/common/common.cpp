@@ -1422,10 +1422,10 @@ LoadResult resilientLoadWeakMember(
     Reference* expectedMemberType,
     const std::string& memberName) {
   auto wrapperPtrLE =
-      globalState->getRegion(structRefMT)->lockWeakRef(
-          FL(), functionState, builder, structRefMT, structRef, structKnownLive);
-  auto innerStructPtrLE = kindStructs->getStructContentsPtr(builder,
-      structRefMT->kind, wrapperPtrLE);
+      globalState->getRegion(structRefMT)
+          ->lockWeakRef(FL(), functionState, builder, structRefMT, structRef, structKnownLive);
+  auto innerStructPtrLE =
+      kindStructs->getStructContentsPtr(builder, structRefMT->kind, wrapperPtrLE);
   return loadInnerInnerStructMember(
       globalState, functionState, builder, innerStructPtrLE, memberIndex, expectedMemberType, memberName);
 }
